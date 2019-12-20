@@ -14,10 +14,13 @@ import (
 
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 
+	kubeapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	kubeapi "k8s.io/kubernetes/pkg/api/v1"
-	volutil "k8s.io/kubernetes/pkg/volume/util/volumehelper"
 )
+
+// VolumeGidAnnotationKey is the of the annotation on the PersistentVolume
+// object that specifies a supplemental GID.
+const VolumeGidAnnotationKey = "pv.beta.kubernetes.io/gid"
 
 func VolumeToPv(volume *api.VolumeInfoResponse,
 	name, endpoint string) *kubeapi.PersistentVolume {
@@ -30,7 +33,7 @@ func VolumeToPv(volume *api.VolumeInfoResponse,
 		kubeapi.ReadWriteMany,
 	}
 	pv.Spec.Capacity = make(kubeapi.ResourceList)
-	pv.Spec.Glusterfs = &kubeapi.GlusterfsVolumeSource{}
+	pv.Spec.Glusterfs = &kubeapi.GlusterfsPersistentVolumeSource{}
 
 	// Set path
 	pv.Spec.Capacity[kubeapi.ResourceStorage] =
@@ -54,7 +57,7 @@ func VolumeToPv(volume *api.VolumeInfoResponse,
 
 	gidStr := fmt.Sprintf("%v", volume.Gid)
 	pv.Annotations = map[string]string{
-		volutil.VolumeGidAnnotationKey: gidStr,
+		VolumeGidAnnotationKey: gidStr,
 	}
 
 	return pv

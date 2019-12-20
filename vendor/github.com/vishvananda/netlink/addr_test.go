@@ -5,9 +5,10 @@ package netlink
 import (
 	"net"
 	"os"
-	"syscall"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 func TestAddrAdd(t *testing.T) {
@@ -31,27 +32,27 @@ func DoTestAddr(t *testing.T, FunctionUndertest func(Link, *Addr) error) {
 	}{
 		{
 			&Addr{IPNet: address},
-			&Addr{IPNet: address, Label: "lo", Scope: syscall.RT_SCOPE_UNIVERSE, Flags: syscall.IFA_F_PERMANENT},
+			&Addr{IPNet: address, Label: "lo", Scope: unix.RT_SCOPE_UNIVERSE, Flags: unix.IFA_F_PERMANENT},
 		},
 		{
 			&Addr{IPNet: address, Label: "local"},
-			&Addr{IPNet: address, Label: "local", Scope: syscall.RT_SCOPE_UNIVERSE, Flags: syscall.IFA_F_PERMANENT},
+			&Addr{IPNet: address, Label: "local", Scope: unix.RT_SCOPE_UNIVERSE, Flags: unix.IFA_F_PERMANENT},
 		},
 		{
-			&Addr{IPNet: address, Flags: syscall.IFA_F_OPTIMISTIC},
-			&Addr{IPNet: address, Label: "lo", Flags: syscall.IFA_F_OPTIMISTIC | syscall.IFA_F_PERMANENT, Scope: syscall.RT_SCOPE_UNIVERSE},
+			&Addr{IPNet: address, Flags: unix.IFA_F_OPTIMISTIC},
+			&Addr{IPNet: address, Label: "lo", Flags: unix.IFA_F_OPTIMISTIC | unix.IFA_F_PERMANENT, Scope: unix.RT_SCOPE_UNIVERSE},
 		},
 		{
-			&Addr{IPNet: address, Flags: syscall.IFA_F_OPTIMISTIC | syscall.IFA_F_DADFAILED},
-			&Addr{IPNet: address, Label: "lo", Flags: syscall.IFA_F_OPTIMISTIC | syscall.IFA_F_DADFAILED | syscall.IFA_F_PERMANENT, Scope: syscall.RT_SCOPE_UNIVERSE},
+			&Addr{IPNet: address, Flags: unix.IFA_F_OPTIMISTIC | unix.IFA_F_DADFAILED},
+			&Addr{IPNet: address, Label: "lo", Flags: unix.IFA_F_OPTIMISTIC | unix.IFA_F_DADFAILED | unix.IFA_F_PERMANENT, Scope: unix.RT_SCOPE_UNIVERSE},
 		},
 		{
-			&Addr{IPNet: address, Scope: syscall.RT_SCOPE_NOWHERE},
-			&Addr{IPNet: address, Label: "lo", Flags: syscall.IFA_F_PERMANENT, Scope: syscall.RT_SCOPE_NOWHERE},
+			&Addr{IPNet: address, Scope: unix.RT_SCOPE_NOWHERE},
+			&Addr{IPNet: address, Label: "lo", Flags: unix.IFA_F_PERMANENT, Scope: unix.RT_SCOPE_NOWHERE},
 		},
 		{
 			&Addr{IPNet: address, Peer: peer},
-			&Addr{IPNet: address, Peer: peer, Label: "lo", Scope: syscall.RT_SCOPE_UNIVERSE, Flags: syscall.IFA_F_PERMANENT},
+			&Addr{IPNet: address, Peer: peer, Label: "lo", Scope: unix.RT_SCOPE_UNIVERSE, Flags: unix.IFA_F_PERMANENT},
 		},
 	}
 
@@ -236,6 +237,46 @@ func TestAddrSubscribeWithOptions(t *testing.T) {
 
 	// bring the interface up
 	if err = LinkSetUp(link); err != nil {
+		t.Fatal(err)
+	}
+
+	ip := net.IPv4(127, 0, 0, 1)
+	if !expectAddrUpdate(ch, true, ip) {
+		t.Fatal("Add update not received as expected")
+	}
+}
+
+func TestAddrSubscribeListExisting(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	ch := make(chan AddrUpdate)
+	done := make(chan struct{})
+	defer close(done)
+
+	// get loopback interface
+	link, err := LinkByName("lo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// bring the interface up
+	if err = LinkSetUp(link); err != nil {
+		t.Fatal(err)
+	}
+
+	var lastError error
+	defer func() {
+		if lastError != nil {
+			t.Fatalf("Fatal error received during subscription: %v", lastError)
+		}
+	}()
+	if err := AddrSubscribeWithOptions(ch, done, AddrSubscribeOptions{
+		ErrorCallback: func(err error) {
+			lastError = err
+		},
+		ListExisting: true,
+	}); err != nil {
 		t.Fatal(err)
 	}
 

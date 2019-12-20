@@ -1567,6 +1567,153 @@ func (dbap *DatabaseBlobAuditingPolicy) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// DatabaseBlobAuditingPolicyListResult a list of database auditing settings.
+type DatabaseBlobAuditingPolicyListResult struct {
+	autorest.Response `json:"-"`
+	// Value - READ-ONLY; Array of results.
+	Value *[]DatabaseBlobAuditingPolicy `json:"value,omitempty"`
+	// NextLink - READ-ONLY; Link to retrieve next page of results.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// DatabaseBlobAuditingPolicyListResultIterator provides access to a complete listing of
+// DatabaseBlobAuditingPolicy values.
+type DatabaseBlobAuditingPolicyListResultIterator struct {
+	i    int
+	page DatabaseBlobAuditingPolicyListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *DatabaseBlobAuditingPolicyListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DatabaseBlobAuditingPolicyListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *DatabaseBlobAuditingPolicyListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter DatabaseBlobAuditingPolicyListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter DatabaseBlobAuditingPolicyListResultIterator) Response() DatabaseBlobAuditingPolicyListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter DatabaseBlobAuditingPolicyListResultIterator) Value() DatabaseBlobAuditingPolicy {
+	if !iter.page.NotDone() {
+		return DatabaseBlobAuditingPolicy{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the DatabaseBlobAuditingPolicyListResultIterator type.
+func NewDatabaseBlobAuditingPolicyListResultIterator(page DatabaseBlobAuditingPolicyListResultPage) DatabaseBlobAuditingPolicyListResultIterator {
+	return DatabaseBlobAuditingPolicyListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (dbaplr DatabaseBlobAuditingPolicyListResult) IsEmpty() bool {
+	return dbaplr.Value == nil || len(*dbaplr.Value) == 0
+}
+
+// databaseBlobAuditingPolicyListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (dbaplr DatabaseBlobAuditingPolicyListResult) databaseBlobAuditingPolicyListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if dbaplr.NextLink == nil || len(to.String(dbaplr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(dbaplr.NextLink)))
+}
+
+// DatabaseBlobAuditingPolicyListResultPage contains a page of DatabaseBlobAuditingPolicy values.
+type DatabaseBlobAuditingPolicyListResultPage struct {
+	fn     func(context.Context, DatabaseBlobAuditingPolicyListResult) (DatabaseBlobAuditingPolicyListResult, error)
+	dbaplr DatabaseBlobAuditingPolicyListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *DatabaseBlobAuditingPolicyListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DatabaseBlobAuditingPolicyListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.dbaplr)
+	if err != nil {
+		return err
+	}
+	page.dbaplr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *DatabaseBlobAuditingPolicyListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page DatabaseBlobAuditingPolicyListResultPage) NotDone() bool {
+	return !page.dbaplr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page DatabaseBlobAuditingPolicyListResultPage) Response() DatabaseBlobAuditingPolicyListResult {
+	return page.dbaplr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page DatabaseBlobAuditingPolicyListResultPage) Values() []DatabaseBlobAuditingPolicy {
+	if page.dbaplr.IsEmpty() {
+		return nil
+	}
+	return *page.dbaplr.Value
+}
+
+// Creates a new instance of the DatabaseBlobAuditingPolicyListResultPage type.
+func NewDatabaseBlobAuditingPolicyListResultPage(getNextPage func(context.Context, DatabaseBlobAuditingPolicyListResult) (DatabaseBlobAuditingPolicyListResult, error)) DatabaseBlobAuditingPolicyListResultPage {
+	return DatabaseBlobAuditingPolicyListResultPage{fn: getNextPage}
+}
+
 // DatabaseBlobAuditingPolicyProperties properties of a database blob auditing policy.
 type DatabaseBlobAuditingPolicyProperties struct {
 	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint or isAzureMonitorTargetEnabled are required. Possible values include: 'BlobAuditingPolicyStateEnabled', 'BlobAuditingPolicyStateDisabled'
@@ -1640,7 +1787,7 @@ type DatabaseBlobAuditingPolicyProperties struct {
 	// IsStorageSecondaryKeyInUse - Specifies whether storageAccountAccessKey value is the storage's secondary key.
 	IsStorageSecondaryKeyInUse *bool `json:"isStorageSecondaryKeyInUse,omitempty"`
 	// IsAzureMonitorTargetEnabled - Specifies whether audit events are sent to Azure Monitor.
-	// In order to send the events to Azure Monitor, specify 'State' as 'Enabled' and 'IsAzureMonitorTargetEnabled' as true.
+	// In order to send the events to Azure Monitor, specify 'state' as 'Enabled' and 'isAzureMonitorTargetEnabled' as true.
 	//
 	// When using REST API to configure auditing, Diagnostic Settings with 'SQLSecurityAuditEvents' diagnostic logs category on the database should be also created.
 	// Note that for server level audit you should use the 'master' database as {databaseName}.
@@ -3022,7 +3169,7 @@ func (epu *ElasticPoolUpdate) UnmarshalJSON(body []byte) error {
 // EncryptionProtector the server encryption protector.
 type EncryptionProtector struct {
 	autorest.Response `json:"-"`
-	// Kind - Kind of encryption protector. This is metadata used for the Azure portal experience.
+	// Kind - READ-ONLY; Kind of encryption protector. This is metadata used for the Azure portal experience.
 	Kind *string `json:"kind,omitempty"`
 	// Location - READ-ONLY; Resource location.
 	Location *string `json:"location,omitempty"`
@@ -3039,9 +3186,6 @@ type EncryptionProtector struct {
 // MarshalJSON is the custom marshaler for EncryptionProtector.
 func (ep EncryptionProtector) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if ep.Kind != nil {
-		objectMap["kind"] = ep.Kind
-	}
 	if ep.EncryptionProtectorProperties != nil {
 		objectMap["properties"] = ep.EncryptionProtectorProperties
 	}
@@ -3304,6 +3448,29 @@ func (future *EncryptionProtectorsCreateOrUpdateFuture) Result(client Encryption
 			err = autorest.NewErrorWithError(err, "sql.EncryptionProtectorsCreateOrUpdateFuture", "Result", ep.Response.Response, "Failure responding to request")
 		}
 	}
+	return
+}
+
+// EncryptionProtectorsRevalidateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type EncryptionProtectorsRevalidateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *EncryptionProtectorsRevalidateFuture) Result(client EncryptionProtectorsClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.EncryptionProtectorsRevalidateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.EncryptionProtectorsRevalidateFuture")
+		return
+	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -6983,17 +7150,17 @@ type ServiceTierAdvisorProperties struct {
 	Confidence *float64 `json:"confidence,omitempty"`
 }
 
-// Sku the resource model definition representing SKU
+// Sku an ARM Resource SKU.
 type Sku struct {
-	// Name - The name of the SKU. Ex - P3. It is typically a letter+number code
+	// Name - The name of the SKU, typically, a letter + Number code, e.g. P3.
 	Name *string `json:"name,omitempty"`
-	// Tier - This field is required to be implemented by the Resource Provider if the service has more than one tier, but is not required on a PUT.
+	// Tier - The tier or edition of the particular SKU, e.g. Basic, Premium.
 	Tier *string `json:"tier,omitempty"`
-	// Size - The SKU size. When the name field is the combination of tier and some other value, this would be the standalone code.
+	// Size - Size of the particular SKU
 	Size *string `json:"size,omitempty"`
 	// Family - If the service has different generations of hardware, for the same SKU, then that can be captured here.
 	Family *string `json:"family,omitempty"`
-	// Capacity - If the SKU supports scale out/in then the capacity integer should be included. If scale out/in is not possible for the resource this may be omitted.
+	// Capacity - Capacity of the particular SKU.
 	Capacity *int32 `json:"capacity,omitempty"`
 }
 

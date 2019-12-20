@@ -1,4 +1,4 @@
-// Package datamigration implements the Azure ARM Datamigration service API version .
+// Package datamigration implements the Azure ARM Datamigration service API version 2018-04-19.
 //
 // Data Migration Client
 package datamigration

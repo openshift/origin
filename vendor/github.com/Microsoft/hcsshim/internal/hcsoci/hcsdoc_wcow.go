@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/Microsoft/hcsshim/internal/logfields"
+	"github.com/Microsoft/hcsshim/internal/oci"
 	"github.com/Microsoft/hcsshim/internal/schema1"
 	"github.com/Microsoft/hcsshim/internal/schema2"
 	"github.com/Microsoft/hcsshim/internal/schemaversion"
@@ -61,51 +63,83 @@ func createWindowsContainerDocument(coi *createOptionsInternal) (interface{}, er
 		v2Container.GuestOs = &hcsschema.GuestOs{HostName: coi.Spec.Hostname}
 	}
 
-	if coi.Spec.Windows.Resources != nil {
-		if coi.Spec.Windows.Resources.CPU != nil {
-			if coi.Spec.Windows.Resources.CPU.Count != nil ||
-				coi.Spec.Windows.Resources.CPU.Shares != nil ||
-				coi.Spec.Windows.Resources.CPU.Maximum != nil {
-				v2Container.Processor = &hcsschema.Processor{}
-			}
-			if coi.Spec.Windows.Resources.CPU.Count != nil {
-				cpuCount := *coi.Spec.Windows.Resources.CPU.Count
-				hostCPUCount := uint64(runtime.NumCPU())
-				if cpuCount > hostCPUCount {
-					logrus.Warnf("Changing requested CPUCount of %d to current number of processors, %d", cpuCount, hostCPUCount)
-					cpuCount = hostCPUCount
-				}
-				v1.ProcessorCount = uint32(cpuCount)
-				v2Container.Processor.Count = int32(cpuCount)
-			}
-			if coi.Spec.Windows.Resources.CPU.Shares != nil {
-				v1.ProcessorWeight = uint64(*coi.Spec.Windows.Resources.CPU.Shares)
-				v2Container.Processor.Weight = int32(v1.ProcessorWeight)
-			}
-			if coi.Spec.Windows.Resources.CPU.Maximum != nil {
-				v1.ProcessorMaximum = int64(*coi.Spec.Windows.Resources.CPU.Maximum)
-				v2Container.Processor.Maximum = int32(v1.ProcessorMaximum)
-			}
-		}
-		if coi.Spec.Windows.Resources.Memory != nil {
-			if coi.Spec.Windows.Resources.Memory.Limit != nil {
-				v1.MemoryMaximumInMB = int64(*coi.Spec.Windows.Resources.Memory.Limit) / 1024 / 1024
-				v2Container.Memory = &hcsschema.Memory{SizeInMB: int32(v1.MemoryMaximumInMB)}
+	// CPU Resources
+	cpuNumSet := 0
+	cpuCount := oci.ParseAnnotationsCPUCount(coi.Spec, oci.AnnotationContainerProcessorCount, 0)
+	if cpuCount > 0 {
+		cpuNumSet++
+	}
 
+	cpuLimit := oci.ParseAnnotationsCPULimit(coi.Spec, oci.AnnotationContainerProcessorLimit, 0)
+	if cpuLimit > 0 {
+		cpuNumSet++
+	}
+
+	cpuWeight := oci.ParseAnnotationsCPUWeight(coi.Spec, oci.AnnotationContainerProcessorWeight, 0)
+	if cpuWeight > 0 {
+		cpuNumSet++
+	}
+
+	if cpuNumSet > 1 {
+		return nil, fmt.Errorf("invalid spec - Windows Process Container CPU Count: '%d', Limit: '%d', and Weight: '%d' are mutually exclusive", cpuCount, cpuLimit, cpuWeight)
+	} else if cpuNumSet == 1 {
+		var hostCPUCount int32
+		if coi.HostingSystem != nil {
+			// Normalize to UVM size
+			hostCPUCount = coi.HostingSystem.ProcessorCount()
+		} else {
+			hostCPUCount = int32(runtime.NumCPU())
+		}
+		if cpuCount > hostCPUCount {
+			log := logrus.WithField(logfields.ContainerID, coi.ID)
+			if coi.HostingSystem != nil {
+				log.Data[logfields.UVMID] = coi.HostingSystem.ID()
+			}
+			log.Warningf("Changing user requested CPUCount: %d to current number of processors: %d", cpuCount, hostCPUCount)
+			cpuCount = hostCPUCount
+		}
+
+		v1.ProcessorCount = uint32(cpuCount)
+		v1.ProcessorMaximum = int64(cpuLimit)
+		v1.ProcessorWeight = uint64(cpuWeight)
+
+		if cpuCount == 0 {
+			// TODO: JTERRY75 - There is a Windows platform bug (VSO#20891779)
+			// for V2 that we cannot set Maximum or Weight. We have to silently
+			// ignore here until its fixed. When the bug is fixed fully remove
+			// this if/else and always assign the v2Container.Processor field.
+			log := logrus.WithField(logfields.ContainerID, coi.ID)
+			if coi.HostingSystem != nil {
+				log.Data[logfields.UVMID] = coi.HostingSystem.ID()
+			}
+			log.Warningf("silently ignoring Windows Process Container QoS for Limit: '%d' or Weight: '%d' until bug fix", cpuLimit, cpuWeight)
+		} else {
+			v2Container.Processor = &hcsschema.Processor{
+				Count: cpuCount,
+				// Maximum: cpuLimit, // TODO: JTERRY75 - When the above bug is fixed remove this if/else and set this value.
+				// Weight:  cpuWeight, // TODO: JTERRY75 - When the above bug is fixed remove this if/else and set this value.
 			}
 		}
-		if coi.Spec.Windows.Resources.Storage != nil {
-			if coi.Spec.Windows.Resources.Storage.Bps != nil || coi.Spec.Windows.Resources.Storage.Iops != nil {
-				v2Container.Storage.QoS = &hcsschema.StorageQoS{}
-			}
-			if coi.Spec.Windows.Resources.Storage.Bps != nil {
-				v1.StorageBandwidthMaximum = *coi.Spec.Windows.Resources.Storage.Bps
-				v2Container.Storage.QoS.BandwidthMaximum = int32(v1.StorageBandwidthMaximum)
-			}
-			if coi.Spec.Windows.Resources.Storage.Iops != nil {
-				v1.StorageIOPSMaximum = *coi.Spec.Windows.Resources.Storage.Iops
-				v2Container.Storage.QoS.IopsMaximum = int32(*coi.Spec.Windows.Resources.Storage.Iops)
-			}
+	}
+
+	// Memory Resources
+	memoryMaxInMB := oci.ParseAnnotationsMemory(coi.Spec, oci.AnnotationContainerMemorySizeInMB, 0)
+	if memoryMaxInMB > 0 {
+		v1.MemoryMaximumInMB = int64(memoryMaxInMB)
+		v2Container.Memory = &hcsschema.Memory{
+			SizeInMB: memoryMaxInMB,
+		}
+	}
+
+	// Storage Resources
+	storageBandwidthMax := oci.ParseAnnotationsStorageBps(coi.Spec, oci.AnnotationContainerStorageQoSBandwidthMaximum, 0)
+	storageIopsMax := oci.ParseAnnotationsStorageIops(coi.Spec, oci.AnnotationContainerStorageQoSIopsMaximum, 0)
+	if storageBandwidthMax > 0 || storageIopsMax > 0 {
+		v1.StorageBandwidthMaximum = uint64(storageBandwidthMax)
+		v1.StorageIOPSMaximum = uint64(storageIopsMax)
+		v2Container.Storage.QoS = &hcsschema.StorageQoS{
+			BandwidthMaximum: storageBandwidthMax,
+			IopsMaximum:      storageIopsMax,
 		}
 	}
 

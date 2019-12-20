@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -64,6 +65,7 @@ By default, this command ignores API versions that are in preview.`,
 			}
 			outputRootDir = abs
 		}
+		fmt.Printf("Executes profileBuilder in %s\n", outputRootDir)
 		outputLog.Printf("Output-Location set to: %s", outputRootDir)
 
 		includePreview, err := cmd.Flags().GetBool(previewLongName)

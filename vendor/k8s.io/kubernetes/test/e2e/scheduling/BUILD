@@ -19,6 +19,7 @@ go_library(
     deps = [
         "//pkg/apis/core/v1/helper/qos:go_default_library",
         "//pkg/apis/extensions:go_default_library",
+        "//pkg/apis/scheduling:go_default_library",
         "//pkg/scheduler/algorithm/priorities/util:go_default_library",
         "//staging/src/k8s.io/api/apps/v1:go_default_library",
         "//staging/src/k8s.io/api/core/v1:go_default_library",
@@ -42,10 +43,10 @@ go_library(
         "//test/e2e/framework/gpu:go_default_library",
         "//test/e2e/framework/job:go_default_library",
         "//test/e2e/framework/kubelet:go_default_library",
-        "//test/e2e/framework/log:go_default_library",
         "//test/e2e/framework/node:go_default_library",
         "//test/e2e/framework/pod:go_default_library",
         "//test/e2e/framework/providers/gce:go_default_library",
+        "//test/e2e/framework/pv:go_default_library",
         "//test/e2e/framework/replicaset:go_default_library",
         "//test/e2e/framework/service:go_default_library",
         "//test/utils:go_default_library",
@@ -54,6 +55,7 @@ go_library(
         "//vendor/github.com/onsi/gomega:go_default_library",
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/google.golang.org/api/compute/v1:go_default_library",
+        "//vendor/k8s.io/utils/net:go_default_library",
     ],
 )
 

@@ -383,7 +383,9 @@
       "items": {
        "$ref": "#/definitions/listtype.Item"
       },
-      "x-kubernetes-list-map-keys": "port",
+      "x-kubernetes-list-map-keys": [
+       "port"
+      ],
       "x-kubernetes-list-type": "map"
      }
     }

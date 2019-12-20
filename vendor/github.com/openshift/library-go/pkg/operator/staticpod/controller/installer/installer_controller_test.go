@@ -531,6 +531,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 		expectedSyncError       []bool
 		updateStatusErrors      []error
 		numOfInstallersOOM      int
+		ownerRefsFn             func(revision int32) ([]metav1.OwnerReference, error)
 	}{
 		{
 			name:                    "three fresh nodes",
@@ -884,6 +885,37 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 			updateStatusErrors:   []error{errors.NewInternalError(fmt.Errorf("unknown"))},
 			expectedSyncError:    []bool{true},
 		},
+		{
+			name:                    "three nodes, 2 not updated, one already transitioning to a revision which is no longer available",
+			latestAvailableRevision: 3,
+			nodeStatuses: []operatorv1.NodeStatus{
+				{
+					NodeName:        "test-node-0",
+					CurrentRevision: 1,
+				},
+				{
+					NodeName:        "test-node-1",
+					CurrentRevision: 1,
+					TargetRevision:  2,
+				},
+				{
+					NodeName:        "test-node-2",
+					CurrentRevision: 1,
+				},
+			},
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-0"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, corev1.PodRunning, true),
+			},
+			expectedUpgradeOrder: []int{1, 0, 2},
+			ownerRefsFn: func(revision int32) (references []metav1.OwnerReference, err error) {
+				if revision == 3 {
+					return []metav1.OwnerReference{}, nil
+				}
+				return nil, fmt.Errorf("TEST")
+			},
+		},
 	}
 
 	for i, test := range tests {
@@ -1016,6 +1048,9 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 			)
 			c.ownerRefsFn = func(revision int32) ([]metav1.OwnerReference, error) {
 				return []metav1.OwnerReference{}, nil
+			}
+			if test.ownerRefsFn != nil {
+				c.ownerRefsFn = test.ownerRefsFn
 			}
 			c.installerPodImageFn = func() string { return "docker.io/foo/bar" }
 

@@ -190,7 +190,6 @@ type OperationListResultIterator = original.OperationListResultIterator
 type OperationListResultPage = original.OperationListResultPage
 type OperationsClient = original.OperationsClient
 type ProactiveDetectionConfigurationsClient = original.ProactiveDetectionConfigurationsClient
-type SetObject = original.SetObject
 type TagsResource = original.TagsResource
 type WebTest = original.WebTest
 type WebTestGeolocation = original.WebTestGeolocation

@@ -21,6 +21,7 @@ go_library(
         "//vendor/github.com/openshift/api/config/v1:go_default_library",
         "//vendor/github.com/openshift/client-go/config/clientset/versioned/typed/config/v1:go_default_library",
         "//vendor/github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig:go_default_library",
+        "//vendor/github.com/openshift/library-go/pkg/crypto:go_default_library",
     ],
 )
 

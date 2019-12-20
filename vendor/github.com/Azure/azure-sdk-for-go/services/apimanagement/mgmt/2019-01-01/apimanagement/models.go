@@ -2119,8 +2119,6 @@ type AuthenticationSettingsContract struct {
 	OAuth2 *OAuth2AuthenticationSettingsContract `json:"oAuth2,omitempty"`
 	// Openid - OpenID Connect Authentication Settings
 	Openid *OpenIDAuthenticationSettingsContract `json:"openid,omitempty"`
-	// SubscriptionKeyRequired - Specifies whether subscription key is required during call to this API, true - API is included into closed products only, false - API is included into open products alone, null - there is a mix of products.
-	SubscriptionKeyRequired *bool `json:"subscriptionKeyRequired,omitempty"`
 }
 
 // AuthorizationServerCollection paged OAuth2 Authorization Servers list representation.
@@ -4600,6 +4598,8 @@ type HTTPMessageDiagnostic struct {
 type IdentityProviderBaseParameters struct {
 	// Type - Identity Provider Type identifier. Possible values include: 'Facebook', 'Google', 'Microsoft', 'Twitter', 'Aad', 'AadB2C'
 	Type IdentityProviderType `json:"type,omitempty"`
+	// SigninTenant - The TenantId to use instead of Common when logging into Active Directory
+	SigninTenant *string `json:"signinTenant,omitempty"`
 	// AllowedTenants - List of Allowed Tenants when configuring Azure Active Directory login.
 	AllowedTenants *[]string `json:"allowedTenants,omitempty"`
 	// Authority - OpenID Connect discovery endpoint hostname for AAD or AAD B2C.
@@ -4697,6 +4697,8 @@ type IdentityProviderContractProperties struct {
 	ClientSecret *string `json:"clientSecret,omitempty"`
 	// Type - Identity Provider Type identifier. Possible values include: 'Facebook', 'Google', 'Microsoft', 'Twitter', 'Aad', 'AadB2C'
 	Type IdentityProviderType `json:"type,omitempty"`
+	// SigninTenant - The TenantId to use instead of Common when logging into Active Directory
+	SigninTenant *string `json:"signinTenant,omitempty"`
 	// AllowedTenants - List of Allowed Tenants when configuring Azure Active Directory login.
 	AllowedTenants *[]string `json:"allowedTenants,omitempty"`
 	// Authority - OpenID Connect discovery endpoint hostname for AAD or AAD B2C.
@@ -4904,6 +4906,8 @@ type IdentityProviderUpdateProperties struct {
 	ClientSecret *string `json:"clientSecret,omitempty"`
 	// Type - Identity Provider Type identifier. Possible values include: 'Facebook', 'Google', 'Microsoft', 'Twitter', 'Aad', 'AadB2C'
 	Type IdentityProviderType `json:"type,omitempty"`
+	// SigninTenant - The TenantId to use instead of Common when logging into Active Directory
+	SigninTenant *string `json:"signinTenant,omitempty"`
 	// AllowedTenants - List of Allowed Tenants when configuring Azure Active Directory login.
 	AllowedTenants *[]string `json:"allowedTenants,omitempty"`
 	// Authority - OpenID Connect discovery endpoint hostname for AAD or AAD B2C.

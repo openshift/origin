@@ -2,7 +2,7 @@ self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
 
 define build-package
 	$(if $(GO_BUILD_BINDIR),mkdir -p '$(GO_BUILD_BINDIR)',)
-	$(strip $(GO) build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) \
+	$(strip $(GO) build $(GO_MOD_FLAGS) $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) \
 		$(if $(GO_BUILD_BINDIR),-o '$(GO_BUILD_BINDIR)/$(notdir $(1))$(GOEXE)',) \
 	$(1))
 

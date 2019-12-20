@@ -31,6 +31,7 @@ import (
 	admissiontesting "k8s.io/apiserver/pkg/admission/testing"
 	cloudprovider "k8s.io/cloud-provider"
 	api "k8s.io/kubernetes/pkg/apis/core"
+	persistentvolume "k8s.io/kubernetes/pkg/controller/volume/persistentvolume/util"
 )
 
 type mockVolumes struct {
@@ -247,7 +248,7 @@ func Test_PVLAdmission(t *testing.T) {
 						v1.LabelZoneRegion:        "existingRegion",
 					},
 					Annotations: map[string]string{
-						annDynamicallyProvisioned: "kubernetes.io/aws-ebs",
+						persistentvolume.AnnDynamicallyProvisioned: "kubernetes.io/aws-ebs",
 					},
 				},
 				Spec: api.PersistentVolumeSpec{
@@ -267,7 +268,7 @@ func Test_PVLAdmission(t *testing.T) {
 						v1.LabelZoneRegion:        "existingRegion",
 					},
 					Annotations: map[string]string{
-						annDynamicallyProvisioned: "kubernetes.io/aws-ebs",
+						persistentvolume.AnnDynamicallyProvisioned: "kubernetes.io/aws-ebs",
 					},
 				},
 				Spec: api.PersistentVolumeSpec{

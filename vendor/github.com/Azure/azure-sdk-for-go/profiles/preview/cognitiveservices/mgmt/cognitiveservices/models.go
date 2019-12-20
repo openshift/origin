@@ -43,13 +43,6 @@ const (
 	Deny  NetworkRuleAction = original.Deny
 )
 
-type NetworkRuleBypassOptions = original.NetworkRuleBypassOptions
-
-const (
-	AzureServices NetworkRuleBypassOptions = original.AzureServices
-	None          NetworkRuleBypassOptions = original.None
-)
-
 type ProvisioningState = original.ProvisioningState
 
 const (
@@ -105,19 +98,17 @@ const (
 )
 
 type Account = original.Account
-type AccountCreateParameters = original.AccountCreateParameters
+type AccountAPIProperties = original.AccountAPIProperties
 type AccountEnumerateSkusResult = original.AccountEnumerateSkusResult
 type AccountKeys = original.AccountKeys
 type AccountListResult = original.AccountListResult
 type AccountListResultIterator = original.AccountListResultIterator
 type AccountListResultPage = original.AccountListResultPage
 type AccountProperties = original.AccountProperties
-type AccountUpdateParameters = original.AccountUpdateParameters
 type AccountsClient = original.AccountsClient
 type BaseClient = original.BaseClient
 type CheckDomainAvailabilityParameter = original.CheckDomainAvailabilityParameter
 type CheckDomainAvailabilityResult = original.CheckDomainAvailabilityResult
-type CheckSkuAvailabilityClient = original.CheckSkuAvailabilityClient
 type CheckSkuAvailabilityParameter = original.CheckSkuAvailabilityParameter
 type CheckSkuAvailabilityResult = original.CheckSkuAvailabilityResult
 type CheckSkuAvailabilityResultList = original.CheckSkuAvailabilityResultList
@@ -161,12 +152,6 @@ func NewAccountsClient(subscriptionID string) AccountsClient {
 func NewAccountsClientWithBaseURI(baseURI string, subscriptionID string) AccountsClient {
 	return original.NewAccountsClientWithBaseURI(baseURI, subscriptionID)
 }
-func NewCheckSkuAvailabilityClient(subscriptionID string) CheckSkuAvailabilityClient {
-	return original.NewCheckSkuAvailabilityClient(subscriptionID)
-}
-func NewCheckSkuAvailabilityClientWithBaseURI(baseURI string, subscriptionID string) CheckSkuAvailabilityClient {
-	return original.NewCheckSkuAvailabilityClientWithBaseURI(baseURI, subscriptionID)
-}
 func NewOperationEntityListResultIterator(page OperationEntityListResultPage) OperationEntityListResultIterator {
 	return original.NewOperationEntityListResultIterator(page)
 }
@@ -199,9 +184,6 @@ func PossibleKeyNameValues() []KeyName {
 }
 func PossibleNetworkRuleActionValues() []NetworkRuleAction {
 	return original.PossibleNetworkRuleActionValues()
-}
-func PossibleNetworkRuleBypassOptionsValues() []NetworkRuleBypassOptions {
-	return original.PossibleNetworkRuleBypassOptionsValues()
 }
 func PossibleProvisioningStateValues() []ProvisioningState {
 	return original.PossibleProvisioningStateValues()

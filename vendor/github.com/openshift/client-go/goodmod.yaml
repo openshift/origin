@@ -1,0 +1,24 @@
+# goodmod.yaml
+# This file is tracking branches and tags used in go.mod file replaces
+# Please follow https://github.com/mfojtik/goodmod#installation to get the tool.
+# Run `$ goodmod replace --apply` to apply these rules on `go.mod`
+#
+rules:
+  - paths:
+    - k8s.io/*
+    excludes:
+    - k8s.io/code-generator
+    - k8s.io/klog
+    - k8s.io/utils
+    - k8s.io/kube-openapi
+    - k8s.io/gengo
+    tag: kubernetes-1.17.0
+
+  # TODO: Remove after 1.17 rebase land
+  - paths:
+    - k8s.io/code-generator
+    branch: prebase-origin-4.4-kubernetes-1.17.0-rc.2
+
+  - paths:
+    - github.com/openshift/api
+    branch: master

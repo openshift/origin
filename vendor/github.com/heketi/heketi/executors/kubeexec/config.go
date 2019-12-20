@@ -22,4 +22,8 @@ type KubeConfig struct {
 	// Use POD name instead of using label
 	// to access POD
 	UsePodNames bool `json:"use_pod_names"`
+
+	// connection resource control and timeouts
+	MaxConnections       int64 `json:"max_connections"`
+	DisableTimeoutPrefix bool  `json:"disable_timeout_prefix"`
 }

@@ -272,6 +272,23 @@ func PossibleSQLWorkloadTypeValues() []SQLWorkloadType {
 	return []SQLWorkloadType{DW, GENERAL, OLTP}
 }
 
+// StorageWorkloadType enumerates the values for storage workload type.
+type StorageWorkloadType string
+
+const (
+	// StorageWorkloadTypeDW ...
+	StorageWorkloadTypeDW StorageWorkloadType = "DW"
+	// StorageWorkloadTypeGENERAL ...
+	StorageWorkloadTypeGENERAL StorageWorkloadType = "GENERAL"
+	// StorageWorkloadTypeOLTP ...
+	StorageWorkloadTypeOLTP StorageWorkloadType = "OLTP"
+)
+
+// PossibleStorageWorkloadTypeValues returns an array of possible values for the StorageWorkloadType const type.
+func PossibleStorageWorkloadTypeValues() []StorageWorkloadType {
+	return []StorageWorkloadType{StorageWorkloadTypeDW, StorageWorkloadTypeGENERAL, StorageWorkloadTypeOLTP}
+}
+
 // AdditionalFeaturesServerConfigurations additional SQL Server feature settings.
 type AdditionalFeaturesServerConfigurations struct {
 	// IsRServicesEnabled - Enable or disable R services (SQL 2016 onwards).
@@ -1348,6 +1365,8 @@ type Properties struct {
 	KeyVaultCredentialSettings *KeyVaultCredentialSettings `json:"keyVaultCredentialSettings,omitempty"`
 	// ServerConfigurationsManagementSettings - SQL Server configuration management settings.
 	ServerConfigurationsManagementSettings *ServerConfigurationsManagementSettings `json:"serverConfigurationsManagementSettings,omitempty"`
+	// StorageConfigurationSettings - Storage Configuration Settings.
+	StorageConfigurationSettings *StorageConfigurationSettings `json:"storageConfigurationSettings,omitempty"`
 }
 
 // ProxyResource ARM proxy resource.
@@ -1402,6 +1421,14 @@ type SQLConnectivityUpdateSettings struct {
 	SQLAuthUpdateUserName *string `json:"sqlAuthUpdateUserName,omitempty"`
 	// SQLAuthUpdatePassword - SQL Server sysadmin login password.
 	SQLAuthUpdatePassword *string `json:"sqlAuthUpdatePassword,omitempty"`
+}
+
+// SQLStorageSettings set disk storage settings for SQL Server.
+type SQLStorageSettings struct {
+	// Luns - Logical Unit Numbers for the disks.
+	Luns *[]int32 `json:"luns,omitempty"`
+	// DefaultFilePath - SQL Server default file path
+	DefaultFilePath *string `json:"defaultFilePath,omitempty"`
 }
 
 // SQLStorageUpdateSettings set disk storage settings for SQL Server.
@@ -1614,6 +1641,20 @@ func (future *SQLVirtualMachinesUpdateFutureType) Result(client SQLVirtualMachin
 type SQLWorkloadTypeUpdateSettings struct {
 	// SQLWorkloadType - SQL Server workload type. Possible values include: 'GENERAL', 'OLTP', 'DW'
 	SQLWorkloadType SQLWorkloadType `json:"sqlWorkloadType,omitempty"`
+}
+
+// StorageConfigurationSettings storage Configurations for SQL Data, Log and TempDb.
+type StorageConfigurationSettings struct {
+	// SQLDataSettings - SQL Server Data Storage Settings.
+	SQLDataSettings *SQLStorageSettings `json:"sqlDataSettings,omitempty"`
+	// SQLLogSettings - SQL Server Log Storage Settings.
+	SQLLogSettings *SQLStorageSettings `json:"sqlLogSettings,omitempty"`
+	// SQLTempDbSettings - SQL Server TempDb Storage Settings.
+	SQLTempDbSettings *SQLStorageSettings `json:"sqlTempDbSettings,omitempty"`
+	// DiskConfigurationType - Disk configuration to apply to SQL Server. Possible values include: 'NEW', 'EXTEND', 'ADD'
+	DiskConfigurationType DiskConfigurationType `json:"diskConfigurationType,omitempty"`
+	// StorageWorkloadType - Storage workload type. Possible values include: 'StorageWorkloadTypeGENERAL', 'StorageWorkloadTypeOLTP', 'StorageWorkloadTypeDW'
+	StorageWorkloadType StorageWorkloadType `json:"storageWorkloadType,omitempty"`
 }
 
 // TrackedResource ARM tracked top level resource.

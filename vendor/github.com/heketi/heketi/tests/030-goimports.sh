@@ -12,9 +12,11 @@ for pkg in $(go list ./... | grep -v '/vendor/'); do
 	dir="$GOPATH/src/$pkg"
 	FILES=$(goimports -l -e "$dir"/*.go)
 	if [ ${#FILES} -ne 0 ]; then
+                echo "FAIL: goimports failed for package ${pkg}, files with errors"
 		for file in $FILES; do
 			echo "$file"
 		done
+                echo ""
 		ERROR=1
 	fi
 done

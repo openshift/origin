@@ -40,8 +40,45 @@ func TestFindNamedType(t *testing.T) {
 				Types: tt.defs,
 			}
 			td, exist := s.FindNamedType(tt.namedType)
-			if !reflect.DeepEqual(td, tt.expectTypeDef) {
+			if !td.Equals(tt.expectTypeDef) {
 				t.Errorf("expected TypeDef %v, got %v", tt.expectTypeDef, td)
+			}
+			if exist != tt.expectExist {
+				t.Errorf("expected existing %t, got %t", tt.expectExist, exist)
+			}
+		})
+	}
+}
+
+func strptr(s string) *string { return &s }
+
+func TestFindField(t *testing.T) {
+	tests := []struct {
+		testName          string
+		defs              []StructField
+		fieldName         string
+		expectStructField StructField
+		expectExist       bool
+	}{
+		{"existing", []StructField{
+			{Name: "a", Type: TypeRef{NamedType: strptr("a")}},
+			{Name: "b", Type: TypeRef{NamedType: strptr("b")}},
+		}, "a", StructField{Name: "a", Type: TypeRef{NamedType: strptr("a")}}, true},
+		{"notExisting", []StructField{
+			{Name: "a", Type: TypeRef{NamedType: strptr("a")}},
+			{Name: "b", Type: TypeRef{NamedType: strptr("b")}},
+		}, "c", StructField{}, false},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.testName, func(t *testing.T) {
+			t.Parallel()
+			s := Map{
+				Fields: tt.defs,
+			}
+			sf, exist := s.FindField(tt.fieldName)
+			if !reflect.DeepEqual(sf, tt.expectStructField) {
+				t.Errorf("expected StructField %v, got %v", tt.expectStructField, sf)
 			}
 			if exist != tt.expectExist {
 				t.Errorf("expected existing %t, got %t", tt.expectExist, exist)

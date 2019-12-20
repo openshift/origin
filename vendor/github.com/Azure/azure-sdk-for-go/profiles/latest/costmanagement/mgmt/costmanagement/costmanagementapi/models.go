@@ -19,7 +19,7 @@
 
 package costmanagementapi
 
-import original "github.com/Azure/azure-sdk-for-go/services/costmanagement/mgmt/2019-01-01/costmanagement/costmanagementapi"
+import original "github.com/Azure/azure-sdk-for-go/services/costmanagement/mgmt/2019-10-01/costmanagement/costmanagementapi"
 
 type DimensionsClientAPI = original.DimensionsClientAPI
 type ExportsClientAPI = original.ExportsClientAPI

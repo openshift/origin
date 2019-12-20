@@ -156,6 +156,15 @@ const (
 	MapTypeXslt         MapType = original.MapTypeXslt
 )
 
+type MessageEncoding = original.MessageEncoding
+
+const (
+	MessageEncodingBase64          MessageEncoding = original.MessageEncodingBase64
+	MessageEncodingEightBit        MessageEncoding = original.MessageEncodingEightBit
+	MessageEncodingNotSpecified    MessageEncoding = original.MessageEncodingNotSpecified
+	MessageEncodingQuotedPrintable MessageEncoding = original.MessageEncodingQuotedPrintable
+)
+
 type MessageFilterType = original.MessageFilterType
 
 const (
@@ -196,6 +205,52 @@ const (
 	RecurrenceFrequencySecond       RecurrenceFrequency = original.RecurrenceFrequencySecond
 	RecurrenceFrequencyWeek         RecurrenceFrequency = original.RecurrenceFrequencyWeek
 	RecurrenceFrequencyYear         RecurrenceFrequency = original.RecurrenceFrequencyYear
+)
+
+type RosettaNetActionType = original.RosettaNetActionType
+
+const (
+	RosettaNetActionTypeDoubleAction RosettaNetActionType = original.RosettaNetActionTypeDoubleAction
+	RosettaNetActionTypeNotSpecified RosettaNetActionType = original.RosettaNetActionTypeNotSpecified
+	RosettaNetActionTypeSingleAction RosettaNetActionType = original.RosettaNetActionTypeSingleAction
+)
+
+type RosettaNetPipActivityType = original.RosettaNetPipActivityType
+
+const (
+	RosettaNetPipActivityTypeBusinessTransaction     RosettaNetPipActivityType = original.RosettaNetPipActivityTypeBusinessTransaction
+	RosettaNetPipActivityTypeInformationDistribution RosettaNetPipActivityType = original.RosettaNetPipActivityTypeInformationDistribution
+	RosettaNetPipActivityTypeNotification            RosettaNetPipActivityType = original.RosettaNetPipActivityTypeNotification
+	RosettaNetPipActivityTypeNotSpecified            RosettaNetPipActivityType = original.RosettaNetPipActivityTypeNotSpecified
+	RosettaNetPipActivityTypeQueryResponse           RosettaNetPipActivityType = original.RosettaNetPipActivityTypeQueryResponse
+	RosettaNetPipActivityTypeRequestConfirm          RosettaNetPipActivityType = original.RosettaNetPipActivityTypeRequestConfirm
+	RosettaNetPipActivityTypeRequestResponse         RosettaNetPipActivityType = original.RosettaNetPipActivityTypeRequestResponse
+)
+
+type RosettaNetPipConfidentialityScope = original.RosettaNetPipConfidentialityScope
+
+const (
+	RosettaNetPipConfidentialityScopeNone             RosettaNetPipConfidentialityScope = original.RosettaNetPipConfidentialityScopeNone
+	RosettaNetPipConfidentialityScopeNotSpecified     RosettaNetPipConfidentialityScope = original.RosettaNetPipConfidentialityScopeNotSpecified
+	RosettaNetPipConfidentialityScopePayload          RosettaNetPipConfidentialityScope = original.RosettaNetPipConfidentialityScopePayload
+	RosettaNetPipConfidentialityScopePayloadContainer RosettaNetPipConfidentialityScope = original.RosettaNetPipConfidentialityScopePayloadContainer
+)
+
+type RosettaNetPipRoleType = original.RosettaNetPipRoleType
+
+const (
+	RosettaNetPipRoleTypeEmployee       RosettaNetPipRoleType = original.RosettaNetPipRoleTypeEmployee
+	RosettaNetPipRoleTypeFunctional     RosettaNetPipRoleType = original.RosettaNetPipRoleTypeFunctional
+	RosettaNetPipRoleTypeNotSpecified   RosettaNetPipRoleType = original.RosettaNetPipRoleTypeNotSpecified
+	RosettaNetPipRoleTypeOrganizational RosettaNetPipRoleType = original.RosettaNetPipRoleTypeOrganizational
+)
+
+type RosettaNetResponseType = original.RosettaNetResponseType
+
+const (
+	RosettaNetResponseTypeAsync        RosettaNetResponseType = original.RosettaNetResponseTypeAsync
+	RosettaNetResponseTypeNotSpecified RosettaNetResponseType = original.RosettaNetResponseTypeNotSpecified
+	RosettaNetResponseTypeSync         RosettaNetResponseType = original.RosettaNetResponseTypeSync
 )
 
 type SchemaType = original.SchemaType
@@ -468,6 +523,11 @@ type IntegrationAccountPartnerListResult = original.IntegrationAccountPartnerLis
 type IntegrationAccountPartnerListResultIterator = original.IntegrationAccountPartnerListResultIterator
 type IntegrationAccountPartnerListResultPage = original.IntegrationAccountPartnerListResultPage
 type IntegrationAccountPartnerProperties = original.IntegrationAccountPartnerProperties
+type IntegrationAccountRosettaNetProcessConfiguration = original.IntegrationAccountRosettaNetProcessConfiguration
+type IntegrationAccountRosettaNetProcessConfigurationListResult = original.IntegrationAccountRosettaNetProcessConfigurationListResult
+type IntegrationAccountRosettaNetProcessConfigurationListResultIterator = original.IntegrationAccountRosettaNetProcessConfigurationListResultIterator
+type IntegrationAccountRosettaNetProcessConfigurationListResultPage = original.IntegrationAccountRosettaNetProcessConfigurationListResultPage
+type IntegrationAccountRosettaNetProcessConfigurationProperties = original.IntegrationAccountRosettaNetProcessConfigurationProperties
 type IntegrationAccountSchema = original.IntegrationAccountSchema
 type IntegrationAccountSchemaFilter = original.IntegrationAccountSchemaFilter
 type IntegrationAccountSchemaListResult = original.IntegrationAccountSchemaListResult
@@ -514,6 +574,12 @@ type Resource = original.Resource
 type ResourceReference = original.ResourceReference
 type Response = original.Response
 type RetryHistory = original.RetryHistory
+type RosettaNetPipAcknowledgmentOfReceiptSettings = original.RosettaNetPipAcknowledgmentOfReceiptSettings
+type RosettaNetPipActivityBehavior = original.RosettaNetPipActivityBehavior
+type RosettaNetPipActivitySettings = original.RosettaNetPipActivitySettings
+type RosettaNetPipBusinessDocument = original.RosettaNetPipBusinessDocument
+type RosettaNetPipRoleSettings = original.RosettaNetPipRoleSettings
+type RosettaNetProcessConfigurationsClient = original.RosettaNetProcessConfigurationsClient
 type RunActionCorrelation = original.RunActionCorrelation
 type RunCorrelation = original.RunCorrelation
 type SchemasClient = original.SchemasClient
@@ -653,6 +719,12 @@ func NewIntegrationAccountPartnerListResultIterator(page IntegrationAccountPartn
 func NewIntegrationAccountPartnerListResultPage(getNextPage func(context.Context, IntegrationAccountPartnerListResult) (IntegrationAccountPartnerListResult, error)) IntegrationAccountPartnerListResultPage {
 	return original.NewIntegrationAccountPartnerListResultPage(getNextPage)
 }
+func NewIntegrationAccountRosettaNetProcessConfigurationListResultIterator(page IntegrationAccountRosettaNetProcessConfigurationListResultPage) IntegrationAccountRosettaNetProcessConfigurationListResultIterator {
+	return original.NewIntegrationAccountRosettaNetProcessConfigurationListResultIterator(page)
+}
+func NewIntegrationAccountRosettaNetProcessConfigurationListResultPage(getNextPage func(context.Context, IntegrationAccountRosettaNetProcessConfigurationListResult) (IntegrationAccountRosettaNetProcessConfigurationListResult, error)) IntegrationAccountRosettaNetProcessConfigurationListResultPage {
+	return original.NewIntegrationAccountRosettaNetProcessConfigurationListResultPage(getNextPage)
+}
 func NewIntegrationAccountSchemaListResultIterator(page IntegrationAccountSchemaListResultPage) IntegrationAccountSchemaListResultIterator {
 	return original.NewIntegrationAccountSchemaListResultIterator(page)
 }
@@ -694,6 +766,12 @@ func NewRequestHistoryListResultIterator(page RequestHistoryListResultPage) Requ
 }
 func NewRequestHistoryListResultPage(getNextPage func(context.Context, RequestHistoryListResult) (RequestHistoryListResult, error)) RequestHistoryListResultPage {
 	return original.NewRequestHistoryListResultPage(getNextPage)
+}
+func NewRosettaNetProcessConfigurationsClient(subscriptionID string) RosettaNetProcessConfigurationsClient {
+	return original.NewRosettaNetProcessConfigurationsClient(subscriptionID)
+}
+func NewRosettaNetProcessConfigurationsClientWithBaseURI(baseURI string, subscriptionID string) RosettaNetProcessConfigurationsClient {
+	return original.NewRosettaNetProcessConfigurationsClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewSchemasClient(subscriptionID string) SchemasClient {
 	return original.NewSchemasClient(subscriptionID)
@@ -848,6 +926,9 @@ func PossibleKeyTypeValues() []KeyType {
 func PossibleMapTypeValues() []MapType {
 	return original.PossibleMapTypeValues()
 }
+func PossibleMessageEncodingValues() []MessageEncoding {
+	return original.PossibleMessageEncodingValues()
+}
 func PossibleMessageFilterTypeValues() []MessageFilterType {
 	return original.PossibleMessageFilterTypeValues()
 }
@@ -859,6 +940,21 @@ func PossiblePartnerTypeValues() []PartnerType {
 }
 func PossibleRecurrenceFrequencyValues() []RecurrenceFrequency {
 	return original.PossibleRecurrenceFrequencyValues()
+}
+func PossibleRosettaNetActionTypeValues() []RosettaNetActionType {
+	return original.PossibleRosettaNetActionTypeValues()
+}
+func PossibleRosettaNetPipActivityTypeValues() []RosettaNetPipActivityType {
+	return original.PossibleRosettaNetPipActivityTypeValues()
+}
+func PossibleRosettaNetPipConfidentialityScopeValues() []RosettaNetPipConfidentialityScope {
+	return original.PossibleRosettaNetPipConfidentialityScopeValues()
+}
+func PossibleRosettaNetPipRoleTypeValues() []RosettaNetPipRoleType {
+	return original.PossibleRosettaNetPipRoleTypeValues()
+}
+func PossibleRosettaNetResponseTypeValues() []RosettaNetResponseType {
+	return original.PossibleRosettaNetResponseTypeValues()
 }
 func PossibleSchemaTypeValues() []SchemaType {
 	return original.PossibleSchemaTypeValues()

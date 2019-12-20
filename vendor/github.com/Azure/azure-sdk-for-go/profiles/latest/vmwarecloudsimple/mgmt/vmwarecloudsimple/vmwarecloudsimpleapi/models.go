@@ -21,17 +21,14 @@ package vmwarecloudsimpleapi
 
 import original "github.com/Azure/azure-sdk-for-go/services/vmwarecloudsimple/mgmt/2019-04-01/vmwarecloudsimple/vmwarecloudsimpleapi"
 
-type AvailableOperationsClientAPI = original.AvailableOperationsClientAPI
-type BaseClientAPI = original.BaseClientAPI
-type DedicatedCloudNodeClientAPI = original.DedicatedCloudNodeClientAPI
-type DedicatedCloudServiceClientAPI = original.DedicatedCloudServiceClientAPI
-type PrivateCloudByRegionClientAPI = original.PrivateCloudByRegionClientAPI
-type ResourcePoolByPCClientAPI = original.ResourcePoolByPCClientAPI
-type ResourcePoolsByPCClientAPI = original.ResourcePoolsByPCClientAPI
-type SkusAvailabilityWithinRegionClientAPI = original.SkusAvailabilityWithinRegionClientAPI
-type UsagesWithinRegionClientAPI = original.UsagesWithinRegionClientAPI
-type VirtualMachineClientAPI = original.VirtualMachineClientAPI
-type VirtualMachineTemplateByPCClientAPI = original.VirtualMachineTemplateByPCClientAPI
-type VirtualMachineTemplatesByPCClientAPI = original.VirtualMachineTemplatesByPCClientAPI
-type VirtualNetworkByPCClientAPI = original.VirtualNetworkByPCClientAPI
-type VirtualNetworksByPCClientAPI = original.VirtualNetworksByPCClientAPI
+type CustomizationPoliciesClientAPI = original.CustomizationPoliciesClientAPI
+type DedicatedCloudNodesClientAPI = original.DedicatedCloudNodesClientAPI
+type DedicatedCloudServicesClientAPI = original.DedicatedCloudServicesClientAPI
+type OperationsClientAPI = original.OperationsClientAPI
+type PrivateCloudsClientAPI = original.PrivateCloudsClientAPI
+type ResourcePoolsClientAPI = original.ResourcePoolsClientAPI
+type SkusAvailabilityClientAPI = original.SkusAvailabilityClientAPI
+type UsagesClientAPI = original.UsagesClientAPI
+type VirtualMachineTemplatesClientAPI = original.VirtualMachineTemplatesClientAPI
+type VirtualMachinesClientAPI = original.VirtualMachinesClientAPI
+type VirtualNetworksClientAPI = original.VirtualNetworksClientAPI

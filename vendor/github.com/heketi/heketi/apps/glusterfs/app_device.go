@@ -11,10 +11,14 @@ package glusterfs
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
+
+	"github.com/heketi/heketi/executors"
+	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/utils"
 )
@@ -57,13 +61,6 @@ func (a *App) DeviceAdd(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		// Register device
-		err = device.Register(tx)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusConflict)
-			return err
-		}
-
 		return nil
 	})
 	if err != nil {
@@ -76,37 +73,28 @@ func (a *App) DeviceAdd(w http.ResponseWriter, r *http.Request) {
 	// Add device in an asynchronous function
 	a.asyncManager.AsyncHttpRedirectFunc(w, r, func() (seeOtherUrl string, e error) {
 
-		defer func() {
-			if e != nil {
-				a.db.Update(func(tx *bolt.Tx) error {
-					err := device.Deregister(tx)
-					if err != nil {
-						logger.Err(err)
-						return err
-					}
-
-					return nil
-				})
-			}
-		}()
-
 		// Setup device on node
 		info, err := a.executor.DeviceSetup(node.ManageHostName(),
-			device.Info.Name, device.Info.Id, msg.DestroyData)
+			device.Info.Name, device.Info.Id, false)
+		if err != nil && msg.DestroyData {
+			errReason := allowDestroyDevice(a.db, err)
+			if errReason != nil {
+				// not allowed to destroy the device. return reason
+				// as our error
+				return "", errReason
+			}
+			info, err = a.executor.DeviceSetup(node.ManageHostName(),
+				device.Info.Name, device.Info.Id, true)
+		}
 		if err != nil {
 			return "", err
 		}
-
-		// Create an entry for the device and set the size
-		device.StorageSet(info.TotalSize, info.FreeSize, info.UsedSize)
-		device.SetExtentSize(info.ExtentSize)
+		device.UpdateInfo(info)
 
 		// Setup garbage collector on error
 		defer func() {
 			if e != nil {
-				a.executor.DeviceTeardown(node.ManageHostName(),
-					device.Info.Name,
-					device.Info.Id)
+				a.executor.DeviceTeardown(node.ManageHostName(), device.ToHandle())
 			}
 		}()
 
@@ -249,13 +237,12 @@ func (a *App) DeviceDelete(w http.ResponseWriter, r *http.Request) {
 
 		// Teardown device
 		var err error
+		dh := device.ToHandle()
 		if opts.ForceForget {
 			logger.Info("Delete request set force-forget option")
-			err = a.executor.DeviceForget(node.ManageHostName(),
-				device.Info.Name, device.Info.Id)
+			err = a.executor.DeviceForget(node.ManageHostName(), dh)
 		} else {
-			err = a.executor.DeviceTeardown(node.ManageHostName(),
-				device.Info.Name, device.Info.Id)
+			err = a.executor.DeviceTeardown(node.ManageHostName(), dh)
 		}
 		if err != nil {
 			return "", err
@@ -285,13 +272,6 @@ func (a *App) DeviceDelete(w http.ResponseWriter, r *http.Request) {
 
 			// Delete device from db
 			err = device.Delete(tx)
-			if err != nil {
-				logger.Err(err)
-				return err
-			}
-
-			// Deregister device
-			err = device.Deregister(tx)
 			if err != nil {
 				logger.Err(err)
 				return err
@@ -389,7 +369,6 @@ func (a *App) DeviceResync(w http.ResponseWriter, r *http.Request) {
 		brickSizesSum uint64
 	)
 
-	// Get device info from DB
 	err := a.db.View(func(tx *bolt.Tx) error {
 		var err error
 		device, err = NewDeviceEntryFromId(tx, deviceId)
@@ -397,17 +376,7 @@ func (a *App) DeviceResync(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		node, err = NewNodeEntryFromId(tx, device.NodeId)
-		if err != nil {
-			return err
-		}
-		for _, brick := range device.Bricks {
-			brickEntry, err := NewBrickEntryFromId(tx, brick)
-			if err != nil {
-				return err
-			}
-			brickSizesSum += brickEntry.Info.Size
-		}
-		return nil
+		return err
 	})
 	if err == ErrNotFound {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -424,18 +393,36 @@ func (a *App) DeviceResync(w http.ResponseWriter, r *http.Request) {
 	a.asyncManager.AsyncHttpRedirectFunc(w, r, func() (seeOtherUrl string, e error) {
 
 		// Get actual device info from manage host
-		info, err := a.executor.GetDeviceInfo(node.ManageHostName(), device.Info.Name, device.Info.Id)
+		info, err := a.executor.GetDeviceInfo(
+			node.ManageHostName(), device.ToHandle())
 		if err != nil {
 			return "", err
 		}
 
 		err = a.db.Update(func(tx *bolt.Tx) error {
 
+			if p, err := PendingOperationsOnDevice(wdb.WrapTx(tx), deviceId); err != nil {
+				return err
+			} else if p {
+				logger.LogError("Found operations pending on device."+
+					" Can not resync device %v at this time.",
+					deviceId)
+				return ErrConflict
+			}
+
 			// Reload device in current transaction
 			device, err := NewDeviceEntryFromId(tx, deviceId)
 			if err != nil {
 				logger.Err(err)
 				return err
+			}
+
+			for _, brick := range device.Bricks {
+				brickEntry, err := NewBrickEntryFromId(tx, brick)
+				if err != nil {
+					return err
+				}
+				brickSizesSum += brickEntry.Info.Size
 			}
 
 			if brickSizesSum != info.UsedSize {
@@ -513,4 +500,46 @@ func (a *App) DeviceSetTags(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(device.AllTags()); err != nil {
 		panic(err)
 	}
+}
+
+func allowDestroyDevice(db wdb.RODB, e error) error {
+	if derr, ok := e.(*executors.DeviceNotAvailableErr); ok {
+		if !derr.ConnectionOk {
+			// device status could not be checked. deny destroy
+			return derr
+		}
+		if derr.CurrentMeta == nil {
+			// device was checked but is not a Physical Volume. is ok to wipe.
+			return nil
+		}
+		pvmap, dcount, err := allDevicePvUUID(db)
+		if err != nil {
+			logger.LogError("failed to read PV UUIDs from db: %v", err)
+			// db lookups failed. deny
+			return derr
+		}
+		if len(pvmap) != dcount {
+			logger.Warning(
+				"devices without PV UUIDs detected (found %v uuids, %v devices)",
+				len(pvmap), dcount)
+			// can't check all devices (backwards compat old devices). deny
+			return fmt.Errorf(
+				"Can not destroy device, destroy may not be safe: %v",
+				derr)
+		}
+		if deviceId, found := pvmap[derr.CurrentMeta.UUID]; found {
+			logger.Warning(
+				"device uuid %v already tracked as %v",
+				derr.CurrentMeta.UUID, deviceId)
+			return fmt.Errorf(
+				"Device already in use (ID: %v)",
+				deviceId)
+		}
+		// it has lvm metadata but not (this) heketi's. ok to wipe
+		// destroydata is really never safe, but this is what we allowed
+		// prior to the new approach to devices, so whatever. :-\
+		return nil
+	}
+	// not an expected error type. better safe than sorry, deny destroy
+	return e
 }

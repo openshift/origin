@@ -1,8 +1,0 @@
-- name: install glusterfs
-  yum:
-    name:
-      - glusterfs-server
-    state: present
-
-- name: start glusterd
-  service: name=glusterd state=started enabled=yes

@@ -92,7 +92,7 @@ var vmshimCommand = cli.Command{
 			exitCh <- vm.Wait()
 		}()
 
-		defer vm.Terminate()
+		defer vm.Close()
 
 		// Alert the parent process that initialization has completed
 		// successfully.

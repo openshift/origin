@@ -61,7 +61,9 @@ func (client Client) CreateOrUpdate(ctx context.Context, resourceGroupName strin
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.UserStorageAccountID", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+				Chain: []validation.Constraint{{Target: "parameters.Properties.UserStorageAccountID", Name: validation.Null, Rule: true, Chain: nil},
+					{Target: "parameters.Properties.OwnerEmail", Name: validation.Null, Rule: true, Chain: nil},
+				}}}}}); err != nil {
 		return result, validation.NewError("workspaces.Client", "CreateOrUpdate", err.Error())
 	}
 

@@ -164,3 +164,18 @@ func (s *BlockBlobSuite) TestPutBlockWithLengthUsingLimitReader(c *chk.C) {
 	lr := io.LimitReader(bytes.NewReader(data), 256)
 	c.Assert(b.PutBlockWithLength("0000", 256, lr, nil), chk.IsNil)
 }
+
+func (s *BlockBlobSuite) TestPutBlockFromURL(c *chk.C) {
+	cli := getBlobClient(c)
+	rec := cli.client.appendRecorder(c)
+	defer rec.Stop()
+
+	cnt := cli.GetContainerReference(containerName(c))
+	c.Assert(cnt.Create(nil), chk.IsNil)
+	defer cnt.Delete(nil)
+
+	srcBlob := cnt.GetBlobReference(blobName(c, "src"))
+	dstBlob := cnt.GetBlobReference(blobName(c, "dst"))
+
+	c.Assert(dstBlob.PutBlockFromURL("00000", srcBlob.GetURL(), 0, 64, nil), chk.IsNil)
+}

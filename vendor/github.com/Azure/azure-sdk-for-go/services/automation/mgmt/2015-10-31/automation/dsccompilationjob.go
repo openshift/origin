@@ -46,7 +46,7 @@ func NewDscCompilationJobClientWithBaseURI(baseURI string, subscriptionID string
 // Parameters:
 // resourceGroupName - name of an Azure Resource group.
 // automationAccountName - the name of the automation account.
-// compilationJobID - the the DSC configuration Id.
+// compilationJobID - the DSC configuration Id.
 // parameters - the parameters supplied to the create compilation job operation.
 func (client DscCompilationJobClient) Create(ctx context.Context, resourceGroupName string, automationAccountName string, compilationJobID uuid.UUID, parameters DscCompilationJobCreateParameters) (result DscCompilationJob, err error) {
 	if tracing.IsEnabled() {

@@ -758,8 +758,7 @@ spec:
 
 	// create CRDs
 	t.Logf("Creating CRD %s", crd.Name)
-	crd, err = apiExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
-	if err != nil {
+	if _, err = apiExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd); err != nil {
 		t.Fatalf("unexpected create error: %v", err)
 	}
 
@@ -789,8 +788,7 @@ spec:
 			t.Fatalf("unexpected get error: %v", err)
 		}
 		crd.Spec.Validation = nil
-		crd, err = apiExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Update(crd)
-		if apierrors.IsConflict(err) {
+		if _, err = apiExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Update(crd); apierrors.IsConflict(err) {
 			continue
 		}
 		if err != nil {
@@ -823,8 +821,7 @@ spec:
 			t.Fatalf("unexpected get error: %v", err)
 		}
 		crd.Spec.Validation = &apiextensionsv1beta1.CustomResourceValidation{OpenAPIV3Schema: origSchema}
-		crd, err = apiExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Update(crd)
-		if apierrors.IsConflict(err) {
+		if _, err = apiExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Update(crd); apierrors.IsConflict(err) {
 			continue
 		}
 		if err != nil {
@@ -1412,8 +1409,8 @@ properties:
     type: string
 `,
 			expectedViolations: []string{
-				"spec.version[v1beta1].schema.openAPIV3Schema.properties[a].type: Required value: must not be empty for specified object fields",
-				"spec.version[v1beta1].schema.openAPIV3Schema.properties[b]: Required value: because it is defined in spec.version[v1beta1].schema.openAPIV3Schema.not.properties[b]",
+				"spec.versions[0].schema.openAPIV3Schema.properties[a].type: Required value: must not be empty for specified object fields",
+				"spec.versions[0].schema.openAPIV3Schema.properties[b]: Required value: because it is defined in spec.versions[0].schema.openAPIV3Schema.not.properties[b]",
 			},
 		},
 		{
@@ -1435,10 +1432,10 @@ not:
     d: {}
 `,
 			expectedViolations: []string{
-				"spec.version[v1beta1].schema.openAPIV3Schema.properties[a].type: Required value: must not be empty for specified object fields",
-				"spec.version[v1beta1].schema.openAPIV3Schema.properties[b]: Required value: because it is defined in spec.version[v1beta1].schema.openAPIV3Schema.not.properties[b]",
-				"spec.version[v1].schema.openAPIV3Schema.properties[c].type: Required value: must not be empty for specified object fields",
-				"spec.version[v1].schema.openAPIV3Schema.properties[d]: Required value: because it is defined in spec.version[v1].schema.openAPIV3Schema.not.properties[d]",
+				"spec.versions[0].schema.openAPIV3Schema.properties[a].type: Required value: must not be empty for specified object fields",
+				"spec.versions[0].schema.openAPIV3Schema.properties[b]: Required value: because it is defined in spec.versions[0].schema.openAPIV3Schema.not.properties[b]",
+				"spec.versions[1].schema.openAPIV3Schema.properties[c].type: Required value: must not be empty for specified object fields",
+				"spec.versions[1].schema.openAPIV3Schema.properties[d]: Required value: because it is defined in spec.versions[1].schema.openAPIV3Schema.not.properties[d]",
 			},
 		},
 		{

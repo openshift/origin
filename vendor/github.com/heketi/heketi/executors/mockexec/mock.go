@@ -22,8 +22,8 @@ type MockExecutor struct {
 	MockPeerProbe                func(exec_host, newnode string) error
 	MockPeerDetach               func(exec_host, newnode string) error
 	MockDeviceSetup              func(host, device, vgid string, destroy bool) (*executors.DeviceInfo, error)
-	MockDeviceTeardown           func(host, device, vgid string) error
-	MockGetDeviceInfo            func(host, device, vgid string) (*executors.DeviceInfo, error)
+	MockDeviceTeardown           func(host string, dh *executors.DeviceVgHandle) error
+	MockGetDeviceInfo            func(host string, dh *executors.DeviceVgHandle) (*executors.DeviceInfo, error)
 	MockBrickCreate              func(host string, brick *executors.BrickRequest) (*executors.BrickInfo, error)
 	MockBrickDestroy             func(host string, brick *executors.BrickRequest) (bool, error)
 	MockVolumeCreate             func(host string, volume *executors.VolumeRequest) (*executors.Volume, error)
@@ -35,6 +35,7 @@ type MockExecutor struct {
 	MockVolumesInfo              func(host string) (*executors.VolInfo, error)
 	MockVolumeClone              func(host string, volume *executors.VolumeCloneRequest) (*executors.Volume, error)
 	MockVolumeSnapshot           func(host string, volume *executors.VolumeSnapshotRequest) (*executors.Snapshot, error)
+	MockVolumeModify             func(host string, mod *executors.VolumeModifyRequest) error
 	MockSnapshotCloneVolume      func(host string, volume *executors.SnapshotCloneRequest) (*executors.Volume, error)
 	MockSnapshotCloneBlockVolume func(host string, volume *executors.SnapshotCloneRequest) (*executors.BlockVolumeInfo, error)
 	MockSnapshotDestroy          func(host string, snapshot string) error
@@ -76,11 +77,11 @@ func NewMockExecutor() (*MockExecutor, error) {
 		return d, nil
 	}
 
-	m.MockDeviceTeardown = func(host, device, vgid string) error {
+	m.MockDeviceTeardown = func(host string, dh *executors.DeviceVgHandle) error {
 		return nil
 	}
 
-	m.MockGetDeviceInfo = func(host, device, vgid string) (*executors.DeviceInfo, error) {
+	m.MockGetDeviceInfo = func(host string, dh *executors.DeviceVgHandle) (*executors.DeviceInfo, error) {
 		dsize := m.DeviceSizeGb() * 1024 * 1024
 		d := &executors.DeviceInfo{}
 		d.TotalSize = dsize
@@ -252,6 +253,10 @@ func NewMockExecutor() (*MockExecutor, error) {
 		return []string{}, nil
 	}
 
+	m.MockVolumeModify = func(host string, mod *executors.VolumeModifyRequest) error {
+		return nil
+	}
+
 	m.DeviceSizeGb = func() uint64 {
 		env := os.Getenv("HEKETI_MOCK_DEVICE_SIZE_GB")
 		if env != "" {
@@ -286,16 +291,16 @@ func (m *MockExecutor) DeviceSetup(host, device, vgid string, destroy bool) (*ex
 	return m.MockDeviceSetup(host, device, vgid, destroy)
 }
 
-func (m *MockExecutor) GetDeviceInfo(host, device, vgid string) (*executors.DeviceInfo, error) {
-	return m.MockGetDeviceInfo(host, device, vgid)
+func (m *MockExecutor) GetDeviceInfo(host string, dh *executors.DeviceVgHandle) (*executors.DeviceInfo, error) {
+	return m.MockGetDeviceInfo(host, dh)
 }
 
-func (m *MockExecutor) DeviceTeardown(host, device, vgid string) error {
-	return m.MockDeviceTeardown(host, device, vgid)
+func (m *MockExecutor) DeviceTeardown(host string, dh *executors.DeviceVgHandle) error {
+	return m.MockDeviceTeardown(host, dh)
 }
 
-func (m *MockExecutor) DeviceForget(host, device, vgid string) error {
-	return m.MockDeviceTeardown(host, device, vgid)
+func (m *MockExecutor) DeviceForget(host string, dh *executors.DeviceVgHandle) error {
+	return m.MockDeviceTeardown(host, dh)
 }
 
 func (m *MockExecutor) BrickCreate(host string, brick *executors.BrickRequest) (*executors.BrickInfo, error) {
@@ -384,4 +389,8 @@ func (m *MockExecutor) GetBrickMountStatus(host string) (*executors.BricksMountS
 
 func (m *MockExecutor) ListBlockVolumes(host string, blockhostingvolume string) ([]string, error) {
 	return m.MockListBlockVolumes(host, blockhostingvolume)
+}
+
+func (m *MockExecutor) VolumeModify(host string, mod *executors.VolumeModifyRequest) error {
+	return m.MockVolumeModify(host, mod)
 }

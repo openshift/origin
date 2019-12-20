@@ -169,7 +169,7 @@ func (v *BlockVolumeEntry) eligibleClustersAndVolumes(db wdb.RODB) (
 	}
 
 	// find clusters that support block volumes
-	cr := ClusterReq{Block: true}
+	cr := clusterReq{allowCreate: false, allowBlock: true}
 	possibleClusters, e = eligibleClusters(db, cr, possibleClusters)
 	if e != nil {
 		return
@@ -217,6 +217,13 @@ func (v *BlockVolumeEntry) eligibleClustersAndVolumes(db wdb.RODB) (
 			e = err
 			return
 		}
+	}
+
+	if len(volumes) == 0 {
+		// now filter out any clusters that can't support an additional BHV
+		possibleClusters, e = eligibleClusters(
+			db, clusterReq{allowCreate: true, allowBlock: true},
+			possibleClusters)
 	}
 	return
 }

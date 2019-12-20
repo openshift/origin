@@ -84,6 +84,7 @@ var _ WorkflowTriggerHistoriesClientAPI = (*logic.WorkflowTriggerHistoriesClient
 // WorkflowRunsClientAPI contains the set of methods on the WorkflowRunsClient type.
 type WorkflowRunsClientAPI interface {
 	Cancel(ctx context.Context, resourceGroupName string, workflowName string, runName string) (result autorest.Response, err error)
+	Delete(ctx context.Context, resourceGroupName string, workflowName string, runName string) (result autorest.Response, err error)
 	Get(ctx context.Context, resourceGroupName string, workflowName string, runName string) (result logic.WorkflowRun, err error)
 	List(ctx context.Context, resourceGroupName string, workflowName string, top *int32, filter string) (result logic.WorkflowRunListResultPage, err error)
 }

@@ -23,6 +23,15 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
+// SubAssessmentsClientAPI contains the set of methods on the SubAssessmentsClient type.
+type SubAssessmentsClientAPI interface {
+	Get(ctx context.Context, scope string, assessmentName string, subAssessmentName string) (result security.SubAssessment, err error)
+	List(ctx context.Context, scope string, assessmentName string) (result security.SubAssessmentListPage, err error)
+	ListAll(ctx context.Context, scope string) (result security.SubAssessmentListPage, err error)
+}
+
+var _ SubAssessmentsClientAPI = (*security.SubAssessmentsClient)(nil)
+
 // RegulatoryComplianceStandardsClientAPI contains the set of methods on the RegulatoryComplianceStandardsClient type.
 type RegulatoryComplianceStandardsClientAPI interface {
 	Get(ctx context.Context, regulatoryComplianceStandardName string) (result security.RegulatoryComplianceStandard, err error)

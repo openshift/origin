@@ -33,7 +33,7 @@ var _ OperationsClientAPI = (*insights.OperationsClient)(nil)
 // AnnotationsClientAPI contains the set of methods on the AnnotationsClient type.
 type AnnotationsClientAPI interface {
 	Create(ctx context.Context, resourceGroupName string, resourceName string, annotationProperties insights.Annotation) (result insights.ListAnnotation, err error)
-	Delete(ctx context.Context, resourceGroupName string, resourceName string, annotationID string) (result insights.SetObject, err error)
+	Delete(ctx context.Context, resourceGroupName string, resourceName string, annotationID string) (result autorest.Response, err error)
 	Get(ctx context.Context, resourceGroupName string, resourceName string, annotationID string) (result insights.ListAnnotation, err error)
 	List(ctx context.Context, resourceGroupName string, resourceName string, start string, end string) (result insights.AnnotationsListResult, err error)
 }
@@ -116,7 +116,7 @@ var _ ComponentsClientAPI = (*insights.ComponentsClient)(nil)
 // WorkItemConfigurationsClientAPI contains the set of methods on the WorkItemConfigurationsClient type.
 type WorkItemConfigurationsClientAPI interface {
 	Create(ctx context.Context, resourceGroupName string, resourceName string, workItemConfigurationProperties insights.WorkItemCreateConfiguration) (result insights.WorkItemConfiguration, err error)
-	Delete(ctx context.Context, resourceGroupName string, resourceName string, workItemConfigID string) (result insights.SetObject, err error)
+	Delete(ctx context.Context, resourceGroupName string, resourceName string, workItemConfigID string) (result autorest.Response, err error)
 	GetDefault(ctx context.Context, resourceGroupName string, resourceName string) (result insights.WorkItemConfiguration, err error)
 	GetItem(ctx context.Context, resourceGroupName string, resourceName string, workItemConfigID string) (result insights.WorkItemConfiguration, err error)
 	List(ctx context.Context, resourceGroupName string, resourceName string) (result insights.WorkItemConfigurationsListResult, err error)

@@ -832,7 +832,7 @@ func TestBackgroundOperationCleaner(t *testing.T) {
 	boc.Start()
 	defer boc.Stop()
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	app.db.Update(func(tx *bolt.Tx) error {
 		l, e := PendingOperationList(tx)
@@ -856,7 +856,7 @@ func TestBackgroundOperationCleaner(t *testing.T) {
 		return nil
 	})
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	app.db.Update(func(tx *bolt.Tx) error {
 		l, e := PendingOperationList(tx)
@@ -919,7 +919,7 @@ func TestBackgroundOperationCleanerWithTracking(t *testing.T) {
 	boc.Start()
 	defer boc.Stop()
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	app.db.Update(func(tx *bolt.Tx) error {
 		l, e := PendingOperationList(tx)
@@ -944,7 +944,7 @@ func TestBackgroundOperationCleanerWithTracking(t *testing.T) {
 	})
 
 	ot.Remove("FAKEFAKE")
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	app.db.Update(func(tx *bolt.Tx) error {
 		l, e := PendingOperationList(tx)

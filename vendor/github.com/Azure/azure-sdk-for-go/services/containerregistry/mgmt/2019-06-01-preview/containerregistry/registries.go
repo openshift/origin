@@ -311,6 +311,96 @@ func (client RegistriesClient) DeleteResponder(resp *http.Response) (result auto
 	return
 }
 
+// GenerateCredentials generate keys for a token of a specified container registry.
+// Parameters:
+// resourceGroupName - the name of the resource group to which the container registry belongs.
+// registryName - the name of the container registry.
+// generateCredentialsParameters - the parameters for generating credentials.
+func (client RegistriesClient) GenerateCredentials(ctx context.Context, resourceGroupName string, registryName string, generateCredentialsParameters GenerateCredentialsParameters) (result RegistriesGenerateCredentialsFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RegistriesClient.GenerateCredentials")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
+		{TargetValue: registryName,
+			Constraints: []validation.Constraint{{Target: "registryName", Name: validation.MaxLength, Rule: 50, Chain: nil},
+				{Target: "registryName", Name: validation.MinLength, Rule: 5, Chain: nil},
+				{Target: "registryName", Name: validation.Pattern, Rule: `^[a-zA-Z0-9]*$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("containerregistry.RegistriesClient", "GenerateCredentials", err.Error())
+	}
+
+	req, err := client.GenerateCredentialsPreparer(ctx, resourceGroupName, registryName, generateCredentialsParameters)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerregistry.RegistriesClient", "GenerateCredentials", nil, "Failure preparing request")
+		return
+	}
+
+	result, err = client.GenerateCredentialsSender(req)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerregistry.RegistriesClient", "GenerateCredentials", result.Response(), "Failure sending request")
+		return
+	}
+
+	return
+}
+
+// GenerateCredentialsPreparer prepares the GenerateCredentials request.
+func (client RegistriesClient) GenerateCredentialsPreparer(ctx context.Context, resourceGroupName string, registryName string, generateCredentialsParameters GenerateCredentialsParameters) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"registryName":      autorest.Encode("path", registryName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2019-05-01-preview"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsContentType("application/json; charset=utf-8"),
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ContainerRegistry/registries/{registryName}/generateCredentials", pathParameters),
+		autorest.WithJSON(generateCredentialsParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GenerateCredentialsSender sends the GenerateCredentials request. The method will close the
+// http.Response Body if it receives an error.
+func (client RegistriesClient) GenerateCredentialsSender(req *http.Request) (future RegistriesGenerateCredentialsFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req, sd...)
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
+	return
+}
+
+// GenerateCredentialsResponder handles the response to the GenerateCredentials request. The method always
+// closes the http.Response Body.
+func (client RegistriesClient) GenerateCredentialsResponder(resp *http.Response) (result GenerateCredentialsResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // Get gets the properties of the specified container registry.
 // Parameters:
 // resourceGroupName - the name of the resource group to which the container registry belongs.

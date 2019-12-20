@@ -17,13 +17,13 @@ require_heketi_binaries() {
 
 start_server() {
 	rm -f heketi.db &> /dev/null
-	./heketi-server --config="./heketi.json" &> heketi.log &
+	./heketi-server --config="./heketi.json" --disable-auth &> heketi.log &
 	server_pid=$!
 	sleep 2
 }
 
 restart_server() {
-	./heketi-server --config="./heketi.json" &>> heketi.log &
+	./heketi-server --config="./heketi.json" --disable-auth &>> heketi.log &
 	server_pid=$!
 	sleep 2
 }

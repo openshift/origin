@@ -22,7 +22,7 @@ package costmanagement
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/costmanagement/mgmt/2019-01-01/costmanagement"
+	original "github.com/Azure/azure-sdk-for-go/services/costmanagement/mgmt/2019-10-01/costmanagement"
 )
 
 const (
@@ -94,15 +94,13 @@ const (
 type TimeframeType = original.TimeframeType
 
 const (
-	BillingMonthToDate  TimeframeType = original.BillingMonthToDate
-	Custom              TimeframeType = original.Custom
-	MonthToDate         TimeframeType = original.MonthToDate
-	TheLastBillingMonth TimeframeType = original.TheLastBillingMonth
-	TheLastMonth        TimeframeType = original.TheLastMonth
-	TheLastWeek         TimeframeType = original.TheLastWeek
-	TheLastYear         TimeframeType = original.TheLastYear
-	WeekToDate          TimeframeType = original.WeekToDate
-	YearToDate          TimeframeType = original.YearToDate
+	Custom       TimeframeType = original.Custom
+	MonthToDate  TimeframeType = original.MonthToDate
+	TheLastMonth TimeframeType = original.TheLastMonth
+	TheLastWeek  TimeframeType = original.TheLastWeek
+	TheLastYear  TimeframeType = original.TheLastYear
+	WeekToDate   TimeframeType = original.WeekToDate
+	YearToDate   TimeframeType = original.YearToDate
 )
 
 type BaseClient = original.BaseClient
@@ -130,7 +128,6 @@ type OperationListResult = original.OperationListResult
 type OperationListResultIterator = original.OperationListResultIterator
 type OperationListResultPage = original.OperationListResultPage
 type OperationsClient = original.OperationsClient
-type Query = original.Query
 type QueryAggregation = original.QueryAggregation
 type QueryClient = original.QueryClient
 type QueryColumn = original.QueryColumn

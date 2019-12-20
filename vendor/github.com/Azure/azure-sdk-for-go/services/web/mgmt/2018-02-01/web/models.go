@@ -9813,7 +9813,7 @@ type FileSystemHTTPLogsConfig struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
-// FunctionEnvelope web Job Information.
+// FunctionEnvelope function information.
 type FunctionEnvelope struct {
 	autorest.Response `json:"-"`
 	// FunctionEnvelopeProperties - FunctionEnvelope resource specific properties
@@ -10056,6 +10056,8 @@ type FunctionEnvelopeProperties struct {
 	ScriptHref *string `json:"script_href,omitempty"`
 	// ConfigHref - Config URI.
 	ConfigHref *string `json:"config_href,omitempty"`
+	// TestDataHref - Test data URI.
+	TestDataHref *string `json:"test_data_href,omitempty"`
 	// SecretsFileHref - Secrets file URI.
 	SecretsFileHref *string `json:"secrets_file_href,omitempty"`
 	// Href - Function URI.
@@ -10066,6 +10068,12 @@ type FunctionEnvelopeProperties struct {
 	Files map[string]*string `json:"files"`
 	// TestData - Test data used when testing via the Azure Portal.
 	TestData *string `json:"test_data,omitempty"`
+	// InvokeURLTemplate - The invocation URL
+	InvokeURLTemplate *string `json:"invoke_url_template,omitempty"`
+	// Language - The function language
+	Language *string `json:"language,omitempty"`
+	// IsDisabled - Value indicating whether the function is disabled
+	IsDisabled *bool `json:"isDisabled,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for FunctionEnvelopeProperties.
@@ -10083,6 +10091,9 @@ func (fe FunctionEnvelopeProperties) MarshalJSON() ([]byte, error) {
 	if fe.ConfigHref != nil {
 		objectMap["config_href"] = fe.ConfigHref
 	}
+	if fe.TestDataHref != nil {
+		objectMap["test_data_href"] = fe.TestDataHref
+	}
 	if fe.SecretsFileHref != nil {
 		objectMap["secrets_file_href"] = fe.SecretsFileHref
 	}
@@ -10097,6 +10108,15 @@ func (fe FunctionEnvelopeProperties) MarshalJSON() ([]byte, error) {
 	}
 	if fe.TestData != nil {
 		objectMap["test_data"] = fe.TestData
+	}
+	if fe.InvokeURLTemplate != nil {
+		objectMap["invoke_url_template"] = fe.InvokeURLTemplate
+	}
+	if fe.Language != nil {
+		objectMap["language"] = fe.Language
+	}
+	if fe.IsDisabled != nil {
+		objectMap["isDisabled"] = fe.IsDisabled
 	}
 	return json.Marshal(objectMap)
 }
@@ -10500,6 +10520,32 @@ type HostingEnvironmentProfile struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Resource type of the App Service Environment.
 	Type *string `json:"type,omitempty"`
+}
+
+// HostKeys functions host level keys.
+type HostKeys struct {
+	autorest.Response `json:"-"`
+	// MasterKey - Secret key.
+	MasterKey *string `json:"masterKey,omitempty"`
+	// FunctionKeys - Host level function keys.
+	FunctionKeys map[string]*string `json:"functionKeys"`
+	// SystemKeys - System keys.
+	SystemKeys map[string]*string `json:"systemKeys"`
+}
+
+// MarshalJSON is the custom marshaler for HostKeys.
+func (hk HostKeys) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if hk.MasterKey != nil {
+		objectMap["masterKey"] = hk.MasterKey
+	}
+	if hk.FunctionKeys != nil {
+		objectMap["functionKeys"] = hk.FunctionKeys
+	}
+	if hk.SystemKeys != nil {
+		objectMap["systemKeys"] = hk.SystemKeys
+	}
+	return json.Marshal(objectMap)
 }
 
 // HostName details of a hostname derived from a domain.
@@ -11943,6 +11989,15 @@ func (j JobProperties) MarshalJSON() ([]byte, error) {
 		objectMap["settings"] = j.Settings
 	}
 	return json.Marshal(objectMap)
+}
+
+// KeyInfo function key info.
+type KeyInfo struct {
+	autorest.Response `json:"-"`
+	// Name - Key name
+	Name *string `json:"name,omitempty"`
+	// Value - Key value
+	Value *string `json:"value,omitempty"`
 }
 
 // ListCapability ...

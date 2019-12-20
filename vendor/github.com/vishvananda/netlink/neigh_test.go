@@ -53,6 +53,8 @@ func dumpContainsProxy(dump []Neigh, p proxyEntry) bool {
 }
 
 func TestNeighAddDelLLIPAddr(t *testing.T) {
+	setUpNetlinkTestWithKModule(t, "ipip")
+
 	tearDown := setUpNetlinkTest(t)
 	defer tearDown()
 

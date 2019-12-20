@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	ErrTooManyOperations = errors.New("exactly one of --merge, --compare, or --validate must be provided")
+	ErrTooManyOperations = errors.New("exactly one of --merge, --compare, --validate or --fieldset must be provided")
 	ErrNeedTwoArgs       = errors.New("--merge and --compare require both --lhs and --rhs")
 )
 
@@ -43,6 +43,7 @@ type Options struct {
 	validatePath string
 	merge        bool
 	compare      bool
+	fieldset     string
 
 	// arguments for merge or compare
 	lhsPath string
@@ -63,6 +64,7 @@ func (o *Options) AddFlags(fs *flag.FlagSet) {
 	fs.StringVar(&o.validatePath, "validate", "", "Path to a file to perform a validation operation on.")
 	fs.BoolVar(&o.merge, "merge", false, "Perform a merge operation between --lhs and --rhs")
 	fs.BoolVar(&o.compare, "compare", false, "Perform a compare operation between --lhs and --rhs")
+	fs.StringVar(&o.fieldset, "fieldset", "", "Path to a file for which we should build a fieldset.")
 
 	fs.StringVar(&o.lhsPath, "lhs", "", "Path to a file containing the left hand side of the operation")
 	fs.StringVar(&o.rhsPath, "rhs", "", "Path to a file containing the right hand side of the operation")
@@ -95,7 +97,7 @@ func (o *Options) Resolve() (Operation, error) {
 
 	// Count how many operations were requested
 	c := map[bool]int{true: 1}
-	count := c[o.merge] + c[o.compare] + c[o.validatePath != ""] + c[o.listTypes]
+	count := c[o.merge] + c[o.compare] + c[o.validatePath != ""] + c[o.listTypes] + c[o.fieldset != ""]
 	if count > 1 {
 		return nil, ErrTooManyOperations
 	}
@@ -115,6 +117,8 @@ func (o *Options) Resolve() (Operation, error) {
 			return nil, ErrNeedTwoArgs
 		}
 		return compare{base, o.lhsPath, o.rhsPath}, nil
+	case o.fieldset != "":
+		return fieldset{base, o.fieldset}, nil
 	}
 	return nil, errors.New("no operation requested")
 }

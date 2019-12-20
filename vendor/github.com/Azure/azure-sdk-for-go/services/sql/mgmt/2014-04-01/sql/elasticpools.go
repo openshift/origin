@@ -363,6 +363,168 @@ func (client ElasticPoolsClient) ListByServerResponder(resp *http.Response) (res
 	return
 }
 
+// ListMetricDefinitions returns elastic pool metric definitions.
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the resource. You can obtain this value
+// from the Azure Resource Manager API or the portal.
+// serverName - the name of the server.
+// elasticPoolName - the name of the elastic pool.
+func (client ElasticPoolsClient) ListMetricDefinitions(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string) (result MetricDefinitionListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ElasticPoolsClient.ListMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	req, err := client.ListMetricDefinitionsPreparer(ctx, resourceGroupName, serverName, elasticPoolName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsClient", "ListMetricDefinitions", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListMetricDefinitionsSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsClient", "ListMetricDefinitions", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.ListMetricDefinitionsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsClient", "ListMetricDefinitions", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListMetricDefinitionsPreparer prepares the ListMetricDefinitions request.
+func (client ElasticPoolsClient) ListMetricDefinitionsPreparer(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"elasticPoolName":   autorest.Encode("path", elasticPoolName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"serverName":        autorest.Encode("path", serverName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2014-04-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/elasticPools/{elasticPoolName}/metricDefinitions", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListMetricDefinitionsSender sends the ListMetricDefinitions request. The method will close the
+// http.Response Body if it receives an error.
+func (client ElasticPoolsClient) ListMetricDefinitionsSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListMetricDefinitionsResponder handles the response to the ListMetricDefinitions request. The method always
+// closes the http.Response Body.
+func (client ElasticPoolsClient) ListMetricDefinitionsResponder(resp *http.Response) (result MetricDefinitionListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// ListMetrics returns elastic pool  metrics.
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the resource. You can obtain this value
+// from the Azure Resource Manager API or the portal.
+// serverName - the name of the server.
+// elasticPoolName - the name of the elastic pool.
+// filter - an OData filter expression that describes a subset of metrics to return.
+func (client ElasticPoolsClient) ListMetrics(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string, filter string) (result MetricListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ElasticPoolsClient.ListMetrics")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	req, err := client.ListMetricsPreparer(ctx, resourceGroupName, serverName, elasticPoolName, filter)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsClient", "ListMetrics", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListMetricsSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsClient", "ListMetrics", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.ListMetricsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsClient", "ListMetrics", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListMetricsPreparer prepares the ListMetrics request.
+func (client ElasticPoolsClient) ListMetricsPreparer(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string, filter string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"elasticPoolName":   autorest.Encode("path", elasticPoolName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"serverName":        autorest.Encode("path", serverName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2014-04-01"
+	queryParameters := map[string]interface{}{
+		"$filter":     autorest.Encode("query", filter),
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/elasticPools/{elasticPoolName}/metrics", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListMetricsSender sends the ListMetrics request. The method will close the
+// http.Response Body if it receives an error.
+func (client ElasticPoolsClient) ListMetricsSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListMetricsResponder handles the response to the ListMetrics request. The method always
+// closes the http.Response Body.
+func (client ElasticPoolsClient) ListMetricsResponder(resp *http.Response) (result MetricListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // Update updates an existing elastic pool.
 // Parameters:
 // resourceGroupName - the name of the resource group that contains the resource. You can obtain this value

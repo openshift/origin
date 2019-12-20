@@ -16,12 +16,12 @@ package procfs
 import "testing"
 
 func TestProcIO(t *testing.T) {
-	p, err := FS("fixtures").NewProc(26231)
+	p, err := getProcFixtures(t).Proc(26231)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	s, err := p.NewIO()
+	s, err := p.IO()
 	if err != nil {
 		t.Fatal(err)
 	}

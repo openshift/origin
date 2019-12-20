@@ -48,8 +48,6 @@ const (
 	aggregatedDiscoveryTimeout = 5 * time.Second
 )
 
-type certFunc func() []byte
-
 // proxyHandler provides a http.Handler which will proxy traffic to locations
 // specified by items implementing Redirector.
 type proxyHandler struct {
@@ -58,16 +56,14 @@ type proxyHandler struct {
 
 	// proxyClientCert/Key are the client cert used to identify this proxy. Backing APIServices use
 	// this to confirm the proxy's identity
-	proxyClientCert certFunc
-	proxyClientKey  certFunc
+	proxyClientCert []byte
+	proxyClientKey  []byte
 	proxyTransport  *http.Transport
 
 	// Endpoints based routing to map from cluster IP to routable IP
 	serviceResolver ServiceResolver
 
 	handlingInfo atomic.Value
-
-	enableAggregatedDiscoveryTimeout bool
 }
 
 type proxyHandlingInfo struct {
@@ -103,7 +99,7 @@ func proxyError(w http.ResponseWriter, req *http.Request, error string, code int
 		return
 	}
 	// TODO: record long-running request differently? The long-running check func does not necessarily match the one of the aggregated apiserver
-	endpointmetrics.Record(req, info, aggregatorComponent, "", code, 0, 0)
+	endpointmetrics.RecordRequestTermination(req, info, aggregatorComponent, code)
 }
 
 func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -159,7 +155,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	location.Path = req.URL.Path
 	location.RawQuery = req.URL.Query().Encode()
 
-	newReq, cancelFn := newRequestForProxy(location, req, r.enableAggregatedDiscoveryTimeout)
+	newReq, cancelFn := newRequestForProxy(location, req)
 	defer cancelFn()
 
 	if handlingInfo.proxyRoundTripper == nil {
@@ -188,14 +184,14 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 // newRequestForProxy returns a shallow copy of the original request with a context that may include a timeout for discovery requests
-func newRequestForProxy(location *url.URL, req *http.Request, enableAggregatedDiscoveryTimeout bool) (*http.Request, context.CancelFunc) {
+func newRequestForProxy(location *url.URL, req *http.Request) (*http.Request, context.CancelFunc) {
 	newCtx := req.Context()
 	cancelFn := func() {}
 
 	if requestInfo, ok := genericapirequest.RequestInfoFrom(req.Context()); ok {
 		// trim leading and trailing slashes. Then "/apis/group/version" requests are for discovery, so if we have exactly three
 		// segments that we are going to proxy, we have a discovery request.
-		if enableAggregatedDiscoveryTimeout && !requestInfo.IsResourceRequest && len(strings.Split(strings.Trim(requestInfo.Path, "/"), "/")) == 3 {
+		if !requestInfo.IsResourceRequest && len(strings.Split(strings.Trim(requestInfo.Path, "/"), "/")) == 3 {
 			// discovery requests are used by kubectl and others to determine which resources a server has.  This is a cheap call that
 			// should be fast for every aggregated apiserver.  Latency for aggregation is expected to be low (as for all extensions)
 			// so forcing a short timeout here helps responsiveness of all clients.
@@ -262,8 +258,8 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationv1api.APIServ
 			TLSClientConfig: restclient.TLSClientConfig{
 				Insecure:   apiService.Spec.InsecureSkipTLSVerify,
 				ServerName: apiService.Spec.Service.Name + "." + apiService.Spec.Service.Namespace + ".svc",
-				CertData:   r.proxyClientCert(),
-				KeyData:    r.proxyClientKey(),
+				CertData:   r.proxyClientCert,
+				KeyData:    r.proxyClientKey,
 				CAData:     apiService.Spec.CABundle,
 			},
 		},

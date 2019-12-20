@@ -2,6 +2,7 @@ package status
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -72,7 +73,7 @@ func unionCondition(conditionType string, defaultConditionStatus operatorv1.Cond
 	// at this point we have bad conditions
 	unionedCondition.Status = badConditionStatus
 	unionedCondition.Message = unionMessage(badConditions)
-	unionedCondition.Reason = unionReason(badConditions)
+	unionedCondition.Reason = unionReason(conditionType, badConditions)
 	unionedCondition.LastTransitionTime = latestTransitionTime(badConditions)
 
 	return OperatorConditionToClusterOperatorCondition(unionedCondition)
@@ -115,13 +116,16 @@ func unionMessage(conditions []operatorv1.OperatorCondition) string {
 	return strings.Join(messages, "\n")
 }
 
-func unionReason(conditions []operatorv1.OperatorCondition) string {
-	if len(conditions) == 1 {
-		if len(conditions[0].Reason) != 0 {
-			return conditions[0].Type + conditions[0].Reason
+func unionReason(unionConditionType string, conditions []operatorv1.OperatorCondition) string {
+	typeReasons := []string{}
+	for _, curr := range conditions {
+		currType := curr.Type[:len(curr.Type)-len(unionConditionType)]
+		if len(curr.Reason) > 0 {
+			typeReasons = append(typeReasons, currType+"_"+curr.Reason)
+		} else {
+			typeReasons = append(typeReasons, currType)
 		}
-		return conditions[0].Type
-	} else {
-		return "MultipleConditionsMatching"
 	}
+	sort.Strings(typeReasons)
+	return strings.Join(typeReasons, "::")
 }

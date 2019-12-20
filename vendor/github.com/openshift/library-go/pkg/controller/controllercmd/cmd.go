@@ -164,7 +164,6 @@ func (c *ControllerCommandConfig) AddDefaultRotationToConfig(config *operatorv1a
 	certDir := "/var/run/secrets/serving-cert"
 
 	observedFiles := []string{
-		c.basicFlags.ConfigFile,
 		// We observe these, so we they are created or modified by service serving cert signer, we can react and restart the process
 		// that will pick these up instead of generating the self-signed certs.
 		// NOTE: We are not observing the temporary, self-signed certificates.
@@ -174,8 +173,12 @@ func (c *ControllerCommandConfig) AddDefaultRotationToConfig(config *operatorv1a
 	// startingFileContent holds hardcoded starting content.  If we generate our own certificates, then we want to specify empty
 	// content to avoid a starting race.  When we consume them, the race is really about as good as we can do since we don't know
 	// what's actually been read.
-	startingFileContent := map[string][]byte{
-		c.basicFlags.ConfigFile: configContent,
+	startingFileContent := map[string][]byte{}
+
+	// Since provision of a config filename is optional, only observe when one is provided.
+	if len(c.basicFlags.ConfigFile) > 0 {
+		observedFiles = append(observedFiles, c.basicFlags.ConfigFile)
+		startingFileContent[c.basicFlags.ConfigFile] = configContent
 	}
 
 	// if we don't have any serving cert/key pairs specified and the defaults are not present, generate a self-signed set
@@ -247,7 +250,7 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 	}
 
 	exitOnChangeReactorCh := make(chan struct{})
-	ctx2, cancel := context.WithCancel(ctx)
+	controllerCtx, cancel := context.WithCancel(ctx)
 	go func() {
 		select {
 		case <-exitOnChangeReactorCh:
@@ -263,5 +266,5 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 		WithServer(config.ServingInfo, config.Authentication, config.Authorization).
 		WithRestartOnChange(exitOnChangeReactorCh, startingFileContent, observedFiles...)
 
-	return builder.Run(unstructuredConfig, ctx2)
+	return builder.Run(controllerCtx, unstructuredConfig)
 }

@@ -125,23 +125,24 @@ func (client DepartmentsClient) GetResponder(resp *http.Response) (result Depart
 	return
 }
 
-// ListByBillingAccountName lists all departments for a user which he has access to.
+// ListByBillingAccountName lists all departments for which a user has access.
 // Parameters:
 // billingAccountName - billing Account Id.
 // expand - may be used to expand the enrollmentAccounts.
 // filter - the filter supports 'eq', 'lt', 'gt', 'le', 'ge', and 'and'. It does not currently support 'ne',
 // 'or', or 'not'. Tag filter is a key value pair string where key and value is separated by a colon (:).
-func (client DepartmentsClient) ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string, filter string) (result DepartmentListResult, err error) {
+func (client DepartmentsClient) ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string, filter string) (result DepartmentListResultPage, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/DepartmentsClient.ListByBillingAccountName")
 		defer func() {
 			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
+			if result.dlr.Response.Response != nil {
+				sc = result.dlr.Response.Response.StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	result.fn = client.listByBillingAccountNameNextResults
 	req, err := client.ListByBillingAccountNamePreparer(ctx, billingAccountName, expand, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.DepartmentsClient", "ListByBillingAccountName", nil, "Failure preparing request")
@@ -150,12 +151,12 @@ func (client DepartmentsClient) ListByBillingAccountName(ctx context.Context, bi
 
 	resp, err := client.ListByBillingAccountNameSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
+		result.dlr.Response = autorest.Response{Response: resp}
 		err = autorest.NewErrorWithError(err, "billing.DepartmentsClient", "ListByBillingAccountName", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.ListByBillingAccountNameResponder(resp)
+	result.dlr, err = client.ListByBillingAccountNameResponder(resp)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.DepartmentsClient", "ListByBillingAccountName", resp, "Failure responding to request")
 	}
@@ -205,5 +206,42 @@ func (client DepartmentsClient) ListByBillingAccountNameResponder(resp *http.Res
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listByBillingAccountNameNextResults retrieves the next set of results, if any.
+func (client DepartmentsClient) listByBillingAccountNameNextResults(ctx context.Context, lastResults DepartmentListResult) (result DepartmentListResult, err error) {
+	req, err := lastResults.departmentListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "billing.DepartmentsClient", "listByBillingAccountNameNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByBillingAccountNameSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "billing.DepartmentsClient", "listByBillingAccountNameNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByBillingAccountNameResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.DepartmentsClient", "listByBillingAccountNameNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByBillingAccountNameComplete enumerates all values, automatically crossing page boundaries as required.
+func (client DepartmentsClient) ListByBillingAccountNameComplete(ctx context.Context, billingAccountName string, expand string, filter string) (result DepartmentListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DepartmentsClient.ListByBillingAccountName")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByBillingAccountName(ctx, billingAccountName, expand, filter)
 	return
 }

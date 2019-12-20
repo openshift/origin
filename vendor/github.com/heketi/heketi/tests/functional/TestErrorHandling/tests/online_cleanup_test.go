@@ -525,3 +525,123 @@ func testOnlineCleanupBlockVolumeDelete(
 	tests.Assert(t, len(ci.BlockVolumes) == bvCount-1,
 		"expected len(ci.BlockVolumes) == bvCount - 1, got:", ci.BlockVolumes, bvCount-1)
 }
+
+func TestOldBHVCleanup(t *testing.T) {
+	heketiServer := testutils.NewServerCtlFromEnv("..")
+	origConf := path.Join(heketiServer.ServerDir, heketiServer.ConfPath)
+
+	heketiServer.ConfPath = tests.Tempfile()
+	defer os.Remove(heketiServer.ConfPath)
+	UpdateConfig(origConf, heketiServer.ConfPath, func(c *config.Config) {
+		c.GlusterFS.DisableBackgroundCleaner = true
+	})
+
+	fullTeardown := func() {
+		CopyFile(origConf, heketiServer.ConfPath)
+		testutils.ServerRestarted(t, heketiServer)
+		testCluster.Teardown(t)
+		testutils.ServerStopped(t, heketiServer)
+	}
+	defer fullTeardown()
+
+	testutils.ServerStarted(t, heketiServer)
+	heketiServer.KeepDB = true
+	testCluster.Setup(t, 3, 3)
+
+	// we need a clean copy of the db so we can actually clean up later
+	testutils.ServerStopped(t, heketiServer)
+	tmpDb := tests.Tempfile()
+	defer os.Remove(tmpDb)
+
+	dbPath := path.Join(heketiServer.ServerDir, heketiServer.DbPath)
+	err := CopyFile(dbPath, tmpDb)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	defer CopyFile(tmpDb, dbPath)
+
+	UpdateConfig(origConf, heketiServer.ConfPath, func(c *config.Config) {
+		c.GlusterFS.DisableBackgroundCleaner = true
+		c.GlusterFS.Executor = "inject/ssh"
+		c.GlusterFS.InjectConfig.CmdInjection.CmdHooks = inj.CmdHooks{
+			inj.CmdHook{
+				Cmd: "^gluster-block .*",
+				Reaction: inj.Reaction{
+					Panic: "panicking on g-b command",
+				},
+			},
+		}
+	})
+	testutils.ServerRestarted(t, heketiServer)
+
+	volReq := &api.BlockVolumeCreateRequest{}
+	volReq.Size = 10
+	_, err = heketi.BlockVolumeCreate(volReq)
+	tests.Assert(t, err != nil, "expected err == nil, got:", err)
+	tests.Assert(t, !heketiServer.IsAlive(),
+		"server is alive; expected server dead due to panic")
+
+	dbJson := tests.Tempfile()
+	defer os.Remove(dbJson)
+
+	// export the db to json so we can hack it up
+	err = heketiServer.RunOfflineCmd(
+		[]string{"db", "export",
+			"--dbfile", heketiServer.DbPath,
+			"--jsonfile", dbJson})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	// edit the json dump so that it looks more like the BHV created
+	// by older (v7) heketi db contents for a pending BVH+BV
+	var dump map[string]interface{}
+	readJsonDump(t, dbJson, &dump)
+	bhvs := dump["volumeentries"].(map[string]interface{})
+	tests.Assert(t, len(bhvs) == 1, "expected len(bhvs) == 1)")
+	var bhvol map[string]interface{}
+	for _, v := range bhvs {
+		bhvol = v.(map[string]interface{})
+	}
+	vi := bhvol["Info"].(map[string]interface{})
+	sz := int(vi["size"].(float64))
+	binfo := vi["blockinfo"].(map[string]interface{})
+	// since it is simpler: set freesize to the size of the vol and
+	// reservedsize to 0, this is close enough to the old heketi
+	// behavior to trigger the issue we're handling
+	binfo["freesize"] = sz
+	binfo["reservedsize"] = 0
+	logger.Info("Changed BHV info to: %+v", vi)
+	writeJsonDump(t, dbJson, dump)
+
+	// restore the "hacked" json to a heketi db (replacing old version)
+	os.Remove(dbPath)
+	err = heketiServer.RunOfflineCmd(
+		[]string{"db", "import",
+			"--dbfile", heketiServer.DbPath,
+			"--jsonfile", dbJson})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	// restore the default config minus bg cleaner
+	UpdateConfig(origConf, heketiServer.ConfPath, func(c *config.Config) {
+		c.GlusterFS.DisableBackgroundCleaner = true
+	})
+	testutils.ServerRestarted(t, heketiServer)
+
+	// we should have our pending BHV+BV in db still
+	l, err := heketi.PendingOperationList()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(l.PendingOperations) == 1,
+		"expected len(l.PendingOperations)t == 1, got:", len(l.PendingOperations))
+
+	// request cleanup from server
+	err = heketi.PendingOperationCleanUp(
+		&api.PendingOperationsCleanRequest{})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	// clean up should now automatically remove even old style BHVs
+	l, err = heketi.PendingOperationList()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(l.PendingOperations) == 0,
+		"expected len(l.PendingOperations)t == 0, got:", len(l.PendingOperations))
+	vl, err := heketi.VolumeList()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(vl.Volumes) == 0,
+		"expected len(vl.Volumes) == 0, got:", vl.Volumes)
+}

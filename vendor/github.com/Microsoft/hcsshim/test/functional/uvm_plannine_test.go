@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/Microsoft/hcsshim/internal/uvm"
 	"github.com/Microsoft/hcsshim/osversion"
 	"github.com/Microsoft/hcsshim/test/functional/utilities"
 )
@@ -19,21 +20,24 @@ import (
 func TestPlan9(t *testing.T) {
 	testutilities.RequiresBuild(t, osversion.RS5)
 
-	uvm := testutilities.CreateLCOWUVM(t, t.Name())
-	defer uvm.Close()
+	vm := testutilities.CreateLCOWUVM(t, t.Name())
+	defer vm.Close()
 
 	dir := testutilities.CreateTempDir(t)
 	defer os.RemoveAll(dir)
 	var iterations uint32 = 64
+	var shares []*uvm.Plan9Share
 	for i := 0; i < int(iterations); i++ {
-		if err := uvm.AddPlan9(dir, fmt.Sprintf("/tmp/%s", filepath.Base(dir)), false); err != nil {
+		share, err := vm.AddPlan9(dir, fmt.Sprintf("/tmp/%s", filepath.Base(dir)), false, false, nil)
+		if err != nil {
 			t.Fatalf("AddPlan9 failed: %s", err)
 		}
+		shares = append(shares, share)
 	}
 
 	// Remove them all
-	for i := 0; i < int(iterations); i++ {
-		if err := uvm.RemovePlan9(dir); err != nil {
+	for _, share := range shares {
+		if err := vm.RemovePlan9(share); err != nil {
 			t.Fatalf("RemovePlan9 failed: %s", err)
 		}
 	}

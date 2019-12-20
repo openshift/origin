@@ -48,17 +48,41 @@ type swaggerExternalDocumentationObject struct {
 
 // http://swagger.io/specification/#swaggerObject
 type swaggerObject struct {
-	Swagger      string                              `json:"swagger"`
-	Info         swaggerInfoObject                   `json:"info"`
-	Host         string                              `json:"host,omitempty"`
-	BasePath     string                              `json:"basePath,omitempty"`
-	Schemes      []string                            `json:"schemes"`
-	Consumes     []string                            `json:"consumes"`
-	Produces     []string                            `json:"produces"`
-	Paths        swaggerPathsObject                  `json:"paths"`
-	Definitions  swaggerDefinitionsObject            `json:"definitions"`
-	ExternalDocs *swaggerExternalDocumentationObject `json:"externalDocs,omitempty"`
+	Swagger             string                              `json:"swagger"`
+	Info                swaggerInfoObject                   `json:"info"`
+	Host                string                              `json:"host,omitempty"`
+	BasePath            string                              `json:"basePath,omitempty"`
+	Schemes             []string                            `json:"schemes"`
+	Consumes            []string                            `json:"consumes"`
+	Produces            []string                            `json:"produces"`
+	Paths               swaggerPathsObject                  `json:"paths"`
+	Definitions         swaggerDefinitionsObject            `json:"definitions"`
+	StreamDefinitions   swaggerDefinitionsObject            `json:"x-stream-definitions,omitempty"`
+	SecurityDefinitions swaggerSecurityDefinitionsObject    `json:"securityDefinitions,omitempty"`
+	Security            []swaggerSecurityRequirementObject  `json:"security,omitempty"`
+	ExternalDocs        *swaggerExternalDocumentationObject `json:"externalDocs,omitempty"`
 }
+
+// http://swagger.io/specification/#securityDefinitionsObject
+type swaggerSecurityDefinitionsObject map[string]swaggerSecuritySchemeObject
+
+// http://swagger.io/specification/#securitySchemeObject
+type swaggerSecuritySchemeObject struct {
+	Type             string              `json:"type"`
+	Description      string              `json:"description,omitempty"`
+	Name             string              `json:"name,omitempty"`
+	In               string              `json:"in,omitempty"`
+	Flow             string              `json:"flow,omitempty"`
+	AuthorizationURL string              `json:"authorizationUrl,omitempty"`
+	TokenURL         string              `json:"tokenUrl,omitempty"`
+	Scopes           swaggerScopesObject `json:"scopes,omitempty"`
+}
+
+// http://swagger.io/specification/#scopesObject
+type swaggerScopesObject map[string]string
+
+// http://swagger.io/specification/#securityRequirementObject
+type swaggerSecurityRequirementObject map[string][]string
 
 // http://swagger.io/specification/#pathsObject
 type swaggerPathsObject map[string]swaggerPathItemObject
@@ -82,6 +106,7 @@ type swaggerOperationObject struct {
 	Tags        []string                `json:"tags,omitempty"`
 	Deprecated  bool                    `json:"deprecated,omitempty"`
 
+	Security     *[]swaggerSecurityRequirementObject `json:"security,omitempty"`
 	ExternalDocs *swaggerExternalDocumentationObject `json:"externalDocs,omitempty"`
 }
 
@@ -89,15 +114,17 @@ type swaggerParametersObject []swaggerParameterObject
 
 // http://swagger.io/specification/#parameterObject
 type swaggerParameterObject struct {
-	Name        string              `json:"name"`
-	Description string              `json:"description,omitempty"`
-	In          string              `json:"in,omitempty"`
-	Required    bool                `json:"required"`
-	Type        string              `json:"type,omitempty"`
-	Format      string              `json:"format,omitempty"`
-	Items       *swaggerItemsObject `json:"items,omitempty"`
-	Enum        []string            `json:"enum,omitempty"`
-	Default     string              `json:"default,omitempty"`
+	Name             string              `json:"name"`
+	Description      string              `json:"description,omitempty"`
+	In               string              `json:"in,omitempty"`
+	Required         bool                `json:"required"`
+	Type             string              `json:"type,omitempty"`
+	Format           string              `json:"format,omitempty"`
+	Items            *swaggerItemsObject `json:"items,omitempty"`
+	Enum             []string            `json:"enum,omitempty"`
+	CollectionFormat string              `json:"collectionFormat,omitempty"`
+	Default          string              `json:"default,omitempty"`
+	MinItems         *int                `json:"minItems,omitempty"`
 
 	// Or you can explicitly refer to another type. If this is defined all
 	// other fields should be empty
@@ -107,9 +134,10 @@ type swaggerParameterObject struct {
 // core part of schema, which is common to itemsObject and schemaObject.
 // http://swagger.io/specification/#itemsObject
 type schemaCore struct {
-	Type   string `json:"type,omitempty"`
-	Format string `json:"format,omitempty"`
-	Ref    string `json:"$ref,omitempty"`
+	Type    string          `json:"type,omitempty"`
+	Format  string          `json:"format,omitempty"`
+	Ref     string          `json:"$ref,omitempty"`
+	Example json.RawMessage `json:"example,omitempty"`
 
 	Items *swaggerItemsObject `json:"items,omitempty"`
 
@@ -166,13 +194,29 @@ func (op swaggerSchemaObjectProperties) MarshalJSON() ([]byte, error) {
 type swaggerSchemaObject struct {
 	schemaCore
 	// Properties can be recursively defined
-	Properties           swaggerSchemaObjectProperties `json:"properties,omitempty"`
-	AdditionalProperties *swaggerSchemaObject          `json:"additionalProperties,omitempty"`
+	Properties           *swaggerSchemaObjectProperties `json:"properties,omitempty"`
+	AdditionalProperties *swaggerSchemaObject           `json:"additionalProperties,omitempty"`
 
 	Description string `json:"description,omitempty"`
 	Title       string `json:"title,omitempty"`
 
 	ExternalDocs *swaggerExternalDocumentationObject `json:"externalDocs,omitempty"`
+
+	ReadOnly         bool     `json:"readOnly,omitempty"`
+	MultipleOf       float64  `json:"multipleOf,omitempty"`
+	Maximum          float64  `json:"maximum,omitempty"`
+	ExclusiveMaximum bool     `json:"exclusiveMaximum,omitempty"`
+	Minimum          float64  `json:"minimum,omitempty"`
+	ExclusiveMinimum bool     `json:"exclusiveMinimum,omitempty"`
+	MaxLength        uint64   `json:"maxLength,omitempty"`
+	MinLength        uint64   `json:"minLength,omitempty"`
+	Pattern          string   `json:"pattern,omitempty"`
+	MaxItems         uint64   `json:"maxItems,omitempty"`
+	MinItems         uint64   `json:"minItems,omitempty"`
+	UniqueItems      bool     `json:"uniqueItems,omitempty"`
+	MaxProperties    uint64   `json:"maxProperties,omitempty"`
+	MinProperties    uint64   `json:"minProperties,omitempty"`
+	Required         []string `json:"required,omitempty"`
 }
 
 // http://swagger.io/specification/#referenceObject

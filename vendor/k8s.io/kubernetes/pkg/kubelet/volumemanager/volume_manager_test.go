@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/utils/mount"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -42,7 +44,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/secret"
 	"k8s.io/kubernetes/pkg/kubelet/status"
 	statustest "k8s.io/kubernetes/pkg/kubelet/status/testing"
-	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 	"k8s.io/kubernetes/pkg/volume/util"
@@ -252,7 +253,8 @@ func TestGetExtraSupplementalGroupsForPod(t *testing.T) {
 					},
 				},
 				ClaimRef: &v1.ObjectReference{
-					Name: claim.ObjectMeta.Name,
+					Name:      claim.ObjectMeta.Name,
+					Namespace: claim.ObjectMeta.Namespace,
 				},
 				VolumeMode: &fs,
 			},
@@ -301,7 +303,7 @@ func newTestVolumeManager(tmpDir string, podManager kubepod.Manager, kubeClient 
 		kubeClient,
 		plugMgr,
 		&containertest.FakeRuntime{},
-		&mount.FakeMounter{},
+		mount.NewFakeMounter(nil),
 		hostutil.NewFakeHostUtil(nil),
 		"",
 		fakeRecorder,
@@ -381,7 +383,8 @@ func createObjects(pvMode, podMode v1.PersistentVolumeMode) (*v1.Node, *v1.Pod, 
 				},
 			},
 			ClaimRef: &v1.ObjectReference{
-				Name: "claimA",
+				Namespace: "nsA",
+				Name:      "claimA",
 			},
 			VolumeMode: &pvMode,
 		},

@@ -663,6 +663,96 @@ func (client ConfigurationStoresClient) ListKeysComplete(ctx context.Context, re
 	return
 }
 
+// ListKeyValue lists a configuration store key-value.
+// Parameters:
+// resourceGroupName - the name of the resource group to which the container registry belongs.
+// configStoreName - the name of the configuration store.
+// listKeyValueParameters - the parameters for retrieving a key-value.
+func (client ConfigurationStoresClient) ListKeyValue(ctx context.Context, resourceGroupName string, configStoreName string, listKeyValueParameters ListKeyValueParameters) (result KeyValue, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ConfigurationStoresClient.ListKeyValue")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: configStoreName,
+			Constraints: []validation.Constraint{{Target: "configStoreName", Name: validation.MaxLength, Rule: 50, Chain: nil},
+				{Target: "configStoreName", Name: validation.MinLength, Rule: 5, Chain: nil},
+				{Target: "configStoreName", Name: validation.Pattern, Rule: `^[a-zA-Z0-9_-]*$`, Chain: nil}}},
+		{TargetValue: listKeyValueParameters,
+			Constraints: []validation.Constraint{{Target: "listKeyValueParameters.Key", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("appconfiguration.ConfigurationStoresClient", "ListKeyValue", err.Error())
+	}
+
+	req, err := client.ListKeyValuePreparer(ctx, resourceGroupName, configStoreName, listKeyValueParameters)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "appconfiguration.ConfigurationStoresClient", "ListKeyValue", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListKeyValueSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "appconfiguration.ConfigurationStoresClient", "ListKeyValue", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.ListKeyValueResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "appconfiguration.ConfigurationStoresClient", "ListKeyValue", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListKeyValuePreparer prepares the ListKeyValue request.
+func (client ConfigurationStoresClient) ListKeyValuePreparer(ctx context.Context, resourceGroupName string, configStoreName string, listKeyValueParameters ListKeyValueParameters) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"configStoreName":   autorest.Encode("path", configStoreName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2019-02-01-preview"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsContentType("application/json; charset=utf-8"),
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.AppConfiguration/configurationStores/{configStoreName}/listKeyValue", pathParameters),
+		autorest.WithJSON(listKeyValueParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListKeyValueSender sends the ListKeyValue request. The method will close the
+// http.Response Body if it receives an error.
+func (client ConfigurationStoresClient) ListKeyValueSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListKeyValueResponder handles the response to the ListKeyValue request. The method always
+// closes the http.Response Body.
+func (client ConfigurationStoresClient) ListKeyValueResponder(resp *http.Response) (result KeyValue, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // RegenerateKey regenerates an access key for the specified configuration store.
 // Parameters:
 // resourceGroupName - the name of the resource group to which the container registry belongs.

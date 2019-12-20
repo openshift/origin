@@ -603,6 +603,8 @@ func BenchmarkDeducedSimple(b *testing.B) {
 		b.Fatal(err)
 	}
 
+	test.PreprocessOperations(typed.DeducedParseableType)
+
 	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -712,6 +714,8 @@ func BenchmarkDeducedNested(b *testing.B) {
 		b.Fatal(err)
 	}
 
+	test.PreprocessOperations(typed.DeducedParseableType)
+
 	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -820,6 +824,8 @@ func BenchmarkDeducedNestedAcrossVersion(b *testing.B) {
 	if err := test.Test(typed.DeducedParseableType); err != nil {
 		b.Fatal(err)
 	}
+
+	test.PreprocessOperations(typed.DeducedParseableType)
 
 	b.ReportAllocs()
 	b.ResetTimer()

@@ -21,12 +21,13 @@ import (
 	"os"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	"k8s.io/utils/mount"
+
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	utiltesting "k8s.io/client-go/util/testing"
-	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 )
@@ -108,7 +109,7 @@ func doTestPlugin(t *testing.T, spec *volume.Spec) {
 	if err != nil {
 		t.Errorf("Can't find the plugin by name")
 	}
-	fake := &mount.FakeMounter{}
+	fake := mount.NewFakeMounter(nil)
 	pod := &v1.Pod{ObjectMeta: metav1.ObjectMeta{UID: types.UID("poduid")}}
 	mounter, err := plug.(*nfsPlugin).newMounterInternal(spec, pod, fake)
 	if err != nil {
@@ -135,11 +136,12 @@ func doTestPlugin(t *testing.T, spec *volume.Spec) {
 	if mounter.(*nfsMounter).readOnly {
 		t.Errorf("The volume source should not be read-only and it is.")
 	}
-	if len(fake.Log) != 1 {
-		t.Errorf("Mount was not called exactly one time. It was called %d times.", len(fake.Log))
+	log := fake.GetLog()
+	if len(log) != 1 {
+		t.Errorf("Mount was not called exactly one time. It was called %d times.", len(log))
 	} else {
-		if fake.Log[0].Action != mount.FakeActionMount {
-			t.Errorf("Unexpected mounter action: %#v", fake.Log[0])
+		if log[0].Action != mount.FakeActionMount {
+			t.Errorf("Unexpected mounter action: %#v", log[0])
 		}
 	}
 	fake.ResetLog()
@@ -159,11 +161,12 @@ func doTestPlugin(t *testing.T, spec *volume.Spec) {
 	} else if !os.IsNotExist(err) {
 		t.Errorf("TearDown() failed: %v", err)
 	}
-	if len(fake.Log) != 1 {
-		t.Errorf("Unmount was not called exactly one time. It was called %d times.", len(fake.Log))
+	log = fake.GetLog()
+	if len(log) != 1 {
+		t.Errorf("Unmount was not called exactly one time. It was called %d times.", len(log))
 	} else {
-		if fake.Log[0].Action != mount.FakeActionUnmount {
-			t.Errorf("Unexpected unmounter action: %#v", fake.Log[0])
+		if log[0].Action != mount.FakeActionUnmount {
+			t.Errorf("Unexpected unmounter action: %#v", log[0])
 		}
 	}
 

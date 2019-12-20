@@ -3,6 +3,7 @@ package scopeauthorizer
 import (
 	"strings"
 	"testing"
+	"context"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
@@ -126,7 +127,7 @@ func TestAuthorize(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			authorizer := NewAuthorizer(nil)
 
-			actualAllowed, actualMsg, actualErr := authorizer.Authorize(tc.attributes)
+			actualAllowed, actualMsg, actualErr := authorizer.Authorize(context.TODO(), tc.attributes)
 			switch {
 			case len(tc.expectedErr) == 0 && actualErr == nil:
 			case len(tc.expectedErr) == 0 && actualErr != nil:

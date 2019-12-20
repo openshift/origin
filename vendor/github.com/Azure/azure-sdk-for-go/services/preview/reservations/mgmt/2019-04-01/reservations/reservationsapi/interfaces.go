@@ -30,18 +30,9 @@ type BaseClientAPI interface {
 
 var _ BaseClientAPI = (*reservations.BaseClient)(nil)
 
-// OrderClientAPI contains the set of methods on the OrderClient type.
-type OrderClientAPI interface {
-	Calculate(ctx context.Context, body reservations.PurchaseRequest) (result reservations.CalculatePriceResponse, err error)
-	Get(ctx context.Context, reservationOrderID string) (result reservations.OrderResponse, err error)
-	List(ctx context.Context) (result reservations.OrderListPage, err error)
-	Purchase(ctx context.Context, reservationOrderID string, body reservations.PurchaseRequest) (result reservations.OrderPurchaseFuture, err error)
-}
-
-var _ OrderClientAPI = (*reservations.OrderClient)(nil)
-
 // ClientAPI contains the set of methods on the Client type.
 type ClientAPI interface {
+	AvailableScopes(ctx context.Context, reservationOrderID string, reservationID string, body []string) (result reservations.ReservationAvailableScopesFuture, err error)
 	Get(ctx context.Context, reservationID string, reservationOrderID string, expand string) (result reservations.Response, err error)
 	List(ctx context.Context, reservationOrderID string) (result reservations.ListPage, err error)
 	ListRevisions(ctx context.Context, reservationID string, reservationOrderID string) (result reservations.ListPage, err error)
@@ -51,6 +42,16 @@ type ClientAPI interface {
 }
 
 var _ ClientAPI = (*reservations.Client)(nil)
+
+// OrderClientAPI contains the set of methods on the OrderClient type.
+type OrderClientAPI interface {
+	Calculate(ctx context.Context, body reservations.PurchaseRequest) (result reservations.CalculatePriceResponse, err error)
+	Get(ctx context.Context, reservationOrderID string, expand string) (result reservations.OrderResponse, err error)
+	List(ctx context.Context) (result reservations.OrderListPage, err error)
+	Purchase(ctx context.Context, reservationOrderID string, body reservations.PurchaseRequest) (result reservations.OrderPurchaseFuture, err error)
+}
+
+var _ OrderClientAPI = (*reservations.OrderClient)(nil)
 
 // OperationClientAPI contains the set of methods on the OperationClient type.
 type OperationClientAPI interface {

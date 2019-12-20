@@ -1,3 +1,46 @@
+## 1.0.0 / 2019-06-15
+
+_This release removes all previously deprecated features, resulting in the breaking changes listed below. As this is v1.0.0, semantic versioning applies from now on, with the exception of the API client and parts marked explicitly as experimental._
+
+* [CHANGE] Remove objectives from the default `Summary`. (Objectives have to be set explicitly in the `SummaryOpts`.) #600
+* [CHANGE] Remove all HTTP related feature in the `prometheus` package. (Use the `promhttp` package instead.)  #600
+* [CHANGE] Remove `push.FromGatherer`, `push.AddFromGatherer`, `push.Collectors`. (Use `push.New` instead.) #600
+* [CHANGE] API client: Pass warnings through on non-error responses. #599
+* [CHANGE] API client: Add warnings to `Series` call. #603
+* [FEATURE] Make process collector work on Microsoft Windows. **EXPERIMENTAL** #596
+* [FEATURE] API client: Add `/labels` call. #604
+* [BUGFIX] Make `AlreadyRegisteredError` usable for wrapped registries. #607
+
+## 0.9.4 / 2019-06-07
+* [CHANGE] API client: Switch to alert values as strings. #585
+* [FEATURE] Add a collector for Go module build information. #595
+* [FEATURE] promhttp: Add an counter for internal errors during HTTP exposition. #594
+* [FEATURE] API client: Support target metadata API. #590
+* [FEATURE] API client: Support storage warnings. #562
+* [ENHANCEMENT] API client: Improve performance handling JSON. #570
+* [BUGFIX] Reduce test flakiness. #573
+
+## 0.9.3 / 2019-05-16
+* [CHANGE] Required Go version is now 1.9+. #561
+* [FEATURE] API client: Add POST with get fallback for Query/QueryRange. #557
+* [FEATURE] API client: Add alerts endpoint. #552
+* [FEATURE] API client: Add rules endpoint. #508
+* [FEATURE] push: Add option to pick metrics format. #540
+* [ENHANCEMENT] Limit time the Go collector may take to collect memstats,
+  returning results from the previous collection in case of a timeout. #568
+* [ENHANCEMENT] Pusher now requires only a thin interface instead of a full
+  `http.Client`, facilitating mocking and custom HTTP client implementation.
+  #559
+* [ENHANCEMENT] Memory usage improvement for histograms and summaries without
+  objectives. #536
+* [ENHANCEMENT] Summaries without objectives are now lock-free. #521
+* [BUGFIX] promhttp: `InstrumentRoundTripperTrace` now takes into account a pre-set context. #582
+* [BUGFIX] `TestCounterAddLarge` now works on all platforms. #567
+* [BUGFIX] Fix `promhttp` examples. #535 #544
+* [BUGFIX] API client: Wait for done before writing to shared response
+  body. #532
+* [BUGFIX] API client: Deal with discovered labels properly. #529
+
 ## 0.9.2 / 2018-12-06
 * [FEATURE] Support for Go modules. #501
 * [FEATURE] `Timer.ObserveDuration` returns observed duration. #509

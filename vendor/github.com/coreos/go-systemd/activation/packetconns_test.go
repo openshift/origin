@@ -24,7 +24,8 @@ import (
 // TestActivation forks out a copy of activation.go example and reads back two
 // strings from the pipes that are passed in.
 func TestPacketConns(t *testing.T) {
-	cmd := exec.Command("go", "run", "../examples/activation/udpconn.go")
+	arg0, cmdline := exampleCmd("udpconn")
+	cmd := exec.Command(arg0, cmdline...)
 
 	u1, err := net.ListenUDP("udp", &net.UDPAddr{Port: 9999})
 	if err != nil {

@@ -1159,4 +1159,128 @@ func TestVolumeCreateLimits(t *testing.T) {
 
 	})
 
+	t.Run("BeyondLimitBHVImplicit", func(t *testing.T) {
+		req := &api.VolumeCreateRequest{}
+		req.Size = 1
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 3
+		vol := NewVolumeEntryFromRequest(req)
+		vco := NewVolumeCreateOperation(vol, app.db)
+		e := RunOperation(vco, app.executor)
+		tests.Assert(t, e == nil, "expected e == nil, got:", e)
+		defer cleanupVolume(vol)
+
+		// Next volume create should fail
+		errstring := "has 5 volumes and limit is 5"
+		newbvol := NewBlockVolumeEntryFromRequest(&api.BlockVolumeCreateRequest{
+			Size: 40,
+		})
+		bvco := NewBlockVolumeCreateOperation(newbvol, app.db)
+		e = RunOperation(bvco, app.executor)
+		tests.Assert(t, strings.Contains(e.Error(), errstring),
+			"expected strings.Contains(e.Error(),", errstring, " got:", e)
+
+		// Check that we don't leave any pending volume
+		// and the volume count is still the same as before
+		app.db.View(func(tx *bolt.Tx) error {
+			vols, err := VolumeList(tx)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			tests.Assert(t, len(vols) == 5,
+				"expected len(vols) == 5, got:", len(vols))
+			vols, err = ListCompleteVolumes(tx)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			tests.Assert(t, len(vols) == 5,
+				"expected len(vols) == 5, got:", len(vols))
+			return nil
+		})
+
+	})
+
+	t.Run("BeyondLimitBHVManual", func(t *testing.T) {
+		req := &api.VolumeCreateRequest{}
+		req.Size = 1
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 3
+		vol := NewVolumeEntryFromRequest(req)
+		vco := NewVolumeCreateOperation(vol, app.db)
+		e := RunOperation(vco, app.executor)
+		tests.Assert(t, e == nil, "expected e == nil, got:", e)
+		defer cleanupVolume(vol)
+
+		// Next volume create should fail
+		errstring := "has 5 volumes and limit is 5"
+		newvol := NewVolumeEntryFromRequest(&api.VolumeCreateRequest{
+			Size:  1,
+			Block: true,
+		})
+		vco = NewVolumeCreateOperation(newvol, app.db)
+		e = RunOperation(vco, app.executor)
+		tests.Assert(t, e != nil, "expected e != nil")
+		tests.Assert(t, strings.Contains(e.Error(), errstring),
+			"expected strings.Contains(e.Error(),", errstring, " got:", e)
+
+		// Check that we don't leave any pending volume
+		// and the volume count is still the same as before
+		app.db.View(func(tx *bolt.Tx) error {
+			vols, err := VolumeList(tx)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			tests.Assert(t, len(vols) == 5,
+				"expected len(vols) == 5, got:", len(vols))
+			vols, err = ListCompleteVolumes(tx)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			tests.Assert(t, len(vols) == 5,
+				"expected len(vols) == 5, got:", len(vols))
+			return nil
+		})
+
+	})
+
+	t.Run("UnderLimitBHV", func(t *testing.T) {
+		req := &api.VolumeCreateRequest{}
+		req.Size = 40
+		req.Block = true
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 3
+		vol := NewVolumeEntryFromRequest(req)
+		vco := NewVolumeCreateOperation(vol, app.db)
+		e := RunOperation(vco, app.executor)
+		tests.Assert(t, e == nil, "expected e == nil, got:", e)
+		defer cleanupVolume(vol)
+
+		// creating new block volumes go into exiting BVH
+		for i := 0; i <= 5; i++ {
+			newbvol := NewBlockVolumeEntryFromRequest(&api.BlockVolumeCreateRequest{
+				Size: 1,
+			})
+			bvco := NewBlockVolumeCreateOperation(newbvol, app.db)
+			e = RunOperation(bvco, app.executor)
+			tests.Assert(t, e == nil, "expected e == nil, got:", e)
+		}
+
+		// trying to create a BVol that needs a new BHV will fail
+		newbvol := NewBlockVolumeEntryFromRequest(&api.BlockVolumeCreateRequest{
+			Size: 100,
+		})
+		bvco := NewBlockVolumeCreateOperation(newbvol, app.db)
+		e = RunOperation(bvco, app.executor)
+		errstring := "has 5 volumes and limit is 5"
+		tests.Assert(t, strings.Contains(e.Error(), errstring),
+			"expected strings.Contains(e.Error(),", errstring, " got:", e)
+
+		// Check that we don't leave any pending volume
+		// and the volume count is still the same as before
+		app.db.View(func(tx *bolt.Tx) error {
+			vols, err := VolumeList(tx)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			tests.Assert(t, len(vols) == 5,
+				"expected len(vols) == 5, got:", len(vols))
+			vols, err = ListCompleteVolumes(tx)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			tests.Assert(t, len(vols) == 5,
+				"expected len(vols) == 5, got:", len(vols))
+			return nil
+		})
+
+	})
+
 }

@@ -46,6 +46,19 @@ func PossibleDefaultActionValues() []DefaultAction {
 	return []DefaultAction{Allow, Deny}
 }
 
+// IdentityType enumerates the values for identity type.
+type IdentityType string
+
+const (
+	// SystemAssigned ...
+	SystemAssigned IdentityType = "SystemAssigned"
+)
+
+// PossibleIdentityTypeValues returns an array of possible values for the IdentityType const type.
+func PossibleIdentityTypeValues() []IdentityType {
+	return []IdentityType{SystemAssigned}
+}
+
 // IPAction enumerates the values for ip action.
 type IPAction string
 
@@ -59,6 +72,19 @@ const (
 // PossibleIPActionValues returns an array of possible values for the IPAction const type.
 func PossibleIPActionValues() []IPAction {
 	return []IPAction{Accept, Reject}
+}
+
+// KeySource enumerates the values for key source.
+type KeySource string
+
+const (
+	// MicrosoftKeyVault ...
+	MicrosoftKeyVault KeySource = "Microsoft.KeyVault"
+)
+
+// PossibleKeySourceValues returns an array of possible values for the KeySource const type.
+func PossibleKeySourceValues() []KeySource {
+	return []KeySource{MicrosoftKeyVault}
 }
 
 // NetworkRuleIPAction enumerates the values for network rule ip action.
@@ -778,6 +804,8 @@ type EHNamespaceProperties struct {
 	UpdatedAt *date.Time `json:"updatedAt,omitempty"`
 	// ServiceBusEndpoint - READ-ONLY; Endpoint you can use to perform Service Bus operations.
 	ServiceBusEndpoint *string `json:"serviceBusEndpoint,omitempty"`
+	// ClusterArmID - Cluster ARM ID of the Namespace.
+	ClusterArmID *string `json:"clusterArmId,omitempty"`
 	// MetricID - READ-ONLY; Identifier for Azure Insights metrics.
 	MetricID *string `json:"metricId,omitempty"`
 	// IsAutoInflateEnabled - Value that indicates whether AutoInflate is enabled for eventhub namespace.
@@ -788,6 +816,18 @@ type EHNamespaceProperties struct {
 	KafkaEnabled *bool `json:"kafkaEnabled,omitempty"`
 	// ZoneRedundant - Enabling this property creates a Standard Event Hubs Namespace in regions supported availability zones.
 	ZoneRedundant *bool `json:"zoneRedundant,omitempty"`
+	// Identity - Properties of BYOK Identity description
+	Identity *Identity `json:"identity,omitempty"`
+	// Encryption - Properties of BYOK Encryption description
+	Encryption *Encryption `json:"encryption,omitempty"`
+}
+
+// Encryption properties to configure Encryption
+type Encryption struct {
+	// KeyVaultProperties - Properties of KeyVault
+	KeyVaultProperties *KeyVaultProperties `json:"keyVaultProperties,omitempty"`
+	// KeySource - Enumerates the possible value of keySource for Encryption. Possible values include: 'MicrosoftKeyVault'
+	KeySource KeySource `json:"keySource,omitempty"`
 }
 
 // ErrorResponse error response that indicates the service is not able to process the incoming request. The
@@ -797,6 +837,16 @@ type ErrorResponse struct {
 	Code *string `json:"code,omitempty"`
 	// Message - Error message indicating why the operation failed.
 	Message *string `json:"message,omitempty"`
+}
+
+// Identity properties to configure Identity for Bring your Own Keys
+type Identity struct {
+	// PrincipalID - ObjectId from the KeyVault
+	PrincipalID *string `json:"principalId,omitempty"`
+	// TenantID - TenantId from the KeyVault
+	TenantID *string `json:"tenantId,omitempty"`
+	// Type - Enumerates the possible value Identity type, which currently supports only 'SystemAssigned'. Possible values include: 'SystemAssigned'
+	Type IdentityType `json:"type,omitempty"`
 }
 
 // IPFilterRule single item in a List or Get IpFilterRules operation
@@ -1026,6 +1076,14 @@ type IPFilterRuleProperties struct {
 	Action IPAction `json:"action,omitempty"`
 	// FilterName - IP Filter name
 	FilterName *string `json:"filterName,omitempty"`
+}
+
+// KeyVaultProperties properties to configure keyVault Properties
+type KeyVaultProperties struct {
+	// KeyName - Name of the Key from KeyVault
+	KeyName *string `json:"keyName,omitempty"`
+	// KeyVaultURI - Uri of KeyVault
+	KeyVaultURI *string `json:"keyVaultUri,omitempty"`
 }
 
 // NamespacesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a

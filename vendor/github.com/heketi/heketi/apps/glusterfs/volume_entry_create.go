@@ -16,6 +16,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/heketi/heketi/executors"
 	wdb "github.com/heketi/heketi/pkg/db"
+	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/lpabon/godbc"
 )
 
@@ -73,23 +74,23 @@ func getHostsFromCluster(db wdb.RODB, clusterID string) ([]string, error) {
 
 	return hosts, nil
 }
-func (v *VolumeEntry) updateMountInfo(db wdb.RODB) error {
+func (v *VolumeEntry) updateMountInfo(db wdb.RODB, vinfo *api.VolumeInfo) error {
 	godbc.Require(v.Info.Cluster != "")
 
-	// Get all brick hosts
+	// Every host in the Gluster Trusted Storage Pool can serve the volfile
 	hosts, err := getHostsFromCluster(db, v.Info.Cluster)
 	if err != nil {
 		return err
 	}
-	v.Info.Mount.GlusterFS.Hosts = hosts
+	vinfo.Mount.GlusterFS.Hosts = hosts
 
 	// Save volume information
-	v.Info.Mount.GlusterFS.MountPoint = fmt.Sprintf("%v:%v",
+	vinfo.Mount.GlusterFS.MountPoint = fmt.Sprintf("%v:%v",
 		hosts[0], v.Info.Name)
 
 	// Set glusterfs mount volfile-servers options
-	v.Info.Mount.GlusterFS.Options = make(map[string]string)
-	v.Info.Mount.GlusterFS.Options["backup-volfile-servers"] =
+	vinfo.Mount.GlusterFS.Options = make(map[string]string)
+	vinfo.Mount.GlusterFS.Options["backup-volfile-servers"] =
 		strings.Join(hosts[1:], ",")
 
 	return nil

@@ -1,0 +1,59 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "keptn api",
+    "version": "0.1.0"
+  },
+  "schemes": [
+    "http"
+  ],
+  "basePath": "/",
+  "consumes": [
+    "application/cloudevents+json"
+  ],
+  "produces": [
+    "application/cloudevents+json"
+  ],
+  "securityDefinitions": {
+    "key": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "x-token"
+    }
+  },
+  "security": [
+    {
+      "key": []
+    }
+  ],
+  "paths": {
+    "/auth": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "auth",
+        "summary": "Checks the provided token",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+                "$ref": "#/definitions/remote"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "authenticated"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "remote": {
+      "$ref": "https://raw.githubusercontent.com/cloudevents/spec/v0.2/spec.json#/definitions/event"
+    }
+  }
+}

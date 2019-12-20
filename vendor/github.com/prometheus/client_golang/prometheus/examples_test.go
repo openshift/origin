@@ -28,6 +28,7 @@ import (
 	dto "github.com/prometheus/client_model/go"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func ExampleGauge() {
@@ -117,25 +118,6 @@ func ExampleCounterVec() {
 	httpReqs.Delete(prometheus.Labels{"method": "GET", "code": "200"})
 }
 
-func ExampleInstrumentHandler() {
-	// Handle the "/doc" endpoint with the standard http.FileServer handler.
-	// By wrapping the handler with InstrumentHandler, request count,
-	// request and response sizes, and request latency are automatically
-	// exported to Prometheus, partitioned by HTTP status code and method
-	// and by the handler name (here "fileserver").
-	http.Handle("/doc", prometheus.InstrumentHandler(
-		"fileserver", http.FileServer(http.Dir("/usr/share/doc")),
-	))
-	// The Prometheus handler still has to be registered to handle the
-	// "/metrics" endpoint. The handler returned by prometheus.Handler() is
-	// already instrumented - with "prometheus" as the handler name. In this
-	// example, we want the handler name to be "metrics", so we instrument
-	// the uninstrumented Prometheus handler ourselves.
-	http.Handle("/metrics", prometheus.InstrumentHandler(
-		"metrics", prometheus.UninstrumentedHandler(),
-	))
-}
-
 func ExampleRegister() {
 	// Imagine you have a worker pool and want to count the tasks completed.
 	taskCounter := prometheus.NewCounter(prometheus.CounterOpts{
@@ -151,7 +133,7 @@ func ExampleRegister() {
 	}
 	// Don't forget to tell the HTTP server about the Prometheus handler.
 	// (In a real program, you still need to start the HTTP server...)
-	http.Handle("/metrics", prometheus.Handler())
+	http.Handle("/metrics", promhttp.Handler())
 
 	// Now you can start workers and give every one of them a pointer to
 	// taskCounter and let it increment it whenever it completes a task.
@@ -232,16 +214,11 @@ func ExampleRegister() {
 
 	// A different (and somewhat tricky) approach is to use
 	// ConstLabels. ConstLabels are pairs of label names and label values
-	// that never change. You might ask what those labels are good for (and
-	// rightfully so - if they never change, they could as well be part of
-	// the metric name). There are essentially two use-cases: The first is
-	// if labels are constant throughout the lifetime of a binary execution,
-	// but they vary over time or between different instances of a running
-	// binary. The second is what we have here: Each worker creates and
-	// registers an own Counter instance where the only difference is in the
-	// value of the ConstLabels. Those Counters can all be registered
-	// because the different ConstLabel values guarantee that each worker
-	// will increment a different Counter metric.
+	// that never change. Each worker creates and registers an own Counter
+	// instance where the only difference is in the value of the
+	// ConstLabels. Those Counters can all be registered because the
+	// different ConstLabel values guarantee that each worker will increment
+	// a different Counter metric.
 	counterOpts := prometheus.CounterOpts{
 		Subsystem:   "worker_pool",
 		Name:        "completed_tasks",

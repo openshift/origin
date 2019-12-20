@@ -60,6 +60,10 @@ func (l *latencyAdapter) Observe(verb string, u url.URL, latency time.Duration) 
 	l.m.WithLabelValues(verb, u.String()).Observe(latency.Seconds())
 }
 
+func (l *latencyAdapter) ClearState() {
+	l.m.Reset()
+}
+
 type resultAdapter struct {
 	m *k8smetrics.CounterVec
 }
@@ -78,4 +82,8 @@ func (r *resultAdapter) Create(version *semver.Version) bool {
 
 func (r *resultAdapter) Increment(code, method, host string) {
 	r.m.WithLabelValues(code, method, host).Inc()
+}
+
+func (r *resultAdapter) ClearState() {
+	r.m.Reset()
 }

@@ -18,7 +18,7 @@ _sudo() {
 }
 
 wait_for_heketi() {
-    for i in $(seq 0 30); do
+    for _ in $(seq 0 30); do
         sleep 1
         ss -tlnp "( sport = :8080 )" | grep -q heketi
         if [[ $? -eq 0 ]]; then
@@ -42,7 +42,7 @@ start_heketi() {
 
     # Start server
     rm -f heketi.db > /dev/null 2>&1
-    $HEKETI_SERVER --config=config/heketi.json &
+    $HEKETI_SERVER --config=config/heketi.json --disable-auth &
     HEKETI_PID=$!
 
     wait_for_heketi
@@ -60,7 +60,7 @@ stop_heketi() {
 
     kill "$HEKETI_PID"
     sleep 0.2
-    for i in $(seq 1 5); do
+    for _ in $(seq 1 5); do
         if [[ ! -d "/proc/${HEKETI_PID}" ]]; then
             break
         fi
@@ -69,18 +69,6 @@ stop_heketi() {
         kill "$HEKETI_PID"
         sleep 1
     done
-}
-
-start_vagrant() {
-    cd vagrant || fail "Unable to 'cd vagrant'."
-    _sudo ./up.sh || fail "unable to start vagrant virtual machines"
-    cd ..
-}
-
-teardown_vagrant() {
-    cd vagrant || fail "Unable to 'cd vagrant'."
-    _sudo vagrant destroy -f
-    cd ..
 }
 
 run_go_tests() {
@@ -97,19 +85,41 @@ run_go_tests() {
     cd ..
 }
 
-force_cleanup_libvirt_disks() {
-    # Sometimes disks are not deleted
-    for i in $(_sudo virsh vol-list default | grep '\.disk' | awk '{print $1}') ; do
-        _sudo virsh vol-delete --pool default "${i}" || fail "Unable to delete disk $i"
-    done
+setup_test_environment() {
+    local envup="${HEKETI_TEST_ENVIRONMENT_UP}"
+    [ "${envup}" ] || envup="${DEFAULT_TESTENV}/up.sh"
+    # backwards compat
+    if [[ "$HEKETI_TEST_VAGRANT" == "no" ]]; then
+        envup=no
+    fi
+    case "$envup" in
+        no|none|NO|NONE|-)
+            echo "Not bringing up test environment"
+        ;;
+        *)
+            _sudo "${envup}" || fail "unable to start test environment"
+        ;;
+    esac    
+}
+
+teardown_environment() {
+    local envdown="${HEKETI_TEST_ENVIRONMENT_DOWN}"
+    [ "${envdown}" ] || envdown="${DEFAULT_TESTENV}/down.sh"
+    if [[ "$HEKETI_TEST_VAGRANT" == "no" ]]; then
+        envdown=no
+    fi
+    case "$envdown" in
+        no|none|NO|NONE|-)
+            echo "Not bringing down test environment"
+        ;;
+        *)
+            _sudo "${envdown}" || fail "unable to stop test environment"
+        ;;
+    esac
 }
 
 teardown() {
-    if [[ "$HEKETI_TEST_VAGRANT" != "no" ]]
-    then
-        teardown_vagrant
-        force_cleanup_libvirt_disks
-    fi
+    teardown_environment
     rm -f heketi.db > /dev/null 2>&1
 }
 
@@ -130,11 +140,10 @@ pause_test() {
 }
 
 functional_tests() {
+    DEFAULT_TESTENV="${SCRIPT_DIR}/../vagrant"
+
     setup_test_paths
-    if [[ "$HEKETI_TEST_VAGRANT" != "no" ]]
-    then
-        start_vagrant
-    fi
+    setup_test_environment
     if [[ "$HEKETI_TEST_SERVER" == "no" ]]; then
         build_heketi
         # make sure pid is unset so stop_heketi does nothing

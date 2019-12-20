@@ -294,6 +294,8 @@ func (t *testFlusher) Flush()                    { t.flushCalled = true }
 func TestInterfaceUpgrade(t *testing.T) {
 	w := &testResponseWriter{}
 	d := newDelegator(w, nil)
+	//lint:ignore SA1019 http.CloseNotifier is deprecated but we don't want to
+	//remove support from client_golang yet.
 	d.(http.CloseNotifier).CloseNotify()
 	if !w.closeNotifyCalled {
 		t.Error("CloseNotify not called")
@@ -312,6 +314,8 @@ func TestInterfaceUpgrade(t *testing.T) {
 
 	f := &testFlusher{}
 	d = newDelegator(f, nil)
+	//lint:ignore SA1019 http.CloseNotifier is deprecated but we don't want to
+	//remove support from client_golang yet.
 	if _, ok := d.(http.CloseNotifier); ok {
 		t.Error("delegator unexpectedly implements http.CloseNotifier")
 	}

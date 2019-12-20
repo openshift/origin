@@ -226,7 +226,7 @@ func (client LocalClient) SearchPreparer(ctx context.Context, query string, acce
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPath("/localbusinesses/v7.0/search"),
+		autorest.WithPath("/v7.0/localbusinesses/search"),
 		autorest.WithQueryParameters(queryParameters),
 		autorest.WithHeader("X-BingApis-SDK", "true"))
 	if len(acceptLanguage) > 0 {

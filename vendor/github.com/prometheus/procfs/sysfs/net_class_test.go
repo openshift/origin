@@ -20,13 +20,32 @@ import (
 	"testing"
 )
 
-func TestNewNetClass(t *testing.T) {
-	fs, err := NewFS("fixtures")
+func TestNewNetClassDevices(t *testing.T) {
+	fs, err := NewFS(sysTestFixtures)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	nc, err := fs.NewNetClass()
+	devices, err := fs.NetClassDevices()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(devices) != 1 {
+		t.Errorf("Unexpected number of devices, want %d, have %d", 1, len(devices))
+	}
+	if devices[0] != "eth0" {
+		t.Errorf("Found unexpected device, want %s, have %s", "eth0", devices[0])
+	}
+}
+
+func TestNetClass(t *testing.T) {
+	fs, err := NewFS(sysTestFixtures)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nc, err := fs.NetClass()
 	if err != nil {
 		t.Fatal(err)
 	}

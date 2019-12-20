@@ -64,13 +64,9 @@ type SavedSearch = original.SavedSearch
 type SavedSearchProperties = original.SavedSearchProperties
 type SavedSearchesClient = original.SavedSearchesClient
 type SavedSearchesListResult = original.SavedSearchesListResult
-type SearchError = original.SearchError
 type SearchGetSchemaResponse = original.SearchGetSchemaResponse
-type SearchHighlight = original.SearchHighlight
 type SearchMetadata = original.SearchMetadata
 type SearchMetadataSchema = original.SearchMetadataSchema
-type SearchParameters = original.SearchParameters
-type SearchResultsResponse = original.SearchResultsResponse
 type SearchSchemaValue = original.SearchSchemaValue
 type SearchSort = original.SearchSort
 type SharedKeys = original.SharedKeys
@@ -88,7 +84,6 @@ type WorkspacePurgeBodyFilters = original.WorkspacePurgeBodyFilters
 type WorkspacePurgeResponse = original.WorkspacePurgeResponse
 type WorkspacePurgeStatusResponse = original.WorkspacePurgeStatusResponse
 type WorkspacesClient = original.WorkspacesClient
-type WorkspacesGetSearchResultsFuture = original.WorkspacesGetSearchResultsFuture
 
 func New(subscriptionID string, purgeID string) BaseClient {
 	return original.New(subscriptionID, purgeID)

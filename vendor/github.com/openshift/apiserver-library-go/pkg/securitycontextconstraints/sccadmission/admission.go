@@ -82,7 +82,7 @@ func (c *constraint) Admit(ctx context.Context, a admission.Attributes, _ admiss
 	// TODO(liggitt): allow spec mutation during initializing updates?
 	specMutationAllowed := a.GetOperation() == admission.Create
 
-	allowedPod, sccName, validationErrs, err := c.computeSecurityContext(a, pod, specMutationAllowed, "")
+	allowedPod, sccName, validationErrs, err := c.computeSecurityContext(ctx, a, pod, specMutationAllowed, "")
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -112,7 +112,7 @@ func (c *constraint) Validate(ctx context.Context, a admission.Attributes, _ adm
 	pod := a.GetObject().(*coreapi.Pod)
 
 	// compute the context. Mutation is not allowed. ValidatedSCCAnnotation is used as a hint to gain same speed-up.
-	allowedPod, _, validationErrs, err := c.computeSecurityContext(a, pod, false, pod.ObjectMeta.Annotations[securityv1.ValidatedSCCAnnotation])
+	allowedPod, _, validationErrs, err := c.computeSecurityContext(ctx, a, pod, false, pod.ObjectMeta.Annotations[securityv1.ValidatedSCCAnnotation])
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -125,11 +125,11 @@ func (c *constraint) Validate(ctx context.Context, a admission.Attributes, _ adm
 	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
 }
 
-func (c *constraint) computeSecurityContext(a admission.Attributes, pod *coreapi.Pod, specMutationAllowed bool, validatedSCCHint string) (*coreapi.Pod, string, field.ErrorList, error) {
+func (c *constraint) computeSecurityContext(ctx context.Context, a admission.Attributes, pod *coreapi.Pod, specMutationAllowed bool, validatedSCCHint string) (*coreapi.Pod, string, field.ErrorList, error) {
 	// get all constraints that are usable by the user
 	klog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
-	constraints, err := sccmatching.NewDefaultSCCMatcher(c.sccLister, nil).FindApplicableSCCs(a.GetNamespace())
+	constraints, err := sccmatching.NewDefaultSCCMatcher(c.sccLister, nil).FindApplicableSCCs(ctx, a.GetNamespace())
 	if err != nil {
 		return nil, "", nil, admission.NewForbidden(a, err)
 	}
@@ -186,8 +186,8 @@ loop:
 		sccGroups := provider.GetSCCGroups()
 
 		// continue to the next provider if the current SCC one does not apply to either the user or the serviceaccount
-		if !sccmatching.ConstraintAppliesTo(sccName, sccUsers, sccGroups, userInfo, a.GetNamespace(), c.authorizer) &&
-			!(saUserInfo != nil && sccmatching.ConstraintAppliesTo(sccName, sccUsers, sccGroups, saUserInfo, a.GetNamespace(), c.authorizer)) {
+		if !sccmatching.ConstraintAppliesTo(ctx, sccName, sccUsers, sccGroups, userInfo, a.GetNamespace(), c.authorizer) &&
+			!(saUserInfo != nil && sccmatching.ConstraintAppliesTo(ctx, sccName, sccUsers, sccGroups, saUserInfo, a.GetNamespace(), c.authorizer)) {
 			continue
 		}
 

@@ -138,13 +138,13 @@ func (client WorkItemConfigurationsClient) CreateResponder(resp *http.Response) 
 // resourceName - the name of the Application Insights component resource.
 // workItemConfigID - the unique work item configuration Id. This can be either friendly name of connector as
 // defined in connector configuration
-func (client WorkItemConfigurationsClient) Delete(ctx context.Context, resourceGroupName string, resourceName string, workItemConfigID string) (result SetObject, err error) {
+func (client WorkItemConfigurationsClient) Delete(ctx context.Context, resourceGroupName string, resourceName string, workItemConfigID string) (result autorest.Response, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/WorkItemConfigurationsClient.Delete")
 		defer func() {
 			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
+			if result.Response != nil {
+				sc = result.Response.StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
@@ -167,7 +167,7 @@ func (client WorkItemConfigurationsClient) Delete(ctx context.Context, resourceG
 
 	resp, err := client.DeleteSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
+		result.Response = resp
 		err = autorest.NewErrorWithError(err, "insights.WorkItemConfigurationsClient", "Delete", resp, "Failure sending request")
 		return
 	}
@@ -211,14 +211,13 @@ func (client WorkItemConfigurationsClient) DeleteSender(req *http.Request) (*htt
 
 // DeleteResponder handles the response to the Delete request. The method always
 // closes the http.Response Body.
-func (client WorkItemConfigurationsClient) DeleteResponder(resp *http.Response) (result SetObject, err error) {
+func (client WorkItemConfigurationsClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
 		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
+	result.Response = resp
 	return
 }
 

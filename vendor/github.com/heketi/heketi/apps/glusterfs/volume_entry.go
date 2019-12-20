@@ -237,7 +237,9 @@ func (v *VolumeEntry) NewInfoResponse(tx *bolt.Tx) (*api.VolumeInfoResponse, err
 	info := api.NewVolumeInfoResponse()
 	info.Id = v.Info.Id
 	info.Cluster = v.Info.Cluster
-	info.Mount = v.Info.Mount
+	if err := v.updateMountInfo(wdb.WrapTx(tx), &info.VolumeInfo); err != nil {
+		return nil, err
+	}
 	info.Snapshot = v.Info.Snapshot
 	info.Size = v.Info.Size
 	info.Durability = v.Info.Durability
@@ -462,7 +464,7 @@ func (v *VolumeEntry) tryAllocateBricks(
 	db wdb.DB,
 	possibleClusters []string) (brick_entries []*BrickEntry, err error) {
 
-	cerr := NewMultiClusterError("Unable to create volume on any cluster:")
+	cerr := ClusterErrorMap{}
 	for _, cluster := range possibleClusters {
 		// Check this cluster for space
 		brick_entries, err = v.allocBricksInCluster(db, cluster, v.Info.Size)
@@ -492,8 +494,8 @@ func (v *VolumeEntry) tryAllocateBricks(
 	}
 	// if our last attempt failed and we collected at least one error
 	// return the short form all the errors we collected
-	if err != nil && cerr.Len() > 0 {
-		err = cerr.Shorten()
+	if err != nil && len(cerr) > 0 {
+		err = cerr.ToError("Unable to create volume on any cluster:")
 	}
 	return
 }
@@ -582,7 +584,11 @@ func (v *VolumeEntry) createVolumeComponents(
 		possibleClusters = v.Info.Clusters
 	}
 
-	cr := ClusterReq{v.Info.Block, v.Info.Name}
+	cr := clusterReq{
+		allowBlock:  v.Info.Block,
+		allowName:   v.Info.Name,
+		allowCreate: true,
+	}
 	possibleClusters, err := eligibleClusters(db, cr, possibleClusters)
 	if err != nil {
 		return nil, err
@@ -624,7 +630,7 @@ func (v *VolumeEntry) saveCreateVolume(db wdb.DB,
 			return ErrNoSpace
 		}
 
-		err = v.updateMountInfo(txdb)
+		err = v.updateMountInfo(txdb, &v.Info)
 		if err != nil {
 			return err
 		}
@@ -852,12 +858,13 @@ func volumeNameExistsInCluster(tx *bolt.Tx, cluster *ClusterEntry,
 	return
 }
 
-type ClusterReq struct {
-	Block bool
-	Name  string
+type clusterReq struct {
+	allowBlock  bool
+	allowName   string
+	allowCreate bool
 }
 
-func eligibleClusters(db wdb.RODB, req ClusterReq,
+func eligibleClusters(db wdb.RODB, req clusterReq,
 	possibleClusters []string) ([]string, error) {
 	//
 	// If the request carries the Block flag, consider only
@@ -870,7 +877,7 @@ func eligibleClusters(db wdb.RODB, req ClusterReq,
 		return nil, fmt.Errorf("No clusters configured")
 	}
 	candidateClusters := []string{}
-	cerr := NewMultiClusterError("No eligible cluster for volume")
+	cerr := ClusterErrorMap{}
 	err := db.View(func(tx *bolt.Tx) error {
 		for _, clusterId := range possibleClusters {
 			c, err := NewClusterEntryFromId(tx, clusterId)
@@ -878,8 +885,8 @@ func eligibleClusters(db wdb.RODB, req ClusterReq,
 				return err
 			}
 			switch {
-			case req.Block && c.Info.Block:
-			case !req.Block && c.Info.File:
+			case req.allowBlock && c.Info.Block:
+			case !req.allowBlock && c.Info.File:
 			case !(c.Info.Block || c.Info.File):
 				// possibly bad cluster config
 				logger.Info("Cluster %v lacks both block and file flags",
@@ -894,21 +901,21 @@ func eligibleClusters(db wdb.RODB, req ClusterReq,
 					fmt.Errorf("Cluster does not support requested volume type"))
 				continue
 			}
-			if req.Name != "" {
-				found, err := volumeNameExistsInCluster(tx, c, req.Name)
+			if req.allowName != "" {
+				found, err := volumeNameExistsInCluster(tx, c, req.allowName)
 				if err != nil {
 					return err
 				}
 				if found {
 					logger.LogError("Name %v already in use in cluster %v",
-						req.Name, clusterId)
+						req.allowName, clusterId)
 					cerr.Add(
 						c.Info.Id,
-						fmt.Errorf("Volume name '%v' already in use", req.Name))
+						fmt.Errorf("Volume name '%v' already in use", req.allowName))
 					continue
 				}
 			}
-			if c.volumeCount() >= maxVolumesPerCluster {
+			if req.allowCreate && c.volumeCount() >= maxVolumesPerCluster {
 				cerr.Add(
 					c.Info.Id,
 					fmt.Errorf("Cluster has %v volumes and limit is %v", c.volumeCount(), maxVolumesPerCluster))
@@ -923,8 +930,8 @@ func eligibleClusters(db wdb.RODB, req ClusterReq,
 		logger.LogError("No clusters eligible to satisfy create volume request")
 		// use generic "no space" error if cluster errors is empty
 		err = ErrNoSpace
-		if cerr.Len() > 0 {
-			err = cerr
+		if len(cerr) > 0 {
+			err = cerr.ToError("No eligible cluster for volume")
 		}
 	}
 	return candidateClusters, err

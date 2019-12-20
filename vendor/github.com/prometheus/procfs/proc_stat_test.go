@@ -19,12 +19,12 @@ import (
 )
 
 func TestProcStat(t *testing.T) {
-	p, err := FS("fixtures").NewProc(26231)
+	p, err := getProcFixtures(t).Proc(26231)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	s, err := p.NewStat()
+	s, err := p.Stat()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestProcStat(t *testing.T) {
 		{name: "user time", want: 1677, have: int(s.UTime)},
 		{name: "system time", want: 44, have: int(s.STime)},
 		{name: "start time", want: 82375, have: int(s.Starttime)},
-		{name: "virtual memory size", want: 56274944, have: s.VSize},
+		{name: "virtual memory size", want: 56274944, have: int(s.VSize)},
 		{name: "resident set size", want: 1981, have: s.RSS},
 	} {
 		if test.want != test.have {
@@ -71,7 +71,7 @@ func TestProcStatVirtualMemory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if want, have := 56274944, s.VirtualMemory(); want != have {
+	if want, have := 56274944, int(s.VirtualMemory()); want != have {
 		t.Errorf("want virtual memory %d, have %d", want, have)
 	}
 }
@@ -114,10 +114,14 @@ func TestProcStatCPUTime(t *testing.T) {
 }
 
 func testProcStat(pid int) (ProcStat, error) {
-	p, err := FS("fixtures").NewProc(pid)
+	fs, err := NewFS(procTestFixtures)
+	if err != nil {
+		return ProcStat{}, err
+	}
+	p, err := fs.Proc(pid)
 	if err != nil {
 		return ProcStat{}, err
 	}
 
-	return p.NewStat()
+	return p.Stat()
 }

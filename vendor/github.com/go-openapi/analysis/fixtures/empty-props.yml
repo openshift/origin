@@ -1,0 +1,27 @@
+---
+swagger: '2.0'
+info:
+  title: ""
+  contact:
+    name: ""
+  license:
+    name: ""
+schemes:
+  - http
+basePath: ""
+consumes:
+  - application/json
+produces:
+  - application/json
+externalDocumentation:
+  description: ""
+x-custom: zorg
+x-conflict: buzz
+paths:
+  /common:
+    get:
+      operationId: commonGet
+      summary: here to test path collisons
+      responses:
+        '200':
+          description: OK

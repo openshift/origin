@@ -60,6 +60,12 @@ load test_helper
   run govc tags.ls
   assert_success # no tags defined yet
 
+  run govc tags.ls -k=false
+  assert_failure
+
+  run govc tags.ls -k=false -tls-ca-certs <(govc about.cert -show)
+  assert_success
+
   run govc tags.info
   assert_success # no tags defined yet
 

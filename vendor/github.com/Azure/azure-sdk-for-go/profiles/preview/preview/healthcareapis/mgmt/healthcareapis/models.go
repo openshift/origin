@@ -29,6 +29,14 @@ const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
+type Kind = original.Kind
+
+const (
+	Fhir     Kind = original.Fhir
+	FhirR4   Kind = original.FhirR4
+	FhirStu3 Kind = original.FhirStu3
+)
+
 type OperationResultStatus = original.OperationResultStatus
 
 const (
@@ -125,6 +133,9 @@ func NewServicesDescriptionListResultPage(getNextPage func(context.Context, Serv
 }
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleKindValues() []Kind {
+	return original.PossibleKindValues()
 }
 func PossibleOperationResultStatusValues() []OperationResultStatus {
 	return original.PossibleOperationResultStatusValues()

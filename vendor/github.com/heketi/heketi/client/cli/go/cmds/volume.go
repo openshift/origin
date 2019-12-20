@@ -51,6 +51,8 @@ func init() {
 	volumeCommand.AddCommand(volumeBlockHostingRestrictionCommand)
 	volumeBlockHostingRestrictionCommand.AddCommand(volumeBlockHostingRestrictionUnlockCommand)
 	volumeBlockHostingRestrictionCommand.AddCommand(volumeBlockHostingRestrictionLockCommand)
+	volumeCommand.AddCommand(volumeEndpointCommand)
+	volumeEndpointCommand.AddCommand(volumeEndpointPatchCommand)
 
 	volumeCreateCommand.Flags().IntVar(&size, "size", 0,
 		"\n\tSize of volume in GiB")
@@ -104,6 +106,8 @@ func init() {
 	volumeInfoCommand.SilenceUsage = true
 	volumeListCommand.SilenceUsage = true
 	volumeBlockHostingRestrictionCommand.SilenceUsage = true
+	volumeEndpointCommand.SilenceUsage = true
+	volumeEndpointPatchCommand.SilenceUsage = true
 
 	volumeCommand.AddCommand(volumeCloneCommand)
 	volumeCloneCommand.Flags().StringVar(&volname, "name", "",
@@ -600,5 +604,48 @@ var volumeCloneCommand = &cobra.Command{
 			printVolumeInfo(volume)
 		}
 		return nil
+	},
+}
+
+var volumeEndpointCommand = &cobra.Command{
+	Use:   "endpoint",
+	Short: "utilities for working on volume endpoint",
+	Long:  "utilities for working on volume endpoint",
+}
+
+var volumeEndpointPatchCommand = &cobra.Command{
+	Use:     "patch",
+	Short:   "output a patch for endpoint update",
+	Long:    "output a patch for endpoint update",
+	Example: "  $ heketi-cli volume endpoint patch 886a86a868711bef83001",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		s := cmd.Flags().Args()
+
+		//ensure proper number of args
+		if len(s) < 1 {
+			return errors.New("Volume id missing")
+		}
+
+		//set volumeId
+		volumeId := cmd.Flags().Arg(0)
+
+		// Create a client
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
+
+		info, err := heketi.VolumeInfo(volumeId)
+		if err != nil {
+			return err
+		}
+		ep := createHeketiStorageEndpoints(info)
+		ss, err := json.Marshal(ep.Subsets)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(stdout, "{\"subsets\": %v}", string(ss))
+
+		return err
 	},
 }

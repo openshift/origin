@@ -46,7 +46,7 @@ func NewDscCompilationJobClientWithBaseURI(baseURI string, subscriptionID string
 // Parameters:
 // resourceGroupName - name of an Azure Resource group.
 // automationAccountName - the name of the automation account.
-// compilationJobName - the the DSC configuration Id.
+// compilationJobName - the DSC configuration Id.
 // parameters - the parameters supplied to the create compilation job operation.
 func (client DscCompilationJobClient) Create(ctx context.Context, resourceGroupName string, automationAccountName string, compilationJobName string, parameters DscCompilationJobCreateParameters) (result DscCompilationJobCreateFuture, err error) {
 	if tracing.IsEnabled() {
@@ -139,7 +139,7 @@ func (client DscCompilationJobClient) CreateResponder(resp *http.Response) (resu
 // Parameters:
 // resourceGroupName - name of an Azure Resource group.
 // automationAccountName - the name of the automation account.
-// compilationJobName - the the DSC configuration Id.
+// compilationJobName - the DSC configuration Id.
 func (client DscCompilationJobClient) Get(ctx context.Context, resourceGroupName string, automationAccountName string, compilationJobName string) (result DscCompilationJob, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/DscCompilationJobClient.Get")

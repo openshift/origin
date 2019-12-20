@@ -22,7 +22,7 @@ import (
 // Mock SSH calls
 type FakeSsh struct {
 	FakeExecCommands func(host string,
-		commands []string,
+		commands rex.Cmds,
 		timeoutMinutes int,
 		useSudo bool) (rex.Results, error)
 }
@@ -31,7 +31,7 @@ func NewFakeSsh() *FakeSsh {
 	f := &FakeSsh{}
 
 	f.FakeExecCommands = func(host string,
-		commands []string,
+		commands rex.Cmds,
 		timeoutMinutes int,
 		useSudo bool) (rex.Results, error) {
 		return rex.Results{}, nil
@@ -41,7 +41,7 @@ func NewFakeSsh() *FakeSsh {
 }
 
 func (f *FakeSsh) ExecCommands(host string,
-	commands []string,
+	commands rex.Cmds,
 	timeoutMinutes int,
 	useSudo bool) (rex.Results, error) {
 	return f.FakeExecCommands(host, commands, timeoutMinutes, useSudo)

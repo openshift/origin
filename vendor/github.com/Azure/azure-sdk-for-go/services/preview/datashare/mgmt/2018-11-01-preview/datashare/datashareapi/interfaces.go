@@ -47,7 +47,7 @@ var _ ConsumerInvitationsClientAPI = (*datashare.ConsumerInvitationsClient)(nil)
 // DataSetsClientAPI contains the set of methods on the DataSetsClient type.
 type DataSetsClientAPI interface {
 	Create(ctx context.Context, resourceGroupName string, accountName string, shareName string, dataSetName string, dataSet datashare.BasicDataSet) (result datashare.DataSetModel, err error)
-	Delete(ctx context.Context, resourceGroupName string, accountName string, shareName string, dataSetName string) (result autorest.Response, err error)
+	Delete(ctx context.Context, resourceGroupName string, accountName string, shareName string, dataSetName string) (result datashare.DataSetsDeleteFuture, err error)
 	Get(ctx context.Context, resourceGroupName string, accountName string, shareName string, dataSetName string) (result datashare.DataSetModel, err error)
 	ListByShare(ctx context.Context, resourceGroupName string, accountName string, shareName string, skipToken string) (result datashare.DataSetListPage, err error)
 }

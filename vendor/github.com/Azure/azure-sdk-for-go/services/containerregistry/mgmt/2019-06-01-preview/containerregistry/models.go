@@ -386,6 +386,51 @@ func PossibleTaskStatusValues() []TaskStatus {
 	return []TaskStatus{TaskStatusDisabled, TaskStatusEnabled}
 }
 
+// TokenCertificateName enumerates the values for token certificate name.
+type TokenCertificateName string
+
+const (
+	// Certificate1 ...
+	Certificate1 TokenCertificateName = "certificate1"
+	// Certificate2 ...
+	Certificate2 TokenCertificateName = "certificate2"
+)
+
+// PossibleTokenCertificateNameValues returns an array of possible values for the TokenCertificateName const type.
+func PossibleTokenCertificateNameValues() []TokenCertificateName {
+	return []TokenCertificateName{Certificate1, Certificate2}
+}
+
+// TokenPasswordName enumerates the values for token password name.
+type TokenPasswordName string
+
+const (
+	// TokenPasswordNamePassword1 ...
+	TokenPasswordNamePassword1 TokenPasswordName = "password1"
+	// TokenPasswordNamePassword2 ...
+	TokenPasswordNamePassword2 TokenPasswordName = "password2"
+)
+
+// PossibleTokenPasswordNameValues returns an array of possible values for the TokenPasswordName const type.
+func PossibleTokenPasswordNameValues() []TokenPasswordName {
+	return []TokenPasswordName{TokenPasswordNamePassword1, TokenPasswordNamePassword2}
+}
+
+// TokenStatus enumerates the values for token status.
+type TokenStatus string
+
+const (
+	// TokenStatusDisabled ...
+	TokenStatusDisabled TokenStatus = "disabled"
+	// TokenStatusEnabled ...
+	TokenStatusEnabled TokenStatus = "enabled"
+)
+
+// PossibleTokenStatusValues returns an array of possible values for the TokenStatus const type.
+func PossibleTokenStatusValues() []TokenStatus {
+	return []TokenStatus{TokenStatusDisabled, TokenStatusEnabled}
+}
+
 // TokenType enumerates the values for token type.
 type TokenType string
 
@@ -492,15 +537,15 @@ func PossibleTypeBasicTaskStepUpdateParametersValues() []TypeBasicTaskStepUpdate
 type UpdateTriggerPayloadType string
 
 const (
-	// Default ...
-	Default UpdateTriggerPayloadType = "Default"
-	// Token ...
-	Token UpdateTriggerPayloadType = "Token"
+	// UpdateTriggerPayloadTypeDefault ...
+	UpdateTriggerPayloadTypeDefault UpdateTriggerPayloadType = "Default"
+	// UpdateTriggerPayloadTypeToken ...
+	UpdateTriggerPayloadTypeToken UpdateTriggerPayloadType = "Token"
 )
 
 // PossibleUpdateTriggerPayloadTypeValues returns an array of possible values for the UpdateTriggerPayloadType const type.
 func PossibleUpdateTriggerPayloadTypeValues() []UpdateTriggerPayloadType {
-	return []UpdateTriggerPayloadType{Default, Token}
+	return []UpdateTriggerPayloadType{UpdateTriggerPayloadTypeDefault, UpdateTriggerPayloadTypeToken}
 }
 
 // Variant enumerates the values for variant.
@@ -627,7 +672,7 @@ type BaseImageTrigger struct {
 	BaseImageTriggerType BaseImageTriggerType `json:"baseImageTriggerType,omitempty"`
 	// UpdateTriggerEndpoint - The endpoint URL for receiving update triggers.
 	UpdateTriggerEndpoint *string `json:"updateTriggerEndpoint,omitempty"`
-	// UpdateTriggerPayloadType - Type of Payload body for Base image update triggers. Possible values include: 'Default', 'Token'
+	// UpdateTriggerPayloadType - Type of Payload body for Base image update triggers. Possible values include: 'UpdateTriggerPayloadTypeDefault', 'UpdateTriggerPayloadTypeToken'
 	UpdateTriggerPayloadType UpdateTriggerPayloadType `json:"updateTriggerPayloadType,omitempty"`
 	// Status - The current status of trigger. Possible values include: 'TriggerStatusDisabled', 'TriggerStatusEnabled'
 	Status TriggerStatus `json:"status,omitempty"`
@@ -641,7 +686,7 @@ type BaseImageTriggerUpdateParameters struct {
 	BaseImageTriggerType BaseImageTriggerType `json:"baseImageTriggerType,omitempty"`
 	// UpdateTriggerEndpoint - The endpoint URL for receiving update triggers.
 	UpdateTriggerEndpoint *string `json:"updateTriggerEndpoint,omitempty"`
-	// UpdateTriggerPayloadType - Type of Payload body for Base image update triggers. Possible values include: 'Default', 'Token'
+	// UpdateTriggerPayloadType - Type of Payload body for Base image update triggers. Possible values include: 'UpdateTriggerPayloadTypeDefault', 'UpdateTriggerPayloadTypeToken'
 	UpdateTriggerPayloadType UpdateTriggerPayloadType `json:"updateTriggerPayloadType,omitempty"`
 	// Status - The current status of trigger. Possible values include: 'TriggerStatusDisabled', 'TriggerStatusEnabled'
 	Status TriggerStatus `json:"status,omitempty"`
@@ -1682,6 +1727,26 @@ func (ftsup FileTaskStepUpdateParameters) AsBasicTaskStepUpdateParameters() (Bas
 	return &ftsup, true
 }
 
+// GenerateCredentialsParameters the parameters used to generate credentials for a specified token or user
+// of a container registry.
+type GenerateCredentialsParameters struct {
+	// TokenID - The resource ID of the token for which credentials have to be generated.
+	TokenID *string `json:"tokenId,omitempty"`
+	// Expiry - The expiry date of the generated credentials after which the credentials become invalid.
+	Expiry *date.Time `json:"expiry,omitempty"`
+	// Name - Specifies name of the password which should be regenerated if any -- password1 or password2. Possible values include: 'TokenPasswordNamePassword1', 'TokenPasswordNamePassword2'
+	Name TokenPasswordName `json:"name,omitempty"`
+}
+
+// GenerateCredentialsResult the response from the GenerateCredentials operation.
+type GenerateCredentialsResult struct {
+	autorest.Response `json:"-"`
+	// Username - The username for a container registry.
+	Username *string `json:"username,omitempty"`
+	// Passwords - The list of passwords for a container registry.
+	Passwords *[]TokenPassword `json:"passwords,omitempty"`
+}
+
 // IdentityProperties managed identity for the resource.
 type IdentityProperties struct {
 	// PrincipalID - The principal ID of resource identity.
@@ -2051,7 +2116,7 @@ type OperationPropertiesDefinition struct {
 	ServiceSpecification *OperationServiceSpecificationDefinition `json:"serviceSpecification,omitempty"`
 }
 
-// OperationServiceSpecificationDefinition the definition of Azure Monitoring metrics list.
+// OperationServiceSpecificationDefinition the definition of Azure Monitoring list.
 type OperationServiceSpecificationDefinition struct {
 	// MetricSpecifications - A list of Azure Monitoring metrics definition.
 	MetricSpecifications *[]OperationMetricSpecificationDefinition `json:"metricSpecifications,omitempty"`
@@ -2176,6 +2241,35 @@ func (future *RegistriesDeleteFuture) Result(client RegistriesClient) (ar autore
 		return
 	}
 	ar.Response = future.Response()
+	return
+}
+
+// RegistriesGenerateCredentialsFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type RegistriesGenerateCredentialsFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *RegistriesGenerateCredentialsFuture) Result(client RegistriesClient) (gcr GenerateCredentialsResult, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerregistry.RegistriesGenerateCredentialsFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("containerregistry.RegistriesGenerateCredentialsFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if gcr.Response.Response, err = future.GetResult(sender); err == nil && gcr.Response.Response.StatusCode != http.StatusNoContent {
+		gcr, err = client.GenerateCredentialsResponder(gcr.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "containerregistry.RegistriesGenerateCredentialsFuture", "Result", gcr.Response.Response, "Failure responding to request")
+		}
+	}
 	return
 }
 
@@ -3066,7 +3160,7 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 
 // RetentionPolicy the retention policy for a container registry.
 type RetentionPolicy struct {
-	// Days - The number of days to retain manifest before it expires.
+	// Days - The number of days to retain an untagged manifest after which it gets purged.
 	Days *int32 `json:"days,omitempty"`
 	// LastUpdatedTime - READ-ONLY; The timestamp when the policy was last updated.
 	LastUpdatedTime *date.Time `json:"lastUpdatedTime,omitempty"`
@@ -3528,6 +3622,371 @@ func (future *RunsUpdateFuture) Result(client RunsClient) (r Run, err error) {
 type RunUpdateParameters struct {
 	// IsArchiveEnabled - The value that indicates whether archiving is enabled or not.
 	IsArchiveEnabled *bool `json:"isArchiveEnabled,omitempty"`
+}
+
+// ScopeMap an object that represents a scope map for a container registry.
+type ScopeMap struct {
+	autorest.Response `json:"-"`
+	// ScopeMapProperties - The properties of the scope map.
+	*ScopeMapProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; The resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; The name of the resource.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; The type of the resource.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ScopeMap.
+func (sm ScopeMap) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if sm.ScopeMapProperties != nil {
+		objectMap["properties"] = sm.ScopeMapProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ScopeMap struct.
+func (sm *ScopeMap) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var scopeMapProperties ScopeMapProperties
+				err = json.Unmarshal(*v, &scopeMapProperties)
+				if err != nil {
+					return err
+				}
+				sm.ScopeMapProperties = &scopeMapProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				sm.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				sm.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				sm.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ScopeMapListResult the result of a request to list scope maps for a container registry.
+type ScopeMapListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of scope maps. Since this list may be incomplete, the nextLink field should be used to request the next list of scope maps.
+	Value *[]ScopeMap `json:"value,omitempty"`
+	// NextLink - The URI that can be used to request the next list of scope maps.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// ScopeMapListResultIterator provides access to a complete listing of ScopeMap values.
+type ScopeMapListResultIterator struct {
+	i    int
+	page ScopeMapListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *ScopeMapListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ScopeMapListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *ScopeMapListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter ScopeMapListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter ScopeMapListResultIterator) Response() ScopeMapListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter ScopeMapListResultIterator) Value() ScopeMap {
+	if !iter.page.NotDone() {
+		return ScopeMap{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the ScopeMapListResultIterator type.
+func NewScopeMapListResultIterator(page ScopeMapListResultPage) ScopeMapListResultIterator {
+	return ScopeMapListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (smlr ScopeMapListResult) IsEmpty() bool {
+	return smlr.Value == nil || len(*smlr.Value) == 0
+}
+
+// scopeMapListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (smlr ScopeMapListResult) scopeMapListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if smlr.NextLink == nil || len(to.String(smlr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(smlr.NextLink)))
+}
+
+// ScopeMapListResultPage contains a page of ScopeMap values.
+type ScopeMapListResultPage struct {
+	fn   func(context.Context, ScopeMapListResult) (ScopeMapListResult, error)
+	smlr ScopeMapListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *ScopeMapListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ScopeMapListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.smlr)
+	if err != nil {
+		return err
+	}
+	page.smlr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *ScopeMapListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page ScopeMapListResultPage) NotDone() bool {
+	return !page.smlr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page ScopeMapListResultPage) Response() ScopeMapListResult {
+	return page.smlr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page ScopeMapListResultPage) Values() []ScopeMap {
+	if page.smlr.IsEmpty() {
+		return nil
+	}
+	return *page.smlr.Value
+}
+
+// Creates a new instance of the ScopeMapListResultPage type.
+func NewScopeMapListResultPage(getNextPage func(context.Context, ScopeMapListResult) (ScopeMapListResult, error)) ScopeMapListResultPage {
+	return ScopeMapListResultPage{fn: getNextPage}
+}
+
+// ScopeMapProperties the properties of a scope map.
+type ScopeMapProperties struct {
+	// Description - The user friendly description of the scope map.
+	Description *string `json:"description,omitempty"`
+	// Type - READ-ONLY; The type of the scope map. E.g. BuildIn scope map.
+	Type *string `json:"type,omitempty"`
+	// CreationDate - READ-ONLY; The creation date of scope map.
+	CreationDate *date.Time `json:"creationDate,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the resource. Possible values include: 'Creating', 'Updating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
+	// Actions - The list of scoped permissions for registry artifacts.
+	// E.g. repositories/repository-name/content/read,
+	// repositories/repository-name/metadata/write
+	Actions *[]string `json:"actions,omitempty"`
+}
+
+// ScopeMapPropertiesUpdateParameters the update parameters for scope map properties.
+type ScopeMapPropertiesUpdateParameters struct {
+	// Description - The user friendly description of the scope map.
+	Description *string `json:"description,omitempty"`
+	// Actions - The list of scope permissions for registry artifacts.
+	// E.g. repositories/repository-name/pull,
+	// repositories/repository-name/delete
+	Actions *[]string `json:"actions,omitempty"`
+}
+
+// ScopeMapsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
+type ScopeMapsCreateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ScopeMapsCreateFuture) Result(client ScopeMapsClient) (sm ScopeMap, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerregistry.ScopeMapsCreateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("containerregistry.ScopeMapsCreateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if sm.Response.Response, err = future.GetResult(sender); err == nil && sm.Response.Response.StatusCode != http.StatusNoContent {
+		sm, err = client.CreateResponder(sm.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "containerregistry.ScopeMapsCreateFuture", "Result", sm.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// ScopeMapsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
+type ScopeMapsDeleteFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ScopeMapsDeleteFuture) Result(client ScopeMapsClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerregistry.ScopeMapsDeleteFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("containerregistry.ScopeMapsDeleteFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
+// ScopeMapsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
+type ScopeMapsUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ScopeMapsUpdateFuture) Result(client ScopeMapsClient) (sm ScopeMap, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerregistry.ScopeMapsUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("containerregistry.ScopeMapsUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if sm.Response.Response, err = future.GetResult(sender); err == nil && sm.Response.Response.StatusCode != http.StatusNoContent {
+		sm, err = client.UpdateResponder(sm.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "containerregistry.ScopeMapsUpdateFuture", "Result", sm.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// ScopeMapUpdateParameters the properties for updating the scope map.
+type ScopeMapUpdateParameters struct {
+	// ScopeMapPropertiesUpdateParameters - The update parameters for scope map properties.
+	*ScopeMapPropertiesUpdateParameters `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ScopeMapUpdateParameters.
+func (smup ScopeMapUpdateParameters) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if smup.ScopeMapPropertiesUpdateParameters != nil {
+		objectMap["properties"] = smup.ScopeMapPropertiesUpdateParameters
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ScopeMapUpdateParameters struct.
+func (smup *ScopeMapUpdateParameters) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var scopeMapPropertiesUpdateParameters ScopeMapPropertiesUpdateParameters
+				err = json.Unmarshal(*v, &scopeMapPropertiesUpdateParameters)
+				if err != nil {
+					return err
+				}
+				smup.ScopeMapPropertiesUpdateParameters = &scopeMapPropertiesUpdateParameters
+			}
+		}
+	}
+
+	return nil
 }
 
 // SecretObject describes the properties of a secret object value.
@@ -4608,6 +5067,399 @@ type TimerTriggerUpdateParameters struct {
 	Status TriggerStatus `json:"status,omitempty"`
 	// Name - The name of the trigger.
 	Name *string `json:"name,omitempty"`
+}
+
+// Token an object that represents a token for a container registry.
+type Token struct {
+	autorest.Response `json:"-"`
+	// TokenProperties - The properties of the token.
+	*TokenProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; The resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; The name of the resource.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; The type of the resource.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for Token.
+func (t Token) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if t.TokenProperties != nil {
+		objectMap["properties"] = t.TokenProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for Token struct.
+func (t *Token) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var tokenProperties TokenProperties
+				err = json.Unmarshal(*v, &tokenProperties)
+				if err != nil {
+					return err
+				}
+				t.TokenProperties = &tokenProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				t.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				t.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				t.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// TokenCertificate the properties of a certificate used for authenticating a token.
+type TokenCertificate struct {
+	// Name - Possible values include: 'Certificate1', 'Certificate2'
+	Name TokenCertificateName `json:"name,omitempty"`
+	// Expiry - The expiry datetime of the certificate.
+	Expiry *date.Time `json:"expiry,omitempty"`
+	// Thumbprint - The thumbprint of the certificate.
+	Thumbprint *string `json:"thumbprint,omitempty"`
+	// EncodedPemCertificate - Base 64 encoded string of the public certificate1 in PEM format that will be used for authenticating the token.
+	EncodedPemCertificate *string `json:"encodedPemCertificate,omitempty"`
+}
+
+// TokenCredentialsProperties the properties of the credentials that can be used for authenticating the
+// token.
+type TokenCredentialsProperties struct {
+	Certificates *[]TokenCertificate `json:"certificates,omitempty"`
+	Passwords    *[]TokenPassword    `json:"passwords,omitempty"`
+}
+
+// TokenListResult the result of a request to list tokens for a container registry.
+type TokenListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of tokens. Since this list may be incomplete, the nextLink field should be used to request the next list of tokens.
+	Value *[]Token `json:"value,omitempty"`
+	// NextLink - The URI that can be used to request the next list of tokens.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// TokenListResultIterator provides access to a complete listing of Token values.
+type TokenListResultIterator struct {
+	i    int
+	page TokenListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *TokenListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TokenListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *TokenListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter TokenListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter TokenListResultIterator) Response() TokenListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter TokenListResultIterator) Value() Token {
+	if !iter.page.NotDone() {
+		return Token{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the TokenListResultIterator type.
+func NewTokenListResultIterator(page TokenListResultPage) TokenListResultIterator {
+	return TokenListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (tlr TokenListResult) IsEmpty() bool {
+	return tlr.Value == nil || len(*tlr.Value) == 0
+}
+
+// tokenListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (tlr TokenListResult) tokenListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if tlr.NextLink == nil || len(to.String(tlr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(tlr.NextLink)))
+}
+
+// TokenListResultPage contains a page of Token values.
+type TokenListResultPage struct {
+	fn  func(context.Context, TokenListResult) (TokenListResult, error)
+	tlr TokenListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *TokenListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TokenListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.tlr)
+	if err != nil {
+		return err
+	}
+	page.tlr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *TokenListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page TokenListResultPage) NotDone() bool {
+	return !page.tlr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page TokenListResultPage) Response() TokenListResult {
+	return page.tlr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page TokenListResultPage) Values() []Token {
+	if page.tlr.IsEmpty() {
+		return nil
+	}
+	return *page.tlr.Value
+}
+
+// Creates a new instance of the TokenListResultPage type.
+func NewTokenListResultPage(getNextPage func(context.Context, TokenListResult) (TokenListResult, error)) TokenListResultPage {
+	return TokenListResultPage{fn: getNextPage}
+}
+
+// TokenPassword the password that will be used for authenticating the token of a container registry.
+type TokenPassword struct {
+	// CreationTime - The creation datetime of the password.
+	CreationTime *date.Time `json:"creationTime,omitempty"`
+	// Expiry - The expiry datetime of the password.
+	Expiry *date.Time `json:"expiry,omitempty"`
+	// Name - The password name "password1" or "password2". Possible values include: 'TokenPasswordNamePassword1', 'TokenPasswordNamePassword2'
+	Name TokenPasswordName `json:"name,omitempty"`
+	// Value - READ-ONLY; The password value.
+	Value *string `json:"value,omitempty"`
+}
+
+// TokenProperties the properties of a token.
+type TokenProperties struct {
+	// CreationDate - READ-ONLY; The creation date of scope map.
+	CreationDate *date.Time `json:"creationDate,omitempty"`
+	// ProvisioningState - READ-ONLY; Provisioning state of the resource. Possible values include: 'Creating', 'Updating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
+	// ScopeMapID - The resource ID of the scope map to which the token will be associated with.
+	ScopeMapID *string `json:"scopeMapId,omitempty"`
+	// ObjectID - The user/group/application object ID for which the token has to be created.
+	ObjectID *string `json:"objectId,omitempty"`
+	// Credentials - The credentials that can be used for authenticating the token.
+	Credentials *TokenCredentialsProperties `json:"credentials,omitempty"`
+	// Status - The status of the token example enabled or disabled. Possible values include: 'TokenStatusEnabled', 'TokenStatusDisabled'
+	Status TokenStatus `json:"status,omitempty"`
+}
+
+// TokensCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
+type TokensCreateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *TokensCreateFuture) Result(client TokensClient) (t Token, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerregistry.TokensCreateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("containerregistry.TokensCreateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if t.Response.Response, err = future.GetResult(sender); err == nil && t.Response.Response.StatusCode != http.StatusNoContent {
+		t, err = client.CreateResponder(t.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "containerregistry.TokensCreateFuture", "Result", t.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// TokensDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
+type TokensDeleteFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *TokensDeleteFuture) Result(client TokensClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerregistry.TokensDeleteFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("containerregistry.TokensDeleteFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
+// TokensUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
+type TokensUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *TokensUpdateFuture) Result(client TokensClient) (t Token, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "containerregistry.TokensUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("containerregistry.TokensUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if t.Response.Response, err = future.GetResult(sender); err == nil && t.Response.Response.StatusCode != http.StatusNoContent {
+		t, err = client.UpdateResponder(t.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "containerregistry.TokensUpdateFuture", "Result", t.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// TokenUpdateParameters the parameters for updating a token.
+type TokenUpdateParameters struct {
+	// TokenUpdateProperties - The properties of the token update parameters.
+	*TokenUpdateProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for TokenUpdateParameters.
+func (tup TokenUpdateParameters) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if tup.TokenUpdateProperties != nil {
+		objectMap["properties"] = tup.TokenUpdateProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for TokenUpdateParameters struct.
+func (tup *TokenUpdateParameters) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var tokenUpdateProperties TokenUpdateProperties
+				err = json.Unmarshal(*v, &tokenUpdateProperties)
+				if err != nil {
+					return err
+				}
+				tup.TokenUpdateProperties = &tokenUpdateProperties
+			}
+		}
+	}
+
+	return nil
+}
+
+// TokenUpdateProperties the parameters for updating token properties.
+type TokenUpdateProperties struct {
+	// ScopeMapID - The resource ID of the scope map to which the token will be associated with.
+	ScopeMapID *string `json:"scopeMapId,omitempty"`
+	// Status - The status of the token example enabled or disabled. Possible values include: 'TokenStatusEnabled', 'TokenStatusDisabled'
+	Status TokenStatus `json:"status,omitempty"`
+	// Credentials - The credentials that can be used for authenticating the token.
+	Credentials *TokenCredentialsProperties `json:"credentials,omitempty"`
 }
 
 // TriggerProperties the properties of a trigger.

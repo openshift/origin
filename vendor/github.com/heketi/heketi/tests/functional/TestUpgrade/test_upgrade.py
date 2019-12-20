@@ -58,7 +58,7 @@ class HeketiServer(object):
     def start(self):
         self._log = open(self.log_path, 'wb')
         self._proc = subprocess.Popen(
-            [self.heketi_bin, '--config=heketi.json'],
+            [self.heketi_bin, '--config=heketi.json', '--disable-auth'],
             stdin=subprocess.PIPE,
             stdout=self._log,
             stderr=self._log)

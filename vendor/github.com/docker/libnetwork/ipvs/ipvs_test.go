@@ -4,12 +4,13 @@ package ipvs
 
 import (
 	"net"
-	"syscall"
 	"testing"
+	"time"
 
 	"github.com/docker/libnetwork/testutils"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netlink/nl"
+	"golang.org/x/sys/unix"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
 )
@@ -142,12 +143,12 @@ func TestService(t *testing.T) {
 			case "FWM":
 				s.FWMark = 1234
 			case "TCP":
-				s.Protocol = syscall.IPPROTO_TCP
+				s.Protocol = unix.IPPROTO_TCP
 				s.Port = 80
 				s.Address = net.ParseIP("1.2.3.4")
 				s.Netmask = 0xFFFFFFFF
 			case "UDP":
-				s.Protocol = syscall.IPPROTO_UDP
+				s.Protocol = unix.IPPROTO_UDP
 				s.Port = 53
 				s.Address = net.ParseIP("2.3.4.5")
 			}
@@ -182,7 +183,7 @@ func TestService(t *testing.T) {
 		{
 			AddressFamily: nl.FAMILY_V4,
 			SchedName:     RoundRobin,
-			Protocol:      syscall.IPPROTO_TCP,
+			Protocol:      unix.IPPROTO_TCP,
 			Port:          80,
 			Address:       net.ParseIP("10.20.30.40"),
 			Netmask:       0xFFFFFFFF,
@@ -190,7 +191,7 @@ func TestService(t *testing.T) {
 		{
 			AddressFamily: nl.FAMILY_V4,
 			SchedName:     LeastConnection,
-			Protocol:      syscall.IPPROTO_UDP,
+			Protocol:      unix.IPPROTO_UDP,
 			Port:          8080,
 			Address:       net.ParseIP("10.20.30.41"),
 			Netmask:       0xFFFFFFFF,
@@ -260,12 +261,12 @@ func TestDestination(t *testing.T) {
 		case "FWM":
 			s.FWMark = 1234
 		case "TCP":
-			s.Protocol = syscall.IPPROTO_TCP
+			s.Protocol = unix.IPPROTO_TCP
 			s.Port = 80
 			s.Address = net.ParseIP("1.2.3.4")
 			s.Netmask = 0xFFFFFFFF
 		case "UDP":
-			s.Protocol = syscall.IPPROTO_UDP
+			s.Protocol = unix.IPPROTO_UDP
 			s.Port = 53
 			s.Address = net.ParseIP("2.3.4.5")
 		}
@@ -341,4 +342,34 @@ func TestDestination(t *testing.T) {
 
 		}
 	}
+}
+
+func TestTimeouts(t *testing.T) {
+	if testutils.RunningOnCircleCI() {
+		t.Skip("Skipping as not supported on CIRCLE CI kernel")
+	}
+	defer testutils.SetupTestOSContext(t)()
+
+	i, err := New("")
+	assert.NilError(t, err)
+
+	_, err = i.GetConfig()
+	assert.NilError(t, err)
+
+	cfg := Config{66 * time.Second, 66 * time.Second, 66 * time.Second}
+	err = i.SetConfig(&cfg)
+	assert.NilError(t, err)
+
+	c2, err := i.GetConfig()
+	assert.NilError(t, err)
+	assert.DeepEqual(t, cfg, *c2)
+
+	//  A timeout value 0 means that the current timeout value of the corresponding entry is preserved
+	cfg = Config{77 * time.Second, 0 * time.Second, 77 * time.Second}
+	err = i.SetConfig(&cfg)
+	assert.NilError(t, err)
+
+	c3, err := i.GetConfig()
+	assert.NilError(t, err)
+	assert.DeepEqual(t, *c3, Config{77 * time.Second, 66 * time.Second, 77 * time.Second})
 }

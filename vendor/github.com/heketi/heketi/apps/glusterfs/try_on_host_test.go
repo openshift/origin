@@ -11,6 +11,7 @@ package glusterfs
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/heketi/tests"
@@ -166,5 +167,45 @@ func TestTryOnHosts(t *testing.T) {
 		})
 		tests.Assert(t, err != nil)
 		tests.Assert(t, len(checked) == 1)
+	})
+}
+
+func TestTryOnHostsMultiError(t *testing.T) {
+	hosts := nodeHosts{
+		"foo": "123",
+		"bar": "456",
+		"baz": "789",
+	}
+
+	t.Run("noErrors", func(t *testing.T) {
+		err := newTryOnHosts(hosts).run(func(h string) error {
+			return nil
+		})
+		tests.Assert(t, err == nil)
+	})
+	t.Run("oneErrorSkipped", func(t *testing.T) {
+		err := newTryOnHosts(hosts).run(func(h string) error {
+			if h == "foo" {
+				return fmt.Errorf("boop")
+			}
+			return nil
+		})
+		tests.Assert(t, err == nil)
+	})
+	t.Run("allErrorSame", func(t *testing.T) {
+		err := newTryOnHosts(hosts).run(func(h string) error {
+			return fmt.Errorf("boop")
+		})
+		tests.Assert(t, err != nil, "expected err != nil, got:", err)
+		tests.Assert(t, strings.Count(err.Error(), "boop") == 1,
+			"expected 1 instance of 'boop' in", err)
+	})
+	t.Run("allErrorDifferent", func(t *testing.T) {
+		err := newTryOnHosts(hosts).run(func(h string) error {
+			return fmt.Errorf("%v is sad", h)
+		})
+		tests.Assert(t, err != nil, "expected err != nil, got:", err)
+		tests.Assert(t, strings.Count(err.Error(), "sad") == 3,
+			"expected 3 instances of 'sad' in", err)
 	})
 }

@@ -10,6 +10,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -233,6 +235,15 @@ func (c *deprecatedServiceClient) DeprecatedCall(ctx context.Context, in *Deprec
 type DeprecatedServiceServer interface {
 	// DeprecatedCall takes a DeprecatedRequest and returns a DeprecatedResponse.
 	DeprecatedCall(context.Context, *DeprecatedRequest) (*DeprecatedResponse, error)
+}
+
+// Deprecated: Do not use.
+// UnimplementedDeprecatedServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedDeprecatedServiceServer struct {
+}
+
+func (*UnimplementedDeprecatedServiceServer) DeprecatedCall(ctx context.Context, req *DeprecatedRequest) (*DeprecatedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeprecatedCall not implemented")
 }
 
 // Deprecated: Do not use.

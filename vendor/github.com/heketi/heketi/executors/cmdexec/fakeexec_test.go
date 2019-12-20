@@ -70,14 +70,18 @@ func (s *FakeExecutor) RemoteCommandExecute(host string,
 }
 
 func (s *FakeExecutor) ExecCommands(host string,
-	commands []string,
+	commands rex.Cmds,
 	timeoutMinutes int) (rex.Results, error) {
 
 	s.AccessConnection(host)
 	defer s.FreeConnection(host)
 
+	c := make([]string, len(commands))
+	for i, v := range commands {
+		c[i] = v.String()
+	}
 	return s.fake.FakeConnectAndExec(
-		host+":"+s.portStr, commands, timeoutMinutes, s.useSudo)
+		host+":"+s.portStr, c, timeoutMinutes, s.useSudo)
 }
 
 func (s *FakeExecutor) RebalanceOnExpansion() bool {

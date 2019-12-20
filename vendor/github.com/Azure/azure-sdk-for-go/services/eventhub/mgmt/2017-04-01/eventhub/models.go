@@ -1957,6 +1957,152 @@ func (nrs *NetworkRuleSet) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// NetworkRuleSetListResult the response of the List NetworkRuleSet operation
+type NetworkRuleSetListResult struct {
+	autorest.Response `json:"-"`
+	// Value - Result of the List NetworkRuleSet operation.
+	Value *[]NetworkRuleSet `json:"value,omitempty"`
+	// NextLink - Link to the next set of results. Not empty if Value contains incomplete list of NetworkRuleSet.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// NetworkRuleSetListResultIterator provides access to a complete listing of NetworkRuleSet values.
+type NetworkRuleSetListResultIterator struct {
+	i    int
+	page NetworkRuleSetListResultPage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *NetworkRuleSetListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NetworkRuleSetListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *NetworkRuleSetListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter NetworkRuleSetListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter NetworkRuleSetListResultIterator) Response() NetworkRuleSetListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter NetworkRuleSetListResultIterator) Value() NetworkRuleSet {
+	if !iter.page.NotDone() {
+		return NetworkRuleSet{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the NetworkRuleSetListResultIterator type.
+func NewNetworkRuleSetListResultIterator(page NetworkRuleSetListResultPage) NetworkRuleSetListResultIterator {
+	return NetworkRuleSetListResultIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (nrslr NetworkRuleSetListResult) IsEmpty() bool {
+	return nrslr.Value == nil || len(*nrslr.Value) == 0
+}
+
+// networkRuleSetListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (nrslr NetworkRuleSetListResult) networkRuleSetListResultPreparer(ctx context.Context) (*http.Request, error) {
+	if nrslr.NextLink == nil || len(to.String(nrslr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(nrslr.NextLink)))
+}
+
+// NetworkRuleSetListResultPage contains a page of NetworkRuleSet values.
+type NetworkRuleSetListResultPage struct {
+	fn    func(context.Context, NetworkRuleSetListResult) (NetworkRuleSetListResult, error)
+	nrslr NetworkRuleSetListResult
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *NetworkRuleSetListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NetworkRuleSetListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.nrslr)
+	if err != nil {
+		return err
+	}
+	page.nrslr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *NetworkRuleSetListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page NetworkRuleSetListResultPage) NotDone() bool {
+	return !page.nrslr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page NetworkRuleSetListResultPage) Response() NetworkRuleSetListResult {
+	return page.nrslr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page NetworkRuleSetListResultPage) Values() []NetworkRuleSet {
+	if page.nrslr.IsEmpty() {
+		return nil
+	}
+	return *page.nrslr.Value
+}
+
+// Creates a new instance of the NetworkRuleSetListResultPage type.
+func NewNetworkRuleSetListResultPage(getNextPage func(context.Context, NetworkRuleSetListResult) (NetworkRuleSetListResult, error)) NetworkRuleSetListResultPage {
+	return NetworkRuleSetListResultPage{fn: getNextPage}
+}
+
 // NetworkRuleSetProperties networkRuleSet properties
 type NetworkRuleSetProperties struct {
 	// DefaultAction - Default Action for Network Rule Set. Possible values include: 'Allow', 'Deny'

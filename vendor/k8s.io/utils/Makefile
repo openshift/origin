@@ -13,24 +13,20 @@
 # limitations under the License.
 
 .PHONY: verify
-verify: depend verify-fmt verify-lint vet
-	go test -v -race ./...
-
-.PHONY: depend
-depend:
-	go get -t -v ./...
+verify: verify-fmt verify-lint vet
+	GO111MODULE=on go test -v -race ./...
 
 .PHONY: verify-fmt
 verify-fmt:
-	./hack/verify-gofmt.sh
+	GO111MODULE=on ./hack/verify-gofmt.sh
 
 .PHONY: verify-lint
 verify-lint:
-	./hack/verify-golint.sh
+	GO111MODULE=on ./hack/verify-golint.sh
 
 .PHONY: vet
 vet:
-	./hack/verify-govet.sh
+	GO111MODULE=on ./hack/verify-govet.sh
 
 .PHONY: update-fmt
 update-fmt:

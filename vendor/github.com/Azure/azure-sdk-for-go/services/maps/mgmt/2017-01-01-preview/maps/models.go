@@ -49,6 +49,8 @@ type Account struct {
 	Tags map[string]*string `json:"tags"`
 	// Sku - READ-ONLY; The SKU of this account.
 	Sku *Sku `json:"sku,omitempty"`
+	// Properties - READ-ONLY; The map account properties.
+	Properties *AccountProperties `json:"properties,omitempty"`
 	// ID - READ-ONLY; The fully qualified Maps Account resource identifier.
 	ID *string `json:"id,omitempty"`
 	// Name - READ-ONLY; The name of the Maps Account, which is unique within a Resource Group.
@@ -98,6 +100,12 @@ type AccountKeys struct {
 	PrimaryKey *string `json:"primaryKey,omitempty"`
 	// SecondaryKey - READ-ONLY; The secondary key for accessing the Maps REST APIs.
 	SecondaryKey *string `json:"secondaryKey,omitempty"`
+}
+
+// AccountProperties additional Map account properties
+type AccountProperties struct {
+	// XMsClientID - A unique identifier for the maps account
+	XMsClientID *string `json:"x-ms-client-id,omitempty"`
 }
 
 // Accounts a list of Maps Accounts.

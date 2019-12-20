@@ -1289,6 +1289,131 @@ func (client NamespacesClient) ListKeysResponder(resp *http.Response) (result Ac
 	return
 }
 
+// ListNetworkRuleSets gets list of NetworkRuleSet for a Namespace.
+// Parameters:
+// resourceGroupName - name of the Resource group within the Azure subscription.
+// namespaceName - the namespace name
+func (client NamespacesClient) ListNetworkRuleSets(ctx context.Context, resourceGroupName string, namespaceName string) (result NetworkRuleSetListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.ListNetworkRuleSets")
+		defer func() {
+			sc := -1
+			if result.nrslr.Response.Response != nil {
+				sc = result.nrslr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
+		{TargetValue: namespaceName,
+			Constraints: []validation.Constraint{{Target: "namespaceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
+				{Target: "namespaceName", Name: validation.MinLength, Rule: 6, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("servicebus.NamespacesClient", "ListNetworkRuleSets", err.Error())
+	}
+
+	result.fn = client.listNetworkRuleSetsNextResults
+	req, err := client.ListNetworkRuleSetsPreparer(ctx, resourceGroupName, namespaceName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListNetworkRuleSets", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListNetworkRuleSetsSender(req)
+	if err != nil {
+		result.nrslr.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListNetworkRuleSets", resp, "Failure sending request")
+		return
+	}
+
+	result.nrslr, err = client.ListNetworkRuleSetsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "ListNetworkRuleSets", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListNetworkRuleSetsPreparer prepares the ListNetworkRuleSets request.
+func (client NamespacesClient) ListNetworkRuleSetsPreparer(ctx context.Context, resourceGroupName string, namespaceName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"namespaceName":     autorest.Encode("path", namespaceName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2017-04-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ServiceBus/namespaces/{namespaceName}/networkRuleSets", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListNetworkRuleSetsSender sends the ListNetworkRuleSets request. The method will close the
+// http.Response Body if it receives an error.
+func (client NamespacesClient) ListNetworkRuleSetsSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListNetworkRuleSetsResponder handles the response to the ListNetworkRuleSets request. The method always
+// closes the http.Response Body.
+func (client NamespacesClient) ListNetworkRuleSetsResponder(resp *http.Response) (result NetworkRuleSetListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listNetworkRuleSetsNextResults retrieves the next set of results, if any.
+func (client NamespacesClient) listNetworkRuleSetsNextResults(ctx context.Context, lastResults NetworkRuleSetListResult) (result NetworkRuleSetListResult, err error) {
+	req, err := lastResults.networkRuleSetListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "listNetworkRuleSetsNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListNetworkRuleSetsSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "listNetworkRuleSetsNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListNetworkRuleSetsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "listNetworkRuleSetsNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListNetworkRuleSetsComplete enumerates all values, automatically crossing page boundaries as required.
+func (client NamespacesClient) ListNetworkRuleSetsComplete(ctx context.Context, resourceGroupName string, namespaceName string) (result NetworkRuleSetListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.ListNetworkRuleSets")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListNetworkRuleSets(ctx, resourceGroupName, namespaceName)
+	return
+}
+
 // Migrate this operation Migrate the given namespace to provided name type
 // Parameters:
 // resourceGroupName - name of the Resource group within the Azure subscription.

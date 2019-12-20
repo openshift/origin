@@ -29,7 +29,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
-	etcdv3 "github.com/coreos/etcd/clientv3"
+	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 // Etcd data for all persisted OpenShift objects.
@@ -275,7 +275,19 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"),
 		gvr("settings.k8s.io", "v1alpha1", "podpresets"),
 		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
-		gvr("discovery.k8s.io", "v1alpha1", "endpointslices"),
+		gvr("extensions", "v1beta1", "deployments"),
+		gvr("extensions", "v1beta1", "podsecuritypolicies"),
+		gvr("extensions", "v1beta1", "replicasets"),
+		gvr("extensions", "v1beta1", "daemonsets"),
+		gvr("extensions", "v1beta1", "networkpolicies"),
+		gvr("apps", "v1beta2", "deployments"),
+		gvr("apps", "v1beta2", "replicasets"),
+		gvr("apps", "v1beta2", "controllerrevisions"),
+		gvr("apps", "v1beta2", "statefulsets"),
+		gvr("apps", "v1beta2", "daemonsets"),
+		gvr("apps", "v1beta1", "controllerrevisions"),
+		gvr("apps", "v1beta1", "statefulsets"),
+		gvr("apps", "v1beta1", "deployments"),
 	)
 
 	// we use a different default path prefix for kube resources

@@ -41,9 +41,7 @@ func NewPricingsClientWithBaseURI(baseURI string, subscriptionID string, ascLoca
 	return PricingsClient{NewWithBaseURI(baseURI, subscriptionID, ascLocation)}
 }
 
-// Get a given security pricing configuration in the subscription. Azure Security Center is available in two pricing
-// tiers: Free and Standard, on multiple resource types, including Virtual machines, SQL Servers, App service plans and
-// Storage accounts.
+// Get gets a provided Security Center pricing configuration in the subscription.
 // Parameters:
 // pricingName - name of the pricing configuration
 func (client PricingsClient) Get(ctx context.Context, pricingName string) (result Pricing, err error) {
@@ -124,9 +122,7 @@ func (client PricingsClient) GetResponder(resp *http.Response) (result Pricing, 
 	return
 }
 
-// List a given security pricing configuration in the subscription. Azure Security Center is available in two pricing
-// tiers: Free and Standard, on multiple resource types, including Virtual machines, SQL Servers, App service plans and
-// Storage accounts.
+// List lists Security Center pricing configurations in the subscription.
 func (client PricingsClient) List(ctx context.Context) (result PricingList, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/PricingsClient.List")
@@ -204,9 +200,7 @@ func (client PricingsClient) ListResponder(resp *http.Response) (result PricingL
 	return
 }
 
-// Update a given security pricing configuration in the subscription. Azure Security Center is available in two pricing
-// tiers: Free and Standard, on multiple resource types, including Virtual machines, SQL Servers, App service plans and
-// Storage accounts.
+// Update updates a provided Security Center pricing configuration in the subscription.
 // Parameters:
 // pricingName - name of the pricing configuration
 // pricing - pricing object

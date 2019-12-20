@@ -355,7 +355,14 @@ func (bvc *BlockVolumeCreateOperation) CleanDone() error {
 		if err != nil {
 			return err
 		}
-		if err := bv.removeComponents(txdb, false); err != nil {
+		// if the hosting volume is also pending we enable keepSize
+		// in order to handle cleaning up pending ops from older versions
+		// of heketi which did not deduct space from the BHV in the
+		// build step. Otherwise we are required to deduct the space of
+		// the block volume from the bhv when we are cleaning up.
+		keepSize := hv != nil && hv.Pending.Id != ""
+		if err := bv.removeComponents(txdb, keepSize); err != nil {
+			logger.LogError("unable to remove block volume components: %v", err)
 			return err
 		}
 		if hv != nil {

@@ -217,4 +217,14 @@ func TestBytestreamProducer_Close(t *testing.T) {
 		assert.Equal(t, expected, r.String())
 		assert.EqualValues(t, 0, r.calledClose)
 	}
+
+	cons = ByteStreamProducer()
+	r = &closingWriter{}
+	data := &closingReader{b: bytes.NewBufferString(expected)}
+	// can produce using a readcloser
+	if assert.NoError(t, cons.Produce(r, data)) {
+		assert.Equal(t, expected, r.String())
+		assert.EqualValues(t, 0, r.calledClose)
+		assert.EqualValues(t, 1, data.calledClose)
+	}
 }

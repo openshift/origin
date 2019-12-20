@@ -199,42 +199,49 @@ func (i *IpamInfo) UnmarshalJSON(data []byte) error {
 }
 
 type network struct {
-	ctrlr          *controller
-	name           string
-	networkType    string
-	id             string
-	created        time.Time
-	scope          string // network data scope
-	labels         map[string]string
-	ipamType       string
-	ipamOptions    map[string]string
-	addrSpace      string
-	ipamV4Config   []*IpamConf
-	ipamV6Config   []*IpamConf
-	ipamV4Info     []*IpamInfo
-	ipamV6Info     []*IpamInfo
-	enableIPv6     bool
-	postIPv6       bool
-	epCnt          *endpointCnt
-	generic        options.Generic
-	dbIndex        uint64
-	dbExists       bool
-	persist        bool
-	stopWatchCh    chan struct{}
-	drvOnce        *sync.Once
-	resolverOnce   sync.Once
-	resolver       []Resolver
-	internal       bool
-	attachable     bool
-	inDelete       bool
-	ingress        bool
-	driverTables   []networkDBTable
-	dynamic        bool
-	configOnly     bool
-	configFrom     string
-	loadBalancerIP net.IP
+	ctrlr            *controller
+	name             string
+	networkType      string
+	id               string
+	created          time.Time
+	scope            string // network data scope
+	labels           map[string]string
+	ipamType         string
+	ipamOptions      map[string]string
+	addrSpace        string
+	ipamV4Config     []*IpamConf
+	ipamV6Config     []*IpamConf
+	ipamV4Info       []*IpamInfo
+	ipamV6Info       []*IpamInfo
+	enableIPv6       bool
+	postIPv6         bool
+	epCnt            *endpointCnt
+	generic          options.Generic
+	dbIndex          uint64
+	dbExists         bool
+	persist          bool
+	stopWatchCh      chan struct{}
+	drvOnce          *sync.Once
+	resolverOnce     sync.Once
+	resolver         []Resolver
+	internal         bool
+	attachable       bool
+	inDelete         bool
+	ingress          bool
+	driverTables     []networkDBTable
+	dynamic          bool
+	configOnly       bool
+	configFrom       string
+	loadBalancerIP   net.IP
+	loadBalancerMode string
 	sync.Mutex
 }
+
+const (
+	loadBalancerModeNAT     = "NAT"
+	loadBalancerModeDSR     = "DSR"
+	loadBalancerModeDefault = loadBalancerModeNAT
+)
 
 func (n *network) Name() string {
 	n.Lock()
@@ -389,11 +396,9 @@ func (n *network) validateConfiguration() error {
 					driverOptions map[string]string
 					opts          interface{}
 				)
-				switch data.(type) {
-				case map[string]interface{}:
-					opts = data.(map[string]interface{})
-				case map[string]string:
-					opts = data.(map[string]string)
+				switch t := data.(type) {
+				case map[string]interface{}, map[string]string:
+					opts = t
 				}
 				ba, err := json.Marshal(opts)
 				if err != nil {
@@ -475,6 +480,7 @@ func (n *network) CopyTo(o datastore.KVObject) error {
 	dstN.configOnly = n.configOnly
 	dstN.configFrom = n.configFrom
 	dstN.loadBalancerIP = n.loadBalancerIP
+	dstN.loadBalancerMode = n.loadBalancerMode
 
 	// copy labels
 	if dstN.labels == nil {
@@ -592,6 +598,7 @@ func (n *network) MarshalJSON() ([]byte, error) {
 	netMap["configOnly"] = n.configOnly
 	netMap["configFrom"] = n.configFrom
 	netMap["loadBalancerIP"] = n.loadBalancerIP
+	netMap["loadBalancerMode"] = n.loadBalancerMode
 	return json.Marshal(netMap)
 }
 
@@ -704,6 +711,10 @@ func (n *network) UnmarshalJSON(b []byte) (err error) {
 	}
 	if v, ok := netMap["loadBalancerIP"]; ok {
 		n.loadBalancerIP = net.ParseIP(v.(string))
+	}
+	n.loadBalancerMode = loadBalancerModeDefault
+	if v, ok := netMap["loadBalancerMode"]; ok {
+		n.loadBalancerMode = v.(string)
 	}
 	// Reconcile old networks with the recently added `--ipv6` flag
 	if !n.enableIPv6 {
@@ -1370,14 +1381,18 @@ func delIPToName(ipMap setmatrix.SetMatrix, name, serviceID string, ip net.IP) {
 }
 
 func addNameToIP(svcMap setmatrix.SetMatrix, name, serviceID string, epIP net.IP) {
-	svcMap.Insert(name, svcMapEntry{
+	// Since DNS name resolution is case-insensitive, Use the lower-case form
+	// of the name as the key into svcMap
+	lowerCaseName := strings.ToLower(name)
+	svcMap.Insert(lowerCaseName, svcMapEntry{
 		ip:        epIP.String(),
 		serviceID: serviceID,
 	})
 }
 
 func delNameToIP(svcMap setmatrix.SetMatrix, name, serviceID string, epIP net.IP) {
-	svcMap.Remove(name, svcMapEntry{
+	lowerCaseName := strings.ToLower(name)
+	svcMap.Remove(lowerCaseName, svcMapEntry{
 		ip:        epIP.String(),
 		serviceID: serviceID,
 	})
@@ -1945,6 +1960,7 @@ func (n *network) ResolveName(req string, ipType int) ([]net.IP, bool) {
 	}
 
 	req = strings.TrimSuffix(req, ".")
+	req = strings.ToLower(req)
 	ipSet, ok := sr.svcMap.Get(req)
 
 	if ipType == types.IPv6 {

@@ -22,7 +22,7 @@ package eventgrid
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/preview/eventgrid/mgmt/2019-02-01-preview/eventgrid"
+	original "github.com/Azure/azure-sdk-for-go/services/preview/eventgrid/mgmt/2020-01-01-preview/eventgrid"
 )
 
 const (
@@ -54,10 +54,12 @@ const (
 type EndpointType = original.EndpointType
 
 const (
+	EndpointTypeAzureFunction                EndpointType = original.EndpointTypeAzureFunction
 	EndpointTypeEventHub                     EndpointType = original.EndpointTypeEventHub
 	EndpointTypeEventSubscriptionDestination EndpointType = original.EndpointTypeEventSubscriptionDestination
 	EndpointTypeHybridConnection             EndpointType = original.EndpointTypeHybridConnection
 	EndpointTypeServiceBusQueue              EndpointType = original.EndpointTypeServiceBusQueue
+	EndpointTypeServiceBusTopic              EndpointType = original.EndpointTypeServiceBusTopic
 	EndpointTypeStorageQueue                 EndpointType = original.EndpointTypeStorageQueue
 	EndpointTypeWebHook                      EndpointType = original.EndpointTypeWebHook
 )
@@ -72,7 +74,7 @@ const (
 type EventDeliverySchema = original.EventDeliverySchema
 
 const (
-	CloudEventV01Schema EventDeliverySchema = original.CloudEventV01Schema
+	CloudEventSchemaV10 EventDeliverySchema = original.CloudEventSchemaV10
 	CustomInputSchema   EventDeliverySchema = original.CustomInputSchema
 	EventGridSchema     EventDeliverySchema = original.EventGridSchema
 )
@@ -92,7 +94,7 @@ const (
 type InputSchema = original.InputSchema
 
 const (
-	InputSchemaCloudEventV01Schema InputSchema = original.InputSchemaCloudEventV01Schema
+	InputSchemaCloudEventSchemaV10 InputSchema = original.InputSchemaCloudEventSchemaV10
 	InputSchemaCustomEventSchema   InputSchema = original.InputSchemaCustomEventSchema
 	InputSchemaEventGridSchema     InputSchema = original.InputSchemaEventGridSchema
 )
@@ -152,6 +154,8 @@ const (
 )
 
 type AdvancedFilter = original.AdvancedFilter
+type AzureFunctionEventSubscriptionDestination = original.AzureFunctionEventSubscriptionDestination
+type AzureFunctionEventSubscriptionDestinationProperties = original.AzureFunctionEventSubscriptionDestinationProperties
 type BaseClient = original.BaseClient
 type BasicAdvancedFilter = original.BasicAdvancedFilter
 type BasicDeadLetterDestination = original.BasicDeadLetterDestination
@@ -218,6 +222,8 @@ type Resource = original.Resource
 type RetryPolicy = original.RetryPolicy
 type ServiceBusQueueEventSubscriptionDestination = original.ServiceBusQueueEventSubscriptionDestination
 type ServiceBusQueueEventSubscriptionDestinationProperties = original.ServiceBusQueueEventSubscriptionDestinationProperties
+type ServiceBusTopicEventSubscriptionDestination = original.ServiceBusTopicEventSubscriptionDestination
+type ServiceBusTopicEventSubscriptionDestinationProperties = original.ServiceBusTopicEventSubscriptionDestinationProperties
 type StorageBlobDeadLetterDestination = original.StorageBlobDeadLetterDestination
 type StorageBlobDeadLetterDestinationProperties = original.StorageBlobDeadLetterDestinationProperties
 type StorageQueueEventSubscriptionDestination = original.StorageQueueEventSubscriptionDestination

@@ -262,13 +262,13 @@ func UnmountContainerLayers(layerFolders []string, guestRoot string, uvm *uvm.Ut
 
 	// Unload the storage filter followed by the SCSI scratch
 	if (op & UnmountOperationSCSI) == UnmountOperationSCSI {
-		containerScratchPathInUVM := ospath.Join(uvm.OS(), guestRoot, scratchPath)
-		logrus.Debugf("hcsshim::unmountContainerLayers CombinedLayers %s", containerScratchPathInUVM)
+		containerRoofFSPathInUVM := ospath.Join(uvm.OS(), guestRoot, rootfsPath)
+		logrus.Debugf("hcsshim::unmountContainerLayers CombinedLayers %s", containerRoofFSPathInUVM)
 		combinedLayersModification := &hcsschema.ModifySettingRequest{
 			GuestRequest: guestrequest.GuestRequest{
 				ResourceType: guestrequest.ResourceTypeCombinedLayers,
 				RequestType:  requesttype.Remove,
-				Settings:     guestrequest.CombinedLayers{ContainerRootPath: containerScratchPathInUVM},
+				Settings:     guestrequest.CombinedLayers{ContainerRootPath: containerRoofFSPathInUVM},
 			},
 		}
 		if err := uvm.Modify(combinedLayersModification); err != nil {
@@ -277,6 +277,7 @@ func UnmountContainerLayers(layerFolders []string, guestRoot string, uvm *uvm.Ut
 
 		// Hot remove the scratch from the SCSI controller
 		hostScratchFile := filepath.Join(layerFolders[len(layerFolders)-1], "sandbox.vhdx")
+		containerScratchPathInUVM := ospath.Join(uvm.OS(), guestRoot, scratchPath)
 		logrus.Debugf("hcsshim::unmountContainerLayers SCSI %s %s", containerScratchPathInUVM, hostScratchFile)
 		if err := uvm.RemoveSCSI(hostScratchFile); err != nil {
 			e := fmt.Errorf("failed to remove SCSI %s: %s", hostScratchFile, err)

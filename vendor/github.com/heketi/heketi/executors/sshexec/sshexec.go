@@ -24,7 +24,7 @@ import (
 )
 
 type Ssher interface {
-	ExecCommands(host string, commands []string, timeoutMinutes int, useSudo bool) (rex.Results, error)
+	ExecCommands(host string, commands rex.Cmds, timeoutMinutes int, useSudo bool) (rex.Results, error)
 }
 
 type SshExecutor struct {
@@ -138,7 +138,7 @@ func NewSshExecutor(config *SshConfig) (*SshExecutor, error) {
 }
 
 func (s *SshExecutor) ExecCommands(
-	host string, commands []string, timeoutMinutes int) (rex.Results, error) {
+	host string, commands rex.Cmds, timeoutMinutes int) (rex.Results, error) {
 
 	// Throttle
 	s.AccessConnection(host)

@@ -19,7 +19,7 @@
 
 package training
 
-import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v3.0/customvision/training"
+import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v3.1/customvision/training"
 
 type Classifier = original.Classifier
 
@@ -78,6 +78,7 @@ const (
 	BadRequestPredictionResultsExceededCount                    CustomVisionErrorCodes = original.BadRequestPredictionResultsExceededCount
 	BadRequestPredictionTagsExceededCount                       CustomVisionErrorCodes = original.BadRequestPredictionTagsExceededCount
 	BadRequestProjectDescription                                CustomVisionErrorCodes = original.BadRequestProjectDescription
+	BadRequestProjectImagePreprocessingSettings                 CustomVisionErrorCodes = original.BadRequestProjectImagePreprocessingSettings
 	BadRequestProjectName                                       CustomVisionErrorCodes = original.BadRequestProjectName
 	BadRequestProjectNameNotUnique                              CustomVisionErrorCodes = original.BadRequestProjectNameNotUnique
 	BadRequestProjectUnknownClassification                      CustomVisionErrorCodes = original.BadRequestProjectUnknownClassification
@@ -156,11 +157,13 @@ const (
 type ExportFlavor = original.ExportFlavor
 
 const (
-	ARM     ExportFlavor = original.ARM
-	Linux   ExportFlavor = original.Linux
-	ONNX10  ExportFlavor = original.ONNX10
-	ONNX12  ExportFlavor = original.ONNX12
-	Windows ExportFlavor = original.Windows
+	ARM              ExportFlavor = original.ARM
+	Linux            ExportFlavor = original.Linux
+	ONNX10           ExportFlavor = original.ONNX10
+	ONNX12           ExportFlavor = original.ONNX12
+	TensorFlowLite   ExportFlavor = original.TensorFlowLite
+	TensorFlowNormal ExportFlavor = original.TensorFlowNormal
+	Windows          ExportFlavor = original.Windows
 )
 
 type ExportPlatform = original.ExportPlatform
@@ -205,6 +208,13 @@ const (
 	Suggested OrderBy = original.Suggested
 )
 
+type SortBy = original.SortBy
+
+const (
+	UncertaintyAscending  SortBy = original.UncertaintyAscending
+	UncertaintyDescending SortBy = original.UncertaintyDescending
+)
+
 type TagType = original.TagType
 
 const (
@@ -234,6 +244,7 @@ type ImageIDCreateBatch = original.ImageIDCreateBatch
 type ImageIDCreateEntry = original.ImageIDCreateEntry
 type ImagePerformance = original.ImagePerformance
 type ImagePrediction = original.ImagePrediction
+type ImageProcessingSettings = original.ImageProcessingSettings
 type ImageRegion = original.ImageRegion
 type ImageRegionCreateBatch = original.ImageRegionCreateBatch
 type ImageRegionCreateEntry = original.ImageRegionCreateEntry
@@ -256,6 +267,7 @@ type ListImage = original.ListImage
 type ListImagePerformance = original.ListImagePerformance
 type ListIteration = original.ListIteration
 type ListProject = original.ListProject
+type ListSuggestedTagAndRegion = original.ListSuggestedTagAndRegion
 type ListTag = original.ListTag
 type Prediction = original.Prediction
 type PredictionQueryResult = original.PredictionQueryResult
@@ -265,8 +277,14 @@ type Project = original.Project
 type ProjectSettings = original.ProjectSettings
 type Region = original.Region
 type RegionProposal = original.RegionProposal
+type SetInt32 = original.SetInt32
 type StoredImagePrediction = original.StoredImagePrediction
+type StoredSuggestedTagAndRegion = original.StoredSuggestedTagAndRegion
+type SuggestedTagAndRegion = original.SuggestedTagAndRegion
+type SuggestedTagAndRegionQuery = original.SuggestedTagAndRegionQuery
+type SuggestedTagAndRegionQueryToken = original.SuggestedTagAndRegionQueryToken
 type Tag = original.Tag
+type TagFilter = original.TagFilter
 type TagPerformance = original.TagPerformance
 
 func New(aPIKey string, endpoint string) BaseClient {
@@ -298,6 +316,9 @@ func PossibleImageCreateStatusValues() []ImageCreateStatus {
 }
 func PossibleOrderByValues() []OrderBy {
 	return original.PossibleOrderByValues()
+}
+func PossibleSortByValues() []SortBy {
+	return original.PossibleSortByValues()
 }
 func PossibleTagTypeValues() []TagType {
 	return original.PossibleTagTypeValues()

@@ -255,7 +255,7 @@ func TestEncodeIntToNonCovertible(t *testing.T) {
 	var out bool
 	err = Store(v, &out)
 	if err == nil {
-		t.Logf("%q\n", out)
+		t.Logf("%t\n", out)
 		t.Fatal("Type mismatch should have occured")
 	}
 }

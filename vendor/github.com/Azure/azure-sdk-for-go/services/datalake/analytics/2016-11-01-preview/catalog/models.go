@@ -405,9 +405,9 @@ type USQLAssemblyDependencyInfo struct {
 type USQLAssemblyFileInfo struct {
 	// Type - the assembly file type. Possible values include: 'Assembly', 'Resource', 'Nodeploy'
 	Type FileType `json:"type,omitempty"`
-	// OriginalPath - the the original path to the assembly file.
+	// OriginalPath - The original path to the assembly file.
 	OriginalPath *string `json:"originalPath,omitempty"`
-	// ContentPath - the the content path to the assembly file.
+	// ContentPath - The content path to the assembly file.
 	ContentPath *string `json:"contentPath,omitempty"`
 }
 
@@ -2318,15 +2318,15 @@ type USQLTableType struct {
 	SchemaID *int32 `json:"schemaId,omitempty"`
 	// PrincipalID - the principal ID for this type.
 	PrincipalID *int32 `json:"principalId,omitempty"`
-	// IsNullable - the the switch indicating if this type is nullable.
+	// IsNullable - The switch indicating if this type is nullable.
 	IsNullable *bool `json:"isNullable,omitempty"`
-	// IsUserDefined - the the switch indicating if this type is user defined.
+	// IsUserDefined - The switch indicating if this type is user defined.
 	IsUserDefined *bool `json:"isUserDefined,omitempty"`
-	// IsAssemblyType - the the switch indicating if this type is an assembly type.
+	// IsAssemblyType - The switch indicating if this type is an assembly type.
 	IsAssemblyType *bool `json:"isAssemblyType,omitempty"`
-	// IsTableType - the the switch indicating if this type is a table type.
+	// IsTableType - The switch indicating if this type is a table type.
 	IsTableType *bool `json:"isTableType,omitempty"`
-	// IsComplexType - the the switch indicating if this type is a complex type.
+	// IsComplexType - The switch indicating if this type is a complex type.
 	IsComplexType *bool `json:"isComplexType,omitempty"`
 	// ComputeAccountName - the name of the Data Lake Analytics account.
 	ComputeAccountName *string `json:"computeAccountName,omitempty"`
@@ -2666,15 +2666,15 @@ type USQLType struct {
 	SchemaID *int32 `json:"schemaId,omitempty"`
 	// PrincipalID - the principal ID for this type.
 	PrincipalID *int32 `json:"principalId,omitempty"`
-	// IsNullable - the the switch indicating if this type is nullable.
+	// IsNullable - The switch indicating if this type is nullable.
 	IsNullable *bool `json:"isNullable,omitempty"`
-	// IsUserDefined - the the switch indicating if this type is user defined.
+	// IsUserDefined - The switch indicating if this type is user defined.
 	IsUserDefined *bool `json:"isUserDefined,omitempty"`
-	// IsAssemblyType - the the switch indicating if this type is an assembly type.
+	// IsAssemblyType - The switch indicating if this type is an assembly type.
 	IsAssemblyType *bool `json:"isAssemblyType,omitempty"`
-	// IsTableType - the the switch indicating if this type is a table type.
+	// IsTableType - The switch indicating if this type is a table type.
 	IsTableType *bool `json:"isTableType,omitempty"`
-	// IsComplexType - the the switch indicating if this type is a complex type.
+	// IsComplexType - The switch indicating if this type is a complex type.
 	IsComplexType *bool `json:"isComplexType,omitempty"`
 	// ComputeAccountName - the name of the Data Lake Analytics account.
 	ComputeAccountName *string `json:"computeAccountName,omitempty"`

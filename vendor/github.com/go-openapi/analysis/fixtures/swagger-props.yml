@@ -1,0 +1,30 @@
+---
+swagger: '2.0'
+host: www.example.com
+basePath: /merged
+info:
+  title: "Merged title"
+  description: "Merged description"
+  termsOfService: "Merged terms"
+  version: "x"
+  contact:
+    name: "merged contact"
+    URL: "https://www.example.com/contact"
+    Email: "contact@example.com"
+  license:
+    name: "merged license"
+    URL: "https://www.example.com/license"
+  x-custom-info: custom
+externalDocumentation:
+  description: "merge doc"
+  URL: "https://www.example.com/doc"
+x-merger: value
+x-conflict: buzz
+paths:
+  /merged:
+    get:
+      operationId: mergedGet
+      summary: here to test merged path
+      responses:
+        '200':
+          description: OK

@@ -243,17 +243,18 @@ func (client ProductsClient) ListByBillingAccountNameComplete(ctx context.Contex
 // filter - may be used to filter by product type. The filter supports 'eq', 'lt', 'gt', 'le', 'ge', and 'and'.
 // It does not currently support 'ne', 'or', or 'not'. Tag filter is a key value pair string where key and
 // value is separated by a colon (:).
-func (client ProductsClient) ListByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string, filter string) (result ProductsListResult, err error) {
+func (client ProductsClient) ListByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string, filter string) (result ProductsListResultPage, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/ProductsClient.ListByInvoiceSectionName")
 		defer func() {
 			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
+			if result.plr.Response.Response != nil {
+				sc = result.plr.Response.Response.StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	result.fn = client.listByInvoiceSectionNameNextResults
 	req, err := client.ListByInvoiceSectionNamePreparer(ctx, billingAccountName, invoiceSectionName, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.ProductsClient", "ListByInvoiceSectionName", nil, "Failure preparing request")
@@ -262,12 +263,12 @@ func (client ProductsClient) ListByInvoiceSectionName(ctx context.Context, billi
 
 	resp, err := client.ListByInvoiceSectionNameSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
+		result.plr.Response = autorest.Response{Response: resp}
 		err = autorest.NewErrorWithError(err, "billing.ProductsClient", "ListByInvoiceSectionName", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.ListByInvoiceSectionNameResponder(resp)
+	result.plr, err = client.ListByInvoiceSectionNameResponder(resp)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.ProductsClient", "ListByInvoiceSectionName", resp, "Failure responding to request")
 	}
@@ -315,6 +316,43 @@ func (client ProductsClient) ListByInvoiceSectionNameResponder(resp *http.Respon
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listByInvoiceSectionNameNextResults retrieves the next set of results, if any.
+func (client ProductsClient) listByInvoiceSectionNameNextResults(ctx context.Context, lastResults ProductsListResult) (result ProductsListResult, err error) {
+	req, err := lastResults.productsListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "billing.ProductsClient", "listByInvoiceSectionNameNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByInvoiceSectionNameSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "billing.ProductsClient", "listByInvoiceSectionNameNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByInvoiceSectionNameResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.ProductsClient", "listByInvoiceSectionNameNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByInvoiceSectionNameComplete enumerates all values, automatically crossing page boundaries as required.
+func (client ProductsClient) ListByInvoiceSectionNameComplete(ctx context.Context, billingAccountName string, invoiceSectionName string, filter string) (result ProductsListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProductsClient.ListByInvoiceSectionName")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByInvoiceSectionName(ctx, billingAccountName, invoiceSectionName, filter)
 	return
 }
 

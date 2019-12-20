@@ -72,13 +72,14 @@ func WriteCert(certPath string, data []byte) error {
 // NewPool returns an x509.CertPool containing the certificates in the given PEM-encoded file.
 // Returns an error if the file could not be read, a certificate could not be parsed, or if the file does not contain any certificates
 func NewPool(filename string) (*x509.CertPool, error) {
-	certs, err := CertsFromFile(filename)
+	pemBlock, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	pool := x509.NewCertPool()
-	for _, cert := range certs {
-		pool.AddCert(cert)
+
+	pool, err := NewPoolFromBytes(pemBlock)
+	if err != nil {
+		return nil, fmt.Errorf("error creating pool from %s: %s", filename, err)
 	}
 	return pool, nil
 }

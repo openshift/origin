@@ -2,6 +2,7 @@ package scopeauthorizer
 
 import (
 	"fmt"
+	"context"
 
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
@@ -19,7 +20,7 @@ func NewAuthorizer(clusterRoleGetter rbaclisters.ClusterRoleLister) authorizer.A
 	return &scopeAuthorizer{clusterRoleGetter: clusterRoleGetter}
 }
 
-func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
+func (a *scopeAuthorizer) Authorize(ctx context.Context, attributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	user := attributes.GetUser()
 	if user == nil {
 		return authorizer.DecisionNoOpinion, "", fmt.Errorf("user missing from context")

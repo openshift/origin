@@ -122,7 +122,7 @@ func TestMountStats(t *testing.T) {
 						Bind:                     2,
 						Connect:                  3,
 						ConnectIdleTime:          4,
-						IdleTime:                 5 * time.Second,
+						IdleTimeSeconds:          5,
 						Sends:                    6,
 						Receives:                 7,
 						BadTransactionIDs:        8,
@@ -150,7 +150,7 @@ func TestMountStats(t *testing.T) {
 						Bind:                     2,
 						Connect:                  0,
 						ConnectIdleTime:          0,
-						IdleTime:                 0,
+						IdleTimeSeconds:          0,
 						Sends:                    3,
 						Receives:                 4,
 						BadTransactionIDs:        5,
@@ -178,7 +178,7 @@ func TestMountStats(t *testing.T) {
 						Bind:                     2,
 						Connect:                  3,
 						ConnectIdleTime:          4,
-						IdleTime:                 5 * time.Second,
+						IdleTimeSeconds:          5,
 						Sends:                    6,
 						Receives:                 7,
 						BadTransactionIDs:        8,
@@ -206,7 +206,7 @@ func TestMountStats(t *testing.T) {
 						Bind:                     2,
 						Connect:                  0, // these three are not
 						ConnectIdleTime:          0, // present for UDP
-						IdleTime:                 0, //
+						IdleTimeSeconds:          0, //
 						Sends:                    3,
 						Receives:                 4,
 						BadTransactionIDs:        5,
@@ -216,6 +216,19 @@ func TestMountStats(t *testing.T) {
 						CumulativeSendingQueue:   9,
 						CumulativePendingQueue:   10,
 					},
+				},
+			}},
+		},
+		{
+			name: "NFSv3 device with mountaddr OK",
+			s:    "device 192.168.1.1:/srv mounted on /mnt/nfs with fstype nfs statvers=1.1\nopts: rw,vers=3,mountaddr=192.168.1.1,proto=udp\n",
+			mounts: []*Mount{{
+				Device: "192.168.1.1:/srv",
+				Mount:  "/mnt/nfs",
+				Type:   "nfs",
+				Stats: &MountStatsNFS{
+					StatVersion: "1.1",
+					Opts:        map[string]string{"rw": "", "vers": "3", "mountaddr": "192.168.1.1", "proto": "udp"},
 				},
 			}},
 		},
@@ -241,7 +254,7 @@ func TestMountStats(t *testing.T) {
 			}},
 		},
 		{
-			name: "fixtures OK",
+			name: "fixtures/proc OK",
 			mounts: []*Mount{
 				{
 					Device: "rootfs",
@@ -269,7 +282,14 @@ func TestMountStats(t *testing.T) {
 					Type:   "nfs4",
 					Stats: &MountStatsNFS{
 						StatVersion: "1.1",
-						Age:         13968 * time.Second,
+						Opts: map[string]string{"rw": "", "vers": "4.0",
+							"rsize": "1048576", "wsize": "1048576", "namlen": "255", "acregmin": "3",
+							"acregmax": "60", "acdirmin": "30", "acdirmax": "60", "hard": "",
+							"proto": "tcp", "port": "0", "timeo": "600", "retrans": "2",
+							"sec": "sys", "mountaddr": "192.168.1.1", "clientaddr": "192.168.1.5",
+							"local_lock": "none",
+						},
+						Age: 13968 * time.Second,
 						Bytes: NFSBytesStats{
 							Read:      1207640230,
 							ReadTotal: 1210214218,
@@ -291,24 +311,34 @@ func TestMountStats(t *testing.T) {
 								Operation: "NULL",
 							},
 							{
-								Operation:                   "READ",
-								Requests:                    1298,
-								Transmissions:               1298,
-								BytesSent:                   207680,
-								BytesReceived:               1210292152,
-								CumulativeQueueTime:         6 * time.Millisecond,
-								CumulativeTotalResponseTime: 79386 * time.Millisecond,
-								CumulativeTotalRequestTime:  79407 * time.Millisecond,
+								Operation:                           "READ",
+								Requests:                            1298,
+								Transmissions:                       1298,
+								BytesSent:                           207680,
+								BytesReceived:                       1210292152,
+								CumulativeQueueMilliseconds:         6,
+								CumulativeTotalResponseMilliseconds: 79386,
+								CumulativeTotalRequestMilliseconds:  79407,
 							},
 							{
 								Operation: "WRITE",
+							},
+							{
+								Operation:                           "ACCESS",
+								Requests:                            2927395007,
+								Transmissions:                       2927394995,
+								BytesSent:                           526931094212,
+								BytesReceived:                       362996810236,
+								CumulativeQueueMilliseconds:         18446743919241604546,
+								CumulativeTotalResponseMilliseconds: 1667369447,
+								CumulativeTotalRequestMilliseconds:  1953587717,
 							},
 						},
 						Transport: NFSTransportStats{
 							Protocol:                 "tcp",
 							Port:                     832,
 							Connect:                  1,
-							IdleTime:                 11 * time.Second,
+							IdleTimeSeconds:          11,
 							Sends:                    6428,
 							Receives:                 6428,
 							CumulativeActiveRequests: 12154,
@@ -331,7 +361,7 @@ func TestMountStats(t *testing.T) {
 		if tt.s != "" {
 			mounts, err = parseMountStats(strings.NewReader(tt.s))
 		} else {
-			proc, e := FS("fixtures").NewProc(26231)
+			proc, e := getProcFixtures(t).Proc(26231)
 			if e != nil {
 				t.Fatalf("failed to create proc: %v", err)
 			}
@@ -363,6 +393,7 @@ func mountsStr(mounts []*Mount) string {
 			continue
 		}
 
+		out += fmt.Sprintf("\n\t- opts: %s", stats.Opts)
 		out += fmt.Sprintf("\n\t- v%s, age: %s", stats.StatVersion, stats.Age)
 		out += fmt.Sprintf("\n\t- bytes: %v", stats.Bytes)
 		out += fmt.Sprintf("\n\t- events: %v", stats.Events)

@@ -22,7 +22,7 @@ package subscriptions
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2018-06-01/subscriptions"
+	original "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2019-06-01/subscriptions"
 )
 
 const (
@@ -54,6 +54,7 @@ type ListResultIterator = original.ListResultIterator
 type ListResultPage = original.ListResultPage
 type Location = original.Location
 type LocationListResult = original.LocationListResult
+type ManagedByTenant = original.ManagedByTenant
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay
 type OperationListResult = original.OperationListResult

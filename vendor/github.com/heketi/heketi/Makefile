@@ -9,7 +9,7 @@ BRANCH := $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
 VER := $(shell git describe --match='v[0-9].[0-9].[0-9]')
 TAG := $(shell git tag --points-at HEAD 'v[0-9].[0-9].[0-9]' | tail -n1)
 GO:=go
-GLIDE:=glide
+GLIDE:=glide --debug
 TESTBIN:=./test.sh
 GOARCH := $(shell $(GO) env GOARCH)
 GOOS := $(shell $(GO) env GOOS)

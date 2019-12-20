@@ -85,7 +85,7 @@ func (client OperationClient) ValidatePreparer(ctx context.Context, vaultName st
 		"vaultName":         autorest.Encode("path", vaultName),
 	}
 
-	const APIVersion = "2017-07-01"
+	const APIVersion = "2019-05-13"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}

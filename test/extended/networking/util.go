@@ -20,6 +20,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -201,8 +202,12 @@ func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
 
 // findAppropriateNodes tries to find a source and destination for a type of node connectivity
 // test (same node, or different node).
-func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *corev1.Node) {
-	nodes := e2e.GetReadySchedulableNodesOrDie(f.ClientSet)
+func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *corev1.Node, error) {
+	nodes, err := e2enode.GetReadySchedulableNodes(f.ClientSet)
+	if err != nil {
+		e2e.Logf("Unable to get schedulable nodes due to %v", err)
+		return nil, nil, err
+	}
 	candidates := nodes.Items
 
 	if len(candidates) == 0 {
@@ -245,16 +250,19 @@ func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *c
 			e2e.Skipf("Only one node is available in this environment (%v out of %v)", candidateNames, nodeNames)
 		}
 		e2e.Logf("Using %s and %s for test (%v out of %v)", candidates[0].Name, candidates[1].Name, candidateNames, nodeNames)
-		return &candidates[0], &candidates[1]
+		return &candidates[0], &candidates[1], nil
 	}
 	e2e.Logf("Using %s for test (%v out of %v)", candidates[0].Name, candidateNames, nodeNames)
-	return &candidates[0], &candidates[0]
+	return &candidates[0], &candidates[0], nil
 }
 
 func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
 	makeNamespaceScheduleToAllNodes(f1)
 	makeNamespaceScheduleToAllNodes(f2)
-	serverNode, clientNode := findAppropriateNodes(f1, nodeType)
+	serverNode, clientNode, err := findAppropriateNodes(f1, nodeType)
+	if err != nil {
+		return err
+	}
 	podName := "isolation-webserver"
 	defer f1.ClientSet.CoreV1().Pods(f1.Namespace.Name).Delete(podName, nil)
 	ip := testexutil.LaunchWebserverPod(f1, podName, serverNode.Name)
@@ -265,7 +273,10 @@ func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
 func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, nodeType NodeType) error {
 	makeNamespaceScheduleToAllNodes(serverFramework)
 	makeNamespaceScheduleToAllNodes(clientFramework)
-	serverNode, clientNode := findAppropriateNodes(serverFramework, nodeType)
+	serverNode, clientNode, err := findAppropriateNodes(serverFramework, nodeType)
+	if err != nil {
+		return err
+	}
 	podName := names.SimpleNameGenerator.GenerateName("service-")
 	defer serverFramework.ClientSet.CoreV1().Pods(serverFramework.Namespace.Name).Delete(podName, nil)
 	defer serverFramework.ClientSet.CoreV1().Services(serverFramework.Namespace.Name).Delete(podName, nil)

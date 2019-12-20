@@ -45,7 +45,7 @@ func NewDataSetMappingsClientWithBaseURI(baseURI string, subscriptionID string) 
 // resourceGroupName - the resource group name.
 // accountName - the name of the share account.
 // shareSubscriptionName - the name of the share subscription which will hold the data set sink.
-// dataSetMappingName - the Id of the source data set being mapped.
+// dataSetMappingName - the name of the data set mapping to be created.
 // dataSetMapping - destination data set configuration details.
 func (client DataSetMappingsClient) Create(ctx context.Context, resourceGroupName string, accountName string, shareSubscriptionName string, dataSetMappingName string, dataSetMapping BasicDataSetMapping) (result DataSetMappingModel, err error) {
 	if tracing.IsEnabled() {

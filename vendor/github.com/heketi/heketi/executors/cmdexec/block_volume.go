@@ -58,7 +58,7 @@ func (s *CmdExecutor) BlockVolumeCreate(host string,
 	commands := []string{cmd}
 
 	// Execute command
-	results, err := s.RemoteExecutor.ExecCommands(host, commands, 10)
+	results, err := s.RemoteExecutor.ExecCommands(host, rex.ToCmds(commands), 10)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (s *CmdExecutor) BlockVolumeDestroy(host string, blockHostingVolumeName str
 		fmt.Sprintf("gluster-block delete %v/%v --json",
 			blockHostingVolumeName, blockVolumeName),
 	}
-	res, err := s.RemoteExecutor.ExecCommands(host, commands, 10)
+	res, err := s.RemoteExecutor.ExecCommands(host, rex.ToCmds(commands), 10)
 	if err != nil {
 		// non-command error conditions
 		return err
@@ -171,7 +171,7 @@ func (c *CmdExecutor) ListBlockVolumes(host string, blockhostingvolume string) (
 
 	commands := []string{fmt.Sprintf("gluster-block list %v --json", blockhostingvolume)}
 
-	results, err := c.RemoteExecutor.ExecCommands(host, commands, 10)
+	results, err := c.RemoteExecutor.ExecCommands(host, rex.ToCmds(commands), 10)
 	if err := rex.AnyError(results, err); err != nil {
 		logger.Err(err)
 		return nil, fmt.Errorf("unable to list blockvolumes on block hosting volume %v : %v", blockhostingvolume, err)

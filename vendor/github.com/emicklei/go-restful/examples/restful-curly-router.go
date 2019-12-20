@@ -58,8 +58,8 @@ func (u UserResource) findUser(request *restful.Request, response *restful.Respo
 	}
 }
 
-// PUT http://localhost:8080/users/1
-// <User><Id>1</Id><Name>Melissa</Name></User>
+// POST http://localhost:8080/users
+// <User><Id>1</Id><Name>Melissa Raspberry</Name></User>
 //
 func (u *UserResource) updateUser(request *restful.Request, response *restful.Response) {
 	usr := new(User)
@@ -73,8 +73,8 @@ func (u *UserResource) updateUser(request *restful.Request, response *restful.Re
 	}
 }
 
-// POST http://localhost:8080/users
-// <User><Id>1</Id><Name>Melissa Raspberry</Name></User>
+// PUT http://localhost:8080/users/1
+// <User><Id>1</Id><Name>Melissa</Name></User>
 //
 func (u *UserResource) createUser(request *restful.Request, response *restful.Response) {
 	usr := User{Id: request.PathParameter("user-id")}
@@ -101,7 +101,7 @@ func main() {
 	u := UserResource{map[string]User{}}
 	u.Register(wsContainer)
 
-	log.Print("start listening on localhost:8080")
+	log.Printf("start listening on localhost:8080")
 	server := &http.Server{Addr: ":8080", Handler: wsContainer}
 	log.Fatal(server.ListenAndServe())
 }

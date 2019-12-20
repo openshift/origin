@@ -171,17 +171,18 @@ func (client TransactionsClient) ListByBillingAccountNameComplete(ctx context.Co
 // filter - may be used to filter by transaction kind. The filter supports 'eq', 'lt', 'gt', 'le', 'ge', and
 // 'and'. It does not currently support 'ne', 'or', or 'not'. Tag filter is a key value pair string where key
 // and value is separated by a colon (:).
-func (client TransactionsClient) ListByBillingProfileName(ctx context.Context, billingAccountName string, billingProfileName string, startDate string, endDate string, filter string) (result TransactionsListResult, err error) {
+func (client TransactionsClient) ListByBillingProfileName(ctx context.Context, billingAccountName string, billingProfileName string, startDate string, endDate string, filter string) (result TransactionsListResultPage, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/TransactionsClient.ListByBillingProfileName")
 		defer func() {
 			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
+			if result.tlr.Response.Response != nil {
+				sc = result.tlr.Response.Response.StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	result.fn = client.listByBillingProfileNameNextResults
 	req, err := client.ListByBillingProfileNamePreparer(ctx, billingAccountName, billingProfileName, startDate, endDate, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "ListByBillingProfileName", nil, "Failure preparing request")
@@ -190,12 +191,12 @@ func (client TransactionsClient) ListByBillingProfileName(ctx context.Context, b
 
 	resp, err := client.ListByBillingProfileNameSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
+		result.tlr.Response = autorest.Response{Response: resp}
 		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "ListByBillingProfileName", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.ListByBillingProfileNameResponder(resp)
+	result.tlr, err = client.ListByBillingProfileNameResponder(resp)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "ListByBillingProfileName", resp, "Failure responding to request")
 	}
@@ -248,6 +249,167 @@ func (client TransactionsClient) ListByBillingProfileNameResponder(resp *http.Re
 	return
 }
 
+// listByBillingProfileNameNextResults retrieves the next set of results, if any.
+func (client TransactionsClient) listByBillingProfileNameNextResults(ctx context.Context, lastResults TransactionsListResult) (result TransactionsListResult, err error) {
+	req, err := lastResults.transactionsListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "billing.TransactionsClient", "listByBillingProfileNameNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByBillingProfileNameSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "billing.TransactionsClient", "listByBillingProfileNameNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByBillingProfileNameResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "listByBillingProfileNameNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByBillingProfileNameComplete enumerates all values, automatically crossing page boundaries as required.
+func (client TransactionsClient) ListByBillingProfileNameComplete(ctx context.Context, billingAccountName string, billingProfileName string, startDate string, endDate string, filter string) (result TransactionsListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TransactionsClient.ListByBillingProfileName")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByBillingProfileName(ctx, billingAccountName, billingProfileName, startDate, endDate, filter)
+	return
+}
+
+// ListByCustomerName lists the transactions by invoice section name for given start date and end date.
+// Parameters:
+// billingAccountName - billing Account Id.
+// customerName - customer Id.
+// startDate - start date
+// endDate - end date
+// filter - may be used to filter by transaction kind. The filter supports 'eq', 'lt', 'gt', 'le', 'ge', and
+// 'and'. It does not currently support 'ne', 'or', or 'not'. Tag filter is a key value pair string where key
+// and value is separated by a colon (:).
+func (client TransactionsClient) ListByCustomerName(ctx context.Context, billingAccountName string, customerName string, startDate string, endDate string, filter string) (result TransactionsListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TransactionsClient.ListByCustomerName")
+		defer func() {
+			sc := -1
+			if result.tlr.Response.Response != nil {
+				sc = result.tlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.fn = client.listByCustomerNameNextResults
+	req, err := client.ListByCustomerNamePreparer(ctx, billingAccountName, customerName, startDate, endDate, filter)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "ListByCustomerName", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListByCustomerNameSender(req)
+	if err != nil {
+		result.tlr.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "ListByCustomerName", resp, "Failure sending request")
+		return
+	}
+
+	result.tlr, err = client.ListByCustomerNameResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "ListByCustomerName", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListByCustomerNamePreparer prepares the ListByCustomerName request.
+func (client TransactionsClient) ListByCustomerNamePreparer(ctx context.Context, billingAccountName string, customerName string, startDate string, endDate string, filter string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"billingAccountName": autorest.Encode("path", billingAccountName),
+		"customerName":       autorest.Encode("path", customerName),
+	}
+
+	const APIVersion = "2018-11-01-preview"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+		"endDate":     autorest.Encode("query", endDate),
+		"startDate":   autorest.Encode("query", startDate),
+	}
+	if len(filter) > 0 {
+		queryParameters["$filter"] = autorest.Encode("query", filter)
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/providers/Microsoft.Billing/billingAccounts/{billingAccountName}/customers/{customerName}/transactions", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListByCustomerNameSender sends the ListByCustomerName request. The method will close the
+// http.Response Body if it receives an error.
+func (client TransactionsClient) ListByCustomerNameSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListByCustomerNameResponder handles the response to the ListByCustomerName request. The method always
+// closes the http.Response Body.
+func (client TransactionsClient) ListByCustomerNameResponder(resp *http.Response) (result TransactionsListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listByCustomerNameNextResults retrieves the next set of results, if any.
+func (client TransactionsClient) listByCustomerNameNextResults(ctx context.Context, lastResults TransactionsListResult) (result TransactionsListResult, err error) {
+	req, err := lastResults.transactionsListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "billing.TransactionsClient", "listByCustomerNameNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByCustomerNameSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "billing.TransactionsClient", "listByCustomerNameNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByCustomerNameResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "listByCustomerNameNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByCustomerNameComplete enumerates all values, automatically crossing page boundaries as required.
+func (client TransactionsClient) ListByCustomerNameComplete(ctx context.Context, billingAccountName string, customerName string, startDate string, endDate string, filter string) (result TransactionsListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TransactionsClient.ListByCustomerName")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByCustomerName(ctx, billingAccountName, customerName, startDate, endDate, filter)
+	return
+}
+
 // ListByInvoiceSectionName lists the transactions by invoice section name for given start date and end date.
 // Parameters:
 // billingAccountName - billing Account Id.
@@ -257,17 +419,18 @@ func (client TransactionsClient) ListByBillingProfileNameResponder(resp *http.Re
 // filter - may be used to filter by transaction kind. The filter supports 'eq', 'lt', 'gt', 'le', 'ge', and
 // 'and'. It does not currently support 'ne', 'or', or 'not'. Tag filter is a key value pair string where key
 // and value is separated by a colon (:).
-func (client TransactionsClient) ListByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string, startDate string, endDate string, filter string) (result TransactionsListResult, err error) {
+func (client TransactionsClient) ListByInvoiceSectionName(ctx context.Context, billingAccountName string, invoiceSectionName string, startDate string, endDate string, filter string) (result TransactionsListResultPage, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/TransactionsClient.ListByInvoiceSectionName")
 		defer func() {
 			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
+			if result.tlr.Response.Response != nil {
+				sc = result.tlr.Response.Response.StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	result.fn = client.listByInvoiceSectionNameNextResults
 	req, err := client.ListByInvoiceSectionNamePreparer(ctx, billingAccountName, invoiceSectionName, startDate, endDate, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "ListByInvoiceSectionName", nil, "Failure preparing request")
@@ -276,12 +439,12 @@ func (client TransactionsClient) ListByInvoiceSectionName(ctx context.Context, b
 
 	resp, err := client.ListByInvoiceSectionNameSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
+		result.tlr.Response = autorest.Response{Response: resp}
 		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "ListByInvoiceSectionName", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.ListByInvoiceSectionNameResponder(resp)
+	result.tlr, err = client.ListByInvoiceSectionNameResponder(resp)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "ListByInvoiceSectionName", resp, "Failure responding to request")
 	}
@@ -331,5 +494,42 @@ func (client TransactionsClient) ListByInvoiceSectionNameResponder(resp *http.Re
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listByInvoiceSectionNameNextResults retrieves the next set of results, if any.
+func (client TransactionsClient) listByInvoiceSectionNameNextResults(ctx context.Context, lastResults TransactionsListResult) (result TransactionsListResult, err error) {
+	req, err := lastResults.transactionsListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "billing.TransactionsClient", "listByInvoiceSectionNameNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByInvoiceSectionNameSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "billing.TransactionsClient", "listByInvoiceSectionNameNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByInvoiceSectionNameResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.TransactionsClient", "listByInvoiceSectionNameNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByInvoiceSectionNameComplete enumerates all values, automatically crossing page boundaries as required.
+func (client TransactionsClient) ListByInvoiceSectionNameComplete(ctx context.Context, billingAccountName string, invoiceSectionName string, startDate string, endDate string, filter string) (result TransactionsListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TransactionsClient.ListByInvoiceSectionName")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByInvoiceSectionName(ctx, billingAccountName, invoiceSectionName, startDate, endDate, filter)
 	return
 }

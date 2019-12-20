@@ -22,7 +22,7 @@ package storage
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2019-04-01/storage"
+	original "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2019-06-01/storage"
 )
 
 const (
@@ -85,6 +85,7 @@ type DirectoryServiceOptions = original.DirectoryServiceOptions
 
 const (
 	DirectoryServiceOptionsAADDS DirectoryServiceOptions = original.DirectoryServiceOptionsAADDS
+	DirectoryServiceOptionsAD    DirectoryServiceOptions = original.DirectoryServiceOptionsAD
 	DirectoryServiceOptionsNone  DirectoryServiceOptions = original.DirectoryServiceOptionsNone
 )
 
@@ -142,6 +143,13 @@ const (
 	StorageV2        Kind = original.StorageV2
 )
 
+type LargeFileSharesState = original.LargeFileSharesState
+
+const (
+	Disabled LargeFileSharesState = original.Disabled
+	Enabled  LargeFileSharesState = original.Enabled
+)
+
 type LeaseDuration = original.LeaseDuration
 
 const (
@@ -166,6 +174,12 @@ const (
 	LeaseStatusUnlocked LeaseStatus = original.LeaseStatusUnlocked
 )
 
+type ListKeyExpand = original.ListKeyExpand
+
+const (
+	Kerb ListKeyExpand = original.Kerb
+)
+
 type Permissions = original.Permissions
 
 const (
@@ -179,12 +193,29 @@ const (
 	W Permissions = original.W
 )
 
+type PrivateEndpointConnectionProvisioningState = original.PrivateEndpointConnectionProvisioningState
+
+const (
+	Creating  PrivateEndpointConnectionProvisioningState = original.Creating
+	Deleting  PrivateEndpointConnectionProvisioningState = original.Deleting
+	Failed    PrivateEndpointConnectionProvisioningState = original.Failed
+	Succeeded PrivateEndpointConnectionProvisioningState = original.Succeeded
+)
+
+type PrivateEndpointServiceConnectionStatus = original.PrivateEndpointServiceConnectionStatus
+
+const (
+	Approved PrivateEndpointServiceConnectionStatus = original.Approved
+	Pending  PrivateEndpointServiceConnectionStatus = original.Pending
+	Rejected PrivateEndpointServiceConnectionStatus = original.Rejected
+)
+
 type ProvisioningState = original.ProvisioningState
 
 const (
-	Creating     ProvisioningState = original.Creating
-	ResolvingDNS ProvisioningState = original.ResolvingDNS
-	Succeeded    ProvisioningState = original.Succeeded
+	ProvisioningStateCreating     ProvisioningState = original.ProvisioningStateCreating
+	ProvisioningStateResolvingDNS ProvisioningState = original.ProvisioningStateResolvingDNS
+	ProvisioningStateSucceeded    ProvisioningState = original.ProvisioningStateSucceeded
 )
 
 type PublicAccess = original.PublicAccess
@@ -282,6 +313,8 @@ type AccountCreateParameters = original.AccountCreateParameters
 type AccountKey = original.AccountKey
 type AccountListKeysResult = original.AccountListKeysResult
 type AccountListResult = original.AccountListResult
+type AccountListResultIterator = original.AccountListResultIterator
+type AccountListResultPage = original.AccountListResultPage
 type AccountProperties = original.AccountProperties
 type AccountPropertiesCreateParameters = original.AccountPropertiesCreateParameters
 type AccountPropertiesUpdateParameters = original.AccountPropertiesUpdateParameters
@@ -291,15 +324,20 @@ type AccountUpdateParameters = original.AccountUpdateParameters
 type AccountsClient = original.AccountsClient
 type AccountsCreateFuture = original.AccountsCreateFuture
 type AccountsFailoverFuture = original.AccountsFailoverFuture
+type ActiveDirectoryProperties = original.ActiveDirectoryProperties
 type AzureEntityResource = original.AzureEntityResource
 type AzureFilesIdentityBasedAuthentication = original.AzureFilesIdentityBasedAuthentication
 type BaseClient = original.BaseClient
 type BlobContainer = original.BlobContainer
 type BlobContainersClient = original.BlobContainersClient
+type BlobServiceItems = original.BlobServiceItems
 type BlobServiceProperties = original.BlobServiceProperties
 type BlobServicePropertiesProperties = original.BlobServicePropertiesProperties
 type BlobServicesClient = original.BlobServicesClient
+type ChangeFeed = original.ChangeFeed
 type CheckNameAvailabilityResult = original.CheckNameAvailabilityResult
+type CloudError = original.CloudError
+type CloudErrorBody = original.CloudErrorBody
 type ContainerProperties = original.ContainerProperties
 type CorsRule = original.CorsRule
 type CorsRules = original.CorsRules
@@ -312,6 +350,18 @@ type Encryption = original.Encryption
 type EncryptionService = original.EncryptionService
 type EncryptionServices = original.EncryptionServices
 type Endpoints = original.Endpoints
+type ErrorResponse = original.ErrorResponse
+type FileServiceItems = original.FileServiceItems
+type FileServiceProperties = original.FileServiceProperties
+type FileServicePropertiesProperties = original.FileServicePropertiesProperties
+type FileServicesClient = original.FileServicesClient
+type FileShare = original.FileShare
+type FileShareItem = original.FileShareItem
+type FileShareItems = original.FileShareItems
+type FileShareItemsIterator = original.FileShareItemsIterator
+type FileShareItemsPage = original.FileShareItemsPage
+type FileShareProperties = original.FileShareProperties
+type FileSharesClient = original.FileSharesClient
 type GeoReplicationStats = original.GeoReplicationStats
 type IPRule = original.IPRule
 type Identity = original.Identity
@@ -346,6 +396,15 @@ type OperationDisplay = original.OperationDisplay
 type OperationListResult = original.OperationListResult
 type OperationProperties = original.OperationProperties
 type OperationsClient = original.OperationsClient
+type PrivateEndpoint = original.PrivateEndpoint
+type PrivateEndpointConnection = original.PrivateEndpointConnection
+type PrivateEndpointConnectionProperties = original.PrivateEndpointConnectionProperties
+type PrivateEndpointConnectionsClient = original.PrivateEndpointConnectionsClient
+type PrivateLinkResource = original.PrivateLinkResource
+type PrivateLinkResourceListResult = original.PrivateLinkResourceListResult
+type PrivateLinkResourceProperties = original.PrivateLinkResourceProperties
+type PrivateLinkResourcesClient = original.PrivateLinkResourcesClient
+type PrivateLinkServiceConnectionState = original.PrivateLinkServiceConnectionState
 type ProxyResource = original.ProxyResource
 type Resource = original.Resource
 type Restriction = original.Restriction
@@ -367,6 +426,12 @@ type VirtualNetworkRule = original.VirtualNetworkRule
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
 }
+func NewAccountListResultIterator(page AccountListResultPage) AccountListResultIterator {
+	return original.NewAccountListResultIterator(page)
+}
+func NewAccountListResultPage(getNextPage func(context.Context, AccountListResult) (AccountListResult, error)) AccountListResultPage {
+	return original.NewAccountListResultPage(getNextPage)
+}
 func NewAccountsClient(subscriptionID string) AccountsClient {
 	return original.NewAccountsClient(subscriptionID)
 }
@@ -385,6 +450,24 @@ func NewBlobServicesClient(subscriptionID string) BlobServicesClient {
 func NewBlobServicesClientWithBaseURI(baseURI string, subscriptionID string) BlobServicesClient {
 	return original.NewBlobServicesClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewFileServicesClient(subscriptionID string) FileServicesClient {
+	return original.NewFileServicesClient(subscriptionID)
+}
+func NewFileServicesClientWithBaseURI(baseURI string, subscriptionID string) FileServicesClient {
+	return original.NewFileServicesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewFileShareItemsIterator(page FileShareItemsPage) FileShareItemsIterator {
+	return original.NewFileShareItemsIterator(page)
+}
+func NewFileShareItemsPage(getNextPage func(context.Context, FileShareItems) (FileShareItems, error)) FileShareItemsPage {
+	return original.NewFileShareItemsPage(getNextPage)
+}
+func NewFileSharesClient(subscriptionID string) FileSharesClient {
+	return original.NewFileSharesClient(subscriptionID)
+}
+func NewFileSharesClientWithBaseURI(baseURI string, subscriptionID string) FileSharesClient {
+	return original.NewFileSharesClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewListContainerItemsIterator(page ListContainerItemsPage) ListContainerItemsIterator {
 	return original.NewListContainerItemsIterator(page)
 }
@@ -402,6 +485,18 @@ func NewOperationsClient(subscriptionID string) OperationsClient {
 }
 func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
 	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewPrivateEndpointConnectionsClient(subscriptionID string) PrivateEndpointConnectionsClient {
+	return original.NewPrivateEndpointConnectionsClient(subscriptionID)
+}
+func NewPrivateEndpointConnectionsClientWithBaseURI(baseURI string, subscriptionID string) PrivateEndpointConnectionsClient {
+	return original.NewPrivateEndpointConnectionsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewPrivateLinkResourcesClient(subscriptionID string) PrivateLinkResourcesClient {
+	return original.NewPrivateLinkResourcesClient(subscriptionID)
+}
+func NewPrivateLinkResourcesClientWithBaseURI(baseURI string, subscriptionID string) PrivateLinkResourcesClient {
+	return original.NewPrivateLinkResourcesClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewSkusClient(subscriptionID string) SkusClient {
 	return original.NewSkusClient(subscriptionID)
@@ -463,6 +558,9 @@ func PossibleKeySourceValues() []KeySource {
 func PossibleKindValues() []Kind {
 	return original.PossibleKindValues()
 }
+func PossibleLargeFileSharesStateValues() []LargeFileSharesState {
+	return original.PossibleLargeFileSharesStateValues()
+}
 func PossibleLeaseDurationValues() []LeaseDuration {
 	return original.PossibleLeaseDurationValues()
 }
@@ -472,8 +570,17 @@ func PossibleLeaseStateValues() []LeaseState {
 func PossibleLeaseStatusValues() []LeaseStatus {
 	return original.PossibleLeaseStatusValues()
 }
+func PossibleListKeyExpandValues() []ListKeyExpand {
+	return original.PossibleListKeyExpandValues()
+}
 func PossiblePermissionsValues() []Permissions {
 	return original.PossiblePermissionsValues()
+}
+func PossiblePrivateEndpointConnectionProvisioningStateValues() []PrivateEndpointConnectionProvisioningState {
+	return original.PossiblePrivateEndpointConnectionProvisioningStateValues()
+}
+func PossiblePrivateEndpointServiceConnectionStatusValues() []PrivateEndpointServiceConnectionStatus {
+	return original.PossiblePrivateEndpointServiceConnectionStatusValues()
 }
 func PossibleProvisioningStateValues() []ProvisioningState {
 	return original.PossibleProvisioningStateValues()

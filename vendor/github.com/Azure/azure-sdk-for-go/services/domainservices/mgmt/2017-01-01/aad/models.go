@@ -491,7 +491,7 @@ type DomainServicesDeleteFuture struct {
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *DomainServicesDeleteFuture) Result(client DomainServicesClient) (ds DomainService, err error) {
+func (future *DomainServicesDeleteFuture) Result(client DomainServicesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
@@ -502,13 +502,7 @@ func (future *DomainServicesDeleteFuture) Result(client DomainServicesClient) (d
 		err = azure.NewAsyncOpIncompleteError("aad.DomainServicesDeleteFuture")
 		return
 	}
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if ds.Response.Response, err = future.GetResult(sender); err == nil && ds.Response.Response.StatusCode != http.StatusNoContent {
-		ds, err = client.DeleteResponder(ds.Response.Response)
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "aad.DomainServicesDeleteFuture", "Result", ds.Response.Response, "Failure responding to request")
-		}
-	}
+	ar.Response = future.Response()
 	return
 }
 

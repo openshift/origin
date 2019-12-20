@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 
@@ -148,6 +149,125 @@ func TestRuntime_TLSAuthConfigWithLoadedCA(t *testing.T) {
 		if assert.NotNil(t, cfg) {
 			assert.NotNil(t, cfg.RootCAs)
 		}
+	}
+}
+
+func TestRuntime_TLSAuthConfigWithVerifyPeerCertificate(t *testing.T) {
+	var opts TLSClientOptions
+	opts.InsecureSkipVerify = true
+	var verify = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+		return nil
+	}
+	opts.VerifyPeerCertificate = verify
+
+	cfg, err := TLSClientAuth(opts)
+	if assert.NoError(t, err) {
+		if assert.NotNil(t, cfg) {
+			assert.True(t, cfg.InsecureSkipVerify)
+			assert.NotNil(t, cfg.VerifyPeerCertificate)
+		}
+	}
+}
+
+func TestRuntime_ManualCertificateValidation(t *testing.T) {
+	// test manual verification of server certificates
+	// against root certificate on client side.
+	result := []task{
+		{false, "task 1 content", 1},
+		{false, "task 2 content", 2},
+	}
+	var verifyCalled bool
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Add(runtime.HeaderContentType, runtime.JSONMime)
+		rw.WriteHeader(http.StatusOK)
+		jsongen := json.NewEncoder(rw)
+		_ = jsongen.Encode(result)
+	}))
+
+	// root cert
+	rootCertFile := "../fixtures/certs/myCA.crt"
+	rootCertPem, err := ioutil.ReadFile(rootCertFile)
+	require.NoError(t, err)
+	rootCertRaw, _ := pem.Decode(rootCertPem)
+	require.NotNil(t, rootCertRaw)
+	rootCert, err := x509.ParseCertificate(rootCertRaw.Bytes)
+	require.NoError(t, err)
+
+	// create server tls config
+	serverCACertPool := x509.NewCertPool()
+	serverCACertPool.AddCert(rootCert)
+	server.TLS = &tls.Config{
+		RootCAs: serverCACertPool,
+	}
+
+	// load server certs
+	serverCertFile := "../fixtures/certs/mycert1.crt"
+	serverKeyFile := "../fixtures/certs/mycert1.key"
+	server.TLS.Certificates = make([]tls.Certificate, 1)
+	server.TLS.Certificates[0], err = tls.LoadX509KeyPair(
+		serverCertFile,
+		serverKeyFile,
+	)
+	require.NoError(t, err)
+
+	server.StartTLS()
+	defer server.Close()
+
+	// test if server is a valid endpoint
+	// by comparing received certs against root cert,
+	// explicitly omitting DNSName check.
+	client, err := TLSClient(TLSClientOptions{
+		InsecureSkipVerify: true,
+		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			verifyCalled = true
+
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(rootCertPem)
+
+			opts := x509.VerifyOptions{
+				Roots:       caCertPool,
+				CurrentTime: time.Date(2017, time.July, 1, 1, 1, 1, 1, time.UTC),
+			}
+
+			cert, err := x509.ParseCertificate(rawCerts[0])
+			if err != nil {
+				return err
+			}
+
+			_, err = cert.Verify(opts)
+			return err
+		},
+	})
+
+	require.NoError(t, err)
+	hu, _ := url.Parse(server.URL)
+	rt := NewWithClient(hu.Host, "/", []string{"https"}, client)
+
+	rwrtr := runtime.ClientRequestWriterFunc(func(req runtime.ClientRequest, _ strfmt.Registry) error {
+		return nil
+	})
+
+	var received []task
+	_, err = rt.Submit(&runtime.ClientOperation{
+		ID:          "getTasks",
+		Method:      "GET",
+		PathPattern: "/",
+		Params:      rwrtr,
+		Reader: runtime.ClientResponseReaderFunc(func(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+			if response.Code() == 200 {
+				if err := consumer.Consume(response.Body(), &received); err != nil {
+					return nil, err
+				}
+				return result, nil
+			}
+			return nil, errors.New("Generic error")
+		}),
+	})
+
+	if assert.NoError(t, err) {
+		assert.True(t, verifyCalled)
+		assert.IsType(t, []task{}, received)
+		assert.EqualValues(t, result, received)
 	}
 }
 
@@ -429,6 +549,8 @@ func TestRuntime_CustomTransport(t *testing.T) {
 		if req.URL.Scheme != "https" {
 			return nil, errors.New("this was not a https request")
 		}
+		assert.Equal(t, "localhost:3245", req.Host)
+		assert.Equal(t, "localhost:3245", req.URL.Host)
 		var resp http.Response
 		resp.StatusCode = 200
 		resp.Header = make(http.Header)

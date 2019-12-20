@@ -25,11 +25,44 @@ const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
+type AdvisorStatus = original.AdvisorStatus
+
+const (
+	GA                   AdvisorStatus = original.GA
+	LimitedPublicPreview AdvisorStatus = original.LimitedPublicPreview
+	PrivatePreview       AdvisorStatus = original.PrivatePreview
+	PublicPreview        AdvisorStatus = original.PublicPreview
+)
+
 type AuthenticationType = original.AuthenticationType
 
 const (
 	ADPassword AuthenticationType = original.ADPassword
 	SQL        AuthenticationType = original.SQL
+)
+
+type AutoExecuteStatus = original.AutoExecuteStatus
+
+const (
+	Default  AutoExecuteStatus = original.Default
+	Disabled AutoExecuteStatus = original.Disabled
+	Enabled  AutoExecuteStatus = original.Enabled
+)
+
+type BackupLongTermRetentionPolicyState = original.BackupLongTermRetentionPolicyState
+
+const (
+	BackupLongTermRetentionPolicyStateDisabled BackupLongTermRetentionPolicyState = original.BackupLongTermRetentionPolicyStateDisabled
+	BackupLongTermRetentionPolicyStateEnabled  BackupLongTermRetentionPolicyState = original.BackupLongTermRetentionPolicyStateEnabled
+)
+
+type CapabilityStatus = original.CapabilityStatus
+
+const (
+	CapabilityStatusAvailable CapabilityStatus = original.CapabilityStatusAvailable
+	CapabilityStatusDefault   CapabilityStatus = original.CapabilityStatusDefault
+	CapabilityStatusDisabled  CapabilityStatus = original.CapabilityStatusDisabled
+	CapabilityStatusVisible   CapabilityStatus = original.CapabilityStatusVisible
 )
 
 type CheckNameAvailabilityReason = original.CheckNameAvailabilityReason
@@ -42,14 +75,39 @@ const (
 type CreateMode = original.CreateMode
 
 const (
-	Copy                           CreateMode = original.Copy
-	Default                        CreateMode = original.Default
-	NonReadableSecondary           CreateMode = original.NonReadableSecondary
-	OnlineSecondary                CreateMode = original.OnlineSecondary
-	PointInTimeRestore             CreateMode = original.PointInTimeRestore
-	Recovery                       CreateMode = original.Recovery
-	Restore                        CreateMode = original.Restore
-	RestoreLongTermRetentionBackup CreateMode = original.RestoreLongTermRetentionBackup
+	CreateModeCopy                           CreateMode = original.CreateModeCopy
+	CreateModeDefault                        CreateMode = original.CreateModeDefault
+	CreateModeNonReadableSecondary           CreateMode = original.CreateModeNonReadableSecondary
+	CreateModeOnlineSecondary                CreateMode = original.CreateModeOnlineSecondary
+	CreateModePointInTimeRestore             CreateMode = original.CreateModePointInTimeRestore
+	CreateModeRecovery                       CreateMode = original.CreateModeRecovery
+	CreateModeRestore                        CreateMode = original.CreateModeRestore
+	CreateModeRestoreLongTermRetentionBackup CreateMode = original.CreateModeRestoreLongTermRetentionBackup
+)
+
+type DataMaskingFunction = original.DataMaskingFunction
+
+const (
+	DataMaskingFunctionCCN     DataMaskingFunction = original.DataMaskingFunctionCCN
+	DataMaskingFunctionDefault DataMaskingFunction = original.DataMaskingFunctionDefault
+	DataMaskingFunctionEmail   DataMaskingFunction = original.DataMaskingFunctionEmail
+	DataMaskingFunctionNumber  DataMaskingFunction = original.DataMaskingFunctionNumber
+	DataMaskingFunctionSSN     DataMaskingFunction = original.DataMaskingFunctionSSN
+	DataMaskingFunctionText    DataMaskingFunction = original.DataMaskingFunctionText
+)
+
+type DataMaskingRuleState = original.DataMaskingRuleState
+
+const (
+	DataMaskingRuleStateDisabled DataMaskingRuleState = original.DataMaskingRuleStateDisabled
+	DataMaskingRuleStateEnabled  DataMaskingRuleState = original.DataMaskingRuleStateEnabled
+)
+
+type DataMaskingState = original.DataMaskingState
+
+const (
+	DataMaskingStateDisabled DataMaskingState = original.DataMaskingStateDisabled
+	DataMaskingStateEnabled  DataMaskingState = original.DataMaskingStateEnabled
 )
 
 type DatabaseEdition = original.DatabaseEdition
@@ -71,6 +129,37 @@ const (
 	Web              DatabaseEdition = original.Web
 )
 
+type DisasterRecoveryConfigurationAutoFailover = original.DisasterRecoveryConfigurationAutoFailover
+
+const (
+	Off DisasterRecoveryConfigurationAutoFailover = original.Off
+	On  DisasterRecoveryConfigurationAutoFailover = original.On
+)
+
+type DisasterRecoveryConfigurationFailoverPolicy = original.DisasterRecoveryConfigurationFailoverPolicy
+
+const (
+	Automatic DisasterRecoveryConfigurationFailoverPolicy = original.Automatic
+	Manual    DisasterRecoveryConfigurationFailoverPolicy = original.Manual
+)
+
+type DisasterRecoveryConfigurationRole = original.DisasterRecoveryConfigurationRole
+
+const (
+	None      DisasterRecoveryConfigurationRole = original.None
+	Primary   DisasterRecoveryConfigurationRole = original.Primary
+	Secondary DisasterRecoveryConfigurationRole = original.Secondary
+)
+
+type DisasterRecoveryConfigurationStatus = original.DisasterRecoveryConfigurationStatus
+
+const (
+	Creating    DisasterRecoveryConfigurationStatus = original.Creating
+	Dropping    DisasterRecoveryConfigurationStatus = original.Dropping
+	FailingOver DisasterRecoveryConfigurationStatus = original.FailingOver
+	Ready       DisasterRecoveryConfigurationStatus = original.Ready
+)
+
 type ElasticPoolEdition = original.ElasticPoolEdition
 
 const (
@@ -84,9 +173,79 @@ const (
 type ElasticPoolState = original.ElasticPoolState
 
 const (
-	Creating ElasticPoolState = original.Creating
-	Disabled ElasticPoolState = original.Disabled
-	Ready    ElasticPoolState = original.Ready
+	ElasticPoolStateCreating ElasticPoolState = original.ElasticPoolStateCreating
+	ElasticPoolStateDisabled ElasticPoolState = original.ElasticPoolStateDisabled
+	ElasticPoolStateReady    ElasticPoolState = original.ElasticPoolStateReady
+)
+
+type GeoBackupPolicyState = original.GeoBackupPolicyState
+
+const (
+	GeoBackupPolicyStateDisabled GeoBackupPolicyState = original.GeoBackupPolicyStateDisabled
+	GeoBackupPolicyStateEnabled  GeoBackupPolicyState = original.GeoBackupPolicyStateEnabled
+)
+
+type MaxSizeUnits = original.MaxSizeUnits
+
+const (
+	Gigabytes MaxSizeUnits = original.Gigabytes
+	Megabytes MaxSizeUnits = original.Megabytes
+	Petabytes MaxSizeUnits = original.Petabytes
+	Terabytes MaxSizeUnits = original.Terabytes
+)
+
+type PerformanceLevelUnit = original.PerformanceLevelUnit
+
+const (
+	DTU PerformanceLevelUnit = original.DTU
+)
+
+type PrimaryAggregationType = original.PrimaryAggregationType
+
+const (
+	PrimaryAggregationTypeAverage PrimaryAggregationType = original.PrimaryAggregationTypeAverage
+	PrimaryAggregationTypeCount   PrimaryAggregationType = original.PrimaryAggregationTypeCount
+	PrimaryAggregationTypeMaximum PrimaryAggregationType = original.PrimaryAggregationTypeMaximum
+	PrimaryAggregationTypeMinimum PrimaryAggregationType = original.PrimaryAggregationTypeMinimum
+	PrimaryAggregationTypeNone    PrimaryAggregationType = original.PrimaryAggregationTypeNone
+	PrimaryAggregationTypeTotal   PrimaryAggregationType = original.PrimaryAggregationTypeTotal
+)
+
+type QueryAggregationFunction = original.QueryAggregationFunction
+
+const (
+	Avg QueryAggregationFunction = original.Avg
+	Max QueryAggregationFunction = original.Max
+	Min QueryAggregationFunction = original.Min
+	Sum QueryAggregationFunction = original.Sum
+)
+
+type QueryExecutionType = original.QueryExecutionType
+
+const (
+	Aborted   QueryExecutionType = original.Aborted
+	Any       QueryExecutionType = original.Any
+	Exception QueryExecutionType = original.Exception
+	Irregular QueryExecutionType = original.Irregular
+	Regular   QueryExecutionType = original.Regular
+)
+
+type QueryMetricUnit = original.QueryMetricUnit
+
+const (
+	KB           QueryMetricUnit = original.KB
+	Microseconds QueryMetricUnit = original.Microseconds
+	Percentage   QueryMetricUnit = original.Percentage
+)
+
+type QueryObservedMetricType = original.QueryObservedMetricType
+
+const (
+	CPU            QueryObservedMetricType = original.CPU
+	Duration       QueryObservedMetricType = original.Duration
+	ExecutionCount QueryObservedMetricType = original.ExecutionCount
+	Io             QueryObservedMetricType = original.Io
+	Logio          QueryObservedMetricType = original.Logio
 )
 
 type ReadScale = original.ReadScale
@@ -148,6 +307,13 @@ const (
 	SUSPENDED ReplicationState = original.SUSPENDED
 )
 
+type RestorePointType = original.RestorePointType
+
+const (
+	CONTINUOUS RestorePointType = original.CONTINUOUS
+	DISCRETE   RestorePointType = original.DISCRETE
+)
+
 type SampleName = original.SampleName
 
 const (
@@ -174,6 +340,28 @@ type SecurityAlertPolicyUseServerDefault = original.SecurityAlertPolicyUseServer
 const (
 	SecurityAlertPolicyUseServerDefaultDisabled SecurityAlertPolicyUseServerDefault = original.SecurityAlertPolicyUseServerDefaultDisabled
 	SecurityAlertPolicyUseServerDefaultEnabled  SecurityAlertPolicyUseServerDefault = original.SecurityAlertPolicyUseServerDefaultEnabled
+)
+
+type ServerConnectionType = original.ServerConnectionType
+
+const (
+	ServerConnectionTypeDefault  ServerConnectionType = original.ServerConnectionTypeDefault
+	ServerConnectionTypeProxy    ServerConnectionType = original.ServerConnectionTypeProxy
+	ServerConnectionTypeRedirect ServerConnectionType = original.ServerConnectionTypeRedirect
+)
+
+type ServerState = original.ServerState
+
+const (
+	ServerStateDisabled ServerState = original.ServerStateDisabled
+	ServerStateReady    ServerState = original.ServerStateReady
+)
+
+type ServerVersion = original.ServerVersion
+
+const (
+	OneTwoFullStopZero ServerVersion = original.OneTwoFullStopZero
+	TwoFullStopZero    ServerVersion = original.TwoFullStopZero
 )
 
 type ServiceObjectiveName = original.ServiceObjectiveName
@@ -267,16 +455,70 @@ const (
 	TransparentDataEncryptionStatusEnabled  TransparentDataEncryptionStatus = original.TransparentDataEncryptionStatusEnabled
 )
 
+type UnitDefinitionType = original.UnitDefinitionType
+
+const (
+	Bytes          UnitDefinitionType = original.Bytes
+	BytesPerSecond UnitDefinitionType = original.BytesPerSecond
+	Count          UnitDefinitionType = original.Count
+	CountPerSecond UnitDefinitionType = original.CountPerSecond
+	Percent        UnitDefinitionType = original.Percent
+	Seconds        UnitDefinitionType = original.Seconds
+)
+
+type UnitType = original.UnitType
+
+const (
+	UnitTypeBytes          UnitType = original.UnitTypeBytes
+	UnitTypeBytesPerSecond UnitType = original.UnitTypeBytesPerSecond
+	UnitTypeCount          UnitType = original.UnitTypeCount
+	UnitTypeCountPerSecond UnitType = original.UnitTypeCountPerSecond
+	UnitTypePercent        UnitType = original.UnitTypePercent
+	UnitTypeSeconds        UnitType = original.UnitTypeSeconds
+)
+
+type Advisor = original.Advisor
+type AdvisorListResult = original.AdvisorListResult
+type AdvisorProperties = original.AdvisorProperties
+type BackupLongTermRetentionPoliciesClient = original.BackupLongTermRetentionPoliciesClient
+type BackupLongTermRetentionPoliciesCreateOrUpdateFuture = original.BackupLongTermRetentionPoliciesCreateOrUpdateFuture
+type BackupLongTermRetentionPolicy = original.BackupLongTermRetentionPolicy
+type BackupLongTermRetentionPolicyListResult = original.BackupLongTermRetentionPolicyListResult
+type BackupLongTermRetentionPolicyProperties = original.BackupLongTermRetentionPolicyProperties
+type BackupLongTermRetentionVault = original.BackupLongTermRetentionVault
+type BackupLongTermRetentionVaultListResult = original.BackupLongTermRetentionVaultListResult
+type BackupLongTermRetentionVaultProperties = original.BackupLongTermRetentionVaultProperties
+type BackupLongTermRetentionVaultsClient = original.BackupLongTermRetentionVaultsClient
+type BackupLongTermRetentionVaultsCreateOrUpdateFuture = original.BackupLongTermRetentionVaultsCreateOrUpdateFuture
 type BaseClient = original.BaseClient
+type CapabilitiesClient = original.CapabilitiesClient
 type CheckNameAvailabilityRequest = original.CheckNameAvailabilityRequest
 type CheckNameAvailabilityResponse = original.CheckNameAvailabilityResponse
+type DataMaskingPoliciesClient = original.DataMaskingPoliciesClient
+type DataMaskingPolicy = original.DataMaskingPolicy
+type DataMaskingPolicyProperties = original.DataMaskingPolicyProperties
+type DataMaskingRule = original.DataMaskingRule
+type DataMaskingRuleListResult = original.DataMaskingRuleListResult
+type DataMaskingRuleProperties = original.DataMaskingRuleProperties
+type DataMaskingRulesClient = original.DataMaskingRulesClient
 type Database = original.Database
+type DatabaseAdvisorsClient = original.DatabaseAdvisorsClient
+type DatabaseConnectionPoliciesClient = original.DatabaseConnectionPoliciesClient
+type DatabaseConnectionPolicy = original.DatabaseConnectionPolicy
+type DatabaseConnectionPolicyProperties = original.DatabaseConnectionPolicyProperties
 type DatabaseListResult = original.DatabaseListResult
 type DatabaseProperties = original.DatabaseProperties
 type DatabaseSecurityAlertPolicy = original.DatabaseSecurityAlertPolicy
 type DatabaseSecurityAlertPolicyProperties = original.DatabaseSecurityAlertPolicyProperties
+type DatabaseTableAuditingPoliciesClient = original.DatabaseTableAuditingPoliciesClient
+type DatabaseTableAuditingPolicy = original.DatabaseTableAuditingPolicy
+type DatabaseTableAuditingPolicyListResult = original.DatabaseTableAuditingPolicyListResult
+type DatabaseTableAuditingPolicyProperties = original.DatabaseTableAuditingPolicyProperties
 type DatabaseThreatDetectionPoliciesClient = original.DatabaseThreatDetectionPoliciesClient
 type DatabaseUpdate = original.DatabaseUpdate
+type DatabaseUsage = original.DatabaseUsage
+type DatabaseUsageListResult = original.DatabaseUsageListResult
+type DatabaseUsagesClient = original.DatabaseUsagesClient
 type DatabasesClient = original.DatabasesClient
 type DatabasesCreateImportOperationFuture = original.DatabasesCreateImportOperationFuture
 type DatabasesCreateOrUpdateFuture = original.DatabasesCreateOrUpdateFuture
@@ -285,6 +527,15 @@ type DatabasesImportFuture = original.DatabasesImportFuture
 type DatabasesPauseFuture = original.DatabasesPauseFuture
 type DatabasesResumeFuture = original.DatabasesResumeFuture
 type DatabasesUpdateFuture = original.DatabasesUpdateFuture
+type DisasterRecoveryConfiguration = original.DisasterRecoveryConfiguration
+type DisasterRecoveryConfigurationListResult = original.DisasterRecoveryConfigurationListResult
+type DisasterRecoveryConfigurationProperties = original.DisasterRecoveryConfigurationProperties
+type DisasterRecoveryConfigurationsClient = original.DisasterRecoveryConfigurationsClient
+type DisasterRecoveryConfigurationsCreateOrUpdateFuture = original.DisasterRecoveryConfigurationsCreateOrUpdateFuture
+type DisasterRecoveryConfigurationsDeleteFuture = original.DisasterRecoveryConfigurationsDeleteFuture
+type DisasterRecoveryConfigurationsFailoverAllowDataLossFuture = original.DisasterRecoveryConfigurationsFailoverAllowDataLossFuture
+type DisasterRecoveryConfigurationsFailoverFuture = original.DisasterRecoveryConfigurationsFailoverFuture
+type EditionCapability = original.EditionCapability
 type ElasticPool = original.ElasticPool
 type ElasticPoolActivitiesClient = original.ElasticPoolActivitiesClient
 type ElasticPoolActivity = original.ElasticPoolActivity
@@ -294,24 +545,57 @@ type ElasticPoolDatabaseActivitiesClient = original.ElasticPoolDatabaseActivitie
 type ElasticPoolDatabaseActivity = original.ElasticPoolDatabaseActivity
 type ElasticPoolDatabaseActivityListResult = original.ElasticPoolDatabaseActivityListResult
 type ElasticPoolDatabaseActivityProperties = original.ElasticPoolDatabaseActivityProperties
+type ElasticPoolDtuCapability = original.ElasticPoolDtuCapability
+type ElasticPoolEditionCapability = original.ElasticPoolEditionCapability
 type ElasticPoolListResult = original.ElasticPoolListResult
+type ElasticPoolPerDatabaseMaxDtuCapability = original.ElasticPoolPerDatabaseMaxDtuCapability
+type ElasticPoolPerDatabaseMinDtuCapability = original.ElasticPoolPerDatabaseMinDtuCapability
 type ElasticPoolProperties = original.ElasticPoolProperties
 type ElasticPoolUpdate = original.ElasticPoolUpdate
 type ElasticPoolsClient = original.ElasticPoolsClient
 type ElasticPoolsCreateOrUpdateFuture = original.ElasticPoolsCreateOrUpdateFuture
 type ElasticPoolsUpdateFuture = original.ElasticPoolsUpdateFuture
 type ExportRequest = original.ExportRequest
+type ExtensionListResult = original.ExtensionListResult
+type ExtensionsClient = original.ExtensionsClient
 type FirewallRule = original.FirewallRule
 type FirewallRuleListResult = original.FirewallRuleListResult
 type FirewallRuleProperties = original.FirewallRuleProperties
 type FirewallRulesClient = original.FirewallRulesClient
+type GeoBackupPoliciesClient = original.GeoBackupPoliciesClient
+type GeoBackupPolicy = original.GeoBackupPolicy
+type GeoBackupPolicyListResult = original.GeoBackupPolicyListResult
+type GeoBackupPolicyProperties = original.GeoBackupPolicyProperties
 type ImportExportResponse = original.ImportExportResponse
 type ImportExportResponseProperties = original.ImportExportResponseProperties
 type ImportExtensionProperties = original.ImportExtensionProperties
 type ImportExtensionRequest = original.ImportExtensionRequest
 type ImportRequest = original.ImportRequest
+type LocationCapabilities = original.LocationCapabilities
+type MaxSizeCapability = original.MaxSizeCapability
+type Metric = original.Metric
+type MetricAvailability = original.MetricAvailability
+type MetricDefinition = original.MetricDefinition
+type MetricDefinitionListResult = original.MetricDefinitionListResult
+type MetricListResult = original.MetricListResult
+type MetricName = original.MetricName
+type MetricValue = original.MetricValue
+type Operation = original.Operation
+type OperationDisplay = original.OperationDisplay
 type OperationImpact = original.OperationImpact
+type OperationListResult = original.OperationListResult
+type OperationsClient = original.OperationsClient
+type PerformanceLevel = original.PerformanceLevel
 type ProxyResource = original.ProxyResource
+type QueriesClient = original.QueriesClient
+type QueryInterval = original.QueryInterval
+type QueryMetric = original.QueryMetric
+type QueryStatistic = original.QueryStatistic
+type QueryStatisticListResult = original.QueryStatisticListResult
+type QueryStatisticsClient = original.QueryStatisticsClient
+type QueryText = original.QueryText
+type QueryTextListResult = original.QueryTextListResult
+type QueryTextsClient = original.QueryTextsClient
 type RecommendedElasticPool = original.RecommendedElasticPool
 type RecommendedElasticPoolListMetricsResult = original.RecommendedElasticPoolListMetricsResult
 type RecommendedElasticPoolListResult = original.RecommendedElasticPoolListResult
@@ -320,6 +604,10 @@ type RecommendedElasticPoolProperties = original.RecommendedElasticPoolPropertie
 type RecommendedElasticPoolsClient = original.RecommendedElasticPoolsClient
 type RecommendedIndex = original.RecommendedIndex
 type RecommendedIndexProperties = original.RecommendedIndexProperties
+type RecoverableDatabase = original.RecoverableDatabase
+type RecoverableDatabaseListResult = original.RecoverableDatabaseListResult
+type RecoverableDatabaseProperties = original.RecoverableDatabaseProperties
+type RecoverableDatabasesClient = original.RecoverableDatabasesClient
 type ReplicationLink = original.ReplicationLink
 type ReplicationLinkListResult = original.ReplicationLinkListResult
 type ReplicationLinkProperties = original.ReplicationLinkProperties
@@ -327,23 +615,116 @@ type ReplicationLinksClient = original.ReplicationLinksClient
 type ReplicationLinksFailoverAllowDataLossFuture = original.ReplicationLinksFailoverAllowDataLossFuture
 type ReplicationLinksFailoverFuture = original.ReplicationLinksFailoverFuture
 type Resource = original.Resource
+type RestorableDroppedDatabase = original.RestorableDroppedDatabase
+type RestorableDroppedDatabaseListResult = original.RestorableDroppedDatabaseListResult
+type RestorableDroppedDatabaseProperties = original.RestorableDroppedDatabaseProperties
+type RestorableDroppedDatabasesClient = original.RestorableDroppedDatabasesClient
+type RestorePoint = original.RestorePoint
+type RestorePointListResult = original.RestorePointListResult
+type RestorePointProperties = original.RestorePointProperties
+type RestorePointsClient = original.RestorePointsClient
+type Server = original.Server
+type ServerAdministratorListResult = original.ServerAdministratorListResult
+type ServerAdministratorProperties = original.ServerAdministratorProperties
+type ServerAdvisorsClient = original.ServerAdvisorsClient
+type ServerAzureADAdministrator = original.ServerAzureADAdministrator
+type ServerAzureADAdministratorsClient = original.ServerAzureADAdministratorsClient
+type ServerAzureADAdministratorsCreateOrUpdateFuture = original.ServerAzureADAdministratorsCreateOrUpdateFuture
+type ServerAzureADAdministratorsDeleteFuture = original.ServerAzureADAdministratorsDeleteFuture
+type ServerCommunicationLink = original.ServerCommunicationLink
+type ServerCommunicationLinkListResult = original.ServerCommunicationLinkListResult
+type ServerCommunicationLinkProperties = original.ServerCommunicationLinkProperties
+type ServerCommunicationLinksClient = original.ServerCommunicationLinksClient
+type ServerCommunicationLinksCreateOrUpdateFuture = original.ServerCommunicationLinksCreateOrUpdateFuture
+type ServerConnectionPoliciesClient = original.ServerConnectionPoliciesClient
+type ServerConnectionPolicy = original.ServerConnectionPolicy
+type ServerConnectionPolicyProperties = original.ServerConnectionPolicyProperties
+type ServerListResult = original.ServerListResult
+type ServerProperties = original.ServerProperties
+type ServerTableAuditingPoliciesClient = original.ServerTableAuditingPoliciesClient
+type ServerTableAuditingPolicy = original.ServerTableAuditingPolicy
+type ServerTableAuditingPolicyListResult = original.ServerTableAuditingPolicyListResult
+type ServerTableAuditingPolicyProperties = original.ServerTableAuditingPolicyProperties
+type ServerUpdate = original.ServerUpdate
+type ServerUsage = original.ServerUsage
+type ServerUsageListResult = original.ServerUsageListResult
+type ServerUsagesClient = original.ServerUsagesClient
+type ServerVersionCapability = original.ServerVersionCapability
 type ServersClient = original.ServersClient
+type ServiceObjective = original.ServiceObjective
+type ServiceObjectiveCapability = original.ServiceObjectiveCapability
+type ServiceObjectiveListResult = original.ServiceObjectiveListResult
+type ServiceObjectiveProperties = original.ServiceObjectiveProperties
+type ServiceObjectivesClient = original.ServiceObjectivesClient
 type ServiceTierAdvisor = original.ServiceTierAdvisor
 type ServiceTierAdvisorListResult = original.ServiceTierAdvisorListResult
 type ServiceTierAdvisorProperties = original.ServiceTierAdvisorProperties
 type ServiceTierAdvisorsClient = original.ServiceTierAdvisorsClient
 type SloUsageMetric = original.SloUsageMetric
+type TableAuditingPolicyProperties = original.TableAuditingPolicyProperties
+type TopQueries = original.TopQueries
+type TopQueriesListResult = original.TopQueriesListResult
 type TrackedResource = original.TrackedResource
 type TransparentDataEncryption = original.TransparentDataEncryption
 type TransparentDataEncryptionActivitiesClient = original.TransparentDataEncryptionActivitiesClient
 type TransparentDataEncryptionActivity = original.TransparentDataEncryptionActivity
 type TransparentDataEncryptionActivityListResult = original.TransparentDataEncryptionActivityListResult
 type TransparentDataEncryptionActivityProperties = original.TransparentDataEncryptionActivityProperties
+type TransparentDataEncryptionConfigurationsClient = original.TransparentDataEncryptionConfigurationsClient
+type TransparentDataEncryptionListResult = original.TransparentDataEncryptionListResult
 type TransparentDataEncryptionProperties = original.TransparentDataEncryptionProperties
 type TransparentDataEncryptionsClient = original.TransparentDataEncryptionsClient
 
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
+}
+func NewBackupLongTermRetentionPoliciesClient(subscriptionID string) BackupLongTermRetentionPoliciesClient {
+	return original.NewBackupLongTermRetentionPoliciesClient(subscriptionID)
+}
+func NewBackupLongTermRetentionPoliciesClientWithBaseURI(baseURI string, subscriptionID string) BackupLongTermRetentionPoliciesClient {
+	return original.NewBackupLongTermRetentionPoliciesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewBackupLongTermRetentionVaultsClient(subscriptionID string) BackupLongTermRetentionVaultsClient {
+	return original.NewBackupLongTermRetentionVaultsClient(subscriptionID)
+}
+func NewBackupLongTermRetentionVaultsClientWithBaseURI(baseURI string, subscriptionID string) BackupLongTermRetentionVaultsClient {
+	return original.NewBackupLongTermRetentionVaultsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewCapabilitiesClient(subscriptionID string) CapabilitiesClient {
+	return original.NewCapabilitiesClient(subscriptionID)
+}
+func NewCapabilitiesClientWithBaseURI(baseURI string, subscriptionID string) CapabilitiesClient {
+	return original.NewCapabilitiesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDataMaskingPoliciesClient(subscriptionID string) DataMaskingPoliciesClient {
+	return original.NewDataMaskingPoliciesClient(subscriptionID)
+}
+func NewDataMaskingPoliciesClientWithBaseURI(baseURI string, subscriptionID string) DataMaskingPoliciesClient {
+	return original.NewDataMaskingPoliciesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDataMaskingRulesClient(subscriptionID string) DataMaskingRulesClient {
+	return original.NewDataMaskingRulesClient(subscriptionID)
+}
+func NewDataMaskingRulesClientWithBaseURI(baseURI string, subscriptionID string) DataMaskingRulesClient {
+	return original.NewDataMaskingRulesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDatabaseAdvisorsClient(subscriptionID string) DatabaseAdvisorsClient {
+	return original.NewDatabaseAdvisorsClient(subscriptionID)
+}
+func NewDatabaseAdvisorsClientWithBaseURI(baseURI string, subscriptionID string) DatabaseAdvisorsClient {
+	return original.NewDatabaseAdvisorsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDatabaseConnectionPoliciesClient(subscriptionID string) DatabaseConnectionPoliciesClient {
+	return original.NewDatabaseConnectionPoliciesClient(subscriptionID)
+}
+func NewDatabaseConnectionPoliciesClientWithBaseURI(baseURI string, subscriptionID string) DatabaseConnectionPoliciesClient {
+	return original.NewDatabaseConnectionPoliciesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDatabaseTableAuditingPoliciesClient(subscriptionID string) DatabaseTableAuditingPoliciesClient {
+	return original.NewDatabaseTableAuditingPoliciesClient(subscriptionID)
+}
+func NewDatabaseTableAuditingPoliciesClientWithBaseURI(baseURI string, subscriptionID string) DatabaseTableAuditingPoliciesClient {
+	return original.NewDatabaseTableAuditingPoliciesClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewDatabaseThreatDetectionPoliciesClient(subscriptionID string) DatabaseThreatDetectionPoliciesClient {
 	return original.NewDatabaseThreatDetectionPoliciesClient(subscriptionID)
@@ -351,11 +732,23 @@ func NewDatabaseThreatDetectionPoliciesClient(subscriptionID string) DatabaseThr
 func NewDatabaseThreatDetectionPoliciesClientWithBaseURI(baseURI string, subscriptionID string) DatabaseThreatDetectionPoliciesClient {
 	return original.NewDatabaseThreatDetectionPoliciesClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewDatabaseUsagesClient(subscriptionID string) DatabaseUsagesClient {
+	return original.NewDatabaseUsagesClient(subscriptionID)
+}
+func NewDatabaseUsagesClientWithBaseURI(baseURI string, subscriptionID string) DatabaseUsagesClient {
+	return original.NewDatabaseUsagesClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewDatabasesClient(subscriptionID string) DatabasesClient {
 	return original.NewDatabasesClient(subscriptionID)
 }
 func NewDatabasesClientWithBaseURI(baseURI string, subscriptionID string) DatabasesClient {
 	return original.NewDatabasesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDisasterRecoveryConfigurationsClient(subscriptionID string) DisasterRecoveryConfigurationsClient {
+	return original.NewDisasterRecoveryConfigurationsClient(subscriptionID)
+}
+func NewDisasterRecoveryConfigurationsClientWithBaseURI(baseURI string, subscriptionID string) DisasterRecoveryConfigurationsClient {
+	return original.NewDisasterRecoveryConfigurationsClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewElasticPoolActivitiesClient(subscriptionID string) ElasticPoolActivitiesClient {
 	return original.NewElasticPoolActivitiesClient(subscriptionID)
@@ -375,11 +768,47 @@ func NewElasticPoolsClient(subscriptionID string) ElasticPoolsClient {
 func NewElasticPoolsClientWithBaseURI(baseURI string, subscriptionID string) ElasticPoolsClient {
 	return original.NewElasticPoolsClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewExtensionsClient(subscriptionID string) ExtensionsClient {
+	return original.NewExtensionsClient(subscriptionID)
+}
+func NewExtensionsClientWithBaseURI(baseURI string, subscriptionID string) ExtensionsClient {
+	return original.NewExtensionsClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewFirewallRulesClient(subscriptionID string) FirewallRulesClient {
 	return original.NewFirewallRulesClient(subscriptionID)
 }
 func NewFirewallRulesClientWithBaseURI(baseURI string, subscriptionID string) FirewallRulesClient {
 	return original.NewFirewallRulesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewGeoBackupPoliciesClient(subscriptionID string) GeoBackupPoliciesClient {
+	return original.NewGeoBackupPoliciesClient(subscriptionID)
+}
+func NewGeoBackupPoliciesClientWithBaseURI(baseURI string, subscriptionID string) GeoBackupPoliciesClient {
+	return original.NewGeoBackupPoliciesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewOperationsClient(subscriptionID string) OperationsClient {
+	return original.NewOperationsClient(subscriptionID)
+}
+func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
+	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewQueriesClient(subscriptionID string) QueriesClient {
+	return original.NewQueriesClient(subscriptionID)
+}
+func NewQueriesClientWithBaseURI(baseURI string, subscriptionID string) QueriesClient {
+	return original.NewQueriesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewQueryStatisticsClient(subscriptionID string) QueryStatisticsClient {
+	return original.NewQueryStatisticsClient(subscriptionID)
+}
+func NewQueryStatisticsClientWithBaseURI(baseURI string, subscriptionID string) QueryStatisticsClient {
+	return original.NewQueryStatisticsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewQueryTextsClient(subscriptionID string) QueryTextsClient {
+	return original.NewQueryTextsClient(subscriptionID)
+}
+func NewQueryTextsClientWithBaseURI(baseURI string, subscriptionID string) QueryTextsClient {
+	return original.NewQueryTextsClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewRecommendedElasticPoolsClient(subscriptionID string) RecommendedElasticPoolsClient {
 	return original.NewRecommendedElasticPoolsClient(subscriptionID)
@@ -387,17 +816,77 @@ func NewRecommendedElasticPoolsClient(subscriptionID string) RecommendedElasticP
 func NewRecommendedElasticPoolsClientWithBaseURI(baseURI string, subscriptionID string) RecommendedElasticPoolsClient {
 	return original.NewRecommendedElasticPoolsClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewRecoverableDatabasesClient(subscriptionID string) RecoverableDatabasesClient {
+	return original.NewRecoverableDatabasesClient(subscriptionID)
+}
+func NewRecoverableDatabasesClientWithBaseURI(baseURI string, subscriptionID string) RecoverableDatabasesClient {
+	return original.NewRecoverableDatabasesClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewReplicationLinksClient(subscriptionID string) ReplicationLinksClient {
 	return original.NewReplicationLinksClient(subscriptionID)
 }
 func NewReplicationLinksClientWithBaseURI(baseURI string, subscriptionID string) ReplicationLinksClient {
 	return original.NewReplicationLinksClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewRestorableDroppedDatabasesClient(subscriptionID string) RestorableDroppedDatabasesClient {
+	return original.NewRestorableDroppedDatabasesClient(subscriptionID)
+}
+func NewRestorableDroppedDatabasesClientWithBaseURI(baseURI string, subscriptionID string) RestorableDroppedDatabasesClient {
+	return original.NewRestorableDroppedDatabasesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewRestorePointsClient(subscriptionID string) RestorePointsClient {
+	return original.NewRestorePointsClient(subscriptionID)
+}
+func NewRestorePointsClientWithBaseURI(baseURI string, subscriptionID string) RestorePointsClient {
+	return original.NewRestorePointsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServerAdvisorsClient(subscriptionID string) ServerAdvisorsClient {
+	return original.NewServerAdvisorsClient(subscriptionID)
+}
+func NewServerAdvisorsClientWithBaseURI(baseURI string, subscriptionID string) ServerAdvisorsClient {
+	return original.NewServerAdvisorsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServerAzureADAdministratorsClient(subscriptionID string) ServerAzureADAdministratorsClient {
+	return original.NewServerAzureADAdministratorsClient(subscriptionID)
+}
+func NewServerAzureADAdministratorsClientWithBaseURI(baseURI string, subscriptionID string) ServerAzureADAdministratorsClient {
+	return original.NewServerAzureADAdministratorsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServerCommunicationLinksClient(subscriptionID string) ServerCommunicationLinksClient {
+	return original.NewServerCommunicationLinksClient(subscriptionID)
+}
+func NewServerCommunicationLinksClientWithBaseURI(baseURI string, subscriptionID string) ServerCommunicationLinksClient {
+	return original.NewServerCommunicationLinksClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServerConnectionPoliciesClient(subscriptionID string) ServerConnectionPoliciesClient {
+	return original.NewServerConnectionPoliciesClient(subscriptionID)
+}
+func NewServerConnectionPoliciesClientWithBaseURI(baseURI string, subscriptionID string) ServerConnectionPoliciesClient {
+	return original.NewServerConnectionPoliciesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServerTableAuditingPoliciesClient(subscriptionID string) ServerTableAuditingPoliciesClient {
+	return original.NewServerTableAuditingPoliciesClient(subscriptionID)
+}
+func NewServerTableAuditingPoliciesClientWithBaseURI(baseURI string, subscriptionID string) ServerTableAuditingPoliciesClient {
+	return original.NewServerTableAuditingPoliciesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServerUsagesClient(subscriptionID string) ServerUsagesClient {
+	return original.NewServerUsagesClient(subscriptionID)
+}
+func NewServerUsagesClientWithBaseURI(baseURI string, subscriptionID string) ServerUsagesClient {
+	return original.NewServerUsagesClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewServersClient(subscriptionID string) ServersClient {
 	return original.NewServersClient(subscriptionID)
 }
 func NewServersClientWithBaseURI(baseURI string, subscriptionID string) ServersClient {
 	return original.NewServersClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServiceObjectivesClient(subscriptionID string) ServiceObjectivesClient {
+	return original.NewServiceObjectivesClient(subscriptionID)
+}
+func NewServiceObjectivesClientWithBaseURI(baseURI string, subscriptionID string) ServiceObjectivesClient {
+	return original.NewServiceObjectivesClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewServiceTierAdvisorsClient(subscriptionID string) ServiceTierAdvisorsClient {
 	return original.NewServiceTierAdvisorsClient(subscriptionID)
@@ -411,6 +900,12 @@ func NewTransparentDataEncryptionActivitiesClient(subscriptionID string) Transpa
 func NewTransparentDataEncryptionActivitiesClientWithBaseURI(baseURI string, subscriptionID string) TransparentDataEncryptionActivitiesClient {
 	return original.NewTransparentDataEncryptionActivitiesClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewTransparentDataEncryptionConfigurationsClient(subscriptionID string) TransparentDataEncryptionConfigurationsClient {
+	return original.NewTransparentDataEncryptionConfigurationsClient(subscriptionID)
+}
+func NewTransparentDataEncryptionConfigurationsClientWithBaseURI(baseURI string, subscriptionID string) TransparentDataEncryptionConfigurationsClient {
+	return original.NewTransparentDataEncryptionConfigurationsClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewTransparentDataEncryptionsClient(subscriptionID string) TransparentDataEncryptionsClient {
 	return original.NewTransparentDataEncryptionsClient(subscriptionID)
 }
@@ -420,8 +915,20 @@ func NewTransparentDataEncryptionsClientWithBaseURI(baseURI string, subscription
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
+func PossibleAdvisorStatusValues() []AdvisorStatus {
+	return original.PossibleAdvisorStatusValues()
+}
 func PossibleAuthenticationTypeValues() []AuthenticationType {
 	return original.PossibleAuthenticationTypeValues()
+}
+func PossibleAutoExecuteStatusValues() []AutoExecuteStatus {
+	return original.PossibleAutoExecuteStatusValues()
+}
+func PossibleBackupLongTermRetentionPolicyStateValues() []BackupLongTermRetentionPolicyState {
+	return original.PossibleBackupLongTermRetentionPolicyStateValues()
+}
+func PossibleCapabilityStatusValues() []CapabilityStatus {
+	return original.PossibleCapabilityStatusValues()
 }
 func PossibleCheckNameAvailabilityReasonValues() []CheckNameAvailabilityReason {
 	return original.PossibleCheckNameAvailabilityReasonValues()
@@ -429,14 +936,59 @@ func PossibleCheckNameAvailabilityReasonValues() []CheckNameAvailabilityReason {
 func PossibleCreateModeValues() []CreateMode {
 	return original.PossibleCreateModeValues()
 }
+func PossibleDataMaskingFunctionValues() []DataMaskingFunction {
+	return original.PossibleDataMaskingFunctionValues()
+}
+func PossibleDataMaskingRuleStateValues() []DataMaskingRuleState {
+	return original.PossibleDataMaskingRuleStateValues()
+}
+func PossibleDataMaskingStateValues() []DataMaskingState {
+	return original.PossibleDataMaskingStateValues()
+}
 func PossibleDatabaseEditionValues() []DatabaseEdition {
 	return original.PossibleDatabaseEditionValues()
+}
+func PossibleDisasterRecoveryConfigurationAutoFailoverValues() []DisasterRecoveryConfigurationAutoFailover {
+	return original.PossibleDisasterRecoveryConfigurationAutoFailoverValues()
+}
+func PossibleDisasterRecoveryConfigurationFailoverPolicyValues() []DisasterRecoveryConfigurationFailoverPolicy {
+	return original.PossibleDisasterRecoveryConfigurationFailoverPolicyValues()
+}
+func PossibleDisasterRecoveryConfigurationRoleValues() []DisasterRecoveryConfigurationRole {
+	return original.PossibleDisasterRecoveryConfigurationRoleValues()
+}
+func PossibleDisasterRecoveryConfigurationStatusValues() []DisasterRecoveryConfigurationStatus {
+	return original.PossibleDisasterRecoveryConfigurationStatusValues()
 }
 func PossibleElasticPoolEditionValues() []ElasticPoolEdition {
 	return original.PossibleElasticPoolEditionValues()
 }
 func PossibleElasticPoolStateValues() []ElasticPoolState {
 	return original.PossibleElasticPoolStateValues()
+}
+func PossibleGeoBackupPolicyStateValues() []GeoBackupPolicyState {
+	return original.PossibleGeoBackupPolicyStateValues()
+}
+func PossibleMaxSizeUnitsValues() []MaxSizeUnits {
+	return original.PossibleMaxSizeUnitsValues()
+}
+func PossiblePerformanceLevelUnitValues() []PerformanceLevelUnit {
+	return original.PossiblePerformanceLevelUnitValues()
+}
+func PossiblePrimaryAggregationTypeValues() []PrimaryAggregationType {
+	return original.PossiblePrimaryAggregationTypeValues()
+}
+func PossibleQueryAggregationFunctionValues() []QueryAggregationFunction {
+	return original.PossibleQueryAggregationFunctionValues()
+}
+func PossibleQueryExecutionTypeValues() []QueryExecutionType {
+	return original.PossibleQueryExecutionTypeValues()
+}
+func PossibleQueryMetricUnitValues() []QueryMetricUnit {
+	return original.PossibleQueryMetricUnitValues()
+}
+func PossibleQueryObservedMetricTypeValues() []QueryObservedMetricType {
+	return original.PossibleQueryObservedMetricTypeValues()
 }
 func PossibleReadScaleValues() []ReadScale {
 	return original.PossibleReadScaleValues()
@@ -456,6 +1008,9 @@ func PossibleReplicationRoleValues() []ReplicationRole {
 func PossibleReplicationStateValues() []ReplicationState {
 	return original.PossibleReplicationStateValues()
 }
+func PossibleRestorePointTypeValues() []RestorePointType {
+	return original.PossibleRestorePointTypeValues()
+}
 func PossibleSampleNameValues() []SampleName {
 	return original.PossibleSampleNameValues()
 }
@@ -468,6 +1023,15 @@ func PossibleSecurityAlertPolicyStateValues() []SecurityAlertPolicyState {
 func PossibleSecurityAlertPolicyUseServerDefaultValues() []SecurityAlertPolicyUseServerDefault {
 	return original.PossibleSecurityAlertPolicyUseServerDefaultValues()
 }
+func PossibleServerConnectionTypeValues() []ServerConnectionType {
+	return original.PossibleServerConnectionTypeValues()
+}
+func PossibleServerStateValues() []ServerState {
+	return original.PossibleServerStateValues()
+}
+func PossibleServerVersionValues() []ServerVersion {
+	return original.PossibleServerVersionValues()
+}
 func PossibleServiceObjectiveNameValues() []ServiceObjectiveName {
 	return original.PossibleServiceObjectiveNameValues()
 }
@@ -479,6 +1043,12 @@ func PossibleTransparentDataEncryptionActivityStatusValues() []TransparentDataEn
 }
 func PossibleTransparentDataEncryptionStatusValues() []TransparentDataEncryptionStatus {
 	return original.PossibleTransparentDataEncryptionStatusValues()
+}
+func PossibleUnitDefinitionTypeValues() []UnitDefinitionType {
+	return original.PossibleUnitDefinitionTypeValues()
+}
+func PossibleUnitTypeValues() []UnitType {
+	return original.PossibleUnitTypeValues()
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/latest"

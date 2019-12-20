@@ -286,7 +286,7 @@ func TestWrap(t *testing.T) {
 					err = lReg.Register(tr.collector)
 				}
 				if tr.registrationFails && err == nil {
-					t.Fatalf("registration with wrapping registry unexpectedly succeded for collector #%d", i)
+					t.Fatalf("registration with wrapping registry unexpectedly succeeded for collector #%d", i)
 				}
 				if !tr.registrationFails && err != nil {
 					t.Fatalf("registration with wrapping registry failed for collector #%d: %s", i, err)
@@ -295,7 +295,7 @@ func TestWrap(t *testing.T) {
 			wantMF := toMetricFamilies(s.output...)
 			gotMF, err := reg.Gather()
 			if s.gatherFails && err == nil {
-				t.Fatal("gathering unexpectedly succeded")
+				t.Fatal("gathering unexpectedly succeeded")
 			}
 			if !s.gatherFails && err != nil {
 				t.Fatal("gathering failed:", err)

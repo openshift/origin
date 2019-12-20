@@ -321,3 +321,81 @@ func (client ManagedInstanceEncryptionProtectorsClient) ListByInstanceComplete(c
 	result.page, err = client.ListByInstance(ctx, resourceGroupName, managedInstanceName)
 	return
 }
+
+// Revalidate revalidates an existing encryption protector.
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the resource. You can obtain this value
+// from the Azure Resource Manager API or the portal.
+// managedInstanceName - the name of the managed instance.
+func (client ManagedInstanceEncryptionProtectorsClient) Revalidate(ctx context.Context, resourceGroupName string, managedInstanceName string) (result ManagedInstanceEncryptionProtectorsRevalidateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ManagedInstanceEncryptionProtectorsClient.Revalidate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	req, err := client.RevalidatePreparer(ctx, resourceGroupName, managedInstanceName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ManagedInstanceEncryptionProtectorsClient", "Revalidate", nil, "Failure preparing request")
+		return
+	}
+
+	result, err = client.RevalidateSender(req)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ManagedInstanceEncryptionProtectorsClient", "Revalidate", result.Response(), "Failure sending request")
+		return
+	}
+
+	return
+}
+
+// RevalidatePreparer prepares the Revalidate request.
+func (client ManagedInstanceEncryptionProtectorsClient) RevalidatePreparer(ctx context.Context, resourceGroupName string, managedInstanceName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"encryptionProtectorName": autorest.Encode("path", "current"),
+		"managedInstanceName":     autorest.Encode("path", managedInstanceName),
+		"resourceGroupName":       autorest.Encode("path", resourceGroupName),
+		"subscriptionId":          autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2017-10-01-preview"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/managedInstances/{managedInstanceName}/encryptionProtector/{encryptionProtectorName}/revalidate", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// RevalidateSender sends the Revalidate request. The method will close the
+// http.Response Body if it receives an error.
+func (client ManagedInstanceEncryptionProtectorsClient) RevalidateSender(req *http.Request) (future ManagedInstanceEncryptionProtectorsRevalidateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req, sd...)
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
+	return
+}
+
+// RevalidateResponder handles the response to the Revalidate request. The method always
+// closes the http.Response Body.
+func (client ManagedInstanceEncryptionProtectorsClient) RevalidateResponder(resp *http.Response) (result autorest.Response, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
+		autorest.ByClosing())
+	result.Response = resp
+	return
+}

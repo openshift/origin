@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
@@ -38,6 +39,90 @@ func NewClient() Client {
 // NewClientWithBaseURI creates an instance of the Client client.
 func NewClientWithBaseURI(baseURI string) Client {
 	return Client{NewWithBaseURI(baseURI)}
+}
+
+// AvailableScopes get Available Scopes for `Reservation`.
+// Parameters:
+// reservationOrderID - order Id of the reservation
+// reservationID - id of the Reservation Item
+func (client Client) AvailableScopes(ctx context.Context, reservationOrderID string, reservationID string, body []string) (result ReservationAvailableScopesFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.AvailableScopes")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: body,
+			Constraints: []validation.Constraint{{Target: "body", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("reservations.Client", "AvailableScopes", err.Error())
+	}
+
+	req, err := client.AvailableScopesPreparer(ctx, reservationOrderID, reservationID, body)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "reservations.Client", "AvailableScopes", nil, "Failure preparing request")
+		return
+	}
+
+	result, err = client.AvailableScopesSender(req)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "reservations.Client", "AvailableScopes", result.Response(), "Failure sending request")
+		return
+	}
+
+	return
+}
+
+// AvailableScopesPreparer prepares the AvailableScopes request.
+func (client Client) AvailableScopesPreparer(ctx context.Context, reservationOrderID string, reservationID string, body []string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"reservationId":      autorest.Encode("path", reservationID),
+		"reservationOrderId": autorest.Encode("path", reservationOrderID),
+	}
+
+	const APIVersion = "2019-04-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsContentType("application/json; charset=utf-8"),
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/providers/Microsoft.Capacity/reservationOrders/{reservationOrderId}/reservations/{reservationId}/availableScopes", pathParameters),
+		autorest.WithJSON(body),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// AvailableScopesSender sends the AvailableScopes request. The method will close the
+// http.Response Body if it receives an error.
+func (client Client) AvailableScopesSender(req *http.Request) (future ReservationAvailableScopesFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req, sd...)
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
+	return
+}
+
+// AvailableScopesResponder handles the response to the AvailableScopes request. The method always
+// closes the http.Response Body.
+func (client Client) AvailableScopesResponder(resp *http.Response) (result Properties, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
 }
 
 // Get get specific `Reservation` details.

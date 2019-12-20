@@ -29,19 +29,6 @@ const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
-type ApplicationHTTPSEndpointAccessMode = original.ApplicationHTTPSEndpointAccessMode
-
-const (
-	WebPage ApplicationHTTPSEndpointAccessMode = original.WebPage
-)
-
-type ApplicationType = original.ApplicationType
-
-const (
-	CustomApplication ApplicationType = original.CustomApplication
-	RServer           ApplicationType = original.RServer
-)
-
 type AsyncOperationState = original.AsyncOperationState
 
 const (
@@ -310,12 +297,6 @@ func NewScriptExecutionHistoryClientWithBaseURI(baseURI string, subscriptionID s
 }
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)
-}
-func PossibleApplicationHTTPSEndpointAccessModeValues() []ApplicationHTTPSEndpointAccessMode {
-	return original.PossibleApplicationHTTPSEndpointAccessModeValues()
-}
-func PossibleApplicationTypeValues() []ApplicationType {
-	return original.PossibleApplicationTypeValues()
 }
 func PossibleAsyncOperationStateValues() []AsyncOperationState {
 	return original.PossibleAsyncOperationStateValues()

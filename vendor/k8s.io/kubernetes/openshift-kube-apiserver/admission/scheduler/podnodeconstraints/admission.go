@@ -112,11 +112,11 @@ func (o *podNodeConstraints) Validate(ctx context.Context, attr admission.Attrib
 		return nil
 	}
 
-	return o.validatePodSpec(attr, attr.GetObject().(*coreapi.Pod).Spec)
+	return o.validatePodSpec(ctx, attr, attr.GetObject().(*coreapi.Pod).Spec)
 }
 
 // validate PodSpec if NodeName or NodeSelector are specified
-func (o *podNodeConstraints) validatePodSpec(attr admission.Attributes, ps coreapi.PodSpec) error {
+func (o *podNodeConstraints) validatePodSpec(ctx context.Context, attr admission.Attributes, ps coreapi.PodSpec) error {
 	// a node creating a mirror pod that targets itself is allowed
 	// see the NodeRestriction plugin for further details
 	if o.isNodeSelfTargetWithMirrorPod(attr, ps.NodeName) {
@@ -132,7 +132,7 @@ func (o *podNodeConstraints) validatePodSpec(attr admission.Attributes, ps corea
 	}
 	// nodeName constraint
 	if len(ps.NodeName) > 0 || len(matchingLabels) > 0 {
-		allow, err := o.checkPodsBindAccess(attr)
+		allow, err := o.checkPodsBindAccess(ctx, attr)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func (o *podNodeConstraints) ValidateInitialization() error {
 }
 
 // build LocalSubjectAccessReview struct to validate role via checkAccess
-func (o *podNodeConstraints) checkPodsBindAccess(attr admission.Attributes) (bool, error) {
+func (o *podNodeConstraints) checkPodsBindAccess(ctx context.Context, attr admission.Attributes) (bool, error) {
 	authzAttr := authorizer.AttributesRecord{
 		User:            attr.GetUserInfo(),
 		Verb:            "create",
@@ -178,7 +178,7 @@ func (o *podNodeConstraints) checkPodsBindAccess(attr admission.Attributes) (boo
 	if attr.GetResource().GroupResource() == coreapi.Resource("pods") {
 		authzAttr.Name = attr.GetName()
 	}
-	authorized, _, err := o.authorizer.Authorize(authzAttr)
+	authorized, _, err := o.authorizer.Authorize(ctx, authzAttr)
 	return authorized == authorizer.DecisionAllow, err
 }
 

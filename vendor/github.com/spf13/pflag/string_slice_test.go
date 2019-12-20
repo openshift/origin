@@ -251,3 +251,26 @@ func TestSSWithSquareBrackets(t *testing.T) {
 		}
 	}
 }
+
+func TestSSAsSliceValue(t *testing.T) {
+	var ss []string
+	f := setUpSSFlagSet(&ss)
+
+	in := []string{"one", "two"}
+	argfmt := "--ss=%s"
+	arg1 := fmt.Sprintf(argfmt, in[0])
+	arg2 := fmt.Sprintf(argfmt, in[1])
+	err := f.Parse([]string{arg1, arg2})
+	if err != nil {
+		t.Fatal("expected no error; got", err)
+	}
+
+	f.VisitAll(func(f *Flag) {
+		if val, ok := f.Value.(SliceValue); ok {
+			_ = val.Replace([]string{"three"})
+		}
+	})
+	if len(ss) != 1 || ss[0] != "three" {
+		t.Fatalf("Expected ss to be overwritten with 'three', but got: %s", ss)
+	}
+}

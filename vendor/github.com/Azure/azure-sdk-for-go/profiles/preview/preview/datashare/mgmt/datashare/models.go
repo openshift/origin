@@ -47,6 +47,10 @@ const (
 	Blob               DataSetType = original.Blob
 	BlobFolder         DataSetType = original.BlobFolder
 	Container          DataSetType = original.Container
+	KustoCluster       DataSetType = original.KustoCluster
+	KustoDatabase      DataSetType = original.KustoDatabase
+	SQLDBTable         DataSetType = original.SQLDBTable
+	SQLDWTable         DataSetType = original.SQLDWTable
 )
 
 type InvitationStatus = original.InvitationStatus
@@ -70,6 +74,10 @@ const (
 	KindBlobFolder         Kind = original.KindBlobFolder
 	KindContainer          Kind = original.KindContainer
 	KindDataSet            Kind = original.KindDataSet
+	KindKustoCluster       Kind = original.KindKustoCluster
+	KindKustoDatabase      Kind = original.KindKustoDatabase
+	KindSQLDBTable         Kind = original.KindSQLDBTable
+	KindSQLDWTable         Kind = original.KindSQLDWTable
 )
 
 type KindBasicDataSetMapping = original.KindBasicDataSetMapping
@@ -82,6 +90,10 @@ const (
 	KindBasicDataSetMappingKindBlobFolder         KindBasicDataSetMapping = original.KindBasicDataSetMappingKindBlobFolder
 	KindBasicDataSetMappingKindContainer          KindBasicDataSetMapping = original.KindBasicDataSetMappingKindContainer
 	KindBasicDataSetMappingKindDataSetMapping     KindBasicDataSetMapping = original.KindBasicDataSetMappingKindDataSetMapping
+	KindBasicDataSetMappingKindKustoCluster       KindBasicDataSetMapping = original.KindBasicDataSetMappingKindKustoCluster
+	KindBasicDataSetMappingKindKustoDatabase      KindBasicDataSetMapping = original.KindBasicDataSetMappingKindKustoDatabase
+	KindBasicDataSetMappingKindSQLDBTable         KindBasicDataSetMapping = original.KindBasicDataSetMappingKindSQLDBTable
+	KindBasicDataSetMappingKindSQLDWTable         KindBasicDataSetMapping = original.KindBasicDataSetMappingKindSQLDWTable
 )
 
 type KindBasicSourceShareSynchronizationSetting = original.KindBasicSourceShareSynchronizationSetting
@@ -105,6 +117,13 @@ const (
 	KindBasicTriggerKindTrigger       KindBasicTrigger = original.KindBasicTriggerKindTrigger
 )
 
+type OutputType = original.OutputType
+
+const (
+	Csv     OutputType = original.Csv
+	Parquet OutputType = original.Parquet
+)
+
 type ProvisioningState = original.ProvisioningState
 
 const (
@@ -126,6 +145,7 @@ type ShareKind = original.ShareKind
 
 const (
 	CopyBased ShareKind = original.CopyBased
+	InPlace   ShareKind = original.InPlace
 )
 
 type ShareSubscriptionStatus = original.ShareSubscriptionStatus
@@ -236,6 +256,7 @@ type DataSetMappingModel = original.DataSetMappingModel
 type DataSetMappingsClient = original.DataSetMappingsClient
 type DataSetModel = original.DataSetModel
 type DataSetsClient = original.DataSetsClient
+type DataSetsDeleteFuture = original.DataSetsDeleteFuture
 type DefaultDto = original.DefaultDto
 type DimensionProperties = original.DimensionProperties
 type Error = original.Error
@@ -247,6 +268,14 @@ type InvitationListIterator = original.InvitationListIterator
 type InvitationListPage = original.InvitationListPage
 type InvitationProperties = original.InvitationProperties
 type InvitationsClient = original.InvitationsClient
+type KustoClusterDataSet = original.KustoClusterDataSet
+type KustoClusterDataSetMapping = original.KustoClusterDataSetMapping
+type KustoClusterDataSetMappingProperties = original.KustoClusterDataSetMappingProperties
+type KustoClusterDataSetProperties = original.KustoClusterDataSetProperties
+type KustoDatabaseDataSet = original.KustoDatabaseDataSet
+type KustoDatabaseDataSetMapping = original.KustoDatabaseDataSetMapping
+type KustoDatabaseDataSetMappingProperties = original.KustoDatabaseDataSetMappingProperties
+type KustoDatabaseDataSetProperties = original.KustoDatabaseDataSetProperties
 type OperationList = original.OperationList
 type OperationListIterator = original.OperationListIterator
 type OperationListPage = original.OperationListPage
@@ -266,6 +295,14 @@ type ProviderShareSubscriptionProperties = original.ProviderShareSubscriptionPro
 type ProviderShareSubscriptionsClient = original.ProviderShareSubscriptionsClient
 type ProviderShareSubscriptionsRevokeFuture = original.ProviderShareSubscriptionsRevokeFuture
 type ProxyDto = original.ProxyDto
+type SQLDBTableDataSet = original.SQLDBTableDataSet
+type SQLDBTableDataSetMapping = original.SQLDBTableDataSetMapping
+type SQLDBTableDataSetMappingProperties = original.SQLDBTableDataSetMappingProperties
+type SQLDBTableProperties = original.SQLDBTableProperties
+type SQLDWTableDataSet = original.SQLDWTableDataSet
+type SQLDWTableDataSetMapping = original.SQLDWTableDataSetMapping
+type SQLDWTableDataSetMappingProperties = original.SQLDWTableDataSetMappingProperties
+type SQLDWTableProperties = original.SQLDWTableProperties
 type ScheduledSourceShareSynchronizationSettingProperties = original.ScheduledSourceShareSynchronizationSettingProperties
 type ScheduledSourceSynchronizationSetting = original.ScheduledSourceSynchronizationSetting
 type ScheduledSynchronizationSetting = original.ScheduledSynchronizationSetting
@@ -518,6 +555,9 @@ func PossibleKindBasicTriggerValues() []KindBasicTrigger {
 }
 func PossibleKindValues() []Kind {
 	return original.PossibleKindValues()
+}
+func PossibleOutputTypeValues() []OutputType {
+	return original.PossibleOutputTypeValues()
 }
 func PossibleProvisioningStateValues() []ProvisioningState {
 	return original.PossibleProvisioningStateValues()

@@ -14,47 +14,43 @@ import (
 	"strings"
 )
 
+type ClusterErrorMap map[string]error
+
 type MultiClusterError struct {
 	prefix string
-	errors map[string]error
+	errors ClusterErrorMap
+}
+
+// Add an error originating with cluster `c` to the captured
+// errors map.
+func (m ClusterErrorMap) Add(c string, e error) {
+	m[c] = e
+}
+
+// ToError returns either an error or nil depending on the number of errors in
+// the map. It returns nil if no errors were captured. It returns a new
+// MultiClusterError if more than one error was captured. It returns the
+// original error if only one error was captured.
+func (m ClusterErrorMap) ToError(prefix string) error {
+	switch len(m) {
+	case 0:
+		return nil
+	case 1:
+		for _, err := range m {
+			return err
+		}
+	}
+	return NewMultiClusterError(prefix, m)
 }
 
 // NewMultiClusterError returns a MultiClusterError with the given
 // prefix text. Prefix text will be used in the error string if
 // more than one error is captured.
-func NewMultiClusterError(p string) *MultiClusterError {
+func NewMultiClusterError(p string, m ClusterErrorMap) *MultiClusterError {
 	return &MultiClusterError{
 		prefix: p,
-		errors: map[string]error{},
+		errors: m,
 	}
-}
-
-// Add an error originating with cluster `c` to the captured
-// errors map.
-func (m *MultiClusterError) Add(c string, e error) {
-	m.errors[c] = e
-}
-
-// Return the length of the captured errors map.
-func (m *MultiClusterError) Len() int {
-	return len(m.errors)
-}
-
-// Shorten returns a simplified version of the errors that
-// the MultiClusterError may have captured. It returns nil if
-// no errors were captured. It returns itself if more than one
-// error was captured. It returns the original error if only
-// one error was captured.
-func (m *MultiClusterError) Shorten() error {
-	switch len(m.errors) {
-	case 0:
-		return nil
-	case 1:
-		for _, err := range m.errors {
-			return err
-		}
-	}
-	return m
 }
 
 // Error returns the error string for the multi cluster error.
@@ -63,7 +59,7 @@ func (m *MultiClusterError) Shorten() error {
 // formatted text containing all captured errors.
 func (m *MultiClusterError) Error() string {
 	if len(m.errors) == 0 {
-		return "(missing cluster error)"
+		return "(no errors)"
 	}
 	if len(m.errors) == 1 {
 		for _, v := range m.errors {

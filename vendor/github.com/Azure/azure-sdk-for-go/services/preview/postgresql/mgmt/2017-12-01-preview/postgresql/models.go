@@ -25,6 +25,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/Azure/go-autorest/tracing"
+	"github.com/satori/go.uuid"
 	"net/http"
 )
 
@@ -954,6 +955,156 @@ func (s *Server) UnmarshalJSON(body []byte) error {
 	}
 
 	return nil
+}
+
+// ServerAdministratorProperties the properties of an server Administrator.
+type ServerAdministratorProperties struct {
+	// AdministratorType - The type of administrator.
+	AdministratorType *string `json:"administratorType,omitempty"`
+	// Login - The server administrator login value.
+	Login *string `json:"login,omitempty"`
+	// Sid - The server administrator Sid (Secure ID).
+	Sid *uuid.UUID `json:"sid,omitempty"`
+	// TenantID - The server Active Directory Administrator tenant id.
+	TenantID *uuid.UUID `json:"tenantId,omitempty"`
+}
+
+// ServerAdministratorResource represents a and external administrator to be created.
+type ServerAdministratorResource struct {
+	autorest.Response `json:"-"`
+	// ServerAdministratorProperties - Properties of the server AAD administrator.
+	*ServerAdministratorProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ServerAdministratorResource.
+func (sar ServerAdministratorResource) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if sar.ServerAdministratorProperties != nil {
+		objectMap["properties"] = sar.ServerAdministratorProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ServerAdministratorResource struct.
+func (sar *ServerAdministratorResource) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var serverAdministratorProperties ServerAdministratorProperties
+				err = json.Unmarshal(*v, &serverAdministratorProperties)
+				if err != nil {
+					return err
+				}
+				sar.ServerAdministratorProperties = &serverAdministratorProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				sar.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				sar.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				sar.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ServerAdministratorResourceListResult the response to a list Active Directory Administrators request.
+type ServerAdministratorResourceListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of server Active Directory Administrators for the server.
+	Value *[]ServerAdministratorResource `json:"value,omitempty"`
+}
+
+// ServerAdministratorsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type ServerAdministratorsCreateOrUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ServerAdministratorsCreateOrUpdateFuture) Result(client ServerAdministratorsClient) (sar ServerAdministratorResource, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "postgresql.ServerAdministratorsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("postgresql.ServerAdministratorsCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if sar.Response.Response, err = future.GetResult(sender); err == nil && sar.Response.Response.StatusCode != http.StatusNoContent {
+		sar, err = client.CreateOrUpdateResponder(sar.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "postgresql.ServerAdministratorsCreateOrUpdateFuture", "Result", sar.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// ServerAdministratorsDeleteFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type ServerAdministratorsDeleteFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ServerAdministratorsDeleteFuture) Result(client ServerAdministratorsClient) (sar ServerAdministratorResource, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "postgresql.ServerAdministratorsDeleteFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("postgresql.ServerAdministratorsDeleteFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if sar.Response.Response, err = future.GetResult(sender); err == nil && sar.Response.Response.StatusCode != http.StatusNoContent {
+		sar, err = client.DeleteResponder(sar.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "postgresql.ServerAdministratorsDeleteFuture", "Result", sar.Response.Response, "Failure responding to request")
+		}
+	}
+	return
 }
 
 // ServerForCreate represents a server to be created.

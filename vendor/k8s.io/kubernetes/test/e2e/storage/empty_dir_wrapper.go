@@ -25,13 +25,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 )
 
 const (
@@ -78,7 +77,7 @@ var _ = utils.SIGDescribe("EmptyDir wrapper volumes", func() {
 
 		var err error
 		if secret, err = f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Create(secret); err != nil {
-			e2elog.Failf("unable to create test secret %s: %v", secret.Name, err)
+			framework.Failf("unable to create test secret %s: %v", secret.Name, err)
 		}
 
 		configMapVolumeName := "configmap-volume"
@@ -95,7 +94,7 @@ var _ = utils.SIGDescribe("EmptyDir wrapper volumes", func() {
 		}
 
 		if configMap, err = f.ClientSet.CoreV1().ConfigMaps(f.Namespace.Name).Create(configMap); err != nil {
-			e2elog.Failf("unable to create test configMap %s: %v", configMap.Name, err)
+			framework.Failf("unable to create test configMap %s: %v", configMap.Name, err)
 		}
 
 		pod := &v1.Pod{
@@ -147,15 +146,15 @@ var _ = utils.SIGDescribe("EmptyDir wrapper volumes", func() {
 		defer func() {
 			ginkgo.By("Cleaning up the secret")
 			if err := f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Delete(secret.Name, nil); err != nil {
-				e2elog.Failf("unable to delete secret %v: %v", secret.Name, err)
+				framework.Failf("unable to delete secret %v: %v", secret.Name, err)
 			}
 			ginkgo.By("Cleaning up the configmap")
 			if err := f.ClientSet.CoreV1().ConfigMaps(f.Namespace.Name).Delete(configMap.Name, nil); err != nil {
-				e2elog.Failf("unable to delete configmap %v: %v", configMap.Name, err)
+				framework.Failf("unable to delete configmap %v: %v", configMap.Name, err)
 			}
 			ginkgo.By("Cleaning up the pod")
 			if err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(pod.Name, metav1.NewDeleteOptions(0)); err != nil {
-				e2elog.Failf("unable to delete pod %v: %v", pod.Name, err)
+				framework.Failf("unable to delete pod %v: %v", pod.Name, err)
 			}
 		}()
 	})
@@ -253,17 +252,17 @@ func createGitServer(f *framework.Framework) (gitURL string, gitRepo string, cle
 	}
 
 	if gitServerSvc, err = f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(gitServerSvc); err != nil {
-		e2elog.Failf("unable to create test git server service %s: %v", gitServerSvc.Name, err)
+		framework.Failf("unable to create test git server service %s: %v", gitServerSvc.Name, err)
 	}
 
 	return "http://" + gitServerSvc.Spec.ClusterIP + ":" + strconv.Itoa(httpPort), "test", func() {
 		ginkgo.By("Cleaning up the git server pod")
 		if err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(gitServerPod.Name, metav1.NewDeleteOptions(0)); err != nil {
-			e2elog.Failf("unable to delete git server pod %v: %v", gitServerPod.Name, err)
+			framework.Failf("unable to delete git server pod %v: %v", gitServerPod.Name, err)
 		}
 		ginkgo.By("Cleaning up the git server svc")
 		if err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Delete(gitServerSvc.Name, nil); err != nil {
-			e2elog.Failf("unable to delete git server svc %v: %v", gitServerSvc.Name, err)
+			framework.Failf("unable to delete git server svc %v: %v", gitServerSvc.Name, err)
 		}
 	}
 }
@@ -347,9 +346,8 @@ func testNoWrappedVolumeRace(f *framework.Framework, volumes []v1.Volume, volume
 	const nodeHostnameLabelKey = "kubernetes.io/hostname"
 
 	rcName := wrappedVolumeRaceRCNamePrefix + string(uuid.NewUUID())
-	nodeList := framework.GetReadySchedulableNodesOrDie(f.ClientSet)
-	gomega.Expect(len(nodeList.Items)).To(gomega.BeNumerically(">", 0))
-	targetNode := nodeList.Items[0]
+	targetNode, err := e2enode.GetRandomReadySchedulableNode(f.ClientSet)
+	framework.ExpectNoError(err)
 
 	ginkgo.By("Creating RC which spawns configmap-volume pods")
 	affinity := &v1.Affinity{
@@ -398,7 +396,7 @@ func testNoWrappedVolumeRace(f *framework.Framework, volumes []v1.Volume, volume
 			},
 		},
 	}
-	_, err := f.ClientSet.CoreV1().ReplicationControllers(f.Namespace.Name).Create(rc)
+	_, err = f.ClientSet.CoreV1().ReplicationControllers(f.Namespace.Name).Create(rc)
 	framework.ExpectNoError(err, "error creating replication controller")
 
 	defer func() {

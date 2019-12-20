@@ -330,22 +330,12 @@ func DbCreate(jsonfile string, dbfile string) error {
 			if err != nil {
 				return fmt.Errorf("Could not save node bucket: %v", err.Error())
 			}
-			logger.Debug("registering node entry %v", node.Info.Id)
-			err = node.Register(tx)
-			if err != nil {
-				return fmt.Errorf("Could not register node: %v", err.Error())
-			}
 		}
 		for _, device := range dump.Devices {
 			logger.Debug("adding device entry %v", device.Info.Id)
 			err := device.Save(tx)
 			if err != nil {
 				return fmt.Errorf("Could not save device bucket: %v", err.Error())
-			}
-			logger.Debug("registering device entry %v", device.Info.Id)
-			err = device.Register(tx)
-			if err != nil {
-				return fmt.Errorf("Could not register device: %v", err.Error())
 			}
 		}
 		for _, blockvolume := range dump.BlockVolumes {

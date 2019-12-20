@@ -30,6 +30,25 @@ import (
 // The package's fully qualified name.
 const fqdn = "github.com/Azure/azure-sdk-for-go/services/sql/mgmt/2014-04-01/sql"
 
+// AdvisorStatus enumerates the values for advisor status.
+type AdvisorStatus string
+
+const (
+	// GA ...
+	GA AdvisorStatus = "GA"
+	// LimitedPublicPreview ...
+	LimitedPublicPreview AdvisorStatus = "LimitedPublicPreview"
+	// PrivatePreview ...
+	PrivatePreview AdvisorStatus = "PrivatePreview"
+	// PublicPreview ...
+	PublicPreview AdvisorStatus = "PublicPreview"
+)
+
+// PossibleAdvisorStatusValues returns an array of possible values for the AdvisorStatus const type.
+func PossibleAdvisorStatusValues() []AdvisorStatus {
+	return []AdvisorStatus{GA, LimitedPublicPreview, PrivatePreview, PublicPreview}
+}
+
 // AuthenticationType enumerates the values for authentication type.
 type AuthenticationType string
 
@@ -43,6 +62,57 @@ const (
 // PossibleAuthenticationTypeValues returns an array of possible values for the AuthenticationType const type.
 func PossibleAuthenticationTypeValues() []AuthenticationType {
 	return []AuthenticationType{ADPassword, SQL}
+}
+
+// AutoExecuteStatus enumerates the values for auto execute status.
+type AutoExecuteStatus string
+
+const (
+	// Default ...
+	Default AutoExecuteStatus = "Default"
+	// Disabled ...
+	Disabled AutoExecuteStatus = "Disabled"
+	// Enabled ...
+	Enabled AutoExecuteStatus = "Enabled"
+)
+
+// PossibleAutoExecuteStatusValues returns an array of possible values for the AutoExecuteStatus const type.
+func PossibleAutoExecuteStatusValues() []AutoExecuteStatus {
+	return []AutoExecuteStatus{Default, Disabled, Enabled}
+}
+
+// BackupLongTermRetentionPolicyState enumerates the values for backup long term retention policy state.
+type BackupLongTermRetentionPolicyState string
+
+const (
+	// BackupLongTermRetentionPolicyStateDisabled ...
+	BackupLongTermRetentionPolicyStateDisabled BackupLongTermRetentionPolicyState = "Disabled"
+	// BackupLongTermRetentionPolicyStateEnabled ...
+	BackupLongTermRetentionPolicyStateEnabled BackupLongTermRetentionPolicyState = "Enabled"
+)
+
+// PossibleBackupLongTermRetentionPolicyStateValues returns an array of possible values for the BackupLongTermRetentionPolicyState const type.
+func PossibleBackupLongTermRetentionPolicyStateValues() []BackupLongTermRetentionPolicyState {
+	return []BackupLongTermRetentionPolicyState{BackupLongTermRetentionPolicyStateDisabled, BackupLongTermRetentionPolicyStateEnabled}
+}
+
+// CapabilityStatus enumerates the values for capability status.
+type CapabilityStatus string
+
+const (
+	// CapabilityStatusAvailable ...
+	CapabilityStatusAvailable CapabilityStatus = "Available"
+	// CapabilityStatusDefault ...
+	CapabilityStatusDefault CapabilityStatus = "Default"
+	// CapabilityStatusDisabled ...
+	CapabilityStatusDisabled CapabilityStatus = "Disabled"
+	// CapabilityStatusVisible ...
+	CapabilityStatusVisible CapabilityStatus = "Visible"
+)
+
+// PossibleCapabilityStatusValues returns an array of possible values for the CapabilityStatus const type.
+func PossibleCapabilityStatusValues() []CapabilityStatus {
+	return []CapabilityStatus{CapabilityStatusAvailable, CapabilityStatusDefault, CapabilityStatusDisabled, CapabilityStatusVisible}
 }
 
 // CheckNameAvailabilityReason enumerates the values for check name availability reason.
@@ -64,27 +134,27 @@ func PossibleCheckNameAvailabilityReasonValues() []CheckNameAvailabilityReason {
 type CreateMode string
 
 const (
-	// Copy ...
-	Copy CreateMode = "Copy"
-	// Default ...
-	Default CreateMode = "Default"
-	// NonReadableSecondary ...
-	NonReadableSecondary CreateMode = "NonReadableSecondary"
-	// OnlineSecondary ...
-	OnlineSecondary CreateMode = "OnlineSecondary"
-	// PointInTimeRestore ...
-	PointInTimeRestore CreateMode = "PointInTimeRestore"
-	// Recovery ...
-	Recovery CreateMode = "Recovery"
-	// Restore ...
-	Restore CreateMode = "Restore"
-	// RestoreLongTermRetentionBackup ...
-	RestoreLongTermRetentionBackup CreateMode = "RestoreLongTermRetentionBackup"
+	// CreateModeCopy ...
+	CreateModeCopy CreateMode = "Copy"
+	// CreateModeDefault ...
+	CreateModeDefault CreateMode = "Default"
+	// CreateModeNonReadableSecondary ...
+	CreateModeNonReadableSecondary CreateMode = "NonReadableSecondary"
+	// CreateModeOnlineSecondary ...
+	CreateModeOnlineSecondary CreateMode = "OnlineSecondary"
+	// CreateModePointInTimeRestore ...
+	CreateModePointInTimeRestore CreateMode = "PointInTimeRestore"
+	// CreateModeRecovery ...
+	CreateModeRecovery CreateMode = "Recovery"
+	// CreateModeRestore ...
+	CreateModeRestore CreateMode = "Restore"
+	// CreateModeRestoreLongTermRetentionBackup ...
+	CreateModeRestoreLongTermRetentionBackup CreateMode = "RestoreLongTermRetentionBackup"
 )
 
 // PossibleCreateModeValues returns an array of possible values for the CreateMode const type.
 func PossibleCreateModeValues() []CreateMode {
-	return []CreateMode{Copy, Default, NonReadableSecondary, OnlineSecondary, PointInTimeRestore, Recovery, Restore, RestoreLongTermRetentionBackup}
+	return []CreateMode{CreateModeCopy, CreateModeDefault, CreateModeNonReadableSecondary, CreateModeOnlineSecondary, CreateModePointInTimeRestore, CreateModeRecovery, CreateModeRestore, CreateModeRestoreLongTermRetentionBackup}
 }
 
 // DatabaseEdition enumerates the values for database edition.
@@ -126,6 +196,127 @@ func PossibleDatabaseEditionValues() []DatabaseEdition {
 	return []DatabaseEdition{Basic, Business, BusinessCritical, DataWarehouse, Free, GeneralPurpose, Hyperscale, Premium, PremiumRS, Standard, Stretch, System, System2, Web}
 }
 
+// DataMaskingFunction enumerates the values for data masking function.
+type DataMaskingFunction string
+
+const (
+	// DataMaskingFunctionCCN ...
+	DataMaskingFunctionCCN DataMaskingFunction = "CCN"
+	// DataMaskingFunctionDefault ...
+	DataMaskingFunctionDefault DataMaskingFunction = "Default"
+	// DataMaskingFunctionEmail ...
+	DataMaskingFunctionEmail DataMaskingFunction = "Email"
+	// DataMaskingFunctionNumber ...
+	DataMaskingFunctionNumber DataMaskingFunction = "Number"
+	// DataMaskingFunctionSSN ...
+	DataMaskingFunctionSSN DataMaskingFunction = "SSN"
+	// DataMaskingFunctionText ...
+	DataMaskingFunctionText DataMaskingFunction = "Text"
+)
+
+// PossibleDataMaskingFunctionValues returns an array of possible values for the DataMaskingFunction const type.
+func PossibleDataMaskingFunctionValues() []DataMaskingFunction {
+	return []DataMaskingFunction{DataMaskingFunctionCCN, DataMaskingFunctionDefault, DataMaskingFunctionEmail, DataMaskingFunctionNumber, DataMaskingFunctionSSN, DataMaskingFunctionText}
+}
+
+// DataMaskingRuleState enumerates the values for data masking rule state.
+type DataMaskingRuleState string
+
+const (
+	// DataMaskingRuleStateDisabled ...
+	DataMaskingRuleStateDisabled DataMaskingRuleState = "Disabled"
+	// DataMaskingRuleStateEnabled ...
+	DataMaskingRuleStateEnabled DataMaskingRuleState = "Enabled"
+)
+
+// PossibleDataMaskingRuleStateValues returns an array of possible values for the DataMaskingRuleState const type.
+func PossibleDataMaskingRuleStateValues() []DataMaskingRuleState {
+	return []DataMaskingRuleState{DataMaskingRuleStateDisabled, DataMaskingRuleStateEnabled}
+}
+
+// DataMaskingState enumerates the values for data masking state.
+type DataMaskingState string
+
+const (
+	// DataMaskingStateDisabled ...
+	DataMaskingStateDisabled DataMaskingState = "Disabled"
+	// DataMaskingStateEnabled ...
+	DataMaskingStateEnabled DataMaskingState = "Enabled"
+)
+
+// PossibleDataMaskingStateValues returns an array of possible values for the DataMaskingState const type.
+func PossibleDataMaskingStateValues() []DataMaskingState {
+	return []DataMaskingState{DataMaskingStateDisabled, DataMaskingStateEnabled}
+}
+
+// DisasterRecoveryConfigurationAutoFailover enumerates the values for disaster recovery configuration auto
+// failover.
+type DisasterRecoveryConfigurationAutoFailover string
+
+const (
+	// Off ...
+	Off DisasterRecoveryConfigurationAutoFailover = "Off"
+	// On ...
+	On DisasterRecoveryConfigurationAutoFailover = "On"
+)
+
+// PossibleDisasterRecoveryConfigurationAutoFailoverValues returns an array of possible values for the DisasterRecoveryConfigurationAutoFailover const type.
+func PossibleDisasterRecoveryConfigurationAutoFailoverValues() []DisasterRecoveryConfigurationAutoFailover {
+	return []DisasterRecoveryConfigurationAutoFailover{Off, On}
+}
+
+// DisasterRecoveryConfigurationFailoverPolicy enumerates the values for disaster recovery configuration
+// failover policy.
+type DisasterRecoveryConfigurationFailoverPolicy string
+
+const (
+	// Automatic ...
+	Automatic DisasterRecoveryConfigurationFailoverPolicy = "Automatic"
+	// Manual ...
+	Manual DisasterRecoveryConfigurationFailoverPolicy = "Manual"
+)
+
+// PossibleDisasterRecoveryConfigurationFailoverPolicyValues returns an array of possible values for the DisasterRecoveryConfigurationFailoverPolicy const type.
+func PossibleDisasterRecoveryConfigurationFailoverPolicyValues() []DisasterRecoveryConfigurationFailoverPolicy {
+	return []DisasterRecoveryConfigurationFailoverPolicy{Automatic, Manual}
+}
+
+// DisasterRecoveryConfigurationRole enumerates the values for disaster recovery configuration role.
+type DisasterRecoveryConfigurationRole string
+
+const (
+	// None ...
+	None DisasterRecoveryConfigurationRole = "None"
+	// Primary ...
+	Primary DisasterRecoveryConfigurationRole = "Primary"
+	// Secondary ...
+	Secondary DisasterRecoveryConfigurationRole = "Secondary"
+)
+
+// PossibleDisasterRecoveryConfigurationRoleValues returns an array of possible values for the DisasterRecoveryConfigurationRole const type.
+func PossibleDisasterRecoveryConfigurationRoleValues() []DisasterRecoveryConfigurationRole {
+	return []DisasterRecoveryConfigurationRole{None, Primary, Secondary}
+}
+
+// DisasterRecoveryConfigurationStatus enumerates the values for disaster recovery configuration status.
+type DisasterRecoveryConfigurationStatus string
+
+const (
+	// Creating ...
+	Creating DisasterRecoveryConfigurationStatus = "Creating"
+	// Dropping ...
+	Dropping DisasterRecoveryConfigurationStatus = "Dropping"
+	// FailingOver ...
+	FailingOver DisasterRecoveryConfigurationStatus = "FailingOver"
+	// Ready ...
+	Ready DisasterRecoveryConfigurationStatus = "Ready"
+)
+
+// PossibleDisasterRecoveryConfigurationStatusValues returns an array of possible values for the DisasterRecoveryConfigurationStatus const type.
+func PossibleDisasterRecoveryConfigurationStatusValues() []DisasterRecoveryConfigurationStatus {
+	return []DisasterRecoveryConfigurationStatus{Creating, Dropping, FailingOver, Ready}
+}
+
 // ElasticPoolEdition enumerates the values for elastic pool edition.
 type ElasticPoolEdition string
 
@@ -151,17 +342,165 @@ func PossibleElasticPoolEditionValues() []ElasticPoolEdition {
 type ElasticPoolState string
 
 const (
-	// Creating ...
-	Creating ElasticPoolState = "Creating"
-	// Disabled ...
-	Disabled ElasticPoolState = "Disabled"
-	// Ready ...
-	Ready ElasticPoolState = "Ready"
+	// ElasticPoolStateCreating ...
+	ElasticPoolStateCreating ElasticPoolState = "Creating"
+	// ElasticPoolStateDisabled ...
+	ElasticPoolStateDisabled ElasticPoolState = "Disabled"
+	// ElasticPoolStateReady ...
+	ElasticPoolStateReady ElasticPoolState = "Ready"
 )
 
 // PossibleElasticPoolStateValues returns an array of possible values for the ElasticPoolState const type.
 func PossibleElasticPoolStateValues() []ElasticPoolState {
-	return []ElasticPoolState{Creating, Disabled, Ready}
+	return []ElasticPoolState{ElasticPoolStateCreating, ElasticPoolStateDisabled, ElasticPoolStateReady}
+}
+
+// GeoBackupPolicyState enumerates the values for geo backup policy state.
+type GeoBackupPolicyState string
+
+const (
+	// GeoBackupPolicyStateDisabled ...
+	GeoBackupPolicyStateDisabled GeoBackupPolicyState = "Disabled"
+	// GeoBackupPolicyStateEnabled ...
+	GeoBackupPolicyStateEnabled GeoBackupPolicyState = "Enabled"
+)
+
+// PossibleGeoBackupPolicyStateValues returns an array of possible values for the GeoBackupPolicyState const type.
+func PossibleGeoBackupPolicyStateValues() []GeoBackupPolicyState {
+	return []GeoBackupPolicyState{GeoBackupPolicyStateDisabled, GeoBackupPolicyStateEnabled}
+}
+
+// MaxSizeUnits enumerates the values for max size units.
+type MaxSizeUnits string
+
+const (
+	// Gigabytes ...
+	Gigabytes MaxSizeUnits = "Gigabytes"
+	// Megabytes ...
+	Megabytes MaxSizeUnits = "Megabytes"
+	// Petabytes ...
+	Petabytes MaxSizeUnits = "Petabytes"
+	// Terabytes ...
+	Terabytes MaxSizeUnits = "Terabytes"
+)
+
+// PossibleMaxSizeUnitsValues returns an array of possible values for the MaxSizeUnits const type.
+func PossibleMaxSizeUnitsValues() []MaxSizeUnits {
+	return []MaxSizeUnits{Gigabytes, Megabytes, Petabytes, Terabytes}
+}
+
+// PerformanceLevelUnit enumerates the values for performance level unit.
+type PerformanceLevelUnit string
+
+const (
+	// DTU ...
+	DTU PerformanceLevelUnit = "DTU"
+)
+
+// PossiblePerformanceLevelUnitValues returns an array of possible values for the PerformanceLevelUnit const type.
+func PossiblePerformanceLevelUnitValues() []PerformanceLevelUnit {
+	return []PerformanceLevelUnit{DTU}
+}
+
+// PrimaryAggregationType enumerates the values for primary aggregation type.
+type PrimaryAggregationType string
+
+const (
+	// PrimaryAggregationTypeAverage ...
+	PrimaryAggregationTypeAverage PrimaryAggregationType = "Average"
+	// PrimaryAggregationTypeCount ...
+	PrimaryAggregationTypeCount PrimaryAggregationType = "Count"
+	// PrimaryAggregationTypeMaximum ...
+	PrimaryAggregationTypeMaximum PrimaryAggregationType = "Maximum"
+	// PrimaryAggregationTypeMinimum ...
+	PrimaryAggregationTypeMinimum PrimaryAggregationType = "Minimum"
+	// PrimaryAggregationTypeNone ...
+	PrimaryAggregationTypeNone PrimaryAggregationType = "None"
+	// PrimaryAggregationTypeTotal ...
+	PrimaryAggregationTypeTotal PrimaryAggregationType = "Total"
+)
+
+// PossiblePrimaryAggregationTypeValues returns an array of possible values for the PrimaryAggregationType const type.
+func PossiblePrimaryAggregationTypeValues() []PrimaryAggregationType {
+	return []PrimaryAggregationType{PrimaryAggregationTypeAverage, PrimaryAggregationTypeCount, PrimaryAggregationTypeMaximum, PrimaryAggregationTypeMinimum, PrimaryAggregationTypeNone, PrimaryAggregationTypeTotal}
+}
+
+// QueryAggregationFunction enumerates the values for query aggregation function.
+type QueryAggregationFunction string
+
+const (
+	// Avg ...
+	Avg QueryAggregationFunction = "avg"
+	// Max ...
+	Max QueryAggregationFunction = "max"
+	// Min ...
+	Min QueryAggregationFunction = "min"
+	// Sum ...
+	Sum QueryAggregationFunction = "sum"
+)
+
+// PossibleQueryAggregationFunctionValues returns an array of possible values for the QueryAggregationFunction const type.
+func PossibleQueryAggregationFunctionValues() []QueryAggregationFunction {
+	return []QueryAggregationFunction{Avg, Max, Min, Sum}
+}
+
+// QueryExecutionType enumerates the values for query execution type.
+type QueryExecutionType string
+
+const (
+	// Aborted ...
+	Aborted QueryExecutionType = "aborted"
+	// Any ...
+	Any QueryExecutionType = "any"
+	// Exception ...
+	Exception QueryExecutionType = "exception"
+	// Irregular ...
+	Irregular QueryExecutionType = "irregular"
+	// Regular ...
+	Regular QueryExecutionType = "regular"
+)
+
+// PossibleQueryExecutionTypeValues returns an array of possible values for the QueryExecutionType const type.
+func PossibleQueryExecutionTypeValues() []QueryExecutionType {
+	return []QueryExecutionType{Aborted, Any, Exception, Irregular, Regular}
+}
+
+// QueryMetricUnit enumerates the values for query metric unit.
+type QueryMetricUnit string
+
+const (
+	// KB ...
+	KB QueryMetricUnit = "KB"
+	// Microseconds ...
+	Microseconds QueryMetricUnit = "microseconds"
+	// Percentage ...
+	Percentage QueryMetricUnit = "percentage"
+)
+
+// PossibleQueryMetricUnitValues returns an array of possible values for the QueryMetricUnit const type.
+func PossibleQueryMetricUnitValues() []QueryMetricUnit {
+	return []QueryMetricUnit{KB, Microseconds, Percentage}
+}
+
+// QueryObservedMetricType enumerates the values for query observed metric type.
+type QueryObservedMetricType string
+
+const (
+	// CPU ...
+	CPU QueryObservedMetricType = "cpu"
+	// Duration ...
+	Duration QueryObservedMetricType = "duration"
+	// ExecutionCount ...
+	ExecutionCount QueryObservedMetricType = "executionCount"
+	// Io ...
+	Io QueryObservedMetricType = "io"
+	// Logio ...
+	Logio QueryObservedMetricType = "logio"
+)
+
+// PossibleQueryObservedMetricTypeValues returns an array of possible values for the QueryObservedMetricType const type.
+func PossibleQueryObservedMetricTypeValues() []QueryObservedMetricType {
+	return []QueryObservedMetricType{CPU, Duration, ExecutionCount, Io, Logio}
 }
 
 // ReadScale enumerates the values for read scale.
@@ -288,6 +627,21 @@ func PossibleReplicationStateValues() []ReplicationState {
 	return []ReplicationState{CATCHUP, PENDING, SEEDING, SUSPENDED}
 }
 
+// RestorePointType enumerates the values for restore point type.
+type RestorePointType string
+
+const (
+	// CONTINUOUS ...
+	CONTINUOUS RestorePointType = "CONTINUOUS"
+	// DISCRETE ...
+	DISCRETE RestorePointType = "DISCRETE"
+)
+
+// PossibleRestorePointTypeValues returns an array of possible values for the RestorePointType const type.
+func PossibleRestorePointTypeValues() []RestorePointType {
+	return []RestorePointType{CONTINUOUS, DISCRETE}
+}
+
 // SampleName enumerates the values for sample name.
 type SampleName string
 
@@ -346,6 +700,53 @@ const (
 // PossibleSecurityAlertPolicyUseServerDefaultValues returns an array of possible values for the SecurityAlertPolicyUseServerDefault const type.
 func PossibleSecurityAlertPolicyUseServerDefaultValues() []SecurityAlertPolicyUseServerDefault {
 	return []SecurityAlertPolicyUseServerDefault{SecurityAlertPolicyUseServerDefaultDisabled, SecurityAlertPolicyUseServerDefaultEnabled}
+}
+
+// ServerConnectionType enumerates the values for server connection type.
+type ServerConnectionType string
+
+const (
+	// ServerConnectionTypeDefault ...
+	ServerConnectionTypeDefault ServerConnectionType = "Default"
+	// ServerConnectionTypeProxy ...
+	ServerConnectionTypeProxy ServerConnectionType = "Proxy"
+	// ServerConnectionTypeRedirect ...
+	ServerConnectionTypeRedirect ServerConnectionType = "Redirect"
+)
+
+// PossibleServerConnectionTypeValues returns an array of possible values for the ServerConnectionType const type.
+func PossibleServerConnectionTypeValues() []ServerConnectionType {
+	return []ServerConnectionType{ServerConnectionTypeDefault, ServerConnectionTypeProxy, ServerConnectionTypeRedirect}
+}
+
+// ServerState enumerates the values for server state.
+type ServerState string
+
+const (
+	// ServerStateDisabled ...
+	ServerStateDisabled ServerState = "Disabled"
+	// ServerStateReady ...
+	ServerStateReady ServerState = "Ready"
+)
+
+// PossibleServerStateValues returns an array of possible values for the ServerState const type.
+func PossibleServerStateValues() []ServerState {
+	return []ServerState{ServerStateDisabled, ServerStateReady}
+}
+
+// ServerVersion enumerates the values for server version.
+type ServerVersion string
+
+const (
+	// OneTwoFullStopZero ...
+	OneTwoFullStopZero ServerVersion = "12.0"
+	// TwoFullStopZero ...
+	TwoFullStopZero ServerVersion = "2.0"
+)
+
+// PossibleServerVersionValues returns an array of possible values for the ServerVersion const type.
+func PossibleServerVersionValues() []ServerVersion {
+	return []ServerVersion{OneTwoFullStopZero, TwoFullStopZero}
 }
 
 // ServiceObjectiveName enumerates the values for service objective name.
@@ -535,6 +936,421 @@ func PossibleTransparentDataEncryptionStatusValues() []TransparentDataEncryption
 	return []TransparentDataEncryptionStatus{TransparentDataEncryptionStatusDisabled, TransparentDataEncryptionStatusEnabled}
 }
 
+// UnitDefinitionType enumerates the values for unit definition type.
+type UnitDefinitionType string
+
+const (
+	// Bytes ...
+	Bytes UnitDefinitionType = "Bytes"
+	// BytesPerSecond ...
+	BytesPerSecond UnitDefinitionType = "BytesPerSecond"
+	// Count ...
+	Count UnitDefinitionType = "Count"
+	// CountPerSecond ...
+	CountPerSecond UnitDefinitionType = "CountPerSecond"
+	// Percent ...
+	Percent UnitDefinitionType = "Percent"
+	// Seconds ...
+	Seconds UnitDefinitionType = "Seconds"
+)
+
+// PossibleUnitDefinitionTypeValues returns an array of possible values for the UnitDefinitionType const type.
+func PossibleUnitDefinitionTypeValues() []UnitDefinitionType {
+	return []UnitDefinitionType{Bytes, BytesPerSecond, Count, CountPerSecond, Percent, Seconds}
+}
+
+// UnitType enumerates the values for unit type.
+type UnitType string
+
+const (
+	// UnitTypeBytes ...
+	UnitTypeBytes UnitType = "bytes"
+	// UnitTypeBytesPerSecond ...
+	UnitTypeBytesPerSecond UnitType = "bytesPerSecond"
+	// UnitTypeCount ...
+	UnitTypeCount UnitType = "count"
+	// UnitTypeCountPerSecond ...
+	UnitTypeCountPerSecond UnitType = "countPerSecond"
+	// UnitTypePercent ...
+	UnitTypePercent UnitType = "percent"
+	// UnitTypeSeconds ...
+	UnitTypeSeconds UnitType = "seconds"
+)
+
+// PossibleUnitTypeValues returns an array of possible values for the UnitType const type.
+func PossibleUnitTypeValues() []UnitType {
+	return []UnitType{UnitTypeBytes, UnitTypeBytesPerSecond, UnitTypeCount, UnitTypeCountPerSecond, UnitTypePercent, UnitTypeSeconds}
+}
+
+// Advisor database Advisor.
+type Advisor struct {
+	autorest.Response `json:"-"`
+	// Kind - READ-ONLY; Resource kind.
+	Kind *string `json:"kind,omitempty"`
+	// Location - READ-ONLY; Resource location.
+	Location *string `json:"location,omitempty"`
+	// AdvisorProperties - Resource properties.
+	*AdvisorProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for Advisor.
+func (a Advisor) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if a.AdvisorProperties != nil {
+		objectMap["properties"] = a.AdvisorProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for Advisor struct.
+func (a *Advisor) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				a.Kind = &kind
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				a.Location = &location
+			}
+		case "properties":
+			if v != nil {
+				var advisorProperties AdvisorProperties
+				err = json.Unmarshal(*v, &advisorProperties)
+				if err != nil {
+					return err
+				}
+				a.AdvisorProperties = &advisorProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				a.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				a.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				a.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// AdvisorListResult represents the response to a list advisors request.
+type AdvisorListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of advisors.
+	Value *[]Advisor `json:"value,omitempty"`
+}
+
+// AdvisorProperties properties for a Database, Server or Elastic Pool Advisor.
+type AdvisorProperties struct {
+	// AdvisorStatus - READ-ONLY; Gets the status of availability of this advisor to customers. Possible values are 'GA', 'PublicPreview', 'LimitedPublicPreview' and 'PrivatePreview'. Possible values include: 'GA', 'PublicPreview', 'LimitedPublicPreview', 'PrivatePreview'
+	AdvisorStatus AdvisorStatus `json:"advisorStatus,omitempty"`
+	// AutoExecuteValue - Gets the auto-execute status (whether to let the system execute the recommendations) of this advisor. Possible values are 'Enabled' and 'Disabled'. Possible values include: 'Enabled', 'Disabled', 'Default'
+	AutoExecuteValue AutoExecuteStatus `json:"autoExecuteValue,omitempty"`
+	// RecommendationsStatus - READ-ONLY; Gets that status of recommendations for this advisor and reason for not having any recommendations. Possible values include, but are not limited to, 'Ok' (Recommendations available), LowActivity (not enough workload to analyze), 'DbSeemsTuned' (Database is doing well), etc.
+	RecommendationsStatus *string `json:"recommendationsStatus,omitempty"`
+	// LastChecked - READ-ONLY; Gets the time when the current resource was analyzed for recommendations by this advisor.
+	LastChecked *date.Time `json:"lastChecked,omitempty"`
+}
+
+// BackupLongTermRetentionPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the
+// results of a long-running operation.
+type BackupLongTermRetentionPoliciesCreateOrUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *BackupLongTermRetentionPoliciesCreateOrUpdateFuture) Result(client BackupLongTermRetentionPoliciesClient) (bltrp BackupLongTermRetentionPolicy, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.BackupLongTermRetentionPoliciesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.BackupLongTermRetentionPoliciesCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if bltrp.Response.Response, err = future.GetResult(sender); err == nil && bltrp.Response.Response.StatusCode != http.StatusNoContent {
+		bltrp, err = client.CreateOrUpdateResponder(bltrp.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "sql.BackupLongTermRetentionPoliciesCreateOrUpdateFuture", "Result", bltrp.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// BackupLongTermRetentionPolicy a backup long term retention policy
+type BackupLongTermRetentionPolicy struct {
+	autorest.Response `json:"-"`
+	// Location - READ-ONLY; The geo-location where the resource lives
+	Location *string `json:"location,omitempty"`
+	// BackupLongTermRetentionPolicyProperties - The properties of the backup long term retention policy
+	*BackupLongTermRetentionPolicyProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for BackupLongTermRetentionPolicy.
+func (bltrp BackupLongTermRetentionPolicy) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if bltrp.BackupLongTermRetentionPolicyProperties != nil {
+		objectMap["properties"] = bltrp.BackupLongTermRetentionPolicyProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for BackupLongTermRetentionPolicy struct.
+func (bltrp *BackupLongTermRetentionPolicy) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				bltrp.Location = &location
+			}
+		case "properties":
+			if v != nil {
+				var backupLongTermRetentionPolicyProperties BackupLongTermRetentionPolicyProperties
+				err = json.Unmarshal(*v, &backupLongTermRetentionPolicyProperties)
+				if err != nil {
+					return err
+				}
+				bltrp.BackupLongTermRetentionPolicyProperties = &backupLongTermRetentionPolicyProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				bltrp.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				bltrp.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				bltrp.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// BackupLongTermRetentionPolicyListResult represents the response to a list long-term retention policies
+// request.
+type BackupLongTermRetentionPolicyListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of long-term retention policies in the database.
+	Value *[]BackupLongTermRetentionPolicy `json:"value,omitempty"`
+}
+
+// BackupLongTermRetentionPolicyProperties the properties of a backup long term retention policy
+type BackupLongTermRetentionPolicyProperties struct {
+	// State - The status of the backup long term retention policy. Possible values include: 'BackupLongTermRetentionPolicyStateDisabled', 'BackupLongTermRetentionPolicyStateEnabled'
+	State BackupLongTermRetentionPolicyState `json:"state,omitempty"`
+	// RecoveryServicesBackupPolicyResourceID - The azure recovery services backup protection policy resource id
+	RecoveryServicesBackupPolicyResourceID *string `json:"recoveryServicesBackupPolicyResourceId,omitempty"`
+}
+
+// BackupLongTermRetentionVault a backup long term retention vault
+type BackupLongTermRetentionVault struct {
+	autorest.Response `json:"-"`
+	// Location - READ-ONLY; The geo-location where the resource lives
+	Location *string `json:"location,omitempty"`
+	// BackupLongTermRetentionVaultProperties - The properties of the backup long term retention vault
+	*BackupLongTermRetentionVaultProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for BackupLongTermRetentionVault.
+func (bltrv BackupLongTermRetentionVault) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if bltrv.BackupLongTermRetentionVaultProperties != nil {
+		objectMap["properties"] = bltrv.BackupLongTermRetentionVaultProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for BackupLongTermRetentionVault struct.
+func (bltrv *BackupLongTermRetentionVault) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				bltrv.Location = &location
+			}
+		case "properties":
+			if v != nil {
+				var backupLongTermRetentionVaultProperties BackupLongTermRetentionVaultProperties
+				err = json.Unmarshal(*v, &backupLongTermRetentionVaultProperties)
+				if err != nil {
+					return err
+				}
+				bltrv.BackupLongTermRetentionVaultProperties = &backupLongTermRetentionVaultProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				bltrv.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				bltrv.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				bltrv.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// BackupLongTermRetentionVaultListResult represents the response to a list vaults request.
+type BackupLongTermRetentionVaultListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of vaults in the server.
+	Value *[]BackupLongTermRetentionVault `json:"value,omitempty"`
+}
+
+// BackupLongTermRetentionVaultProperties the properties of a backup long term retention vault.
+type BackupLongTermRetentionVaultProperties struct {
+	// RecoveryServicesVaultResourceID - The azure recovery services vault resource id
+	RecoveryServicesVaultResourceID *string `json:"recoveryServicesVaultResourceId,omitempty"`
+}
+
+// BackupLongTermRetentionVaultsCreateOrUpdateFuture an abstraction for monitoring and retrieving the
+// results of a long-running operation.
+type BackupLongTermRetentionVaultsCreateOrUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *BackupLongTermRetentionVaultsCreateOrUpdateFuture) Result(client BackupLongTermRetentionVaultsClient) (bltrv BackupLongTermRetentionVault, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.BackupLongTermRetentionVaultsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.BackupLongTermRetentionVaultsCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if bltrv.Response.Response, err = future.GetResult(sender); err == nil && bltrv.Response.Response.StatusCode != http.StatusNoContent {
+		bltrv, err = client.CreateOrUpdateResponder(bltrv.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "sql.BackupLongTermRetentionVaultsCreateOrUpdateFuture", "Result", bltrv.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
 // CheckNameAvailabilityRequest a request to check whether the specified name for a resource is available.
 type CheckNameAvailabilityRequest struct {
 	// Name - The name whose availability is to be checked.
@@ -669,6 +1485,119 @@ func (d *Database) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// DatabaseConnectionPolicy a database connection policy.
+type DatabaseConnectionPolicy struct {
+	autorest.Response `json:"-"`
+	// Kind - READ-ONLY; Resource kind.
+	Kind *string `json:"kind,omitempty"`
+	// Location - READ-ONLY; Resource location.
+	Location *string `json:"location,omitempty"`
+	// DatabaseConnectionPolicyProperties - Resource properties.
+	*DatabaseConnectionPolicyProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for DatabaseConnectionPolicy.
+func (dcp DatabaseConnectionPolicy) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if dcp.DatabaseConnectionPolicyProperties != nil {
+		objectMap["properties"] = dcp.DatabaseConnectionPolicyProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for DatabaseConnectionPolicy struct.
+func (dcp *DatabaseConnectionPolicy) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				dcp.Kind = &kind
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				dcp.Location = &location
+			}
+		case "properties":
+			if v != nil {
+				var databaseConnectionPolicyProperties DatabaseConnectionPolicyProperties
+				err = json.Unmarshal(*v, &databaseConnectionPolicyProperties)
+				if err != nil {
+					return err
+				}
+				dcp.DatabaseConnectionPolicyProperties = &databaseConnectionPolicyProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				dcp.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				dcp.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				dcp.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// DatabaseConnectionPolicyProperties properties of a database connection policy.
+type DatabaseConnectionPolicyProperties struct {
+	// SecurityEnabledAccess - The state of security access.
+	SecurityEnabledAccess *string `json:"securityEnabledAccess,omitempty"`
+	// ProxyDNSName - The fully qualified host name of the auditing proxy.
+	ProxyDNSName *string `json:"proxyDnsName,omitempty"`
+	// ProxyPort - The port number of the auditing proxy.
+	ProxyPort *string `json:"proxyPort,omitempty"`
+	// Visibility - The visibility of the auditing proxy.
+	Visibility *string `json:"visibility,omitempty"`
+	// UseServerDefault - Whether server default is enabled or disabled.
+	UseServerDefault *string `json:"useServerDefault,omitempty"`
+	// RedirectionState - The state of proxy redirection.
+	RedirectionState *string `json:"redirectionState,omitempty"`
+	// State - The connection policy state.
+	State *string `json:"state,omitempty"`
+}
+
 // DatabaseListResult represents the response to a list database request.
 type DatabaseListResult struct {
 	autorest.Response `json:"-"`
@@ -698,7 +1627,7 @@ type DatabaseProperties struct {
 	// Recovery: Creates a database by restoring a geo-replicated backup. sourceDatabaseId must be specified as the recoverable database resource ID to restore.
 	// Restore: Creates a database by restoring a backup of a deleted database. sourceDatabaseId must be specified. If sourceDatabaseId is the database's original resource ID, then sourceDatabaseDeletionDate must be specified. Otherwise sourceDatabaseId must be the restorable dropped database resource ID and sourceDatabaseDeletionDate is ignored. restorePointInTime may also be specified to restore from an earlier point in time.
 	// RestoreLongTermRetentionBackup: Creates a database by restoring from a long term retention vault. recoveryServicesRecoveryPointResourceId must be specified as the recovery point resource ID.
-	// Copy, NonReadableSecondary, OnlineSecondary and RestoreLongTermRetentionBackup are not supported for DataWarehouse edition. Possible values include: 'Copy', 'Default', 'NonReadableSecondary', 'OnlineSecondary', 'PointInTimeRestore', 'Recovery', 'Restore', 'RestoreLongTermRetentionBackup'
+	// Copy, NonReadableSecondary, OnlineSecondary and RestoreLongTermRetentionBackup are not supported for DataWarehouse edition. Possible values include: 'CreateModeCopy', 'CreateModeDefault', 'CreateModeNonReadableSecondary', 'CreateModeOnlineSecondary', 'CreateModePointInTimeRestore', 'CreateModeRecovery', 'CreateModeRestore', 'CreateModeRestoreLongTermRetentionBackup'
 	CreateMode CreateMode `json:"createMode,omitempty"`
 	// SourceDatabaseID - Conditional. If createMode is Copy, NonReadableSecondary, OnlineSecondary, PointInTimeRestore, Recovery, or Restore, then this value is required. Specifies the resource ID of the source database. If createMode is NonReadableSecondary or OnlineSecondary, the name of the source database must be the same as the new database being created.
 	SourceDatabaseID *string `json:"sourceDatabaseId,omitempty"`
@@ -1073,6 +2002,137 @@ func (future *DatabasesUpdateFuture) Result(client DatabasesClient) (d Database,
 	return
 }
 
+// DatabaseTableAuditingPolicy a database table auditing policy.
+type DatabaseTableAuditingPolicy struct {
+	autorest.Response `json:"-"`
+	// Kind - READ-ONLY; Resource kind.
+	Kind *string `json:"kind,omitempty"`
+	// Location - READ-ONLY; Resource location.
+	Location *string `json:"location,omitempty"`
+	// DatabaseTableAuditingPolicyProperties - Resource properties.
+	*DatabaseTableAuditingPolicyProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for DatabaseTableAuditingPolicy.
+func (dtap DatabaseTableAuditingPolicy) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if dtap.DatabaseTableAuditingPolicyProperties != nil {
+		objectMap["properties"] = dtap.DatabaseTableAuditingPolicyProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for DatabaseTableAuditingPolicy struct.
+func (dtap *DatabaseTableAuditingPolicy) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				dtap.Kind = &kind
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				dtap.Location = &location
+			}
+		case "properties":
+			if v != nil {
+				var databaseTableAuditingPolicyProperties DatabaseTableAuditingPolicyProperties
+				err = json.Unmarshal(*v, &databaseTableAuditingPolicyProperties)
+				if err != nil {
+					return err
+				}
+				dtap.DatabaseTableAuditingPolicyProperties = &databaseTableAuditingPolicyProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				dtap.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				dtap.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				dtap.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// DatabaseTableAuditingPolicyListResult represents the response to a list database table auditing policies
+// request.
+type DatabaseTableAuditingPolicyListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of database table auditing policies.
+	Value *[]DatabaseTableAuditingPolicy `json:"value,omitempty"`
+}
+
+// DatabaseTableAuditingPolicyProperties properties of a database table auditing policy.
+type DatabaseTableAuditingPolicyProperties struct {
+	// UseServerDefault - Whether server default is enabled or disabled.
+	UseServerDefault *string `json:"useServerDefault,omitempty"`
+	// AuditingState - The state of the policy.
+	AuditingState *string `json:"auditingState,omitempty"`
+	// AuditLogsTableName - The audit logs table name.
+	AuditLogsTableName *string `json:"auditLogsTableName,omitempty"`
+	// EventTypesToAudit - Comma-separated list of event types to audit.
+	EventTypesToAudit *string `json:"eventTypesToAudit,omitempty"`
+	// FullAuditLogsTableName - The full audit logs table name.
+	FullAuditLogsTableName *string `json:"fullAuditLogsTableName,omitempty"`
+	// RetentionDays - The number of days to keep in the audit logs.
+	RetentionDays *string `json:"retentionDays,omitempty"`
+	// StorageAccountKey - The key of the auditing storage account.
+	StorageAccountKey *string `json:"storageAccountKey,omitempty"`
+	// StorageAccountName - The table storage account name
+	StorageAccountName *string `json:"storageAccountName,omitempty"`
+	// StorageAccountResourceGroupName - The table storage account resource group name
+	StorageAccountResourceGroupName *string `json:"storageAccountResourceGroupName,omitempty"`
+	// StorageAccountSecondaryKey - The secondary key of the auditing storage account.
+	StorageAccountSecondaryKey *string `json:"storageAccountSecondaryKey,omitempty"`
+	// StorageAccountSubscriptionID - The table storage subscription Id.
+	StorageAccountSubscriptionID *uuid.UUID `json:"storageAccountSubscriptionId,omitempty"`
+	// StorageTableEndpoint - The storage table endpoint.
+	StorageTableEndpoint *string `json:"storageTableEndpoint,omitempty"`
+}
+
 // DatabaseUpdate represents a database update.
 type DatabaseUpdate struct {
 	// Tags - Resource tags.
@@ -1157,6 +2217,488 @@ func (du *DatabaseUpdate) UnmarshalJSON(body []byte) error {
 	}
 
 	return nil
+}
+
+// DatabaseUsage the database usages.
+type DatabaseUsage struct {
+	// Name - READ-ONLY; The name of the usage metric.
+	Name *string `json:"name,omitempty"`
+	// ResourceName - READ-ONLY; The name of the resource.
+	ResourceName *string `json:"resourceName,omitempty"`
+	// DisplayName - READ-ONLY; The usage metric display name.
+	DisplayName *string `json:"displayName,omitempty"`
+	// CurrentValue - READ-ONLY; The current value of the usage metric.
+	CurrentValue *float64 `json:"currentValue,omitempty"`
+	// Limit - READ-ONLY; The current limit of the usage metric.
+	Limit *float64 `json:"limit,omitempty"`
+	// Unit - READ-ONLY; The units of the usage metric.
+	Unit *string `json:"unit,omitempty"`
+	// NextResetTime - READ-ONLY; The next reset time for the usage metric (ISO8601 format).
+	NextResetTime *date.Time `json:"nextResetTime,omitempty"`
+}
+
+// DatabaseUsageListResult the response to a list database metrics request.
+type DatabaseUsageListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of database usages for the database.
+	Value *[]DatabaseUsage `json:"value,omitempty"`
+}
+
+// DataMaskingPolicy represents a database data masking policy.
+type DataMaskingPolicy struct {
+	autorest.Response `json:"-"`
+	// DataMaskingPolicyProperties - The properties of the data masking policy.
+	*DataMaskingPolicyProperties `json:"properties,omitempty"`
+	// Location - READ-ONLY; The location of the data masking policy.
+	Location *string `json:"location,omitempty"`
+	// Kind - READ-ONLY; The kind of data masking policy. Metadata, used for Azure portal.
+	Kind *string `json:"kind,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for DataMaskingPolicy.
+func (dmp DataMaskingPolicy) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if dmp.DataMaskingPolicyProperties != nil {
+		objectMap["properties"] = dmp.DataMaskingPolicyProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for DataMaskingPolicy struct.
+func (dmp *DataMaskingPolicy) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var dataMaskingPolicyProperties DataMaskingPolicyProperties
+				err = json.Unmarshal(*v, &dataMaskingPolicyProperties)
+				if err != nil {
+					return err
+				}
+				dmp.DataMaskingPolicyProperties = &dataMaskingPolicyProperties
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				dmp.Location = &location
+			}
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				dmp.Kind = &kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				dmp.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				dmp.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				dmp.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// DataMaskingPolicyProperties the properties of a database data masking policy.
+type DataMaskingPolicyProperties struct {
+	// DataMaskingState - The state of the data masking policy. Possible values include: 'DataMaskingStateDisabled', 'DataMaskingStateEnabled'
+	DataMaskingState DataMaskingState `json:"dataMaskingState,omitempty"`
+	// ExemptPrincipals - The list of the exempt principals. Specifies the semicolon-separated list of database users for which the data masking policy does not apply. The specified users receive data results without masking for all of the database queries.
+	ExemptPrincipals *string `json:"exemptPrincipals,omitempty"`
+	// ApplicationPrincipals - READ-ONLY; The list of the application principals. This is a legacy parameter and is no longer used.
+	ApplicationPrincipals *string `json:"applicationPrincipals,omitempty"`
+	// MaskingLevel - READ-ONLY; The masking level. This is a legacy parameter and is no longer used.
+	MaskingLevel *string `json:"maskingLevel,omitempty"`
+}
+
+// DataMaskingRule represents a database data masking rule.
+type DataMaskingRule struct {
+	autorest.Response `json:"-"`
+	// DataMaskingRuleProperties - The properties of the resource.
+	*DataMaskingRuleProperties `json:"properties,omitempty"`
+	// Location - READ-ONLY; The location of the data masking rule.
+	Location *string `json:"location,omitempty"`
+	// Kind - READ-ONLY; The kind of Data Masking Rule. Metadata, used for Azure portal.
+	Kind *string `json:"kind,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for DataMaskingRule.
+func (dmr DataMaskingRule) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if dmr.DataMaskingRuleProperties != nil {
+		objectMap["properties"] = dmr.DataMaskingRuleProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for DataMaskingRule struct.
+func (dmr *DataMaskingRule) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var dataMaskingRuleProperties DataMaskingRuleProperties
+				err = json.Unmarshal(*v, &dataMaskingRuleProperties)
+				if err != nil {
+					return err
+				}
+				dmr.DataMaskingRuleProperties = &dataMaskingRuleProperties
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				dmr.Location = &location
+			}
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				dmr.Kind = &kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				dmr.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				dmr.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				dmr.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// DataMaskingRuleListResult the response to a list data masking rules request.
+type DataMaskingRuleListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of database data masking rules.
+	Value *[]DataMaskingRule `json:"value,omitempty"`
+}
+
+// DataMaskingRuleProperties the properties of a database data masking rule.
+type DataMaskingRuleProperties struct {
+	// ID - READ-ONLY; The rule Id.
+	ID *string `json:"id,omitempty"`
+	// AliasName - The alias name. This is a legacy parameter and is no longer used.
+	AliasName *string `json:"aliasName,omitempty"`
+	// RuleState - The rule state. Used to delete a rule. To delete an existing rule, specify the schemaName, tableName, columnName, maskingFunction, and specify ruleState as disabled. However, if the rule doesn't already exist, the rule will be created with ruleState set to enabled, regardless of the provided value of ruleState. Possible values include: 'DataMaskingRuleStateDisabled', 'DataMaskingRuleStateEnabled'
+	RuleState DataMaskingRuleState `json:"ruleState,omitempty"`
+	// SchemaName - The schema name on which the data masking rule is applied.
+	SchemaName *string `json:"schemaName,omitempty"`
+	// TableName - The table name on which the data masking rule is applied.
+	TableName *string `json:"tableName,omitempty"`
+	// ColumnName - The column name on which the data masking rule is applied.
+	ColumnName *string `json:"columnName,omitempty"`
+	// MaskingFunction - The masking function that is used for the data masking rule. Possible values include: 'DataMaskingFunctionDefault', 'DataMaskingFunctionCCN', 'DataMaskingFunctionEmail', 'DataMaskingFunctionNumber', 'DataMaskingFunctionSSN', 'DataMaskingFunctionText'
+	MaskingFunction DataMaskingFunction `json:"maskingFunction,omitempty"`
+	// NumberFrom - The numberFrom property of the masking rule. Required if maskingFunction is set to Number, otherwise this parameter will be ignored.
+	NumberFrom *string `json:"numberFrom,omitempty"`
+	// NumberTo - The numberTo property of the data masking rule. Required if maskingFunction is set to Number, otherwise this parameter will be ignored.
+	NumberTo *string `json:"numberTo,omitempty"`
+	// PrefixSize - If maskingFunction is set to Text, the number of characters to show unmasked in the beginning of the string. Otherwise, this parameter will be ignored.
+	PrefixSize *string `json:"prefixSize,omitempty"`
+	// SuffixSize - If maskingFunction is set to Text, the number of characters to show unmasked at the end of the string. Otherwise, this parameter will be ignored.
+	SuffixSize *string `json:"suffixSize,omitempty"`
+	// ReplacementString - If maskingFunction is set to Text, the character to use for masking the unexposed part of the string. Otherwise, this parameter will be ignored.
+	ReplacementString *string `json:"replacementString,omitempty"`
+}
+
+// DisasterRecoveryConfiguration represents a disaster recovery configuration.
+type DisasterRecoveryConfiguration struct {
+	autorest.Response `json:"-"`
+	// DisasterRecoveryConfigurationProperties - The properties representing the resource.
+	*DisasterRecoveryConfigurationProperties `json:"properties,omitempty"`
+	// Location - READ-ONLY; Location of the server that contains this disaster recovery configuration.
+	Location *string `json:"location,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for DisasterRecoveryConfiguration.
+func (drc DisasterRecoveryConfiguration) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if drc.DisasterRecoveryConfigurationProperties != nil {
+		objectMap["properties"] = drc.DisasterRecoveryConfigurationProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for DisasterRecoveryConfiguration struct.
+func (drc *DisasterRecoveryConfiguration) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var disasterRecoveryConfigurationProperties DisasterRecoveryConfigurationProperties
+				err = json.Unmarshal(*v, &disasterRecoveryConfigurationProperties)
+				if err != nil {
+					return err
+				}
+				drc.DisasterRecoveryConfigurationProperties = &disasterRecoveryConfigurationProperties
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				drc.Location = &location
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				drc.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				drc.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				drc.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// DisasterRecoveryConfigurationListResult represents the response to a List disaster recovery
+// configuration request.
+type DisasterRecoveryConfigurationListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of disaster recovery configurations housed under the server.
+	Value *[]DisasterRecoveryConfiguration `json:"value,omitempty"`
+}
+
+// DisasterRecoveryConfigurationProperties represents the properties of a disaster recovery configuration.
+type DisasterRecoveryConfigurationProperties struct {
+	// Status - READ-ONLY; The status of the disaster recovery configuration. Possible values include: 'Creating', 'Ready', 'FailingOver', 'Dropping'
+	Status DisasterRecoveryConfigurationStatus `json:"status,omitempty"`
+	// AutoFailover - Whether or not failover can be done automatically. Possible values include: 'Off', 'On'
+	AutoFailover DisasterRecoveryConfigurationAutoFailover `json:"autoFailover,omitempty"`
+	// FailoverPolicy - How aggressive the automatic failover should be. Possible values include: 'Manual', 'Automatic'
+	FailoverPolicy DisasterRecoveryConfigurationFailoverPolicy `json:"failoverPolicy,omitempty"`
+	// PartnerServerID - Id of the partner server.
+	PartnerServerID *string `json:"partnerServerId,omitempty"`
+	// LogicalServerName - READ-ONLY; Logical name of the server.
+	LogicalServerName *string `json:"logicalServerName,omitempty"`
+	// PartnerLogicalServerName - READ-ONLY; Logical name of the partner server.
+	PartnerLogicalServerName *string `json:"partnerLogicalServerName,omitempty"`
+	// Role - READ-ONLY; The role of the current server in the disaster recovery configuration. Possible values include: 'None', 'Primary', 'Secondary'
+	Role DisasterRecoveryConfigurationRole `json:"role,omitempty"`
+}
+
+// DisasterRecoveryConfigurationsCreateOrUpdateFuture an abstraction for monitoring and retrieving the
+// results of a long-running operation.
+type DisasterRecoveryConfigurationsCreateOrUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *DisasterRecoveryConfigurationsCreateOrUpdateFuture) Result(client DisasterRecoveryConfigurationsClient) (drc DisasterRecoveryConfiguration, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.DisasterRecoveryConfigurationsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.DisasterRecoveryConfigurationsCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if drc.Response.Response, err = future.GetResult(sender); err == nil && drc.Response.Response.StatusCode != http.StatusNoContent {
+		drc, err = client.CreateOrUpdateResponder(drc.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "sql.DisasterRecoveryConfigurationsCreateOrUpdateFuture", "Result", drc.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// DisasterRecoveryConfigurationsDeleteFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type DisasterRecoveryConfigurationsDeleteFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *DisasterRecoveryConfigurationsDeleteFuture) Result(client DisasterRecoveryConfigurationsClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.DisasterRecoveryConfigurationsDeleteFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.DisasterRecoveryConfigurationsDeleteFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
+// DisasterRecoveryConfigurationsFailoverAllowDataLossFuture an abstraction for monitoring and retrieving
+// the results of a long-running operation.
+type DisasterRecoveryConfigurationsFailoverAllowDataLossFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *DisasterRecoveryConfigurationsFailoverAllowDataLossFuture) Result(client DisasterRecoveryConfigurationsClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.DisasterRecoveryConfigurationsFailoverAllowDataLossFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.DisasterRecoveryConfigurationsFailoverAllowDataLossFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
+// DisasterRecoveryConfigurationsFailoverFuture an abstraction for monitoring and retrieving the results of
+// a long-running operation.
+type DisasterRecoveryConfigurationsFailoverFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *DisasterRecoveryConfigurationsFailoverFuture) Result(client DisasterRecoveryConfigurationsClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.DisasterRecoveryConfigurationsFailoverFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.DisasterRecoveryConfigurationsFailoverFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
+// EditionCapability the database edition capabilities.
+type EditionCapability struct {
+	// Name - READ-ONLY; The edition name.
+	Name *string `json:"name,omitempty"`
+	// Status - READ-ONLY; The status of the edition. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	Status CapabilityStatus `json:"status,omitempty"`
+	// SupportedServiceLevelObjectives - READ-ONLY; The list of supported service objectives for the edition.
+	SupportedServiceLevelObjectives *[]ServiceObjectiveCapability `json:"supportedServiceLevelObjectives,omitempty"`
+	// ZoneRedundant - READ-ONLY; Whether or not zone redundancy is supported for the edition.
+	ZoneRedundant *bool `json:"zoneRedundant,omitempty"`
 }
 
 // ElasticPool represents a database elastic pool.
@@ -1536,6 +3078,36 @@ type ElasticPoolDatabaseActivityProperties struct {
 	State *string `json:"state,omitempty"`
 }
 
+// ElasticPoolDtuCapability the Elastic Pool DTU capability.
+type ElasticPoolDtuCapability struct {
+	// Limit - READ-ONLY; The maximum size of the database (see 'unit' for the units).
+	Limit *int64 `json:"limit,omitempty"`
+	// MaxDatabaseCount - READ-ONLY; The maximum number of databases supported.
+	MaxDatabaseCount *int64 `json:"maxDatabaseCount,omitempty"`
+	// Status - READ-ONLY; The status of the capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	Status CapabilityStatus `json:"status,omitempty"`
+	// SupportedMaxSizes - READ-ONLY; The list of supported max sizes.
+	SupportedMaxSizes *[]MaxSizeCapability `json:"supportedMaxSizes,omitempty"`
+	// IncludedMaxSize - READ-ONLY; The included (free) max size for this service level objective.
+	IncludedMaxSize *MaxSizeCapability `json:"includedMaxSize,omitempty"`
+	// SupportedPerDatabaseMaxSizes - READ-ONLY; The list of supported max database sizes.
+	SupportedPerDatabaseMaxSizes *[]MaxSizeCapability `json:"supportedPerDatabaseMaxSizes,omitempty"`
+	// SupportedPerDatabaseMaxDtus - READ-ONLY; The list of supported max database DTUs.
+	SupportedPerDatabaseMaxDtus *[]ElasticPoolPerDatabaseMaxDtuCapability `json:"supportedPerDatabaseMaxDtus,omitempty"`
+}
+
+// ElasticPoolEditionCapability the elastic pool edition capabilities.
+type ElasticPoolEditionCapability struct {
+	// Name - READ-ONLY; The elastic pool edition name.
+	Name *string `json:"name,omitempty"`
+	// Status - READ-ONLY; The status of the elastic pool edition. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	Status CapabilityStatus `json:"status,omitempty"`
+	// SupportedElasticPoolDtus - READ-ONLY; The list of supported elastic pool DTU levels for the edition.
+	SupportedElasticPoolDtus *[]ElasticPoolDtuCapability `json:"supportedElasticPoolDtus,omitempty"`
+	// ZoneRedundant - READ-ONLY; Whether or not zone redundancy is supported for the edition.
+	ZoneRedundant *bool `json:"zoneRedundant,omitempty"`
+}
+
 // ElasticPoolListResult represents the response to a list elastic pool request.
 type ElasticPoolListResult struct {
 	autorest.Response `json:"-"`
@@ -1543,11 +3115,29 @@ type ElasticPoolListResult struct {
 	Value *[]ElasticPool `json:"value,omitempty"`
 }
 
+// ElasticPoolPerDatabaseMaxDtuCapability the max per-database DTU capability.
+type ElasticPoolPerDatabaseMaxDtuCapability struct {
+	// Limit - READ-ONLY; The maximum DTUs per database.
+	Limit *int64 `json:"limit,omitempty"`
+	// Status - READ-ONLY; The status of the capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	Status CapabilityStatus `json:"status,omitempty"`
+	// SupportedPerDatabaseMinDtus - READ-ONLY; The list of supported min database DTUs.
+	SupportedPerDatabaseMinDtus *[]ElasticPoolPerDatabaseMinDtuCapability `json:"supportedPerDatabaseMinDtus,omitempty"`
+}
+
+// ElasticPoolPerDatabaseMinDtuCapability the minimum per-database DTU capability.
+type ElasticPoolPerDatabaseMinDtuCapability struct {
+	// Limit - READ-ONLY; The maximum DTUs per database.
+	Limit *int64 `json:"limit,omitempty"`
+	// Status - READ-ONLY; The status of the capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	Status CapabilityStatus `json:"status,omitempty"`
+}
+
 // ElasticPoolProperties represents the properties of an elastic pool.
 type ElasticPoolProperties struct {
 	// CreationDate - READ-ONLY; The creation date of the elastic pool (ISO8601 format).
 	CreationDate *date.Time `json:"creationDate,omitempty"`
-	// State - READ-ONLY; The state of the elastic pool. Possible values include: 'Creating', 'Ready', 'Disabled'
+	// State - READ-ONLY; The state of the elastic pool. Possible values include: 'ElasticPoolStateCreating', 'ElasticPoolStateReady', 'ElasticPoolStateDisabled'
 	State ElasticPoolState `json:"state,omitempty"`
 	// Edition - The edition of the elastic pool. Possible values include: 'ElasticPoolEditionBasic', 'ElasticPoolEditionStandard', 'ElasticPoolEditionPremium', 'ElasticPoolEditionGeneralPurpose', 'ElasticPoolEditionBusinessCritical'
 	Edition ElasticPoolEdition `json:"edition,omitempty"`
@@ -1723,6 +3313,13 @@ type ExportRequest struct {
 	AuthenticationType AuthenticationType `json:"authenticationType,omitempty"`
 }
 
+// ExtensionListResult represents the response to a list extensions request.
+type ExtensionListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of extensions.
+	Value *[]interface{} `json:"value,omitempty"`
+}
+
 // FirewallRule represents a server firewall rule.
 type FirewallRule struct {
 	autorest.Response `json:"-"`
@@ -1831,6 +3428,116 @@ type FirewallRuleProperties struct {
 	StartIPAddress *string `json:"startIpAddress,omitempty"`
 	// EndIPAddress - The end IP address of the firewall rule. Must be IPv4 format. Must be greater than or equal to startIpAddress. Use value '0.0.0.0' to represent all Azure-internal IP addresses.
 	EndIPAddress *string `json:"endIpAddress,omitempty"`
+}
+
+// GeoBackupPolicy a database geo backup policy.
+type GeoBackupPolicy struct {
+	autorest.Response `json:"-"`
+	// GeoBackupPolicyProperties - The properties of the geo backup policy.
+	*GeoBackupPolicyProperties `json:"properties,omitempty"`
+	// Kind - READ-ONLY; Kind of geo backup policy.  This is metadata used for the Azure portal experience.
+	Kind *string `json:"kind,omitempty"`
+	// Location - READ-ONLY; Backup policy location.
+	Location *string `json:"location,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for GeoBackupPolicy.
+func (gbp GeoBackupPolicy) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if gbp.GeoBackupPolicyProperties != nil {
+		objectMap["properties"] = gbp.GeoBackupPolicyProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for GeoBackupPolicy struct.
+func (gbp *GeoBackupPolicy) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var geoBackupPolicyProperties GeoBackupPolicyProperties
+				err = json.Unmarshal(*v, &geoBackupPolicyProperties)
+				if err != nil {
+					return err
+				}
+				gbp.GeoBackupPolicyProperties = &geoBackupPolicyProperties
+			}
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				gbp.Kind = &kind
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				gbp.Location = &location
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				gbp.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				gbp.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				gbp.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// GeoBackupPolicyListResult the response to a list geo backup policies request.
+type GeoBackupPolicyListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of geo backup policies.
+	Value *[]GeoBackupPolicy `json:"value,omitempty"`
+}
+
+// GeoBackupPolicyProperties the properties of the geo backup policy.
+type GeoBackupPolicyProperties struct {
+	// State - The state of the geo backup policy. Possible values include: 'GeoBackupPolicyStateDisabled', 'GeoBackupPolicyStateEnabled'
+	State GeoBackupPolicyState `json:"state,omitempty"`
+	// StorageType - READ-ONLY; The storage type of the geo backup policy.
+	StorageType *string `json:"storageType,omitempty"`
 }
 
 // ImportExportResponse response for Import/Export Get operation.
@@ -2048,6 +3755,121 @@ type ImportRequest struct {
 	AuthenticationType AuthenticationType `json:"authenticationType,omitempty"`
 }
 
+// LocationCapabilities the capabilities for a location.
+type LocationCapabilities struct {
+	autorest.Response `json:"-"`
+	// Name - READ-ONLY; The location name.
+	Name *string `json:"name,omitempty"`
+	// Status - READ-ONLY; Azure SQL Database's status for the location. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	Status CapabilityStatus `json:"status,omitempty"`
+	// SupportedServerVersions - READ-ONLY; The list of supported server versions.
+	SupportedServerVersions *[]ServerVersionCapability `json:"supportedServerVersions,omitempty"`
+}
+
+// MaxSizeCapability the maximum size limits for a database.
+type MaxSizeCapability struct {
+	// Limit - READ-ONLY; The maximum size of the database (see 'unit' for the units).
+	Limit *int64 `json:"limit,omitempty"`
+	// Unit - READ-ONLY; The units that the limit is expressed in. Possible values include: 'Megabytes', 'Gigabytes', 'Terabytes', 'Petabytes'
+	Unit MaxSizeUnits `json:"unit,omitempty"`
+	// Status - READ-ONLY; The status of the maximum size capability. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	Status CapabilityStatus `json:"status,omitempty"`
+}
+
+// Metric database metrics.
+type Metric struct {
+	// StartTime - READ-ONLY; The start time for the metric (ISO-8601 format).
+	StartTime *date.Time `json:"startTime,omitempty"`
+	// EndTime - READ-ONLY; The end time for the metric (ISO-8601 format).
+	EndTime *date.Time `json:"endTime,omitempty"`
+	// TimeGrain - READ-ONLY; The time step to be used to summarize the metric values.
+	TimeGrain *string `json:"timeGrain,omitempty"`
+	// Unit - READ-ONLY; The unit of the metric. Possible values include: 'UnitTypeCount', 'UnitTypeBytes', 'UnitTypeSeconds', 'UnitTypePercent', 'UnitTypeCountPerSecond', 'UnitTypeBytesPerSecond'
+	Unit UnitType `json:"unit,omitempty"`
+	// Name - READ-ONLY; The name information for the metric.
+	Name *MetricName `json:"name,omitempty"`
+	// MetricValues - READ-ONLY; The metric values for the specified time window and timestep.
+	MetricValues *[]MetricValue `json:"metricValues,omitempty"`
+}
+
+// MetricAvailability a metric availability value.
+type MetricAvailability struct {
+	// Retention - READ-ONLY; The length of retention for the database metric.
+	Retention *string `json:"retention,omitempty"`
+	// TimeGrain - READ-ONLY; The granularity of the database metric.
+	TimeGrain *string `json:"timeGrain,omitempty"`
+}
+
+// MetricDefinition a database metric definition.
+type MetricDefinition struct {
+	// Name - READ-ONLY; The name information for the metric.
+	Name *MetricName `json:"name,omitempty"`
+	// PrimaryAggregationType - READ-ONLY; The primary aggregation type defining how metric values are displayed. Possible values include: 'PrimaryAggregationTypeNone', 'PrimaryAggregationTypeAverage', 'PrimaryAggregationTypeCount', 'PrimaryAggregationTypeMinimum', 'PrimaryAggregationTypeMaximum', 'PrimaryAggregationTypeTotal'
+	PrimaryAggregationType PrimaryAggregationType `json:"primaryAggregationType,omitempty"`
+	// ResourceURI - READ-ONLY; The resource uri of the database.
+	ResourceURI *string `json:"resourceUri,omitempty"`
+	// Unit - READ-ONLY; The unit of the metric. Possible values include: 'Count', 'Bytes', 'Seconds', 'Percent', 'CountPerSecond', 'BytesPerSecond'
+	Unit UnitDefinitionType `json:"unit,omitempty"`
+	// MetricAvailabilities - READ-ONLY; The list of database metric availabilities for the metric.
+	MetricAvailabilities *[]MetricAvailability `json:"metricAvailabilities,omitempty"`
+}
+
+// MetricDefinitionListResult the response to a list database metric definitions request.
+type MetricDefinitionListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of metric definitions for the database.
+	Value *[]MetricDefinition `json:"value,omitempty"`
+}
+
+// MetricListResult the response to a list database metrics request.
+type MetricListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of metrics for the database.
+	Value *[]Metric `json:"value,omitempty"`
+}
+
+// MetricName a database metric name.
+type MetricName struct {
+	// Value - READ-ONLY; The name of the database metric.
+	Value *string `json:"value,omitempty"`
+	// LocalizedValue - READ-ONLY; The friendly name of the database metric.
+	LocalizedValue *string `json:"localizedValue,omitempty"`
+}
+
+// MetricValue represents database metrics.
+type MetricValue struct {
+	// Count - READ-ONLY; The number of values for the metric.
+	Count *float64 `json:"count,omitempty"`
+	// Average - READ-ONLY; The average value of the metric.
+	Average *float64 `json:"average,omitempty"`
+	// Maximum - READ-ONLY; The max value of the metric.
+	Maximum *float64 `json:"maximum,omitempty"`
+	// Minimum - READ-ONLY; The min value of the metric.
+	Minimum *float64 `json:"minimum,omitempty"`
+	// Timestamp - READ-ONLY; The metric timestamp (ISO-8601 format).
+	Timestamp *date.Time `json:"timestamp,omitempty"`
+	// Total - READ-ONLY; The total value of the metric.
+	Total *float64 `json:"total,omitempty"`
+}
+
+// Operation SQL REST API operation definition.
+type Operation struct {
+	// Name - Operation name: {provider}/{resource}/{operation}
+	Name *string `json:"name,omitempty"`
+	// Display - Display metadata associated with the operation.
+	Display *OperationDisplay `json:"display,omitempty"`
+}
+
+// OperationDisplay display metadata associated with the operation.
+type OperationDisplay struct {
+	// Provider - Service provider: Microsoft SQL Database.
+	Provider *string `json:"provider,omitempty"`
+	// Resource - Resource on which the operation is performed: Server, Database, etc.
+	Resource *string `json:"resource,omitempty"`
+	// Operation - Type of operation: get, read, delete, etc.
+	Operation *string `json:"operation,omitempty"`
+}
+
 // OperationImpact the impact of an operation, both in absolute and relative terms.
 type OperationImpact struct {
 	// Name - READ-ONLY; The name of the impact dimension.
@@ -2060,6 +3882,24 @@ type OperationImpact struct {
 	ChangeValueRelative *float64 `json:"changeValueRelative,omitempty"`
 }
 
+// OperationListResult result of the request to list SQL operations. It contains a list of operations and a
+// URL link to get the next set of results.
+type OperationListResult struct {
+	autorest.Response `json:"-"`
+	// Value - List of SQL operations supported by the SQL resource provider.
+	Value *[]Operation `json:"value,omitempty"`
+	// NextLink - URL to get the next set of operation list results if there are any.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// PerformanceLevel a possible performance level of a service objective capability.
+type PerformanceLevel struct {
+	// Unit - READ-ONLY; Unit type used to measure service objective performance level. Possible values include: 'DTU'
+	Unit PerformanceLevelUnit `json:"unit,omitempty"`
+	// Value - READ-ONLY; Performance level value.
+	Value *int32 `json:"value,omitempty"`
+}
+
 // ProxyResource ARM proxy resource.
 type ProxyResource struct {
 	// ID - READ-ONLY; Resource ID.
@@ -2068,6 +3908,60 @@ type ProxyResource struct {
 	Name *string `json:"name,omitempty"`
 	// Type - READ-ONLY; Resource type.
 	Type *string `json:"type,omitempty"`
+}
+
+// QueryInterval a database query.
+type QueryInterval struct {
+	// IntervalStartTime - READ-ONLY; The start time of the measurement interval (ISO8601 format).
+	IntervalStartTime *date.Time `json:"intervalStartTime,omitempty"`
+	// ExecutionCount - READ-ONLY; The number of times the query was executed during this interval.
+	ExecutionCount *float64 `json:"executionCount,omitempty"`
+	// Metrics - READ-ONLY; The list of query metrics during this interval.
+	Metrics *[]QueryMetric `json:"metrics,omitempty"`
+}
+
+// QueryMetric a database query.
+type QueryMetric struct {
+	// Name - READ-ONLY; The name of the metric
+	Name *string `json:"name,omitempty"`
+	// DisplayName - READ-ONLY; The name of the metric for display in user interface
+	DisplayName *string `json:"displayName,omitempty"`
+	// Unit - READ-ONLY; The unit of measurement. Possible values include: 'Percentage', 'KB', 'Microseconds'
+	Unit QueryMetricUnit `json:"unit,omitempty"`
+	// Value - READ-ONLY; The measured value
+	Value *float64 `json:"value,omitempty"`
+}
+
+// QueryStatistic a database query.
+type QueryStatistic struct {
+	// QueryID - READ-ONLY; The id of the query
+	QueryID *string `json:"queryId,omitempty"`
+	// Intervals - READ-ONLY; The list of query intervals.
+	Intervals *[]QueryInterval `json:"intervals,omitempty"`
+}
+
+// QueryStatisticListResult represents the response to a get query request.
+type QueryStatisticListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The query.
+	Value *[]QueryStatistic `json:"value,omitempty"`
+}
+
+// QueryText ...
+type QueryText struct {
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+	// QueryText - READ-ONLY; Query text.
+	QueryText *string `json:"queryText,omitempty"`
+}
+
+// QueryTextListResult represents the response to a get query text request.
+type QueryTextListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The query text.
+	Value *[]QueryText `json:"value,omitempty"`
 }
 
 // RecommendedElasticPool represents a recommended elastic pool.
@@ -2291,6 +4185,98 @@ type RecommendedIndexProperties struct {
 	ReportedImpact *[]OperationImpact `json:"reportedImpact,omitempty"`
 }
 
+// RecoverableDatabase a recoverable database
+type RecoverableDatabase struct {
+	autorest.Response `json:"-"`
+	// RecoverableDatabaseProperties - The properties of a recoverable database
+	*RecoverableDatabaseProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for RecoverableDatabase.
+func (rd RecoverableDatabase) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if rd.RecoverableDatabaseProperties != nil {
+		objectMap["properties"] = rd.RecoverableDatabaseProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for RecoverableDatabase struct.
+func (rd *RecoverableDatabase) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var recoverableDatabaseProperties RecoverableDatabaseProperties
+				err = json.Unmarshal(*v, &recoverableDatabaseProperties)
+				if err != nil {
+					return err
+				}
+				rd.RecoverableDatabaseProperties = &recoverableDatabaseProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				rd.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				rd.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				rd.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// RecoverableDatabaseListResult the response to a list recoverable databases request
+type RecoverableDatabaseListResult struct {
+	autorest.Response `json:"-"`
+	// Value - A list of recoverable databases
+	Value *[]RecoverableDatabase `json:"value,omitempty"`
+}
+
+// RecoverableDatabaseProperties the properties of a recoverable database
+type RecoverableDatabaseProperties struct {
+	// Edition - READ-ONLY; The edition of the database
+	Edition *string `json:"edition,omitempty"`
+	// ServiceLevelObjective - READ-ONLY; The service level objective name of the database
+	ServiceLevelObjective *string `json:"serviceLevelObjective,omitempty"`
+	// ElasticPoolName - READ-ONLY; The elastic pool name of the database
+	ElasticPoolName *string `json:"elasticPoolName,omitempty"`
+	// LastAvailableBackupDate - READ-ONLY; The last available backup date of the database (ISO8601 format)
+	LastAvailableBackupDate *date.Time `json:"lastAvailableBackupDate,omitempty"`
+}
+
 // ReplicationLink represents a database replication link.
 type ReplicationLink struct {
 	autorest.Response `json:"-"`
@@ -2462,6 +4448,1170 @@ type Resource struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// RestorableDroppedDatabase a restorable dropped database
+type RestorableDroppedDatabase struct {
+	autorest.Response `json:"-"`
+	// Location - READ-ONLY; The geo-location where the resource lives
+	Location *string `json:"location,omitempty"`
+	// RestorableDroppedDatabaseProperties - The properties of a restorable dropped database
+	*RestorableDroppedDatabaseProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for RestorableDroppedDatabase.
+func (rdd RestorableDroppedDatabase) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if rdd.RestorableDroppedDatabaseProperties != nil {
+		objectMap["properties"] = rdd.RestorableDroppedDatabaseProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for RestorableDroppedDatabase struct.
+func (rdd *RestorableDroppedDatabase) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				rdd.Location = &location
+			}
+		case "properties":
+			if v != nil {
+				var restorableDroppedDatabaseProperties RestorableDroppedDatabaseProperties
+				err = json.Unmarshal(*v, &restorableDroppedDatabaseProperties)
+				if err != nil {
+					return err
+				}
+				rdd.RestorableDroppedDatabaseProperties = &restorableDroppedDatabaseProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				rdd.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				rdd.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				rdd.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// RestorableDroppedDatabaseListResult the response to a list restorable dropped databases request
+type RestorableDroppedDatabaseListResult struct {
+	autorest.Response `json:"-"`
+	// Value - A list of restorable dropped databases
+	Value *[]RestorableDroppedDatabase `json:"value,omitempty"`
+}
+
+// RestorableDroppedDatabaseProperties the properties of a restorable dropped database
+type RestorableDroppedDatabaseProperties struct {
+	// DatabaseName - READ-ONLY; The name of the database
+	DatabaseName *string `json:"databaseName,omitempty"`
+	// Edition - READ-ONLY; The edition of the database
+	Edition *string `json:"edition,omitempty"`
+	// MaxSizeBytes - READ-ONLY; The max size in bytes of the database
+	MaxSizeBytes *string `json:"maxSizeBytes,omitempty"`
+	// ServiceLevelObjective - READ-ONLY; The service level objective name of the database
+	ServiceLevelObjective *string `json:"serviceLevelObjective,omitempty"`
+	// ElasticPoolName - READ-ONLY; The elastic pool name of the database
+	ElasticPoolName *string `json:"elasticPoolName,omitempty"`
+	// CreationDate - READ-ONLY; The creation date of the database (ISO8601 format)
+	CreationDate *date.Time `json:"creationDate,omitempty"`
+	// DeletionDate - READ-ONLY; The deletion date of the database (ISO8601 format)
+	DeletionDate *date.Time `json:"deletionDate,omitempty"`
+	// EarliestRestoreDate - READ-ONLY; The earliest restore date of the database (ISO8601 format)
+	EarliestRestoreDate *date.Time `json:"earliestRestoreDate,omitempty"`
+}
+
+// RestorePoint a database restore point.
+type RestorePoint struct {
+	// RestorePointProperties - The properties of the restore point.
+	*RestorePointProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for RestorePoint.
+func (rp RestorePoint) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if rp.RestorePointProperties != nil {
+		objectMap["properties"] = rp.RestorePointProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for RestorePoint struct.
+func (rp *RestorePoint) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var restorePointProperties RestorePointProperties
+				err = json.Unmarshal(*v, &restorePointProperties)
+				if err != nil {
+					return err
+				}
+				rp.RestorePointProperties = &restorePointProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				rp.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				rp.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				rp.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// RestorePointListResult the response to a list database restore points request.
+type RestorePointListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of database restore points.
+	Value *[]RestorePoint `json:"value,omitempty"`
+}
+
+// RestorePointProperties represents the properties of a database restore point.
+type RestorePointProperties struct {
+	// RestorePointType - READ-ONLY; The restore point type of the database restore point. Possible values include: 'DISCRETE', 'CONTINUOUS'
+	RestorePointType RestorePointType `json:"restorePointType,omitempty"`
+	// RestorePointCreationDate - READ-ONLY; Restore point creation time (ISO8601 format). Populated when restorePointType = CONTINUOUS. Null otherwise.
+	RestorePointCreationDate *date.Time `json:"restorePointCreationDate,omitempty"`
+	// EarliestRestoreDate - READ-ONLY; Earliest restore time (ISO8601 format). Populated when restorePointType = DISCRETE. Null otherwise.
+	EarliestRestoreDate *date.Time `json:"earliestRestoreDate,omitempty"`
+}
+
+// Server represents a server.
+type Server struct {
+	autorest.Response `json:"-"`
+	// Kind - READ-ONLY; Kind of sql server.  This is metadata used for the Azure portal experience.
+	Kind *string `json:"kind,omitempty"`
+	// ServerProperties - Represents the properties of the resource.
+	*ServerProperties `json:"properties,omitempty"`
+	// Location - Resource location.
+	Location *string `json:"location,omitempty"`
+	// Tags - Resource tags.
+	Tags map[string]*string `json:"tags"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for Server.
+func (s Server) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if s.ServerProperties != nil {
+		objectMap["properties"] = s.ServerProperties
+	}
+	if s.Location != nil {
+		objectMap["location"] = s.Location
+	}
+	if s.Tags != nil {
+		objectMap["tags"] = s.Tags
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for Server struct.
+func (s *Server) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				s.Kind = &kind
+			}
+		case "properties":
+			if v != nil {
+				var serverProperties ServerProperties
+				err = json.Unmarshal(*v, &serverProperties)
+				if err != nil {
+					return err
+				}
+				s.ServerProperties = &serverProperties
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				s.Location = &location
+			}
+		case "tags":
+			if v != nil {
+				var tags map[string]*string
+				err = json.Unmarshal(*v, &tags)
+				if err != nil {
+					return err
+				}
+				s.Tags = tags
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				s.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				s.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				s.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ServerAdministratorListResult the response to a list Active Directory Administrators request.
+type ServerAdministratorListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of server Active Directory Administrators for the server.
+	Value *[]ServerAzureADAdministrator `json:"value,omitempty"`
+}
+
+// ServerAdministratorProperties the properties of an server Administrator.
+type ServerAdministratorProperties struct {
+	// AdministratorType - The type of administrator.
+	AdministratorType *string `json:"administratorType,omitempty"`
+	// Login - The server administrator login value.
+	Login *string `json:"login,omitempty"`
+	// Sid - The server administrator Sid (Secure ID).
+	Sid *uuid.UUID `json:"sid,omitempty"`
+	// TenantID - The server Active Directory Administrator tenant id.
+	TenantID *uuid.UUID `json:"tenantId,omitempty"`
+}
+
+// ServerAzureADAdministrator an server Active Directory Administrator.
+type ServerAzureADAdministrator struct {
+	autorest.Response `json:"-"`
+	// ServerAdministratorProperties - The properties of the resource.
+	*ServerAdministratorProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ServerAzureADAdministrator.
+func (saaa ServerAzureADAdministrator) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if saaa.ServerAdministratorProperties != nil {
+		objectMap["properties"] = saaa.ServerAdministratorProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ServerAzureADAdministrator struct.
+func (saaa *ServerAzureADAdministrator) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var serverAdministratorProperties ServerAdministratorProperties
+				err = json.Unmarshal(*v, &serverAdministratorProperties)
+				if err != nil {
+					return err
+				}
+				saaa.ServerAdministratorProperties = &serverAdministratorProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				saaa.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				saaa.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				saaa.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ServerAzureADAdministratorsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results
+// of a long-running operation.
+type ServerAzureADAdministratorsCreateOrUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ServerAzureADAdministratorsCreateOrUpdateFuture) Result(client ServerAzureADAdministratorsClient) (saaa ServerAzureADAdministrator, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ServerAzureADAdministratorsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.ServerAzureADAdministratorsCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if saaa.Response.Response, err = future.GetResult(sender); err == nil && saaa.Response.Response.StatusCode != http.StatusNoContent {
+		saaa, err = client.CreateOrUpdateResponder(saaa.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "sql.ServerAzureADAdministratorsCreateOrUpdateFuture", "Result", saaa.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// ServerAzureADAdministratorsDeleteFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type ServerAzureADAdministratorsDeleteFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ServerAzureADAdministratorsDeleteFuture) Result(client ServerAzureADAdministratorsClient) (saaa ServerAzureADAdministrator, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ServerAzureADAdministratorsDeleteFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.ServerAzureADAdministratorsDeleteFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if saaa.Response.Response, err = future.GetResult(sender); err == nil && saaa.Response.Response.StatusCode != http.StatusNoContent {
+		saaa, err = client.DeleteResponder(saaa.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "sql.ServerAzureADAdministratorsDeleteFuture", "Result", saaa.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// ServerCommunicationLink server communication link.
+type ServerCommunicationLink struct {
+	autorest.Response `json:"-"`
+	// ServerCommunicationLinkProperties - The properties of resource.
+	*ServerCommunicationLinkProperties `json:"properties,omitempty"`
+	// Location - READ-ONLY; Communication link location.
+	Location *string `json:"location,omitempty"`
+	// Kind - READ-ONLY; Communication link kind.  This property is used for Azure Portal metadata.
+	Kind *string `json:"kind,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ServerCommunicationLink.
+func (scl ServerCommunicationLink) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if scl.ServerCommunicationLinkProperties != nil {
+		objectMap["properties"] = scl.ServerCommunicationLinkProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ServerCommunicationLink struct.
+func (scl *ServerCommunicationLink) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var serverCommunicationLinkProperties ServerCommunicationLinkProperties
+				err = json.Unmarshal(*v, &serverCommunicationLinkProperties)
+				if err != nil {
+					return err
+				}
+				scl.ServerCommunicationLinkProperties = &serverCommunicationLinkProperties
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				scl.Location = &location
+			}
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				scl.Kind = &kind
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				scl.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				scl.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				scl.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ServerCommunicationLinkListResult a list of server communication links.
+type ServerCommunicationLinkListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of server communication links.
+	Value *[]ServerCommunicationLink `json:"value,omitempty"`
+}
+
+// ServerCommunicationLinkProperties the properties of a server communication link.
+type ServerCommunicationLinkProperties struct {
+	// State - READ-ONLY; The state.
+	State *string `json:"state,omitempty"`
+	// PartnerServer - The name of the partner server.
+	PartnerServer *string `json:"partnerServer,omitempty"`
+}
+
+// ServerCommunicationLinksCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of
+// a long-running operation.
+type ServerCommunicationLinksCreateOrUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ServerCommunicationLinksCreateOrUpdateFuture) Result(client ServerCommunicationLinksClient) (scl ServerCommunicationLink, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ServerCommunicationLinksCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.ServerCommunicationLinksCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if scl.Response.Response, err = future.GetResult(sender); err == nil && scl.Response.Response.StatusCode != http.StatusNoContent {
+		scl, err = client.CreateOrUpdateResponder(scl.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "sql.ServerCommunicationLinksCreateOrUpdateFuture", "Result", scl.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// ServerConnectionPolicy a server secure connection policy.
+type ServerConnectionPolicy struct {
+	autorest.Response `json:"-"`
+	// Kind - READ-ONLY; Metadata used for the Azure portal experience.
+	Kind *string `json:"kind,omitempty"`
+	// Location - READ-ONLY; Resource location.
+	Location *string `json:"location,omitempty"`
+	// ServerConnectionPolicyProperties - The properties of the server secure connection policy.
+	*ServerConnectionPolicyProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ServerConnectionPolicy.
+func (scp ServerConnectionPolicy) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if scp.ServerConnectionPolicyProperties != nil {
+		objectMap["properties"] = scp.ServerConnectionPolicyProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ServerConnectionPolicy struct.
+func (scp *ServerConnectionPolicy) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				scp.Kind = &kind
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				scp.Location = &location
+			}
+		case "properties":
+			if v != nil {
+				var serverConnectionPolicyProperties ServerConnectionPolicyProperties
+				err = json.Unmarshal(*v, &serverConnectionPolicyProperties)
+				if err != nil {
+					return err
+				}
+				scp.ServerConnectionPolicyProperties = &serverConnectionPolicyProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				scp.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				scp.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				scp.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ServerConnectionPolicyProperties the properties of a server secure connection policy.
+type ServerConnectionPolicyProperties struct {
+	// ConnectionType - The server connection type. Possible values include: 'ServerConnectionTypeDefault', 'ServerConnectionTypeProxy', 'ServerConnectionTypeRedirect'
+	ConnectionType ServerConnectionType `json:"connectionType,omitempty"`
+}
+
+// ServerListResult represents the response to a get server request.
+type ServerListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of servers.
+	Value *[]Server `json:"value,omitempty"`
+}
+
+// ServerProperties represents the properties of a server.
+type ServerProperties struct {
+	// FullyQualifiedDomainName - READ-ONLY; The fully qualified domain name of the server.
+	FullyQualifiedDomainName *string `json:"fullyQualifiedDomainName,omitempty"`
+	// Version - The version of the server. Possible values include: 'TwoFullStopZero', 'OneTwoFullStopZero'
+	Version ServerVersion `json:"version,omitempty"`
+	// AdministratorLogin - Administrator username for the server. Can only be specified when the server is being created (and is required for creation).
+	AdministratorLogin *string `json:"administratorLogin,omitempty"`
+	// AdministratorLoginPassword - The administrator login password (required for server creation).
+	AdministratorLoginPassword *string `json:"administratorLoginPassword,omitempty"`
+	// ExternalAdministratorSid - READ-ONLY; The ID of the Active Azure Directory object with admin permissions on this server. Legacy parameter, always null. To check for Active Directory admin, query .../servers/{serverName}/administrators.
+	ExternalAdministratorSid *uuid.UUID `json:"externalAdministratorSid,omitempty"`
+	// ExternalAdministratorLogin - READ-ONLY; The display name of the Azure Active Directory object with admin permissions on this server. Legacy parameter, always null. To check for Active Directory admin, query .../servers/{serverName}/administrators
+	ExternalAdministratorLogin *string `json:"externalAdministratorLogin,omitempty"`
+	// State - READ-ONLY; The state of the server. Possible values include: 'ServerStateReady', 'ServerStateDisabled'
+	State ServerState `json:"state,omitempty"`
+}
+
+// ServerTableAuditingPolicy a server table auditing policy.
+type ServerTableAuditingPolicy struct {
+	autorest.Response `json:"-"`
+	// Kind - READ-ONLY; Resource kind.
+	Kind *string `json:"kind,omitempty"`
+	// Location - READ-ONLY; Resource location.
+	Location *string `json:"location,omitempty"`
+	// ServerTableAuditingPolicyProperties - Resource properties.
+	*ServerTableAuditingPolicyProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ServerTableAuditingPolicy.
+func (stap ServerTableAuditingPolicy) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if stap.ServerTableAuditingPolicyProperties != nil {
+		objectMap["properties"] = stap.ServerTableAuditingPolicyProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ServerTableAuditingPolicy struct.
+func (stap *ServerTableAuditingPolicy) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				stap.Kind = &kind
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				stap.Location = &location
+			}
+		case "properties":
+			if v != nil {
+				var serverTableAuditingPolicyProperties ServerTableAuditingPolicyProperties
+				err = json.Unmarshal(*v, &serverTableAuditingPolicyProperties)
+				if err != nil {
+					return err
+				}
+				stap.ServerTableAuditingPolicyProperties = &serverTableAuditingPolicyProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				stap.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				stap.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				stap.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ServerTableAuditingPolicyListResult represents the response to a list server table auditing policies
+// request.
+type ServerTableAuditingPolicyListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of server table auditing policies.
+	Value *[]ServerTableAuditingPolicy `json:"value,omitempty"`
+}
+
+// ServerTableAuditingPolicyProperties properties of a server table auditing policy.
+type ServerTableAuditingPolicyProperties struct {
+	// AuditingState - The state of the policy.
+	AuditingState *string `json:"auditingState,omitempty"`
+	// AuditLogsTableName - The audit logs table name.
+	AuditLogsTableName *string `json:"auditLogsTableName,omitempty"`
+	// EventTypesToAudit - Comma-separated list of event types to audit.
+	EventTypesToAudit *string `json:"eventTypesToAudit,omitempty"`
+	// FullAuditLogsTableName - The full audit logs table name.
+	FullAuditLogsTableName *string `json:"fullAuditLogsTableName,omitempty"`
+	// RetentionDays - The number of days to keep in the audit logs.
+	RetentionDays *string `json:"retentionDays,omitempty"`
+	// StorageAccountKey - The key of the auditing storage account.
+	StorageAccountKey *string `json:"storageAccountKey,omitempty"`
+	// StorageAccountName - The table storage account name
+	StorageAccountName *string `json:"storageAccountName,omitempty"`
+	// StorageAccountResourceGroupName - The table storage account resource group name
+	StorageAccountResourceGroupName *string `json:"storageAccountResourceGroupName,omitempty"`
+	// StorageAccountSecondaryKey - The secondary key of the auditing storage account.
+	StorageAccountSecondaryKey *string `json:"storageAccountSecondaryKey,omitempty"`
+	// StorageAccountSubscriptionID - The table storage subscription Id.
+	StorageAccountSubscriptionID *uuid.UUID `json:"storageAccountSubscriptionId,omitempty"`
+	// StorageTableEndpoint - The storage table endpoint.
+	StorageTableEndpoint *string `json:"storageTableEndpoint,omitempty"`
+}
+
+// ServerUpdate represents an update to a server.
+type ServerUpdate struct {
+	// Tags - Resource tags.
+	Tags map[string]*string `json:"tags"`
+	// ServerProperties - Represents the properties of the resource.
+	*ServerProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ServerUpdate.
+func (su ServerUpdate) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if su.Tags != nil {
+		objectMap["tags"] = su.Tags
+	}
+	if su.ServerProperties != nil {
+		objectMap["properties"] = su.ServerProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ServerUpdate struct.
+func (su *ServerUpdate) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "tags":
+			if v != nil {
+				var tags map[string]*string
+				err = json.Unmarshal(*v, &tags)
+				if err != nil {
+					return err
+				}
+				su.Tags = tags
+			}
+		case "properties":
+			if v != nil {
+				var serverProperties ServerProperties
+				err = json.Unmarshal(*v, &serverProperties)
+				if err != nil {
+					return err
+				}
+				su.ServerProperties = &serverProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				su.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				su.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				su.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ServerUsage represents server metrics.
+type ServerUsage struct {
+	// Name - READ-ONLY; Name of the server usage metric.
+	Name *string `json:"name,omitempty"`
+	// ResourceName - READ-ONLY; The name of the resource.
+	ResourceName *string `json:"resourceName,omitempty"`
+	// DisplayName - READ-ONLY; The metric display name.
+	DisplayName *string `json:"displayName,omitempty"`
+	// CurrentValue - READ-ONLY; The current value of the metric.
+	CurrentValue *float64 `json:"currentValue,omitempty"`
+	// Limit - READ-ONLY; The current limit of the metric.
+	Limit *float64 `json:"limit,omitempty"`
+	// Unit - READ-ONLY; The units of the metric.
+	Unit *string `json:"unit,omitempty"`
+	// NextResetTime - READ-ONLY; The next reset time for the metric (ISO8601 format).
+	NextResetTime *date.Time `json:"nextResetTime,omitempty"`
+}
+
+// ServerUsageListResult represents the response to a list server metrics request.
+type ServerUsageListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of server metrics for the server.
+	Value *[]ServerUsage `json:"value,omitempty"`
+}
+
+// ServerVersionCapability the server capabilities.
+type ServerVersionCapability struct {
+	// Name - READ-ONLY; The server version name.
+	Name *string `json:"name,omitempty"`
+	// Status - READ-ONLY; The status of the server version. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	Status CapabilityStatus `json:"status,omitempty"`
+	// SupportedEditions - READ-ONLY; The list of supported database editions.
+	SupportedEditions *[]EditionCapability `json:"supportedEditions,omitempty"`
+	// SupportedElasticPoolEditions - READ-ONLY; The list of supported elastic pool editions.
+	SupportedElasticPoolEditions *[]ElasticPoolEditionCapability `json:"supportedElasticPoolEditions,omitempty"`
+}
+
+// ServiceObjective represents a database service objective.
+type ServiceObjective struct {
+	autorest.Response `json:"-"`
+	// ServiceObjectiveProperties - Represents the properties of the resource.
+	*ServiceObjectiveProperties `json:"properties,omitempty"`
+	// ID - READ-ONLY; Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - READ-ONLY; Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - READ-ONLY; Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ServiceObjective.
+func (so ServiceObjective) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if so.ServiceObjectiveProperties != nil {
+		objectMap["properties"] = so.ServiceObjectiveProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ServiceObjective struct.
+func (so *ServiceObjective) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var serviceObjectiveProperties ServiceObjectiveProperties
+				err = json.Unmarshal(*v, &serviceObjectiveProperties)
+				if err != nil {
+					return err
+				}
+				so.ServiceObjectiveProperties = &serviceObjectiveProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				so.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				so.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				so.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ServiceObjectiveCapability the service objectives capability.
+type ServiceObjectiveCapability struct {
+	// Name - READ-ONLY; The service objective name.
+	Name *string `json:"name,omitempty"`
+	// Status - READ-ONLY; The status of the service objective. Possible values include: 'CapabilityStatusVisible', 'CapabilityStatusAvailable', 'CapabilityStatusDefault', 'CapabilityStatusDisabled'
+	Status CapabilityStatus `json:"status,omitempty"`
+	// PerformanceLevel - READ-ONLY; The performance level of the service objective capability.
+	*PerformanceLevel `json:"performanceLevel,omitempty"`
+	// ID - READ-ONLY; The unique ID of the service objective.
+	ID *uuid.UUID `json:"id,omitempty"`
+	// SupportedMaxSizes - READ-ONLY; The list of supported maximum database sizes for this service objective.
+	SupportedMaxSizes *[]MaxSizeCapability `json:"supportedMaxSizes,omitempty"`
+	// IncludedMaxSize - READ-ONLY; The included (free) max size for this service level objective.
+	IncludedMaxSize *MaxSizeCapability `json:"includedMaxSize,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ServiceObjectiveCapability.
+func (soc ServiceObjectiveCapability) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ServiceObjectiveCapability struct.
+func (soc *ServiceObjectiveCapability) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				soc.Name = &name
+			}
+		case "status":
+			if v != nil {
+				var status CapabilityStatus
+				err = json.Unmarshal(*v, &status)
+				if err != nil {
+					return err
+				}
+				soc.Status = status
+			}
+		case "performanceLevel":
+			if v != nil {
+				var performanceLevel PerformanceLevel
+				err = json.Unmarshal(*v, &performanceLevel)
+				if err != nil {
+					return err
+				}
+				soc.PerformanceLevel = &performanceLevel
+			}
+		case "id":
+			if v != nil {
+				var ID uuid.UUID
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				soc.ID = &ID
+			}
+		case "supportedMaxSizes":
+			if v != nil {
+				var supportedMaxSizes []MaxSizeCapability
+				err = json.Unmarshal(*v, &supportedMaxSizes)
+				if err != nil {
+					return err
+				}
+				soc.SupportedMaxSizes = &supportedMaxSizes
+			}
+		case "includedMaxSize":
+			if v != nil {
+				var includedMaxSize MaxSizeCapability
+				err = json.Unmarshal(*v, &includedMaxSize)
+				if err != nil {
+					return err
+				}
+				soc.IncludedMaxSize = &includedMaxSize
+			}
+		}
+	}
+
+	return nil
+}
+
+// ServiceObjectiveListResult represents the response to a get database service objectives request.
+type ServiceObjectiveListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of database service objectives.
+	Value *[]ServiceObjective `json:"value,omitempty"`
+}
+
+// ServiceObjectiveProperties represents the properties of a database service objective.
+type ServiceObjectiveProperties struct {
+	// ServiceObjectiveName - READ-ONLY; The name for the service objective.
+	ServiceObjectiveName *string `json:"serviceObjectiveName,omitempty"`
+	// IsDefault - READ-ONLY; Gets whether the service level objective is the default service objective.
+	IsDefault *bool `json:"isDefault,omitempty"`
+	// IsSystem - READ-ONLY; Gets whether the service level objective is a system service objective.
+	IsSystem *bool `json:"isSystem,omitempty"`
+	// Description - READ-ONLY; The description for the service level objective.
+	Description *string `json:"description,omitempty"`
+	// Enabled - READ-ONLY; Gets whether the service level objective is enabled.
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
 // ServiceTierAdvisor represents a Service Tier Advisor.
 type ServiceTierAdvisor struct {
 	autorest.Response `json:"-"`
@@ -2589,6 +5739,59 @@ type SloUsageMetric struct {
 	ServiceLevelObjectiveID *uuid.UUID `json:"serviceLevelObjectiveId,omitempty"`
 	// InRangeTimeRatio - READ-ONLY; Gets or sets inRangeTimeRatio for SLO usage metric.
 	InRangeTimeRatio *float64 `json:"inRangeTimeRatio,omitempty"`
+}
+
+// TableAuditingPolicyProperties properties of a table auditing policy.
+type TableAuditingPolicyProperties struct {
+	// AuditingState - The state of the policy.
+	AuditingState *string `json:"auditingState,omitempty"`
+	// AuditLogsTableName - The audit logs table name.
+	AuditLogsTableName *string `json:"auditLogsTableName,omitempty"`
+	// EventTypesToAudit - Comma-separated list of event types to audit.
+	EventTypesToAudit *string `json:"eventTypesToAudit,omitempty"`
+	// FullAuditLogsTableName - The full audit logs table name.
+	FullAuditLogsTableName *string `json:"fullAuditLogsTableName,omitempty"`
+	// RetentionDays - The number of days to keep in the audit logs.
+	RetentionDays *string `json:"retentionDays,omitempty"`
+	// StorageAccountKey - The key of the auditing storage account.
+	StorageAccountKey *string `json:"storageAccountKey,omitempty"`
+	// StorageAccountName - The table storage account name
+	StorageAccountName *string `json:"storageAccountName,omitempty"`
+	// StorageAccountResourceGroupName - The table storage account resource group name
+	StorageAccountResourceGroupName *string `json:"storageAccountResourceGroupName,omitempty"`
+	// StorageAccountSecondaryKey - The secondary key of the auditing storage account.
+	StorageAccountSecondaryKey *string `json:"storageAccountSecondaryKey,omitempty"`
+	// StorageAccountSubscriptionID - The table storage subscription Id.
+	StorageAccountSubscriptionID *uuid.UUID `json:"storageAccountSubscriptionId,omitempty"`
+	// StorageTableEndpoint - The storage table endpoint.
+	StorageTableEndpoint *string `json:"storageTableEndpoint,omitempty"`
+}
+
+// TopQueries a database query.
+type TopQueries struct {
+	// AggregationFunction - READ-ONLY; The function that is used to aggregate each query's metrics. Possible values include: 'Min', 'Max', 'Avg', 'Sum'
+	AggregationFunction QueryAggregationFunction `json:"aggregationFunction,omitempty"`
+	// ExecutionType - READ-ONLY; The execution type that is used to filter the query instances that are returned. Possible values include: 'Any', 'Regular', 'Irregular', 'Aborted', 'Exception'
+	ExecutionType QueryExecutionType `json:"executionType,omitempty"`
+	// IntervalType - READ-ONLY; The duration of the interval (ISO8601 duration format).
+	IntervalType *string `json:"intervalType,omitempty"`
+	// NumberOfTopQueries - READ-ONLY; The number of requested queries.
+	NumberOfTopQueries *float64 `json:"numberOfTopQueries,omitempty"`
+	// ObservationStartTime - READ-ONLY; The start time for queries that are returned (ISO8601 format)
+	ObservationStartTime *date.Time `json:"observationStartTime,omitempty"`
+	// ObservationEndTime - READ-ONLY; The end time for queries that are returned (ISO8601 format)
+	ObservationEndTime *date.Time `json:"observationEndTime,omitempty"`
+	// ObservedMetric - READ-ONLY; The type of metric to use for ordering the top metrics. Possible values include: 'CPU', 'Io', 'Logio', 'Duration', 'ExecutionCount'
+	ObservedMetric QueryObservedMetricType `json:"observedMetric,omitempty"`
+	// Queries - READ-ONLY; The list of queries.
+	Queries *[]QueryStatistic `json:"queries,omitempty"`
+}
+
+// TopQueriesListResult represents the response to a get top queries request.
+type TopQueriesListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of top queries.
+	Value *[]TopQueries `json:"value,omitempty"`
 }
 
 // TrackedResource ARM tracked top level resource.
@@ -2799,6 +6002,14 @@ type TransparentDataEncryptionActivityProperties struct {
 	Status TransparentDataEncryptionActivityStatus `json:"status,omitempty"`
 	// PercentComplete - READ-ONLY; The percent complete of the transparent data encryption scan for a database.
 	PercentComplete *float64 `json:"percentComplete,omitempty"`
+}
+
+// TransparentDataEncryptionListResult represents the response to a list transparent data encryption
+// configurations request.
+type TransparentDataEncryptionListResult struct {
+	autorest.Response `json:"-"`
+	// Value - The list of transparent data encryption configurations.
+	Value *[]TransparentDataEncryption `json:"value,omitempty"`
 }
 
 // TransparentDataEncryptionProperties represents the properties of a database transparent data encryption.

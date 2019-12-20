@@ -11,12 +11,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build go1.7
-
 package api
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 )
@@ -111,5 +112,74 @@ func TestClientURL(t *testing.T) {
 			t.Errorf("unexpected result: got %s, want %s", u, test.expected)
 			continue
 		}
+	}
+}
+
+func TestDoGetFallback(t *testing.T) {
+	v := url.Values{"a": []string{"1", "2"}}
+
+	type testResponse struct {
+		Values string
+		Method string
+	}
+
+	// Start a local HTTP server.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		req.ParseForm()
+		r := &testResponse{
+			Values: req.Form.Encode(),
+			Method: req.Method,
+		}
+
+		body, _ := json.Marshal(r)
+
+		if req.Method == http.MethodPost {
+			if req.URL.Path == "/blockPost" {
+				http.Error(w, string(body), http.StatusMethodNotAllowed)
+				return
+			}
+		}
+
+		w.Write(body)
+	}))
+	// Close the server when test finishes.
+	defer server.Close()
+
+	u, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &httpClient{client: *(server.Client())}
+
+	// Do a post, and ensure that the post succeeds.
+	_, b, _, err := DoGetFallback(client, context.TODO(), u, v)
+	if err != nil {
+		t.Fatalf("Error doing local request: %v", err)
+	}
+	resp := &testResponse{}
+	if err := json.Unmarshal(b, resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Method != http.MethodPost {
+		t.Fatalf("Mismatch method")
+	}
+	if resp.Values != v.Encode() {
+		t.Fatalf("Mismatch in values")
+	}
+
+	// Do a fallbcak to a get.
+	u.Path = "/blockPost"
+	_, b, _, err = DoGetFallback(client, context.TODO(), u, v)
+	if err != nil {
+		t.Fatalf("Error doing local request: %v", err)
+	}
+	if err := json.Unmarshal(b, resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Method != http.MethodGet {
+		t.Fatalf("Mismatch method")
+	}
+	if resp.Values != v.Encode() {
+		t.Fatalf("Mismatch in values")
 	}
 }

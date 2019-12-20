@@ -256,6 +256,8 @@ type QueryDTO struct {
 	ScoreThreshold *float64 `json:"scoreThreshold,omitempty"`
 	// Context - Context object with previous QnA's information.
 	Context *QueryDTOContext `json:"context,omitempty"`
+	// RankerType - Optional field. Set to 'QuestionOnly' for using a question only Ranker.
+	RankerType *string `json:"rankerType,omitempty"`
 	// StrictFilters - Find only answers that contain these metadata.
 	StrictFilters *[]MetadataDTO `json:"strictFilters,omitempty"`
 }

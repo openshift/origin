@@ -16,6 +16,7 @@ import (
 	"github.com/Microsoft/hcsshim/internal/hcs"
 	"github.com/Microsoft/hcsshim/internal/hcsoci"
 	"github.com/Microsoft/hcsshim/internal/logfields"
+	"github.com/Microsoft/hcsshim/internal/oci"
 	"github.com/Microsoft/hcsshim/internal/regstate"
 	"github.com/Microsoft/hcsshim/internal/runhcs"
 	"github.com/Microsoft/hcsshim/internal/uvm"
@@ -224,113 +225,6 @@ func parseSandboxAnnotations(a map[string]string) (string, bool) {
 	return "", false
 }
 
-// parseAnnotationsBool searches `a` for `key` and if found verifies that the
-// value is `true` or `false` in any case. If `key` is not found returns `def`.
-func parseAnnotationsBool(a map[string]string, key string, def bool) bool {
-	if v, ok := a[key]; ok {
-		switch strings.ToLower(v) {
-		case "true":
-			return true
-		case "false":
-			return false
-		default:
-			logrus.WithFields(logrus.Fields{
-				logfields.OCIAnnotation: key,
-				logfields.Value:         v,
-				logfields.ExpectedType:  logfields.Bool,
-			}).Warning("annotation could not be parsed")
-		}
-	}
-	return def
-}
-
-// parseAnnotationsCPU searches `s.Annotations` for the CPU annotation. If
-// not found searches `s` for the Windows CPU section. If neither are found
-// returns `def`.
-func parseAnnotationsCPU(s *specs.Spec, annotation string, def int32) int32 {
-	if m := parseAnnotationsUint64(s.Annotations, annotation, 0); m != 0 {
-		return int32(m)
-	}
-	if s.Windows != nil &&
-		s.Windows.Resources != nil &&
-		s.Windows.Resources.CPU != nil &&
-		s.Windows.Resources.CPU.Count != nil &&
-		*s.Windows.Resources.CPU.Count > 0 {
-		return int32(*s.Windows.Resources.CPU.Count)
-	}
-	return def
-}
-
-// parseAnnotationsMemory searches `s.Annotations` for the memory annotation. If
-// not found searches `s` for the Windows memory section. If neither are found
-// returns `def`.
-func parseAnnotationsMemory(s *specs.Spec, annotation string, def int32) int32 {
-	if m := parseAnnotationsUint64(s.Annotations, annotation, 0); m != 0 {
-		return int32(m)
-	}
-	if s.Windows != nil &&
-		s.Windows.Resources != nil &&
-		s.Windows.Resources.Memory != nil &&
-		s.Windows.Resources.Memory.Limit != nil &&
-		*s.Windows.Resources.Memory.Limit > 0 {
-		return int32(*s.Windows.Resources.Memory.Limit)
-	}
-	return def
-}
-
-// parseAnnotationsPreferredRootFSType searches `a` for `key` and verifies that the
-// value is in the set of allowed values. If `key` is not found returns `def`.
-func parseAnnotationsPreferredRootFSType(a map[string]string, key string, def uvm.PreferredRootFSType) uvm.PreferredRootFSType {
-	if v, ok := a[key]; ok {
-		switch v {
-		case "initrd":
-			return uvm.PreferredRootFSTypeInitRd
-		case "vhd":
-			return uvm.PreferredRootFSTypeVHD
-		default:
-			logrus.Warningf("annotation: '%s', with value: '%s' must be 'initrd' or 'vhd'", key, v)
-		}
-	}
-	return def
-}
-
-// parseAnnotationsUint32 searches `a` for `key` and if found verifies that the
-// value is a 32 bit unsigned integer. If `key` is not found returns `def`.
-func parseAnnotationsUint32(a map[string]string, key string, def uint32) uint32 {
-	if v, ok := a[key]; ok {
-		countu, err := strconv.ParseUint(v, 10, 32)
-		if err == nil {
-			v := uint32(countu)
-			return v
-		}
-		logrus.WithFields(logrus.Fields{
-			logfields.OCIAnnotation: key,
-			logfields.Value:         v,
-			logfields.ExpectedType:  logfields.Uint32,
-			logrus.ErrorKey:         err,
-		}).Warning("annotation could not be parsed")
-	}
-	return def
-}
-
-// parseAnnotationsUint64 searches `a` for `key` and if found verifies that the
-// value is a 64 bit unsigned integer. If `key` is not found returns `def`.
-func parseAnnotationsUint64(a map[string]string, key string, def uint64) uint64 {
-	if v, ok := a[key]; ok {
-		countu, err := strconv.ParseUint(v, 10, 64)
-		if err == nil {
-			return countu
-		}
-		logrus.WithFields(logrus.Fields{
-			logfields.OCIAnnotation: key,
-			logfields.Value:         v,
-			logfields.ExpectedType:  logfields.Uint64,
-			logrus.ErrorKey:         err,
-		}).Warning("annotation could not be parsed")
-	}
-	return def
-}
-
 // startVMShim starts a vm-shim command with the specified `opts`. `opts` can be `uvm.OptionsWCOW` or `uvm.OptionsLCOW`
 func (c *container) startVMShim(logFile string, opts interface{}) (*os.Process, error) {
 	var os string
@@ -493,41 +387,16 @@ func createContainer(cfg *containerConfig) (_ *container, err error) {
 
 	// Start a VM if necessary.
 	if newvm {
-		var opts interface{}
-
-		const (
-			annotationAllowOvercommit      = "io.microsoft.virtualmachine.computetopology.memory.allowovercommit"
-			annotationEnableDeferredCommit = "io.microsoft.virtualmachine.computetopology.memory.enabledeferredcommit"
-			annotationMemorySizeInMB       = "io.microsoft.virtualmachine.computetopology.memory.sizeinmb"
-			annotationProcessorCount       = "io.microsoft.virtualmachine.computetopology.processor.count"
-			annotationVPMemCount           = "io.microsoft.virtualmachine.devices.virtualpmem.maximumcount"
-			annotationVPMemSize            = "io.microsoft.virtualmachine.devices.virtualpmem.maximumsizebytes"
-			annotationPreferredRootFSType  = "io.microsoft.virtualmachine.lcow.preferredrootfstype"
-		)
-
-		if cfg.Spec.Linux != nil {
-			lopts := uvm.NewDefaultOptionsLCOW(vmID(c.ID), cfg.Owner)
-			lopts.MemorySizeInMB = parseAnnotationsMemory(cfg.Spec, annotationMemorySizeInMB, lopts.MemorySizeInMB)
-			lopts.AllowOvercommit = parseAnnotationsBool(cfg.Spec.Annotations, annotationAllowOvercommit, lopts.AllowOvercommit)
-			lopts.EnableDeferredCommit = parseAnnotationsBool(cfg.Spec.Annotations, annotationEnableDeferredCommit, lopts.EnableDeferredCommit)
-			lopts.ProcessorCount = parseAnnotationsCPU(cfg.Spec, annotationProcessorCount, lopts.ProcessorCount)
+		opts, err := oci.SpecToUVMCreateOpts(cfg.Spec, vmID(c.ID), cfg.Owner)
+		if err != nil {
+			return nil, err
+		}
+		switch opts.(type) {
+		case *uvm.OptionsLCOW:
+			lopts := opts.(*uvm.OptionsLCOW)
 			lopts.ConsolePipe = cfg.VMConsolePipe
-			lopts.VPMemDeviceCount = parseAnnotationsUint32(cfg.Spec.Annotations, annotationVPMemCount, lopts.VPMemDeviceCount)
-			lopts.VPMemSizeBytes = parseAnnotationsUint64(cfg.Spec.Annotations, annotationVPMemSize, lopts.VPMemSizeBytes)
-			lopts.PreferredRootFSType = parseAnnotationsPreferredRootFSType(cfg.Spec.Annotations, annotationPreferredRootFSType, lopts.PreferredRootFSType)
-			switch lopts.PreferredRootFSType {
-			case uvm.PreferredRootFSTypeInitRd:
-				lopts.RootFSFile = uvm.InitrdFile
-			case uvm.PreferredRootFSTypeVHD:
-				lopts.RootFSFile = uvm.VhdFile
-			}
-			opts = lopts
-		} else {
-			wopts := uvm.NewDefaultOptionsWCOW(vmID(c.ID), cfg.Owner)
-			wopts.MemorySizeInMB = parseAnnotationsMemory(cfg.Spec, annotationMemorySizeInMB, wopts.MemorySizeInMB)
-			wopts.AllowOvercommit = parseAnnotationsBool(cfg.Spec.Annotations, annotationAllowOvercommit, wopts.AllowOvercommit)
-			wopts.EnableDeferredCommit = parseAnnotationsBool(cfg.Spec.Annotations, annotationEnableDeferredCommit, wopts.EnableDeferredCommit)
-			wopts.ProcessorCount = parseAnnotationsCPU(cfg.Spec, annotationProcessorCount, wopts.ProcessorCount)
+		case *uvm.OptionsWCOW:
+			wopts := opts.(*uvm.OptionsWCOW)
 
 			// In order for the UVM sandbox.vhdx not to collide with the actual
 			// nested Argon sandbox.vhdx we append the \vm folder to the last entry
@@ -544,7 +413,6 @@ func createContainer(cfg *containerConfig) (_ *container, err error) {
 			layers[layersLen-1] = vmPath
 
 			wopts.LayerFolders = layers
-			opts = wopts
 		}
 
 		shim, err := c.startVMShim(cfg.VMLogFile, opts)

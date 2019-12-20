@@ -22,7 +22,7 @@ package web
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/web/mgmt/2018-02-01/web"
+	original "github.com/Azure/azure-sdk-for-go/services/web/mgmt/2019-08-01/web"
 )
 
 const (
@@ -190,6 +190,18 @@ const (
 	ComputeModeOptionsDedicated ComputeModeOptions = original.ComputeModeOptionsDedicated
 	ComputeModeOptionsDynamic   ComputeModeOptions = original.ComputeModeOptionsDynamic
 	ComputeModeOptionsShared    ComputeModeOptions = original.ComputeModeOptionsShared
+)
+
+type ConfigReferenceLocation = original.ConfigReferenceLocation
+
+const (
+	ApplicationSetting ConfigReferenceLocation = original.ApplicationSetting
+)
+
+type ConfigReferenceSource = original.ConfigReferenceSource
+
+const (
+	KeyVault ConfigReferenceSource = original.KeyVault
 )
 
 type ConnectionStringType = original.ConnectionStringType
@@ -416,10 +428,9 @@ const (
 type ManagedServiceIdentityType = original.ManagedServiceIdentityType
 
 const (
-	ManagedServiceIdentityTypeNone                       ManagedServiceIdentityType = original.ManagedServiceIdentityTypeNone
-	ManagedServiceIdentityTypeSystemAssigned             ManagedServiceIdentityType = original.ManagedServiceIdentityTypeSystemAssigned
-	ManagedServiceIdentityTypeSystemAssignedUserAssigned ManagedServiceIdentityType = original.ManagedServiceIdentityTypeSystemAssignedUserAssigned
-	ManagedServiceIdentityTypeUserAssigned               ManagedServiceIdentityType = original.ManagedServiceIdentityTypeUserAssigned
+	ManagedServiceIdentityTypeNone           ManagedServiceIdentityType = original.ManagedServiceIdentityTypeNone
+	ManagedServiceIdentityTypeSystemAssigned ManagedServiceIdentityType = original.ManagedServiceIdentityTypeSystemAssigned
+	ManagedServiceIdentityTypeUserAssigned   ManagedServiceIdentityType = original.ManagedServiceIdentityTypeUserAssigned
 )
 
 type MySQLMigrationType = original.MySQLMigrationType
@@ -493,6 +504,20 @@ const (
 	TimeSeriesPerInstance RenderingType = original.TimeSeriesPerInstance
 )
 
+type ResolveStatus = original.ResolveStatus
+
+const (
+	AccessToKeyVaultDenied ResolveStatus = original.AccessToKeyVaultDenied
+	Initialized            ResolveStatus = original.Initialized
+	InvalidSyntax          ResolveStatus = original.InvalidSyntax
+	MSINotEnabled          ResolveStatus = original.MSINotEnabled
+	OtherReasons           ResolveStatus = original.OtherReasons
+	Resolved               ResolveStatus = original.Resolved
+	SecretNotFound         ResolveStatus = original.SecretNotFound
+	SecretVersionNotFound  ResolveStatus = original.SecretVersionNotFound
+	VaultNotFound          ResolveStatus = original.VaultNotFound
+)
+
 type ResourceScopeType = original.ResourceScopeType
 
 const (
@@ -525,6 +550,7 @@ const (
 	ScmTypeOneDrive     ScmType = original.ScmTypeOneDrive
 	ScmTypeTfs          ScmType = original.ScmTypeTfs
 	ScmTypeVSO          ScmType = original.ScmTypeVSO
+	ScmTypeVSTSRM       ScmType = original.ScmTypeVSTSRM
 )
 
 type SiteAvailabilityState = original.SiteAvailabilityState
@@ -550,6 +576,14 @@ const (
 	RequestHash          SiteLoadBalancing = original.RequestHash
 	WeightedRoundRobin   SiteLoadBalancing = original.WeightedRoundRobin
 	WeightedTotalTraffic SiteLoadBalancing = original.WeightedTotalTraffic
+)
+
+type SiteRuntimeState = original.SiteRuntimeState
+
+const (
+	READY   SiteRuntimeState = original.READY
+	STOPPED SiteRuntimeState = original.STOPPED
+	UNKNOWN SiteRuntimeState = original.UNKNOWN
 )
 
 type SkuName = original.SkuName
@@ -631,19 +665,23 @@ const (
 type WorkerSizeOptions = original.WorkerSizeOptions
 
 const (
-	WorkerSizeOptionsD1      WorkerSizeOptions = original.WorkerSizeOptionsD1
-	WorkerSizeOptionsD2      WorkerSizeOptions = original.WorkerSizeOptionsD2
-	WorkerSizeOptionsD3      WorkerSizeOptions = original.WorkerSizeOptionsD3
-	WorkerSizeOptionsDefault WorkerSizeOptions = original.WorkerSizeOptionsDefault
-	WorkerSizeOptionsLarge   WorkerSizeOptions = original.WorkerSizeOptionsLarge
-	WorkerSizeOptionsMedium  WorkerSizeOptions = original.WorkerSizeOptionsMedium
-	WorkerSizeOptionsSmall   WorkerSizeOptions = original.WorkerSizeOptionsSmall
+	WorkerSizeOptionsD1          WorkerSizeOptions = original.WorkerSizeOptionsD1
+	WorkerSizeOptionsD2          WorkerSizeOptions = original.WorkerSizeOptionsD2
+	WorkerSizeOptionsD3          WorkerSizeOptions = original.WorkerSizeOptionsD3
+	WorkerSizeOptionsDefault     WorkerSizeOptions = original.WorkerSizeOptionsDefault
+	WorkerSizeOptionsLarge       WorkerSizeOptions = original.WorkerSizeOptionsLarge
+	WorkerSizeOptionsMedium      WorkerSizeOptions = original.WorkerSizeOptionsMedium
+	WorkerSizeOptionsNestedSmall WorkerSizeOptions = original.WorkerSizeOptionsNestedSmall
+	WorkerSizeOptionsSmall       WorkerSizeOptions = original.WorkerSizeOptionsSmall
 )
 
 type APIDefinitionInfo = original.APIDefinitionInfo
+type APIKVReference = original.APIKVReference
+type APIManagementConfig = original.APIManagementConfig
 type AbnormalTimePeriod = original.AbnormalTimePeriod
 type Address = original.Address
 type AddressResponse = original.AddressResponse
+type AddressResponseProperties = original.AddressResponseProperties
 type AnalysisData = original.AnalysisData
 type AnalysisDefinition = original.AnalysisDefinition
 type AnalysisDefinitionProperties = original.AnalysisDefinitionProperties
@@ -700,7 +738,10 @@ type ApplicationStack = original.ApplicationStack
 type ApplicationStackCollection = original.ApplicationStackCollection
 type ApplicationStackCollectionIterator = original.ApplicationStackCollectionIterator
 type ApplicationStackCollectionPage = original.ApplicationStackCollectionPage
+type ApplicationStackResource = original.ApplicationStackResource
 type AppsClient = original.AppsClient
+type AppsCopyProductionSlotFuture = original.AppsCopyProductionSlotFuture
+type AppsCopySlotSlotFuture = original.AppsCopySlotSlotFuture
 type AppsCreateFunctionFuture = original.AppsCreateFunctionFuture
 type AppsCreateInstanceFunctionSlotFuture = original.AppsCreateInstanceFunctionSlotFuture
 type AppsCreateInstanceMSDeployOperationFuture = original.AppsCreateInstanceMSDeployOperationFuture
@@ -774,12 +815,19 @@ type ConnStringInfo = original.ConnStringInfo
 type ConnStringValueTypePair = original.ConnStringValueTypePair
 type ConnectionStringDictionary = original.ConnectionStringDictionary
 type Contact = original.Contact
+type ContainerCPUStatistics = original.ContainerCPUStatistics
+type ContainerCPUUsage = original.ContainerCPUUsage
+type ContainerInfo = original.ContainerInfo
+type ContainerMemoryStatistics = original.ContainerMemoryStatistics
+type ContainerNetworkInterfaceStatistics = original.ContainerNetworkInterfaceStatistics
+type ContainerThrottlingData = original.ContainerThrottlingData
 type ContinuousWebJob = original.ContinuousWebJob
 type ContinuousWebJobCollection = original.ContinuousWebJobCollection
 type ContinuousWebJobCollectionIterator = original.ContinuousWebJobCollectionIterator
 type ContinuousWebJobCollectionPage = original.ContinuousWebJobCollectionPage
 type ContinuousWebJobProperties = original.ContinuousWebJobProperties
 type CorsSettings = original.CorsSettings
+type CsmCopySlotEntity = original.CsmCopySlotEntity
 type CsmMoveResourceEnvelope = original.CsmMoveResourceEnvelope
 type CsmOperationCollection = original.CsmOperationCollection
 type CsmOperationCollectionIterator = original.CsmOperationCollectionIterator
@@ -846,7 +894,7 @@ type DiagnosticMetricSet = original.DiagnosticMetricSet
 type DiagnosticsClient = original.DiagnosticsClient
 type Dimension = original.Dimension
 type Domain = original.Domain
-type DomainAvailablilityCheckResult = original.DomainAvailablilityCheckResult
+type DomainAvailabilityCheckResult = original.DomainAvailabilityCheckResult
 type DomainCollection = original.DomainCollection
 type DomainCollectionIterator = original.DomainCollectionIterator
 type DomainCollectionPage = original.DomainCollectionPage
@@ -878,7 +926,6 @@ type FunctionEnvelopeCollectionPage = original.FunctionEnvelopeCollectionPage
 type FunctionEnvelopeProperties = original.FunctionEnvelopeProperties
 type FunctionSecrets = original.FunctionSecrets
 type FunctionSecretsProperties = original.FunctionSecretsProperties
-type GeoDistribution = original.GeoDistribution
 type GeoRegion = original.GeoRegion
 type GeoRegionCollection = original.GeoRegionCollection
 type GeoRegionCollectionIterator = original.GeoRegionCollectionIterator
@@ -921,6 +968,9 @@ type JobCollection = original.JobCollection
 type JobCollectionIterator = original.JobCollectionIterator
 type JobCollectionPage = original.JobCollectionPage
 type JobProperties = original.JobProperties
+type KeyVaultReferenceCollection = original.KeyVaultReferenceCollection
+type KeyVaultReferenceCollectionProperties = original.KeyVaultReferenceCollectionProperties
+type KeyVaultReferenceResource = original.KeyVaultReferenceResource
 type ListCapability = original.ListCapability
 type ListCertificateEmail = original.ListCertificateEmail
 type ListCertificateOrderAction = original.ListCertificateOrderAction
@@ -940,10 +990,7 @@ type MSDeployStatus = original.MSDeployStatus
 type MSDeployStatusProperties = original.MSDeployStatusProperties
 type ManagedServiceIdentity = original.ManagedServiceIdentity
 type ManagedServiceIdentityUserAssignedIdentitiesValue = original.ManagedServiceIdentityUserAssignedIdentitiesValue
-type MetricAvailabilily = original.MetricAvailabilily
 type MetricAvailability = original.MetricAvailability
-type MetricDefinition = original.MetricDefinition
-type MetricDefinitionProperties = original.MetricDefinitionProperties
 type MetricSpecification = original.MetricSpecification
 type MigrateMySQLRequest = original.MigrateMySQLRequest
 type MigrateMySQLRequestProperties = original.MigrateMySQLRequestProperties
@@ -1034,19 +1081,12 @@ type ResourceHealthMetadataCollection = original.ResourceHealthMetadataCollectio
 type ResourceHealthMetadataCollectionIterator = original.ResourceHealthMetadataCollectionIterator
 type ResourceHealthMetadataCollectionPage = original.ResourceHealthMetadataCollectionPage
 type ResourceHealthMetadataProperties = original.ResourceHealthMetadataProperties
-type ResourceMetric = original.ResourceMetric
 type ResourceMetricAvailability = original.ResourceMetricAvailability
-type ResourceMetricCollection = original.ResourceMetricCollection
-type ResourceMetricCollectionIterator = original.ResourceMetricCollectionIterator
-type ResourceMetricCollectionPage = original.ResourceMetricCollectionPage
 type ResourceMetricDefinition = original.ResourceMetricDefinition
 type ResourceMetricDefinitionCollection = original.ResourceMetricDefinitionCollection
 type ResourceMetricDefinitionCollectionIterator = original.ResourceMetricDefinitionCollectionIterator
 type ResourceMetricDefinitionCollectionPage = original.ResourceMetricDefinitionCollectionPage
 type ResourceMetricDefinitionProperties = original.ResourceMetricDefinitionProperties
-type ResourceMetricName = original.ResourceMetricName
-type ResourceMetricProperty = original.ResourceMetricProperty
-type ResourceMetricValue = original.ResourceMetricValue
 type ResourceNameAvailability = original.ResourceNameAvailability
 type ResourceNameAvailabilityRequest = original.ResourceNameAvailabilityRequest
 type ResponseMetaData = original.ResponseMetaData
@@ -1076,6 +1116,8 @@ type SiteExtensionInfoCollectionPage = original.SiteExtensionInfoCollectionPage
 type SiteExtensionInfoProperties = original.SiteExtensionInfoProperties
 type SiteInstance = original.SiteInstance
 type SiteInstanceProperties = original.SiteInstanceProperties
+type SiteInstanceStatus = original.SiteInstanceStatus
+type SiteInstanceStatusProperties = original.SiteInstanceStatusProperties
 type SiteLimits = original.SiteLimits
 type SiteLogsConfig = original.SiteLogsConfig
 type SiteLogsConfigProperties = original.SiteLogsConfigProperties
@@ -1164,7 +1206,6 @@ type UsageCollectionPage = original.UsageCollectionPage
 type UsageProperties = original.UsageProperties
 type User = original.User
 type UserProperties = original.UserProperties
-type ValidateContainerSettingsRequest = original.ValidateContainerSettingsRequest
 type ValidateProperties = original.ValidateProperties
 type ValidateRequest = original.ValidateRequest
 type ValidateResponse = original.ValidateResponse
@@ -1506,12 +1547,6 @@ func NewResourceHealthMetadataCollectionIterator(page ResourceHealthMetadataColl
 func NewResourceHealthMetadataCollectionPage(getNextPage func(context.Context, ResourceHealthMetadataCollection) (ResourceHealthMetadataCollection, error)) ResourceHealthMetadataCollectionPage {
 	return original.NewResourceHealthMetadataCollectionPage(getNextPage)
 }
-func NewResourceMetricCollectionIterator(page ResourceMetricCollectionPage) ResourceMetricCollectionIterator {
-	return original.NewResourceMetricCollectionIterator(page)
-}
-func NewResourceMetricCollectionPage(getNextPage func(context.Context, ResourceMetricCollection) (ResourceMetricCollection, error)) ResourceMetricCollectionPage {
-	return original.NewResourceMetricCollectionPage(getNextPage)
-}
 func NewResourceMetricDefinitionCollectionIterator(page ResourceMetricDefinitionCollectionPage) ResourceMetricDefinitionCollectionIterator {
 	return original.NewResourceMetricDefinitionCollectionIterator(page)
 }
@@ -1659,6 +1694,12 @@ func PossibleCloneAbilityResultValues() []CloneAbilityResult {
 func PossibleComputeModeOptionsValues() []ComputeModeOptions {
 	return original.PossibleComputeModeOptionsValues()
 }
+func PossibleConfigReferenceLocationValues() []ConfigReferenceLocation {
+	return original.PossibleConfigReferenceLocationValues()
+}
+func PossibleConfigReferenceSourceValues() []ConfigReferenceSource {
+	return original.PossibleConfigReferenceSourceValues()
+}
 func PossibleConnectionStringTypeValues() []ConnectionStringType {
 	return original.PossibleConnectionStringTypeValues()
 }
@@ -1755,6 +1796,9 @@ func PossibleRedundancyModeValues() []RedundancyMode {
 func PossibleRenderingTypeValues() []RenderingType {
 	return original.PossibleRenderingTypeValues()
 }
+func PossibleResolveStatusValues() []ResolveStatus {
+	return original.PossibleResolveStatusValues()
+}
 func PossibleResourceScopeTypeValues() []ResourceScopeType {
 	return original.PossibleResourceScopeTypeValues()
 }
@@ -1772,6 +1816,9 @@ func PossibleSiteExtensionTypeValues() []SiteExtensionType {
 }
 func PossibleSiteLoadBalancingValues() []SiteLoadBalancing {
 	return original.PossibleSiteLoadBalancingValues()
+}
+func PossibleSiteRuntimeStateValues() []SiteRuntimeState {
+	return original.PossibleSiteRuntimeStateValues()
 }
 func PossibleSkuNameValues() []SkuName {
 	return original.PossibleSkuNameValues()

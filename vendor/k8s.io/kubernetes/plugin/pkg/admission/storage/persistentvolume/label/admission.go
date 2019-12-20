@@ -33,15 +33,13 @@ import (
 	"k8s.io/klog"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	k8s_api_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	persistentvolume "k8s.io/kubernetes/pkg/controller/volume/persistentvolume/util"
 	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 )
 
 const (
 	// PluginName is the name of persistent volume label admission plugin
 	PluginName = "PersistentVolumeLabel"
-
-	// from pv_controller.go, not exported in 1.14
-	annDynamicallyProvisioned = "pv.kubernetes.io/provisioned-by"
 )
 
 // Register registers a plugin
@@ -176,7 +174,7 @@ func (l *persistentVolumeLabel) findVolumeLabels(volume *api.PersistentVolume) (
 	// All cloud providers set only these two labels.
 	domain, domainOK := existingLabels[v1.LabelZoneFailureDomain]
 	region, regionOK := existingLabels[v1.LabelZoneRegion]
-	isDynamicallyProvisioned := metav1.HasAnnotation(volume.ObjectMeta, annDynamicallyProvisioned)
+	isDynamicallyProvisioned := metav1.HasAnnotation(volume.ObjectMeta, persistentvolume.AnnDynamicallyProvisioned)
 	if isDynamicallyProvisioned && domainOK && regionOK {
 		// PV already has all the labels and we can trust the dynamic provisioning that it provided correct values.
 		return map[string]string{

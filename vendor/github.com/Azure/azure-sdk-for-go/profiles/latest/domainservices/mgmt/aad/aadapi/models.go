@@ -23,4 +23,3 @@ import original "github.com/Azure/azure-sdk-for-go/services/domainservices/mgmt/
 
 type DomainServiceOperationsClientAPI = original.DomainServiceOperationsClientAPI
 type DomainServicesClientAPI = original.DomainServicesClientAPI
-type ReplicaSetsClientAPI = original.ReplicaSetsClientAPI

@@ -105,6 +105,7 @@ type BastionHostsClientAPI interface {
 	Get(ctx context.Context, resourceGroupName string, bastionHostName string) (result network.BastionHost, err error)
 	List(ctx context.Context) (result network.BastionHostListResultPage, err error)
 	ListByResourceGroup(ctx context.Context, resourceGroupName string) (result network.BastionHostListResultPage, err error)
+	UpdateTags(ctx context.Context, resourceGroupName string, bastionHostName string, bastionHostParameters network.TagsObject) (result network.BastionHostsUpdateTagsFuture, err error)
 }
 
 var _ BastionHostsClientAPI = (*network.BastionHostsClient)(nil)
@@ -272,6 +273,28 @@ type ExpressRouteLinksClientAPI interface {
 }
 
 var _ ExpressRouteLinksClientAPI = (*network.ExpressRouteLinksClient)(nil)
+
+// FirewallPoliciesClientAPI contains the set of methods on the FirewallPoliciesClient type.
+type FirewallPoliciesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, firewallPolicyName string, parameters network.FirewallPolicy) (result network.FirewallPoliciesCreateOrUpdateFuture, err error)
+	Delete(ctx context.Context, resourceGroupName string, firewallPolicyName string) (result network.FirewallPoliciesDeleteFuture, err error)
+	Get(ctx context.Context, resourceGroupName string, firewallPolicyName string, expand string) (result network.FirewallPolicy, err error)
+	List(ctx context.Context, resourceGroupName string) (result network.FirewallPolicyListResultPage, err error)
+	ListAll(ctx context.Context) (result network.FirewallPolicyListResultPage, err error)
+	UpdateTags(ctx context.Context, resourceGroupName string, firewallPolicyName string, firewallPolicyParameters network.TagsObject) (result network.FirewallPolicy, err error)
+}
+
+var _ FirewallPoliciesClientAPI = (*network.FirewallPoliciesClient)(nil)
+
+// FirewallPolicyRuleGroupsClientAPI contains the set of methods on the FirewallPolicyRuleGroupsClient type.
+type FirewallPolicyRuleGroupsClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, firewallPolicyName string, ruleGroupName string, parameters network.FirewallPolicyRuleGroup) (result network.FirewallPolicyRuleGroupsCreateOrUpdateFuture, err error)
+	Delete(ctx context.Context, resourceGroupName string, firewallPolicyName string, ruleGroupName string) (result network.FirewallPolicyRuleGroupsDeleteFuture, err error)
+	Get(ctx context.Context, resourceGroupName string, firewallPolicyName string, ruleGroupName string) (result network.FirewallPolicyRuleGroup, err error)
+	List(ctx context.Context, resourceGroupName string, firewallPolicyName string) (result network.FirewallPolicyRuleGroupListResultPage, err error)
+}
+
+var _ FirewallPolicyRuleGroupsClientAPI = (*network.FirewallPolicyRuleGroupsClient)(nil)
 
 // LoadBalancersClientAPI contains the set of methods on the LoadBalancersClient type.
 type LoadBalancersClientAPI interface {
@@ -485,6 +508,7 @@ type ConnectionMonitorsClientAPI interface {
 	Query(ctx context.Context, resourceGroupName string, networkWatcherName string, connectionMonitorName string) (result network.ConnectionMonitorsQueryFuture, err error)
 	Start(ctx context.Context, resourceGroupName string, networkWatcherName string, connectionMonitorName string) (result network.ConnectionMonitorsStartFuture, err error)
 	Stop(ctx context.Context, resourceGroupName string, networkWatcherName string, connectionMonitorName string) (result network.ConnectionMonitorsStopFuture, err error)
+	UpdateTags(ctx context.Context, resourceGroupName string, networkWatcherName string, connectionMonitorName string, parameters network.TagsObject) (result network.ConnectionMonitorResult, err error)
 }
 
 var _ ConnectionMonitorsClientAPI = (*network.ConnectionMonitorsClient)(nil)
@@ -668,6 +692,7 @@ type SubnetsClientAPI interface {
 	Get(ctx context.Context, resourceGroupName string, virtualNetworkName string, subnetName string, expand string) (result network.Subnet, err error)
 	List(ctx context.Context, resourceGroupName string, virtualNetworkName string) (result network.SubnetListResultPage, err error)
 	PrepareNetworkPolicies(ctx context.Context, resourceGroupName string, virtualNetworkName string, subnetName string, prepareNetworkPoliciesRequestParameters network.PrepareNetworkPoliciesRequest) (result network.SubnetsPrepareNetworkPoliciesFuture, err error)
+	UnprepareNetworkPolicies(ctx context.Context, resourceGroupName string, virtualNetworkName string, subnetName string, unprepareNetworkPoliciesRequestParameters network.UnprepareNetworkPoliciesRequest) (result network.SubnetsUnprepareNetworkPoliciesFuture, err error)
 }
 
 var _ SubnetsClientAPI = (*network.SubnetsClient)(nil)

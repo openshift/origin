@@ -2,6 +2,7 @@ package browsersafe
 
 import (
 	"testing"
+	"context"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -54,7 +55,7 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 		delegateAuthorizer := &recordingAuthorizer{}
 		safeAuthorizer := NewBrowserSafeAuthorizer(delegateAuthorizer, "system:authenticated")
 
-		authorized, reason, err := safeAuthorizer.Authorize(tc.attributes)
+		authorized, reason, err := safeAuthorizer.Authorize(context.TODO(), tc.attributes)
 		if authorized == authorizer.DecisionAllow || reason != tc.expectedReason || err != nil {
 			t.Errorf("%s: unexpected output: %v %s %v", name, authorized, reason, err)
 			continue
@@ -73,7 +74,7 @@ type recordingAuthorizer struct {
 	attributes authorizer.Attributes
 }
 
-func (t *recordingAuthorizer) Authorize(a authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
+func (t *recordingAuthorizer) Authorize(_ context.Context, a authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
 	t.attributes = a
 	return authorizer.DecisionNoOpinion, "", nil
 }

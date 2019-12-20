@@ -202,3 +202,119 @@ func (client ServerBlobAuditingPoliciesClient) GetResponder(resp *http.Response)
 	result.Response = autorest.Response{Response: resp}
 	return
 }
+
+// ListByServer lists auditing settings of a server.
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the resource. You can obtain this value
+// from the Azure Resource Manager API or the portal.
+// serverName - the name of the server.
+func (client ServerBlobAuditingPoliciesClient) ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result ServerBlobAuditingPolicyListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ServerBlobAuditingPoliciesClient.ListByServer")
+		defer func() {
+			sc := -1
+			if result.sbaplr.Response.Response != nil {
+				sc = result.sbaplr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.fn = client.listByServerNextResults
+	req, err := client.ListByServerPreparer(ctx, resourceGroupName, serverName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ServerBlobAuditingPoliciesClient", "ListByServer", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListByServerSender(req)
+	if err != nil {
+		result.sbaplr.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "sql.ServerBlobAuditingPoliciesClient", "ListByServer", resp, "Failure sending request")
+		return
+	}
+
+	result.sbaplr, err = client.ListByServerResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ServerBlobAuditingPoliciesClient", "ListByServer", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListByServerPreparer prepares the ListByServer request.
+func (client ServerBlobAuditingPoliciesClient) ListByServerPreparer(ctx context.Context, resourceGroupName string, serverName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"serverName":        autorest.Encode("path", serverName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2017-03-01-preview"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/auditingSettings", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListByServerSender sends the ListByServer request. The method will close the
+// http.Response Body if it receives an error.
+func (client ServerBlobAuditingPoliciesClient) ListByServerSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListByServerResponder handles the response to the ListByServer request. The method always
+// closes the http.Response Body.
+func (client ServerBlobAuditingPoliciesClient) ListByServerResponder(resp *http.Response) (result ServerBlobAuditingPolicyListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listByServerNextResults retrieves the next set of results, if any.
+func (client ServerBlobAuditingPoliciesClient) listByServerNextResults(ctx context.Context, lastResults ServerBlobAuditingPolicyListResult) (result ServerBlobAuditingPolicyListResult, err error) {
+	req, err := lastResults.serverBlobAuditingPolicyListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "sql.ServerBlobAuditingPoliciesClient", "listByServerNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByServerSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "sql.ServerBlobAuditingPoliciesClient", "listByServerNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByServerResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ServerBlobAuditingPoliciesClient", "listByServerNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByServerComplete enumerates all values, automatically crossing page boundaries as required.
+func (client ServerBlobAuditingPoliciesClient) ListByServerComplete(ctx context.Context, resourceGroupName string, serverName string) (result ServerBlobAuditingPolicyListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ServerBlobAuditingPoliciesClient.ListByServer")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByServer(ctx, resourceGroupName, serverName)
+	return
+}

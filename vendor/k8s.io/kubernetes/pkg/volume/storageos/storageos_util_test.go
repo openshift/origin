@@ -19,18 +19,17 @@ package storageos
 import (
 	"fmt"
 	"os"
+	"testing"
 
 	storageostypes "github.com/storageos/go-api/types"
-	"k8s.io/api/core/v1"
+	"k8s.io/utils/mount"
+
+	v1 "k8s.io/api/core/v1"
 	utiltesting "k8s.io/client-go/util/testing"
-	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
-
-	"testing"
 )
 
-var testAPISecretName = "storageos-api"
 var testVolName = "storageos-test-vol"
 var testPVName = "storageos-test-pv"
 var testNamespace = "storageos-test-namespace"
@@ -222,7 +221,7 @@ func TestAttachVolume(t *testing.T) {
 			volName:      testVolName,
 			volNamespace: testNamespace,
 			manager:      util,
-			mounter:      &mount.FakeMounter{},
+			mounter:      mount.NewFakeMounter(nil),
 			plugin:       plug.(*storageosPlugin),
 		},
 		deviceDir: tmpDir,

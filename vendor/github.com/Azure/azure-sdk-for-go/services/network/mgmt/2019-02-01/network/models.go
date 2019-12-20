@@ -3595,10 +3595,10 @@ type ApplicationGatewayOnDemandProbe struct {
 	PickHostNameFromBackendHTTPSettings *bool `json:"pickHostNameFromBackendHttpSettings,omitempty"`
 	// Match - Criterion for classifying a healthy probe response.
 	Match *ApplicationGatewayProbeHealthResponseMatch `json:"match,omitempty"`
-	// BackendPoolName - Name of backend pool of application gateway to which probe request will be sent.
-	BackendPoolName *string `json:"backendPoolName,omitempty"`
-	// BackendHTTPSettingName - Name of backend http setting of application gateway to be used for test probe
-	BackendHTTPSettingName *string `json:"backendHttpSettingName,omitempty"`
+	// BackendAddressPool - Reference of backend pool of application gateway to which probe request will be sent.
+	BackendAddressPool *SubResource `json:"backendAddressPool,omitempty"`
+	// BackendHTTPSettings - Reference of backend http setting of application gateway to be used for test probe.
+	BackendHTTPSettings *SubResource `json:"backendHttpSettings,omitempty"`
 }
 
 // ApplicationGatewayPathRule path rule of URL path map of an application gateway.
@@ -6797,6 +6797,8 @@ type BackendAddressPoolPropertiesFormat struct {
 	LoadBalancingRules *[]SubResource `json:"loadBalancingRules,omitempty"`
 	// OutboundRule - READ-ONLY; Gets outbound rules that use this backend address pool.
 	OutboundRule *SubResource `json:"outboundRule,omitempty"`
+	// OutboundRules - READ-ONLY; Gets outbound rules that use this backend address pool.
+	OutboundRules *[]SubResource `json:"outboundRules,omitempty"`
 	// ProvisioningState - Get provisioning state of the public IP resource. Possible values are: 'Updating', 'Deleting', and 'Failed'.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
 }
@@ -18624,7 +18626,7 @@ type OperationPropertiesFormatServiceSpecification struct {
 	LogSpecifications *[]LogSpecification `json:"logSpecifications,omitempty"`
 }
 
-// OutboundRule outbound pool of the load balancer.
+// OutboundRule outbound rule of the load balancer.
 type OutboundRule struct {
 	autorest.Response `json:"-"`
 	// OutboundRulePropertiesFormat - Properties of load balancer outbound rule.
@@ -18706,7 +18708,7 @@ func (or *OutboundRule) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// OutboundRulePropertiesFormat outbound pool of the load balancer.
+// OutboundRulePropertiesFormat outbound rule of the load balancer.
 type OutboundRulePropertiesFormat struct {
 	// AllocatedOutboundPorts - The number of outbound ports to be used for NAT.
 	AllocatedOutboundPorts *int32 `json:"allocatedOutboundPorts,omitempty"`
@@ -21451,17 +21453,19 @@ type PublicIPPrefixPropertiesFormat struct {
 	IPTags *[]IPTag `json:"ipTags,omitempty"`
 	// PrefixLength - The Length of the Public IP Prefix.
 	PrefixLength *int32 `json:"prefixLength,omitempty"`
-	// IPPrefix - The allocated Prefix
+	// IPPrefix - The allocated Prefix.
 	IPPrefix *string `json:"ipPrefix,omitempty"`
-	// PublicIPAddresses - The list of all referenced PublicIPAddresses
+	// PublicIPAddresses - The list of all referenced PublicIPAddresses.
 	PublicIPAddresses *[]ReferencedPublicIPAddress `json:"publicIPAddresses,omitempty"`
+	// LoadBalancerFrontendIPConfiguration - READ-ONLY; The reference to load balancer frontend IP configuration associated with the public IP prefix.
+	LoadBalancerFrontendIPConfiguration *SubResource `json:"loadBalancerFrontendIpConfiguration,omitempty"`
 	// ResourceGUID - The resource GUID property of the public IP prefix resource.
 	ResourceGUID *string `json:"resourceGuid,omitempty"`
 	// ProvisioningState - The provisioning state of the Public IP prefix resource. Possible values are: 'Updating', 'Deleting', and 'Failed'.
 	ProvisioningState *string `json:"provisioningState,omitempty"`
 }
 
-// PublicIPPrefixSku SKU of a public IP prefix
+// PublicIPPrefixSku SKU of a public IP prefix.
 type PublicIPPrefixSku struct {
 	// Name - Name of a public IP prefix SKU. Possible values include: 'PublicIPPrefixSkuNameStandard'
 	Name PublicIPPrefixSkuName `json:"name,omitempty"`
@@ -21475,7 +21479,7 @@ type QueryTroubleshootingParameters struct {
 
 // ReferencedPublicIPAddress reference to a public IP address.
 type ReferencedPublicIPAddress struct {
-	// ID - The PublicIPAddress Reference
+	// ID - The PublicIPAddress Reference.
 	ID *string `json:"id,omitempty"`
 }
 

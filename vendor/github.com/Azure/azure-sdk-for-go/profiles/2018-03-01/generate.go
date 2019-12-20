@@ -14,4 +14,4 @@
 
 package v20180301
 
-//go:generate go run ../../tools/profileBuilder/main.go list --clear-output --input ./definition.json --name 2018-03-01 --output-location ./ --verbose
+//go:generate go run ../../tools/profileBuilder/main.go list --clear-output --input ./definition.json --name 2018-03-01 --output-location ./

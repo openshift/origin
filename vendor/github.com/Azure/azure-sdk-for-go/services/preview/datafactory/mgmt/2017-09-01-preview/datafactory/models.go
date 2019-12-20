@@ -19133,6 +19133,8 @@ type BlobEventsTriggerTypeProperties struct {
 	BlobPathBeginsWith *string `json:"blobPathBeginsWith,omitempty"`
 	// BlobPathEndsWith - The blob path must end with the pattern provided for trigger to fire. For example, 'december/boxes.csv' will only fire the trigger for blobs named boxes in a december folder. At least one of these must be provided: blobPathBeginsWith, blobPathEndsWith.
 	BlobPathEndsWith *string `json:"blobPathEndsWith,omitempty"`
+	// IgnoreEmptyBlobs - If set to true, blobs with zero bytes will be ignored.
+	IgnoreEmptyBlobs *bool `json:"ignoreEmptyBlobs,omitempty"`
 	// Events - The type of events that cause this trigger to fire.
 	Events *[]BlobEventTypes `json:"events,omitempty"`
 	// Scope - The ARM resource ID of the Storage Account.

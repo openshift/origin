@@ -15,7 +15,12 @@ import (
 	"testing"
 
 	"github.com/heketi/tests"
+
+	rex "github.com/heketi/heketi/pkg/remoteexec"
 )
+
+// test timeout options
+var tto = TimeoutOptions{1, false}
 
 // TestExecCommands tests running commands on an actual container.
 // To be honest, this is a bit hokey but was an expedient way to actually
@@ -91,7 +96,7 @@ func TestExecCommands(t *testing.T) {
 }
 
 func testExecSimple(t *testing.T, kc *KubeConn, tc TargetContainer) {
-	r, err := ExecCommands(kc, tc, []string{"ls /"}, 1)
+	r, err := ExecCommands(kc, tc, rex.ToCmds([]string{"ls /"}), tto)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	tests.Assert(t, len(r) == 1)
 }
@@ -102,7 +107,7 @@ func testExecSimple3(t *testing.T, kc *KubeConn, tc TargetContainer) {
 		"true",
 		"false",
 	}
-	r, err := ExecCommands(kc, tc, cmds, 1)
+	r, err := ExecCommands(kc, tc, rex.ToCmds(cmds), tto)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	tests.Assert(t, len(r) == 3)
 	tests.Assert(t, r[0].Ok(), "expected r0 OK")
@@ -116,7 +121,7 @@ func testExecStopEarly(t *testing.T, kc *KubeConn, tc TargetContainer) {
 		"ls /proc",
 		"true",
 	}
-	r, err := ExecCommands(kc, tc, cmds, 1)
+	r, err := ExecCommands(kc, tc, rex.ToCmds(cmds), tto)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	tests.Assert(t, len(r) == 3)
 	tests.Assert(t, !r[0].Ok(), "expected r0 not OK")

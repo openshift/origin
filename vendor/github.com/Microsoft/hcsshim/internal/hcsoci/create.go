@@ -11,6 +11,7 @@ import (
 
 	"github.com/Microsoft/hcsshim/internal/guid"
 	"github.com/Microsoft/hcsshim/internal/hcs"
+	"github.com/Microsoft/hcsshim/internal/oci"
 	"github.com/Microsoft/hcsshim/internal/schema2"
 	"github.com/Microsoft/hcsshim/internal/schemaversion"
 	"github.com/Microsoft/hcsshim/internal/uvm"
@@ -120,15 +121,30 @@ func CreateContainer(createOptions *CreateOptions) (_ *hcs.System, _ *Resources,
 		}
 		coi.actualNetworkNamespace = resources.netNS
 		if coi.HostingSystem != nil {
-			endpoints, err := getNamespaceEndpoints(coi.actualNetworkNamespace)
+			ct, _, err := oci.GetSandboxTypeAndID(coi.Spec.Annotations)
 			if err != nil {
 				return nil, resources, err
 			}
-			err = coi.HostingSystem.AddNetNS(coi.actualNetworkNamespace, endpoints)
-			if err != nil {
-				return nil, resources, err
+			// Only add the network namespace to a standalone or sandbox
+			// container but not a workload container in a sandbox that inherits
+			// the namespace.
+			if ct == oci.KubernetesContainerTypeNone || ct == oci.KubernetesContainerTypeSandbox {
+				endpoints, err := GetNamespaceEndpoints(coi.actualNetworkNamespace)
+				if err != nil {
+					return nil, resources, err
+				}
+				err = coi.HostingSystem.AddNetNS(coi.actualNetworkNamespace)
+				if err != nil {
+					return nil, resources, err
+				}
+				err = coi.HostingSystem.AddEndpointsToNS(coi.actualNetworkNamespace, endpoints)
+				if err != nil {
+					// Best effort clean up the NS
+					coi.HostingSystem.RemoveNetNS(coi.actualNetworkNamespace)
+					return nil, resources, err
+				}
+				resources.addedNetNSToVM = true
 			}
-			resources.addedNetNSToVM = true
 		}
 	}
 

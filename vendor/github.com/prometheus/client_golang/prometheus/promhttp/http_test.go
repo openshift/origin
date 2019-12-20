@@ -59,7 +59,8 @@ func (b blockingCollector) Collect(ch chan<- prometheus.Metric) {
 func TestHandlerErrorHandling(t *testing.T) {
 
 	// Create a registry that collects a MetricFamily with two elements,
-	// another with one, and reports an error.
+	// another with one, and reports an error. Further down, we'll use the
+	// same registry in the HandlerOpts.
 	reg := prometheus.NewRegistry()
 
 	cnt := prometheus.NewCounter(prometheus.CounterOpts{
@@ -92,14 +93,17 @@ func TestHandlerErrorHandling(t *testing.T) {
 	errorHandler := HandlerFor(reg, HandlerOpts{
 		ErrorLog:      logger,
 		ErrorHandling: HTTPErrorOnError,
+		Registry:      reg,
 	})
 	continueHandler := HandlerFor(reg, HandlerOpts{
 		ErrorLog:      logger,
 		ErrorHandling: ContinueOnError,
+		Registry:      reg,
 	})
 	panicHandler := HandlerFor(reg, HandlerOpts{
 		ErrorLog:      logger,
 		ErrorHandling: PanicOnError,
+		Registry:      reg,
 	})
 	wantMsg := `error gathering metrics: error collecting metric Desc{fqName: "invalid_metric", help: "not helpful", constLabels: {}, variableLabels: []}: collect error
 `
@@ -107,10 +111,29 @@ func TestHandlerErrorHandling(t *testing.T) {
 
 error collecting metric Desc{fqName: "invalid_metric", help: "not helpful", constLabels: {}, variableLabels: []}: collect error
 `
-	wantOKBody := `# HELP name docstring
+	wantOKBody1 := `# HELP name docstring
 # TYPE name counter
 name{constname="constvalue",labelname="val1"} 1
 name{constname="constvalue",labelname="val2"} 1
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 1
+# HELP the_count Ah-ah-ah! Thunder and lightning!
+# TYPE the_count counter
+the_count 0
+`
+	// It might happen that counting the gathering error makes it to the
+	// promhttp_metric_handler_errors_total counter before it is gathered
+	// itself. Thus, we have to bodies that are acceptable for the test.
+	wantOKBody2 := `# HELP name docstring
+# TYPE name counter
+name{constname="constvalue",labelname="val1"} 1
+name{constname="constvalue",labelname="val2"} 1
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 2
 # HELP the_count Ah-ah-ah! Thunder and lightning!
 # TYPE the_count counter
 the_count 0
@@ -137,8 +160,8 @@ the_count 0
 	if got := logBuf.String(); got != wantMsg {
 		t.Errorf("got log message %q, want %q", got, wantMsg)
 	}
-	if got := writer.Body.String(); got != wantOKBody {
-		t.Errorf("got body %q, want %q", got, wantOKBody)
+	if got := writer.Body.String(); got != wantOKBody1 && got != wantOKBody2 {
+		t.Errorf("got body %q, want either %q or %q", got, wantOKBody1, wantOKBody2)
 	}
 
 	defer func() {

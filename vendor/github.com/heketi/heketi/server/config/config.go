@@ -21,7 +21,7 @@ import (
 
 type Config struct {
 	Port                 string                   `json:"port"`
-	AuthEnabled          bool                     `json:"use_auth"`
+	AuthEnabled          bool                     `json:"use_auth"` // deprecated
 	JwtConfig            middleware.JwtAuthConfig `json:"jwt"`
 	BackupDbToKubeSecret bool                     `json:"backup_db_to_kube_secret"`
 	EnableTls            bool                     `json:"enable_tls"`

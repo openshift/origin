@@ -19,7 +19,7 @@
 
 package storagedatalakeapi
 
-import original "github.com/Azure/azure-sdk-for-go/services/storage/datalake/2018-11-09/storagedatalake/storagedatalakeapi"
+import original "github.com/Azure/azure-sdk-for-go/services/storage/datalake/2019-10-31/storagedatalake/storagedatalakeapi"
 
 type FilesystemClientAPI = original.FilesystemClientAPI
 type PathClientAPI = original.PathClientAPI

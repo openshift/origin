@@ -49,7 +49,6 @@ import (
 	_ "k8s.io/kubernetes/test/e2e/lifecycle/bootstrap"
 	_ "k8s.io/kubernetes/test/e2e/network"
 	_ "k8s.io/kubernetes/test/e2e/node"
-	_ "k8s.io/kubernetes/test/e2e/scalability"
 	_ "k8s.io/kubernetes/test/e2e/scheduling"
 	_ "k8s.io/kubernetes/test/e2e/servicecatalog"
 	_ "k8s.io/kubernetes/test/e2e/storage"
@@ -63,7 +62,9 @@ var viperConfig = flag.String("viper-config", "", "The name of a viper config fi
 func init() {
 	// Register test flags, then parse flags.
 	HandleFlags()
+}
 
+func TestMain(m *testing.M) {
 	// Now that we know which Viper config (if any) was chosen,
 	// parse it and update those options which weren't already set via command line flags
 	// (which have higher priority).
@@ -96,9 +97,6 @@ func init() {
 		AssetNames: generated.AssetNames,
 	})
 
-}
-
-func TestMain(m *testing.M) {
 	rand.Seed(time.Now().UnixNano())
 	os.Exit(m.Run())
 }

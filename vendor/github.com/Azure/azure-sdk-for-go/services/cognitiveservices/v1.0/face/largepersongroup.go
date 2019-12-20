@@ -423,7 +423,8 @@ func (client LargePersonGroupClient) List(ctx context.Context, start string, top
 	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: start,
-			Constraints: []validation.Constraint{{Target: "start", Name: validation.MaxLength, Rule: 64, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "start", Name: validation.Empty, Rule: false,
+				Chain: []validation.Constraint{{Target: "start", Name: validation.MaxLength, Rule: 64, Chain: nil}}}}},
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "top", Name: validation.InclusiveMaximum, Rule: int64(1000), Chain: nil},

@@ -88,7 +88,7 @@ func (l *lexer) lex() {
 				l.errchan <- err
 				return
 			}
-			if bytes.IndexAny(line, SYSTEMD_NEWLINE) == -1 {
+			if !bytes.ContainsAny(line, SYSTEMD_NEWLINE) {
 				l.errchan <- ErrLineTooLong
 				return
 			}

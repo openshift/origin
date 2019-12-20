@@ -31,7 +31,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var excepFileFlag string
+var exceptFileFlag string
 
 var rootCmd = &cobra.Command{
 	Use:   "pkgchk <dir>",
@@ -41,12 +41,7 @@ found under the specified directory.  Failures can be baselined and thus ignored
 copying the failure text verbatim, pasting it into a text file then specifying that
 file via the optional exceptions flag.
 `,
-	Args: func(cmd *cobra.Command, args []string) error {
-		if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-			return err
-		}
-		return nil
-	},
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		return theCommand(args)
@@ -54,7 +49,7 @@ file via the optional exceptions flag.
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&excepFileFlag, "exceptions", "e", "", "text file containing the list of exceptions")
+	rootCmd.PersistentFlags().StringVarP(&exceptFileFlag, "exceptions", "e", "", "text file containing the list of exceptions")
 }
 
 // Execute executes the specified command.
@@ -65,26 +60,17 @@ func Execute() {
 }
 
 func theCommand(args []string) error {
-	rootDir := args[0]
-	if !filepath.IsAbs(rootDir) {
-		asAbs, err := filepath.Abs(rootDir)
-		if err != nil {
-			return errors.Wrap(err, "failed to get absolute path")
-		}
-		rootDir = asAbs
+	rootDir, err := filepath.Abs(args[0])
+	if err != nil {
+		return errors.Wrap(err, "failed to get absolute path")
 	}
-
 	pkgs, err := getPkgs(rootDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to get packages")
 	}
-
-	var exceptions []string
-	if excepFileFlag != "" {
-		exceptions, err = loadExceptions(excepFileFlag)
-		if err != nil {
-			return errors.Wrap(err, "failed to load exceptions")
-		}
+	exceptions, err := loadExceptions(exceptFileFlag)
+	if err != nil {
+		return errors.Wrap(err, "failed to load exceptions")
 	}
 	verifiers := getVerifiers()
 	count := 0
@@ -96,12 +82,10 @@ func theCommand(args []string) error {
 			}
 		}
 	}
-
-	var res error
 	if count > 0 {
-		res = fmt.Errorf("found %d errors", count)
+		return fmt.Errorf("found %d errors", count)
 	}
-	return res
+	return nil
 }
 
 func contains(items []string, item string) bool {
@@ -116,8 +100,11 @@ func contains(items []string, item string) bool {
 	return false
 }
 
-func loadExceptions(excepFile string) ([]string, error) {
-	f, err := os.Open(excepFile)
+func loadExceptions(exceptFile string) ([]string, error) {
+	if exceptFile == "" {
+		return nil, nil
+	}
+	f, err := os.Open(exceptFile)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +137,7 @@ func (p pkg) isARMPkg() bool {
 
 // walks the directory hierarchy from the specified root returning a slice of all the packages found
 func getPkgs(rootDir string) ([]pkg, error) {
-	pkgs := []pkg{}
+	pkgs := make([]pkg, 0)
 	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -214,17 +201,28 @@ func getVerifiers() []verifier {
 	return []verifier{
 		verifyPkgMatchesDir,
 		verifyLowerCase,
-		verifyDirectorySturcture,
+		verifyDirectoryStructure,
 	}
 }
 
 // ensures that the leaf directory name matches the package name
+// new to modules: if the last leaf is version suffix, find its parent as leaf folder
 func verifyPkgMatchesDir(p pkg) error {
-	leaf := p.d[strings.LastIndex(p.d, "/")+1:]
-	if strings.Compare(leaf, p.p.Name) != 0 {
+	leaf := findPackageFolderInPath(p.d)
+	if !strings.EqualFold(leaf, p.p.Name) {
 		return fmt.Errorf("leaf directory of '%s' doesn't match package name '%s'", p.d, p.p.Name)
 	}
 	return nil
+}
+
+func findPackageFolderInPath(path string) string {
+	regex := regexp.MustCompile(`/v\d+$`)
+	if regex.MatchString(path) {
+		// folder path ends with version suffix
+		path = path[:strings.LastIndex(path, "/")]
+	}
+	result := path[strings.LastIndex(path, "/")+1:]
+	return result
 }
 
 // ensures that there are no upper-case letters in a package's directory
@@ -242,12 +240,13 @@ func verifyLowerCase(p pkg) error {
 }
 
 // ensures that the package's directory hierarchy is properly formed
-func verifyDirectorySturcture(p pkg) error {
+func verifyDirectoryStructure(p pkg) error {
 	// for ARM the package directory structure is highly deterministic:
 	// /redis/mgmt/2015-08-01/redis
 	// /resources/mgmt/2017-06-01-preview/policy
 	// /preview/signalr/mgmt/2018-03-01-preview/signalr
 	// /preview/security/mgmt/v2.0/security (version scheme for composite packages)
+	// /network/mgmt/2019-10-01/network/v2 (new with modules)
 	if !p.isARMPkg() {
 		return nil
 	}
@@ -255,9 +254,10 @@ func verifyDirectorySturcture(p pkg) error {
 		`^(?:/preview)?`,
 		`[a-z0-9\-]+`,
 		`mgmt`,
-		`(?:\d{4}-\d{2}-\d{2}(?:-preview)?)|(?:v\d{1,2}\.\d{1,2})`,
+		`((?:\d{4}-\d{2}-\d{2}(?:-preview)?)|(?:v\d{1,2}\.\d{1,2}))`,
 		`[a-z0-9]+`,
 	}, "/")
+	regexStr = regexStr + `(/v\d+)?$`
 	regex := regexp.MustCompile(regexStr)
 	if !regex.MatchString(p.d) {
 		return fmt.Errorf("bad directory structure '%s'", p.d)

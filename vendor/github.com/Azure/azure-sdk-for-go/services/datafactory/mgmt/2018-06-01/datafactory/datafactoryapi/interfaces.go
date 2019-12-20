@@ -145,12 +145,23 @@ type TriggersClientAPI interface {
 	CreateOrUpdate(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, trigger datafactory.TriggerResource, ifMatch string) (result datafactory.TriggerResource, err error)
 	Delete(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result autorest.Response, err error)
 	Get(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, ifNoneMatch string) (result datafactory.TriggerResource, err error)
+	GetEventSubscriptionStatus(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result datafactory.TriggerSubscriptionOperationStatus, err error)
 	ListByFactory(ctx context.Context, resourceGroupName string, factoryName string) (result datafactory.TriggerListResponsePage, err error)
 	Start(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result datafactory.TriggersStartFuture, err error)
 	Stop(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result datafactory.TriggersStopFuture, err error)
+	SubscribeToEvents(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result datafactory.TriggersSubscribeToEventsFuture, err error)
+	UnsubscribeFromEvents(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result datafactory.TriggersUnsubscribeFromEventsFuture, err error)
 }
 
 var _ TriggersClientAPI = (*datafactory.TriggersClient)(nil)
+
+// TriggerRunsClientAPI contains the set of methods on the TriggerRunsClient type.
+type TriggerRunsClientAPI interface {
+	QueryByFactory(ctx context.Context, resourceGroupName string, factoryName string, filterParameters datafactory.RunFilterParameters) (result datafactory.TriggerRunsQueryResponse, err error)
+	Rerun(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, runID string) (result autorest.Response, err error)
+}
+
+var _ TriggerRunsClientAPI = (*datafactory.TriggerRunsClient)(nil)
 
 // RerunTriggersClientAPI contains the set of methods on the RerunTriggersClient type.
 type RerunTriggersClientAPI interface {
@@ -163,9 +174,23 @@ type RerunTriggersClientAPI interface {
 
 var _ RerunTriggersClientAPI = (*datafactory.RerunTriggersClient)(nil)
 
-// TriggerRunsClientAPI contains the set of methods on the TriggerRunsClient type.
-type TriggerRunsClientAPI interface {
-	QueryByFactory(ctx context.Context, resourceGroupName string, factoryName string, filterParameters datafactory.RunFilterParameters) (result datafactory.TriggerRunsQueryResponse, err error)
+// DataFlowsClientAPI contains the set of methods on the DataFlowsClient type.
+type DataFlowsClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, factoryName string, dataFlowName string, dataFlow datafactory.DataFlowResource, ifMatch string) (result datafactory.DataFlowResource, err error)
+	Delete(ctx context.Context, resourceGroupName string, factoryName string, dataFlowName string) (result autorest.Response, err error)
+	Get(ctx context.Context, resourceGroupName string, factoryName string, dataFlowName string, ifNoneMatch string) (result datafactory.DataFlowResource, err error)
+	ListByFactory(ctx context.Context, resourceGroupName string, factoryName string) (result datafactory.DataFlowListResponsePage, err error)
 }
 
-var _ TriggerRunsClientAPI = (*datafactory.TriggerRunsClient)(nil)
+var _ DataFlowsClientAPI = (*datafactory.DataFlowsClient)(nil)
+
+// DataFlowDebugSessionClientAPI contains the set of methods on the DataFlowDebugSessionClient type.
+type DataFlowDebugSessionClientAPI interface {
+	AddDataFlow(ctx context.Context, resourceGroupName string, factoryName string, request datafactory.DataFlowDebugPackage) (result datafactory.AddDataFlowToDebugSessionResponse, err error)
+	Create(ctx context.Context, resourceGroupName string, factoryName string, request datafactory.CreateDataFlowDebugSessionRequest) (result datafactory.DataFlowDebugSessionCreateFuture, err error)
+	Delete(ctx context.Context, resourceGroupName string, factoryName string, request datafactory.DeleteDataFlowDebugSessionRequest) (result autorest.Response, err error)
+	ExecuteCommand(ctx context.Context, resourceGroupName string, factoryName string, request datafactory.DataFlowDebugCommandRequest) (result datafactory.DataFlowDebugSessionExecuteCommandFuture, err error)
+	QueryByFactory(ctx context.Context, resourceGroupName string, factoryName string) (result datafactory.QueryDataFlowDebugSessionsResponsePage, err error)
+}
+
+var _ DataFlowDebugSessionClientAPI = (*datafactory.DataFlowDebugSessionClient)(nil)

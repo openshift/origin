@@ -19,7 +19,7 @@ type fakeAuthorizer struct {
 	err   error
 }
 
-func (a *fakeAuthorizer) Authorize(authorizer.Attributes) (authorizer.Decision, string, error) {
+func (a *fakeAuthorizer) Authorize(context.Context, authorizer.Attributes) (authorizer.Decision, string, error) {
 	return a.allow, "", a.err
 }
 

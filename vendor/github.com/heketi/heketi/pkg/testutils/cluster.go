@@ -68,8 +68,10 @@ func (ce *ClusterEnv) Copy() *ClusterEnv {
 	return &newce
 }
 
-func (ce *ClusterEnv) client() *client.Client {
-	return client.NewClientNoAuth(ce.HeketiUrl)
+func (ce *ClusterEnv) HeketiClient() *client.Client {
+	opts := client.DefaultClientOptions()
+	opts.PollDelay = 200
+	return client.NewClientWithOptions(ce.HeketiUrl, "", "", opts)
 }
 
 func (ce *ClusterEnv) SshHost(index int) string {
@@ -97,7 +99,7 @@ func (ce *ClusterEnv) Setup(t *testing.T, numNodes, numDisks int) {
 func (ce *ClusterEnv) SetupWithCluster(
 	t *testing.T, req *api.ClusterCreateRequest, numNodes, numDisks int) {
 
-	heketi := ce.client()
+	heketi := ce.HeketiClient()
 
 	// As a testing invariant, we always expect to set up a cluster
 	// at the start of a test on a _clean_ server.
@@ -152,7 +154,7 @@ func (ce *ClusterEnv) SetupWithCluster(
 }
 
 func (ce *ClusterEnv) StateDump(t *testing.T) {
-	heketi := ce.client()
+	heketi := ce.HeketiClient()
 	if t.Failed() {
 		fmt.Println("~~~~~ dumping db state prior to teardown ~~~~~")
 		dump, err := heketi.DbDump()
@@ -166,7 +168,7 @@ func (ce *ClusterEnv) StateDump(t *testing.T) {
 }
 
 func (ce *ClusterEnv) VolumeTeardown(t *testing.T) {
-	heketi := ce.client()
+	heketi := ce.HeketiClient()
 	fmt.Println("~~~ tearing down volumes")
 
 	clusters, err := heketi.ClusterList()
@@ -191,8 +193,36 @@ func (ce *ClusterEnv) VolumeTeardown(t *testing.T) {
 	}
 }
 
+func (ce *ClusterEnv) nodePurgeDevices(heketi *client.Client, nodeId string) error {
+	node, err := heketi.NodeInfo(nodeId)
+	if err != nil {
+		return err
+	}
+
+	for _, device := range node.DevicesInfo {
+		stateReq := &api.StateRequest{}
+		stateReq.State = api.EntryStateOffline
+		err := heketi.DeviceState(device.Id, stateReq)
+		if err != nil {
+			return err
+		}
+
+		stateReq.State = api.EntryStateFailed
+		err = heketi.DeviceState(device.Id, stateReq)
+		if err != nil {
+			return err
+		}
+
+		err = heketi.DeviceDelete(device.Id)
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
 func (ce *ClusterEnv) Teardown(t *testing.T) {
-	heketi := ce.client()
+	heketi := ce.HeketiClient()
 	fmt.Println("~~~ tearing down cluster")
 	ce.StateDump(t)
 
@@ -200,7 +230,6 @@ func (ce *ClusterEnv) Teardown(t *testing.T) {
 	tests.Assert(t, err == nil, err)
 
 	for _, cluster := range clusters.Clusters {
-
 		clusterInfo, err := heketi.ClusterInfo(cluster)
 		tests.Assert(t, err == nil, "expected err == nil, got:", err)
 
@@ -217,44 +246,21 @@ func (ce *ClusterEnv) Teardown(t *testing.T) {
 		}
 
 		// Delete nodes
+		sg := utils.NewStatusGroup()
 		for _, node := range clusterInfo.Nodes {
-
-			// Get node information
-			nodeInfo, err := heketi.NodeInfo(node)
-			tests.Assert(t, err == nil, "expected err == nil, got:", err)
-
-			// Delete each device
-			sg := utils.NewStatusGroup()
-			for _, device := range nodeInfo.DevicesInfo {
-				sg.Add(1)
-				go func(id string) {
-					defer sg.Done()
-
-					stateReq := &api.StateRequest{}
-					stateReq.State = api.EntryStateOffline
-					err := heketi.DeviceState(id, stateReq)
-					if err != nil {
-						sg.Err(err)
-						return
-					}
-
-					stateReq.State = api.EntryStateFailed
-					err = heketi.DeviceState(id, stateReq)
-					if err != nil {
-						sg.Err(err)
-						return
-					}
-
-					err = heketi.DeviceDelete(id)
-					sg.Err(err)
-
-				}(device.Id)
-			}
-			err = sg.Result()
-			tests.Assert(t, err == nil, "expected err == nil, got:", err)
-
-			// Delete node
-			err = heketi.NodeDelete(node)
+			sg.Add(1)
+			go func(n string) {
+				defer sg.Done()
+				sg.Err(ce.nodePurgeDevices(heketi, n))
+			}(node)
+		}
+		err = sg.Result()
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		// it is apparently not safe to try and delete the nodes
+		// "in parallel" as part of the node purge loop. Instead do
+		// the node delete in a subsequent loop.
+		for _, node := range clusterInfo.Nodes {
+			err := heketi.NodeDelete(node)
 			tests.Assert(t, err == nil, "expected err == nil, got:", err)
 		}
 

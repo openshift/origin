@@ -78,21 +78,6 @@ func PossibleErrorCodeTypeValues() []ErrorCodeType {
 	return []ErrorCodeType{BadArgument, EndpointKeysError, ExtractionFailure, Forbidden, KbNotFound, NotFound, OperationNotFound, QnaRuntimeError, QuotaExceeded, ServiceError, SKULimitExceeded, Unauthorized, Unspecified, ValidationFailure}
 }
 
-// KnowledgebaseEnvironmentType enumerates the values for knowledgebase environment type.
-type KnowledgebaseEnvironmentType string
-
-const (
-	// KnowledgebaseEnvironmentTypeProd ...
-	KnowledgebaseEnvironmentTypeProd KnowledgebaseEnvironmentType = "Prod"
-	// KnowledgebaseEnvironmentTypeTest ...
-	KnowledgebaseEnvironmentTypeTest KnowledgebaseEnvironmentType = "Test"
-)
-
-// PossibleKnowledgebaseEnvironmentTypeValues returns an array of possible values for the KnowledgebaseEnvironmentType const type.
-func PossibleKnowledgebaseEnvironmentTypeValues() []KnowledgebaseEnvironmentType {
-	return []KnowledgebaseEnvironmentType{KnowledgebaseEnvironmentTypeProd, KnowledgebaseEnvironmentTypeTest}
-}
-
 // OperationStateType enumerates the values for operation state type.
 type OperationStateType string
 

@@ -269,6 +269,7 @@ type EncryptionProtectorsClientAPI interface {
 	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, parameters sql.EncryptionProtector) (result sql.EncryptionProtectorsCreateOrUpdateFuture, err error)
 	Get(ctx context.Context, resourceGroupName string, serverName string) (result sql.EncryptionProtector, err error)
 	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.EncryptionProtectorListResultPage, err error)
+	Revalidate(ctx context.Context, resourceGroupName string, serverName string) (result sql.EncryptionProtectorsRevalidateFuture, err error)
 }
 
 var _ EncryptionProtectorsClientAPI = (*sql.EncryptionProtectorsClient)(nil)
@@ -396,6 +397,7 @@ var _ ExtendedServerBlobAuditingPoliciesClientAPI = (*sql.ExtendedServerBlobAudi
 type ServerBlobAuditingPoliciesClientAPI interface {
 	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, parameters sql.ServerBlobAuditingPolicy) (result sql.ServerBlobAuditingPoliciesCreateOrUpdateFuture, err error)
 	Get(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServerBlobAuditingPolicy, err error)
+	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServerBlobAuditingPolicyListResultPage, err error)
 }
 
 var _ ServerBlobAuditingPoliciesClientAPI = (*sql.ServerBlobAuditingPoliciesClient)(nil)
@@ -404,6 +406,7 @@ var _ ServerBlobAuditingPoliciesClientAPI = (*sql.ServerBlobAuditingPoliciesClie
 type DatabaseBlobAuditingPoliciesClientAPI interface {
 	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters sql.DatabaseBlobAuditingPolicy) (result sql.DatabaseBlobAuditingPolicy, err error)
 	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DatabaseBlobAuditingPolicy, err error)
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DatabaseBlobAuditingPolicyListResultPage, err error)
 }
 
 var _ DatabaseBlobAuditingPoliciesClientAPI = (*sql.DatabaseBlobAuditingPoliciesClient)(nil)
@@ -576,6 +579,16 @@ type SensitivityLabelsClientAPI interface {
 }
 
 var _ SensitivityLabelsClientAPI = (*sql.SensitivityLabelsClient)(nil)
+
+// ManagedInstanceAdministratorsClientAPI contains the set of methods on the ManagedInstanceAdministratorsClient type.
+type ManagedInstanceAdministratorsClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, managedInstanceName string, administratorName string, parameters sql.ManagedInstanceAdministrator) (result sql.ManagedInstanceAdministratorsCreateOrUpdateFuture, err error)
+	Delete(ctx context.Context, resourceGroupName string, managedInstanceName string, administratorName string) (result sql.ManagedInstanceAdministratorsDeleteFuture, err error)
+	Get(ctx context.Context, resourceGroupName string, managedInstanceName string, administratorName string) (result sql.ManagedInstanceAdministrator, err error)
+	ListByInstance(ctx context.Context, resourceGroupName string, managedInstanceName string) (result sql.ManagedInstanceAdministratorListResultPage, err error)
+}
+
+var _ ManagedInstanceAdministratorsClientAPI = (*sql.ManagedInstanceAdministratorsClient)(nil)
 
 // ServerAutomaticTuningClientAPI contains the set of methods on the ServerAutomaticTuningClient type.
 type ServerAutomaticTuningClientAPI interface {

@@ -25,24 +25,25 @@ import (
 
 func TestSerializeV1(t *testing.T) {
 	for i := 0; i < 500; i++ {
-		x := NewSet()
-		for j := 0; j < 50; j++ {
-			x.Insert(randomPathMaker.makePath(2, 5))
-		}
-		b, err := x.ToJSON()
-		if err != nil {
-			t.Errorf("Failed to serialize %#v: %v", x, err)
-			continue
-		}
-		x2 := NewSet()
-		err = x2.FromJSON(bytes.NewReader(b))
-		if err != nil {
-			t.Errorf("Failed to deserialize %s: %v\n%#v", b, err, x)
-		}
-		if !x2.Equals(x) {
-			b2, _ := x2.ToJSON()
-			t.Errorf("failed to reproduce original:\n\n%s\n\n%s\n\n%s\n\n%s\n", x, b, b2, x2)
-		}
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			x := NewSet()
+			for j := 0; j < 50; j++ {
+				x.Insert(randomPathMaker.makePath(2, 5))
+			}
+			b, err := x.ToJSON()
+			if err != nil {
+				t.Fatalf("Failed to serialize %#v: %v", x, err)
+			}
+			x2 := NewSet()
+			err = x2.FromJSON(bytes.NewReader(b))
+			if err != nil {
+				t.Fatalf("Failed to deserialize %s: %v\n%#v", b, err, x)
+			}
+			if !x2.Equals(x) {
+				b2, _ := x2.ToJSON()
+				t.Fatalf("failed to reproduce original:\n\n%s\n\n%s\n\n%s\n\n%s\n", x, b, b2, x2)
+			}
+		})
 	}
 }
 
@@ -56,15 +57,14 @@ func TestSerializeV1GoldenData(t *testing.T) {
 			x := NewSet()
 			err := x.FromJSON(strings.NewReader(str))
 			if err != nil {
-				t.Errorf("Failed to deserialize %s: %v\n%#v", str, err, x)
+				t.Fatalf("Failed to deserialize %s: %v\n%#v", str, err, x)
 			}
 			b, err := x.ToJSON()
 			if err != nil {
-				t.Errorf("Failed to serialize %#v: %v", x, err)
-				return
+				t.Fatalf("Failed to serialize %#v: %v", x, err)
 			}
 			if string(b) != str {
-				t.Errorf("Failed;\ngot:  %s\nwant: %s\n", b, str)
+				t.Fatalf("Failed;\ngot:  %s\nwant: %s\n", b, str)
 			}
 		})
 	}

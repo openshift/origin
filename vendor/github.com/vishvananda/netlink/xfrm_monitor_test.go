@@ -9,7 +9,7 @@ import (
 )
 
 func TestXfrmMonitorExpire(t *testing.T) {
-	setUpNetlinkTest(t)()
+	defer setUpNetlinkTest(t)()
 
 	ch := make(chan XfrmMsg)
 	done := make(chan struct{})

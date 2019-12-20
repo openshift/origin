@@ -551,6 +551,242 @@ func (ihdted IotHubDeviceTelemetryEventData) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// KeyVaultCertificateExpiredEventData schema of the Data property of an EventGridEvent for an
+// CertificateExpired event.
+type KeyVaultCertificateExpiredEventData struct {
+	// ID - The id of the object that triggered this event.
+	ID *string `json:"id,omitempty"`
+	// VaultName - Key vault name of the object that triggered this event.
+	VaultName *string `json:"vaultName,omitempty"`
+	// ObjectType - The type of the object that triggered this event
+	ObjectType *string `json:"objectType,omitempty"`
+	// ObjectName - The name of the object that triggered this event
+	ObjectName *string `json:"objectName,omitempty"`
+	// Version - The version of the object that triggered this event
+	Version *string `json:"version,omitempty"`
+	// Nbf - Not before date of the object that triggered this event
+	Nbf *float64 `json:"nbf,omitempty"`
+	// Exp - The expiration date of the object that triggered this event
+	Exp *float64 `json:"exp,omitempty"`
+}
+
+// KeyVaultCertificateNearExpiryEventData schema of the Data property of an EventGridEvent for an
+// CertificateNearExpiry event.
+type KeyVaultCertificateNearExpiryEventData struct {
+	// ID - The id of the object that triggered this event.
+	ID *string `json:"id,omitempty"`
+	// VaultName - Key vault name of the object that triggered this event.
+	VaultName *string `json:"vaultName,omitempty"`
+	// ObjectType - The type of the object that triggered this event
+	ObjectType *string `json:"objectType,omitempty"`
+	// ObjectName - The name of the object that triggered this event
+	ObjectName *string `json:"objectName,omitempty"`
+	// Version - The version of the object that triggered this event
+	Version *string `json:"version,omitempty"`
+	// Nbf - Not before date of the object that triggered this event
+	Nbf *float64 `json:"nbf,omitempty"`
+	// Exp - The expiration date of the object that triggered this event
+	Exp *float64 `json:"exp,omitempty"`
+}
+
+// KeyVaultCertificateNewVersionCreatedEventData schema of the Data property of an EventGridEvent for an
+// CertificateNewVersionCreated event.
+type KeyVaultCertificateNewVersionCreatedEventData struct {
+	// ID - The id of the object that triggered this event.
+	ID *string `json:"id,omitempty"`
+	// VaultName - Key vault name of the object that triggered this event.
+	VaultName *string `json:"vaultName,omitempty"`
+	// ObjectType - The type of the object that triggered this event
+	ObjectType *string `json:"objectType,omitempty"`
+	// ObjectName - The name of the object that triggered this event
+	ObjectName *string `json:"objectName,omitempty"`
+	// Version - The version of the object that triggered this event
+	Version *string `json:"version,omitempty"`
+	// Nbf - Not before date of the object that triggered this event
+	Nbf *float64 `json:"nbf,omitempty"`
+	// Exp - The expiration date of the object that triggered this event
+	Exp *float64 `json:"exp,omitempty"`
+}
+
+// KeyVaultKeyExpiredEventData schema of the Data property of an EventGridEvent for an KeyExpired event.
+type KeyVaultKeyExpiredEventData struct {
+	// ID - The id of the object that triggered this event.
+	ID *string `json:"id,omitempty"`
+	// VaultName - Key vault name of the object that triggered this event.
+	VaultName *string `json:"vaultName,omitempty"`
+	// ObjectType - The type of the object that triggered this event
+	ObjectType *string `json:"objectType,omitempty"`
+	// ObjectName - The name of the object that triggered this event
+	ObjectName *string `json:"objectName,omitempty"`
+	// Version - The version of the object that triggered this event
+	Version *string `json:"version,omitempty"`
+	// Nbf - Not before date of the object that triggered this event
+	Nbf *float64 `json:"nbf,omitempty"`
+	// Exp - The expiration date of the object that triggered this event
+	Exp *float64 `json:"exp,omitempty"`
+}
+
+// KeyVaultKeyNearExpiryEventData schema of the Data property of an EventGridEvent for an KeyNearExpiry
+// event.
+type KeyVaultKeyNearExpiryEventData struct {
+	// ID - The id of the object that triggered this event.
+	ID *string `json:"id,omitempty"`
+	// VaultName - Key vault name of the object that triggered this event.
+	VaultName *string `json:"vaultName,omitempty"`
+	// ObjectType - The type of the object that triggered this event
+	ObjectType *string `json:"objectType,omitempty"`
+	// ObjectName - The name of the object that triggered this event
+	ObjectName *string `json:"objectName,omitempty"`
+	// Version - The version of the object that triggered this event
+	Version *string `json:"version,omitempty"`
+	// Nbf - Not before date of the object that triggered this event
+	Nbf *float64 `json:"nbf,omitempty"`
+	// Exp - The expiration date of the object that triggered this event
+	Exp *float64 `json:"exp,omitempty"`
+}
+
+// KeyVaultKeyNewVersionCreatedEventData schema of the Data property of an EventGridEvent for an
+// KeyNewVersionCreated event.
+type KeyVaultKeyNewVersionCreatedEventData struct {
+	// ID - The id of the object that triggered this event.
+	ID *string `json:"id,omitempty"`
+	// VaultName - Key vault name of the object that triggered this event.
+	VaultName *string `json:"vaultName,omitempty"`
+	// ObjectType - The type of the object that triggered this event
+	ObjectType *string `json:"objectType,omitempty"`
+	// ObjectName - The name of the object that triggered this event
+	ObjectName *string `json:"objectName,omitempty"`
+	// Version - The version of the object that triggered this event
+	Version *string `json:"version,omitempty"`
+	// Nbf - Not before date of the object that triggered this event
+	Nbf *float64 `json:"nbf,omitempty"`
+	// Exp - The expiration date of the object that triggered this event
+	Exp *float64 `json:"exp,omitempty"`
+}
+
+// KeyVaultSecretExpiredEventData schema of the Data property of an EventGridEvent for an SecretExpired
+// event.
+type KeyVaultSecretExpiredEventData struct {
+	// ID - The id of the object that triggered this event.
+	ID *string `json:"id,omitempty"`
+	// VaultName - Key vault name of the object that triggered this event.
+	VaultName *string `json:"vaultName,omitempty"`
+	// ObjectType - The type of the object that triggered this event
+	ObjectType *string `json:"objectType,omitempty"`
+	// ObjectName - The name of the object that triggered this event
+	ObjectName *string `json:"objectName,omitempty"`
+	// Version - The version of the object that triggered this event
+	Version *string `json:"version,omitempty"`
+	// Nbf - Not before date of the object that triggered this event
+	Nbf *float64 `json:"nbf,omitempty"`
+	// Exp - The expiration date of the object that triggered this event
+	Exp *float64 `json:"exp,omitempty"`
+}
+
+// KeyVaultSecretNearExpiryEventData schema of the Data property of an EventGridEvent for an
+// SecretNearExpiry event.
+type KeyVaultSecretNearExpiryEventData struct {
+	// ID - The id of the object that triggered this event.
+	ID *string `json:"id,omitempty"`
+	// VaultName - Key vault name of the object that triggered this event.
+	VaultName *string `json:"vaultName,omitempty"`
+	// ObjectType - The type of the object that triggered this event
+	ObjectType *string `json:"objectType,omitempty"`
+	// ObjectName - The name of the object that triggered this event
+	ObjectName *string `json:"objectName,omitempty"`
+	// Version - The version of the object that triggered this event
+	Version *string `json:"version,omitempty"`
+	// Nbf - Not before date of the object that triggered this event
+	Nbf *float64 `json:"nbf,omitempty"`
+	// Exp - The expiration date of the object that triggered this event
+	Exp *float64 `json:"exp,omitempty"`
+}
+
+// KeyVaultSecretNewVersionCreatedEventData schema of the Data property of an EventGridEvent for an
+// SecretNewVersionCreated event.
+type KeyVaultSecretNewVersionCreatedEventData struct {
+	// ID - The id of the object that triggered this event.
+	ID *string `json:"id,omitempty"`
+	// VaultName - Key vault name of the object that triggered this event.
+	VaultName *string `json:"vaultName,omitempty"`
+	// ObjectType - The type of the object that triggered this event
+	ObjectType *string `json:"objectType,omitempty"`
+	// ObjectName - The name of the object that triggered this event
+	ObjectName *string `json:"objectName,omitempty"`
+	// Version - The version of the object that triggered this event
+	Version *string `json:"version,omitempty"`
+	// Nbf - Not before date of the object that triggered this event
+	Nbf *float64 `json:"nbf,omitempty"`
+	// Exp - The expiration date of the object that triggered this event
+	Exp *float64 `json:"exp,omitempty"`
+}
+
+// MachineLearningServicesDatasetDriftDetectedEventData schema of the Data property of an EventGridEvent
+// for an Microsoft.MachineLearningServices.DatasetDriftDetected event.
+type MachineLearningServicesDatasetDriftDetectedEventData struct {
+	// DataDriftID - The ID of the data drift monitor that triggered the event.
+	DataDriftID *string `json:"dataDriftId,omitempty"`
+	// DataDriftName - The name of the data drift monitor that triggered the event.
+	DataDriftName *string `json:"dataDriftName,omitempty"`
+	// RunID - The ID of the Run that detected data drift.
+	RunID *string `json:"runId,omitempty"`
+	// BaseDatasetID - The ID of the base Dataset used to detect drift.
+	BaseDatasetID *string `json:"baseDatasetId,omitempty"`
+	// TargetDatasetID - The ID of the target Dataset used to detect drift.
+	TargetDatasetID *string `json:"targetDatasetId,omitempty"`
+	// DriftCoefficient - The coefficient result that triggered the event.
+	DriftCoefficient *float64 `json:"driftCoefficient,omitempty"`
+	// StartTime - The start time of the target dataset time series that resulted in drift detection.
+	StartTime *date.Time `json:"startTime,omitempty"`
+	// EndTime - The end time of the target dataset time series that resulted in drift detection.
+	EndTime *date.Time `json:"endTime,omitempty"`
+}
+
+// MachineLearningServicesModelDeployedEventData schema of the Data property of an EventGridEvent for an
+// Microsoft.MachineLearningServices.ModelDeployed event.
+type MachineLearningServicesModelDeployedEventData struct {
+	// ServiceName - The name of the deployed service.
+	ServiceName *string `json:"serviceName,omitempty"`
+	// ServiceComputeType - The compute type (e.g. ACI, AKS) of the deployed service.
+	ServiceComputeType *string `json:"serviceComputeType,omitempty"`
+	// ModelIds - A common separated list of model IDs. The IDs of the models deployed in the service.
+	ModelIds *string `json:"modelIds,omitempty"`
+	// ServiceTags - The tags of the deployed service.
+	ServiceTags interface{} `json:"serviceTags,omitempty"`
+	// ServiceProperties - The properties of the deployed service.
+	ServiceProperties interface{} `json:"serviceProperties,omitempty"`
+}
+
+// MachineLearningServicesModelRegisteredEventData schema of the Data property of an EventGridEvent for an
+// Microsoft.MachineLearningServices.ModelRegistered event.
+type MachineLearningServicesModelRegisteredEventData struct {
+	// ModelName - The name of the model that was registered.
+	ModelName *string `json:"modelName,omitempty"`
+	// ModelVersion - The version of the model that was registered.
+	ModelVersion *int32 `json:"modelVersion,omitempty"`
+	// ModelTags - The tags of the model that was registered.
+	ModelTags interface{} `json:"modelTags,omitempty"`
+	// ModelProperties - The properties of the model that was registered.
+	ModelProperties interface{} `json:"modelProperties,omitempty"`
+}
+
+// MachineLearningServicesRunCompletedEventData schema of the Data property of an EventGridEvent for an
+// Microsoft.MachineLearningServices.RunCompleted event.
+type MachineLearningServicesRunCompletedEventData struct {
+	// ExperimentID - The ID of the experiment that the run belongs to.
+	ExperimentID *string `json:"experimentId,omitempty"`
+	// ExperimentName - The name of the experiment that the run belongs to.
+	ExperimentName *string `json:"experimentName,omitempty"`
+	// RunID - The ID of the Run that was completed.
+	RunID *string `json:"runId,omitempty"`
+	// RunType - The Run Type of the completed Run.
+	RunType *string `json:"runType,omitempty"`
+	// RunTags - The tags of the completed Run.
+	RunTags interface{} `json:"runTags,omitempty"`
+	// RunProperties - The properties of the completed Run.
+	RunProperties interface{} `json:"runProperties,omitempty"`
+}
+
 // MapsGeofenceEnteredEventData schema of the Data property of an EventGridEvent for a
 // Microsoft.Maps.GeofenceEntered event.
 type MapsGeofenceEnteredEventData struct {
@@ -2018,18 +2254,22 @@ type StorageBlobCreatedEventData struct {
 	ClientRequestID *string `json:"clientRequestId,omitempty"`
 	// RequestID - The request id generated by the Storage service for the storage API operation that triggered this event.
 	RequestID *string `json:"requestId,omitempty"`
-	// ETag - The etag of the object at the time this event was triggered.
+	// ETag - The etag of the blob at the time this event was triggered.
 	ETag *string `json:"eTag,omitempty"`
 	// ContentType - The content type of the blob. This is the same as what would be returned in the Content-Type header from the blob.
 	ContentType *string `json:"contentType,omitempty"`
 	// ContentLength - The size of the blob in bytes. This is the same as what would be returned in the Content-Length header from the blob.
 	ContentLength *int64 `json:"contentLength,omitempty"`
+	// ContentOffset - The offset of the blob in bytes.
+	ContentOffset *int64 `json:"contentOffset,omitempty"`
 	// BlobType - The type of blob.
 	BlobType *string `json:"blobType,omitempty"`
 	// URL - The path to the blob.
 	URL *string `json:"url,omitempty"`
 	// Sequencer - An opaque string value representing the logical sequence of events for any particular blob name. Users can use standard string comparison to understand the relative sequence of two events on the same blob name.
 	Sequencer *string `json:"sequencer,omitempty"`
+	// Identity - The identity of the requester that triggered this event.
+	Identity *string `json:"identity,omitempty"`
 	// StorageDiagnostics - For service use only. Diagnostic data occasionally included by the Azure Storage service. This property should be ignored by event consumers.
 	StorageDiagnostics interface{} `json:"storageDiagnostics,omitempty"`
 }
@@ -2051,6 +2291,92 @@ type StorageBlobDeletedEventData struct {
 	URL *string `json:"url,omitempty"`
 	// Sequencer - An opaque string value representing the logical sequence of events for any particular blob name. Users can use standard string comparison to understand the relative sequence of two events on the same blob name.
 	Sequencer *string `json:"sequencer,omitempty"`
+	// Identity - The identity of the requester that triggered this event.
+	Identity *string `json:"identity,omitempty"`
+	// StorageDiagnostics - For service use only. Diagnostic data occasionally included by the Azure Storage service. This property should be ignored by event consumers.
+	StorageDiagnostics interface{} `json:"storageDiagnostics,omitempty"`
+}
+
+// StorageBlobRenamedEventData schema of the Data property of an EventGridEvent for an
+// Microsoft.Storage.BlobRenamed event.
+type StorageBlobRenamedEventData struct {
+	// API - The name of the API/operation that triggered this event.
+	API *string `json:"api,omitempty"`
+	// ClientRequestID - A request id provided by the client of the storage API operation that triggered this event.
+	ClientRequestID *string `json:"clientRequestId,omitempty"`
+	// RequestID - The request id generated by the storage service for the storage API operation that triggered this event.
+	RequestID *string `json:"requestId,omitempty"`
+	// SourceURL - The path to the blob that was renamed.
+	SourceURL *string `json:"sourceUrl,omitempty"`
+	// DestinationURL - The new path to the blob after the rename operation.
+	DestinationURL *string `json:"destinationUrl,omitempty"`
+	// Sequencer - An opaque string value representing the logical sequence of events for any particular blob name. Users can use standard string comparison to understand the relative sequence of two events on the same blob name.
+	Sequencer *string `json:"sequencer,omitempty"`
+	// Identity - The identity of the requester that triggered this event.
+	Identity *string `json:"identity,omitempty"`
+	// StorageDiagnostics - For service use only. Diagnostic data occasionally included by the Azure Storage service. This property should be ignored by event consumers.
+	StorageDiagnostics interface{} `json:"storageDiagnostics,omitempty"`
+}
+
+// StorageDirectoryCreatedEventData schema of the Data property of an EventGridEvent for an
+// Microsoft.Storage.DirectoryCreated event.
+type StorageDirectoryCreatedEventData struct {
+	// API - The name of the API/operation that triggered this event.
+	API *string `json:"api,omitempty"`
+	// ClientRequestID - A request id provided by the client of the storage API operation that triggered this event.
+	ClientRequestID *string `json:"clientRequestId,omitempty"`
+	// RequestID - The request id generated by the storage service for the storage API operation that triggered this event.
+	RequestID *string `json:"requestId,omitempty"`
+	// ETag - The etag of the directory at the time this event was triggered.
+	ETag *string `json:"eTag,omitempty"`
+	// URL - The path to the directory.
+	URL *string `json:"url,omitempty"`
+	// Sequencer - An opaque string value representing the logical sequence of events for any particular directory name. Users can use standard string comparison to understand the relative sequence of two events on the same directory name.
+	Sequencer *string `json:"sequencer,omitempty"`
+	// Identity - The identity of the requester that triggered this event.
+	Identity *string `json:"identity,omitempty"`
+	// StorageDiagnostics - For service use only. Diagnostic data occasionally included by the Azure Storage service. This property should be ignored by event consumers.
+	StorageDiagnostics interface{} `json:"storageDiagnostics,omitempty"`
+}
+
+// StorageDirectoryDeletedEventData schema of the Data property of an EventGridEvent for an
+// Microsoft.Storage.DirectoryDeleted event.
+type StorageDirectoryDeletedEventData struct {
+	// API - The name of the API/operation that triggered this event.
+	API *string `json:"api,omitempty"`
+	// ClientRequestID - A request id provided by the client of the storage API operation that triggered this event.
+	ClientRequestID *string `json:"clientRequestId,omitempty"`
+	// RequestID - The request id generated by the storage service for the storage API operation that triggered this event.
+	RequestID *string `json:"requestId,omitempty"`
+	// URL - The path to the deleted directory.
+	URL *string `json:"url,omitempty"`
+	// Recursive - Is this event for a recursive delete operation.
+	Recursive *bool `json:"recursive,omitempty"`
+	// Sequencer - An opaque string value representing the logical sequence of events for any particular directory name. Users can use standard string comparison to understand the relative sequence of two events on the same directory name.
+	Sequencer *string `json:"sequencer,omitempty"`
+	// Identity - The identity of the requester that triggered this event.
+	Identity *string `json:"identity,omitempty"`
+	// StorageDiagnostics - For service use only. Diagnostic data occasionally included by the Azure Storage service. This property should be ignored by event consumers.
+	StorageDiagnostics interface{} `json:"storageDiagnostics,omitempty"`
+}
+
+// StorageDirectoryRenamedEventData schema of the Data property of an EventGridEvent for an
+// Microsoft.Storage.DirectoryRenamed event.
+type StorageDirectoryRenamedEventData struct {
+	// API - The name of the API/operation that triggered this event.
+	API *string `json:"api,omitempty"`
+	// ClientRequestID - A request id provided by the client of the storage API operation that triggered this event.
+	ClientRequestID *string `json:"clientRequestId,omitempty"`
+	// RequestID - The request id generated by the storage service for the storage API operation that triggered this event.
+	RequestID *string `json:"requestId,omitempty"`
+	// SourceURL - The path to the directory that was renamed.
+	SourceURL *string `json:"sourceUrl,omitempty"`
+	// DestinationURL - The new path to the directory after the rename operation.
+	DestinationURL *string `json:"destinationUrl,omitempty"`
+	// Sequencer - An opaque string value representing the logical sequence of events for any particular directory name. Users can use standard string comparison to understand the relative sequence of two events on the same directory name.
+	Sequencer *string `json:"sequencer,omitempty"`
+	// Identity - The identity of the requester that triggered this event.
+	Identity *string `json:"identity,omitempty"`
 	// StorageDiagnostics - For service use only. Diagnostic data occasionally included by the Azure Storage service. This property should be ignored by event consumers.
 	StorageDiagnostics interface{} `json:"storageDiagnostics,omitempty"`
 }

@@ -160,6 +160,7 @@ func (server) Double(i int64) (int64, *Error) {
 
 func BenchmarkCall(b *testing.B) {
 	b.StopTimer()
+	b.ReportAllocs()
 	var s string
 	bus, err := SessionBus()
 	if err != nil {
@@ -181,6 +182,7 @@ func BenchmarkCall(b *testing.B) {
 
 func BenchmarkCallAsync(b *testing.B) {
 	b.StopTimer()
+	b.ReportAllocs()
 	bus, err := SessionBus()
 	if err != nil {
 		b.Fatal(err)

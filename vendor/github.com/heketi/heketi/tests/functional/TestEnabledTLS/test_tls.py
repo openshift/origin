@@ -48,7 +48,7 @@ class HeketiServer(object):
         # do not preserve the heketi db between server instances
         _remove(self.db_path)
         self._proc = subprocess.Popen(
-            [self.heketi_bin, '--config=heketi.json'],
+            [self.heketi_bin, '--config=heketi.json', '--disable-auth'],
             stdin=subprocess.PIPE,
             stdout=self._log,
             stderr=self._log)

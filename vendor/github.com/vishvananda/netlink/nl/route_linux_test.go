@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
-	"syscall"
 	"testing"
+
+	"golang.org/x/sys/unix"
 )
 
 func (msg *RtMsg) write(b []byte) {
@@ -22,7 +23,7 @@ func (msg *RtMsg) write(b []byte) {
 }
 
 func (msg *RtMsg) serializeSafe() []byte {
-	len := syscall.SizeofRtMsg
+	len := unix.SizeofRtMsg
 	b := make([]byte, len)
 	msg.write(b)
 	return b
@@ -30,12 +31,12 @@ func (msg *RtMsg) serializeSafe() []byte {
 
 func deserializeRtMsgSafe(b []byte) *RtMsg {
 	var msg = RtMsg{}
-	binary.Read(bytes.NewReader(b[0:syscall.SizeofRtMsg]), NativeEndian(), &msg)
+	binary.Read(bytes.NewReader(b[0:unix.SizeofRtMsg]), NativeEndian(), &msg)
 	return &msg
 }
 
 func TestRtMsgDeserializeSerialize(t *testing.T) {
-	var orig = make([]byte, syscall.SizeofRtMsg)
+	var orig = make([]byte, unix.SizeofRtMsg)
 	rand.Read(orig)
 	safemsg := deserializeRtMsgSafe(orig)
 	msg := DeserializeRtMsg(orig)

@@ -52,7 +52,8 @@ func NewWithBaseURI(baseURI string) BaseClient {
 	}
 }
 
-// GetAppliedReservationList get applicable `Reservation`s that are applied to this subscription.
+// GetAppliedReservationList get applicable `Reservation`s that are applied to this subscription or a resource group
+// under this subscription.
 // Parameters:
 // subscriptionID - id of the subscription
 func (client BaseClient) GetAppliedReservationList(ctx context.Context, subscriptionID string) (result AppliedReservations, err error) {

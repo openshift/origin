@@ -18,14 +18,13 @@ package apiserver
 
 import (
 	"fmt"
+	"k8s.io/utils/pointer"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
-
-	"k8s.io/utils/pointer"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -126,6 +125,7 @@ func setupAPIServices(apiServices []*apiregistration.APIService) (*AvailableCond
 		apiServiceLister: listers.NewAPIServiceLister(apiServiceIndexer),
 		serviceLister:    v1listers.NewServiceLister(serviceIndexer),
 		endpointsLister:  v1listers.NewEndpointsLister(endpointsIndexer),
+		discoveryClient:  testServer.Client(),
 		serviceResolver:  &fakeServiceResolver{url: testServer.URL},
 		queue: workqueue.NewNamedRateLimitingQueue(
 			// We want a fairly tight requeue time.  The controller listens to the API, but because it relies on the routability of the
@@ -354,9 +354,8 @@ func TestSync(t *testing.T) {
 				apiServiceLister: listers.NewAPIServiceLister(apiServiceIndexer),
 				serviceLister:    v1listers.NewServiceLister(serviceIndexer),
 				endpointsLister:  v1listers.NewEndpointsLister(endpointsIndexer),
+				discoveryClient:  testServer.Client(),
 				serviceResolver:  &fakeServiceResolver{url: testServer.URL},
-				proxyClientCert:  emptyCert,
-				proxyClientKey:   emptyCert,
 			}
 			c.sync(tc.apiServiceName)
 
@@ -416,8 +415,5 @@ func TestUpdateAPIServiceStatus(t *testing.T) {
 	if e, a := 1, len(fakeClient.Actions()); e != a {
 		t.Error(spew.Sdump(fakeClient.Actions()))
 	}
-}
 
-func emptyCert() []byte {
-	return []byte{}
 }

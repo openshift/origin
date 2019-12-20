@@ -17,10 +17,41 @@ limitations under the License.
 package schema
 
 import (
+	"math/rand"
 	"reflect"
 	"testing"
 	"testing/quick"
+
+	fuzz "github.com/google/gofuzz"
 )
+
+func (Schema) Generate(rand *rand.Rand, size int) reflect.Value {
+	s := Schema{}
+	f := fuzz.New().RandSource(rand).MaxDepth(4)
+	f.Fuzz(&s)
+	return reflect.ValueOf(s)
+}
+
+func (Map) Generate(rand *rand.Rand, size int) reflect.Value {
+	m := Map{}
+	f := fuzz.New().RandSource(rand).MaxDepth(4)
+	f.Fuzz(&m)
+	return reflect.ValueOf(m)
+}
+
+func (TypeDef) Generate(rand *rand.Rand, size int) reflect.Value {
+	td := TypeDef{}
+	f := fuzz.New().RandSource(rand).MaxDepth(4)
+	f.Fuzz(&td)
+	return reflect.ValueOf(td)
+}
+
+func (Atom) Generate(rand *rand.Rand, size int) reflect.Value {
+	a := Atom{}
+	f := fuzz.New().RandSource(rand).MaxDepth(4)
+	f.Fuzz(&a)
+	return reflect.ValueOf(a)
+}
 
 func TestEquals(t *testing.T) {
 	// In general this test will make sure people update things when they

@@ -494,6 +494,9 @@ func TestVolumeEntrySaveDelete(t *testing.T) {
 	tests.Assert(t, err == ErrNotFound)
 }
 
+// TestNewVolumeEntryNewInfoResponse creates a sample cluster and a volume
+// using a volumeEntry from request.  We verify that the volumeInfoResponse
+// matches with the input request and the volumeEntry on the serverside.
 func TestNewVolumeEntryNewInfoResponse(t *testing.T) {
 	tmpfile := tests.Tempfile()
 	defer os.Remove(tmpfile)
@@ -502,13 +505,17 @@ func TestNewVolumeEntryNewInfoResponse(t *testing.T) {
 	app := NewTestApp(tmpfile)
 	defer app.Close()
 
-	// Create a volume entry
-	v := createSampleReplicaVolumeEntry(1024, 2)
+	err := setupSampleDbWithTopology(app,
+		1,     // clusters
+		4,     // nodes_per_cluster
+		4,     // devices_per_node,
+		10*GB, // disksize, 10G)
+	)
+	tests.Assert(t, err == nil)
 
-	// Save in database
-	err := app.db.Update(func(tx *bolt.Tx) error {
-		return v.Save(tx)
-	})
+	// Create a volume entry
+	v := createSampleReplicaVolumeEntry(5, 3)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Retrieve info response
@@ -534,7 +541,7 @@ func TestNewVolumeEntryNewInfoResponse(t *testing.T) {
 	tests.Assert(t, info.Name == v.Info.Name)
 	tests.Assert(t, info.Id == v.Info.Id)
 	tests.Assert(t, info.Size == v.Info.Size)
-	tests.Assert(t, len(info.Bricks) == 0)
+	tests.Assert(t, len(info.Bricks) == 3)
 }
 
 func TestVolumeEntryCreateMissingCluster(t *testing.T) {

@@ -22,11 +22,36 @@ package logic
 import (
 	"context"
 
-	original "github.com/Azure/azure-sdk-for-go/services/preview/logic/mgmt/2018-07-01-preview/logic"
+	original "github.com/Azure/azure-sdk-for-go/services/preview/logic/mgmt/2019-05-01/logic"
 )
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
+)
+
+type APIDeploymentParameterVisibility = original.APIDeploymentParameterVisibility
+
+const (
+	APIDeploymentParameterVisibilityDefault      APIDeploymentParameterVisibility = original.APIDeploymentParameterVisibilityDefault
+	APIDeploymentParameterVisibilityInternal     APIDeploymentParameterVisibility = original.APIDeploymentParameterVisibilityInternal
+	APIDeploymentParameterVisibilityNotSpecified APIDeploymentParameterVisibility = original.APIDeploymentParameterVisibilityNotSpecified
+)
+
+type APITier = original.APITier
+
+const (
+	APITierEnterprise   APITier = original.APITierEnterprise
+	APITierNotSpecified APITier = original.APITierNotSpecified
+	APITierPremium      APITier = original.APITierPremium
+	APITierStandard     APITier = original.APITierStandard
+)
+
+type APIType = original.APIType
+
+const (
+	APITypeNotSpecified APIType = original.APITypeNotSpecified
+	APITypeRest         APIType = original.APITypeRest
+	APITypeSoap         APIType = original.APITypeSoap
 )
 
 type AgreementType = original.AgreementType
@@ -36,6 +61,15 @@ const (
 	Edifact      AgreementType = original.Edifact
 	NotSpecified AgreementType = original.NotSpecified
 	X12          AgreementType = original.X12
+)
+
+type AzureAsyncOperationState = original.AzureAsyncOperationState
+
+const (
+	Canceled  AzureAsyncOperationState = original.Canceled
+	Failed    AzureAsyncOperationState = original.Failed
+	Pending   AzureAsyncOperationState = original.Pending
+	Succeeded AzureAsyncOperationState = original.Succeeded
 )
 
 type DayOfWeek = original.DayOfWeek
@@ -102,6 +136,15 @@ const (
 	EncryptionAlgorithmRC2          EncryptionAlgorithm = original.EncryptionAlgorithmRC2
 )
 
+type ErrorResponseCode = original.ErrorResponseCode
+
+const (
+	ErrorResponseCodeIntegrationServiceEnvironmentNotFound ErrorResponseCode = original.ErrorResponseCodeIntegrationServiceEnvironmentNotFound
+	ErrorResponseCodeInternalServerError                   ErrorResponseCode = original.ErrorResponseCodeInternalServerError
+	ErrorResponseCodeInvalidOperationID                    ErrorResponseCode = original.ErrorResponseCodeInvalidOperationID
+	ErrorResponseCodeNotSpecified                          ErrorResponseCode = original.ErrorResponseCodeNotSpecified
+)
+
 type EventLevel = original.EventLevel
 
 const (
@@ -132,6 +175,65 @@ const (
 	IntegrationAccountSkuNameFree         IntegrationAccountSkuName = original.IntegrationAccountSkuNameFree
 	IntegrationAccountSkuNameNotSpecified IntegrationAccountSkuName = original.IntegrationAccountSkuNameNotSpecified
 	IntegrationAccountSkuNameStandard     IntegrationAccountSkuName = original.IntegrationAccountSkuNameStandard
+)
+
+type IntegrationServiceEnvironmentAccessEndpointType = original.IntegrationServiceEnvironmentAccessEndpointType
+
+const (
+	IntegrationServiceEnvironmentAccessEndpointTypeExternal     IntegrationServiceEnvironmentAccessEndpointType = original.IntegrationServiceEnvironmentAccessEndpointTypeExternal
+	IntegrationServiceEnvironmentAccessEndpointTypeInternal     IntegrationServiceEnvironmentAccessEndpointType = original.IntegrationServiceEnvironmentAccessEndpointTypeInternal
+	IntegrationServiceEnvironmentAccessEndpointTypeNotSpecified IntegrationServiceEnvironmentAccessEndpointType = original.IntegrationServiceEnvironmentAccessEndpointTypeNotSpecified
+)
+
+type IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryType
+
+const (
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeAccessEndpoints                         IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeAccessEndpoints
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeAzureActiveDirectory                    IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeAzureActiveDirectory
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeAzureManagement                         IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeAzureManagement
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeAzureStorage                            IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeAzureStorage
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeDiagnosticLogsAndMetrics                IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeDiagnosticLogsAndMetrics
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeIntegrationServiceEnvironmentConnectors IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeIntegrationServiceEnvironmentConnectors
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeNotSpecified                            IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeNotSpecified
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeRecoveryService                         IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeRecoveryService
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeRedisCache                              IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeRedisCache
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeRegionalService                         IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeRegionalService
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeSQL                                     IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeSQL
+	IntegrationServiceEnvironmentNetworkDependencyCategoryTypeSSLCertificateVerification              IntegrationServiceEnvironmentNetworkDependencyCategoryType = original.IntegrationServiceEnvironmentNetworkDependencyCategoryTypeSSLCertificateVerification
+)
+
+type IntegrationServiceEnvironmentNetworkDependencyHealthState = original.IntegrationServiceEnvironmentNetworkDependencyHealthState
+
+const (
+	IntegrationServiceEnvironmentNetworkDependencyHealthStateHealthy      IntegrationServiceEnvironmentNetworkDependencyHealthState = original.IntegrationServiceEnvironmentNetworkDependencyHealthStateHealthy
+	IntegrationServiceEnvironmentNetworkDependencyHealthStateNotSpecified IntegrationServiceEnvironmentNetworkDependencyHealthState = original.IntegrationServiceEnvironmentNetworkDependencyHealthStateNotSpecified
+	IntegrationServiceEnvironmentNetworkDependencyHealthStateUnhealthy    IntegrationServiceEnvironmentNetworkDependencyHealthState = original.IntegrationServiceEnvironmentNetworkDependencyHealthStateUnhealthy
+	IntegrationServiceEnvironmentNetworkDependencyHealthStateUnknown      IntegrationServiceEnvironmentNetworkDependencyHealthState = original.IntegrationServiceEnvironmentNetworkDependencyHealthStateUnknown
+)
+
+type IntegrationServiceEnvironmentNetworkEndPointAccessibilityState = original.IntegrationServiceEnvironmentNetworkEndPointAccessibilityState
+
+const (
+	IntegrationServiceEnvironmentNetworkEndPointAccessibilityStateAvailable    IntegrationServiceEnvironmentNetworkEndPointAccessibilityState = original.IntegrationServiceEnvironmentNetworkEndPointAccessibilityStateAvailable
+	IntegrationServiceEnvironmentNetworkEndPointAccessibilityStateNotAvailable IntegrationServiceEnvironmentNetworkEndPointAccessibilityState = original.IntegrationServiceEnvironmentNetworkEndPointAccessibilityStateNotAvailable
+	IntegrationServiceEnvironmentNetworkEndPointAccessibilityStateNotSpecified IntegrationServiceEnvironmentNetworkEndPointAccessibilityState = original.IntegrationServiceEnvironmentNetworkEndPointAccessibilityStateNotSpecified
+	IntegrationServiceEnvironmentNetworkEndPointAccessibilityStateUnknown      IntegrationServiceEnvironmentNetworkEndPointAccessibilityState = original.IntegrationServiceEnvironmentNetworkEndPointAccessibilityStateUnknown
+)
+
+type IntegrationServiceEnvironmentSkuName = original.IntegrationServiceEnvironmentSkuName
+
+const (
+	IntegrationServiceEnvironmentSkuNameDeveloper    IntegrationServiceEnvironmentSkuName = original.IntegrationServiceEnvironmentSkuNameDeveloper
+	IntegrationServiceEnvironmentSkuNameNotSpecified IntegrationServiceEnvironmentSkuName = original.IntegrationServiceEnvironmentSkuNameNotSpecified
+	IntegrationServiceEnvironmentSkuNamePremium      IntegrationServiceEnvironmentSkuName = original.IntegrationServiceEnvironmentSkuNamePremium
+)
+
+type IntegrationServiceEnvironmentSkuScaleType = original.IntegrationServiceEnvironmentSkuScaleType
+
+const (
+	Automatic IntegrationServiceEnvironmentSkuScaleType = original.Automatic
+	Manual    IntegrationServiceEnvironmentSkuScaleType = original.Manual
+	None      IntegrationServiceEnvironmentSkuScaleType = original.None
 )
 
 type KeyType = original.KeyType
@@ -233,11 +335,32 @@ const (
 	SkuNameStandard     SkuName = original.SkuNameStandard
 )
 
+type StatusAnnotation = original.StatusAnnotation
+
+const (
+	StatusAnnotationNotSpecified StatusAnnotation = original.StatusAnnotationNotSpecified
+	StatusAnnotationPreview      StatusAnnotation = original.StatusAnnotationPreview
+	StatusAnnotationProduction   StatusAnnotation = original.StatusAnnotationProduction
+)
+
+type SwaggerSchemaType = original.SwaggerSchemaType
+
+const (
+	Array   SwaggerSchemaType = original.Array
+	Boolean SwaggerSchemaType = original.Boolean
+	File    SwaggerSchemaType = original.File
+	Integer SwaggerSchemaType = original.Integer
+	Null    SwaggerSchemaType = original.Null
+	Number  SwaggerSchemaType = original.Number
+	Object  SwaggerSchemaType = original.Object
+	String  SwaggerSchemaType = original.String
+)
+
 type TrackEventsOperationOptions = original.TrackEventsOperationOptions
 
 const (
-	DisableSourceInfoEnrich TrackEventsOperationOptions = original.DisableSourceInfoEnrich
-	None                    TrackEventsOperationOptions = original.None
+	TrackEventsOperationOptionsDisableSourceInfoEnrich TrackEventsOperationOptions = original.TrackEventsOperationOptionsDisableSourceInfoEnrich
+	TrackEventsOperationOptionsNone                    TrackEventsOperationOptions = original.TrackEventsOperationOptionsNone
 )
 
 type TrackingRecordType = original.TrackingRecordType
@@ -354,6 +477,14 @@ const (
 	WorkflowTriggerProvisioningStateUpdating      WorkflowTriggerProvisioningState = original.WorkflowTriggerProvisioningStateUpdating
 )
 
+type WsdlImportMethod = original.WsdlImportMethod
+
+const (
+	WsdlImportMethodNotSpecified    WsdlImportMethod = original.WsdlImportMethodNotSpecified
+	WsdlImportMethodSoapPassThrough WsdlImportMethod = original.WsdlImportMethodSoapPassThrough
+	WsdlImportMethodSoapToRest      WsdlImportMethod = original.WsdlImportMethodSoapToRest
+)
+
 type X12CharacterSet = original.X12CharacterSet
 
 const (
@@ -381,6 +512,21 @@ const (
 	X12TimeFormatNotSpecified X12TimeFormat = original.X12TimeFormatNotSpecified
 )
 
+type APIDeploymentParameterMetadata = original.APIDeploymentParameterMetadata
+type APIDeploymentParameterMetadataSet = original.APIDeploymentParameterMetadataSet
+type APIOperation = original.APIOperation
+type APIOperationAnnotation = original.APIOperationAnnotation
+type APIOperationListResult = original.APIOperationListResult
+type APIOperationListResultIterator = original.APIOperationListResultIterator
+type APIOperationListResultPage = original.APIOperationListResultPage
+type APIOperationPropertiesDefinition = original.APIOperationPropertiesDefinition
+type APIReference = original.APIReference
+type APIResourceBackendService = original.APIResourceBackendService
+type APIResourceDefinitions = original.APIResourceDefinitions
+type APIResourceGeneralInformation = original.APIResourceGeneralInformation
+type APIResourceMetadata = original.APIResourceMetadata
+type APIResourcePolicies = original.APIResourcePolicies
+type APIResourceProperties = original.APIResourceProperties
 type AS2AcknowledgementConnectionSettings = original.AS2AcknowledgementConnectionSettings
 type AS2AgreementContent = original.AS2AgreementContent
 type AS2EnvelopeSettings = original.AS2EnvelopeSettings
@@ -429,8 +575,12 @@ type ErrorResponse = original.ErrorResponse
 type Expression = original.Expression
 type ExpressionRoot = original.ExpressionRoot
 type ExpressionTraces = original.ExpressionTraces
+type ExtendedErrorInfo = original.ExtendedErrorInfo
+type FlowEndpoints = original.FlowEndpoints
+type FlowEndpointsConfiguration = original.FlowEndpointsConfiguration
 type GenerateUpgradedDefinitionParameters = original.GenerateUpgradedDefinitionParameters
 type GetCallbackURLParameters = original.GetCallbackURLParameters
+type IPAddress = original.IPAddress
 type IntegrationAccount = original.IntegrationAccount
 type IntegrationAccountAgreement = original.IntegrationAccountAgreement
 type IntegrationAccountAgreementFilter = original.IntegrationAccountAgreementFilter
@@ -465,6 +615,7 @@ type IntegrationAccountPartnerListResultIterator = original.IntegrationAccountPa
 type IntegrationAccountPartnerListResultPage = original.IntegrationAccountPartnerListResultPage
 type IntegrationAccountPartnerProperties = original.IntegrationAccountPartnerProperties
 type IntegrationAccountPartnersClient = original.IntegrationAccountPartnersClient
+type IntegrationAccountProperties = original.IntegrationAccountProperties
 type IntegrationAccountSchema = original.IntegrationAccountSchema
 type IntegrationAccountSchemaFilter = original.IntegrationAccountSchemaFilter
 type IntegrationAccountSchemaListResult = original.IntegrationAccountSchemaListResult
@@ -481,6 +632,32 @@ type IntegrationAccountSessionProperties = original.IntegrationAccountSessionPro
 type IntegrationAccountSessionsClient = original.IntegrationAccountSessionsClient
 type IntegrationAccountSku = original.IntegrationAccountSku
 type IntegrationAccountsClient = original.IntegrationAccountsClient
+type IntegrationServiceEnvironment = original.IntegrationServiceEnvironment
+type IntegrationServiceEnvironmentAccessEndpoint = original.IntegrationServiceEnvironmentAccessEndpoint
+type IntegrationServiceEnvironmentListResult = original.IntegrationServiceEnvironmentListResult
+type IntegrationServiceEnvironmentListResultIterator = original.IntegrationServiceEnvironmentListResultIterator
+type IntegrationServiceEnvironmentListResultPage = original.IntegrationServiceEnvironmentListResultPage
+type IntegrationServiceEnvironmentManagedAPIOperationsClient = original.IntegrationServiceEnvironmentManagedAPIOperationsClient
+type IntegrationServiceEnvironmentManagedApisClient = original.IntegrationServiceEnvironmentManagedApisClient
+type IntegrationServiceEnvironmentManagedApisDeleteFuture = original.IntegrationServiceEnvironmentManagedApisDeleteFuture
+type IntegrationServiceEnvironmentManagedApisPutFuture = original.IntegrationServiceEnvironmentManagedApisPutFuture
+type IntegrationServiceEnvironmentNetworkDependency = original.IntegrationServiceEnvironmentNetworkDependency
+type IntegrationServiceEnvironmentNetworkDependencyHealth = original.IntegrationServiceEnvironmentNetworkDependencyHealth
+type IntegrationServiceEnvironmentNetworkEndpoint = original.IntegrationServiceEnvironmentNetworkEndpoint
+type IntegrationServiceEnvironmentNetworkHealthClient = original.IntegrationServiceEnvironmentNetworkHealthClient
+type IntegrationServiceEnvironmentProperties = original.IntegrationServiceEnvironmentProperties
+type IntegrationServiceEnvironmentSku = original.IntegrationServiceEnvironmentSku
+type IntegrationServiceEnvironmentSkuCapacity = original.IntegrationServiceEnvironmentSkuCapacity
+type IntegrationServiceEnvironmentSkuDefinition = original.IntegrationServiceEnvironmentSkuDefinition
+type IntegrationServiceEnvironmentSkuDefinitionSku = original.IntegrationServiceEnvironmentSkuDefinitionSku
+type IntegrationServiceEnvironmentSkuList = original.IntegrationServiceEnvironmentSkuList
+type IntegrationServiceEnvironmentSkuListIterator = original.IntegrationServiceEnvironmentSkuListIterator
+type IntegrationServiceEnvironmentSkuListPage = original.IntegrationServiceEnvironmentSkuListPage
+type IntegrationServiceEnvironmentSkusClient = original.IntegrationServiceEnvironmentSkusClient
+type IntegrationServiceEnvironmentSubnetNetworkHealth = original.IntegrationServiceEnvironmentSubnetNetworkHealth
+type IntegrationServiceEnvironmentsClient = original.IntegrationServiceEnvironmentsClient
+type IntegrationServiceEnvironmentsCreateOrUpdateFuture = original.IntegrationServiceEnvironmentsCreateOrUpdateFuture
+type IntegrationServiceEnvironmentsUpdateFuture = original.IntegrationServiceEnvironmentsUpdateFuture
 type JSONSchema = original.JSONSchema
 type KeyVaultKey = original.KeyVaultKey
 type KeyVaultKeyAttributes = original.KeyVaultKeyAttributes
@@ -489,6 +666,11 @@ type KeyVaultKeyReference = original.KeyVaultKeyReference
 type KeyVaultKeyReferenceKeyVault = original.KeyVaultKeyReferenceKeyVault
 type KeyVaultReference = original.KeyVaultReference
 type ListKeyVaultKeysDefinition = original.ListKeyVaultKeysDefinition
+type ManagedAPI = original.ManagedAPI
+type ManagedAPIListResult = original.ManagedAPIListResult
+type ManagedAPIListResultIterator = original.ManagedAPIListResultIterator
+type ManagedAPIListResultPage = original.ManagedAPIListResultPage
+type NetworkConfiguration = original.NetworkConfiguration
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay
 type OperationListResult = original.OperationListResult
@@ -514,10 +696,21 @@ type Response = original.Response
 type RetryHistory = original.RetryHistory
 type RunActionCorrelation = original.RunActionCorrelation
 type RunCorrelation = original.RunCorrelation
+type SetIntegrationServiceEnvironmentSubnetNetworkHealth = original.SetIntegrationServiceEnvironmentSubnetNetworkHealth
 type SetObject = original.SetObject
 type SetTriggerStateActionDefinition = original.SetTriggerStateActionDefinition
 type Sku = original.Sku
 type SubResource = original.SubResource
+type SwaggerCustomDynamicList = original.SwaggerCustomDynamicList
+type SwaggerCustomDynamicProperties = original.SwaggerCustomDynamicProperties
+type SwaggerCustomDynamicSchema = original.SwaggerCustomDynamicSchema
+type SwaggerCustomDynamicTree = original.SwaggerCustomDynamicTree
+type SwaggerCustomDynamicTreeCommand = original.SwaggerCustomDynamicTreeCommand
+type SwaggerCustomDynamicTreeParameter = original.SwaggerCustomDynamicTreeParameter
+type SwaggerCustomDynamicTreeSettings = original.SwaggerCustomDynamicTreeSettings
+type SwaggerExternalDocumentation = original.SwaggerExternalDocumentation
+type SwaggerSchema = original.SwaggerSchema
+type SwaggerXML = original.SwaggerXML
 type TrackingEvent = original.TrackingEvent
 type TrackingEventErrorInfo = original.TrackingEventErrorInfo
 type TrackingEventsDefinition = original.TrackingEventsDefinition
@@ -577,6 +770,8 @@ type WorkflowVersionProperties = original.WorkflowVersionProperties
 type WorkflowVersionTriggersClient = original.WorkflowVersionTriggersClient
 type WorkflowVersionsClient = original.WorkflowVersionsClient
 type WorkflowsClient = original.WorkflowsClient
+type WorkflowsMoveFuture = original.WorkflowsMoveFuture
+type WsdlService = original.WsdlService
 type X12AcknowledgementSettings = original.X12AcknowledgementSettings
 type X12AgreementContent = original.X12AgreementContent
 type X12DelimiterOverrides = original.X12DelimiterOverrides
@@ -595,6 +790,12 @@ type X12ValidationSettings = original.X12ValidationSettings
 
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
+}
+func NewAPIOperationListResultIterator(page APIOperationListResultPage) APIOperationListResultIterator {
+	return original.NewAPIOperationListResultIterator(page)
+}
+func NewAPIOperationListResultPage(getNextPage func(context.Context, APIOperationListResult) (APIOperationListResult, error)) APIOperationListResultPage {
+	return original.NewAPIOperationListResultPage(getNextPage)
 }
 func NewIntegrationAccountAgreementListResultIterator(page IntegrationAccountAgreementListResultPage) IntegrationAccountAgreementListResultIterator {
 	return original.NewIntegrationAccountAgreementListResultIterator(page)
@@ -691,6 +892,54 @@ func NewIntegrationAccountsClient(subscriptionID string) IntegrationAccountsClie
 }
 func NewIntegrationAccountsClientWithBaseURI(baseURI string, subscriptionID string) IntegrationAccountsClient {
 	return original.NewIntegrationAccountsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewIntegrationServiceEnvironmentListResultIterator(page IntegrationServiceEnvironmentListResultPage) IntegrationServiceEnvironmentListResultIterator {
+	return original.NewIntegrationServiceEnvironmentListResultIterator(page)
+}
+func NewIntegrationServiceEnvironmentListResultPage(getNextPage func(context.Context, IntegrationServiceEnvironmentListResult) (IntegrationServiceEnvironmentListResult, error)) IntegrationServiceEnvironmentListResultPage {
+	return original.NewIntegrationServiceEnvironmentListResultPage(getNextPage)
+}
+func NewIntegrationServiceEnvironmentManagedAPIOperationsClient(subscriptionID string) IntegrationServiceEnvironmentManagedAPIOperationsClient {
+	return original.NewIntegrationServiceEnvironmentManagedAPIOperationsClient(subscriptionID)
+}
+func NewIntegrationServiceEnvironmentManagedAPIOperationsClientWithBaseURI(baseURI string, subscriptionID string) IntegrationServiceEnvironmentManagedAPIOperationsClient {
+	return original.NewIntegrationServiceEnvironmentManagedAPIOperationsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewIntegrationServiceEnvironmentManagedApisClient(subscriptionID string) IntegrationServiceEnvironmentManagedApisClient {
+	return original.NewIntegrationServiceEnvironmentManagedApisClient(subscriptionID)
+}
+func NewIntegrationServiceEnvironmentManagedApisClientWithBaseURI(baseURI string, subscriptionID string) IntegrationServiceEnvironmentManagedApisClient {
+	return original.NewIntegrationServiceEnvironmentManagedApisClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewIntegrationServiceEnvironmentNetworkHealthClient(subscriptionID string) IntegrationServiceEnvironmentNetworkHealthClient {
+	return original.NewIntegrationServiceEnvironmentNetworkHealthClient(subscriptionID)
+}
+func NewIntegrationServiceEnvironmentNetworkHealthClientWithBaseURI(baseURI string, subscriptionID string) IntegrationServiceEnvironmentNetworkHealthClient {
+	return original.NewIntegrationServiceEnvironmentNetworkHealthClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewIntegrationServiceEnvironmentSkuListIterator(page IntegrationServiceEnvironmentSkuListPage) IntegrationServiceEnvironmentSkuListIterator {
+	return original.NewIntegrationServiceEnvironmentSkuListIterator(page)
+}
+func NewIntegrationServiceEnvironmentSkuListPage(getNextPage func(context.Context, IntegrationServiceEnvironmentSkuList) (IntegrationServiceEnvironmentSkuList, error)) IntegrationServiceEnvironmentSkuListPage {
+	return original.NewIntegrationServiceEnvironmentSkuListPage(getNextPage)
+}
+func NewIntegrationServiceEnvironmentSkusClient(subscriptionID string) IntegrationServiceEnvironmentSkusClient {
+	return original.NewIntegrationServiceEnvironmentSkusClient(subscriptionID)
+}
+func NewIntegrationServiceEnvironmentSkusClientWithBaseURI(baseURI string, subscriptionID string) IntegrationServiceEnvironmentSkusClient {
+	return original.NewIntegrationServiceEnvironmentSkusClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewIntegrationServiceEnvironmentsClient(subscriptionID string) IntegrationServiceEnvironmentsClient {
+	return original.NewIntegrationServiceEnvironmentsClient(subscriptionID)
+}
+func NewIntegrationServiceEnvironmentsClientWithBaseURI(baseURI string, subscriptionID string) IntegrationServiceEnvironmentsClient {
+	return original.NewIntegrationServiceEnvironmentsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewManagedAPIListResultIterator(page ManagedAPIListResultPage) ManagedAPIListResultIterator {
+	return original.NewManagedAPIListResultIterator(page)
+}
+func NewManagedAPIListResultPage(getNextPage func(context.Context, ManagedAPIListResult) (ManagedAPIListResult, error)) ManagedAPIListResultPage {
+	return original.NewManagedAPIListResultPage(getNextPage)
 }
 func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
 	return original.NewOperationListResultIterator(page)
@@ -821,8 +1070,20 @@ func NewWorkflowsClient(subscriptionID string) WorkflowsClient {
 func NewWorkflowsClientWithBaseURI(baseURI string, subscriptionID string) WorkflowsClient {
 	return original.NewWorkflowsClientWithBaseURI(baseURI, subscriptionID)
 }
+func PossibleAPIDeploymentParameterVisibilityValues() []APIDeploymentParameterVisibility {
+	return original.PossibleAPIDeploymentParameterVisibilityValues()
+}
+func PossibleAPITierValues() []APITier {
+	return original.PossibleAPITierValues()
+}
+func PossibleAPITypeValues() []APIType {
+	return original.PossibleAPITypeValues()
+}
 func PossibleAgreementTypeValues() []AgreementType {
 	return original.PossibleAgreementTypeValues()
+}
+func PossibleAzureAsyncOperationStateValues() []AzureAsyncOperationState {
+	return original.PossibleAzureAsyncOperationStateValues()
 }
 func PossibleDayOfWeekValues() []DayOfWeek {
 	return original.PossibleDayOfWeekValues()
@@ -839,6 +1100,9 @@ func PossibleEdifactDecimalIndicatorValues() []EdifactDecimalIndicator {
 func PossibleEncryptionAlgorithmValues() []EncryptionAlgorithm {
 	return original.PossibleEncryptionAlgorithmValues()
 }
+func PossibleErrorResponseCodeValues() []ErrorResponseCode {
+	return original.PossibleErrorResponseCodeValues()
+}
 func PossibleEventLevelValues() []EventLevel {
 	return original.PossibleEventLevelValues()
 }
@@ -847,6 +1111,24 @@ func PossibleHashingAlgorithmValues() []HashingAlgorithm {
 }
 func PossibleIntegrationAccountSkuNameValues() []IntegrationAccountSkuName {
 	return original.PossibleIntegrationAccountSkuNameValues()
+}
+func PossibleIntegrationServiceEnvironmentAccessEndpointTypeValues() []IntegrationServiceEnvironmentAccessEndpointType {
+	return original.PossibleIntegrationServiceEnvironmentAccessEndpointTypeValues()
+}
+func PossibleIntegrationServiceEnvironmentNetworkDependencyCategoryTypeValues() []IntegrationServiceEnvironmentNetworkDependencyCategoryType {
+	return original.PossibleIntegrationServiceEnvironmentNetworkDependencyCategoryTypeValues()
+}
+func PossibleIntegrationServiceEnvironmentNetworkDependencyHealthStateValues() []IntegrationServiceEnvironmentNetworkDependencyHealthState {
+	return original.PossibleIntegrationServiceEnvironmentNetworkDependencyHealthStateValues()
+}
+func PossibleIntegrationServiceEnvironmentNetworkEndPointAccessibilityStateValues() []IntegrationServiceEnvironmentNetworkEndPointAccessibilityState {
+	return original.PossibleIntegrationServiceEnvironmentNetworkEndPointAccessibilityStateValues()
+}
+func PossibleIntegrationServiceEnvironmentSkuNameValues() []IntegrationServiceEnvironmentSkuName {
+	return original.PossibleIntegrationServiceEnvironmentSkuNameValues()
+}
+func PossibleIntegrationServiceEnvironmentSkuScaleTypeValues() []IntegrationServiceEnvironmentSkuScaleType {
+	return original.PossibleIntegrationServiceEnvironmentSkuScaleTypeValues()
 }
 func PossibleKeyTypeValues() []KeyType {
 	return original.PossibleKeyTypeValues()
@@ -878,6 +1160,12 @@ func PossibleSigningAlgorithmValues() []SigningAlgorithm {
 func PossibleSkuNameValues() []SkuName {
 	return original.PossibleSkuNameValues()
 }
+func PossibleStatusAnnotationValues() []StatusAnnotation {
+	return original.PossibleStatusAnnotationValues()
+}
+func PossibleSwaggerSchemaTypeValues() []SwaggerSchemaType {
+	return original.PossibleSwaggerSchemaTypeValues()
+}
 func PossibleTrackEventsOperationOptionsValues() []TrackEventsOperationOptions {
 	return original.PossibleTrackEventsOperationOptionsValues()
 }
@@ -901,6 +1189,9 @@ func PossibleWorkflowStatusValues() []WorkflowStatus {
 }
 func PossibleWorkflowTriggerProvisioningStateValues() []WorkflowTriggerProvisioningState {
 	return original.PossibleWorkflowTriggerProvisioningStateValues()
+}
+func PossibleWsdlImportMethodValues() []WsdlImportMethod {
+	return original.PossibleWsdlImportMethodValues()
 }
 func PossibleX12CharacterSetValues() []X12CharacterSet {
 	return original.PossibleX12CharacterSetValues()

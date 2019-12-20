@@ -19,11 +19,13 @@
   "jwt": {
     "_admin": "Admin has access to all APIs",
     "admin": {
-      "key": "My Secret"
+      "_key_comment": "Set the admin key in the next line",
+      "key": ""
     },
     "_user": "User only has access to /volumes endpoint",
     "user": {
-      "key": "My Secret"
+      "_key_comment": "Set the user key in the next line",
+      "key": ""
     }
   },
 

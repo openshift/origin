@@ -180,13 +180,13 @@ type AdministratorDetails struct {
 type Attributes struct {
 	// Enabled - Determines whether the object is enabled
 	Enabled *bool `json:"enabled,omitempty"`
-	// NotBefore - Not before date in UTC
+	// NotBefore - Not before date in seconds since 1970-01-01T00:00:00Z
 	NotBefore *date.UnixTime `json:"nbf,omitempty"`
-	// Expires - Expiry date in UTC
+	// Expires - Expiry date in seconds since 1970-01-01T00:00:00Z
 	Expires *date.UnixTime `json:"exp,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC
+	// Created - READ-ONLY; Creation time in seconds since 1970-01-01T00:00:00Z
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC
+	// Updated - READ-ONLY; Last updated time in seconds since 1970-01-01T00:00:00Z
 	Updated *date.UnixTime `json:"updated,omitempty"`
 }
 
@@ -201,13 +201,13 @@ type BackupKeyResult struct {
 type CertificateAttributes struct {
 	// Enabled - Determines whether the object is enabled
 	Enabled *bool `json:"enabled,omitempty"`
-	// NotBefore - Not before date in UTC
+	// NotBefore - Not before date in seconds since 1970-01-01T00:00:00Z
 	NotBefore *date.UnixTime `json:"nbf,omitempty"`
-	// Expires - Expiry date in UTC
+	// Expires - Expiry date in seconds since 1970-01-01T00:00:00Z
 	Expires *date.UnixTime `json:"exp,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC
+	// Created - READ-ONLY; Creation time in seconds since 1970-01-01T00:00:00Z
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC
+	// Updated - READ-ONLY; Last updated time in seconds since 1970-01-01T00:00:00Z
 	Updated *date.UnixTime `json:"updated,omitempty"`
 }
 
@@ -802,9 +802,9 @@ type ErrorType struct {
 type IssuerAttributes struct {
 	// Enabled - Determines whether the issuer is enabled
 	Enabled *bool `json:"enabled,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC
+	// Created - READ-ONLY; Creation time in seconds since 1970-01-01T00:00:00Z
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC
+	// Updated - READ-ONLY; Last updated time in seconds since 1970-01-01T00:00:00Z
 	Updated *date.UnixTime `json:"updated,omitempty"`
 }
 
@@ -872,13 +872,13 @@ type JSONWebKey struct {
 type KeyAttributes struct {
 	// Enabled - Determines whether the object is enabled
 	Enabled *bool `json:"enabled,omitempty"`
-	// NotBefore - Not before date in UTC
+	// NotBefore - Not before date in seconds since 1970-01-01T00:00:00Z
 	NotBefore *date.UnixTime `json:"nbf,omitempty"`
-	// Expires - Expiry date in UTC
+	// Expires - Expiry date in seconds since 1970-01-01T00:00:00Z
 	Expires *date.UnixTime `json:"exp,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC
+	// Created - READ-ONLY; Creation time in seconds since 1970-01-01T00:00:00Z
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC
+	// Updated - READ-ONLY; Last updated time in seconds since 1970-01-01T00:00:00Z
 	Updated *date.UnixTime `json:"updated,omitempty"`
 }
 
@@ -1257,13 +1257,13 @@ type PendingCertificateSigningRequestResult struct {
 type SecretAttributes struct {
 	// Enabled - Determines whether the object is enabled
 	Enabled *bool `json:"enabled,omitempty"`
-	// NotBefore - Not before date in UTC
+	// NotBefore - Not before date in seconds since 1970-01-01T00:00:00Z
 	NotBefore *date.UnixTime `json:"nbf,omitempty"`
-	// Expires - Expiry date in UTC
+	// Expires - Expiry date in seconds since 1970-01-01T00:00:00Z
 	Expires *date.UnixTime `json:"exp,omitempty"`
-	// Created - READ-ONLY; Creation time in UTC
+	// Created - READ-ONLY; Creation time in seconds since 1970-01-01T00:00:00Z
 	Created *date.UnixTime `json:"created,omitempty"`
-	// Updated - READ-ONLY; Last updated time in UTC
+	// Updated - READ-ONLY; Last updated time in seconds since 1970-01-01T00:00:00Z
 	Updated *date.UnixTime `json:"updated,omitempty"`
 }
 

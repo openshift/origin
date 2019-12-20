@@ -18,8 +18,10 @@ update-gofmt:
 .PHONY: update-gofmt
 
 
+# FIXME: go vet needs to use $(GO_MOD_FLAGS) when this is fixed https://github.com/golang/go/issues/35955
+# It will be enforced in CI by setting the env var there, so this remains to fix the dev experience
 verify-govet:
-	$(GO) vet $(GO_PACKAGES)
+	$(GO) vet $(GO_MOD_FLAGS) $(GO_PACKAGES)
 .PHONY: verify-govet
 
 verify-golint:

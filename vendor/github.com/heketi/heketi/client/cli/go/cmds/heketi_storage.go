@@ -21,8 +21,8 @@ import (
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/spf13/cobra"
 
-	kubeapi "k8s.io/kubernetes/pkg/api/v1"
-	batch "k8s.io/kubernetes/pkg/apis/batch/v1"
+	batch "k8s.io/api/batch/v1"
+	kubeapi "k8s.io/api/core/v1"
 )
 
 type KubeList struct {
@@ -47,6 +47,8 @@ var (
 	heketiStorageDurability   string
 	heketiStorageReplicaCount int
 	heketiStorageOptions      string
+	appendStorageOptions      string
+	HeketiStorageJobSelector  string
 )
 
 func init() {
@@ -75,6 +77,18 @@ func init() {
 		"",
 		"\n\tOptional: Comma separated list of volume options."+
 			"\n\tSee volume create --help for details.")
+	setupHeketiStorageCommand.Flags().StringVar(&appendStorageOptions,
+		"append-volume-options",
+		"",
+		"\n\tOptional: Comma separated list of volume options to be added"+
+			"\n\tto the existing/default set of options."+
+			"\n\tSee volume create --help for details.")
+	setupHeketiStorageCommand.Flags().StringVar(&HeketiStorageJobSelector,
+		"node-selector",
+		"",
+		"\n\tOptional: nodeSelector for heketi-storage-copy-job."+
+			"\n\tExample: --node-selector 'beta.kubernetes.io/os=linux'."+
+			"\n\tDefault is none")
 	setupHeketiStorageCommand.SilenceUsage = true
 }
 
@@ -136,9 +150,19 @@ func createHeketiStorageVolume(c *client.Client, dt api.DurabilityType, replicaC
 	req.Size = HeketiStorageVolumeSize
 	req.Name = db.HeketiStorageVolumeName
 	req.Durability.Type = dt
-	// Check volume options
-	if heketiStorageOptions != "" {
+
+	if heketiStorageOptions == "" {
+		req.GlusterVolumeOptions = db.DbVolumeGlusterOptions
+	} else {
 		req.GlusterVolumeOptions = strings.Split(heketiStorageOptions, ",")
+		req.GlusterVolumeOptions = append(
+			req.GlusterVolumeOptions, "user.heketi.dbstoragelevel custom")
+	}
+
+	if appendStorageOptions != "" {
+		req.GlusterVolumeOptions = append(
+			req.GlusterVolumeOptions,
+			strings.Split(appendStorageOptions, ",")...)
 	}
 
 	switch dt {
@@ -197,8 +221,7 @@ func createHeketiEndpointService() *kubeapi.Service {
 	return service
 }
 
-func createHeketiStorageEndpoints(c *client.Client,
-	volume *api.VolumeInfoResponse) *kubeapi.Endpoints {
+func createHeketiStorageEndpoints(volume *api.VolumeInfoResponse) *kubeapi.Endpoints {
 
 	endpoint := &kubeapi.Endpoints{}
 	endpoint.Kind = "Endpoints"
@@ -246,6 +269,14 @@ func createHeketiCopyJob(volume *api.VolumeInfoResponse) *batch.Job {
 	job.Spec.Parallelism = &p
 	job.Spec.Completions = &c
 	job.Spec.Template.ObjectMeta.Name = HeketiStorageJobName
+	if HeketiStorageJobSelector != "" {
+		selectorKeyValue := strings.Split(HeketiStorageJobSelector, "=")
+		if len(selectorKeyValue) == 2 {
+			job.Spec.Template.Spec.NodeSelector = map[string]string{
+				selectorKeyValue[0]: selectorKeyValue[1],
+			}
+		}
+	}
 	job.Spec.Template.Spec.Volumes = []kubeapi.Volume{
 		{
 			Name: HeketiStorageVolTagName,
@@ -345,7 +376,7 @@ var setupHeketiStorageCommand = &cobra.Command{
 		list.Items = append(list.Items, secret)
 
 		// Create endpoints
-		endpoints := createHeketiStorageEndpoints(c, volume)
+		endpoints := createHeketiStorageEndpoints(volume)
 		list.Items = append(list.Items, endpoints)
 
 		// Create service for the endpoints

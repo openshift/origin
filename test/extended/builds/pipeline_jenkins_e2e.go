@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
+	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -63,7 +64,7 @@ var _ = g.Describe("[Feature:Jenkins][Slow]jenkins repos e2e openshift using slo
 				exutil.DeletePVCsForDeployment(client, oc, "jenkins")
 				g.By("removing nfs pvs")
 				for _, pv := range pvs {
-					e2e.DeletePersistentVolume(client, pv.Name)
+					e2epv.DeletePersistentVolume(client, pv.Name)
 				}
 				g.By("removing nfs pod")
 				pod.DeletePodWithWait(client, nfspod)

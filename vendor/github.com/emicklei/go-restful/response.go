@@ -5,9 +5,7 @@ package restful
 // that can be found in the LICENSE file.
 
 import (
-	"bufio"
 	"errors"
-	"net"
 	"net/http"
 )
 
@@ -21,19 +19,17 @@ var PrettyPrintResponses = true
 // It provides several convenience methods to prepare and write response content.
 type Response struct {
 	http.ResponseWriter
-	requestAccept string        // mime-type what the Http Request says it wants to receive
-	routeProduces []string      // mime-types what the Route says it can produce
-	statusCode    int           // HTTP status code that has been written explicitly (if zero then net/http has written 200)
-	contentLength int           // number of bytes written for the response body
-	prettyPrint   bool          // controls the indentation feature of XML and JSON serialization. It is initialized using var PrettyPrintResponses.
-	err           error         // err property is kept when WriteError is called
-	hijacker      http.Hijacker // if underlying ResponseWriter supports it
+	requestAccept string   // mime-type what the Http Request says it wants to receive
+	routeProduces []string // mime-types what the Route says it can produce
+	statusCode    int      // HTTP status code that has been written explicity (if zero then net/http has written 200)
+	contentLength int      // number of bytes written for the response body
+	prettyPrint   bool     // controls the indentation feature of XML and JSON serialization. It is initialized using var PrettyPrintResponses.
+	err           error    // err property is kept when WriteError is called
 }
 
 // NewResponse creates a new response based on a http ResponseWriter.
 func NewResponse(httpWriter http.ResponseWriter) *Response {
-	hijacker, _ := httpWriter.(http.Hijacker)
-	return &Response{ResponseWriter: httpWriter, routeProduces: []string{}, statusCode: http.StatusOK, prettyPrint: PrettyPrintResponses, hijacker: hijacker}
+	return &Response{httpWriter, "", []string{}, http.StatusOK, 0, PrettyPrintResponses, nil} // empty content-types
 }
 
 // DefaultResponseContentType set a default.
@@ -50,16 +46,6 @@ func DefaultResponseContentType(mime string) {
 func (r Response) InternalServerError() Response {
 	r.WriteHeader(http.StatusInternalServerError)
 	return r
-}
-
-// Hijack implements the http.Hijacker interface.  This expands
-// the Response to fulfill http.Hijacker if the underlying
-// http.ResponseWriter supports it.
-func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	if r.hijacker == nil {
-		return nil, nil, errors.New("http.Hijacker not implemented by underlying http.ResponseWriter")
-	}
-	return r.hijacker.Hijack()
 }
 
 // PrettyPrint changes whether this response must produce pretty (line-by-line, indented) JSON or XML output.
@@ -174,15 +160,10 @@ func (r *Response) WriteHeaderAndJson(status int, value interface{}, contentType
 	return writeJSON(r, status, contentType, value)
 }
 
-// WriteError write the http status and the error string on the response. err can be nil.
+// WriteError write the http status and the error string on the response.
 func (r *Response) WriteError(httpStatus int, err error) error {
 	r.err = err
-	if err == nil {
-		r.WriteErrorString(httpStatus, "")
-	} else {
-		r.WriteErrorString(httpStatus, err.Error())
-	}
-	return err
+	return r.WriteErrorString(httpStatus, err.Error())
 }
 
 // WriteServiceError is a convenience method for a responding with a status and a ServiceError

@@ -47,6 +47,21 @@ func PossibleAggregationTypeValues() []AggregationType {
 	return []AggregationType{Average, Total}
 }
 
+// Allocation enumerates the values for allocation.
+type Allocation string
+
+const (
+	// Dynamic ...
+	Dynamic Allocation = "dynamic"
+	// Static ...
+	Static Allocation = "static"
+)
+
+// PossibleAllocationValues returns an array of possible values for the Allocation const type.
+func PossibleAllocationValues() []Allocation {
+	return []Allocation{Dynamic, Static}
+}
+
 // DiskIndependenceMode enumerates the values for disk independence mode.
 type DiskIndependenceMode string
 
@@ -185,6 +200,78 @@ const (
 // PossibleStopModeValues returns an array of possible values for the StopMode const type.
 func PossibleStopModeValues() []StopMode {
 	return []StopMode{Poweroff, Reboot, Shutdown, Suspend}
+}
+
+// Type enumerates the values for type.
+type Type string
+
+const (
+	// CUSTOMNAME ...
+	CUSTOMNAME Type = "CUSTOM_NAME"
+	// FIXED ...
+	FIXED Type = "FIXED"
+	// PREFIXBASED ...
+	PREFIXBASED Type = "PREFIX_BASED"
+	// USERDEFINED ...
+	USERDEFINED Type = "USER_DEFINED"
+	// VIRTUALMACHINENAME ...
+	VIRTUALMACHINENAME Type = "VIRTUAL_MACHINE_NAME"
+)
+
+// PossibleTypeValues returns an array of possible values for the Type const type.
+func PossibleTypeValues() []Type {
+	return []Type{CUSTOMNAME, FIXED, PREFIXBASED, USERDEFINED, VIRTUALMACHINENAME}
+}
+
+// Type1 enumerates the values for type 1.
+type Type1 string
+
+const (
+	// Type1CUSTOM ...
+	Type1CUSTOM Type1 = "CUSTOM"
+	// Type1DHCPIP ...
+	Type1DHCPIP Type1 = "DHCP_IP"
+	// Type1FIXEDIP ...
+	Type1FIXEDIP Type1 = "FIXED_IP"
+	// Type1USERDEFINED ...
+	Type1USERDEFINED Type1 = "USER_DEFINED"
+)
+
+// PossibleType1Values returns an array of possible values for the Type1 const type.
+func PossibleType1Values() []Type1 {
+	return []Type1{Type1CUSTOM, Type1DHCPIP, Type1FIXEDIP, Type1USERDEFINED}
+}
+
+// Type2 enumerates the values for type 2.
+type Type2 string
+
+const (
+	// LINUX ...
+	LINUX Type2 = "LINUX"
+	// WINDOWS ...
+	WINDOWS Type2 = "WINDOWS"
+	// WINDOWSTEXT ...
+	WINDOWSTEXT Type2 = "WINDOWS_TEXT"
+)
+
+// PossibleType2Values returns an array of possible values for the Type2 const type.
+func PossibleType2Values() []Type2 {
+	return []Type2{LINUX, WINDOWS, WINDOWSTEXT}
+}
+
+// Type3 enumerates the values for type 3.
+type Type3 string
+
+const (
+	// Type3LINUX ...
+	Type3LINUX Type3 = "LINUX"
+	// Type3WINDOWS ...
+	Type3WINDOWS Type3 = "WINDOWS"
+)
+
+// PossibleType3Values returns an array of possible values for the Type3 const type.
+func PossibleType3Values() []Type3 {
+	return []Type3{Type3LINUX, Type3WINDOWS}
 }
 
 // UsageCount enumerates the values for usage count.
@@ -534,6 +621,319 @@ type CSRPErrorBody struct {
 	Target *string `json:"target,omitempty"`
 }
 
+// CustomizationHostName host name model
+type CustomizationHostName struct {
+	// Name - Hostname
+	Name *string `json:"name,omitempty"`
+	// Type - Type of host name. Possible values include: 'USERDEFINED', 'PREFIXBASED', 'FIXED', 'VIRTUALMACHINENAME', 'CUSTOMNAME'
+	Type Type `json:"type,omitempty"`
+}
+
+// CustomizationIdentity ...
+type CustomizationIdentity struct {
+	// Data - Windows Text Identity. Prepared data
+	Data *string `json:"data,omitempty"`
+	// HostName - Virtual machine host name settings
+	HostName *CustomizationHostName `json:"hostName,omitempty"`
+	// Type - Identity type. Possible values include: 'WINDOWSTEXT', 'WINDOWS', 'LINUX'
+	Type Type2 `json:"type,omitempty"`
+	// UserData - Windows Identity. User data customization
+	UserData *CustomizationIdentityUserData `json:"userData,omitempty"`
+}
+
+// CustomizationIdentityUserData windows Identity. User data customization
+type CustomizationIdentityUserData struct {
+	// IsPasswordPredefined - Is password predefined in customization policy
+	IsPasswordPredefined *bool `json:"isPasswordPredefined,omitempty"`
+}
+
+// CustomizationIPAddress ...
+type CustomizationIPAddress struct {
+	// Argument - Argument when Custom ip type is selected
+	Argument *string `json:"argument,omitempty"`
+	// IPAddress - Defined Ip Address when Fixed ip type is selected
+	IPAddress *string `json:"ipAddress,omitempty"`
+	// Type - Customization Specification ip type. Possible values include: 'Type1CUSTOM', 'Type1DHCPIP', 'Type1FIXEDIP', 'Type1USERDEFINED'
+	Type Type1 `json:"type,omitempty"`
+}
+
+// CustomizationIPSettings ...
+type CustomizationIPSettings struct {
+	// Gateway - The list of gateways
+	Gateway *[]string `json:"gateway,omitempty"`
+	// IP - Ip address customization settings
+	IP *CustomizationIPAddress `json:"ip,omitempty"`
+	// SubnetMask - Adapter subnet mask
+	SubnetMask *string `json:"subnetMask,omitempty"`
+}
+
+// CustomizationNicSetting ...
+type CustomizationNicSetting struct {
+	// Adapter - The list of adapters' settings
+	Adapter *CustomizationIPSettings `json:"adapter,omitempty"`
+	// MacAddress - NIC mac address
+	MacAddress *string `json:"macAddress,omitempty"`
+}
+
+// CustomizationPoliciesListResponse list of customization polices response model
+type CustomizationPoliciesListResponse struct {
+	autorest.Response `json:"-"`
+	// NextLink - Link for next list of the Customization policy
+	NextLink *string `json:"nextLink,omitempty"`
+	// Value - List of the customization policies
+	Value *[]CustomizationPolicy `json:"value,omitempty"`
+}
+
+// CustomizationPoliciesListResponseIterator provides access to a complete listing of CustomizationPolicy
+// values.
+type CustomizationPoliciesListResponseIterator struct {
+	i    int
+	page CustomizationPoliciesListResponsePage
+}
+
+// NextWithContext advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *CustomizationPoliciesListResponseIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/CustomizationPoliciesListResponseIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err = iter.page.NextWithContext(ctx)
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *CustomizationPoliciesListResponseIterator) Next() error {
+	return iter.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter CustomizationPoliciesListResponseIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter CustomizationPoliciesListResponseIterator) Response() CustomizationPoliciesListResponse {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter CustomizationPoliciesListResponseIterator) Value() CustomizationPolicy {
+	if !iter.page.NotDone() {
+		return CustomizationPolicy{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// Creates a new instance of the CustomizationPoliciesListResponseIterator type.
+func NewCustomizationPoliciesListResponseIterator(page CustomizationPoliciesListResponsePage) CustomizationPoliciesListResponseIterator {
+	return CustomizationPoliciesListResponseIterator{page: page}
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (cplr CustomizationPoliciesListResponse) IsEmpty() bool {
+	return cplr.Value == nil || len(*cplr.Value) == 0
+}
+
+// customizationPoliciesListResponsePreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (cplr CustomizationPoliciesListResponse) customizationPoliciesListResponsePreparer(ctx context.Context) (*http.Request, error) {
+	if cplr.NextLink == nil || len(to.String(cplr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(cplr.NextLink)))
+}
+
+// CustomizationPoliciesListResponsePage contains a page of CustomizationPolicy values.
+type CustomizationPoliciesListResponsePage struct {
+	fn   func(context.Context, CustomizationPoliciesListResponse) (CustomizationPoliciesListResponse, error)
+	cplr CustomizationPoliciesListResponse
+}
+
+// NextWithContext advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *CustomizationPoliciesListResponsePage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/CustomizationPoliciesListResponsePage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.cplr)
+	if err != nil {
+		return err
+	}
+	page.cplr = next
+	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *CustomizationPoliciesListResponsePage) Next() error {
+	return page.NextWithContext(context.Background())
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page CustomizationPoliciesListResponsePage) NotDone() bool {
+	return !page.cplr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page CustomizationPoliciesListResponsePage) Response() CustomizationPoliciesListResponse {
+	return page.cplr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page CustomizationPoliciesListResponsePage) Values() []CustomizationPolicy {
+	if page.cplr.IsEmpty() {
+		return nil
+	}
+	return *page.cplr.Value
+}
+
+// Creates a new instance of the CustomizationPoliciesListResponsePage type.
+func NewCustomizationPoliciesListResponsePage(getNextPage func(context.Context, CustomizationPoliciesListResponse) (CustomizationPoliciesListResponse, error)) CustomizationPoliciesListResponsePage {
+	return CustomizationPoliciesListResponsePage{fn: getNextPage}
+}
+
+// CustomizationPolicy the virtual machine customization policy
+type CustomizationPolicy struct {
+	autorest.Response `json:"-"`
+	// ID - Customization policy azure id
+	ID *string `json:"id,omitempty"`
+	// Location - Azure region
+	Location *string `json:"location,omitempty"`
+	// Name - READ-ONLY; Customization policy name
+	Name *string `json:"name,omitempty"`
+	// CustomizationPolicyProperties - Customization Policy properties
+	*CustomizationPolicyProperties `json:"properties,omitempty"`
+	// Type - READ-ONLY
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for CustomizationPolicy.
+func (cp CustomizationPolicy) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if cp.ID != nil {
+		objectMap["id"] = cp.ID
+	}
+	if cp.Location != nil {
+		objectMap["location"] = cp.Location
+	}
+	if cp.CustomizationPolicyProperties != nil {
+		objectMap["properties"] = cp.CustomizationPolicyProperties
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for CustomizationPolicy struct.
+func (cp *CustomizationPolicy) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				cp.ID = &ID
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				cp.Location = &location
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				cp.Name = &name
+			}
+		case "properties":
+			if v != nil {
+				var customizationPolicyProperties CustomizationPolicyProperties
+				err = json.Unmarshal(*v, &customizationPolicyProperties)
+				if err != nil {
+					return err
+				}
+				cp.CustomizationPolicyProperties = &customizationPolicyProperties
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				cp.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// CustomizationPolicyProperties the properties of Customization policy
+type CustomizationPolicyProperties struct {
+	// Description - Policy description
+	Description *string `json:"description,omitempty"`
+	// PrivateCloudID - The Private cloud id
+	PrivateCloudID *string `json:"privateCloudId,omitempty"`
+	// Specification - Detailed customization policy specification
+	Specification *CustomizationSpecification `json:"specification,omitempty"`
+	// Type - The type of customization (Linux or Windows). Possible values include: 'Type3LINUX', 'Type3WINDOWS'
+	Type Type3 `json:"type,omitempty"`
+	// Version - Policy version
+	Version *string `json:"version,omitempty"`
+}
+
+// CustomizationSpecification the specification for Customization Policy
+type CustomizationSpecification struct {
+	// Identity - Customization Identity. It contains data about user and hostname
+	Identity *CustomizationIdentity `json:"identity,omitempty"`
+	// NicSettings - Network interface settings
+	NicSettings *[]CustomizationNicSetting `json:"nicSettings,omitempty"`
+}
+
 // DedicatedCloudNode dedicated cloud node model
 type DedicatedCloudNode struct {
 	autorest.Response `json:"-"`
@@ -647,35 +1047,6 @@ func (dcn *DedicatedCloudNode) UnmarshalJSON(body []byte) error {
 	}
 
 	return nil
-}
-
-// DedicatedCloudNodeCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
-type DedicatedCloudNodeCreateOrUpdateFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *DedicatedCloudNodeCreateOrUpdateFuture) Result(client DedicatedCloudNodeClient) (dcn DedicatedCloudNode, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.DedicatedCloudNodeCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.DedicatedCloudNodeCreateOrUpdateFuture")
-		return
-	}
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if dcn.Response.Response, err = future.GetResult(sender); err == nil && dcn.Response.Response.StatusCode != http.StatusNoContent {
-		dcn, err = client.CreateOrUpdateResponder(dcn.Response.Response)
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "vmwarecloudsimple.DedicatedCloudNodeCreateOrUpdateFuture", "Result", dcn.Response.Response, "Failure responding to request")
-		}
-	}
-	return
 }
 
 // DedicatedCloudNodeListResponse list of dedicated nodes response model
@@ -1019,6 +1390,35 @@ func (dcnp *DedicatedCloudNodeProperties) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// DedicatedCloudNodesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type DedicatedCloudNodesCreateOrUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *DedicatedCloudNodesCreateOrUpdateFuture) Result(client DedicatedCloudNodesClient) (dcn DedicatedCloudNode, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.DedicatedCloudNodesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.DedicatedCloudNodesCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if dcn.Response.Response, err = future.GetResult(sender); err == nil && dcn.Response.Response.StatusCode != http.StatusNoContent {
+		dcn, err = client.CreateOrUpdateResponder(dcn.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "vmwarecloudsimple.DedicatedCloudNodesCreateOrUpdateFuture", "Result", dcn.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
 // DedicatedCloudService dedicated cloud service model
 type DedicatedCloudService struct {
 	autorest.Response `json:"-"`
@@ -1118,29 +1518,6 @@ func (dcs *DedicatedCloudService) UnmarshalJSON(body []byte) error {
 	}
 
 	return nil
-}
-
-// DedicatedCloudServiceDeleteFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
-type DedicatedCloudServiceDeleteFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *DedicatedCloudServiceDeleteFuture) Result(client DedicatedCloudServiceClient) (ar autorest.Response, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.DedicatedCloudServiceDeleteFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.DedicatedCloudServiceDeleteFuture")
-		return
-	}
-	ar.Response = future.Response()
-	return
 }
 
 // DedicatedCloudServiceListResponse list of dedicated cloud services
@@ -1296,10 +1673,65 @@ type DedicatedCloudServiceProperties struct {
 	GatewaySubnet *string `json:"gatewaySubnet,omitempty"`
 	// IsAccountOnboarded - READ-ONLY; indicates whether account onboarded or not in a given region. Possible values include: 'NotOnBoarded', 'OnBoarded', 'OnBoardingFailed', 'OnBoarding'
 	IsAccountOnboarded OnboardingStatus `json:"isAccountOnboarded,omitempty"`
-	// Nodes - total nodes purchased
+	// Nodes - READ-ONLY; total nodes purchased
 	Nodes *int32 `json:"nodes,omitempty"`
-	// ServiceURL - link to a service management web portal
+	// ServiceURL - READ-ONLY; link to a service management web portal
 	ServiceURL *string `json:"serviceURL,omitempty"`
+}
+
+// DedicatedCloudServicesDeleteFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type DedicatedCloudServicesDeleteFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *DedicatedCloudServicesDeleteFuture) Result(client DedicatedCloudServicesClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.DedicatedCloudServicesDeleteFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.DedicatedCloudServicesDeleteFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
+// GuestOSCustomization guest OS Customization properties
+type GuestOSCustomization struct {
+	// DNSServers - List of dns servers to use
+	DNSServers *[]string `json:"dnsServers,omitempty"`
+	// HostName - Virtual Machine hostname
+	HostName *string `json:"hostName,omitempty"`
+	// Password - Password for login
+	Password *string `json:"password,omitempty"`
+	// PolicyID - id of customization policy
+	PolicyID *string `json:"policyId,omitempty"`
+	// Username - Username for login
+	Username *string `json:"username,omitempty"`
+}
+
+// GuestOSNICCustomization guest OS nic customization
+type GuestOSNICCustomization struct {
+	// Allocation - IP address allocation method. Possible values include: 'Static', 'Dynamic'
+	Allocation Allocation `json:"allocation,omitempty"`
+	// DNSServers - List of dns servers to use
+	DNSServers *[]string `json:"dnsServers,omitempty"`
+	// Gateway - Gateway addresses assigned to nic
+	Gateway *[]string `json:"gateway,omitempty"`
+	// IPAddress - Static ip address for nic
+	IPAddress *string `json:"ipAddress,omitempty"`
+	// Mask - Network mask for nic
+	Mask *string `json:"mask,omitempty"`
+	// PrimaryWinsServer - primary WINS server for Windows
+	PrimaryWinsServer *string `json:"primaryWinsServer,omitempty"`
+	// SecondaryWinsServer - secondary WINS server for Windows
+	SecondaryWinsServer *string `json:"secondaryWinsServer,omitempty"`
 }
 
 // OperationError operation error model
@@ -1641,7 +2073,7 @@ type ResourcePool struct {
 	autorest.Response `json:"-"`
 	// ID - resource pool id (privateCloudId:vsphereId)
 	ID *string `json:"id,omitempty"`
-	// Location - Azure region
+	// Location - READ-ONLY; Azure region
 	Location *string `json:"location,omitempty"`
 	// Name - READ-ONLY; {ResourcePoolName}
 	Name *string `json:"name,omitempty"`
@@ -1658,9 +2090,6 @@ func (rp ResourcePool) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if rp.ID != nil {
 		objectMap["id"] = rp.ID
-	}
-	if rp.Location != nil {
-		objectMap["location"] = rp.Location
 	}
 	if rp.ResourcePoolProperties != nil {
 		objectMap["properties"] = rp.ResourcePoolProperties
@@ -2370,58 +2799,6 @@ func (VM *VirtualMachine) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// VirtualMachineCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
-// long-running operation.
-type VirtualMachineCreateOrUpdateFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *VirtualMachineCreateOrUpdateFuture) Result(client VirtualMachineClient) (VM VirtualMachine, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachineCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.VirtualMachineCreateOrUpdateFuture")
-		return
-	}
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if VM.Response.Response, err = future.GetResult(sender); err == nil && VM.Response.Response.StatusCode != http.StatusNoContent {
-		VM, err = client.CreateOrUpdateResponder(VM.Response.Response)
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachineCreateOrUpdateFuture", "Result", VM.Response.Response, "Failure responding to request")
-		}
-	}
-	return
-}
-
-// VirtualMachineDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
-type VirtualMachineDeleteFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *VirtualMachineDeleteFuture) Result(client VirtualMachineClient) (ar autorest.Response, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachineDeleteFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.VirtualMachineDeleteFuture")
-		return
-	}
-	ar.Response = future.Response()
-	return
-}
-
 // VirtualMachineListResponse list of virtual machines
 type VirtualMachineListResponse struct {
 	autorest.Response `json:"-"`
@@ -2574,6 +2951,8 @@ type VirtualMachineProperties struct {
 	AmountOfRAM *int32 `json:"amountOfRam,omitempty"`
 	// Controllers - READ-ONLY; The list of Virtual Disks' Controllers
 	Controllers *[]VirtualDiskController `json:"controllers,omitempty"`
+	// Customization - Virtual machine properties
+	Customization *GuestOSCustomization `json:"customization,omitempty"`
 	// Disks - The list of Virtual Disks
 	Disks *[]VirtualDisk `json:"disks,omitempty"`
 	// Dnsname - READ-ONLY; The DNS name of Virtual Machine in VCenter
@@ -2582,15 +2961,15 @@ type VirtualMachineProperties struct {
 	ExposeToGuestVM *bool `json:"exposeToGuestVM,omitempty"`
 	// Folder - READ-ONLY; The path to virtual machine folder in VCenter
 	Folder *string `json:"folder,omitempty"`
-	// GuestOS - The name of Guest OS
+	// GuestOS - READ-ONLY; The name of Guest OS
 	GuestOS *string `json:"guestOS,omitempty"`
-	// GuestOSType - The Guest OS type. Possible values include: 'Linux', 'Windows', 'Other'
+	// GuestOSType - READ-ONLY; The Guest OS type. Possible values include: 'Linux', 'Windows', 'Other'
 	GuestOSType GuestOSType `json:"guestOSType,omitempty"`
 	// Nics - The list of Virtual NICs
 	Nics *[]VirtualNic `json:"nics,omitempty"`
 	// NumberOfCores - The number of CPU cores
 	NumberOfCores *int32 `json:"numberOfCores,omitempty"`
-	// Password - Password for login
+	// Password - Password for login. Deprecated - use customization property
 	Password *string `json:"password,omitempty"`
 	// PrivateCloudID - Private Cloud Id
 	PrivateCloudID *string `json:"privateCloudId,omitempty"`
@@ -2604,7 +2983,7 @@ type VirtualMachineProperties struct {
 	Status VirtualMachineStatus `json:"status,omitempty"`
 	// TemplateID - Virtual Machine Template Id
 	TemplateID *string `json:"templateId,omitempty"`
-	// Username - Username for login
+	// Username - Username for login. Deprecated - use customization property
 	Username *string `json:"username,omitempty"`
 	// VSphereNetworks - The list of Virtual VSphere Networks
 	VSphereNetworks *[]string `json:"vSphereNetworks,omitempty"`
@@ -2614,46 +2993,98 @@ type VirtualMachineProperties struct {
 	Vmwaretools *string `json:"vmwaretools,omitempty"`
 }
 
-// VirtualMachineStartFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
-type VirtualMachineStartFuture struct {
+// VirtualMachinesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type VirtualMachinesCreateOrUpdateFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *VirtualMachineStartFuture) Result(client VirtualMachineClient) (ar autorest.Response, err error) {
+func (future *VirtualMachinesCreateOrUpdateFuture) Result(client VirtualMachinesClient) (VM VirtualMachine, err error) {
 	var done bool
 	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachineStartFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachinesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.VirtualMachineStartFuture")
+		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.VirtualMachinesCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if VM.Response.Response, err = future.GetResult(sender); err == nil && VM.Response.Response.StatusCode != http.StatusNoContent {
+		VM, err = client.CreateOrUpdateResponder(VM.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachinesCreateOrUpdateFuture", "Result", VM.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// VirtualMachinesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
+type VirtualMachinesDeleteFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *VirtualMachinesDeleteFuture) Result(client VirtualMachinesClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachinesDeleteFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.VirtualMachinesDeleteFuture")
 		return
 	}
 	ar.Response = future.Response()
 	return
 }
 
-// VirtualMachineStopFuture an abstraction for monitoring and retrieving the results of a long-running
+// VirtualMachinesStartFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
-type VirtualMachineStopFuture struct {
+type VirtualMachinesStartFuture struct {
 	azure.Future
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future *VirtualMachineStopFuture) Result(client VirtualMachineClient) (ar autorest.Response, err error) {
+func (future *VirtualMachinesStartFuture) Result(client VirtualMachinesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.DoneWithContext(context.Background(), client)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachineStopFuture", "Result", future.Response(), "Polling failure")
+		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachinesStartFuture", "Result", future.Response(), "Polling failure")
 		return
 	}
 	if !done {
-		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.VirtualMachineStopFuture")
+		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.VirtualMachinesStartFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
+// VirtualMachinesStopFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
+type VirtualMachinesStopFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *VirtualMachinesStopFuture) Result(client VirtualMachinesClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachinesStopFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.VirtualMachinesStopFuture")
 		return
 	}
 	ar.Response = future.Response()
@@ -2664,6 +3095,35 @@ func (future *VirtualMachineStopFuture) Result(client VirtualMachineClient) (ar 
 type VirtualMachineStopMode struct {
 	// Mode - mode indicates a type of stop operation - reboot, suspend, shutdown or power-off. Possible values include: 'Reboot', 'Suspend', 'Shutdown', 'Poweroff'
 	Mode StopMode `json:"mode,omitempty"`
+}
+
+// VirtualMachinesUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
+type VirtualMachinesUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *VirtualMachinesUpdateFuture) Result(client VirtualMachinesClient) (VM VirtualMachine, err error) {
+	var done bool
+	done, err = future.DoneWithContext(context.Background(), client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachinesUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.VirtualMachinesUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if VM.Response.Response, err = future.GetResult(sender); err == nil && VM.Response.Response.StatusCode != http.StatusNoContent {
+		VM, err = client.UpdateResponder(VM.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachinesUpdateFuture", "Result", VM.Response.Response, "Failure responding to request")
+		}
+	}
+	return
 }
 
 // VirtualMachineTemplate virtual machine template model
@@ -2912,9 +3372,9 @@ type VirtualMachineTemplateProperties struct {
 	Disks *[]VirtualDisk `json:"disks,omitempty"`
 	// ExposeToGuestVM - Expose Guest OS or not
 	ExposeToGuestVM *bool `json:"exposeToGuestVM,omitempty"`
-	// GuestOS - The Guest OS
+	// GuestOS - READ-ONLY; The Guest OS
 	GuestOS *string `json:"guestOS,omitempty"`
-	// GuestOSType - The Guest OS types
+	// GuestOSType - READ-ONLY; The Guest OS types
 	GuestOSType *string `json:"guestOSType,omitempty"`
 	// Nics - The list of Virtual NICs
 	Nics *[]VirtualNic `json:"nics,omitempty"`
@@ -2932,35 +3392,6 @@ type VirtualMachineTemplateProperties struct {
 	Vmwaretools *string `json:"vmwaretools,omitempty"`
 }
 
-// VirtualMachineUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
-type VirtualMachineUpdateFuture struct {
-	azure.Future
-}
-
-// Result returns the result of the asynchronous operation.
-// If the operation has not completed it will return an error.
-func (future *VirtualMachineUpdateFuture) Result(client VirtualMachineClient) (VM VirtualMachine, err error) {
-	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachineUpdateFuture", "Result", future.Response(), "Polling failure")
-		return
-	}
-	if !done {
-		err = azure.NewAsyncOpIncompleteError("vmwarecloudsimple.VirtualMachineUpdateFuture")
-		return
-	}
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if VM.Response.Response, err = future.GetResult(sender); err == nil && VM.Response.Response.StatusCode != http.StatusNoContent {
-		VM, err = client.UpdateResponder(VM.Response.Response)
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "vmwarecloudsimple.VirtualMachineUpdateFuture", "Result", VM.Response.Response, "Failure responding to request")
-		}
-	}
-	return
-}
-
 // VirtualNetwork virtual network model
 type VirtualNetwork struct {
 	autorest.Response `json:"-"`
@@ -2968,7 +3399,7 @@ type VirtualNetwork struct {
 	Assignable *bool `json:"assignable,omitempty"`
 	// ID - virtual network id (privateCloudId:vsphereId)
 	ID *string `json:"id,omitempty"`
-	// Location - Azure region
+	// Location - READ-ONLY; Azure region
 	Location *string `json:"location,omitempty"`
 	// Name - READ-ONLY; {VirtualNetworkName}
 	Name *string `json:"name,omitempty"`
@@ -2983,9 +3414,6 @@ func (vn VirtualNetwork) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if vn.ID != nil {
 		objectMap["id"] = vn.ID
-	}
-	if vn.Location != nil {
-		objectMap["location"] = vn.Location
 	}
 	if vn.VirtualNetworkProperties != nil {
 		objectMap["properties"] = vn.VirtualNetworkProperties
@@ -3216,11 +3644,13 @@ type VirtualNetworkProperties struct {
 
 // VirtualNic virtual NIC model
 type VirtualNic struct {
+	// Customization - guest OS customization for nic
+	Customization *GuestOSNICCustomization `json:"customization,omitempty"`
 	// IPAddresses - NIC ip address
 	IPAddresses *[]string `json:"ipAddresses,omitempty"`
 	// MacAddress - NIC MAC address
 	MacAddress *string `json:"macAddress,omitempty"`
-	// Network - The list of Virtual Networks
+	// Network - Virtual Network
 	Network *VirtualNetwork `json:"network,omitempty"`
 	// NicType - NIC type. Possible values include: 'E1000', 'E1000E', 'PCNET32', 'VMXNET', 'VMXNET2', 'VMXNET3'
 	NicType NICType `json:"nicType,omitempty"`

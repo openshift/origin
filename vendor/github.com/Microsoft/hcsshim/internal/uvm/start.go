@@ -1,56 +1,93 @@
 package uvm
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net"
 	"syscall"
+	"time"
 
+	"github.com/Microsoft/hcsshim/internal/logfields"
 	"github.com/sirupsen/logrus"
 )
 
 const _ERROR_CONNECTION_ABORTED syscall.Errno = 1236
 
-var _ = (OutputHandler)(parseLogrus)
+type gcsLogEntryStandard struct {
+	Time    time.Time    `json:"time"`
+	Level   logrus.Level `json:"level"`
+	Message string       `json:"msg"`
+}
 
-func parseLogrus(r io.Reader) {
-	j := json.NewDecoder(r)
-	logger := logrus.StandardLogger()
-	for {
-		e := logrus.Entry{Logger: logger}
-		err := j.Decode(&e.Data)
-		if err == io.EOF || err == _ERROR_CONNECTION_ABORTED {
-			break
+type gcsLogEntry struct {
+	gcsLogEntryStandard
+	Fields map[string]interface{}
+}
+
+// FUTURE-jstarks: Change the GCS log format to include type information
+//                 (e.g. by using a different encoding such as protobuf).
+func (e *gcsLogEntry) UnmarshalJSON(b []byte) error {
+	// Default the log level to info.
+	e.Level = logrus.InfoLevel
+	if err := json.Unmarshal(b, &e.gcsLogEntryStandard); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(b, &e.Fields); err != nil {
+		return err
+	}
+	// Do not allow fatal or panic level errors to propagate.
+	if e.Level < logrus.ErrorLevel {
+		e.Level = logrus.ErrorLevel
+	}
+	// Clear special fields.
+	delete(e.Fields, "time")
+	delete(e.Fields, "level")
+	delete(e.Fields, "msg")
+	// Normalize floats to integers.
+	for k, v := range e.Fields {
+		if d, ok := v.(float64); ok && float64(int64(d)) == d {
+			e.Fields[k] = int64(d)
 		}
-		if err != nil {
-			// Something went wrong. Read the rest of the data as a single
-			// string and log it at once -- it's probably a GCS panic stack.
-			logrus.Error("gcs log read: ", err)
-			rest, _ := ioutil.ReadAll(io.MultiReader(j.Buffered(), r))
-			if len(rest) != 0 {
-				logrus.Error("gcs stderr: ", string(rest))
+	}
+	return nil
+}
+
+func parseLogrus(vmid string) func(r io.Reader) {
+	return func(r io.Reader) {
+		j := json.NewDecoder(r)
+		e := logrus.NewEntry(logrus.StandardLogger())
+		fields := e.Data
+		for {
+			for k := range fields {
+				delete(fields, k)
 			}
-			break
-		}
-		msg := e.Data["msg"]
-		delete(e.Data, "msg")
-		lvl := e.Data["level"]
-		delete(e.Data, "level")
-		e.Data["vm.time"] = e.Data["time"]
-		delete(e.Data, "time")
-		switch lvl {
-		case "debug":
-			e.Debug(msg)
-		case "info":
-			e.Info(msg)
-		case "warning":
-			e.Warning(msg)
-		case "error", "fatal":
-			e.Error(msg)
-		default:
-			e.Info(msg)
+			gcsEntry := gcsLogEntry{Fields: e.Data}
+			err := j.Decode(&gcsEntry)
+			if err != nil {
+				// Something went wrong. Read the rest of the data as a single
+				// string and log it at once -- it's probably a GCS panic stack.
+				if err != io.EOF && err != _ERROR_CONNECTION_ABORTED && err != syscall.WSAECONNRESET {
+					logrus.WithFields(logrus.Fields{
+						logfields.UVMID: vmid,
+						logrus.ErrorKey: err,
+					}).Error("gcs log read")
+				}
+				rest, _ := ioutil.ReadAll(io.MultiReader(j.Buffered(), r))
+				rest = bytes.TrimSpace(rest)
+				if len(rest) != 0 {
+					logrus.WithFields(logrus.Fields{
+						logfields.UVMID: vmid,
+						"stderr":        string(rest),
+					}).Error("gcs terminated")
+				}
+				break
+			}
+			fields[logfields.UVMID] = vmid
+			fields["vm.time"] = gcsEntry.Time
+			e.Log(gcsEntry.Level, gcsEntry.Message)
 		}
 	}
 }
@@ -87,7 +124,21 @@ func processOutput(ctx context.Context, l net.Listener, doneChan chan struct{}, 
 }
 
 // Start synchronously starts the utility VM.
-func (uvm *UtilityVM) Start() error {
+func (uvm *UtilityVM) Start() (err error) {
+	op := "uvm::Start"
+	log := logrus.WithFields(logrus.Fields{
+		logfields.UVMID: uvm.id,
+	})
+	log.Debug(op + " - Begin Operation")
+	defer func() {
+		if err != nil {
+			log.Data[logrus.ErrorKey] = err
+			log.Error(op + " - End Operation - Error")
+		} else {
+			log.Debug(op + " - End Operation - Success")
+		}
+	}()
+
 	if uvm.outputListener != nil {
 		ctx, cancel := context.WithCancel(context.Background())
 		go processOutput(ctx, uvm.outputListener, uvm.outputProcessingDone, uvm.outputHandler)

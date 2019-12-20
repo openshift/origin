@@ -58,6 +58,7 @@ type SQLVirtualMachinesClientAPI interface {
 	Get(ctx context.Context, resourceGroupName string, SQLVirtualMachineName string, expand string) (result sqlvirtualmachine.SQLVirtualMachine, err error)
 	List(ctx context.Context) (result sqlvirtualmachine.ListResultPage, err error)
 	ListByResourceGroup(ctx context.Context, resourceGroupName string) (result sqlvirtualmachine.ListResultPage, err error)
+	ListBySQLVMGroup(ctx context.Context, resourceGroupName string, SQLVirtualMachineGroupName string) (result sqlvirtualmachine.ListResultPage, err error)
 	Update(ctx context.Context, resourceGroupName string, SQLVirtualMachineName string, parameters sqlvirtualmachine.Update) (result sqlvirtualmachine.SQLVirtualMachinesUpdateFutureType, err error)
 }
 

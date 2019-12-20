@@ -23,12 +23,86 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
+// ServerAdvisorsClientAPI contains the set of methods on the ServerAdvisorsClient type.
+type ServerAdvisorsClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, advisorName string, parameters sql.Advisor) (result sql.Advisor, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string, advisorName string) (result sql.Advisor, err error)
+	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.AdvisorListResult, err error)
+	Update(ctx context.Context, resourceGroupName string, serverName string, advisorName string, parameters sql.Advisor) (result sql.Advisor, err error)
+}
+
+var _ ServerAdvisorsClientAPI = (*sql.ServerAdvisorsClient)(nil)
+
+// DatabaseAdvisorsClientAPI contains the set of methods on the DatabaseAdvisorsClient type.
+type DatabaseAdvisorsClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, advisorName string, parameters sql.Advisor) (result sql.Advisor, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string, advisorName string) (result sql.Advisor, err error)
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.AdvisorListResult, err error)
+}
+
+var _ DatabaseAdvisorsClientAPI = (*sql.DatabaseAdvisorsClient)(nil)
+
+// BackupLongTermRetentionPoliciesClientAPI contains the set of methods on the BackupLongTermRetentionPoliciesClient type.
+type BackupLongTermRetentionPoliciesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters sql.BackupLongTermRetentionPolicy) (result sql.BackupLongTermRetentionPoliciesCreateOrUpdateFuture, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.BackupLongTermRetentionPolicy, err error)
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.BackupLongTermRetentionPolicyListResult, err error)
+}
+
+var _ BackupLongTermRetentionPoliciesClientAPI = (*sql.BackupLongTermRetentionPoliciesClient)(nil)
+
+// BackupLongTermRetentionVaultsClientAPI contains the set of methods on the BackupLongTermRetentionVaultsClient type.
+type BackupLongTermRetentionVaultsClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, parameters sql.BackupLongTermRetentionVault) (result sql.BackupLongTermRetentionVaultsCreateOrUpdateFuture, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string) (result sql.BackupLongTermRetentionVault, err error)
+	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.BackupLongTermRetentionVaultListResult, err error)
+}
+
+var _ BackupLongTermRetentionVaultsClientAPI = (*sql.BackupLongTermRetentionVaultsClient)(nil)
+
+// RecoverableDatabasesClientAPI contains the set of methods on the RecoverableDatabasesClient type.
+type RecoverableDatabasesClientAPI interface {
+	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.RecoverableDatabase, err error)
+	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.RecoverableDatabaseListResult, err error)
+}
+
+var _ RecoverableDatabasesClientAPI = (*sql.RecoverableDatabasesClient)(nil)
+
+// RestorableDroppedDatabasesClientAPI contains the set of methods on the RestorableDroppedDatabasesClient type.
+type RestorableDroppedDatabasesClientAPI interface {
+	Get(ctx context.Context, resourceGroupName string, serverName string, restorableDroppededDatabaseID string) (result sql.RestorableDroppedDatabase, err error)
+	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.RestorableDroppedDatabaseListResult, err error)
+}
+
+var _ RestorableDroppedDatabasesClientAPI = (*sql.RestorableDroppedDatabasesClient)(nil)
+
+// CapabilitiesClientAPI contains the set of methods on the CapabilitiesClient type.
+type CapabilitiesClientAPI interface {
+	ListByLocation(ctx context.Context, locationID string) (result sql.LocationCapabilities, err error)
+}
+
+var _ CapabilitiesClientAPI = (*sql.CapabilitiesClient)(nil)
+
 // ServersClientAPI contains the set of methods on the ServersClient type.
 type ServersClientAPI interface {
 	CheckNameAvailability(ctx context.Context, parameters sql.CheckNameAvailabilityRequest) (result sql.CheckNameAvailabilityResponse, err error)
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, parameters sql.Server) (result sql.Server, err error)
+	Delete(ctx context.Context, resourceGroupName string, serverName string) (result autorest.Response, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string) (result sql.Server, err error)
+	List(ctx context.Context) (result sql.ServerListResult, err error)
+	ListByResourceGroup(ctx context.Context, resourceGroupName string) (result sql.ServerListResult, err error)
+	Update(ctx context.Context, resourceGroupName string, serverName string, parameters sql.ServerUpdate) (result sql.Server, err error)
 }
 
 var _ ServersClientAPI = (*sql.ServersClient)(nil)
+
+// ServerConnectionPoliciesClientAPI contains the set of methods on the ServerConnectionPoliciesClient type.
+type ServerConnectionPoliciesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, parameters sql.ServerConnectionPolicy) (result sql.ServerConnectionPolicy, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServerConnectionPolicy, err error)
+}
+
+var _ ServerConnectionPoliciesClientAPI = (*sql.ServerConnectionPoliciesClient)(nil)
 
 // DatabasesClientAPI contains the set of methods on the DatabasesClient type.
 type DatabasesClientAPI interface {
@@ -43,6 +117,8 @@ type DatabasesClientAPI interface {
 	ListByElasticPool(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string) (result sql.DatabaseListResult, err error)
 	ListByRecommendedElasticPool(ctx context.Context, resourceGroupName string, serverName string, recommendedElasticPoolName string) (result sql.DatabaseListResult, err error)
 	ListByServer(ctx context.Context, resourceGroupName string, serverName string, expand string, filter string) (result sql.DatabaseListResult, err error)
+	ListMetricDefinitions(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.MetricDefinitionListResult, err error)
+	ListMetrics(ctx context.Context, resourceGroupName string, serverName string, databaseName string, filter string) (result sql.MetricListResult, err error)
 	Pause(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DatabasesPauseFuture, err error)
 	Resume(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DatabasesResumeFuture, err error)
 	Update(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters sql.DatabaseUpdate) (result sql.DatabasesUpdateFuture, err error)
@@ -50,12 +126,65 @@ type DatabasesClientAPI interface {
 
 var _ DatabasesClientAPI = (*sql.DatabasesClient)(nil)
 
+// DatabaseThreatDetectionPoliciesClientAPI contains the set of methods on the DatabaseThreatDetectionPoliciesClient type.
+type DatabaseThreatDetectionPoliciesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters sql.DatabaseSecurityAlertPolicy) (result sql.DatabaseSecurityAlertPolicy, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DatabaseSecurityAlertPolicy, err error)
+}
+
+var _ DatabaseThreatDetectionPoliciesClientAPI = (*sql.DatabaseThreatDetectionPoliciesClient)(nil)
+
+// DataMaskingPoliciesClientAPI contains the set of methods on the DataMaskingPoliciesClient type.
+type DataMaskingPoliciesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters sql.DataMaskingPolicy) (result sql.DataMaskingPolicy, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DataMaskingPolicy, err error)
+}
+
+var _ DataMaskingPoliciesClientAPI = (*sql.DataMaskingPoliciesClient)(nil)
+
+// DataMaskingRulesClientAPI contains the set of methods on the DataMaskingRulesClient type.
+type DataMaskingRulesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, dataMaskingRuleName string, parameters sql.DataMaskingRule) (result sql.DataMaskingRule, err error)
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DataMaskingRuleListResult, err error)
+}
+
+var _ DataMaskingRulesClientAPI = (*sql.DataMaskingRulesClient)(nil)
+
+// TransparentDataEncryptionConfigurationsClientAPI contains the set of methods on the TransparentDataEncryptionConfigurationsClient type.
+type TransparentDataEncryptionConfigurationsClientAPI interface {
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.TransparentDataEncryptionListResult, err error)
+}
+
+var _ TransparentDataEncryptionConfigurationsClientAPI = (*sql.TransparentDataEncryptionConfigurationsClient)(nil)
+
+// ExtensionsClientAPI contains the set of methods on the ExtensionsClient type.
+type ExtensionsClientAPI interface {
+	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result autorest.Response, err error)
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.ExtensionListResult, err error)
+}
+
+var _ ExtensionsClientAPI = (*sql.ExtensionsClient)(nil)
+
+// DisasterRecoveryConfigurationsClientAPI contains the set of methods on the DisasterRecoveryConfigurationsClient type.
+type DisasterRecoveryConfigurationsClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, disasterRecoveryConfigurationName string) (result sql.DisasterRecoveryConfigurationsCreateOrUpdateFuture, err error)
+	Delete(ctx context.Context, resourceGroupName string, serverName string, disasterRecoveryConfigurationName string) (result sql.DisasterRecoveryConfigurationsDeleteFuture, err error)
+	Failover(ctx context.Context, resourceGroupName string, serverName string, disasterRecoveryConfigurationName string) (result sql.DisasterRecoveryConfigurationsFailoverFuture, err error)
+	FailoverAllowDataLoss(ctx context.Context, resourceGroupName string, serverName string, disasterRecoveryConfigurationName string) (result sql.DisasterRecoveryConfigurationsFailoverAllowDataLossFuture, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string, disasterRecoveryConfigurationName string) (result sql.DisasterRecoveryConfiguration, err error)
+	List(ctx context.Context, resourceGroupName string, serverName string) (result sql.DisasterRecoveryConfigurationListResult, err error)
+}
+
+var _ DisasterRecoveryConfigurationsClientAPI = (*sql.DisasterRecoveryConfigurationsClient)(nil)
+
 // ElasticPoolsClientAPI contains the set of methods on the ElasticPoolsClient type.
 type ElasticPoolsClientAPI interface {
 	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string, parameters sql.ElasticPool) (result sql.ElasticPoolsCreateOrUpdateFuture, err error)
 	Delete(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string) (result autorest.Response, err error)
 	Get(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string) (result sql.ElasticPool, err error)
 	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.ElasticPoolListResult, err error)
+	ListMetricDefinitions(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string) (result sql.MetricDefinitionListResult, err error)
+	ListMetrics(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string, filter string) (result sql.MetricListResult, err error)
 	Update(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string, parameters sql.ElasticPoolUpdate) (result sql.ElasticPoolsUpdateFuture, err error)
 }
 
@@ -70,6 +199,43 @@ type FirewallRulesClientAPI interface {
 }
 
 var _ FirewallRulesClientAPI = (*sql.FirewallRulesClient)(nil)
+
+// GeoBackupPoliciesClientAPI contains the set of methods on the GeoBackupPoliciesClient type.
+type GeoBackupPoliciesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters sql.GeoBackupPolicy) (result sql.GeoBackupPolicy, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.GeoBackupPolicy, err error)
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.GeoBackupPolicyListResult, err error)
+}
+
+var _ GeoBackupPoliciesClientAPI = (*sql.GeoBackupPoliciesClient)(nil)
+
+// OperationsClientAPI contains the set of methods on the OperationsClient type.
+type OperationsClientAPI interface {
+	List(ctx context.Context) (result sql.OperationListResult, err error)
+}
+
+var _ OperationsClientAPI = (*sql.OperationsClient)(nil)
+
+// QueriesClientAPI contains the set of methods on the QueriesClient type.
+type QueriesClientAPI interface {
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.TopQueriesListResult, err error)
+}
+
+var _ QueriesClientAPI = (*sql.QueriesClient)(nil)
+
+// QueryStatisticsClientAPI contains the set of methods on the QueryStatisticsClient type.
+type QueryStatisticsClientAPI interface {
+	ListByQuery(ctx context.Context, resourceGroupName string, serverName string, databaseName string, queryID string) (result sql.QueryStatisticListResult, err error)
+}
+
+var _ QueryStatisticsClientAPI = (*sql.QueryStatisticsClient)(nil)
+
+// QueryTextsClientAPI contains the set of methods on the QueryTextsClient type.
+type QueryTextsClientAPI interface {
+	ListByQuery(ctx context.Context, resourceGroupName string, serverName string, databaseName string, queryID string) (result sql.QueryTextListResult, err error)
+}
+
+var _ QueryTextsClientAPI = (*sql.QueryTextsClient)(nil)
 
 // RecommendedElasticPoolsClientAPI contains the set of methods on the RecommendedElasticPoolsClient type.
 type RecommendedElasticPoolsClientAPI interface {
@@ -90,6 +256,41 @@ type ReplicationLinksClientAPI interface {
 }
 
 var _ ReplicationLinksClientAPI = (*sql.ReplicationLinksClient)(nil)
+
+// RestorePointsClientAPI contains the set of methods on the RestorePointsClient type.
+type RestorePointsClientAPI interface {
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.RestorePointListResult, err error)
+}
+
+var _ RestorePointsClientAPI = (*sql.RestorePointsClient)(nil)
+
+// ServerAzureADAdministratorsClientAPI contains the set of methods on the ServerAzureADAdministratorsClient type.
+type ServerAzureADAdministratorsClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, properties sql.ServerAzureADAdministrator) (result sql.ServerAzureADAdministratorsCreateOrUpdateFuture, err error)
+	Delete(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServerAzureADAdministratorsDeleteFuture, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServerAzureADAdministrator, err error)
+	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServerAdministratorListResult, err error)
+}
+
+var _ ServerAzureADAdministratorsClientAPI = (*sql.ServerAzureADAdministratorsClient)(nil)
+
+// ServerCommunicationLinksClientAPI contains the set of methods on the ServerCommunicationLinksClient type.
+type ServerCommunicationLinksClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, communicationLinkName string, parameters sql.ServerCommunicationLink) (result sql.ServerCommunicationLinksCreateOrUpdateFuture, err error)
+	Delete(ctx context.Context, resourceGroupName string, serverName string, communicationLinkName string) (result autorest.Response, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string, communicationLinkName string) (result sql.ServerCommunicationLink, err error)
+	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServerCommunicationLinkListResult, err error)
+}
+
+var _ ServerCommunicationLinksClientAPI = (*sql.ServerCommunicationLinksClient)(nil)
+
+// ServiceObjectivesClientAPI contains the set of methods on the ServiceObjectivesClient type.
+type ServiceObjectivesClientAPI interface {
+	Get(ctx context.Context, resourceGroupName string, serverName string, serviceObjectiveName string) (result sql.ServiceObjective, err error)
+	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServiceObjectiveListResult, err error)
+}
+
+var _ ServiceObjectivesClientAPI = (*sql.ServiceObjectivesClient)(nil)
 
 // ElasticPoolActivitiesClientAPI contains the set of methods on the ElasticPoolActivitiesClient type.
 type ElasticPoolActivitiesClientAPI interface {
@@ -128,10 +329,42 @@ type TransparentDataEncryptionActivitiesClientAPI interface {
 
 var _ TransparentDataEncryptionActivitiesClientAPI = (*sql.TransparentDataEncryptionActivitiesClient)(nil)
 
-// DatabaseThreatDetectionPoliciesClientAPI contains the set of methods on the DatabaseThreatDetectionPoliciesClient type.
-type DatabaseThreatDetectionPoliciesClientAPI interface {
-	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters sql.DatabaseSecurityAlertPolicy) (result sql.DatabaseSecurityAlertPolicy, err error)
-	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DatabaseSecurityAlertPolicy, err error)
+// ServerTableAuditingPoliciesClientAPI contains the set of methods on the ServerTableAuditingPoliciesClient type.
+type ServerTableAuditingPoliciesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, parameters sql.ServerTableAuditingPolicy) (result sql.ServerTableAuditingPolicy, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServerTableAuditingPolicy, err error)
+	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServerTableAuditingPolicyListResult, err error)
 }
 
-var _ DatabaseThreatDetectionPoliciesClientAPI = (*sql.DatabaseThreatDetectionPoliciesClient)(nil)
+var _ ServerTableAuditingPoliciesClientAPI = (*sql.ServerTableAuditingPoliciesClient)(nil)
+
+// DatabaseTableAuditingPoliciesClientAPI contains the set of methods on the DatabaseTableAuditingPoliciesClient type.
+type DatabaseTableAuditingPoliciesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters sql.DatabaseTableAuditingPolicy) (result sql.DatabaseTableAuditingPolicy, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DatabaseTableAuditingPolicy, err error)
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DatabaseTableAuditingPolicyListResult, err error)
+}
+
+var _ DatabaseTableAuditingPoliciesClientAPI = (*sql.DatabaseTableAuditingPoliciesClient)(nil)
+
+// DatabaseConnectionPoliciesClientAPI contains the set of methods on the DatabaseConnectionPoliciesClient type.
+type DatabaseConnectionPoliciesClientAPI interface {
+	CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, databaseName string, parameters sql.DatabaseConnectionPolicy) (result sql.DatabaseConnectionPolicy, err error)
+	Get(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DatabaseConnectionPolicy, err error)
+}
+
+var _ DatabaseConnectionPoliciesClientAPI = (*sql.DatabaseConnectionPoliciesClient)(nil)
+
+// ServerUsagesClientAPI contains the set of methods on the ServerUsagesClient type.
+type ServerUsagesClientAPI interface {
+	ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result sql.ServerUsageListResult, err error)
+}
+
+var _ ServerUsagesClientAPI = (*sql.ServerUsagesClient)(nil)
+
+// DatabaseUsagesClientAPI contains the set of methods on the DatabaseUsagesClient type.
+type DatabaseUsagesClientAPI interface {
+	ListByDatabase(ctx context.Context, resourceGroupName string, serverName string, databaseName string) (result sql.DatabaseUsageListResult, err error)
+}
+
+var _ DatabaseUsagesClientAPI = (*sql.DatabaseUsagesClient)(nil)

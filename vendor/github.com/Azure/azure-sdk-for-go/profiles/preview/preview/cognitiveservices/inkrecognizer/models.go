@@ -36,8 +36,8 @@ const (
 	InkDrawing    Category = original.InkDrawing
 	InkWord       Category = original.InkWord
 	Line          Category = original.Line
-	ListItem      Category = original.ListItem
 	Paragraph     Category = original.Paragraph
+	Root          Category = original.Root
 	Unknown       Category = original.Unknown
 	WritingRegion Category = original.WritingRegion
 )
@@ -53,9 +53,24 @@ type Container = original.Container
 
 const (
 	ContainerLine          Container = original.ContainerLine
-	ContainerListItem      Container = original.ContainerListItem
 	ContainerParagraph     Container = original.ContainerParagraph
+	ContainerRoot          Container = original.ContainerRoot
 	ContainerWritingRegion Container = original.ContainerWritingRegion
+)
+
+type InputDevice = original.InputDevice
+
+const (
+	Armature        InputDevice = original.Armature
+	ArticulatedArm  InputDevice = original.ArticulatedArm
+	Digitizer       InputDevice = original.Digitizer
+	LightPen        InputDevice = original.LightPen
+	Pen             InputDevice = original.Pen
+	StereoPlotter   InputDevice = original.StereoPlotter
+	ThreedDigitizer InputDevice = original.ThreedDigitizer
+	TouchPad        InputDevice = original.TouchPad
+	TouchScreen     InputDevice = original.TouchScreen
+	WhiteBoard      InputDevice = original.WhiteBoard
 )
 
 type Kind = original.Kind
@@ -125,14 +140,6 @@ const (
 	Mm Unit = original.Mm
 )
 
-type Unit1 = original.Unit1
-
-const (
-	Unit1Cm Unit1 = original.Unit1Cm
-	Unit1In Unit1 = original.Unit1In
-	Unit1Mm Unit1 = original.Unit1Mm
-)
-
 type AlternatePatternItem = original.AlternatePatternItem
 type AnalysisRequest = original.AnalysisRequest
 type AnalysisResponse = original.AnalysisResponse
@@ -142,6 +149,8 @@ type DrawingAttributesPattern = original.DrawingAttributesPattern
 type DrawingAttributesPatternColor = original.DrawingAttributesPatternColor
 type ErrorModel = original.ErrorModel
 type ErrorModelDetailsItem = original.ErrorModelDetailsItem
+type InkPoint = original.InkPoint
+type InkPointValueAttribute = original.InkPointValueAttribute
 type PointDetailsPattern = original.PointDetailsPattern
 type RecognitionUnitItem = original.RecognitionUnitItem
 type RecognitionUnitItemBoundingRectangle = original.RecognitionUnitItemBoundingRectangle
@@ -168,6 +177,9 @@ func PossibleClassValues() []Class {
 func PossibleContainerValues() []Container {
 	return original.PossibleContainerValues()
 }
+func PossibleInputDeviceValues() []InputDevice {
+	return original.PossibleInputDeviceValues()
+}
 func PossibleKindValues() []Kind {
 	return original.PossibleKindValues()
 }
@@ -182,9 +194,6 @@ func PossibleShapeValues() []Shape {
 }
 func PossibleTipValues() []Tip {
 	return original.PossibleTipValues()
-}
-func PossibleUnit1Values() []Unit1 {
-	return original.PossibleUnit1Values()
 }
 func PossibleUnitValues() []Unit {
 	return original.PossibleUnitValues()

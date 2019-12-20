@@ -1,0 +1,28 @@
+- name: clean disks
+  command: wipefs -a {{ item }}
+  with_items:
+    - /dev/vdb
+    - /dev/vdc
+    - /dev/vdd
+    - /dev/vde
+    - /dev/vdf
+    - /dev/vdg
+    - /dev/vdh
+    - /dev/vdi
+
+- name: install repo source packages
+  yum:
+    name:
+      - epel-release
+      - centos-release-gluster41
+    state: present
+
+- name: copy private key
+  copy: src=insecure_private_key owner=vagrant group=vagrant dest=/home/vagrant/.ssh/id_rsa force=no mode=0600
+
+- name: clean iptables
+  command: iptables -F
+
+- name: disable selinux
+  selinux: state=disabled
+

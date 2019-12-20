@@ -1,0 +1,69 @@
+{
+  "definitions": {
+    "specversion": {
+      "type": "string"
+    },
+    "contenttype": {
+      "type": "string"
+    },
+    "data": {
+      "type": [
+        "object",
+        "string"
+      ]
+    },
+    "event": {
+      "properties": {
+        "specversion": {
+          "$ref": "#/definitions/specversion"
+        },
+        "contenttype": {
+          "$ref": "#/definitions/contenttype"
+        },
+        "data": {
+          "$ref": "#/definitions/data"
+        },
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "time": {
+          "$ref": "#/definitions/time"
+        },
+        "type": {
+          "$ref": "#/definitions/type"
+        },
+        "extensions": {
+          "$ref": "#/definitions/extensions"
+        },
+        "source": {
+          "$ref": "#/definitions/source"
+        }
+      },
+      "required": [
+        "specversion",
+        "id",
+        "type",
+        "source"
+      ],
+      "type": "object"
+    },
+    "id": {
+      "type": "string"
+    },
+    "time": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "extensions": {
+      "type": "object"
+    },
+    "source": {
+      "format": "uri-reference",
+      "type": "string"
+    }
+  },
+  "type": "object"
+}

@@ -56,9 +56,9 @@ func TestParseCIDRs(t *testing.T) {
 			t.Errorf("%v error:%v", tc.errString, err)
 		}
 
-		// validate lengthes
+		// validate lengths
 		if len(cidrs) != len(tc.cidrs) {
-			t.Errorf("cidrs should be of the same lengthes %v != %v", len(cidrs), len(tc.cidrs))
+			t.Errorf("cidrs should be of the same lengths %v != %v", len(cidrs), len(tc.cidrs))
 		}
 
 	}
@@ -445,5 +445,163 @@ func TestIsIPv6CIDR(t *testing.T) {
 		if res != tc.expectResult {
 			t.Errorf("%v: want IsIPv6CIDR=%v, got %v", tc.desc, tc.expectResult, res)
 		}
+	}
+}
+
+func TestParsePort(t *testing.T) {
+	var tests = []struct {
+		name          string
+		port          string
+		allowZero     bool
+		expectedPort  int
+		expectedError bool
+	}{
+		{
+			name:         "valid port: 1",
+			port:         "1",
+			expectedPort: 1,
+		},
+		{
+			name:         "valid port: 1234",
+			port:         "1234",
+			expectedPort: 1234,
+		},
+		{
+			name:         "valid port: 65535",
+			port:         "65535",
+			expectedPort: 65535,
+		},
+		{
+			name:          "invalid port: not a number",
+			port:          "a",
+			expectedError: true,
+			allowZero:     false,
+		},
+		{
+			name:          "invalid port: too small",
+			port:          "0",
+			expectedError: true,
+		},
+		{
+			name:          "invalid port: negative",
+			port:          "-10",
+			expectedError: true,
+		},
+		{
+			name:          "invalid port: too big",
+			port:          "65536",
+			expectedError: true,
+		},
+		{
+			name:      "zero port: allowed",
+			port:      "0",
+			allowZero: true,
+		},
+		{
+			name:          "zero port: not allowed",
+			port:          "0",
+			expectedError: true,
+		},
+	}
+
+	for _, rt := range tests {
+		t.Run(rt.name, func(t *testing.T) {
+			actualPort, actualError := ParsePort(rt.port, rt.allowZero)
+
+			if actualError != nil && !rt.expectedError {
+				t.Errorf("%s unexpected failure: %v", rt.name, actualError)
+				return
+			}
+			if actualError == nil && rt.expectedError {
+				t.Errorf("%s passed when expected to fail", rt.name)
+				return
+			}
+			if actualPort != rt.expectedPort {
+				t.Errorf("%s returned wrong port: got %d, expected %d", rt.name, actualPort, rt.expectedPort)
+			}
+		})
+	}
+}
+
+func TestRangeSize(t *testing.T) {
+	testCases := []struct {
+		name  string
+		cidr  string
+		addrs int64
+	}{
+		{
+			name:  "supported IPv4 cidr",
+			cidr:  "192.168.1.0/24",
+			addrs: 256,
+		},
+		{
+			name:  "unsupported IPv4 cidr",
+			cidr:  "192.168.1.0/1",
+			addrs: 0,
+		},
+		{
+			name:  "unsupported IPv6 mask",
+			cidr:  "2001:db8::/1",
+			addrs: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, cidr, err := net.ParseCIDR(tc.cidr)
+		if err != nil {
+			t.Errorf("failed to parse cidr for test %s, unexpected error: '%s'", tc.name, err)
+		}
+		if size := RangeSize(cidr); size != tc.addrs {
+			t.Errorf("test %s failed. %s should have a range size of %d, got %d",
+				tc.name, tc.cidr, tc.addrs, size)
+		}
+	}
+}
+
+func TestGetIndexedIP(t *testing.T) {
+	testCases := []struct {
+		cidr        string
+		index       int
+		expectError bool
+		expectedIP  string
+	}{
+		{
+			cidr:        "192.168.1.0/24",
+			index:       20,
+			expectError: false,
+			expectedIP:  "192.168.1.20",
+		},
+		{
+			cidr:        "192.168.1.0/30",
+			index:       10,
+			expectError: true,
+		},
+		{
+			cidr:        "192.168.1.0/24",
+			index:       255,
+			expectError: false,
+			expectedIP:  "192.168.1.255",
+		},
+	}
+
+	for _, tc := range testCases {
+		_, subnet, err := net.ParseCIDR(tc.cidr)
+		if err != nil {
+			t.Errorf("failed to parse cidr %s, unexpected error: '%s'", tc.cidr, err)
+		}
+
+		ip, err := GetIndexedIP(subnet, tc.index)
+		if err == nil && tc.expectError || err != nil && !tc.expectError {
+			t.Errorf("expectedError is %v and err is %s", tc.expectError, err)
+			continue
+		}
+
+		if err == nil {
+			ipString := ip.String()
+			if ipString != tc.expectedIP {
+				t.Errorf("expected %s but instead got %s", tc.expectedIP, ipString)
+			}
+		}
+
 	}
 }

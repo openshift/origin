@@ -14,5 +14,5 @@ var Codecs = serializer.NewCodecFactory(Scheme)
 
 // DefaultJSONEncoder returns a default encoder for our scheme
 func DefaultJSONEncoder() runtime.Encoder {
-	return unstructured.JSONFallbackEncoder{Encoder: Codecs.LegacyCodec(Scheme.PrioritizedVersionsAllGroups()...)}
+	return unstructured.NewJSONFallbackEncoder(Codecs.LegacyCodec(Scheme.PrioritizedVersionsAllGroups()...))
 }

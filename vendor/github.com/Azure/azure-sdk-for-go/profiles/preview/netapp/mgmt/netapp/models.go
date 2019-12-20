@@ -19,7 +19,7 @@
 
 package netapp
 
-import original "github.com/Azure/azure-sdk-for-go/services/netapp/mgmt/2019-06-01/netapp"
+import original "github.com/Azure/azure-sdk-for-go/services/netapp/mgmt/2019-07-01/netapp"
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI

@@ -1072,6 +1072,7 @@ var _ = Describe("TestServer", func() {
 
 					var received protobuf.SimpleMessage
 					body, err := ioutil.ReadAll(resp.Body)
+					Expect(err).ShouldNot(HaveOccurred())
 					err = proto.Unmarshal(body, &received)
 					Expect(err).ShouldNot(HaveOccurred())
 				})

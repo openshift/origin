@@ -38,7 +38,8 @@ func correctStringWrittenNet(t *testing.T, r net.Conn, expected string) bool {
 // TestActivation forks out a copy of activation.go example and reads back two
 // strings from the pipes that are passed in.
 func TestListeners(t *testing.T) {
-	cmd := exec.Command("go", "run", "../examples/activation/listen.go")
+	arg0, cmdline := exampleCmd("listen")
+	cmd := exec.Command(arg0, cmdline...)
 
 	l1, err := net.Listen("tcp", ":9999")
 	if err != nil {

@@ -10,7 +10,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -53,7 +52,7 @@ var _ = Describe("[Feature:Platform] Managed cluster should", func() {
 					if toleration.Key == "" {
 						invalidPodTolerations.Insert(fmt.Sprintf("%s/%s tolerates all taints", pod.Namespace, pod.Name))
 					}
-					if toleration.Key == schedulerapi.TaintNodeUnreachable || toleration.Key == schedulerapi.TaintNodeNotReady {
+					if toleration.Key == v1.TaintNodeUnreachable || toleration.Key == v1.TaintNodeNotReady {
 						if toleration.TolerationSeconds == nil {
 							invalidPodTolerations.Insert(fmt.Sprintf("%s/%s tolerates %s with no tolerationSeconds", pod.Namespace, pod.Name, toleration.Key))
 						}

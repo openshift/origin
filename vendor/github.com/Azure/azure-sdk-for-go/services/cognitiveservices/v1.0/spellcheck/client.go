@@ -216,7 +216,9 @@ func (client BaseClient) SpellCheckerMethodPreparer(ctx context.Context, textPar
 		"Endpoint": client.Endpoint,
 	}
 
-	queryParameters := map[string]interface{}{}
+	queryParameters := map[string]interface{}{
+		"Text": autorest.Encode("query", textParameter),
+	}
 	if len(string(actionType)) > 0 {
 		queryParameters["ActionType"] = autorest.Encode("query", actionType)
 	}
@@ -244,18 +246,14 @@ func (client BaseClient) SpellCheckerMethodPreparer(ctx context.Context, textPar
 	if len(userID) > 0 {
 		queryParameters["UserId"] = autorest.Encode("query", userID)
 	}
-
-	formDataParameters := map[string]interface{}{
-		"Text": textParameter,
-	}
 	if len(string(mode)) > 0 {
-		formDataParameters["Mode"] = mode
+		queryParameters["Mode"] = autorest.Encode("query", mode)
 	}
 	if len(preContextText) > 0 {
-		formDataParameters["PreContextText"] = preContextText
+		queryParameters["PreContextText"] = autorest.Encode("query", preContextText)
 	}
 	if len(postContextText) > 0 {
-		formDataParameters["PostContextText"] = postContextText
+		queryParameters["PostContextText"] = autorest.Encode("query", postContextText)
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -263,7 +261,6 @@ func (client BaseClient) SpellCheckerMethodPreparer(ctx context.Context, textPar
 		autorest.WithCustomBaseURL("{Endpoint}/bing/v7.0", urlParameters),
 		autorest.WithPath("/spellcheck"),
 		autorest.WithQueryParameters(queryParameters),
-		autorest.WithFormData(autorest.MapToValues(formDataParameters)),
 		autorest.WithHeader("X-BingApis-SDK", "true"))
 	if len(acceptLanguage) > 0 {
 		preparer = autorest.DecoratePreparer(preparer,

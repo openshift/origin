@@ -32,15 +32,19 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "versioner <staging dir>",
+	Use:   "versioner <staging dir> [initial module version]",
 	Short: "Creates or updates the latest major version for a package from staged content.",
 	Long: `This tool will compare a staged package against its latest major version to detect
 breaking changes.  If there are no breaking changes the latest major version is updated
 with the staged content.  If there are breaking changes the staged content becomes the
 next latest major vesion and the go.mod file is updated.
+The default version for new modules is v1.0.0 or the value specified for [initial module version].
 `,
 	Args: func(cmd *cobra.Command, args []string) error {
-		if err := cobra.ExactArgs(1)(cmd, args); err != nil {
+		if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
+			return err
+		}
+		if err := cobra.MaximumNArgs(2)(cmd, args); err != nil {
 			return err
 		}
 		return nil
@@ -55,6 +59,8 @@ var (
 	semverRegex = regexp.MustCompile(`v\d+\.\d+\.\d+$`)
 	// this is used so tests can hook getTags() to return whatever tags
 	getTagsHook func(string, string) ([]string, error)
+	// default version to start a module at if not specified
+	startingModVer = "v1.0.0"
 )
 
 func init() {
@@ -81,6 +87,12 @@ func theCommand(args []string) error {
 // does the actual work
 func theCommandImpl(args []string) (string, error) {
 	stage := filepath.Clean(args[0])
+	if len(args) == 2 {
+		if !modinfo.IsValidModuleVersion(args[1]) {
+			return "", fmt.Errorf("the string '%s' is not a valid module version", args[1])
+		}
+		startingModVer = args[1]
+	}
 	lmv, err := findLatestMajorVersion(stage)
 	if err != nil {
 		return "", fmt.Errorf("failed to find latest major version: %v", err)
@@ -273,12 +285,15 @@ func calculateModuleTag(tags []string, mod modinfo.Provider) (string, error) {
 	if mod.BreakingChanges() {
 		return tagPrefix + ".0.0", nil
 	}
+	if len(tags) == 0 {
+		if mod.VersionSuffix() {
+			panic("module contains a version suffix but no tags were found")
+		}
+		// this is the first module version
+		return tagPrefix + "/" + startingModVer, nil
+	}
 	if !mod.VersionSuffix() {
 		tagPrefix = tagPrefix + "/v1"
-	}
-	if len(tags) == 0 {
-		// this is v1.0.0
-		return tagPrefix + ".0.0", nil
 	}
 	tag := tags[len(tags)-1]
 	v := semverRegex.FindString(tag)

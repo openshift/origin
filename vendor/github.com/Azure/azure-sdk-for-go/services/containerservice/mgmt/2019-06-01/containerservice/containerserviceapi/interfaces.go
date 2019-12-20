@@ -76,7 +76,7 @@ type AgentPoolsClientAPI interface {
 	CreateOrUpdate(ctx context.Context, resourceGroupName string, resourceName string, agentPoolName string, parameters containerservice.AgentPool) (result containerservice.AgentPoolsCreateOrUpdateFuture, err error)
 	Delete(ctx context.Context, resourceGroupName string, resourceName string, agentPoolName string) (result containerservice.AgentPoolsDeleteFuture, err error)
 	Get(ctx context.Context, resourceGroupName string, resourceName string, agentPoolName string) (result containerservice.AgentPool, err error)
-	GetAvailableAgentPoolVersions(ctx context.Context, resourceGroupName string, resourceName string, agentPoolName string) (result containerservice.AgentPoolAvailableVersions, err error)
+	GetAvailableAgentPoolVersions(ctx context.Context, resourceGroupName string, resourceName string) (result containerservice.AgentPoolAvailableVersions, err error)
 	GetUpgradeProfile(ctx context.Context, resourceGroupName string, resourceName string, agentPoolName string) (result containerservice.AgentPoolUpgradeProfile, err error)
 	List(ctx context.Context, resourceGroupName string, resourceName string) (result containerservice.AgentPoolListResultPage, err error)
 }

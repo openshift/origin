@@ -44,7 +44,7 @@ func NewPrivateEndpointsClientWithBaseURI(baseURI string, subscriptionID string)
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // privateEndpointName - the name of the private endpoint.
-// parameters - parameters supplied to the create or update private endpoint operation
+// parameters - parameters supplied to the create or update private endpoint operation.
 func (client PrivateEndpointsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, privateEndpointName string, parameters PrivateEndpoint) (result PrivateEndpointsCreateOrUpdateFuture, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/PrivateEndpointsClient.CreateOrUpdate")

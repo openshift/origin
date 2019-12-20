@@ -30,12 +30,12 @@ type DummyTransport struct {
 }
 
 func (d *DummyTransport) ExecCommands(
-	host string, commands []string, timeoutMinutes int) (rex.Results, error) {
+	host string, commands rex.Cmds, timeoutMinutes int) (rex.Results, error) {
 
 	out := make(rex.Results, len(commands))
 	for i, c := range commands {
 		out[i].Completed = true
-		out[i].Output = fmt.Sprintf("RESULT(%v)", c)
+		out[i].Output = fmt.Sprintf("RESULT(%v)", c.String())
 	}
 	return out, nil
 }
@@ -76,7 +76,7 @@ func TestWrapCommandTransport(t *testing.T) {
 	w1 := &WrapCommandTransport{Transport: &DummyTransport{}}
 	w2 := &WrapCommandTransport{Transport: w1}
 
-	r, err := w2.ExecCommands("foo", []string{"ls 1", "ls 2"}, 10)
+	r, err := w2.ExecCommands("foo", rex.ToCmds([]string{"ls 1", "ls 2"}), 10)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	tests.Assert(t, len(r) == 2, "expected len(r) == 2, got:", len(r))
 	tests.Assert(t, r[0].Output == "RESULT(ls 1)")
@@ -89,7 +89,7 @@ func TestWrapCommandTransport(t *testing.T) {
 		}
 	}
 
-	r, err = w2.ExecCommands("foo", []string{"ls 1", "ls 2"}, 10)
+	r, err = w2.ExecCommands("foo", rex.ToCmds([]string{"ls 1", "ls 2"}), 10)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	tests.Assert(t, len(r) == 2, "expected len(r) == 2, got:", len(r))
 	tests.Assert(t, r[0].Output == "foo(ls 1)")
@@ -102,7 +102,7 @@ func TestWrapCommandTransport(t *testing.T) {
 		}
 	}
 
-	r, err = w2.ExecCommands("foo", []string{"ls 1", "ls 2"}, 10)
+	r, err = w2.ExecCommands("foo", rex.ToCmds([]string{"ls 1", "ls 2"}), 10)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	tests.Assert(t, len(r) == 2, "expected len(r) == 2, got:", len(r))
 	tests.Assert(t, r[0].Output == "XXXfoo(ls 1)XXX", r[0])
@@ -119,10 +119,10 @@ func TestWrapCommandTransportError(t *testing.T) {
 	w1 := &WrapCommandTransport{Transport: &DummyTransport{}}
 	w2 := &WrapCommandTransport{Transport: w1}
 
-	r, err := w2.ExecCommands("foo", []string{"ls 1", "ls 2"}, 10)
+	r, err := w2.ExecCommands("foo", rex.ToCmds([]string{"ls 1", "ls 2"}), 10)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	tests.Assert(t, len(r) == 2, "expected len(r) == 2, got:", len(r))
-	tests.Assert(t, r[0].Output == "RESULT(ls 1)")
+	tests.Assert(t, r[0].Output == "RESULT(ls 1)", "got", r[0].Output)
 	tests.Assert(t, r[1].Output == "RESULT(ls 2)")
 
 	w1.handleBefore = func(c string) rex.Result {
@@ -131,7 +131,7 @@ func TestWrapCommandTransportError(t *testing.T) {
 			Err:       fmt.Errorf("HipHooray"),
 		}
 	}
-	r, err = w2.ExecCommands("foo", []string{"ls 1", "ls 2"}, 10)
+	r, err = w2.ExecCommands("foo", rex.ToCmds([]string{"ls 1", "ls 2"}), 10)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	tests.Assert(t, !r.Ok(), "expected r.Ok() is false")
 	tests.Assert(t, r[0].Err.Error() == "HipHooray",

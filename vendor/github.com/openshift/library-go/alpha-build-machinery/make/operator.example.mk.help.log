@@ -11,7 +11,6 @@ test-unit
 update
 update-bindata
 update-codegen
-update-deps
 update-deps-overrides
 update-generated
 update-gofmt

@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
@@ -55,6 +56,12 @@ func (client AlertsClient) ChangeState(ctx context.Context, alertID string, newS
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.AlertsClient", "ChangeState", err.Error())
+	}
+
 	req, err := client.ChangeStatePreparer(ctx, alertID, newState)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.AlertsClient", "ChangeState", nil, "Failure preparing request")
@@ -157,6 +164,12 @@ func (client AlertsClient) GetAll(ctx context.Context, targetResource string, ta
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.AlertsClient", "GetAll", err.Error())
+	}
+
 	result.fn = client.getAllNextResults
 	req, err := client.GetAllPreparer(ctx, targetResource, targetResourceType, targetResourceGroup, monitorService, monitorCondition, severity, alertState, alertRule, smartGroupID, includeContext, includeEgressConfig, pageCount, sortBy, sortOrder, selectParameter, timeRange, customTimeRange)
 	if err != nil {
@@ -320,6 +333,12 @@ func (client AlertsClient) GetByID(ctx context.Context, alertID string) (result 
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.AlertsClient", "GetByID", err.Error())
+	}
+
 	req, err := client.GetByIDPreparer(ctx, alertID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.AlertsClient", "GetByID", nil, "Failure preparing request")
@@ -396,6 +415,12 @@ func (client AlertsClient) GetHistory(ctx context.Context, alertID string) (resu
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.AlertsClient", "GetHistory", err.Error())
+	}
+
 	req, err := client.GetHistoryPreparer(ctx, alertID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.AlertsClient", "GetHistory", nil, "Failure preparing request")
@@ -487,6 +512,12 @@ func (client AlertsClient) GetSummary(ctx context.Context, groupby AlertsSummary
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("alertsmanagement.AlertsClient", "GetSummary", err.Error())
+	}
+
 	req, err := client.GetSummaryPreparer(ctx, groupby, includeSmartGroupsCount, targetResource, targetResourceType, targetResourceGroup, monitorService, monitorCondition, severity, alertState, alertRule, timeRange, customTimeRange)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.AlertsClient", "GetSummary", nil, "Failure preparing request")

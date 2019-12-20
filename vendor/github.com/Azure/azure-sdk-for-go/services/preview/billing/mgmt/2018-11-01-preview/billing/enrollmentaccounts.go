@@ -125,23 +125,24 @@ func (client EnrollmentAccountsClient) GetByEnrollmentAccountIDResponder(resp *h
 	return
 }
 
-// ListByBillingAccountName lists all Enrollment Accounts for a user which he has access to.
+// ListByBillingAccountName lists all Enrollment Accounts for which a user has access.
 // Parameters:
 // billingAccountName - billing Account Id.
 // expand - may be used to expand the department.
 // filter - the filter supports 'eq', 'lt', 'gt', 'le', 'ge', and 'and'. It does not currently support 'ne',
 // 'or', or 'not'. Tag filter is a key value pair string where key and value is separated by a colon (:).
-func (client EnrollmentAccountsClient) ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string, filter string) (result EnrollmentAccountListResult, err error) {
+func (client EnrollmentAccountsClient) ListByBillingAccountName(ctx context.Context, billingAccountName string, expand string, filter string) (result EnrollmentAccountListResultPage, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/EnrollmentAccountsClient.ListByBillingAccountName")
 		defer func() {
 			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
+			if result.ealr.Response.Response != nil {
+				sc = result.ealr.Response.Response.StatusCode
 			}
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
+	result.fn = client.listByBillingAccountNameNextResults
 	req, err := client.ListByBillingAccountNamePreparer(ctx, billingAccountName, expand, filter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.EnrollmentAccountsClient", "ListByBillingAccountName", nil, "Failure preparing request")
@@ -150,12 +151,12 @@ func (client EnrollmentAccountsClient) ListByBillingAccountName(ctx context.Cont
 
 	resp, err := client.ListByBillingAccountNameSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
+		result.ealr.Response = autorest.Response{Response: resp}
 		err = autorest.NewErrorWithError(err, "billing.EnrollmentAccountsClient", "ListByBillingAccountName", resp, "Failure sending request")
 		return
 	}
 
-	result, err = client.ListByBillingAccountNameResponder(resp)
+	result.ealr, err = client.ListByBillingAccountNameResponder(resp)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "billing.EnrollmentAccountsClient", "ListByBillingAccountName", resp, "Failure responding to request")
 	}
@@ -205,5 +206,42 @@ func (client EnrollmentAccountsClient) ListByBillingAccountNameResponder(resp *h
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listByBillingAccountNameNextResults retrieves the next set of results, if any.
+func (client EnrollmentAccountsClient) listByBillingAccountNameNextResults(ctx context.Context, lastResults EnrollmentAccountListResult) (result EnrollmentAccountListResult, err error) {
+	req, err := lastResults.enrollmentAccountListResultPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "billing.EnrollmentAccountsClient", "listByBillingAccountNameNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByBillingAccountNameSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "billing.EnrollmentAccountsClient", "listByBillingAccountNameNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByBillingAccountNameResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "billing.EnrollmentAccountsClient", "listByBillingAccountNameNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByBillingAccountNameComplete enumerates all values, automatically crossing page boundaries as required.
+func (client EnrollmentAccountsClient) ListByBillingAccountNameComplete(ctx context.Context, billingAccountName string, expand string, filter string) (result EnrollmentAccountListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EnrollmentAccountsClient.ListByBillingAccountName")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByBillingAccountName(ctx, billingAccountName, expand, filter)
 	return
 }

@@ -405,7 +405,7 @@ func (client DscConfigurationClient) GetContentResponder(resp *http.Response) (r
 // automationAccountName - the name of the automation account.
 // filter - the filter to apply on the operation.
 // skip - the number of rows to skip.
-// top - the the number of rows to take.
+// top - the number of rows to take.
 // inlinecount - return total rows.
 func (client DscConfigurationClient) ListByAutomationAccount(ctx context.Context, resourceGroupName string, automationAccountName string, filter string, skip *int32, top *int32, inlinecount string) (result DscConfigurationListResultPage, err error) {
 	if tracing.IsEnabled() {

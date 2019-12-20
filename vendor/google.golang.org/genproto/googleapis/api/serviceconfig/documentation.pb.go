@@ -108,7 +108,7 @@ func (m *Documentation) Reset()         { *m = Documentation{} }
 func (m *Documentation) String() string { return proto.CompactTextString(m) }
 func (*Documentation) ProtoMessage()    {}
 func (*Documentation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_documentation_ffda79aaefc8a2ff, []int{0}
+	return fileDescriptor_documentation_3d6f0d592b1e580f, []int{0}
 }
 func (m *Documentation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Documentation.Unmarshal(m, b)
@@ -168,9 +168,9 @@ type DocumentationRule struct {
 	// The selector is a comma-separated list of patterns. Each pattern is a
 	// qualified name of the element which may end in "*", indicating a wildcard.
 	// Wildcards are only allowed at the end and for a whole component of the
-	// qualified name, i.e. "foo.*" is ok, but not "foo.b*" or "foo.*.bar". A
-	// wildcard will match one or more components. To specify a default for all
-	// applicable elements, the whole pattern "*" is used.
+	// qualified name, i.e. "foo.*" is ok, but not "foo.b*" or "foo.*.bar". To
+	// specify a default for all applicable elements, the whole pattern "*"
+	// is used.
 	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
 	// Description of the selected API(s).
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
@@ -186,7 +186,7 @@ func (m *DocumentationRule) Reset()         { *m = DocumentationRule{} }
 func (m *DocumentationRule) String() string { return proto.CompactTextString(m) }
 func (*DocumentationRule) ProtoMessage()    {}
 func (*DocumentationRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_documentation_ffda79aaefc8a2ff, []int{1}
+	return fileDescriptor_documentation_3d6f0d592b1e580f, []int{1}
 }
 func (m *DocumentationRule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DocumentationRule.Unmarshal(m, b)
@@ -260,7 +260,7 @@ func (m *Page) Reset()         { *m = Page{} }
 func (m *Page) String() string { return proto.CompactTextString(m) }
 func (*Page) ProtoMessage()    {}
 func (*Page) Descriptor() ([]byte, []int) {
-	return fileDescriptor_documentation_ffda79aaefc8a2ff, []int{2}
+	return fileDescriptor_documentation_3d6f0d592b1e580f, []int{2}
 }
 func (m *Page) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Page.Unmarshal(m, b)
@@ -308,10 +308,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/api/documentation.proto", fileDescriptor_documentation_ffda79aaefc8a2ff)
+	proto.RegisterFile("google/api/documentation.proto", fileDescriptor_documentation_3d6f0d592b1e580f)
 }
 
-var fileDescriptor_documentation_ffda79aaefc8a2ff = []byte{
+var fileDescriptor_documentation_3d6f0d592b1e580f = []byte{
 	// 356 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x92, 0xc1, 0x6a, 0xe3, 0x30,
 	0x14, 0x45, 0x71, 0xec, 0xcc, 0x64, 0x5e, 0x98, 0x61, 0x46, 0x0c, 0x19, 0x33, 0xd0, 0x12, 0xb2,

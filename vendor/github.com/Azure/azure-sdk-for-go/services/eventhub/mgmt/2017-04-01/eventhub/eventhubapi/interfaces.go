@@ -46,6 +46,7 @@ type NamespacesClientAPI interface {
 	ListAuthorizationRules(ctx context.Context, resourceGroupName string, namespaceName string) (result eventhub.AuthorizationRuleListResultPage, err error)
 	ListByResourceGroup(ctx context.Context, resourceGroupName string) (result eventhub.EHNamespaceListResultPage, err error)
 	ListKeys(ctx context.Context, resourceGroupName string, namespaceName string, authorizationRuleName string) (result eventhub.AccessKeys, err error)
+	ListNetworkRuleSets(ctx context.Context, resourceGroupName string, namespaceName string) (result eventhub.NetworkRuleSetListResultPage, err error)
 	RegenerateKeys(ctx context.Context, resourceGroupName string, namespaceName string, authorizationRuleName string, parameters eventhub.RegenerateAccessKeyParameters) (result eventhub.AccessKeys, err error)
 	Update(ctx context.Context, resourceGroupName string, namespaceName string, parameters eventhub.EHNamespace) (result eventhub.EHNamespace, err error)
 }
