@@ -37,16 +37,7 @@ import (
 )
 
 // NameSystems returns the name system used by the generators in this package.
-func NameSystems() namer.NameSystems {
-	// If you change this, make sure you get the other instances in listers and informers
-	pluralExceptions := map[string]string{
-		"DNS":                        "DNSes",
-		"DNSList":                    "DNSList",
-		"Endpoints":                  "Endpoints",
-		"Features":                   "Features",
-		"FeaturesList":               "FeaturesList",
-		"SecurityContextConstraints": "SecurityContextConstraints",
-	}
+func NameSystems(pluralExceptions map[string]string) namer.NameSystems {
 	lowercaseNamer := namer.NewAllLowercasePluralNamer(pluralExceptions)
 
 	publicNamer := &ExceptionNamer{
