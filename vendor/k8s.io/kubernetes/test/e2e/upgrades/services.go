@@ -107,6 +107,7 @@ func (t *ServiceUpgradeTest) test(f *framework.Framework, done <-chan struct{}, 
 		// Continuous validation
 		ginkgo.By("continuously hitting the pod through the service's LoadBalancer")
 		wait.Until(func() {
+			framework.Failf("Checking whether the goroutine executing this test will recover from panic")
 			e2eservice.TestReachableHTTP(t.tcpIngressIP, t.svcPort, e2eservice.LoadBalancerLagTimeoutDefault)
 		}, framework.Poll, done)
 	} else {
