@@ -34,10 +34,6 @@ func applyOpenShiftGCConfig(controllerManager *config.Config) error {
 		// these resources contain security information in their names, and we don't need to track them
 		gcconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthaccesstokens"},
 		gcconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthauthorizetokens"},
-		// exposed as autoscaling v1
-		gcconfig.GroupResource{Group: "extensions", Resource: "horizontalpodautoscalers"},
-		// exposed as security.openshift.io v1
-		gcconfig.GroupResource{Group: "", Resource: "securitycontextconstraints"},
 	)
 
 	return nil
