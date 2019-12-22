@@ -117,8 +117,8 @@ github.com/onsi/ginkgo v1.10.1/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+
 github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
 github.com/onsi/gomega v1.7.0 h1:XPnZz8VVBHjVsy1vzJmRwIcSwiUO+JFfrv/xGiigmME=
 github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
-github.com/openshift/api v0.0.0-20191213091414-3fbf6bcf78e8 h1:s3hqeT+vHJ0xn+4GN5Q20unXo2dQ4X+Ik5uvMEF3cfQ=
-github.com/openshift/api v0.0.0-20191213091414-3fbf6bcf78e8/go.mod h1:dh9o4Fs58gpFXGSYfnVxGR9PnV53I8TW84pQaJDdGiY=
+github.com/openshift/api v0.0.0-20191219160953-2f4dddbbf3e6 h1:SxAWPzmw6o8FZ9MMfYqZ6s/DpIadkztdUb+IMyezqY4=
+github.com/openshift/api v0.0.0-20191219160953-2f4dddbbf3e6/go.mod h1:dv+J0b/HWai0QnMVb37/H0v36klkLBi2TNpPeWDxX10=
 github.com/openshift/kubernetes-code-generator v0.0.0-20191216140939-db549faca3fe h1:cqLfxSnplkv+YgeMZxuWnQ2VVeg+XzI6z1T3DRawM40=
 github.com/openshift/kubernetes-code-generator v0.0.0-20191216140939-db549faca3fe/go.mod h1:DVmfPQgxQENqDIzVR2ddLXMH34qeszkKSdH/N+s+38s=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=

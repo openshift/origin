@@ -10,9 +10,3 @@ require (
 	k8s.io/code-generator v0.17.0
 	k8s.io/klog v1.0.0
 )
-
-replace (
-	k8s.io/api => k8s.io/api v0.17.0
-	k8s.io/apimachinery => k8s.io/apimachinery v0.17.0
-	k8s.io/code-generator => k8s.io/code-generator v0.17.0
-)
