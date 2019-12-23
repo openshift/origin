@@ -520,6 +520,12 @@ var (
 			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service`,
 			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
 		},
+		"[Skipped:ovirt]": {
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1763936
+			`\[sig-network\] Networking Granular Checks: Services should function for node-Service`,
+			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service`,
+			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
+		},
 		// tests that don't pass under openshift-sdn but that are expected to pass
 		// with other network plugins (particularly ovn-kubernetes)
 		"[Skipped:Network/OpenShiftSDN]": {
