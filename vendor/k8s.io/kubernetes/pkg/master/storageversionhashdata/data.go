@@ -71,7 +71,6 @@ var GVRToStorageVersionHash = map[string]string{
 	"networking.k8s.io/v1beta1/ingresses":                                  "ZOAfGflaKd0=",
 	"node.k8s.io/v1beta1/runtimeclasses":                                   "8nMHWqj34s0=",
 	"policy/v1beta1/poddisruptionbudgets":                                  "6BGBu0kpHtk=",
-	"policy/v1beta1/podsecuritypolicies":                                   "khBLobUXkqA=",
 	"rbac.authorization.k8s.io/v1/clusterrolebindings":                     "48tpQ8gZHFc=",
 	"rbac.authorization.k8s.io/v1/clusterroles":                            "bYE5ZWDrJ44=",
 	"rbac.authorization.k8s.io/v1/rolebindings":                            "eGsCzGH6b1g=",

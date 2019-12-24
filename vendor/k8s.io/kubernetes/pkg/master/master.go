@@ -622,6 +622,13 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 		storageapiv1alpha1.SchemeGroupVersion,
 		flowcontrolv1alpha1.SchemeGroupVersion,
 	)
+	// disable PodSecurityPolicies
+	// note that we decided to disable PSP explicitly in the code instead of using `runtime-config` flag.
+	// at the moment the flag allows only for disabling the entire group, not individual resources.
+	// we don't want to disable the group as it contains critical resources like `PodDisruptionBudgets`.
+	ret.DisableResources(
+		policyapiv1beta1.SchemeGroupVersion.WithResource("podsecuritypolicies"),
+	)
 
 	return ret
 }

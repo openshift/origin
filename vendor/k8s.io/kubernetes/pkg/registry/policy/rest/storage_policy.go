@@ -55,11 +55,13 @@ func (p RESTStorageProvider) v1beta1Storage(apiResourceConfigSource serverstorag
 	storage["poddisruptionbudgets"] = poddisruptionbudgetStorage
 	storage["poddisruptionbudgets/status"] = poddisruptionbudgetStatusStorage
 
-	rest, err := pspstore.NewREST(restOptionsGetter)
-	if err != nil {
-		return storage, err
+	if apiResourceConfigSource.ResourceEnabled(policyapiv1beta1.SchemeGroupVersion.WithResource("podsecuritypolicies")) {
+		rest, err := pspstore.NewREST(restOptionsGetter)
+		if err != nil {
+			return storage, err
+		}
+		storage["podsecuritypolicies"] = rest
 	}
-	storage["podsecuritypolicies"] = rest
 
 	return storage, err
 }
