@@ -52,7 +52,6 @@ var _ = SIGDescribe("PodSecurityPolicy", func() {
 	var c clientset.Interface
 	var ns string // Test namespace, for convenience
 	ginkgo.BeforeEach(func() {
-		framework.Skipf("This test should always be skipped for us, but occasionally PSP is on!")
 		if !framework.IsPodSecurityPolicyEnabled(f.ClientSet) {
 			framework.Skipf("PodSecurityPolicy not enabled")
 		}
