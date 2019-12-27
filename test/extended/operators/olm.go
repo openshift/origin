@@ -2,6 +2,7 @@ package operators
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
@@ -102,6 +103,23 @@ var _ = g.Describe("[Feature:Platform] OLM should", func() {
 			}
 		} else {
 			e2e.Failf("No packages for evaluating if package namespace is not NULL")
+		}
+	})
+
+	// OCP-24057 - Check OLM pods termination message
+	// author: bandrade@redhat.com
+	g.It("Have terminationMessagePolicy defined as FallbackToLogsOnError", func() {
+		msg, err := oc.SetNamespace("openshift-operator-lifecycle-manager").AsAdmin().Run("get").Args("pods", "-o=jsonpath={range .items[*].spec}{.containers[*].name}{\"\t\"}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		amountOfContainers := len(strings.Split(msg, "\t"))
+
+		msg, err = oc.SetNamespace("openshift-operator-lifecycle-manager").AsAdmin().Run("get").Args("pods", "-o=jsonpath={range .items[*].spec}{.containers[*].terminationMessagePolicy}{\"t\"}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		regexp := regexp.MustCompile("FallbackToLogsOnError")
+		amountOfContainersWithFallbackToLogsOnError := len(regexp.FindAllStringIndex(msg, -1))
+		o.Expect(amountOfContainers).To(o.Equal(amountOfContainersWithFallbackToLogsOnError))
+		if amountOfContainers != amountOfContainersWithFallbackToLogsOnError {
+			e2e.Failf("OLM does not have all containers definied with FallbackToLogsOnError terminationMessagePolicy")
 		}
 	})
 
