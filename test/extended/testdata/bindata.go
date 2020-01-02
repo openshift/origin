@@ -34880,8 +34880,6 @@ os::cmd::expect_failure_and_text 'oc set image dc/test-deployment-config ruby-he
 os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run' 'test-deployment-config'
 os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
 os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run' 'deploymentconfig.apps.openshift.io/test-deployment-config image updated \(dry run\)'
-# ensure backwards compatibility with -o formats acting as --dry-run (e.g. all commands after this one succeed if specifying -o without --dry-run does not mutate resources in server)
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag -o yaml' 'name: test-deployment-config'
 
 os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.3 --source=istag'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
@@ -34946,8 +34944,6 @@ os::cmd::expect_failure_and_text 'oc set probe dc/simple-deployment --liveness -
 # test --dry-run flag with -o formats
 os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 --dry-run' 'simple-deployment'
 os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 --dry-run -o name' 'deploymentconfig.apps.openshift.io/simple-deployment'
-# ensure backwards compatibility with -o formats acting as --dry-run (e.g. all commands after this one succeed if specifying -o without --dry-run does not mutate resources in server)
-os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 -o yaml' 'name: simple-deployment'
 
 os::cmd::expect_success_and_not_text 'oc status --suggest' 'rc/simple-deployment-1 has no liveness probe'
 os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80' 'deploymentconfig.apps.openshift.io/simple-deployment probes updated'
