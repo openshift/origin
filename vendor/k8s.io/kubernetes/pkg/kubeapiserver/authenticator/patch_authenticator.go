@@ -1,7 +1,6 @@
 package authenticator
 
 import (
-	"fmt"
 	"time"
 
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
@@ -14,7 +13,6 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/keyutil"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers/usercache"
 	oauthvalidation "k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/oauth"
 	"k8s.io/kubernetes/openshift-kube-apiserver/authentication/oauth"
@@ -55,24 +53,6 @@ func AddOAuthServerAuthenticatorIfNeeded(tokenAuthenticators []authenticator.Tok
 	}); err != nil {
 		panic(err)
 	}
-
-	// add service account token authentication.
-	// TODO remove this and rely on the kube wiring once we fix our input
-	publicKeys := []interface{}{}
-	for _, keyFile := range enablement.OpenshiftConfig().ServiceAccountPublicKeyFiles {
-		readPublicKeys, err := keyutil.PublicKeysFromFile(keyFile)
-		if err != nil {
-			panic(fmt.Errorf("Error reading service account key file %s: %v", keyFile, err))
-		}
-		publicKeys = append(publicKeys, readPublicKeys...)
-	}
-	serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(
-		serviceaccount.LegacyIssuer,
-		publicKeys,
-		nil, // TODO audiences
-		serviceaccount.NewLegacyValidator(true, serviceAccountTokenGetter),
-	)
-	tokenAuthenticators = append(tokenAuthenticators, serviceAccountTokenAuthenticator)
 
 	// add our oauth token validator
 	validators := []oauth.OAuthTokenValidator{oauth.NewExpirationValidator(), oauth.NewUIDValidator()}
