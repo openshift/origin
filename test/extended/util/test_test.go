@@ -79,6 +79,7 @@ func TestStockRules(t *testing.T) {
 		testName string
 		provider string
 		netSkips []string
+		osSkips  []string
 
 		expectedText string
 	}{
@@ -101,11 +102,17 @@ func TestStockRules(t *testing.T) {
 			testName:     `[Feature:NetworkPolicy] should do something with NetworkPolicy`,
 			expectedText: `[Feature:NetworkPolicy] should do something with NetworkPolicy [Skipped:Network/OpenShiftSDN/Multitenant]`,
 		},
+		{
+			name:         "should skip NetworkPolicy tests on multitenant",
+			osSkips:      []string{"fedora"},
+			testName:     `[Feature:NetworkPolicy] should do something with NetworkPolicy`,
+			expectedText: `[Feature:NetworkPolicy] should do something with NetworkPolicy [Skipped:OS/fedora]`,
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			testRenamer := newGinkgoTestRenamerFromGlobals(test.provider, test.netSkips)
+			testRenamer := newGinkgoTestRenamerFromGlobals(test.provider, test.netSkips, test.osSkips)
 			testNode := &testNode{
 				text: test.testName,
 			}

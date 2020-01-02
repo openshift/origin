@@ -133,7 +133,7 @@ func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
 }
 
 func AnnotateTestSuite() {
-	testRenamer := newGinkgoTestRenamerFromGlobals(e2e.TestContext.Provider, getNetworkSkips())
+	testRenamer := newGinkgoTestRenamerFromGlobals(e2e.TestContext.Provider, getNetworkSkips(), getOSSkips())
 
 	ginkgo.WalkTests(testRenamer.maybeRenameTest)
 }
@@ -147,7 +147,17 @@ func getNetworkSkips() []string {
 	return strings.Split(string(out), " ")
 }
 
-func newGinkgoTestRenamerFromGlobals(provider string, networkSkips []string) *ginkgoTestRenamer {
+func getOSSkips() []string {
+	out, err := e2e.KubectlCmd("get", "nodes", "--selector", "node-role.kubernetes.io/worker",
+		"--template", "{{ range .items }}{{index .metadata.labels \"node.openshift.io/os_id\"}} {{end}}").CombinedOutput()
+	if err != nil {
+		e2e.Logf("Could not get nodes list: not adding any plugin-specific skips")
+		return nil
+	}
+	return strings.Split(string(out), " ")
+}
+
+func newGinkgoTestRenamerFromGlobals(provider string, networkSkips []string, osSkips []string) *ginkgoTestRenamer {
 	var allLabels []string
 	matches := make(map[string]*regexp.Regexp)
 	stringMatches := make(map[string][]string)
@@ -180,6 +190,9 @@ func newGinkgoTestRenamerFromGlobals(provider string, networkSkips []string) *gi
 	}
 	for _, network := range networkSkips {
 		excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:Network/%s\]`, network))
+	}
+	for _, os := range osSkips {
+		excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:OS/%s\]`, os))
 	}
 	klog.V(4).Infof("openshift-tests excluded test regex is %q", strings.Join(excludedTests, `|`))
 	excludedTestsFilter := regexp.MustCompile(strings.Join(excludedTests, `|`))
@@ -544,6 +557,14 @@ var (
 			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
 			// https://github.com/ovn-org/ovn-kubernetes/issues/928
 			`\[sig-network\] Services should be rejected when no endpoints exist`,
+		},
+		// tests that don't pass on OKD/FCOS
+		"[Skipped:OS/fedora]": {
+			`should be rejected when no endpoints exist`, // https://bugzilla.redhat.com/show_bug.cgi?id=1781575
+		},
+		// tests that don't pass on RHEL7 workers
+		"[Skipped:OS/rhel]": {
+			`should be rejected when no endpoints exist`, // https://bugzilla.redhat.com/show_bug.cgi?id=1781575
 		},
 		"[Suite:openshift/scalability]": {},
 		// tests that replace the old test-cmd script
