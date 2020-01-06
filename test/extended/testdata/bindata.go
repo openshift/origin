@@ -47043,7 +47043,7 @@ metadata:
   name: ebs-csi-controller-sa
   namespace: kube-system
 
---- 
+---
 
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -47122,11 +47122,14 @@ roleRef:
 ---
 
 kind: StatefulSet
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 metadata:
   name: ebs-csi-controller
   namespace: kube-system
 spec:
+  selector:
+    matchLabels:
+      app: ebs-csi-controller
   serviceName: ebs-csi-controller
   replicas: 1
   template:
@@ -47200,7 +47203,7 @@ spec:
 ---
 # Node Service
 kind: DaemonSet
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 metadata:
   name: ebs-csi-node
   namespace: kube-system
@@ -47328,10 +47331,11 @@ var _testExtendedTestdataCsiAwsEbsManifestYaml = []byte(`# Test manifest for htt
 ShortName: ebs
 StorageClass:
   FromName: true
-SupportedMountOption:
- dirsync: true
 DriverInfo:
   Name: ebs.csi.aws.com
+  SupportedSizeRange:
+    Min: 1Gi
+    Max: 16Ti
   SnapshotClass:
     FromName: true
   SupportedFsType:
@@ -47339,12 +47343,13 @@ DriverInfo:
     ext4: {}
   SupportedMountOption:
     dirsync: {}
+  TopologyKeys: ["topology.ebs.csi.aws.com/zone"]
   Capabilities:
     persistence: true
     fsGroup: true
     block: true
     exec: true
-    volumeLimits: true
+    volumeLimits: false
 `)
 
 func testExtendedTestdataCsiAwsEbsManifestYamlBytes() ([]byte, error) {

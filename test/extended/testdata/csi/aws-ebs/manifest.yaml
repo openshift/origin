@@ -2,10 +2,11 @@
 ShortName: ebs
 StorageClass:
   FromName: true
-SupportedMountOption:
- dirsync: true
 DriverInfo:
   Name: ebs.csi.aws.com
+  SupportedSizeRange:
+    Min: 1Gi
+    Max: 16Ti
   SnapshotClass:
     FromName: true
   SupportedFsType:
@@ -13,9 +14,10 @@ DriverInfo:
     ext4: {}
   SupportedMountOption:
     dirsync: {}
+  TopologyKeys: ["topology.ebs.csi.aws.com/zone"]
   Capabilities:
     persistence: true
     fsGroup: true
     block: true
     exec: true
-    volumeLimits: true
+    volumeLimits: false
