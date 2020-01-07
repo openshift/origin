@@ -311,6 +311,7 @@
 // test/extended/testdata/config-map-jenkins-slave-pods.yaml
 // test/extended/testdata/csi/aws-ebs/install-template.yaml
 // test/extended/testdata/csi/aws-ebs/manifest.yaml
+// test/extended/testdata/csi/aws-ebs/storageclass.yaml
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
 // test/extended/testdata/deployments/custom-deployment.yaml
@@ -47330,7 +47331,7 @@ func testExtendedTestdataCsiAwsEbsInstallTemplateYaml() (*asset, error) {
 var _testExtendedTestdataCsiAwsEbsManifestYaml = []byte(`# Test manifest for https://github.com/kubernetes/kubernetes/tree/master/test/e2e/storage/external
 ShortName: ebs
 StorageClass:
-  FromName: true
+  FromFile: storageclass.yaml
 DriverInfo:
   Name: ebs.csi.aws.com
   SupportedSizeRange:
@@ -47363,6 +47364,29 @@ func testExtendedTestdataCsiAwsEbsManifestYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/csi/aws-ebs/manifest.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCsiAwsEbsStorageclassYaml = []byte(`kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: ebs.csi.aws.com
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+`)
+
+func testExtendedTestdataCsiAwsEbsStorageclassYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCsiAwsEbsStorageclassYaml, nil
+}
+
+func testExtendedTestdataCsiAwsEbsStorageclassYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCsiAwsEbsStorageclassYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/csi/aws-ebs/storageclass.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -58541,6 +58565,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/config-map-jenkins-slave-pods.yaml": testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
 	"test/extended/testdata/csi/aws-ebs/install-template.yaml": testExtendedTestdataCsiAwsEbsInstallTemplateYaml,
 	"test/extended/testdata/csi/aws-ebs/manifest.yaml": testExtendedTestdataCsiAwsEbsManifestYaml,
+	"test/extended/testdata/csi/aws-ebs/storageclass.yaml": testExtendedTestdataCsiAwsEbsStorageclassYaml,
 	"test/extended/testdata/custom-secret-builder/Dockerfile": testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh": testExtendedTestdataCustomSecretBuilderBuildSh,
 	"test/extended/testdata/deployments/custom-deployment.yaml": testExtendedTestdataDeploymentsCustomDeploymentYaml,
@@ -59203,6 +59228,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"aws-ebs": &bintree{nil, map[string]*bintree{
 						"install-template.yaml": &bintree{testExtendedTestdataCsiAwsEbsInstallTemplateYaml, map[string]*bintree{}},
 						"manifest.yaml": &bintree{testExtendedTestdataCsiAwsEbsManifestYaml, map[string]*bintree{}},
+						"storageclass.yaml": &bintree{testExtendedTestdataCsiAwsEbsStorageclassYaml, map[string]*bintree{}},
 					}},
 				}},
 				"custom-secret-builder": &bintree{nil, map[string]*bintree{

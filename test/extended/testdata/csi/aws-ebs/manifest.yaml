@@ -1,7 +1,7 @@
 # Test manifest for https://github.com/kubernetes/kubernetes/tree/master/test/e2e/storage/external
 ShortName: ebs
 StorageClass:
-  FromName: true
+  FromFile: storageclass.yaml
 DriverInfo:
   Name: ebs.csi.aws.com
   SupportedSizeRange:

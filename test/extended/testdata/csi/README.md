@@ -1,11 +1,22 @@
 # CSI driver installer manifests
 
-Each CSI driver is represented as a directory with two files:
+Each CSI driver is represented as a directory with two required files:
 
 ```
 <driver name>/install-template.yaml
 <driver name>/manifest.yaml
 ```
+
+Optionally, there can also be a file for a storageClass:
+
+```
+<driver name>/storageclass.yaml
+```
+
+This file is typically used to set custom parameters in the storageClass. For instance,
+in order to use the [topology](https://kubernetes-csi.github.io/docs/topology.html)
+feature of a CSI driver, one might want to have a custom storageClass with `volumeBindingMode`
+set to `WaitForFirstConsumer`. Also, the custom storageClass needs to be refereced in the [manifest file](#manifest).
 
 ## Driver template
 `install-template.yaml` is a [golang template](https://golang.org/pkg/text/template/) of YAML file with all Kubernetes objects of a CSI driver.
