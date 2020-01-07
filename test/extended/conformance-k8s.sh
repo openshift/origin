@@ -73,7 +73,12 @@ unschedulable="$( ( oc get nodes -o name -l 'node-role.kubernetes.io/master'; ) 
 
 # Execute Kubernetes prerequisites
 pushd "${kubernetes}" > /dev/null
+
 git checkout "${version}"
+
+# For OpenShift 4.3 (Kube 1.16) we build with Go 1.12, so replace the minimum version here - will not be needed in 4.4
+sed -i'' -e 's/minimum_go_version=go1.13.4/minimum_go_version=go1.12.8/' hack/lib/golang.sh
+
 make WHAT=cmd/kubectl
 make WHAT=test/e2e/e2e.test
 make WHAT=vendor/github.com/onsi/ginkgo/ginkgo
