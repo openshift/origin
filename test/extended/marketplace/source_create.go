@@ -13,7 +13,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
+var _ = g.Describe("[Serial] [Feature:Marketplace] Marketplace basic", func() {
 
 	defer g.GinkgoRecover()
 
@@ -43,7 +43,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 	})
 
 	// OCP-21405 create one opsrc,OCP-21419 create one csc,OCP-21479 sub to openshift-operators,OCP-21667 delete the csc
-	g.It("[ocp-21405 21419 21479 21667]create and delete the basic source,sub one operator", func() {
+	g.It("[Serial] [ocp-21405 21419 21479 21667]create and delete the basic source,sub one operator", func() {
 
 		// Create one opsrc
 		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctest", "NAMESPACE=marketplace_e2e", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
