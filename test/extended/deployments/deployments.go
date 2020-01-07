@@ -10,21 +10,26 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -1550,6 +1555,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			rcs, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{
 				LabelSelector: appsutil.ConfigSelector(dc.Name).String(),
 			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(rcs.Items).To(o.HaveLen(1))
 			o.Expect(strings.TrimSpace(rcs.Items[0].Spec.Template.Spec.Containers[0].Image)).NotTo(o.BeEmpty())
 		})
@@ -1624,12 +1630,36 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			// When a DC is recreated it has LatestVersion 0, it will get updated after adopting the Rcs
 			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(0))
 
+			dcListWatch := &cache.ListWatch{
+				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+					options.FieldSelector = fields.OneTermEqualSelector("metadata.name", dc.Name).String()
+					return oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).List(options)
+				},
+				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+					options.FieldSelector = fields.OneTermEqualSelector("metadata.name", dc.Name).String()
+					return oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Watch(options)
+				},
+			}
+			preconditionFunc := func(store cache.Store) (bool, error) {
+				_, exists, err := store.Get(&metav1.ObjectMeta{Namespace: dc.Namespace, Name: dc.Name})
+				if err != nil {
+					return true, err
+				}
+				if !exists {
+					// We need to make sure we see the object in the cache before we start waiting for events
+					// or we would be waiting for the timeout if such object didn't exist.
+					return true, kerrors.NewNotFound(schema.GroupResource{
+						Group:    "apps.openshift.io/v1",
+						Resource: "DeploymentConfig",
+					}, dc.Name)
+				}
+				return false, nil
+			}
+
 			g.By("waiting for DC.status.latestVersion to be raised after adopting RCs and availableReplicas to match replicas")
-			w, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Watch(metav1.SingleObject(dc.ObjectMeta))
-			o.Expect(err).NotTo(o.HaveOccurred())
 			ctx2, cancel2 := context.WithTimeout(context.TODO(), deploymentChangeTimeout)
 			defer cancel2()
-			event, err := watchtools.UntilWithoutRetry(ctx2, w, func(e watch.Event) (bool, error) {
+			event, err := watchtools.UntilWithSync(ctx2, dcListWatch, &appsv1.DeploymentConfig{}, preconditionFunc, func(e watch.Event) (bool, error) {
 				switch e.Type {
 				case watch.Added, watch.Modified:
 					evDC := e.Object.(*appsv1.DeploymentConfig)
@@ -1651,11 +1681,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(dcName, types.StrategicMergePatchType, []byte(fmt.Sprintf(`{"spec": {"replicas": %d}}`, newScale)))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			w, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Watch(metav1.SingleObject(dc.ObjectMeta))
-			o.Expect(err).NotTo(o.HaveOccurred())
 			ctx3, cancel3 := context.WithTimeout(context.TODO(), deploymentChangeTimeout)
 			defer cancel3()
-			event, err = watchtools.UntilWithoutRetry(ctx3, w, func(e watch.Event) (bool, error) {
+			event, err = watchtools.UntilWithSync(ctx3, dcListWatch, &appsv1.DeploymentConfig{}, preconditionFunc, func(e watch.Event) (bool, error) {
 				switch e.Type {
 				case watch.Added, watch.Modified:
 					evDC := e.Object.(*appsv1.DeploymentConfig)
