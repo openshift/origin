@@ -321,36 +321,36 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline plugin", func() {
 
 			})
 
-			g.It("jenkins-plugin test create obj delete obj", func() {
+			/*			g.It("jenkins-plugin test create obj delete obj", func() {
 
-				jobsToCreate := map[string]string{"test-create-obj": "create-job.xml", "test-delete-obj": "delete-job.xml", "test-delete-obj-labels": "delete-job-labels.xml", "test-delete-obj-keys": "delete-job-keys.xml"}
-				for jobName, jobConfig := range jobsToCreate {
-					data := j.ProcessJenkinsJob(jobConfig, oc.Namespace())
-					j.CreateItem(jobName, data)
-				}
+							jobsToCreate := map[string]string{"test-create-obj": "create-job.xml", "test-delete-obj": "delete-job.xml", "test-delete-obj-labels": "delete-job-labels.xml", "test-delete-obj-keys": "delete-job-keys.xml"}
+							for jobName, jobConfig := range jobsToCreate {
+								data := j.ProcessJenkinsJob(jobConfig, oc.Namespace())
+								j.CreateItem(jobName, data)
+							}
 
-				jobsToRun := []apiObjJob{{"test-create-obj", true}, {"test-delete-obj", false}, {"test-create-obj", true}, {"test-delete-obj-labels", false}, {"test-create-obj", true}, {"test-delete-obj-keys", false}}
-				for _, job := range jobsToRun {
-					jmon := j.StartJob(job.jobName)
-					err := jmon.Await(10 * time.Minute)
-					if err != nil {
-						logs, _ := j.GetLastJobConsoleLogs(job.jobName)
-						e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
-					}
-					o.Expect(err).NotTo(o.HaveOccurred())
+							jobsToRun := []apiObjJob{{"test-create-obj", true}, {"test-delete-obj", false}, {"test-create-obj", true}, {"test-delete-obj-labels", false}, {"test-create-obj", true}, {"test-delete-obj-keys", false}}
+							for _, job := range jobsToRun {
+								jmon := j.StartJob(job.jobName)
+								err := jmon.Await(10 * time.Minute)
+								if err != nil {
+									logs, _ := j.GetLastJobConsoleLogs(job.jobName)
+									e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
+								}
+								o.Expect(err).NotTo(o.HaveOccurred())
 
-					g.By("get build console logs and see if succeeded")
-					logs, err := j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", job.jobName)
-					e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					out, err := oc.Run("get").Args("bc", "forcepull-bldr").Output()
-					validateCreateDelete(job.create, "forcepull-bldr", out, err)
-					out, err = oc.Run("get").Args("is", "forcepull-extended-test-builder").Output()
-					validateCreateDelete(job.create, "forcepull-extended-test-builder", out, err)
-				}
+								g.By("get build console logs and see if succeeded")
+								logs, err := j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", job.jobName)
+								e2e.Logf("\n\nJenkins logs>\n%s\n\n", logs)
+								o.Expect(err).NotTo(o.HaveOccurred())
+								out, err := oc.Run("get").Args("bc", "forcepull-bldr").Output()
+								validateCreateDelete(job.create, "forcepull-bldr", out, err)
+								out, err = oc.Run("get").Args("is", "forcepull-extended-test-builder").Output()
+								validateCreateDelete(job.create, "forcepull-extended-test-builder", out, err)
+							}
 
-			})
-
+						})
+			*/
 			g.It("jenkins-plugin test trigger build with envs", func() {
 
 				jobName := "test-build-with-env-job"
