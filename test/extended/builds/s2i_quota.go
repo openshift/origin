@@ -53,11 +53,9 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 				o.Expect(br.Build.Status.Duration).To(o.Equal(duration), "Build duration should be computed correctly")
 
 				g.By("expecting the build logs to contain the correct cgroups values")
-				// buildLog, err := br.LogsNoTimestamp()
-				_, err = br.LogsNoTimestamp()
+				buildLog, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				// TODO: re-enable this check when https://bugzilla.redhat.com/show_bug.cgi?id=1764323 is resolved
-				//o.Expect(buildLog).To(o.ContainSubstring("MEMORY=419430400"))
+				o.Expect(buildLog).To(o.ContainSubstring("MEMORY=419430400"))
 				// TODO: re-enable this check when https://github.com/containers/buildah/issues/1213 is resolved.
 				//o.Expect(buildLog).To(o.ContainSubstring("MEMORYSWAP=419430400"))
 
