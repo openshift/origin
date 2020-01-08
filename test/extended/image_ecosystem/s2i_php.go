@@ -16,7 +16,7 @@ import (
 var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php image", func() {
 	defer g.GinkgoRecover()
 	var (
-		cakephpTemplate = "https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp-mysql.json"
+		cakephpTemplate = "cakephp-mysql-example"
 		oc              = exutil.NewCLI("s2i-php", exutil.KubeConfigPath())
 		hotDeployParam  = "OPCACHE_REVALIDATE_FREQ=0"
 		modifyCommand   = []string{"sed", "-ie", `s/\$result\['c'\]/1337/`, "src/Template/Pages/home.ctp"}
@@ -42,8 +42,8 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 			g.It(fmt.Sprintf("should work with hot deploy"), func() {
 
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
-				g.By(fmt.Sprintf("calling oc new-app -f %q -p %q", cakephpTemplate, hotDeployParam))
-				err := oc.Run("new-app").Args("-f", cakephpTemplate, "-p", hotDeployParam).Execute()
+				g.By(fmt.Sprintf("calling oc new-app %q -p %q", cakephpTemplate, hotDeployParam))
+				err := oc.Run("new-app").Args(cakephpTemplate, "-p", hotDeployParam).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for build to finish")
