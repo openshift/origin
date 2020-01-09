@@ -4682,6 +4682,7 @@ ClusterLoader:
   projects:
     - num: 1
       basename: clusterloader-cakephp-mysql
+      ifexists: delete
       tuning: default
       templates:
         - num: 1
@@ -4689,6 +4690,7 @@ ClusterLoader:
   
     - num: 1
       basename: clusterloader-dancer-mysql
+      ifexists: delete
       tuning: default
       templates:
         - num: 1
@@ -4696,6 +4698,7 @@ ClusterLoader:
   
     - num: 1
       basename: clusterloader-django-postgresql
+      ifexists: delete
       tuning: default
       templates:
         - num: 1
@@ -4703,6 +4706,7 @@ ClusterLoader:
   
     - num: 1
       basename: clusterloader-nodejs-mongodb
+      ifexists: delete
       tuning: default
       templates:
         - num: 1
@@ -4710,6 +4714,7 @@ ClusterLoader:
   
     - num: 1
       basename: clusterloader-rails-postgresql
+      ifexists: delete
       tuning: default
       templates:
         - num: 1
