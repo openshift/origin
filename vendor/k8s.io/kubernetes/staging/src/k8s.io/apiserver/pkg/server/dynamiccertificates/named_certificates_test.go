@@ -277,7 +277,7 @@ func generateSelfSignedCertKey(host string, alternateIPs []net.IP, alternateDNS 
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			CommonName: fmt.Sprintf("%s", host),
+			CommonName: fmt.Sprintf("%s@%d", host, time.Now().Unix()),
 		},
 		NotBefore: time.Unix(0, 0),
 		NotAfter:  time.Now().Add(time.Hour * 24 * 365 * 100),
