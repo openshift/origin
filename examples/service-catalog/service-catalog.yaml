@@ -15,7 +15,7 @@ objects:
     name: service-catalog-apiserver
 
 - kind: Deployment
-  apiVersion: extensions/v1beta1
+  apiVersion: apps/v1
   metadata:
     labels:
       app: apiserver
@@ -116,7 +116,7 @@ objects:
     sessionAffinity: None
 
 - kind: Deployment
-  apiVersion: extensions/v1beta1
+  apiVersion: apps/v1
   metadata:
     labels:
       app: controller-manager

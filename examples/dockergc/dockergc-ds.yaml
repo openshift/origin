@@ -7,13 +7,16 @@ items:
     name: dockergc
   # You must grant privileged via: oc adm policy add-scc-to-user -z dockergc privileged
   # in order for the dockergc to access the docker socket and root directory
-- apiVersion: extensions/v1beta1
+- apiVersion: apps/v1
   kind: DaemonSet
   metadata:
     name: dockergc
     labels:
       app: dockergc
   spec:
+    selector:
+      matchLabels:
+        app: dockergc
     template:
       metadata:
         labels:

@@ -27,7 +27,7 @@ items:
       targetPort: 9100
     selector:
       app: prometheus-node-exporter
-- apiVersion: extensions/v1beta1
+- apiVersion: apps/v1
   kind: DaemonSet
   metadata:
     name: prometheus-node-exporter
@@ -35,6 +35,10 @@ items:
       app: prometheus-node-exporter
       role: monitoring
   spec:
+    selector:
+      matchLabels:
+        app: prometheus-node-exporter
+        role: monitoring
     updateStrategy:
       type: RollingUpdate
     template:
