@@ -103,7 +103,7 @@ func (c *DynamicServingCertificateController) GetConfigForClient(clientHello *tl
 	}
 
 	// if the client didn't set SNI, then we need to inspect the requested IP so that we can choose
-	// a certificate from our list if we specifically handle that IP
+	// a certificate from our list if we specifically handle that IP.  This can happen when an IP is specifically mapped by name.
 	host, _, err := net.SplitHostPort(clientHello.Conn.LocalAddr().String())
 	if err != nil {
 		return tlsConfigCopy, nil
@@ -116,7 +116,7 @@ func (c *DynamicServingCertificateController) GetConfigForClient(clientHello *tl
 	tlsConfigCopy.Certificates = []tls.Certificate{*ipCert}
 	tlsConfigCopy.NameToCertificate = nil
 
-	return tlsConfigCopy.Clone(), nil
+	return tlsConfigCopy, nil
 }
 
 // newTLSContent determines the next set of content for overriding the baseTLSConfig.

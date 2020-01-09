@@ -69,6 +69,20 @@ func TestBuiltNamedCertificates(t *testing.T) {
 			},
 		},
 		{
+			// ip as cns are ignored
+			certs: []namedtestCertSpec{
+				{
+					testCertSpec: testCertSpec{
+						host:  "1.2.3.4",
+						names: []string{"test.com"},
+					},
+				},
+			},
+			expected: map[string]int{
+				"test.com": 0,
+			},
+		},
+		{
 			// ips are ignored
 			certs: []namedtestCertSpec{
 				{
@@ -277,7 +291,7 @@ func generateSelfSignedCertKey(host string, alternateIPs []net.IP, alternateDNS 
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			CommonName: fmt.Sprintf("%s", host),
+			CommonName: fmt.Sprintf("%s@%d", host, time.Now().Unix()),
 		},
 		NotBefore: time.Unix(0, 0),
 		NotAfter:  time.Now().Add(time.Hour * 24 * 365 * 100),

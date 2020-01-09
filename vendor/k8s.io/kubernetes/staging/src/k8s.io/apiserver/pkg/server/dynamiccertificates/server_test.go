@@ -1,3 +1,19 @@
+/*
+Copyright 2019 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package dynamiccertificates
 
 import (
@@ -45,10 +61,17 @@ func TestServingCert(t *testing.T) {
 			ips:   []string{"127.0.0.1"},
 			names: []string{"localhost"},
 		},
+		{
+			host:  "2001:abcd:bcda::1",
+			ips:   []string{"2001:abcd:bcda::1"},
+			names: []string{"openshiftv6", "openshiftv6.default.svc.cluster.local"},
+		},
 	}
 
 	for _, certSpec := range certSpecs {
-		certProvider, err := createTestTLSCerts(certSpec, nil)
+		names := append([]string{}, certSpec.ips...)
+		names = append(names, certSpec.names...)
+		certProvider, err := createTestTLSCerts(certSpec, names)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -66,6 +89,7 @@ func TestServingCert(t *testing.T) {
 		t.Fatal(err)
 	}
 	tlsConfig.GetConfigForClient = dynamicCertificateController.GetConfigForClient
+	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) { return nil, fmt.Errorf("positive failure") }
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -84,8 +108,9 @@ func TestServingCert(t *testing.T) {
 	go func() {
 		t.Logf("listening on %s", listener.Addr().String())
 		listener = tls.NewListener(listener, server.TLSConfig)
-		if err := server.Serve(listener); err != nil {
-			t.Fatal(err)
+		if err := server.ServeTLS(listener, "", ""); err != nil {
+			t.Error(err)
+			panic(err)
 		}
 
 		<-stopCh
@@ -98,6 +123,7 @@ func TestServingCert(t *testing.T) {
 	expectedDefaultCertBytes, _ := defaultCertProvider.CurrentCertKeyContent()
 	expectedServiceCertBytes, _ := sniCerts[0].CurrentCertKeyContent()
 	expectedLocalhostCertBytes, _ := sniCerts[1].CurrentCertKeyContent()
+	expectedServiceV6CertBytes, _ := sniCerts[2].CurrentCertKeyContent()
 
 	tests := []struct {
 		name       string
@@ -118,6 +144,11 @@ func TestServingCert(t *testing.T) {
 			name:       "service by dns",
 			serverName: "openshift",
 			expected:   []byte(strings.TrimSpace(string(expectedServiceCertBytes))),
+		},
+		{
+			name:       "service v6 by dns",
+			serverName: "openshiftv6",
+			expected:   []byte(strings.TrimSpace(string(expectedServiceV6CertBytes))),
 		},
 		{
 			name:       "localhost by dns",
