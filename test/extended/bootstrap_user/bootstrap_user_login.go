@@ -28,7 +28,7 @@ var _ = g.Describe("The bootstrap user", func() {
 	// as that will give each one of our test runs a new config via SetupProject
 	oc := exutil.NewCLI("bootstrap-login", exutil.KubeConfigPath())
 
-	g.It("should successfully login with password decoded from kubeadmin secret", func() {
+	g.It("should successfully login with password decoded from kubeadmin secret [Disruptive]", func() {
 		var originalPasswordHash []byte
 		secretExists := true
 		recorder := events.NewInMemoryRecorder("")
