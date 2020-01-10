@@ -97,6 +97,8 @@ func (eip *egressIPWatcher) Synced() {
 			}
 		}
 	}
+
+	eip.iptables.SyncEgressIPRules()
 }
 
 func egressIPLabel(link netlink.Link) (string, error) {

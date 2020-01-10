@@ -3,7 +3,10 @@
 package node
 
 import (
+	"bytes"
 	"fmt"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -287,4 +290,68 @@ func (n *NodeIPTables) DeleteEgressIPRules(egressIP, mark string) error {
 		}
 	}
 	return n.ipt.DeleteRule(iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), "-d", egressIP, "-m", "conntrack", "--ctstate", "NEW", "-j", "REJECT")
+}
+
+var masqRuleRE = regexp.MustCompile(`-A OPENSHIFT-MASQUERADE .* --to-source ([^ ]*)`)
+var filterRuleRE = regexp.MustCompile(`-A OPENSHIFT-FIREWALL-ALLOW -d ([^ ]*)/32 .* -j REJECT`)
+
+func (n *NodeIPTables) findStaleEgressIPRules(table iptables.Table, ruleMatch *regexp.Regexp) (map[string]string, error) {
+	buf := bytes.NewBuffer(nil)
+	err := n.ipt.SaveInto(table, buf)
+	if err != nil {
+		return nil, err
+	}
+	rules := make(map[string]string)
+	for _, line := range strings.Split(string(buf.Bytes()), "\n") {
+		match := ruleMatch.FindStringSubmatch(line)
+		if len(match) != 2 {
+			continue
+		}
+		rules[match[1]] = match[0]
+	}
+
+	// Delete rules matching current egress IPs
+	for ip := range n.egressIPs {
+		delete(rules, ip)
+	}
+	return rules, nil
+}
+
+func (n *NodeIPTables) SyncEgressIPRules() {
+	masqRules, err := n.findStaleEgressIPRules(iptables.TableNAT, masqRuleRE)
+	if err != nil {
+		klog.Warningf("Error looking for stale egress IP iptables rules: %v", err)
+	}
+	filterRules, err := n.findStaleEgressIPRules(iptables.TableFilter, filterRuleRE)
+	if err != nil {
+		klog.Warningf("Error looking for stale egress IP iptables rules: %v", err)
+	}
+
+	for ip, rule := range masqRules {
+		klog.V(2).Infof("Deleting iptables masquerade rule for stale egress IP %s", ip)
+		args := strings.Split(rule, " ")
+		if len(args) != 12 {
+			klog.Warningf("Error deleting iptables masquerade rule for stale egress IP %s: unexpected rule format %q", ip, rule)
+			continue
+		}
+		args = args[2:]
+		err := n.ipt.DeleteRule(iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), args...)
+		if err != nil {
+			klog.Warningf("Error deleting iptables masquerade rule for stale egress IP %s: %v", ip, err)
+		}
+	}
+
+	for ip, rule := range filterRules {
+		klog.V(2).Infof("Deleting iptables filter rule for stale egress IP %s", ip)
+		args := strings.Split(rule, " ")
+		if len(args) != 10 {
+			klog.Warningf("Error deleting iptables filter rule for stale egress IP %s: unexpected rule format %q", ip, rule)
+			continue
+		}
+		args = args[2:]
+		err := n.ipt.DeleteRule(iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), args...)
+		if err != nil {
+			klog.Warningf("Error deleting iptables filter rule for stale egress IP %s: %v", ip, err)
+		}
+	}
 }
