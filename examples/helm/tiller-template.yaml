@@ -1,5 +1,7 @@
 kind: Template
 apiVersion: v1
+metadata:
+  name: tiller
 objects:
 - kind: ServiceAccount
   apiVersion: v1
@@ -39,7 +41,7 @@ objects:
   - kind: ServiceAccount
     name: tiller
 
-- apiVersion: extensions/v1beta1
+- apiVersion: apps/v1
   kind: Deployment
   metadata:
     name: tiller

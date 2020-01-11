@@ -83,7 +83,7 @@ objects:
   stringData:
     session_secret: "${SESSION_SECRET}="
 # Deploy Grafana behind an oauth proxy
-- apiVersion: extensions/v1beta1
+- apiVersion: apps/v1
   kind: Deployment
   metadata:
     labels:
