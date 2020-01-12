@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/openshift/origin/test/extended/csi"
 
+	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/storage/external"
 )
 
@@ -46,6 +48,12 @@ func initCSITests(dryRun bool) error {
 			if err := external.AddDriverDefinition(manifest); err != nil {
 				return fmt.Errorf("failed to load manifest from %q: %s", manifest, err)
 			}
+			// Register the base dir of the manifest file as a file source.
+			// With this we can reference the CSI driver's storageClass
+			// in the manifest file (FromFile field).
+			testfiles.AddFileSource(testfiles.RootFileSource{
+				Root: filepath.Dir(manifest),
+			})
 		}
 	}
 

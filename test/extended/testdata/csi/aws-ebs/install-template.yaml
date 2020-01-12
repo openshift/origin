@@ -14,7 +14,7 @@ metadata:
   name: ebs-csi-controller-sa
   namespace: kube-system
 
---- 
+---
 
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -93,11 +93,14 @@ roleRef:
 ---
 
 kind: StatefulSet
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 metadata:
   name: ebs-csi-controller
   namespace: kube-system
 spec:
+  selector:
+    matchLabels:
+      app: ebs-csi-controller
   serviceName: ebs-csi-controller
   replicas: 1
   template:
@@ -171,7 +174,7 @@ spec:
 ---
 # Node Service
 kind: DaemonSet
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 metadata:
   name: ebs-csi-node
   namespace: kube-system

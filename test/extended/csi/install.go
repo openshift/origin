@@ -28,9 +28,17 @@ func InstallCSIDriver(driverName string, dryRun bool) (string, error) {
 	if _, err := testdata.AssetInfo(templatePath); err != nil {
 		return "", fmt.Errorf("failed to install CSI driver %q: %s", driverName, err)
 	}
+
 	manifestPath := filepath.Join(csiBasePath, driverName, "manifest.yaml")
 	if _, err := testdata.AssetInfo(manifestPath); err != nil {
 		return "", fmt.Errorf("failed to install CSI driver %q: %s", driverName, err)
+	}
+
+	// storageclass.yaml is optional, so we don't return and error if it's absent
+	scPath := filepath.Join(csiBasePath, driverName, "storageclass.yaml")
+	if _, err := testdata.AssetInfo(scPath); err == nil {
+		scFixturePath := strings.Split(scPath, string(os.PathSeparator))[2:]
+		exutil.FixturePath(scFixturePath...)
 	}
 
 	// Convert to array and cut "test/extended" for FixturePath()
