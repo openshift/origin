@@ -12,7 +12,7 @@ import (
 var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", func() {
 	defer g.GinkgoRecover()
 	var (
-		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mariadb-ephemeral-template.json")
+		templatePath = "mariadb-ephemeral"
 		oc           = exutil.NewCLI("mariadb-create", exutil.KubeConfigPath())
 	)
 
@@ -33,8 +33,8 @@ var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", f
 			g.It(fmt.Sprintf("should instantiate the template"), func() {
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 
-				g.By(fmt.Sprintf("calling oc process -f %q", templatePath))
-				configFile, err := oc.Run("process").Args("-f", templatePath).OutputToFile("config.json")
+				g.By(fmt.Sprintf("calling oc process %q", templatePath))
+				configFile, err := oc.Run("process").Args("openshift//" + templatePath).OutputToFile("config.json")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By(fmt.Sprintf("calling oc create -f %q", configFile))
