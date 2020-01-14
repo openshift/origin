@@ -1,8 +1,6 @@
 package app
 
 import (
-	"path"
-
 	"k8s.io/client-go/informers"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app/config"
@@ -15,17 +13,6 @@ var InformerFactoryOverride informers.SharedInformerFactory
 func ShimForOpenShift(controllerManagerOptions *options.KubeControllerManagerOptions, controllerManager *config.Config) error {
 	if len(controllerManager.OpenShiftContext.OpenShiftConfig) == 0 {
 		return nil
-	}
-
-	// TODO this gets removed when no longer take flags and no longer build a recycler template
-	openshiftConfig, err := getOpenShiftConfig(controllerManager.OpenShiftContext.OpenShiftConfig)
-	if err != nil {
-		return err
-	}
-
-	// TODO this should be replaced by using a flex volume to inject service serving cert CAs into pods instead of adding it to the sa token
-	if err := applyOpenShiftServiceServingCertCAFunc(path.Dir(controllerManager.OpenShiftContext.OpenShiftConfig), openshiftConfig); err != nil {
-		return err
 	}
 
 	// skip GC on some openshift resources

@@ -596,10 +596,10 @@ func (c serviceAccountTokenControllerStarter) startServiceAccountTokenController
 		ctx.InformerFactory.Core().V1().ServiceAccounts(),
 		ctx.InformerFactory.Core().V1().Secrets(),
 		c.rootClientBuilder.ClientOrDie("tokens-controller"),
-		applyOpenShiftServiceServingCertCA(serviceaccountcontroller.TokensControllerOptions{
+		serviceaccountcontroller.TokensControllerOptions{
 			TokenGenerator: tokenGenerator,
 			RootCA:         rootCA,
-		}),
+		},
 	)
 	if err != nil {
 		return nil, true, fmt.Errorf("error creating Tokens controller: %v", err)
