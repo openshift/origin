@@ -1,5 +1,5 @@
 hash: efe91edd431238f5d9e5bfad222f22ad3161b3601223682858d2ce46962c3ae3
-updated: 2019-12-18T12:42:14.954134+01:00
+updated: 2019-12-20T15:52:28.579284877-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -143,24 +143,6 @@ imports:
   version: a0458a2b35708eef59eb5f620ceb3cd1c01a824d
 - name: github.com/coreos/etcd
   version: 6d8052314b9e01447d1bb2030bd762e0baf2d433
-  subpackages:
-  - auth/authpb
-  - clientv3
-  - clientv3/balancer
-  - clientv3/balancer/connectivity
-  - clientv3/balancer/picker
-  - clientv3/balancer/resolver/endpoint
-  - clientv3/credentials
-  - etcdserver/api/v3rpc/rpctypes
-  - etcdserver/etcdserverpb
-  - mvcc/mvccpb
-  - pkg/logutil
-  - pkg/systemd
-  - pkg/tlsutil
-  - pkg/transport
-  - pkg/types
-  - raft
-  - raft/raftpb
 - name: github.com/coreos/go-oidc
   version: 2be1c5b8a260760503f66dc0996e102b683b3ac3
 - name: github.com/coreos/go-semver
@@ -435,6 +417,14 @@ imports:
   - cmp/internal/flags
   - cmp/internal/function
   - cmp/internal/value
+- name: github.com/google/go-github
+  version: 747f93dd9b489bd56f7442b3c42bfea12800a75b
+  subpackages:
+  - github
+- name: github.com/google/go-querystring
+  version: 44c6ddd0a2342c386950e880b658017258da92fc
+  subpackages:
+  - query
 - name: github.com/google/gofuzz
   version: f140a6486e521aad38f5917de355cbf147cc0496
 - name: github.com/google/uuid
@@ -727,7 +717,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 791af96035a5b0cfb54705d032cfc456b72c1c7c
+  version: 378bec237e3495b216d79976129ffbb7e2eeb9c5
   subpackages:
   - annotations
   - apps
@@ -779,7 +769,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: ac5f9e6ef95ee85c7667e03ad87dd4ea3c22496f
+  version: ee217084181eb98df0c99102cc26bd88452ceefc
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -799,7 +789,7 @@ imports:
   - pkg/securitycontextconstraints/util
   - pkg/securitycontextconstraints/util/sort
 - name: github.com/openshift/client-go
-  version: 57f413491e9eb6f36e950a5542435c922e21c03b
+  version: ac3b642258cc08cebdd992eda5df1ec47a7cec81
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -900,7 +890,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 1c12909e59230dcd22175b770b921fe9d1b2e28b
+  version: f084241b434840b0867dddf47c3e6e78a1125505
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1020,7 +1010,7 @@ imports:
   - serror
   - types
 - name: github.com/stretchr/objx
-  version: 477a77ecc69700c7cdeb1fa9e129548e1c1c393c
+  version: ea4fe68685ee0d3cee7032121851b57e7494e8ea
 - name: github.com/stretchr/testify
   version: 221dbe5ed46703ee255b1da0dec05086f5035f62
   subpackages:
@@ -1366,7 +1356,6 @@ imports:
 - name: google.golang.org/genproto
   version: e7d98fc518a78c9f8b5ee77be7b0b317475d89e1
   subpackages:
-  - googleapis/api/annotations
   - googleapis/api/httpbody
   - googleapis/rpc/status
   - protobuf/field_mask
@@ -1483,7 +1472,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: b38f53ead9d27f8c3c03bdad25620b8696e4e4c8
+  version: 44f5b769de2e9a3aa095cbeb902d8c13a3f38fcf
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apihelpers
@@ -1603,7 +1592,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 5d98c747c231cb26b4b5079b68795127d18fb5e1
+  version: b8ac915d07062ee08e50713d41fbb25fca00863a
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2103,7 +2092,7 @@ imports:
   - config/v1
   - config/v1alpha1
 - name: k8s.io/kubectl
-  version: 1d2d6de9bcd5b3b3ed81242c095cbd96309ad843
+  version: 9e64f44d95b856ec73abfd6a0d44b730bfe1d8bb
   repo: https://github.com/openshift/kubernetes-kubectl.git
   subpackages:
   - pkg/apps
@@ -2189,7 +2178,7 @@ imports:
   - pkg/apis/deviceplugin/v1beta1
   - pkg/apis/pluginregistration/v1
 - name: k8s.io/kubernetes
-  version: b40e17327f54d0ebbe7ff3e1105548a38f6186eb
+  version: a1c918f2d2141e3eebc673025e511bc4a5fb708e
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -3005,6 +2994,7 @@ imports:
   - test/e2e/auth
   - test/e2e/autoscaling
   - test/e2e/chaosmonkey
+  - test/e2e/cloud/gcp
   - test/e2e/common
   - test/e2e/framework
   - test/e2e/framework/auth
@@ -3017,6 +3007,7 @@ imports:
   - test/e2e/framework/ingress
   - test/e2e/framework/job
   - test/e2e/framework/kubelet
+  - test/e2e/framework/lifecycle
   - test/e2e/framework/log
   - test/e2e/framework/metrics
   - test/e2e/framework/network
@@ -3068,6 +3059,7 @@ imports:
   - test/e2e/system
   - test/e2e/upgrades
   - test/e2e/upgrades/apps
+  - test/e2e/upgrades/storage
   - test/images/agnhost/net/common
   - test/images/agnhost/net/nat
   - test/integration
