@@ -18,6 +18,7 @@ package featuregate
 
 import (
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -203,6 +204,12 @@ func (f *featureGate) Set(value string) error {
 func (f *featureGate) SetFromMap(m map[string]bool) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
+
+	klog.Info("════════════════════════════════════════════════════════════")
+	for _, line := range strings.Split(string(debug.Stack()), "\n") {
+		klog.Info(line)
+	}
+	klog.Info("════════════════════════════════════════════════════════════")
 
 	// Copy existing state
 	known := map[Feature]FeatureSpec{}
