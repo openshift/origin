@@ -57,8 +57,9 @@ global
   tune.maxrewrite 8192
   tune.bufsize 32768
 
-  # Prevent vulnerability to POODLE attacks
-  ssl-default-bind-options no-sslv3
+  # Configure the TLS versions we support
+  ssl-default-bind-options ssl-min-ver {{env "SSL_MIN_VERSION" "TLSv1.0"}}
+    {{- if ne (env "SSL_MAX_VERSION" "") "" }} ssl-max-ver {{env "SSL_MAX_VERSION"}}{{ end }}
 
 # The default cipher suite can be selected from the three sets recommended by https://wiki.mozilla.org/Security/Server_Side_TLS,
 # or the user can provide one using the ROUTER_CIPHERS environment variable.
@@ -224,7 +225,7 @@ backend be_sni
 
 frontend fe_sni
   # terminate ssl on edge
-  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl 
     {{- if isTrue (env "ROUTER_STRICT_SNI") }} strict-sni {{ end }}
     {{- ""}} crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}}
     {{- ""}} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
@@ -299,7 +300,7 @@ backend be_no_sni
 
 frontend fe_no_sni
   # terminate ssl on edge
-  bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}} accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}} accept-proxy
     {{- with (env "ROUTER_MUTUAL_TLS_AUTH") }}
       {{- ""}} verify {{.}}
       {{- with (env "ROUTER_MUTUAL_TLS_AUTH_CA") }} ca-file {{.}} {{ else }} ca-file /etc/ssl/certs/ca-bundle.trust.crt {{ end }}
