@@ -226,4 +226,19 @@ var _ = g.Describe("[Feature:Platform] an end user use OLM", func() {
 		}
 
 	})
+
+	// OCP-21130 - [bug ALM-736] Fetching non-existent `PackageManifest` should return 404
+	// author: bandrade@redhat.com
+	g.It("Fetching non-existent `PackageManifest` should return 404", func() {
+		msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("packagemanifest", "--all-namespaces", "--no-headers").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		packageserverLines := strings.Split(msg, "\n")
+		if len(packageserverLines) > 0 {
+			raw, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("packagemanifest", "a_package_that_not_exists", "-o yaml", "--loglevel=8").Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(raw).To(o.ContainSubstring("\"code\": 404"))
+		} else {
+			e2e.Failf("No packages to evaluate if 404 works when a PackageManifest does not exists")
+		}
+	})
 })
