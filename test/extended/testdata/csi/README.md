@@ -29,6 +29,7 @@ Following variables are available in the template:
 * Name of sidecar image to test with. It is either the last build in the appropriate 4.x branch or image build from PR that's being tested.
   * `{{.AttacherImage}}`
   * `{{.ProvisionerImage}}`
+  * `{{.ResizerImage}}`
   * `{{.NodeDriverRegistrarImage}}`
   * `{{.LivenessProbeImage}}`
 
