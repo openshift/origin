@@ -473,7 +473,7 @@ func (c *CLI) Run(commands ...string) *CLI {
 		configPath:      c.configPath,
 		username:        c.username,
 		globalArgs: append([]string{
-			fmt.Sprintf("--config=%s", c.configPath),
+			fmt.Sprintf("--kubeconfig=%s", c.configPath),
 		}, commands...),
 	}
 	if !c.withoutNamespace {
