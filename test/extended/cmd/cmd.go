@@ -55,7 +55,7 @@ var _ = g.Describe("[Suite:openshift/test-cmd][Serial][Disruptive] test-cmd:", f
 			hacklibVolume, hacklibVolumeMount := createConfigMapForDir(oc, hacklibDir, "/var/tests/hack")
 			testsVolume, testsVolumeMount := createConfigMapForDir(oc, testsDir, "/var/tests/test/cmd")
 
-			kubeconfigCont, err := oc.AsAdmin().Run("config").Args("view", "--flatten", "--minify").Output()
+			kubeconfigCont, _, err := oc.AsAdmin().Run("config").Args("view", "--flatten", "--minify").Outputs()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(oc.Namespace()).Create(&corev1.ConfigMap{
