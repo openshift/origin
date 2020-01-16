@@ -47280,7 +47280,7 @@ spec:
           image: {{.LivenessProbeImage}}
           args:
             - --csi-address=/csi/csi.sock
-            - --connection-timeout=3s
+            - --probe-timeout=3s
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
