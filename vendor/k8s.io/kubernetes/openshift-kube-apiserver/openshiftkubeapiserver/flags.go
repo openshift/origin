@@ -79,8 +79,6 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	// request-timeout
 	// runtime-config
 	// service-account-api-audiences
-	// service-account-issuer
-	// service-account-key-file
 	// service-account-max-token-expiration
 	// stderrthreshold
 	// storage-versions
@@ -138,6 +136,9 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	configflags.SetIfUnset(args, "requestheader-username-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.UsernameHeaders...)
 	configflags.SetIfUnset(args, "secure-port", portString)
 	configflags.SetIfUnset(args, "service-account-key-file", kubeAPIServerConfig.ServiceAccountPublicKeyFiles...)
+	configflags.SetIfUnset(args, "service-account-issuer", kubeAPIServerConfig.ServiceAccountIssuer)
+	configflags.SetIfUnset(args, "api-audiences", kubeAPIServerConfig.APIAudiences...)
+	configflags.SetIfUnset(args, "service-account-signing-key-file", kubeAPIServerConfig.ServiceAccountSigningKeyFile)
 	configflags.SetIfUnset(args, "service-account-lookup", "true")
 	configflags.SetIfUnset(args, "service-cluster-ip-range", kubeAPIServerConfig.ServicesSubnet)
 	configflags.SetIfUnset(args, "service-node-port-range", kubeAPIServerConfig.ServicesNodePortRange)
