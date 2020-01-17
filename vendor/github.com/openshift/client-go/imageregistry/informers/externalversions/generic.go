@@ -39,6 +39,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=imageregistry.operator.openshift.io, Version=v1
 	case v1.SchemeGroupVersion.WithResource("configs"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Imageregistry().V1().Configs().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("imagepruners"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Imageregistry().V1().ImagePruners().Informer()}, nil
 
 	}
 

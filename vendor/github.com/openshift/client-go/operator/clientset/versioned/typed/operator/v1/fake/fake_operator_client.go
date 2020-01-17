@@ -16,6 +16,10 @@ func (c *FakeOperatorV1) Authentications() v1.AuthenticationInterface {
 	return &FakeAuthentications{c}
 }
 
+func (c *FakeOperatorV1) CSISnapshotControllers() v1.CSISnapshotControllerInterface {
+	return &FakeCSISnapshotControllers{c}
+}
+
 func (c *FakeOperatorV1) Consoles() v1.ConsoleInterface {
 	return &FakeConsoles{c}
 }

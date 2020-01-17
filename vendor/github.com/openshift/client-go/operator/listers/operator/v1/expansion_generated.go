@@ -6,6 +6,10 @@ package v1
 // AuthenticationLister.
 type AuthenticationListerExpansion interface{}
 
+// CSISnapshotControllerListerExpansion allows custom methods to be added to
+// CSISnapshotControllerLister.
+type CSISnapshotControllerListerExpansion interface{}
+
 // ConsoleListerExpansion allows custom methods to be added to
 // ConsoleLister.
 type ConsoleListerExpansion interface{}

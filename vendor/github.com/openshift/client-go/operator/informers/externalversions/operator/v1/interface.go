@@ -10,6 +10,8 @@ import (
 type Interface interface {
 	// Authentications returns a AuthenticationInformer.
 	Authentications() AuthenticationInformer
+	// CSISnapshotControllers returns a CSISnapshotControllerInformer.
+	CSISnapshotControllers() CSISnapshotControllerInformer
 	// Consoles returns a ConsoleInformer.
 	Consoles() ConsoleInformer
 	// DNSes returns a DNSInformer.
@@ -54,6 +56,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // Authentications returns a AuthenticationInformer.
 func (v *version) Authentications() AuthenticationInformer {
 	return &authenticationInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// CSISnapshotControllers returns a CSISnapshotControllerInformer.
+func (v *version) CSISnapshotControllers() CSISnapshotControllerInformer {
+	return &cSISnapshotControllerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Consoles returns a ConsoleInformer.

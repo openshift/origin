@@ -11,6 +11,7 @@ import (
 type OperatorV1Interface interface {
 	RESTClient() rest.Interface
 	AuthenticationsGetter
+	CSISnapshotControllersGetter
 	ConsolesGetter
 	DNSesGetter
 	EtcdsGetter
@@ -34,6 +35,10 @@ type OperatorV1Client struct {
 
 func (c *OperatorV1Client) Authentications() AuthenticationInterface {
 	return newAuthentications(c)
+}
+
+func (c *OperatorV1Client) CSISnapshotControllers() CSISnapshotControllerInterface {
+	return newCSISnapshotControllers(c)
 }
 
 func (c *OperatorV1Client) Consoles() ConsoleInterface {

@@ -40,6 +40,10 @@ func (c *FakeImageV1) ImageStreamTags(namespace string) v1.ImageStreamTagInterfa
 	return &FakeImageStreamTags{c, namespace}
 }
 
+func (c *FakeImageV1) ImageTags(namespace string) v1.ImageTagInterface {
+	return &FakeImageTags{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeImageV1) RESTClient() rest.Interface {

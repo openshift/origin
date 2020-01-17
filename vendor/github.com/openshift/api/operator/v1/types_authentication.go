@@ -25,7 +25,11 @@ type AuthenticationSpec struct {
 }
 
 type AuthenticationStatus struct {
-	OperatorStatus `json:",inline"`
+	// ManagingOAuthAPIServer indicates whether this operator is managing OAuth related APIs. Setting this field to true will cause OAS-O to step down.
+	// Note that this field will be removed in the future releases, once https://github.com/openshift/enhancements/blob/master/enhancements/authentication/separate-oauth-resources.md is fully implemented
+	// +optional
+	ManagingOAuthAPIServer bool `json:"managingOAuthAPIServer,omitempty"`
+	OperatorStatus         `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -1,5 +1,5 @@
 hash: efe91edd431238f5d9e5bfad222f22ad3161b3601223682858d2ce46962c3ae3
-updated: 2019-12-20T15:52:28.579284877-05:00
+updated: 2020-01-17T12:50:31.870515-06:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -127,7 +127,7 @@ imports:
   - errdefs
   - namespaces
 - name: github.com/containerd/continuity
-  version: 1097c8bae83b84cf3dfccfcc542e06c8c28ea3f4
+  version: 26c1120b8d4107d2471b93ad78ef7ce1fc84c4c4
   subpackages:
   - pathdriver
 - name: github.com/containernetworking/cni
@@ -717,7 +717,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 378bec237e3495b216d79976129ffbb7e2eeb9c5
+  version: e7ccdda6ba67b868baceb40b6db943355967f26d
   subpackages:
   - annotations
   - apps
@@ -769,7 +769,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: ee217084181eb98df0c99102cc26bd88452ceefc
+  version: eb64d062083754fc4aa3c78904870602acc98314
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -789,7 +789,7 @@ imports:
   - pkg/securitycontextconstraints/util
   - pkg/securitycontextconstraints/util/sort
 - name: github.com/openshift/client-go
-  version: ac3b642258cc08cebdd992eda5df1ec47a7cec81
+  version: 92a2713fa240ea8a375a982d60b43ef5119f85ba
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -890,7 +890,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: f084241b434840b0867dddf47c3e6e78a1125505
+  version: e560b33797f5dcde5d0e7b567e371a741e368543
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -918,6 +918,7 @@ imports:
   - pkg/oauth/oauthdiscovery
   - pkg/operator/events
   - pkg/operator/resource/resourceapply
+  - pkg/operator/resource/resourcehelper
   - pkg/operator/resource/resourcemerge
   - pkg/operator/resource/resourceread
   - pkg/quota/clusterquotamapping
@@ -1592,7 +1593,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: b8ac915d07062ee08e50713d41fbb25fca00863a
+  version: a732a76a0dd73091ea021f544734cdf0d91fadf3
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1730,7 +1731,7 @@ imports:
   - pkg/printers
   - pkg/resource
 - name: k8s.io/client-go
-  version: 9e6d980167bffdbf2edf41d5dd84dcec568801d7
+  version: 2dca1b5d08b2433de0adc72f3e04840ea0fab870
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1972,7 +1973,7 @@ imports:
   - util/retry
   - util/workqueue
 - name: k8s.io/cloud-provider
-  version: 173cef1bc30874ea378ca602936f2a4653143ae0
+  version: cc7ddba0ae4ec32ec96627cff69d3289e49bc953
   repo: https://github.com/openshift/kubernetes-cloud-provider.git
   subpackages:
   - node/helpers
@@ -1990,7 +1991,7 @@ imports:
   - util/secrets
   - util/tokens
 - name: k8s.io/code-generator
-  version: 6239a20502f56be21c1236ed93ecfaf6b2117bad
+  version: c93b04507afc7e25dcf32011092664cb667c1fae
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/component-base
   version: 66c180e454d2e008c87f8905059dcd5b0e25f325
@@ -2178,7 +2179,7 @@ imports:
   - pkg/apis/deviceplugin/v1beta1
   - pkg/apis/pluginregistration/v1
 - name: k8s.io/kubernetes
-  version: a1c918f2d2141e3eebc673025e511bc4a5fb708e
+  version: 2f3544f260c9edcef35874775733f53cae17fe27
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -3075,7 +3076,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/legacy-cloud-providers
-  version: 719757f991a7eaebb4b117ac33083f78963ad986
+  version: a9ef54171d01f79bf856bfec3a51af1f9df2703e
   repo: https://github.com/openshift/kubernetes-legacy-cloud-providers.git
   subpackages:
   - aws
