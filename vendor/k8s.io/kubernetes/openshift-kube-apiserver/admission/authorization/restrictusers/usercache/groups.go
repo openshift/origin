@@ -12,7 +12,8 @@ import (
 // GroupCache is a skin on an indexer to provide the reverse index from user to groups.
 // Once we work out a cleaner way to extend a lister, this should live there.
 type GroupCache struct {
-	indexer cache.Indexer
+	indexer      cache.Indexer
+	groupsSynced cache.InformerSynced
 }
 
 const ByUserIndexName = "ByUser"
@@ -30,7 +31,8 @@ func ByUserIndexKeys(obj interface{}) ([]string, error) {
 
 func NewGroupCache(groupInformer userinformer.GroupInformer) *GroupCache {
 	return &GroupCache{
-		indexer: groupInformer.Informer().GetIndexer(),
+		indexer:      groupInformer.Informer().GetIndexer(),
+		groupsSynced: groupInformer.Informer().HasSynced,
 	}
 }
 
@@ -46,4 +48,8 @@ func (c *GroupCache) GroupsFor(username string) ([]*userapi.Group, error) {
 	}
 
 	return groups, nil
+}
+
+func (c *GroupCache) HasSynced() bool {
+	return c.groupsSynced()
 }
