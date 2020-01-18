@@ -62,6 +62,11 @@ func (in *KubeAPIServerConfig) DeepCopyInto(out *KubeAPIServerConfig) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.APIAudiences != nil {
+		in, out := &in.APIAudiences, &out.APIAudiences
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.OAuthConfig != nil {
 		in, out := &in.OAuthConfig, &out.OAuthConfig
 		*out = new(osinv1.OAuthConfig)

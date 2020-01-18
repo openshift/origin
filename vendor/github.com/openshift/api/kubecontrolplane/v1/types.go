@@ -54,6 +54,19 @@ type KubeAPIServerConfig struct {
 	// If no keys are specified, no service account authentication will be available.
 	ServiceAccountPublicKeyFiles []string `json:"serviceAccountPublicKeyFiles"`
 
+	// serviceAccountIssuer is the identifier of the bound service account token
+	// issuer.
+	ServiceAccountIssuer string `json:"serviceAccountIssuer"`
+
+	// apiAudiences is a list of identifies of the API. The service account token
+	// authenticator will validate that tokens used against the API are bound to at
+	// least one of these audiences.
+	APIAudiences []string `json:"apiAudiences"`
+
+	// serviceAccountSigningKeyFile is the private key used to sign bound service
+	// account tokens.
+	ServiceAccountSigningKeyFile string `json:"serviceAccountSigningKeyFile"`
+
 	// oauthConfig, if present start the /oauth endpoint in this process
 	OAuthConfig *osinv1.OAuthConfig `json:"oauthConfig"`
 
