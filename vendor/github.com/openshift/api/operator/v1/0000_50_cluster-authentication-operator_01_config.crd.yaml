@@ -120,6 +120,13 @@ spec:
                     description: resource is the resource type of the thing you're
                       tracking
                     type: string
+            managingOAuthAPIServer:
+              description: ManagingOAuthAPIServer indicates whether this operator
+                is managing OAuth related APIs. Setting this field to true will cause
+                OAS-O to step down. Note that this field will be removed in the future
+                releases, once https://github.com/openshift/enhancements/blob/master/enhancements/authentication/separate-oauth-resources.md
+                is fully implemented
+              type: boolean
             observedGeneration:
               description: observedGeneration is the last generation change you've
                 dealt with

@@ -417,6 +417,49 @@ type ImageStreamTagList struct {
 }
 
 // +genclient
+// +genclient:onlyVerbs=get,list,create,update,delete
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ImageTag represents a single tag within an image stream and includes the spec,
+// the status history, and the currently referenced image (if any) of the provided
+// tag. This type replaces the ImageStreamTag by providing a full view of the tag.
+// ImageTags are returned for every spec or status tag present on the image stream.
+// If no tag exists in either form a not found error will be returned by the API.
+// A create operation will succeed if no spec tag has already been defined and the
+// spec field is set. Delete will remove both spec and status elements from the
+// image stream.
+type ImageTag struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// spec is the spec tag associated with this image stream tag, and it may be null
+	// if only pushes have occurred to this image stream.
+	Spec *TagReference `json:"spec" protobuf:"bytes,2,opt,name=spec"`
+	// status is the status tag details associated with this image stream tag, and it
+	// may be null if no push or import has been performed.
+	Status *NamedTagEventList `json:"status" protobuf:"bytes,3,opt,name=status"`
+	// image is the details of the most recent image stream status tag, and it may be
+	// null if import has not completed or an administrator has deleted the image
+	// object. To verify this is the most recent image, you must verify the generation
+	// of the most recent status.items entry matches the spec tag (if a spec tag is
+	// set). This field will not be set when listing image tags.
+	Image *Image `json:"image" protobuf:"bytes,4,opt,name=image"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ImageTagList is a list of ImageTag objects. When listing image tags, the image
+// field is not populated. Tags are returned in alphabetical order by image stream
+// and then tag.
+type ImageTagList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Items is the list of image stream tags
+	Items []ImageTag `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
+// +genclient
 // +genclient:onlyVerbs=get
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

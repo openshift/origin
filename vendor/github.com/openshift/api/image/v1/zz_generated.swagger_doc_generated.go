@@ -255,6 +255,26 @@ func (ImageStreamTagList) SwaggerDoc() map[string]string {
 	return map_ImageStreamTagList
 }
 
+var map_ImageTag = map[string]string{
+	"":       "ImageTag represents a single tag within an image stream and includes the spec, the status history, and the currently referenced image (if any) of the provided tag. This type replaces the ImageStreamTag by providing a full view of the tag. ImageTags are returned for every spec or status tag present on the image stream. If no tag exists in either form a not found error will be returned by the API. A create operation will succeed if no spec tag has already been defined and the spec field is set. Delete will remove both spec and status elements from the image stream.",
+	"spec":   "spec is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
+	"status": "status is the status tag details associated with this image stream tag, and it may be null if no push or import has been performed.",
+	"image":  "image is the details of the most recent image stream status tag, and it may be null if import has not completed or an administrator has deleted the image object. To verify this is the most recent image, you must verify the generation of the most recent status.items entry matches the spec tag (if a spec tag is set). This field will not be set when listing image tags.",
+}
+
+func (ImageTag) SwaggerDoc() map[string]string {
+	return map_ImageTag
+}
+
+var map_ImageTagList = map[string]string{
+	"":      "ImageTagList is a list of ImageTag objects. When listing image tags, the image field is not populated. Tags are returned in alphabetical order by image stream and then tag.",
+	"items": "Items is the list of image stream tags",
+}
+
+func (ImageTagList) SwaggerDoc() map[string]string {
+	return map_ImageTagList
+}
+
 var map_NamedTagEventList = map[string]string{
 	"":           "NamedTagEventList relates a tag to its image history.",
 	"tag":        "Tag is the tag for which the history is recorded",

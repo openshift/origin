@@ -10,6 +10,8 @@ import (
 type Interface interface {
 	// Configs returns a ConfigInformer.
 	Configs() ConfigInformer
+	// ImagePruners returns a ImagePrunerInformer.
+	ImagePruners() ImagePrunerInformer
 }
 
 type version struct {
@@ -26,4 +28,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // Configs returns a ConfigInformer.
 func (v *version) Configs() ConfigInformer {
 	return &configInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// ImagePruners returns a ImagePrunerInformer.
+func (v *version) ImagePruners() ImagePrunerInformer {
+	return &imagePrunerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

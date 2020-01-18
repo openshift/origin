@@ -44,7 +44,7 @@ func SetRecommendedHTTPServingInfoDefaults(config *configv1.HTTPServingInfo) {
 
 func SetRecommendedServingInfoDefaults(config *configv1.ServingInfo) {
 	DefaultString(&config.BindAddress, "0.0.0.0:8443")
-	DefaultString(&config.BindNetwork, "tcp4")
+	DefaultString(&config.BindNetwork, "tcp")
 	DefaultString(&config.CertInfo.KeyFile, "/var/run/secrets/serving-cert/tls.key")
 	DefaultString(&config.CertInfo.CertFile, "/var/run/secrets/serving-cert/tls.crt")
 	DefaultString(&config.ClientCA, "/var/run/configmaps/client-ca/ca-bundle.crt")

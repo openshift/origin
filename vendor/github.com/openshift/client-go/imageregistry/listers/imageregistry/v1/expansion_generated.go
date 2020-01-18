@@ -5,3 +5,7 @@ package v1
 // ConfigListerExpansion allows custom methods to be added to
 // ConfigLister.
 type ConfigListerExpansion interface{}
+
+// ImagePrunerListerExpansion allows custom methods to be added to
+// ImagePrunerLister.
+type ImagePrunerListerExpansion interface{}

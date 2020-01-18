@@ -83,9 +83,10 @@ spec:
                 etc. \n If unset, the default is based on infrastructure.config.openshift.io/cluster
                 .status.platform: \n   AWS:      LoadBalancerService (with External
                 scope)   Azure:    LoadBalancerService (with External scope)   GCP:
-                \     LoadBalancerService (with External scope)   Libvirt:  HostNetwork
-                \n Any other platform types (including None) default to HostNetwork.
-                \n endpointPublishingStrategy cannot be updated."
+                \     LoadBalancerService (with External scope)   IBMCloud: LoadBalancerService
+                (with External scope)   Libvirt:  HostNetwork \n Any other platform
+                types (including None) default to HostNetwork. \n endpointPublishingStrategy
+                cannot be updated."
               type: object
               required:
               - type
@@ -105,6 +106,10 @@ spec:
                       description: scope indicates the scope at which the load balancer
                         is exposed. Possible values are "External" and "Internal".
                       type: string
+                nodePort:
+                  description: nodePort holds parameters for the NodePortService endpoint
+                    publishing strategy. Present only if type is NodePortService.
+                  type: object
                 private:
                   description: private holds parameters for the Private endpoint publishing
                     strategy. Present only if type is Private.
@@ -129,7 +134,14 @@ spec:
                     the node ports. \n * Private \n Does not publish the ingress controller.
                     \n In this configuration, the ingress controller deployment uses
                     container networking, and is not explicitly published. The user
-                    must manually publish the ingress controller."
+                    must manually publish the ingress controller. \n * NodePortService
+                    \n Publishes the ingress controller using a Kubernetes NodePort
+                    Service. \n In this configuration, the ingress controller deployment
+                    uses container networking. A NodePort Service is created to publish
+                    the deployment. The specific node ports are dynamically allocated
+                    by OpenShift; however, to support static port allocations, user
+                    changes to the node port field of the managed NodePort Service
+                    will preserved."
                   type: string
             namespaceSelector:
               description: "namespaceSelector is used to filter the set of namespaces
@@ -276,6 +288,21 @@ spec:
                 If unset, defaults to 2.
               type: integer
               format: int32
+            routeAdmission:
+              description: "routeAdmission defines a policy for handling new route
+                claims (for example, to allow or deny claims across namespaces). \n
+                If empty, defaults will be applied. See specific routeAdmission fields
+                for details about their defaults."
+              type: object
+              properties:
+                namespaceOwnership:
+                  description: "namespaceOwnership describes how host name claims
+                    across namespaces should be handled. \n Value must be one of:
+                    \n - Strict: Do not allow routes in different namespaces to claim
+                    the same host. \n - InterNamespaceAllowed: Allow routes to claim
+                    different paths of the same   host name across namespaces. \n
+                    If empty, the default is Strict."
+                  type: string
             routeSelector:
               description: "routeSelector is used to filter the set of Routes serviced
                 by the ingress controller. This is useful for implementing shards.
@@ -477,6 +504,10 @@ spec:
                       description: scope indicates the scope at which the load balancer
                         is exposed. Possible values are "External" and "Internal".
                       type: string
+                nodePort:
+                  description: nodePort holds parameters for the NodePortService endpoint
+                    publishing strategy. Present only if type is NodePortService.
+                  type: object
                 private:
                   description: private holds parameters for the Private endpoint publishing
                     strategy. Present only if type is Private.
@@ -501,7 +532,14 @@ spec:
                     the node ports. \n * Private \n Does not publish the ingress controller.
                     \n In this configuration, the ingress controller deployment uses
                     container networking, and is not explicitly published. The user
-                    must manually publish the ingress controller."
+                    must manually publish the ingress controller. \n * NodePortService
+                    \n Publishes the ingress controller using a Kubernetes NodePort
+                    Service. \n In this configuration, the ingress controller deployment
+                    uses container networking. A NodePort Service is created to publish
+                    the deployment. The specific node ports are dynamically allocated
+                    by OpenShift; however, to support static port allocations, user
+                    changes to the node port field of the managed NodePort Service
+                    will preserved."
                   type: string
             observedGeneration:
               description: observedGeneration is the most recent generation observed.

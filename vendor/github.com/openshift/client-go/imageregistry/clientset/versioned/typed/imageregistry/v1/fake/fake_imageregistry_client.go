@@ -16,6 +16,10 @@ func (c *FakeImageregistryV1) Configs() v1.ConfigInterface {
 	return &FakeConfigs{c}
 }
 
+func (c *FakeImageregistryV1) ImagePruners() v1.ImagePrunerInterface {
+	return &FakeImagePruners{c}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeImageregistryV1) RESTClient() rest.Interface {
