@@ -3,10 +3,14 @@ package oauth
 import (
 	"context"
 	"errors"
+	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kauthenticator "k8s.io/apiserver/pkg/authentication/authenticator"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/klog"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
@@ -18,11 +22,11 @@ var errLookup = errors.New("token lookup failed")
 type tokenAuthenticator struct {
 	tokens      oauthclient.OAuthAccessTokenInterface
 	users       userclient.UserInterface
-	groupMapper UserToGroupMapper
+	groupMapper CachedUserToGroupMapper
 	validators  OAuthTokenValidator
 }
 
-func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users userclient.UserInterface, groupMapper UserToGroupMapper, validators ...OAuthTokenValidator) kauthenticator.Token {
+func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users userclient.UserInterface, groupMapper CachedUserToGroupMapper, validators ...OAuthTokenValidator) kauthenticator.Token {
 	return &tokenAuthenticator{
 		tokens:      tokens,
 		users:       users,
@@ -44,6 +48,13 @@ func (a *tokenAuthenticator) AuthenticateToken(ctx context.Context, name string)
 
 	if err := a.validators.Validate(token, user); err != nil {
 		return nil, false, err
+	}
+
+	err = wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
+		return a.groupMapper.HasSynced(), nil
+	})
+	if err != nil {
+		klog.V(5).Info("groups.user.openshift.io cache is not synchronized")
 	}
 
 	groups, err := a.groupMapper.GroupsFor(user.Name)

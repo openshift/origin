@@ -34,6 +34,11 @@ type UserToGroupMapper interface {
 	GroupsFor(username string) ([]*userv1.Group, error)
 }
 
+type CachedUserToGroupMapper interface {
+	UserToGroupMapper
+	HasSynced() bool
+}
+
 type NoopGroupMapper struct{}
 
 func (n NoopGroupMapper) GroupsFor(username string) ([]*userv1.Group, error) {
