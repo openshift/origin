@@ -2,10 +2,12 @@ package restrictusers
 
 import (
 	"fmt"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
@@ -102,6 +104,13 @@ func (ctx *RoleBindingRestrictionContext) labelSetForUser(subject rbac.Subject) 
 func (ctx *RoleBindingRestrictionContext) groupsForUser(subject rbac.Subject) ([]*userv1.Group, error) {
 	if subject.Kind != rbac.UserKind {
 		return []*userv1.Group{}, fmt.Errorf("not a user: %q", subject.Name)
+	}
+
+	err := wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
+		return ctx.groupCache.HasSynced(), nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("groups.user.openshift.io cache is not synchronized")
 	}
 
 	return ctx.groupCache.GroupsFor(subject.Name)

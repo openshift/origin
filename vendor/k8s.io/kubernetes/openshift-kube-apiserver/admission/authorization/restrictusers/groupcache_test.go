@@ -22,3 +22,7 @@ func (g fakeGroupCache) GroupsFor(user string) ([]*userv1.Group, error) {
 	}
 	return ret, nil
 }
+
+func (g fakeGroupCache) HasSynced() bool {
+	return true
+}
