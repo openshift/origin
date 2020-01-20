@@ -145,7 +145,7 @@ func writeJUnitReport(filePrefix, name string, tests []*testCase, dir string, du
 				},
 			})
 		case test.success:
-			s.NumFailed++
+			s.NumTests++
 			s.TestCases = append(s.TestCases, &JUnitTestCase{
 				Name:     test.name,
 				Duration: test.duration.Seconds(),
