@@ -123,7 +123,6 @@ func writeJUnitReport(filePrefix, name string, tests []*testCase, dir string, du
 	for _, test := range tests {
 		switch {
 		case test.skipped:
-			s.NumTests++
 			s.NumSkipped++
 			s.TestCases = append(s.TestCases, &JUnitTestCase{
 				Name:      test.name,
@@ -134,7 +133,6 @@ func writeJUnitReport(filePrefix, name string, tests []*testCase, dir string, du
 				},
 			})
 		case test.failed:
-			s.NumTests++
 			s.NumFailed++
 			s.TestCases = append(s.TestCases, &JUnitTestCase{
 				Name:      test.name,
@@ -145,12 +143,12 @@ func writeJUnitReport(filePrefix, name string, tests []*testCase, dir string, du
 				},
 			})
 		case test.success:
-			s.NumTests++
 			s.TestCases = append(s.TestCases, &JUnitTestCase{
 				Name:     test.name,
 				Duration: test.duration.Seconds(),
 			})
 		}
+		s.NumTests++
 	}
 	for _, result := range additionalResults {
 		switch {
