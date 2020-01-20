@@ -230,7 +230,7 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 	}
 
 	// ensure blocking TCP connections don't block the leader election
-	leaderConfig := rest.CopyConfig(clientConfig)
+	leaderConfig := rest.CopyConfig(protoConfig)
 	leaderConfig.Timeout = b.leaderElection.RenewDeadline.Duration
 
 	leaderElection, err := leaderelectionconverter.ToConfigMapLeaderElection(leaderConfig, *b.leaderElection, b.componentName, b.instanceIdentity)

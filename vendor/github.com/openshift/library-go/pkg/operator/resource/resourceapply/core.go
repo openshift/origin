@@ -163,8 +163,17 @@ func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Record
 
 	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 
+	caBundleInjected := required.Labels["config.openshift.io/inject-trusted-cabundle"] == "true"
+	_, newCABundleRequired := required.Data["ca-bundle.crt"]
+
 	var modifiedKeys []string
 	for existingCopyKey, existingCopyValue := range existingCopy.Data {
+		// if we're injecting a ca-bundle and the required isn't forcing the value, then don't use the value of existing
+		// to drive a diff detection. If required has set the value then we need to force the value in order to have apply
+		// behave predictably.
+		if caBundleInjected && !newCABundleRequired && existingCopyKey == "ca-bundle.crt" {
+			continue
+		}
 		if requiredValue, ok := required.Data[existingCopyKey]; !ok || (existingCopyValue != requiredValue) {
 			modifiedKeys = append(modifiedKeys, "data."+existingCopyKey)
 		}
@@ -191,6 +200,13 @@ func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Record
 	}
 	existingCopy.Data = required.Data
 	existingCopy.BinaryData = required.BinaryData
+	// if we're injecting a cabundle, and we had a previous value, and the required object isn't setting the value, then set back to the previous
+	if existingCABundle, existedBefore := existing.Data["ca-bundle.crt"]; caBundleInjected && existedBefore && !newCABundleRequired {
+		if existingCopy.Data == nil {
+			existingCopy.Data = map[string]string{}
+		}
+		existingCopy.Data["ca-bundle.crt"] = existingCABundle
+	}
 
 	actual, err := client.ConfigMaps(required.Namespace).Update(existingCopy)
 

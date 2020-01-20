@@ -17,6 +17,7 @@ type ImageV1Interface interface {
 	ImageStreamImportsGetter
 	ImageStreamMappingsGetter
 	ImageStreamTagsGetter
+	ImageTagsGetter
 }
 
 // ImageV1Client is used to interact with features provided by the image.openshift.io group.
@@ -50,6 +51,10 @@ func (c *ImageV1Client) ImageStreamMappings(namespace string) ImageStreamMapping
 
 func (c *ImageV1Client) ImageStreamTags(namespace string) ImageStreamTagInterface {
 	return newImageStreamTags(c, namespace)
+}
+
+func (c *ImageV1Client) ImageTags(namespace string) ImageTagInterface {
+	return newImageTags(c, namespace)
 }
 
 // NewForConfig creates a new ImageV1Client for the given config.

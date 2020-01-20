@@ -1,3 +1,6 @@
+// This repository is no longer maintained.
+// Development has moved to https://github.com/gonum/gonum.
+//
 package main
 
 import (

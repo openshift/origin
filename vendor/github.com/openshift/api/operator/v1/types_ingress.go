@@ -75,6 +75,7 @@ type IngressControllerSpec struct {
 	//   AWS:      LoadBalancerService (with External scope)
 	//   Azure:    LoadBalancerService (with External scope)
 	//   GCP:      LoadBalancerService (with External scope)
+	//   IBMCloud: LoadBalancerService (with External scope)
 	//   Libvirt:  HostNetwork
 	//
 	// Any other platform types (including None) default to HostNetwork.
@@ -145,6 +146,15 @@ type IngressControllerSpec struct {
 	//
 	// +optional
 	TLSSecurityProfile *configv1.TLSSecurityProfile `json:"tlsSecurityProfile,omitempty"`
+
+	// routeAdmission defines a policy for handling new route claims (for example,
+	// to allow or deny claims across namespaces).
+	//
+	// If empty, defaults will be applied. See specific routeAdmission fields
+	// for details about their defaults.
+	//
+	// +optional
+	RouteAdmission *RouteAdmissionPolicy `json:"routeAdmission,omitempty"`
 }
 
 // NodePlacement describes node scheduling configuration for an ingress
@@ -188,6 +198,9 @@ const (
 
 	// Private does not publish the ingress controller.
 	PrivateStrategyType EndpointPublishingStrategyType = "Private"
+
+	// NodePortService publishes the ingress controller using a Kubernetes NodePort Service.
+	NodePortServiceStrategyType EndpointPublishingStrategyType = "NodePortService"
 )
 
 // LoadBalancerScope is the scope at which a load balancer is exposed.
@@ -221,6 +234,10 @@ type HostNetworkStrategy struct {
 // PrivateStrategy holds parameters for the Private endpoint publishing
 // strategy.
 type PrivateStrategy struct {
+}
+
+// NodePortStrategy holds parameters for the NodePortService endpoint publishing strategy.
+type NodePortStrategy struct {
 }
 
 // EndpointPublishingStrategy is a way to publish the endpoints of an
@@ -264,6 +281,17 @@ type EndpointPublishingStrategy struct {
 	// In this configuration, the ingress controller deployment uses container
 	// networking, and is not explicitly published. The user must manually publish
 	// the ingress controller.
+	//
+	// * NodePortService
+	//
+	// Publishes the ingress controller using a Kubernetes NodePort Service.
+	//
+	// In this configuration, the ingress controller deployment uses container
+	// networking. A NodePort Service is created to publish the deployment. The
+	// specific node ports are dynamically allocated by OpenShift; however, to
+	// support static port allocations, user changes to the node port
+	// field of the managed NodePort Service will preserved.
+	//
 	// +unionDiscriminator
 	// +kubebuilder:validation:Required
 	// +required
@@ -283,7 +311,41 @@ type EndpointPublishingStrategy struct {
 	// strategy. Present only if type is Private.
 	// +optional
 	Private *PrivateStrategy `json:"private,omitempty"`
+
+	// nodePort holds parameters for the NodePortService endpoint publishing strategy.
+	// Present only if type is NodePortService.
+	// +optional
+	NodePort *NodePortStrategy `json:"nodePort,omitempty"`
 }
+
+// RouteAdmissionPolicy is an admission policy for allowing new route claims.
+type RouteAdmissionPolicy struct {
+	// namespaceOwnership describes how host name claims across namespaces should
+	// be handled.
+	//
+	// Value must be one of:
+	//
+	// - Strict: Do not allow routes in different namespaces to claim the same host.
+	//
+	// - InterNamespaceAllowed: Allow routes to claim different paths of the same
+	//   host name across namespaces.
+	//
+	// If empty, the default is Strict.
+	// +optional
+	NamespaceOwnership NamespaceOwnershipCheck `json:"namespaceOwnership,omitempty"`
+}
+
+// NamespaceOwnershipCheck is a route admission policy component that describes
+// how host name claims across namespaces should be handled.
+type NamespaceOwnershipCheck string
+
+const (
+	// InterNamespaceAllowedOwnershipCheck allows routes to claim different paths of the same host name across namespaces.
+	InterNamespaceAllowedOwnershipCheck NamespaceOwnershipCheck = "InterNamespaceAllowed"
+
+	// StrictNamespaceOwnershipCheck does not allow routes to claim the same host name across namespaces.
+	StrictNamespaceOwnershipCheck NamespaceOwnershipCheck = "Strict"
+)
 
 var (
 	// Available indicates the ingress controller deployment is available.

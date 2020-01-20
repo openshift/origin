@@ -4,6 +4,8 @@ package v1
 
 type AuthenticationExpansion interface{}
 
+type CSISnapshotControllerExpansion interface{}
+
 type ConsoleExpansion interface{}
 
 type DNSExpansion interface{}

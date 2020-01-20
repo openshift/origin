@@ -11,6 +11,7 @@ import (
 type ImageregistryV1Interface interface {
 	RESTClient() rest.Interface
 	ConfigsGetter
+	ImagePrunersGetter
 }
 
 // ImageregistryV1Client is used to interact with features provided by the imageregistry.operator.openshift.io group.
@@ -20,6 +21,10 @@ type ImageregistryV1Client struct {
 
 func (c *ImageregistryV1Client) Configs() ConfigInterface {
 	return newConfigs(c)
+}
+
+func (c *ImageregistryV1Client) ImagePruners() ImagePrunerInterface {
+	return newImagePruners(c)
 }
 
 // NewForConfig creates a new ImageregistryV1Client for the given config.

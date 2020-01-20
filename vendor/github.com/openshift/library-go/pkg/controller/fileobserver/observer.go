@@ -28,6 +28,19 @@ const (
 	FileDeleted
 )
 
+func (t ActionType) name() string {
+	switch t {
+	case FileCreated:
+		return "create"
+	case FileDeleted:
+		return "delete"
+	case FileModified:
+		return "modified"
+	default:
+		return "unknown"
+	}
+}
+
 // String returns human readable form of action taken on a file.
 func (t ActionType) String(filename string) string {
 	switch t {

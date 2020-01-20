@@ -38,6 +38,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&DNSList{},
 		&Console{},
 		&ConsoleList{},
+		&CSISnapshotController{},
+		&CSISnapshotControllerList{},
 		&Etcd{},
 		&EtcdList{},
 		&KubeAPIServer{},

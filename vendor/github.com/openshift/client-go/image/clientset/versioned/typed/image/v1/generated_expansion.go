@@ -15,3 +15,5 @@ type ImageStreamImportExpansion interface{}
 type ImageStreamMappingExpansion interface{}
 
 type ImageStreamTagExpansion interface{}
+
+type ImageTagExpansion interface{}

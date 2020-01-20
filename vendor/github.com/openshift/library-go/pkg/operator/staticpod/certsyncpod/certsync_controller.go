@@ -102,14 +102,14 @@ func (c *CertSyncController) sync() error {
 
 			// remove missing content
 			if err := os.RemoveAll(getConfigMapDir(c.destinationDir, cm.Name)); err != nil {
-				c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed removing file for configmap: %s/%s: %v", configMap.Namespace, configMap.Name, err)
+				c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed removing file for configmap: %s/%s: %v", c.namespace, cm.Name, err)
 				errors = append(errors, err)
 			}
-			c.eventRecorder.Eventf("CertificateRemoved", "Removed file for configmap: %s/%s", configMap.Namespace, configMap.Name)
+			c.eventRecorder.Eventf("CertificateRemoved", "Removed file for configmap: %s/%s", c.namespace, cm.Name)
 			continue
 
 		case err != nil:
-			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting configmap: %s/%s: %v", configMap.Namespace, configMap.Name, err)
+			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting configmap: %s/%s: %v", c.namespace, cm.Name, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -142,7 +142,7 @@ func (c *CertSyncController) sync() error {
 		configMap, err = c.configmapGetter.Get(configMap.Name, metav1.GetOptions{})
 		if err != nil {
 			// Even if the error is not exists we will act on it when caches catch up
-			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting configmap: %s/%s: %v", configMap.Namespace, configMap.Name, err)
+			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting configmap: %s/%s: %v", c.namespace, cm.Name, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -205,15 +205,15 @@ func (c *CertSyncController) sync() error {
 
 			// remove missing content
 			if err := os.RemoveAll(secretFile); err != nil {
-				c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed removing file for missing secret: %s/%s: %v", secret.Namespace, secret.Name, err)
+				c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed removing file for missing secret: %s/%s: %v", c.namespace, s.Name, err)
 				errors = append(errors, err)
 				continue
 			}
-			c.eventRecorder.Warningf("CertificateRemoved", "Removed file for missing secret: %s/%s", secret.Namespace, secret.Name)
+			c.eventRecorder.Warningf("CertificateRemoved", "Removed file for missing secret: %s/%s", c.namespace, s.Name)
 			continue
 
 		case err != nil:
-			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting secret: %s/%s: %v", secret.Namespace, secret.Name, err)
+			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting secret: %s/%s: %v", c.namespace, s.Name, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -246,7 +246,7 @@ func (c *CertSyncController) sync() error {
 		secret, err = c.secretGetter.Get(secret.Name, metav1.GetOptions{})
 		if err != nil {
 			// Even if the error is not exists we will act on it when caches catch up
-			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting secret: %s/%s: %v", secret.Namespace, secret.Name, err)
+			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting secret: %s/%s: %v", c.namespace, s.Name, err)
 			errors = append(errors, err)
 			continue
 		}
