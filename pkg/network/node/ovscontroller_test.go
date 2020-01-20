@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/util/ovs"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/containernetworking/plugins/pkg/utils/hwaddr"
@@ -956,16 +957,85 @@ func TestFindUnusedVNIDs(t *testing.T) {
 			t.Fatalf("(%d) unexpected error from AddFlow: %v", i, err)
 		}
 
-		policy := oc.FindPolicyVNIDs()
-		if !reflect.DeepEqual(policy.List(), tc.policy) {
-			t.Fatalf("(%d) wrong result for policy, expected %v, got %v", i, tc.policy, policy.List())
-		}
 		unused := oc.FindUnusedVNIDs()
 		sort.Ints(unused)
 		if !reflect.DeepEqual(unused, tc.unused) {
 			t.Fatalf("(%d) wrong result for unused, expected %v, got %v", i, tc.unused, unused)
 		}
 	}
+}
+
+func TestFindPolicyVNIDs(t *testing.T) {
+	testcases := []struct {
+		flows       []string
+		policyVNIDs sets.Int
+	}{
+		{
+			// 0 must always be present
+			flows: []string{
+				"table=80,priority=0 actions=drop",
+			},
+			policyVNIDs: sets.NewInt(0x0),
+		},
+		{
+			// Namespaces without any rule on table 80 must be present.
+			flows: []string{
+				"table=60, priority=200 actions=output:tun0",
+				"table=60, priority=0 actions=drop",
+				"table=70, priority=100,ip,nw_dst=10.129.0.52 actions=load:0x2bd973->NXM_NX_REG1[],load:0x15->NXM_NX_REG2[],goto_table:80",
+				"table=70, priority=0 actions=drop",
+				"table=80, priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
+				"table=80, priority=200,ct_state=+rpl,ip actions=output:NXM_NX_REG2[]",
+				"table=80, priority=0 actions=drop",
+			},
+			policyVNIDs: sets.NewInt(0x0, 0x2bd973),
+		},
+		{
+			// Namespaces present in table 80 must always be present, even if they don't have pods
+			flows: []string{
+				"table=80, priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
+				"table=80, priority=200,ct_state=+rpl,ip actions=output:NXM_NX_REG2[]",
+				"table=80, priority=50,reg1=0x58bb64 actions=output:NXM_NX_REG2[]",
+				"table=80, priority=0 actions=drop",
+			},
+			policyVNIDs: sets.NewInt(0x0, 0x58bb64),
+		},
+		{
+			// All tests combined
+			flows: []string{
+				"table=60, priority=200 actions=output:tun0",
+				"table=60, priority=0 actions=drop",
+				"table=70, priority=100,ip,nw_dst=10.129.0.52 actions=load:0x2bd973->NXM_NX_REG1[],load:0x15->NXM_NX_REG2[],goto_table:80",
+				"table=70, priority=100,ip,nw_dst=10.129.0.54 actions=load:0x58bb64->NXM_NX_REG1[],load:0x17->NXM_NX_REG2[],goto_table:80",
+				"table=70, priority=0 actions=drop",
+				"table=80, priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
+				"table=80, priority=200,ct_state=+rpl,ip actions=output:NXM_NX_REG2[]",
+				"table=80, priority=50,reg1=0x58bb64 actions=output:NXM_NX_REG2[]",
+				"table=80, priority=50,reg1=0x243c14 actions=output:NXM_NX_REG2[]",
+				"table=80, priority=0 actions=drop",
+			},
+			policyVNIDs: sets.NewInt(0x0, 0x2bd973, 0x58bb64, 0x243c14),
+		},
+	}
+
+	for i, tc := range testcases {
+		_, oc, _ := setupOVSController(t)
+
+		otx := oc.NewTransaction()
+		for _, flow := range tc.flows {
+			otx.AddFlow(flow)
+		}
+		if err := otx.Commit(); err != nil {
+			t.Fatalf("(%d) unexpected error from AddFlow: %v", i, err)
+		}
+
+		policyVNIDs := oc.FindPolicyVNIDs()
+
+		if !policyVNIDs.Equal(tc.policyVNIDs) {
+			t.Fatalf("(%d) wrong result for unused, expected %v, got %v", i, tc.policyVNIDs, policyVNIDs)
+		}
+	}
+
 }
 
 // Ensure that CNI's IP-addressed-based MAC addresses use the IP in the way we expect
