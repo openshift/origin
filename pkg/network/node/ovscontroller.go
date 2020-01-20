@@ -664,9 +664,11 @@ func (oc *ovsController) UpdateVXLANMulticastFlows(remoteIPs []string) error {
 
 // FindPolicyVNIDs returns the set of VNIDs for which there are currently "policy" rules
 // in OVS. (This is used to reinitialize the osdnPolicy after a restart.)
+// We also include inUseVNIDs because if a namespace has only a deny all rule
+// policyVNIDs won't include that namespace.
 func (oc *ovsController) FindPolicyVNIDs() sets.Int {
-	_, policyVNIDs := oc.findInUseAndPolicyVNIDs()
-	return policyVNIDs
+	inUseVNIDs, policyVNIDs := oc.findInUseAndPolicyVNIDs()
+	return inUseVNIDs.Union(policyVNIDs)
 }
 
 // FindUnusedVNIDs returns a list of VNIDs for which there are table 80 "policy" rules,
