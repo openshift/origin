@@ -47,7 +47,7 @@ func TestVersion(t *testing.T) {
 		t.Errorf("GoVersion(): Wrong result. Want %#v. Got %#v.", expected.GoVersion, version.Get("GoVersion"))
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "GET" {
+	if req.Method != http.MethodGet {
 		t.Errorf("Version(): wrong request method. Want GET. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/version"))
@@ -90,7 +90,24 @@ func TestInfo(t *testing.T) {
          }
        },
        "Mirrors":null
-     }
+     },
+     "SecurityOptions": [
+     	"name=apparmor",
+     	"name=seccomp",
+     	"profile=default"
+     ],
+	 "Runtimes": {
+		"runc": {
+		  "path": "docker-runc"
+		},
+		"custom": {
+		  "path": "/usr/local/bin/my-oci-runtime",
+		  "runtimeArgs": [
+		    "--debug",
+		    "--systemd-cgroup=false"
+		    ]
+		  }
+	  }
 }`
 	fakeRT := FakeRoundTripper{message: body, status: http.StatusOK}
 	client := newTestClient(&fakeRT)
@@ -117,6 +134,23 @@ func TestInfo(t *testing.T) {
 				},
 			},
 		},
+		SecurityOptions: []string{
+			"name=apparmor",
+			"name=seccomp",
+			"profile=default",
+		},
+		Runtimes: map[string]Runtime{
+			"runc": {
+				Path: "docker-runc",
+			},
+			"custom": {
+				Path: "/usr/local/bin/my-oci-runtime",
+				Args: []string{
+					"--debug",
+					"--systemd-cgroup=false",
+				},
+			},
+		},
 	}
 	info, err := client.Info()
 	if err != nil {
@@ -126,7 +160,7 @@ func TestInfo(t *testing.T) {
 		t.Errorf("Info(): Wrong result.\nWant %#v.\nGot %#v.", expected, info)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "GET" {
+	if req.Method != http.MethodGet {
 		t.Errorf("Info(): Wrong HTTP method. Want GET. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/info"))
@@ -150,7 +184,7 @@ func TestInfoError(t *testing.T) {
 
 func TestParseRepositoryTag(t *testing.T) {
 	t.Parallel()
-	var tests = []struct {
+	tests := []struct {
 		input        string
 		expectedRepo string
 		expectedTag  string
@@ -187,12 +221,16 @@ func TestParseRepositoryTag(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		repo, tag := ParseRepositoryTag(tt.input)
-		if repo != tt.expectedRepo {
-			t.Errorf("ParseRepositoryTag(%q): wrong repository. Want %q. Got %q", tt.input, tt.expectedRepo, repo)
-		}
-		if tag != tt.expectedTag {
-			t.Errorf("ParseRepositoryTag(%q): wrong tag. Want %q. Got %q", tt.input, tt.expectedTag, tag)
-		}
+		test := tt
+		t.Run(test.input, func(t *testing.T) {
+			t.Parallel()
+			repo, tag := ParseRepositoryTag(test.input)
+			if repo != test.expectedRepo {
+				t.Errorf("ParseRepositoryTag(%q): wrong repository. Want %q. Got %q", test.input, test.expectedRepo, repo)
+			}
+			if tag != test.expectedTag {
+				t.Errorf("ParseRepositoryTag(%q): wrong tag. Want %q. Got %q", test.input, test.expectedTag, tag)
+			}
+		})
 	}
 }

@@ -154,6 +154,11 @@ spec:
                   type: object
                   additionalProperties:
                     type: string
+            rolloutStrategy:
+              description: rolloutStrategy defines rollout strategy for the image
+                registry deployment.
+              type: string
+              pattern: ^(RollingUpdate|Recreate)$
             routes:
               description: routes defines additional external facing routes which
                 should be created for the registry.

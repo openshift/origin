@@ -82,6 +82,11 @@ type ImageRegistrySpec struct {
 	// tolerations defines the tolerations for the registry pod.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty" protobuf:"bytes,14,rep,name=tolerations"`
+	// rolloutStrategy defines rollout strategy for the image registry
+	// deployment.
+	// +optional
+	// +kubebuilder:validation:Pattern=`^(RollingUpdate|Recreate)$`
+	RolloutStrategy string `json:"rolloutStrategy,omitempty" protobuf:"bytes,15,opt,name=rolloutStrategy"`
 }
 
 // ImageRegistryStatus reports image registry operational status.

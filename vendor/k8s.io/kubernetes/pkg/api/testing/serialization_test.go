@@ -170,7 +170,7 @@ var nonRoundTrippableTypes = sets.NewString(
 var commonKinds = []string{"Status", "ListOptions", "DeleteOptions", "ExportOptions", "GetOptions", "CreateOptions", "UpdateOptions", "PatchOptions"}
 
 // TestCommonKindsRegistered verifies that all group/versions registered with
-// the testapi package have the common kinds.
+// the legacyscheme package have the common kinds.
 func TestCommonKindsRegistered(t *testing.T) {
 	gvs := map[schema.GroupVersion]bool{}
 	for gvk := range legacyscheme.Scheme.AllKnownTypes() {

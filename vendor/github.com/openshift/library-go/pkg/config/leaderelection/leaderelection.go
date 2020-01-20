@@ -57,10 +57,11 @@ func ToConfigMapLeaderElection(clientConfig *rest.Config, config configv1.Leader
 	}
 
 	return leaderelection.LeaderElectionConfig{
-		Lock:          rl,
-		LeaseDuration: config.LeaseDuration.Duration,
-		RenewDeadline: config.RenewDeadline.Duration,
-		RetryPeriod:   config.RetryPeriod.Duration,
+		Lock:            rl,
+		ReleaseOnCancel: true,
+		LeaseDuration:   config.LeaseDuration.Duration,
+		RenewDeadline:   config.RenewDeadline.Duration,
+		RetryPeriod:     config.RetryPeriod.Duration,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStoppedLeading: func() {
 				klog.Fatalf("leaderelection lost")

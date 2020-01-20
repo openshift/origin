@@ -3,8 +3,8 @@ package gocertifi
 import "testing"
 
 func TestGetCerts(t *testing.T) {
-	cert_pool, err := CACerts()
-	if (cert_pool == nil) || (err != nil) {
+	certPool, err := CACerts()
+	if certPool == nil || err != nil || len(certPool.Subjects()) == 0 {
 		t.Errorf("Failed to return the certificates.")
 	}
 }
