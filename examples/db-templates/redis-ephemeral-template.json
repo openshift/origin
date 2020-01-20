@@ -4,13 +4,13 @@
     "labels": {
         "template": "redis-ephemeral-template"
     },
-    "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Password: ${REDIS_PASSWORD}\n Connection URL: redis://${DATABASE_SERVICE_NAME}:6379/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.",
+    "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Password: ${REDIS_PASSWORD}\n Connection URL: redis://${DATABASE_SERVICE_NAME}:6379/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/5.",
     "metadata": {
         "annotations": {
-            "description": "Redis in-memory data structure store, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+            "description": "Redis in-memory data structure store, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/5.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
             "iconClass": "icon-redis",
             "openshift.io/display-name": "Redis (Ephemeral)",
-            "openshift.io/documentation-url": "https://github.com/sclorg/redis-container/tree/master/3.2",
+            "openshift.io/documentation-url": "https://github.com/sclorg/redis-container/tree/master/5",
             "openshift.io/long-description": "This template provides a standalone Redis server.  The data is not stored on persistent storage, so any restart of the service will result in all data being lost.",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "openshift.io/support-url": "https://access.redhat.com",
@@ -211,11 +211,11 @@
             "required": true
         },
         {
-            "description": "Version of Redis image to be used (3.2 or latest).",
+            "description": "Version of Redis image to be used (5 or latest).",
             "displayName": "Version of Redis Image",
             "name": "REDIS_VERSION",
             "required": true,
-            "value": "3.2"
+            "value": "5"
         }
     ]
 }

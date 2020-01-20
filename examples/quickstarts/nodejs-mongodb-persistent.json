@@ -449,11 +449,11 @@
             "value": "openshift"
         },
         {
-            "description": "Version of NodeJS image to be used (6, 8, or latest).",
+            "description": "Version of NodeJS image to be used (10, 12, or latest).",
             "displayName": "Version of NodeJS Image",
             "name": "NODEJS_VERSION",
             "required": true,
-            "value": "8"
+            "value": "12"
         },
         {
             "description": "Version of MongoDB image to be used (3.6 or latest).",

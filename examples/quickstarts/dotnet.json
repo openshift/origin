@@ -92,10 +92,6 @@
                                 "value": "${DOTNET_STARTUP_PROJECT}"
                             },
                             {
-                                "name": "DOTNET_SDK_VERSION",
-                                "value": "${DOTNET_SDK_VERSION}"
-                            },
-                            {
                                 "name": "DOTNET_ASSEMBLY_NAME",
                                 "value": "${DOTNET_ASSEMBLY_NAME}"
                             },
@@ -118,6 +114,14 @@
                             {
                                 "name": "DOTNET_TOOLS",
                                 "value": "${DOTNET_TOOLS}"
+                            },
+                            {
+                                "name": "DOTNET_PUBLISH_READYTORUN",
+                                "value": "${DOTNET_PUBLISH_READYTORUN}"
+                            },
+                            {
+                                "name": "DOTNET_RESTORE_CONFIGFILE",
+                                "value": "${DOTNET_RESTORE_CONFIGFILE}"
                             }
                         ],
                         "from": {
@@ -253,7 +257,7 @@
             "displayName": ".NET builder",
             "name": "DOTNET_IMAGE_STREAM_TAG",
             "required": true,
-            "value": "dotnet:2.2"
+            "value": "dotnet:3.0"
         },
         {
             "description": "The OpenShift Namespace where the ImageStream resides.",
@@ -273,7 +277,7 @@
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
             "displayName": "Git Reference",
             "name": "SOURCE_REPOSITORY_REF",
-            "value": "dotnetcore-2.2"
+            "value": "dotnetcore-3.0"
         },
         {
             "description": "Set this to use a subdirectory of the source code repository",
@@ -301,16 +305,15 @@
             "name": "GENERIC_WEBHOOK_SECRET"
         },
         {
-            "description": "Set this to configure the default SDK version. This can be set to a specific version, '' (lowest version) or 'latest' (highest version).",
-            "displayName": "SDK Version",
-            "name": "DOTNET_SDK_VERSION",
-            "value": ""
-        },
-        {
             "description": "Set this to a project file (e.g. csproj) or a folder containing a single project file.",
             "displayName": "Startup Project",
             "name": "DOTNET_STARTUP_PROJECT",
             "value": "app"
+        },
+        {
+            "description": "Set this to 'true' to perform an ahead-of-time compilation.",
+            "displayName": "Ahead-of-time compilation",
+            "name": "DOTNET_PUBLISH_READYTORUN"
         },
         {
             "description": "Set this when the assembly name is overridden in the project file.",
@@ -339,9 +342,14 @@
             "value": "Release"
         },
         {
-            "description": "Set this to override the NuGet.config sources.",
+            "description": "Set this to override the NuGet.config sources. Cannot be combined with DOTNET_RESTORE_CONFIGFILE.",
             "displayName": "NuGet package sources",
             "name": "DOTNET_RESTORE_SOURCES"
+        },
+        {
+            "description": "Set this to a Nuget.Config file. Cannot be combined with DOTNET_RESTORE_SOURCES.",
+            "displayName": "NuGet.Config file",
+            "name": "DOTNET_RESTORE_CONFIGFILE"
         }
     ]
 }

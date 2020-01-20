@@ -109,10 +109,6 @@
                                 "value": "${DOTNET_STARTUP_PROJECT}"
                             },
                             {
-                                "name": "DOTNET_SDK_VERSION",
-                                "value": "${DOTNET_SDK_VERSION}"
-                            },
-                            {
                                 "name": "DOTNET_ASSEMBLY_NAME",
                                 "value": "${DOTNET_ASSEMBLY_NAME}"
                             },
@@ -479,12 +475,6 @@
             "displayName": "Startup Project",
             "name": "DOTNET_STARTUP_PROJECT",
             "value": "samples/MusicStore"
-        },
-        {
-            "description": "Set this to configure the default SDK version. This can be set to a specific version, '' (lowest version) or 'latest' (highest version).",
-            "displayName": "SDK Version",
-            "name": "DOTNET_SDK_VERSION",
-            "value": ""
         },
         {
             "description": "Set this when the assembly name is overridden in the project file.",

@@ -4,10 +4,10 @@
     "labels": {
         "template": "mongodb-ephemeral-template"
     },
-    "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MONGODB_USER}\n       Password: ${MONGODB_PASSWORD}\n  Database Name: ${MONGODB_DATABASE}\n Connection URL: mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.",
+    "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MONGODB_USER}\n       Password: ${MONGODB_PASSWORD}\n  Database Name: ${MONGODB_DATABASE}\n Connection URL: mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}\n\nFor more information about using this template, including OpenShift considerations, see documentation in the upstream repository: https://github.com/sclorg/mongodb-container.",
     "metadata": {
         "annotations": {
-            "description": "MongoDB database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+            "description": "MongoDB database service, without persistent storage. For more information about using this template, including OpenShift considerations, see documentation in the upstream repository: https://github.com/sclorg/mongodb-container.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
             "iconClass": "icon-mongodb",
             "openshift.io/display-name": "MongoDB (Ephemeral)",
             "openshift.io/documentation-url": "https://docs.okd.io/latest/using_images/db_images/mongodb.html",
