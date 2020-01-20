@@ -166,6 +166,14 @@
 // test/extended/testdata/cluster/quickstarts/django-postgresql.json
 // test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json
 // test/extended/testdata/cluster/quickstarts/rails-postgresql.json
+// test/extended/testdata/clusterlogging/deployment/01-clo-project.yaml
+// test/extended/testdata/clusterlogging/deployment/01-eo-project.yaml
+// test/extended/testdata/clusterlogging/deployment/02-clo-og.yaml
+// test/extended/testdata/clusterlogging/deployment/02-eo-og.yaml
+// test/extended/testdata/clusterlogging/deployment/04-clo-sub.yaml
+// test/extended/testdata/clusterlogging/deployment/04-eo-rbac.yaml
+// test/extended/testdata/clusterlogging/deployment/05-eo-sub.yaml
+// test/extended/testdata/clusterlogging/instances/example.yaml
 // test/extended/testdata/cmd/hack/lib/cmd.sh
 // test/extended/testdata/cmd/hack/lib/compress.awk
 // test/extended/testdata/cmd/hack/lib/constants.sh
@@ -27820,6 +27828,257 @@ func testExtendedTestdataClusterQuickstartsRailsPostgresqlJson() (*asset, error)
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cluster/quickstarts/rails-postgresql.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterloggingDeployment01CloProjectYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-logging
+  annotations:
+    openshift.io/node-selector: ""
+  labels:
+    openshift.io/cluster-logging: "true"
+    openshift.io/cluster-monitoring: "true"
+`)
+
+func testExtendedTestdataClusterloggingDeployment01CloProjectYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterloggingDeployment01CloProjectYaml, nil
+}
+
+func testExtendedTestdataClusterloggingDeployment01CloProjectYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterloggingDeployment01CloProjectYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/clusterlogging/deployment/01-clo-project.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterloggingDeployment01EoProjectYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-operators-redhat
+  annotations:
+    openshift.io/node-selector: ""
+  labels:
+    openshift.io/cluster-logging: "true"
+    openshift.io/cluster-monitoring: "true"
+`)
+
+func testExtendedTestdataClusterloggingDeployment01EoProjectYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterloggingDeployment01EoProjectYaml, nil
+}
+
+func testExtendedTestdataClusterloggingDeployment01EoProjectYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterloggingDeployment01EoProjectYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/clusterlogging/deployment/01-eo-project.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterloggingDeployment02CloOgYaml = []byte(`apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  generateName: openshift-logging-
+  namespace: openshift-logging
+  labels:
+    og_label: openshift-logging
+spec:
+  targetNamespaces:
+  - openshift-logging
+`)
+
+func testExtendedTestdataClusterloggingDeployment02CloOgYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterloggingDeployment02CloOgYaml, nil
+}
+
+func testExtendedTestdataClusterloggingDeployment02CloOgYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterloggingDeployment02CloOgYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/clusterlogging/deployment/02-clo-og.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterloggingDeployment02EoOgYaml = []byte(`apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  generateName: openshift-operators-redhat-
+  namespace: openshift-operators-redhat
+  spec: {}
+`)
+
+func testExtendedTestdataClusterloggingDeployment02EoOgYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterloggingDeployment02EoOgYaml, nil
+}
+
+func testExtendedTestdataClusterloggingDeployment02EoOgYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterloggingDeployment02EoOgYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/clusterlogging/deployment/02-eo-og.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterloggingDeployment04CloSubYaml = []byte(`apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: cluster-logging-operator
+  namespace: openshift-logging
+spec:
+  channel: preview
+  installPlanApproval: Automatic
+  name: cluster-logging
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+`)
+
+func testExtendedTestdataClusterloggingDeployment04CloSubYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterloggingDeployment04CloSubYaml, nil
+}
+
+func testExtendedTestdataClusterloggingDeployment04CloSubYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterloggingDeployment04CloSubYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/clusterlogging/deployment/04-clo-sub.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterloggingDeployment04EoRbacYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: prometheus-k8s
+  namespace: openshift-operators-redhat
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - endpoints
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-k8s
+  namespace: openshift-operators-redhat
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: prometheus-k8s
+subjects:
+- kind: ServiceAccount
+  name: prometheus-k8s
+namespace: openshift-operators-redhat
+`)
+
+func testExtendedTestdataClusterloggingDeployment04EoRbacYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterloggingDeployment04EoRbacYaml, nil
+}
+
+func testExtendedTestdataClusterloggingDeployment04EoRbacYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterloggingDeployment04EoRbacYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/clusterlogging/deployment/04-eo-rbac.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterloggingDeployment05EoSubYaml = []byte(`apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: elasticsearch-operator
+  namespace: openshift-operators-redhat
+spec:
+  channel: preview
+  installPlanApproval: Automatic
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  name: elasticsearch-operator
+`)
+
+func testExtendedTestdataClusterloggingDeployment05EoSubYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterloggingDeployment05EoSubYaml, nil
+}
+
+func testExtendedTestdataClusterloggingDeployment05EoSubYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterloggingDeployment05EoSubYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/clusterlogging/deployment/05-eo-sub.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterloggingInstancesExampleYaml = []byte(`apiVersion: "logging.openshift.io/v1"
+kind: "ClusterLogging"
+metadata:
+  name: "instance"
+  namespace: openshift-logging
+spec:
+  managementState: "Managed"
+  logStore:
+    type: "elasticsearch"
+    elasticsearch:
+      nodeCount: 1
+      resources:
+        requests:
+          cpu: 400m
+          memory: 2Gi
+      storage: {}
+      redundancyPolicy: "ZeroRedundancy"
+  visualization:
+    type: "kibana"
+    kibana:
+      replicas: 1
+  curation:
+    type: "curator"
+    curator:
+      schedule: "*/10 * * * *"
+  collection:
+    logs:
+      type: "fluentd"
+      fluentd: {}
+`)
+
+func testExtendedTestdataClusterloggingInstancesExampleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterloggingInstancesExampleYaml, nil
+}
+
+func testExtendedTestdataClusterloggingInstancesExampleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterloggingInstancesExampleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/clusterlogging/instances/example.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -58420,6 +58679,14 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cluster/quickstarts/django-postgresql.json": testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson,
 	"test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json": testExtendedTestdataClusterQuickstartsNodejsMongodbJson,
 	"test/extended/testdata/cluster/quickstarts/rails-postgresql.json": testExtendedTestdataClusterQuickstartsRailsPostgresqlJson,
+	"test/extended/testdata/clusterlogging/deployment/01-clo-project.yaml": testExtendedTestdataClusterloggingDeployment01CloProjectYaml,
+	"test/extended/testdata/clusterlogging/deployment/01-eo-project.yaml": testExtendedTestdataClusterloggingDeployment01EoProjectYaml,
+	"test/extended/testdata/clusterlogging/deployment/02-clo-og.yaml": testExtendedTestdataClusterloggingDeployment02CloOgYaml,
+	"test/extended/testdata/clusterlogging/deployment/02-eo-og.yaml": testExtendedTestdataClusterloggingDeployment02EoOgYaml,
+	"test/extended/testdata/clusterlogging/deployment/04-clo-sub.yaml": testExtendedTestdataClusterloggingDeployment04CloSubYaml,
+	"test/extended/testdata/clusterlogging/deployment/04-eo-rbac.yaml": testExtendedTestdataClusterloggingDeployment04EoRbacYaml,
+	"test/extended/testdata/clusterlogging/deployment/05-eo-sub.yaml": testExtendedTestdataClusterloggingDeployment05EoSubYaml,
+	"test/extended/testdata/clusterlogging/instances/example.yaml": testExtendedTestdataClusterloggingInstancesExampleYaml,
 	"test/extended/testdata/cmd/hack/lib/cmd.sh": testExtendedTestdataCmdHackLibCmdSh,
 	"test/extended/testdata/cmd/hack/lib/compress.awk": testExtendedTestdataCmdHackLibCompressAwk,
 	"test/extended/testdata/cmd/hack/lib/constants.sh": testExtendedTestdataCmdHackLibConstantsSh,
@@ -59029,6 +59296,20 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"django-postgresql.json": &bintree{testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson, map[string]*bintree{}},
 						"nodejs-mongodb.json": &bintree{testExtendedTestdataClusterQuickstartsNodejsMongodbJson, map[string]*bintree{}},
 						"rails-postgresql.json": &bintree{testExtendedTestdataClusterQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
+					}},
+				}},
+				"clusterlogging": &bintree{nil, map[string]*bintree{
+					"deployment": &bintree{nil, map[string]*bintree{
+						"01-clo-project.yaml": &bintree{testExtendedTestdataClusterloggingDeployment01CloProjectYaml, map[string]*bintree{}},
+						"01-eo-project.yaml": &bintree{testExtendedTestdataClusterloggingDeployment01EoProjectYaml, map[string]*bintree{}},
+						"02-clo-og.yaml": &bintree{testExtendedTestdataClusterloggingDeployment02CloOgYaml, map[string]*bintree{}},
+						"02-eo-og.yaml": &bintree{testExtendedTestdataClusterloggingDeployment02EoOgYaml, map[string]*bintree{}},
+						"04-clo-sub.yaml": &bintree{testExtendedTestdataClusterloggingDeployment04CloSubYaml, map[string]*bintree{}},
+						"04-eo-rbac.yaml": &bintree{testExtendedTestdataClusterloggingDeployment04EoRbacYaml, map[string]*bintree{}},
+						"05-eo-sub.yaml": &bintree{testExtendedTestdataClusterloggingDeployment05EoSubYaml, map[string]*bintree{}},
+					}},
+					"instances": &bintree{nil, map[string]*bintree{
+						"example.yaml": &bintree{testExtendedTestdataClusterloggingInstancesExampleYaml, map[string]*bintree{}},
 					}},
 				}},
 				"cmd": &bintree{nil, map[string]*bintree{
