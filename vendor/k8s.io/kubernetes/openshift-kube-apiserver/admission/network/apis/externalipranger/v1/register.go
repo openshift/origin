@@ -1,9 +1,9 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/restrictedendpoints"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger"
 )
 
 var GroupVersion = schema.GroupVersion{Group: "network.openshift.io", Version: "v1"}
@@ -11,7 +11,7 @@ var GroupVersion = schema.GroupVersion{Group: "network.openshift.io", Version: "
 var (
 	schemeBuilder = runtime.NewSchemeBuilder(
 		addKnownTypes,
-		restrictedendpoints.Install,
+		externalipranger.Install,
 	)
 	Install = schemeBuilder.AddToScheme
 )
