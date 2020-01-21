@@ -16518,7 +16518,7 @@ objects:
           value: ${NPM_MIRROR}
         from:
           kind: ImageStreamTag
-          name: nodejs:8
+          name: nodejs:12
           namespace: ${NAMESPACE}
       type: Source
     triggers:
@@ -17519,7 +17519,7 @@ objects:
           value: ${NPM_MIRROR}
         from:
           kind: ImageStreamTag
-          name: nodejs:8
+          name: nodejs:12
           namespace: ${NAMESPACE}
       type: Source
     triggers:
