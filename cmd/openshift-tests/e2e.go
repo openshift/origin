@@ -29,7 +29,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Only the portion of the openshift/conformance test suite that run in parallel.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/conformance/parallel")
+			return strings.Contains(name, "[Suite:openshift/conformance/parallel") && !strings.Contains(name, "[Suite:openshift/isv")
 		},
 		Parallelism:          30,
 		MaximumAllowedFlakes: 15,
@@ -154,6 +154,17 @@ var staticSuites = []*ginkgo.TestSuite{
 		Parallelism: 30,
 		Count:       15,
 		TestTimeout: 20 * time.Minute,
+	},
+	{
+		Name: "openshift/isv",
+		Description: templates.LongDesc(`
+		This test suite verifies the Operators execution on Openshift
+		`),
+		Matches: func(name string) bool {
+			return strings.Contains(name, "[Suite:openshift/isv]")
+		},
+		Parallelism: 5,
+		TestTimeout: 60 * time.Minute,
 	},
 	{
 		Name: "all",

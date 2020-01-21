@@ -240,7 +240,7 @@ func (r *ginkgoTestRenamer) maybeRenameTest(name string, node types.TestNode) {
 		}
 	}
 
-	if !r.excludedTestsFilter.MatchString(name) {
+	if !r.excludedTestsFilter.MatchString(name) && !strings.Contains(name, "openshift/isv") {
 		isSerial := strings.Contains(name, "[Serial]")
 		isConformance := strings.Contains(name, "[Conformance]")
 		switch {
@@ -554,6 +554,9 @@ var (
 		},
 		"[Suite:openshift/csi]": {
 			`External Storage \[Driver:`,
+		},
+		"[Suite:openshift/isv]": {
+			`\[Suite:openshift/isv\]`,
 		},
 	}
 

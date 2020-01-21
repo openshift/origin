@@ -384,6 +384,8 @@
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json
 // test/extended/testdata/imagestream-jenkins-slave-pods.yaml
 // test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml
+// test/extended/testdata/isv/operator_group.yaml
+// test/extended/testdata/isv/subscription.yaml
 // test/extended/testdata/jenkins-plugin/build-job-clone.xml
 // test/extended/testdata/jenkins-plugin/build-job-slave.xml
 // test/extended/testdata/jenkins-plugin/build-job.xml
@@ -50875,6 +50877,57 @@ func testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataIsvOperator_groupYaml = []byte(`apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: test-operators
+spec:
+  targetNamespaces:
+  - $OPERATOR_NAMESPACE`)
+
+func testExtendedTestdataIsvOperator_groupYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataIsvOperator_groupYaml, nil
+}
+
+func testExtendedTestdataIsvOperator_groupYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataIsvOperator_groupYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/isv/operator_group.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataIsvSubscriptionYaml = []byte(`apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: $OPERATOR_PACKAGE_NAME
+  namespace: $OPERATOR_NAMESPACE
+spec:
+  channel: $OPERATOR_CHANNEL
+  installPlanApproval: Automatic
+  name: $OPERATOR_PACKAGE_NAME
+  source: $OPERATOR_SOURCE
+  sourceNamespace: $OPERATOR_CATALOG_NAMESPACE
+  startingCSV: $OPERATOR_CURRENT_CSV_VERSION`)
+
+func testExtendedTestdataIsvSubscriptionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataIsvSubscriptionYaml, nil
+}
+
+func testExtendedTestdataIsvSubscriptionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataIsvSubscriptionYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/isv/subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataJenkinsPluginBuildJobCloneXml = []byte(`<?xml version='1.0' encoding='UTF-8'?>                                                                                                                                                                                                                         
 <flow-definition plugin="workflow-job@2.8">                                                                                                                                                                                                                    
   <actions/>                                                                                                                                                                                                                                                   
@@ -58638,6 +58691,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json": testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
 	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
 	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
+	"test/extended/testdata/isv/operator_group.yaml": testExtendedTestdataIsvOperator_groupYaml,
+	"test/extended/testdata/isv/subscription.yaml": testExtendedTestdataIsvSubscriptionYaml,
 	"test/extended/testdata/jenkins-plugin/build-job-clone.xml": testExtendedTestdataJenkinsPluginBuildJobCloneXml,
 	"test/extended/testdata/jenkins-plugin/build-job-slave.xml": testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
 	"test/extended/testdata/jenkins-plugin/build-job.xml": testExtendedTestdataJenkinsPluginBuildJobXml,
@@ -59351,6 +59406,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"imagestream-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"imagestreamtag-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, map[string]*bintree{}},
+				"isv": &bintree{nil, map[string]*bintree{
+					"operator_group.yaml": &bintree{testExtendedTestdataIsvOperator_groupYaml, map[string]*bintree{}},
+					"subscription.yaml": &bintree{testExtendedTestdataIsvSubscriptionYaml, map[string]*bintree{}},
+				}},
 				"jenkins-plugin": &bintree{nil, map[string]*bintree{
 					"build-job-clone.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobCloneXml, map[string]*bintree{}},
 					"build-job-slave.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobSlaveXml, map[string]*bintree{}},
