@@ -329,7 +329,6 @@ var _ = g.Describe("[cli] oc explain", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
-	crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 
 	g.It("should contain spec+status for builtinTypes", func() {
 		for _, bt := range builtinTypes {
@@ -341,6 +340,7 @@ var _ = g.Describe("[cli] oc explain", func() {
 	g.It("should contain proper spec+status for CRDs", func() {
 		for _, ct := range crdTypes {
 			e2e.Logf("Checking %s...", ct)
+			crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 			o.Expect(verifyCRDSpecStatusExplain(oc, crdClient, ct)).NotTo(o.HaveOccurred())
 		}
 	})
