@@ -359,7 +359,7 @@ var (
 			`\[Feature:DynamicAudit\]`,                                              // off by default.  sig-master
 
 			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
-			`\[Feature:IPv6DualStack.*\]`,
+			`\[Feature:IPv6DualStack`,
 			`version v1 should create Endpoints and EndpointSlices for Pods matching a Service`, // off by default.
 		},
 		// tests for features that are not implemented in openshift
@@ -374,10 +374,13 @@ var (
 			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
 			`\[Feature:RuntimeClass\]`,        // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
 
-			`NetworkPolicy.*egress`,     // not supported
-			`NetworkPolicy.*named port`, // not yet implemented
-			`enforce egress policy`,     // not support
-			`should proxy to cadvisor`,  // we don't expose cAdvisor port directly for security reasons
+			`NetworkPolicy between server and client should allow egress`,                                          // not supported
+			`NetworkPolicy between server and client should enforce egress`,                                        // not supported
+			`NetworkPolicy between server and client should enforce multiple egress`,                               // not supported
+			`NetworkPolicy between server and client should enforce policies to check ingress and egress`,          // not supported
+			`NetworkPolicy between server and client should allow ingress access from namespace on one named port`, // not yet implemented
+
+			`should proxy to cadvisor`, // we don't expose cAdvisor port directly for security reasons
 		},
 		// tests that rely on special configuration that we do not yet support
 		"[Disabled:SpecialConfig]": {
