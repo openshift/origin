@@ -364,12 +364,14 @@ func InitISCSIDriver() testsuites.TestDriver {
 				//"ext3",
 				"ext4",
 			),
+			TopologyKeys: []string{v1.LabelHostname},
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapBlock:       true,
 				testsuites.CapExec:        true,
 				testsuites.CapMultiPODs:   true,
+				testsuites.CapTopology:    true,
 			},
 		},
 	}
@@ -709,10 +711,12 @@ func InitHostPathDriver() testsuites.TestDriver {
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
+			TopologyKeys: []string{v1.LabelHostname},
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence:      true,
 				testsuites.CapMultiPODs:        true,
 				testsuites.CapSingleNodeVolume: true,
+				testsuites.CapTopology:         true,
 			},
 		},
 	}
@@ -784,10 +788,12 @@ func InitHostPathSymlinkDriver() testsuites.TestDriver {
 			SupportedFsType: sets.NewString(
 				"", // Default fsType
 			),
+			TopologyKeys: []string{v1.LabelHostname},
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence:      true,
 				testsuites.CapMultiPODs:        true,
 				testsuites.CapSingleNodeVolume: true,
+				testsuites.CapTopology:         true,
 			},
 		},
 	}
@@ -998,6 +1004,7 @@ func InitCinderDriver() testsuites.TestDriver {
 				"", // Default fsType
 				"ext3",
 			),
+			TopologyKeys: []string{v1.LabelZoneFailureDomain},
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
@@ -1006,6 +1013,7 @@ func InitCinderDriver() testsuites.TestDriver {
 				// Cinder supports volume limits, but the test creates large
 				// number of volumes and times out test suites.
 				testsuites.CapVolumeLimits: false,
+				testsuites.CapTopology:     true,
 			},
 		},
 	}
@@ -1305,11 +1313,13 @@ func InitVSphereDriver() testsuites.TestDriver {
 				"", // Default fsType
 				"ext4",
 			),
+			TopologyKeys: []string{v1.LabelZoneFailureDomain},
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
 				testsuites.CapExec:        true,
 				testsuites.CapMultiPODs:   true,
+				testsuites.CapTopology:    true,
 			},
 		},
 	}
@@ -1427,6 +1437,7 @@ func InitAzureDriver() testsuites.TestDriver {
 				"", // Default fsType
 				"ext4",
 			),
+			TopologyKeys: []string{v1.LabelZoneFailureDomain},
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapFsGroup:     true,
@@ -1436,6 +1447,7 @@ func InitAzureDriver() testsuites.TestDriver {
 				// Azure supports volume limits, but the test creates large
 				// number of volumes and times out test suites.
 				testsuites.CapVolumeLimits: false,
+				testsuites.CapTopology:     true,
 			},
 		},
 	}
@@ -1566,6 +1578,7 @@ func InitAwsDriver() testsuites.TestDriver {
 				"ntfs",
 			),
 			SupportedMountOption: sets.NewString("debug", "nouid32"),
+			TopologyKeys:         []string{v1.LabelZoneFailureDomain},
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence:         true,
 				testsuites.CapFsGroup:             true,
@@ -1577,6 +1590,7 @@ func InitAwsDriver() testsuites.TestDriver {
 				// AWS supports volume limits, but the test creates large
 				// number of volumes and times out test suites.
 				testsuites.CapVolumeLimits: false,
+				testsuites.CapTopology:     true,
 			},
 		},
 	}
