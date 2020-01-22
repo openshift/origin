@@ -17,10 +17,17 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const (
-	maxPrometheusQueryAttempts = 5
-	prometheusQueryRetrySleep  = 10 * time.Second
-)
+type config struct {
+	maxAttempts      int
+	successThreshold int
+	retrySleep       time.Duration
+}
+
+var defaultConfig = config{
+	maxAttempts:      5,
+	successThreshold: 1,
+	retrySleep:       10 * time.Second,
+}
 
 var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 	defer g.GinkgoRecover()
@@ -57,12 +64,12 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			// allow for some retry, a la prometheus.go and its initial hitting of the metrics endpoint after
 			// instantiating prometheus tempalte
 			var err error
-			for i := 0; i < maxPrometheusQueryAttempts; i++ {
+			for i := 0; i < defaultConfig.maxAttempts; i++ {
 				err = expectURLStatusCodeExec(ns, execPod.Name, url, 403)
 				if err == nil {
 					break
 				}
-				time.Sleep(prometheusQueryRetrySleep)
+				time.Sleep(defaultConfig.retrySleep)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -83,7 +90,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			terminalTests := map[string]bool{
 				buildCountMetricName: true,
 			}
-			runQueries(terminalTests, oc, ns, execPod.Name, url, bearerToken)
+			runQueries(defaultConfig, terminalTests, oc, ns, execPod.Name, url, bearerToken)
 
 			// NOTE:  in manual testing on a laptop, starting several serial builds in succession was sufficient for catching
 			// at least a few builds in new/pending state with the default prometheus query interval;  but that has not
@@ -103,13 +110,13 @@ type prometheusResponseData struct {
 	Result     model.Vector `json:"result"`
 }
 
-func runQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
+func runQueries(cfg config, promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
 	// expect all correct metrics within a reasonable time period
 	queryErrors := make(map[string]error)
-	passed := make(map[string]struct{})
-	for i := 0; i < maxPrometheusQueryAttempts; i++ {
+	passed := make(map[string]int)
+	for i := 0; i < cfg.maxAttempts; i++ {
 		for query, expected := range promQueries {
-			if _, ok := passed[query]; ok {
+			if successCount, ok := passed[query]; ok && successCount >= cfg.successThreshold {
 				continue
 			}
 			//TODO when the http/query apis discussed at https://github.com/prometheus/client_golang#client-for-the-prometheus-http-api
@@ -146,15 +153,18 @@ func runQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 				continue
 			}
 
-			// query successful
-			passed[query] = struct{}{}
+			successCount := 1
+			if count, ok := passed[query]; ok {
+				successCount = count + 1
+			}
+			passed[query] = successCount
 			delete(queryErrors, query)
 		}
 
 		if len(queryErrors) == 0 {
 			break
 		}
-		time.Sleep(prometheusQueryRetrySleep)
+		time.Sleep(cfg.retrySleep)
 	}
 
 	if len(queryErrors) != 0 {

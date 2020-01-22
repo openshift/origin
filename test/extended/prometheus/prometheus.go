@@ -80,7 +80,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				// should have scraped some metrics from prometheus
 				`federate_samples{job="telemeter-client"} >= 10`: true,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			runQueries(defaultConfig, tests, oc, ns, execPod.Name, url, bearerToken)
 
 			e2e.Logf("Telemetry is enabled: %s", bearerToken)
 		})
@@ -180,7 +180,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				// should have constantly firing a watchdog alert
 				`ALERTS{alertstate="firing",alertname="Watchdog",severity="none"} == 1`: true,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			runQueries(defaultConfig, tests, oc, ns, execPod.Name, url, bearerToken)
 
 			e2e.Logf("Watchdog alert is firing")
 		})
@@ -205,7 +205,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				`sum(node_role_os_version_machine:cpu_capacity_cores:sum{label_kubernetes_io_arch!="",label_node_role_kubernetes_io_master!=""}) > 0`:                                      true,
 				`sum(node_role_os_version_machine:cpu_capacity_sockets:sum{label_kubernetes_io_arch!="",label_node_hyperthread_enabled!="",label_node_role_kubernetes_io_master!=""}) > 0`: true,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			runQueries(defaultConfig, tests, oc, ns, execPod.Name, url, bearerToken)
 		})
 		g.It("should have non-Pod host cAdvisor metrics", func() {
 			oc.SetupProject()
@@ -216,7 +216,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			tests := map[string]bool{
 				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"} >= 1`: true,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			runQueries(defaultConfig, tests, oc, ns, execPod.Name, url, bearerToken)
 		})
 		g.It("shouldn't have failing rules evaluation", func() {
 			oc.SetupProject()
@@ -227,7 +227,23 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			tests := map[string]bool{
 				`prometheus_rule_evaluation_failures_total >= 1`: false,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			runQueries(defaultConfig, tests, oc, ns, execPod.Name, url, bearerToken)
+		})
+		g.It("shouldn't experience cardinality explosion", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string]bool{
+				`sum(rate(prometheus_tsdb_head_series_created_total[1m]))>0`: false,
+			}
+			cfg := config{
+				maxAttempts:      100,
+				successThreshold: 10,
+				retrySleep:       defaultConfig.retrySleep,
+			}
+			runQueries(cfg, tests, oc, ns, execPod.Name, url, bearerToken)
 		})
 		networking.InOpenShiftSDNContext(func() {
 			g.It("should be able to get the sdn ovs flows", func() {
@@ -240,7 +256,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					//something
 					`openshift_sdn_ovs_flows >= 1`: true,
 				}
-				runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+				runQueries(defaultConfig, tests, oc, ns, execPod.Name, url, bearerToken)
 			})
 		})
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured", func() {
@@ -256,7 +272,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 				`ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|PrometheusRemoteWriteDesiredShards",alertstate="firing"} >= 1`: false,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			runQueries(defaultConfig, tests, oc, ns, execPod.Name, url, bearerToken)
 		})
 		g.It("should provide ingress metrics", func() {
 			oc.SetupProject()
@@ -291,7 +307,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				`template_router_reload_seconds_count{job="router-internal-default"} >= 1`: true,
 				`haproxy_server_up{job="router-internal-default"} >= 1`:                    true,
 			}
-			runQueries(queries, oc, ns, execPod.Name, url, bearerToken)
+			runQueries(defaultConfig, queries, oc, ns, execPod.Name, url, bearerToken)
 		})
 	})
 })
