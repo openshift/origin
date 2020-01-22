@@ -288,7 +288,6 @@ func initProvider(provider string, dryRun bool) error {
 		return err
 	}
 
-	exutil.AnnotateTestSuite()
 	err := exutil.InitTest(dryRun)
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
