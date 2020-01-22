@@ -134,6 +134,7 @@ func newRunCommand() *cobra.Command {
 		},
 	}
 	bindOptions(opt, cmd.Flags())
+	bindE2EOptions(cmd.Flags())
 	return cmd
 }
 
@@ -199,6 +200,7 @@ func newRunUpgradeCommand() *cobra.Command {
 
 	bindOptions(opt, cmd.Flags())
 	bindUpgradeOptions(upgradeOpt, cmd.Flags())
+	bindE2EOptions(cmd.Flags())
 	return cmd
 }
 
@@ -234,6 +236,7 @@ func newRunTestCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&testOpt.DryRun, "dry-run", testOpt.DryRun, "Print the test to run without executing them.")
+	bindE2EOptions(cmd.Flags())
 	return cmd
 }
 
@@ -273,6 +276,11 @@ func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.IntVar(&opt.Count, "count", opt.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value.")
 	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
+}
+
+func bindE2EOptions(flags *pflag.FlagSet) {
+	flags.BoolVar(&e2e.TestContext.DeleteNamespace, "delete-namespace", true, "If true tests will delete namespace after completion. It is only designed to make debugging easier, DO NOT turn it off by default.")
+	flags.BoolVar(&e2e.TestContext.DeleteNamespaceOnFailure, "delete-namespace-on-failure", true, "If true, framework will delete test namespace on failure. Used only during test debugging.")
 }
 
 func initProvider(provider string, dryRun bool) error {
