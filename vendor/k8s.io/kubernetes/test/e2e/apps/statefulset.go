@@ -100,7 +100,7 @@ var _ = SIGDescribe("StatefulSet", func() {
 		ginkgo.It("should provide basic identity", func() {
 			ginkgo.By("Creating statefulset " + ssName + " in namespace " + ns)
 			e2epv.SkipIfNoDefaultStorageClass(c)
-			*(ss.Spec.Replicas) = 3
+			*(ss.Spec.Replicas) = 2
 			e2esset.PauseNewPods(ss)
 
 			_, err := c.AppsV1().StatefulSets(ns).Create(ss)
@@ -260,7 +260,7 @@ var _ = SIGDescribe("StatefulSet", func() {
 		ginkgo.It("should perform rolling updates and roll backs of template modifications with PVCs", func() {
 			ginkgo.By("Creating a new StatefulSet with PVCs")
 			e2epv.SkipIfNoDefaultStorageClass(c)
-			*(ss.Spec.Replicas) = 3
+			*(ss.Spec.Replicas) = 2
 			rollbackTest(c, ns, ss)
 		})
 
