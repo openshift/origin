@@ -21,3 +21,5 @@ DriverInfo:
     block: true
     exec: true
     volumeLimits: false
+    controllerExpansion: true
+    nodeExpansion: true
