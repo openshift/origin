@@ -6,6 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+func (obj *RestrictedEndpointsAdmissionConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
+
 var GroupVersion = schema.GroupVersion{Group: "network.openshift.io", Version: "v1"}
 
 var (
