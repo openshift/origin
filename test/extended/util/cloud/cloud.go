@@ -6,46 +6,66 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/extended/util/azure"
 )
 
+type ClusterConfiguration struct {
+	ProviderName string
+
+	// These fields chosen to match the e2e configuration we fill
+	ProjectID       string
+	Region          string
+	Zone            string
+	NumNodes        int
+	MultiMaster     bool
+	MultiZone       bool
+	CloudConfigFile string
+
+	NetworkPlugin string
+}
+
 // LoadConfig uses the cluster to setup the cloud provider config.
-func LoadConfig() (string, *e2e.CloudConfig, error) {
+func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 	// LoadClientset but don't set the UserAgent to include the current test name because
 	// we don't run any test yet and this call panics
-	coreClient, err := e2e.LoadClientset(true)
+	coreClient, err := clientset.NewForConfig(clientConfig)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
-	// LoadConfig but don't set the UserAgent to include the current test name because
-	// we don't run any test yet and this call panics
-	clientConfig, err := e2e.LoadConfig(true)
+	client, err := configclient.NewForConfig(clientConfig)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
-	client := configclient.NewForConfigOrDie(clientConfig)
+
+	var networkPlugin string
+	if networkConfig, err := client.ConfigV1().Networks().Get("cluster", metav1.GetOptions{}); err == nil {
+		networkPlugin = networkConfig.Spec.NetworkType
+	}
 
 	infra, err := client.ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	p := infra.Status.PlatformStatus
 	if p == nil {
-		return "", nil, fmt.Errorf("status.platformStatus must be set")
+		return nil, fmt.Errorf("status.platformStatus must be set")
 	}
 	if p.Type == configv1.NonePlatformType {
-		return "", nil, nil
+		return &ClusterConfiguration{
+			NetworkPlugin: networkPlugin,
+		}, nil
 	}
 
 	masters, err := coreClient.CoreV1().Nodes().List(metav1.ListOptions{
 		LabelSelector: "node-role.kubernetes.io/master=",
 	})
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	zones := sets.NewString()
 	for _, node := range masters.Items {
@@ -57,50 +77,50 @@ func LoadConfig() (string, *e2e.CloudConfig, error) {
 		LabelSelector: "!node-role.kubernetes.io/master",
 	})
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
-	cloudConfig := &e2e.CloudConfig{
-		MultiMaster: len(masters.Items) > 1,
-		MultiZone:   zones.Len() > 1,
+	config := &ClusterConfiguration{
+		MultiMaster:   len(masters.Items) > 1,
+		MultiZone:     zones.Len() > 1,
+		NetworkPlugin: networkPlugin,
 	}
 	if zones.Len() > 0 {
-		cloudConfig.Zone = zones.List()[0]
+		config.Zone = zones.List()[0]
 	}
 	if len(nonMasters.Items) == 0 {
-		cloudConfig.NumNodes = len(nonMasters.Items)
+		config.NumNodes = len(nonMasters.Items)
 	} else {
-		cloudConfig.NumNodes = len(masters.Items)
+		config.NumNodes = len(masters.Items)
 	}
 
-	var provider string
 	switch {
 	case p.AWS != nil:
-		provider = "aws"
-		cloudConfig.Region = p.AWS.Region
+		config.ProviderName = "aws"
+		config.Region = p.AWS.Region
 
 	case p.GCP != nil:
-		provider = "gce"
-		cloudConfig.ProjectID = p.GCP.ProjectID
-		cloudConfig.Region = p.GCP.Region
+		config.ProviderName = "gce"
+		config.ProjectID = p.GCP.ProjectID
+		config.Region = p.GCP.Region
 
 	case p.Azure != nil:
-		provider = "azure"
+		config.ProviderName = "azure"
 
 		data, err := azure.LoadConfigFile()
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 		tmpFile, err := ioutil.TempFile("", "e2e-*")
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 		tmpFile.Close()
 		if err := ioutil.WriteFile(tmpFile.Name(), data, 0600); err != nil {
-			return "", nil, err
+			return nil, err
 		}
-		cloudConfig.ConfigFile = tmpFile.Name()
+		config.CloudConfigFile = tmpFile.Name()
 	}
 
-	return provider, cloudConfig, nil
+	return config, nil
 }

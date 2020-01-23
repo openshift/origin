@@ -17,7 +17,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/kubernetes/test/e2e/cloud/gcp"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	apps "k8s.io/kubernetes/test/e2e/upgrades/apps"
@@ -50,6 +49,7 @@ func AllTests() []upgrades.Test {
 }
 
 var (
+	upgradeToImage             string
 	upgradeTests               = []upgrades.Test{}
 	upgradeAbortAt             int
 	upgradeDisruptRebootPolicy string
@@ -63,6 +63,11 @@ const upgradeAbortAtRandom = -1
 // suite.
 func SetTests(tests []upgrades.Test) {
 	upgradeTests = tests
+}
+
+// SetToImage sets the image that will be upgraded to.
+func SetToImage(image string) {
+	upgradeToImage = image
 }
 
 func SetUpgradeDisruptReboot(policy string) error {
@@ -115,8 +120,8 @@ var _ = g.Describe("[Disruptive]", func() {
 			client := configv1client.NewForConfigOrDie(config)
 			dynamicClient := dynamic.NewForConfigOrDie(config)
 
-			upgCtx, err := getUpgradeContext(client, gcp.GetUpgradeTarget(), gcp.GetUpgradeImage())
-			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", gcp.GetUpgradeTarget(), gcp.GetUpgradeImage())
+			upgCtx, err := getUpgradeContext(client, "", upgradeToImage)
+			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", "", upgradeToImage)
 
 			disruption.Run(
 				"Cluster upgrade",

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	goflag "flag"
 	"fmt"
@@ -10,27 +9,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
-	"k8s.io/klog"
 	"k8s.io/kubectl/pkg/util/templates"
-	reale2e "k8s.io/kubernetes/test/e2e"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
-	exutilcloud "github.com/openshift/origin/test/extended/util/cloud"
-
-	// these are loading important global flags that we need to get and set
-	_ "k8s.io/kubernetes/test/e2e"
-	_ "k8s.io/kubernetes/test/e2e/lifecycle"
 )
 
 func main() {
@@ -122,13 +111,11 @@ func newRunCommand() *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mirrorToFile(opt, func() error {
-				if err := initProvider(opt.Provider, opt.DryRun); err != nil {
+				matchFn, err := initializeTestFramework(exutil.TestContext, opt.Provider, opt.DryRun)
+				if err != nil {
 					return err
 				}
-
-				e2e.AfterReadingAllFlags(exutil.TestContext)
-				e2e.TestContext.DumpLogsOnFailure = true
-				exutil.TestContext.DumpLogsOnFailure = true
+				opt.MatchFn = matchFn
 				return opt.Run(args)
 			})
 		},
@@ -177,7 +164,7 @@ func newRunUpgradeCommand() *cobra.Command {
 							upgradeOpt.Suite = suite.Name
 							upgradeOpt.JUnitDir = opt.JUnitDir
 							value := upgradeOpt.ToEnv()
-							if err := initUpgrade(value); err != nil {
+							if _, err := initUpgrade(value); err != nil {
 								return err
 							}
 							opt.SuiteOptions = value
@@ -186,12 +173,11 @@ func newRunUpgradeCommand() *cobra.Command {
 					}
 				}
 
-				if err := initProvider(opt.Provider, opt.DryRun); err != nil {
+				matchFn, err := initializeTestFramework(exutil.TestContext, opt.Provider, opt.DryRun)
+				if err != nil {
 					return err
 				}
-				e2e.AfterReadingAllFlags(exutil.TestContext)
-				e2e.TestContext.DumpLogsOnFailure = true
-				exutil.TestContext.DumpLogsOnFailure = true
+				opt.MatchFn = matchFn
 				return opt.Run(args)
 			})
 		},
@@ -221,15 +207,15 @@ func newRunTestCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := initProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun); err != nil {
+			upgradeOpts, err := initUpgrade(os.Getenv("TEST_SUITE_OPTIONS"))
+			if err != nil {
 				return err
 			}
-			if err := initUpgrade(os.Getenv("TEST_SUITE_OPTIONS")); err != nil {
+			if _, err := initializeTestFramework(exutil.TestContext, os.Getenv("TEST_PROVIDER"), testOpt.DryRun); err != nil {
 				return err
 			}
-			e2e.AfterReadingAllFlags(exutil.TestContext)
-			e2e.TestContext.DumpLogsOnFailure = true
-			exutil.TestContext.DumpLogsOnFailure = true
+			exutil.TestContext.ReportDir = upgradeOpts.JUnitDir
+
 			return testOpt.Run(args)
 		},
 	}
@@ -241,8 +227,13 @@ func newRunTestCommand() *cobra.Command {
 // any error returned from fn. The function returns fn() or any error encountered while
 // attempting to open the file.
 func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
+	if opt.Out == nil {
+		opt.Out = os.Stdout
+	}
+	if opt.ErrOut == nil {
+		opt.ErrOut = os.Stderr
+	}
 	if len(opt.OutFile) == 0 {
-		opt.Out, opt.ErrOut = os.Stdout, os.Stderr
 		return fn()
 	}
 
@@ -250,14 +241,14 @@ func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
 	if err != nil {
 		return err
 	}
-	opt.Out = io.MultiWriter(os.Stdout, f)
-	opt.ErrOut = io.MultiWriter(os.Stderr, f)
+	opt.Out = io.MultiWriter(opt.Out, f)
+	opt.ErrOut = io.MultiWriter(opt.ErrOut, f)
 	exitErr := fn()
 	if exitErr != nil {
 		fmt.Fprintf(f, "error: %s", exitErr)
 	}
 	if err := f.Close(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: Unable to close output file\n")
+		fmt.Fprintf(opt.ErrOut, "error: Unable to close output file\n")
 	}
 	return exitErr
 }
@@ -273,68 +264,4 @@ func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.IntVar(&opt.Count, "count", opt.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value.")
 	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
-}
-
-func initProvider(provider string, dryRun bool) error {
-	// record the exit error to the output file
-	if err := decodeProviderTo(provider, exutil.TestContext, dryRun); err != nil {
-		return err
-	}
-	exutil.TestContext.AllowedNotReadyNodes = 100
-	exutil.TestContext.MaxNodesToGather = 0
-	reale2e.SetViperConfig(os.Getenv("VIPERCONFIG"))
-
-	if err := initCSITests(dryRun); err != nil {
-		return err
-	}
-
-	err := exutil.InitTest(dryRun)
-	gomega.RegisterFailHandler(ginkgo.Fail)
-
-	// TODO: infer SSH keys from the cluster
-	return err
-}
-
-func decodeProviderTo(provider string, testContext *e2e.TestContextType, dryRun bool) error {
-	switch provider {
-	case "":
-		if _, ok := os.LookupEnv("KUBE_SSH_USER"); ok {
-			if _, ok := os.LookupEnv("LOCAL_SSH_KEY"); ok {
-				testContext.Provider = "local"
-				break
-			}
-		}
-		if dryRun {
-			break
-		}
-		fallthrough
-
-	case "azure", "aws", "gce", "vsphere":
-		provider, cfg, err := exutilcloud.LoadConfig()
-		if err != nil {
-			return err
-		}
-		if cfg != nil {
-			testContext.Provider = provider
-			testContext.CloudConfig = *cfg
-		}
-
-	default:
-		var providerInfo struct{ Type string }
-		if err := json.Unmarshal([]byte(provider), &providerInfo); err != nil {
-			return fmt.Errorf("provider must be a JSON object with the 'type' key at a minimum: %v", err)
-		}
-		if len(providerInfo.Type) == 0 {
-			return fmt.Errorf("provider must be a JSON object with the 'type' key")
-		}
-		testContext.Provider = providerInfo.Type
-		if err := json.Unmarshal([]byte(provider), &testContext.CloudConfig); err != nil {
-			return fmt.Errorf("provider must decode into the cloud config object: %v", err)
-		}
-	}
-	if len(testContext.Provider) == 0 {
-		testContext.Provider = "skeleton"
-	}
-	klog.V(2).Infof("Provider %s: %#v", testContext.Provider, testContext.CloudConfig)
-	return nil
 }
