@@ -6,6 +6,8 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger"
 )
 
+func (obj *ExternalIPRangerAdmissionConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
+
 var GroupVersion = schema.GroupVersion{Group: "network.openshift.io", Version: "v1"}
 
 var (
