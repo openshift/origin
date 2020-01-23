@@ -32236,7 +32236,7 @@ os::cmd::expect_success_and_not_text 'oc -h' 'Options'
 os::cmd::expect_success_and_not_text 'oc -h' 'Global Options'
 os::cmd::expect_failure_and_text 'oc adm ca' 'Manage certificates'
 os::cmd::expect_success_and_text 'oc exec --help' '\-\- COMMAND \[args\.\.\.\]$'
-os::cmd::expect_success_and_text 'oc rsh --help' '\[flags\] POD \[COMMAND\]$'
+os::cmd::expect_success_and_text 'oc rsh --help' 'COMMAND'
 
 # help for root commands with --help flag must be consistent
 os::cmd::expect_success_and_text 'oc --help' 'OpenShift Client'
