@@ -1,10 +1,12 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/restrictedendpoints"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/restrictedendpoints"
 )
+
+func (obj *RestrictedEndpointsAdmissionConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 var GroupVersion = schema.GroupVersion{Group: "network.openshift.io", Version: "v1"}
 
