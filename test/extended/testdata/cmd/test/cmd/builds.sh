@@ -35,28 +35,28 @@ os::cmd::expect_failure_and_text "oc new-build --binary" "you must provide a --n
 os::cmd::expect_success "oc new-build --binary --name=binary-test"
 os::cmd::expect_success_and_text "oc get bc/binary-test" 'Binary'
 
-os::cmd::expect_success 'oc delete is/binary-test bc/binary-test'
+os::cmd::expect_success 'oc delete is/binary-test bc/binary-test bc/centos'
 
 # Build from Dockerfile with output to DockerImage
-os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1' --to-docker"
-os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage origin:latest$'
+os::cmd::expect_success "oc new-build -D \$'FROM centos:7' --to-docker"
+os::cmd::expect_success_and_text "oc get bc/centos --template '${template}'" '^DockerImage centos:latest$'
 
-os::cmd::expect_success 'oc delete is/origin'
+os::cmd::expect_success 'oc delete is/centos bc/centos'
 
 # Build from Dockerfile with given output ImageStreamTag spec
-os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to origin-test:v1.1"
+os::cmd::expect_success "oc new-build -D \$'FROM centos:7\nENV ok=1' --to origin-test:v1.1"
 os::cmd::expect_success_and_text "oc get bc/origin-test --template '${template}'" '^ImageStreamTag origin-test:v1.1$'
 
-os::cmd::expect_success 'oc delete is/origin bc/origin'
+os::cmd::expect_success 'oc delete is/centos bc/origin-test'
 
 # Build from Dockerfile with given output DockerImage spec
-os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to-docker --to openshift/origin:v1.1-test"
+os::cmd::expect_success "oc new-build -D \$'FROM centos:7\nENV ok=1' --to-docker --to openshift/origin:v1.1-test"
 os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage openshift/origin:v1.1-test$'
 
-os::cmd::expect_success 'oc delete is/origin'
+os::cmd::expect_success 'oc delete is/centos'
 
 # Build from Dockerfile with custom name and given output ImageStreamTag spec
-os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to origin-name-test --name origin-test2"
+os::cmd::expect_success "oc new-build -D \$'FROM centos:7\nENV ok=1' --to origin-name-test --name origin-test2"
 os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
 
 #os::cmd::try_until_text 'oc get is ruby-25-centos7' 'latest'
