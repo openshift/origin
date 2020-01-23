@@ -236,7 +236,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
 
 			tests := map[string]bool{
-				`sum(rate(prometheus_tsdb_head_series_created_total[1m]))>0`: false,
+				`sum(rate(prometheus_tsdb_head_series_created_total[1m]))>10`: false,
 			}
 			cfg := config{
 				maxAttempts:      100,
