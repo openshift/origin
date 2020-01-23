@@ -33,7 +33,7 @@ func main() {
 
 	root := &cobra.Command{
 		Long: templates.LongDesc(`
-		OpenShift Tests
+		OpenShift Tests for Kubernetes
 
 		This command verifies behavior of an OpenShift cluster by running remote tests against
 		the cluster API that exercise functionality. In general these tests may be disruptive
