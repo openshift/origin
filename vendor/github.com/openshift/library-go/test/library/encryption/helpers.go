@@ -143,11 +143,16 @@ func WaitForNextMigratedKey(t testing.TB, kubeClient kubernetes.Interface, prevK
 	nextKeyName, err = determineNextEncryptionKeyName(prevKeyMeta.Name, labelSelector)
 	require.NoError(t, err)
 	if len(prevKeyMeta.Name) == 0 {
-		prevKeyMeta.Name = "no previous key"
+		prevKeyMeta.Name = ""
 		prevKeyMeta.Migrated = defaultTargetGRs
 	}
 
-	t.Logf("Waiting up to %s for the next key %q, previous key was %q", waitPollTimeout.String(), nextKeyName, prevKeyMeta.Name)
+	t.Logf("Waiting up to %s for the next key %q, previous key was %q", waitPollTimeout.String(), nextKeyName, func(prevKeyName string) string {
+		if len(prevKeyName) == 0 {
+			return "no previous key"
+		}
+		return prevKeyName
+	}(prevKeyMeta.Name))
 	observedKeyName := prevKeyMeta.Name
 	if err := wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
 		currentKeyMeta, err := GetLastKeyMeta(kubeClient, namespace, labelSelector)

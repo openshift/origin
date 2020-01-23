@@ -6,6 +6,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -30,6 +31,9 @@ func makeNodeNotReady(node *corev1.Node) *corev1.Node {
 	con := corev1.NodeCondition{}
 	con.Type = corev1.NodeReady
 	con.Status = corev1.ConditionFalse
+	con.Reason = "TestReason"
+	con.Message = "test message"
+	con.LastTransitionTime = metav1.Time{Time: time.Date(2018, 01, 12, 22, 51, 48, 324359102, time.UTC)}
 	node.Status.Conditions = append(node.Status.Conditions, con)
 	return node
 }
@@ -66,7 +70,7 @@ func TestNodeControllerDegradedConditionType(t *testing.T) {
 				if con.Status != operatorv1.ConditionTrue {
 					return fmt.Errorf("incorrect condition.status, expected %v, got %v", operatorv1.ConditionTrue, con.Status)
 				}
-				expectedMsg := "The master node(s) \"test-node-1\" not ready"
+				expectedMsg := `The master nodes not ready: node "test-node-1" not ready since 2018-01-12 22:51:48.324359102 +0000 UTC because TestReason (test message)`
 				if con.Message != expectedMsg {
 					return fmt.Errorf("incorrect condition.message, expected %s, got %s", expectedMsg, con.Message)
 				}
@@ -90,7 +94,7 @@ func TestNodeControllerDegradedConditionType(t *testing.T) {
 				if con.Status != operatorv1.ConditionFalse {
 					return fmt.Errorf("incorrect condition.status, expected %v, got %v", operatorv1.ConditionFalse, con.Status)
 				}
-				expectedMsg := "All master node(s) are ready"
+				expectedMsg := "All master nodes are ready"
 				if con.Message != expectedMsg {
 					return fmt.Errorf("incorrect condition.message, expected %s, got %s", expectedMsg, con.Message)
 				}
@@ -114,7 +118,7 @@ func TestNodeControllerDegradedConditionType(t *testing.T) {
 				if con.Status != operatorv1.ConditionTrue {
 					return fmt.Errorf("incorrect condition.status, expected %v, got %v", operatorv1.ConditionTrue, con.Status)
 				}
-				expectedMsg := "The master node(s) \"test-node-1,test-node-3\" not ready"
+				expectedMsg := `The master nodes not ready: node "test-node-1" not ready since 2018-01-12 22:51:48.324359102 +0000 UTC because TestReason (test message), node "test-node-3" not ready since 2018-01-12 22:51:48.324359102 +0000 UTC because TestReason (test message)`
 				if con.Message != expectedMsg {
 					return fmt.Errorf("incorrect condition.message, expected %s, got %s", expectedMsg, con.Message)
 				}

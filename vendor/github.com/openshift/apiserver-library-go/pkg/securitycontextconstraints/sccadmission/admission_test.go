@@ -53,6 +53,7 @@ func newTestAdmission(lister securityv1listers.SecurityContextConstraintsLister,
 		Handler:    admission.NewHandler(admission.Create),
 		client:     kclient,
 		sccLister:  lister,
+		sccSynced:  func() bool { return true },
 		authorizer: authorizer,
 	}
 }
