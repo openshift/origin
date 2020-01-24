@@ -137,13 +137,6 @@ var (
 		{Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
 
 		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
-
-		// FIXME
-		// {Group: "network.openshift.io", Version: "v1", Resource: "clusternetworks"},
-		// {Group: "network.openshift.io", Version: "v1", Resource: "egressnetworkpolicies"},
-		// {Group: "network.openshift.io", Version: "v1", Resource: "hostsubnets"},
-		// {Group: "network.openshift.io", Version: "v1", Resource: "netnamespaces"},
-		// {Group: "network.operator.openshift.io", Version: "v1", Resource: "operatorpkis"},
 	}
 
 	specialTypes = []explainExceptions{
@@ -320,6 +313,26 @@ var (
 		{
 			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
 			field:   "consoleyamlsamples.spec",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
+			field:   "clusternetworks",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
+			field:   "hostsubnets",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
+			field:   "netnamespaces",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
+			field:   "egressnetworkpolicies",
 			pattern: `DESCRIPTION\:.*`,
 		},
 	}
