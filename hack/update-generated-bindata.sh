@@ -2,6 +2,8 @@
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+go generate ./test/extended
+
 os::build::setup_env
 
 OUTPUT_PARENT=${OUTPUT_ROOT:-$OS_ROOT}
