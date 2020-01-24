@@ -116,7 +116,7 @@ func (g *Cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, svc 
 		return nil, err
 	}
 
-	klog.V(4).Infof("EnsureLoadBalancer(%v, %v, %v, %v, %v): ensure %v loadbalancer", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, desiredScheme)
+	klog.V(0).Infof("EnsureLoadBalancer(%v, %v, %v, %v, %v): ensure %v loadbalancer", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, desiredScheme)
 
 	existingFwdRule, err := g.GetRegionForwardingRule(loadBalancerName, g.region)
 	if err != nil && !isNotFound(err) {
@@ -128,14 +128,14 @@ func (g *Cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, svc 
 
 		// If the loadbalancer type changes between INTERNAL and EXTERNAL, the old load balancer should be deleted.
 		if existingScheme != desiredScheme {
-			klog.V(4).Infof("EnsureLoadBalancer(%v, %v, %v, %v, %v): deleting existing %v loadbalancer", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, existingScheme)
+			klog.V(0).Infof("EnsureLoadBalancer(%v, %v, %v, %v, %v): deleting existing %v loadbalancer", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, existingScheme)
 			switch existingScheme {
 			case cloud.SchemeInternal:
 				err = g.ensureInternalLoadBalancerDeleted(clusterName, clusterID, svc)
 			default:
 				err = g.ensureExternalLoadBalancerDeleted(clusterName, clusterID, svc)
 			}
-			klog.V(4).Infof("EnsureLoadBalancer(%v, %v, %v, %v, %v): done deleting existing %v loadbalancer. err: %v", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, existingScheme, err)
+			klog.V(0).Infof("EnsureLoadBalancer(%v, %v, %v, %v, %v): done deleting existing %v loadbalancer. err: %v", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, existingScheme, err)
 			if err != nil {
 				return nil, err
 			}
@@ -156,7 +156,7 @@ func (g *Cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, svc 
 		klog.Errorf("Failed to EnsureLoadBalancer(%s, %s, %s, %s, %s), err: %v", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, err)
 		return status, err
 	}
-	klog.V(4).Infof("EnsureLoadBalancer(%s, %s, %s, %s, %s): done ensuring loadbalancer.", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region)
+	klog.V(0).Infof("EnsureLoadBalancer(%s, %s, %s, %s, %s): done ensuring loadbalancer.", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region)
 	return status, err
 }
 
@@ -169,7 +169,7 @@ func (g *Cloud) UpdateLoadBalancer(ctx context.Context, clusterName string, svc 
 		return err
 	}
 
-	klog.V(4).Infof("UpdateLoadBalancer(%v, %v, %v, %v, %v): updating with %d nodes", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, len(nodes))
+	klog.V(0).Infof("UpdateLoadBalancer(%v, %v, %v, %v, %v): updating with %d nodes", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, len(nodes))
 
 	switch scheme {
 	case cloud.SchemeInternal:
@@ -177,7 +177,7 @@ func (g *Cloud) UpdateLoadBalancer(ctx context.Context, clusterName string, svc 
 	default:
 		err = g.updateExternalLoadBalancer(clusterName, svc, nodes)
 	}
-	klog.V(4).Infof("UpdateLoadBalancer(%v, %v, %v, %v, %v): done updating. err: %v", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, err)
+	klog.V(0).Infof("UpdateLoadBalancer(%v, %v, %v, %v, %v): done updating. err: %v", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, err)
 	return err
 }
 
@@ -190,7 +190,7 @@ func (g *Cloud) EnsureLoadBalancerDeleted(ctx context.Context, clusterName strin
 		return err
 	}
 
-	klog.V(4).Infof("EnsureLoadBalancerDeleted(%v, %v, %v, %v, %v): deleting loadbalancer", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region)
+	klog.V(0).Infof("EnsureLoadBalancerDeleted(%v, %v, %v, %v, %v): deleting loadbalancer", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region)
 
 	switch scheme {
 	case cloud.SchemeInternal:
@@ -198,7 +198,7 @@ func (g *Cloud) EnsureLoadBalancerDeleted(ctx context.Context, clusterName strin
 	default:
 		err = g.ensureExternalLoadBalancerDeleted(clusterName, clusterID, svc)
 	}
-	klog.V(4).Infof("EnsureLoadBalancerDeleted(%v, %v, %v, %v, %v): done deleting loadbalancer. err: %v", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, err)
+	klog.V(0).Infof("EnsureLoadBalancerDeleted(%v, %v, %v, %v, %v): done deleting loadbalancer. err: %v", clusterName, svc.Namespace, svc.Name, loadBalancerName, g.region, err)
 	return err
 }
 

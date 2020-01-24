@@ -72,7 +72,7 @@ func (g *Cloud) ensureExternalLoadBalancer(clusterName string, clusterID string,
 
 	serviceName := types.NamespacedName{Namespace: apiService.Namespace, Name: apiService.Name}
 	lbRefStr := fmt.Sprintf("%v(%v)", loadBalancerName, serviceName)
-	klog.V(2).Infof("ensureExternalLoadBalancer(%s, %v, %v, %v, %v, %v)", lbRefStr, g.region, requestedIP, portStr, hostNames, apiService.Annotations)
+	klog.V(0).Infof("ensureExternalLoadBalancer(%s, %v, %v, %v, %v, %v)", lbRefStr, g.region, requestedIP, portStr, hostNames, apiService.Annotations)
 
 	// Check the current and the desired network tiers. If they do not match,
 	// tear down the existing resources with the wrong tier.
@@ -81,7 +81,7 @@ func (g *Cloud) ensureExternalLoadBalancer(clusterName string, clusterID string,
 		klog.Errorf("ensureExternalLoadBalancer(%s): Failed to get the desired network tier: %v.", lbRefStr, err)
 		return nil, err
 	}
-	klog.V(4).Infof("ensureExternalLoadBalancer(%s): Desired network tier %q.", lbRefStr, netTier)
+	klog.V(0).Infof("ensureExternalLoadBalancer(%s): Desired network tier %q.", lbRefStr, netTier)
 	if g.AlphaFeatureGate.Enabled(AlphaFeatureNetworkTiers) {
 		g.deleteWrongNetworkTieredResources(loadBalancerName, lbRefStr, netTier)
 	}
@@ -92,7 +92,7 @@ func (g *Cloud) ensureExternalLoadBalancer(clusterName string, clusterID string,
 		return nil, err
 	}
 	if !fwdRuleExists {
-		klog.V(2).Infof("ensureExternalLoadBalancer(%s): Forwarding rule %v doesn't exist.", lbRefStr, loadBalancerName)
+		klog.V(0).Infof("ensureExternalLoadBalancer(%s): Forwarding rule %v doesn't exist.", lbRefStr, loadBalancerName)
 	}
 
 	// Make sure we know which IP address will be used and have properly reserved
@@ -129,7 +129,7 @@ func (g *Cloud) ensureExternalLoadBalancer(clusterName string, clusterID string,
 			if err := g.DeleteRegionAddress(loadBalancerName, g.region); err != nil && !isNotFound(err) {
 				klog.Errorf("ensureExternalLoadBalancer(%s): Failed to release static IP %s in region %v: %v.", lbRefStr, ipAddressToUse, g.region, err)
 			} else if isNotFound(err) {
-				klog.V(2).Infof("ensureExternalLoadBalancer(%s): IP address %s is not reserved.", lbRefStr, ipAddressToUse)
+				klog.V(0).Infof("ensureExternalLoadBalancer(%s): IP address %s is not reserved.", lbRefStr, ipAddressToUse)
 			} else {
 				klog.Infof("ensureExternalLoadBalancer(%s): Released static IP %s.", lbRefStr, ipAddressToUse)
 			}
@@ -213,12 +213,12 @@ func (g *Cloud) ensureExternalLoadBalancer(clusterName string, clusterID string,
 		return nil, fmt.Errorf("error checking HTTP health check for load balancer (%s): %v", lbRefStr, err)
 	}
 	if path, healthCheckNodePort := servicehelpers.GetServiceHealthCheckPathPort(apiService); path != "" {
-		klog.V(4).Infof("ensureExternalLoadBalancer(%s): Service needs local traffic health checks on: %d%s.", lbRefStr, healthCheckNodePort, path)
+		klog.V(0).Infof("ensureExternalLoadBalancer(%s): Service needs local traffic health checks on: %d%s.", lbRefStr, healthCheckNodePort, path)
 		if hcLocalTrafficExisting == nil {
 			// This logic exists to detect a transition for non-OnlyLocal to OnlyLocal service
 			// turn on the tpNeedsRecreation flag to delete/recreate fwdrule/tpool updating the
 			// target pool to use local traffic health check.
-			klog.V(2).Infof("ensureExternalLoadBalancer(%s): Updating from nodes health checks to local traffic health checks.", lbRefStr)
+			klog.V(0).Infof("ensureExternalLoadBalancer(%s): Updating from nodes health checks to local traffic health checks.", lbRefStr)
 			if supportsNodesHealthCheck {
 				hcToDelete = makeHTTPHealthCheck(MakeNodesHealthCheckName(clusterID), GetNodesHealthCheckPath(), GetNodesHealthCheckPort())
 			}
@@ -226,12 +226,12 @@ func (g *Cloud) ensureExternalLoadBalancer(clusterName string, clusterID string,
 		}
 		hcToCreate = makeHTTPHealthCheck(loadBalancerName, path, healthCheckNodePort)
 	} else {
-		klog.V(4).Infof("ensureExternalLoadBalancer(%s): Service needs nodes health checks.", lbRefStr)
+		klog.V(0).Infof("ensureExternalLoadBalancer(%s): Service needs nodes health checks.", lbRefStr)
 		if hcLocalTrafficExisting != nil {
 			// This logic exists to detect a transition from OnlyLocal to non-OnlyLocal service
 			// and turn on the tpNeedsRecreation flag to delete/recreate fwdrule/tpool updating the
 			// target pool to use nodes health check.
-			klog.V(2).Infof("ensureExternalLoadBalancer(%s): Updating from local traffic health checks to nodes health checks.", lbRefStr)
+			klog.V(0).Infof("ensureExternalLoadBalancer(%s): Updating from local traffic health checks to nodes health checks.", lbRefStr)
 			hcToDelete = hcLocalTrafficExisting
 			tpNeedsRecreation = true
 		}
@@ -323,7 +323,7 @@ func (g *Cloud) ensureExternalLoadBalancerDeleted(clusterName, clusterID string,
 			fwName := MakeFirewallName(loadBalancerName)
 			err := ignoreNotFound(g.DeleteFirewall(fwName))
 			if isForbidden(err) && g.OnXPN() {
-				klog.V(4).Infof("ensureExternalLoadBalancerDeleted(%s): Do not have permission to delete firewall rule %v (on XPN). Raising event.", lbRefStr, fwName)
+				klog.V(0).Infof("ensureExternalLoadBalancerDeleted(%s): Do not have permission to delete firewall rule %v (on XPN). Raising event.", lbRefStr, fwName)
 				g.raiseFirewallChangeNeededEvent(service, FirewallToGCloudDeleteCmd(fwName, g.NetworkProjectID()))
 				return nil
 			}
@@ -383,7 +383,7 @@ func (g *Cloud) DeleteExternalTargetPoolAndChecks(service *v1.Service, name, reg
 			if err := g.DeleteHTTPHealthCheck(hcName); err != nil {
 				// Delete nodes health checks will fail if any other target pool is using it.
 				if isInUsedByError(err) {
-					klog.V(4).Infof("DeleteExternalTargetPoolAndChecks(%v): Health check %v is in used: %v.", lbRefStr, hcName, err)
+					klog.V(0).Infof("DeleteExternalTargetPoolAndChecks(%v): Health check %v is in used: %v.", lbRefStr, hcName, err)
 					return nil
 				} else if !isHTTPErrorCode(err, http.StatusNotFound) {
 					klog.Warningf("DeleteExternalTargetPoolAndChecks(%v): Failed to delete health check %v: %v.", lbRefStr, hcName, err)
@@ -396,7 +396,7 @@ func (g *Cloud) DeleteExternalTargetPoolAndChecks(service *v1.Service, name, reg
 				// - This is a retry and in previous round we failed to delete the healthcheck firewall
 				//   after deleted the healthcheck.
 				// We continue to delete the healthcheck firewall to prevent leaking.
-				klog.V(4).Infof("DeleteExternalTargetPoolAndChecks(%v): Health check %v is already deleted.", lbRefStr, hcName)
+				klog.V(0).Infof("DeleteExternalTargetPoolAndChecks(%v): Health check %v is already deleted.", lbRefStr, hcName)
 			}
 			// If health check is deleted without error, it means no load-balancer is using it.
 			// So we should delete the health check firewall as well.
@@ -404,7 +404,7 @@ func (g *Cloud) DeleteExternalTargetPoolAndChecks(service *v1.Service, name, reg
 			klog.Infof("DeleteExternalTargetPoolAndChecks(%v): Deleting health check firewall %v.", lbRefStr, fwName)
 			if err := ignoreNotFound(g.DeleteFirewall(fwName)); err != nil {
 				if isForbidden(err) && g.OnXPN() {
-					klog.V(4).Infof("DeleteExternalTargetPoolAndChecks(%v): Do not have permission to delete firewall rule %v (on XPN). Raising event.", lbRefStr, fwName)
+					klog.V(0).Infof("DeleteExternalTargetPoolAndChecks(%v): Do not have permission to delete firewall rule %v (on XPN). Raising event.", lbRefStr, fwName)
 					g.raiseFirewallChangeNeededEvent(service, FirewallToGCloudDeleteCmd(fwName, g.NetworkProjectID()))
 					return nil
 				}
@@ -452,13 +452,13 @@ func verifyUserRequestedIP(s CloudAddressService, region, requestedIP, fwdRuleIP
 			klog.Errorf("verifyUserRequestedIP: requested static IP %q (name: %s) for LB %s has network tier %s, need %s.", requestedIP, existingAddress.Name, lbRef, netTier, desiredNetTier)
 			return false, fmt.Errorf("requrested IP %q belongs to the %s network tier; expected %s", requestedIP, netTier, desiredNetTier)
 		}
-		klog.V(4).Infof("verifyUserRequestedIP: the requested static IP %q (name: %s, tier: %s) for LB %s exists.", requestedIP, existingAddress.Name, netTier, lbRef)
+		klog.V(0).Infof("verifyUserRequestedIP: the requested static IP %q (name: %s, tier: %s) for LB %s exists.", requestedIP, existingAddress.Name, netTier, lbRef)
 		return true, nil
 	}
 	if requestedIP == fwdRuleIP {
 		// The requested IP is not a static IP, but is currently assigned
 		// to this forwarding rule, so we can just use it.
-		klog.V(4).Infof("verifyUserRequestedIP: the requested IP %q is not static, but is currently in use by for LB %s", requestedIP, lbRef)
+		klog.V(0).Infof("verifyUserRequestedIP: the requested IP %q is not static, but is currently in use by for LB %s", requestedIP, lbRef)
 		return false, nil
 	}
 	// The requested IP is not static and it is not assigned to the
@@ -691,7 +691,7 @@ func (g *Cloud) ensureHTTPHealthCheck(name, path string, port int32) (hc *comput
 		return hc, nil
 	}
 	// Validate health check fields
-	klog.V(4).Infof("Checking http health check params %s", name)
+	klog.V(0).Infof("Checking http health check params %s", name)
 	if needToUpdateHTTPHealthChecks(hc, newHC) {
 		klog.Warningf("Health check %v exists but parameters have drifted - updating...", name)
 		mergeHTTPHealthChecks(hc, newHC)
@@ -699,7 +699,7 @@ func (g *Cloud) ensureHTTPHealthCheck(name, path string, port int32) (hc *comput
 			klog.Warningf("Failed to reconcile http health check %v parameters", name)
 			return nil, err
 		}
-		klog.V(4).Infof("Corrected health check %v parameters successful", name)
+		klog.V(0).Infof("Corrected health check %v parameters successful", name)
 		hc, err = g.GetHTTPHealthCheck(name)
 		if err != nil {
 			return nil, err
@@ -903,7 +903,7 @@ func (g *Cloud) ensureHTTPHealthCheckFirewall(svc *v1.Service, serviceName, ipAd
 			klog.Warningf("Failed to reconcile firewall %v parameters.", fwName)
 			return err
 		}
-		klog.V(4).Infof("Corrected firewall %v parameters successful", fwName)
+		klog.V(0).Infof("Corrected firewall %v parameters successful", fwName)
 	}
 	return nil
 }
@@ -956,7 +956,7 @@ func (g *Cloud) createFirewall(svc *v1.Service, name, region, desc string, sourc
 		if isHTTPErrorCode(err, http.StatusConflict) {
 			return nil
 		} else if isForbidden(err) && g.OnXPN() {
-			klog.V(4).Infof("createFirewall(%v): do not have permission to create firewall rule (on XPN). Raising event.", firewall.Name)
+			klog.V(0).Infof("createFirewall(%v): do not have permission to create firewall rule (on XPN). Raising event.", firewall.Name)
 			g.raiseFirewallChangeNeededEvent(svc, FirewallToGCloudCreateCmd(firewall, g.NetworkProjectID()))
 			return nil
 		}
@@ -975,7 +975,7 @@ func (g *Cloud) updateFirewall(svc *v1.Service, name, region, desc string, sourc
 		if isHTTPErrorCode(err, http.StatusConflict) {
 			return nil
 		} else if isForbidden(err) && g.OnXPN() {
-			klog.V(4).Infof("updateFirewall(%v): do not have permission to update firewall rule (on XPN). Raising event.", firewall.Name)
+			klog.V(0).Infof("updateFirewall(%v): do not have permission to update firewall rule (on XPN). Raising event.", firewall.Name)
 			g.raiseFirewallChangeNeededEvent(svc, FirewallToGCloudUpdateCmd(firewall, g.NetworkProjectID()))
 			return nil
 		}
@@ -1104,7 +1104,7 @@ func deleteFWDRuleWithWrongTier(s CloudForwardingRuleService, region, name, logP
 	if existingTier == desiredNetTier {
 		return nil
 	}
-	klog.V(2).Infof("%s: Network tiers do not match; existing forwarding rule: %q, desired: %q. Deleting the forwarding rule",
+	klog.V(0).Infof("%s: Network tiers do not match; existing forwarding rule: %q, desired: %q. Deleting the forwarding rule",
 		logPrefix, existingTier, desiredNetTier)
 	err = s.DeleteRegionForwardingRule(name, region)
 	return ignoreNotFound(err)
@@ -1132,7 +1132,7 @@ func deleteAddressWithWrongTier(s CloudAddressService, region, name, logPrefix s
 	if existingTier == desiredNetTier {
 		return nil
 	}
-	klog.V(2).Infof("%s: Network tiers do not match; existing address: %q, desired: %q. Deleting the address",
+	klog.V(0).Infof("%s: Network tiers do not match; existing address: %q, desired: %q. Deleting the address",
 		logPrefix, existingTier, desiredNetTier)
 	err = s.DeleteRegionAddress(name, region)
 	return ignoreNotFound(err)
