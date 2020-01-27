@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kauthenticator "k8s.io/apiserver/pkg/authentication/authenticator"
@@ -16,18 +17,20 @@ import (
 var errLookup = errors.New("token lookup failed")
 
 type tokenAuthenticator struct {
-	tokens      oauthclient.OAuthAccessTokenInterface
-	users       userclient.UserInterface
-	groupMapper UserToGroupMapper
-	validators  OAuthTokenValidator
+	tokens       oauthclient.OAuthAccessTokenInterface
+	users        userclient.UserInterface
+	groupMapper  UserToGroupMapper
+	validators   OAuthTokenValidator
+	implicitAuds kauthenticator.Audiences
 }
 
-func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users userclient.UserInterface, groupMapper UserToGroupMapper, validators ...OAuthTokenValidator) kauthenticator.Token {
+func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users userclient.UserInterface, groupMapper UserToGroupMapper, implicitAuds kauthenticator.Audiences, validators ...OAuthTokenValidator) kauthenticator.Token {
 	return &tokenAuthenticator{
-		tokens:      tokens,
-		users:       users,
-		groupMapper: groupMapper,
-		validators:  OAuthTokenValidators(validators),
+		tokens:       tokens,
+		users:        users,
+		groupMapper:  groupMapper,
+		validators:   OAuthTokenValidators(validators),
+		implicitAuds: implicitAuds,
 	}
 }
 
@@ -55,6 +58,18 @@ func (a *tokenAuthenticator) AuthenticateToken(ctx context.Context, name string)
 		groupNames = append(groupNames, group.Name)
 	}
 
+	tokenAudiences := a.implicitAuds
+	requestedAudiences, ok := kauthenticator.AudiencesFrom(ctx)
+	if !ok {
+		// default to apiserver audiences
+		requestedAudiences = a.implicitAuds
+	}
+
+	auds := kauthenticator.Audiences(tokenAudiences).Intersect(requestedAudiences)
+	if len(auds) == 0 && len(a.implicitAuds) != 0 {
+		return nil, false, fmt.Errorf("token audiences %q is invalid for the target audiences %q", tokenAudiences, requestedAudiences)
+	}
+
 	return &kauthenticator.Response{
 		User: &kuser.DefaultInfo{
 			Name:   user.Name,
@@ -64,5 +79,6 @@ func (a *tokenAuthenticator) AuthenticateToken(ctx context.Context, name string)
 				authorizationv1.ScopesKey: token.Scopes,
 			},
 		},
+		Audiences: auds,
 	}, true, nil
 }
