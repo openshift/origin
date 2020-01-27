@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	kapibatch "k8s.io/api/batch/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapibatch "k8s.io/kubernetes/pkg/apis/batch"
 
 	"github.com/openshift/origin/pkg/oc/cli/admin/diagnostics/diagnostics/log"
 )

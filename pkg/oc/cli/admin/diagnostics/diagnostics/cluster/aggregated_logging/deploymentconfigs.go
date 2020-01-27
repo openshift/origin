@@ -21,8 +21,8 @@ const (
 )
 
 // loggingComponents are those 'managed' by rep controllers (e.g. fluentd is deployed with a DaemonSet)
-var expectedLoggingComponents = sets.NewString(componentNameEs, componentNameKibana, componentNameCurator)
-var optionalLoggingComponents = sets.NewString(componentNameEsOps, componentNameKibanaOps, componentNameCuratorOps, componentNameMux)
+var expectedLoggingComponents = sets.NewString(componentNameEs, componentNameKibana)
+var optionalLoggingComponents = sets.NewString(componentNameEsOps, componentNameKibanaOps, componentNameMux)
 var loggingComponents = expectedLoggingComponents.Union(optionalLoggingComponents)
 
 const deploymentConfigWarnOptionalMissing = `

@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"strings"
 
+	v1beta1 "k8s.io/api/batch/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	kapibatch "k8s.io/kubernetes/pkg/apis/batch"
+	batchv1beta1 "k8s.io/client-go/kubernetes/typed/batch/v1beta1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	cronjobclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -41,7 +41,7 @@ type AggregatedLogging struct {
 	DCClient          appstypedclient.DeploymentConfigsGetter
 	SCCClient         securitytypedclient.SecurityContextConstraintsGetter
 	KubeClient        kclientset.Interface
-	CronJobClient     cronjobclient.CronJobsGetter
+	CronJobClient     batchv1beta1.BatchV1beta1Interface
 	result            types.DiagnosticResult
 }
 
@@ -71,7 +71,7 @@ func NewAggregatedLogging(
 	crbClient rbacclient.ClusterRoleBindingsGetter,
 	dcClient appstypedclient.DeploymentConfigsGetter,
 	sccClient securitytypedclient.SecurityContextConstraintsGetter,
-	cronjobClient cronjobclient.CronJobsGetter,
+	cronjobClient batchv1beta1.BatchV1beta1Interface,
 ) *AggregatedLogging {
 	return &AggregatedLogging{
 		Project:           project,
@@ -126,7 +126,7 @@ func (d *AggregatedLogging) deploymentconfigs(project string, options metav1.Lis
 	return d.DCClient.DeploymentConfigs(project).List(options)
 }
 
-func (d *AggregatedLogging) cronjobs(project string, options metav1.ListOptions) (*kapibatch.CronJobList, error) {
+func (d *AggregatedLogging) cronjobs(project string, options metav1.ListOptions) (*v1beta1.CronJobList, error) {
 	return d.CronJobClient.CronJobs(project).List(options)
 }
 
