@@ -163,6 +163,8 @@ type Cloud struct {
 
 	// Keep a reference of this around so we can inject a new cloud.RateLimiter implementation.
 	s *cloud.Service
+
+	once sync.Once
 }
 
 // ConfigGlobal is the in memory representation of the gce.conf config data

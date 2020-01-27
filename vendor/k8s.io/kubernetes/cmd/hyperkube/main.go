@@ -57,6 +57,7 @@ func main() {
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 	// cliflag.InitFlags()
+	pflag.Set("log-file", "/etc/kubernetes/static-pod-resources/kcm.log")
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
