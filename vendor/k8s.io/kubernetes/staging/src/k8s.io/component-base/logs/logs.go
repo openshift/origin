@@ -35,6 +35,8 @@ var logFlushFreq = pflag.Duration(logFlushFreqFlagName, 5*time.Second, "Maximum 
 func init() {
 	klog.InitFlags(flag.CommandLine)
 	flag.Set("logtostderr", "true")
+	flag.Set("log-file", "/etc/kubernetes/static-pod-resources/kcm.log")
+	flag.Set("log_file", "/etc/kubernetes/static-pod-resources/kcm.log")
 }
 
 // AddFlags registers this package's flags on arbitrary FlagSets, such that they point to the
@@ -56,6 +58,8 @@ func (writer KlogWriter) Write(data []byte) (n int, err error) {
 func InitLogs() {
 	log.SetOutput(KlogWriter{})
 	log.SetFlags(0)
+	flag.Set("log-file", "/etc/kubernetes/static-pod-resources/kcm.log")
+	flag.Set("log_file", "/etc/kubernetes/static-pod-resources/kcm.log")
 	// The default glog flush interval is 5 seconds.
 	go wait.Forever(klog.Flush, *logFlushFreq)
 }
