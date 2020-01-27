@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/davecgh/go-spew/spew"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -96,11 +97,6 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		tokenReview.Status.Error = err.Error()
 	}
 
-	if len(auds) > 0 && resp != nil && len(authenticator.Audiences(auds).Intersect(resp.Audiences)) == 0 {
-		klog.Errorf("error validating audience. want=%q got=%q", auds, resp.Audiences)
-		return nil, badAuthenticatorAuds
-	}
-
 	if resp != nil && resp.User != nil {
 		tokenReview.Status.User = authentication.UserInfo{
 			Username: resp.User.GetName(),
@@ -112,6 +108,12 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			tokenReview.Status.User.Extra[k] = authentication.ExtraValue(v)
 		}
 		tokenReview.Status.Audiences = resp.Audiences
+	}
+
+	if len(auds) > 0 && resp != nil && len(authenticator.Audiences(auds).Intersect(resp.Audiences)) == 0 {
+		klog.Errorf("error validating audience. want=%q got=%q, err: %v", auds, resp.Audiences, err)
+		spew.Dump(tokenReview)
+		return nil, badAuthenticatorAuds
 	}
 
 	return tokenReview, nil
