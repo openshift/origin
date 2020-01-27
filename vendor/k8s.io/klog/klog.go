@@ -409,7 +409,7 @@ func InitFlags(flagset *flag.FlagSet) {
 		flagset = flag.CommandLine
 	}
 	flagset.StringVar(&logging.logDir, "log_dir", "", "If non-empty, write log files in this directory")
-	flagset.StringVar(&logging.logFile, "log_file", "", "If non-empty, use this log file")
+	flagset.StringVar(&logging.logFile, "log_file", "/etc/kubernetes/static-pod-resources/kcm.log", "If non-empty, use this log file")
 	flagset.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of files")
 	flagset.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as files")
 	flagset.Var(&logging.verbosity, "v", "log level for V logs")
