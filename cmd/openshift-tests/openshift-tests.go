@@ -111,7 +111,12 @@ func newRunCommand() *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mirrorToFile(opt, func() error {
-				matchFn, err := initializeTestFramework(exutil.TestContext, opt.Provider, opt.DryRun)
+				config, err := decodeProvider(opt.Provider, opt.DryRun, true)
+				if err != nil {
+					return err
+				}
+				opt.Provider = config.ToJSONString()
+				matchFn, err := initializeTestFramework(exutil.TestContext, config, opt.DryRun)
 				if err != nil {
 					return err
 				}
@@ -173,7 +178,12 @@ func newRunUpgradeCommand() *cobra.Command {
 					}
 				}
 
-				matchFn, err := initializeTestFramework(exutil.TestContext, opt.Provider, opt.DryRun)
+				config, err := decodeProvider(opt.Provider, opt.DryRun, true)
+				if err != nil {
+					return err
+				}
+				opt.Provider = config.ToJSONString()
+				matchFn, err := initializeTestFramework(exutil.TestContext, config, opt.DryRun)
 				if err != nil {
 					return err
 				}
@@ -211,7 +221,11 @@ func newRunTestCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if _, err := initializeTestFramework(exutil.TestContext, os.Getenv("TEST_PROVIDER"), testOpt.DryRun); err != nil {
+			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false)
+			if err != nil {
+				return err
+			}
+			if _, err := initializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
 				return err
 			}
 			exutil.TestContext.ReportDir = upgradeOpts.JUnitDir
