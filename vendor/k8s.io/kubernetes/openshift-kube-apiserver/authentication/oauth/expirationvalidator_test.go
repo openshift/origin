@@ -30,7 +30,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 	)
 	fakeUserClient := userfake.NewSimpleClientset(&userv1.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar"}})
 
-	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.OauthV1().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{}, NewExpirationValidator())
+	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.OauthV1().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{}, nil, NewExpirationValidator())
 
 	for _, tokenName := range []string{"token1", "token2"} {
 		userInfo, found, err := tokenAuthenticator.AuthenticateToken(context.TODO(), tokenName)
@@ -57,7 +57,7 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 	)
 	fakeUserClient := userfake.NewSimpleClientset(&userv1.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar"}})
 
-	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.OauthV1().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{}, NewExpirationValidator(), NewUIDValidator())
+	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.OauthV1().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{}, nil, NewExpirationValidator(), NewUIDValidator())
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken(context.TODO(), "token")
 	if !found {

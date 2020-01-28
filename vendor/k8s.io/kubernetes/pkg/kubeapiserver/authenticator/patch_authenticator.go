@@ -8,6 +8,7 @@ import (
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
+
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -17,7 +18,6 @@ import (
 	oauthvalidation "k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/oauth"
 	"k8s.io/kubernetes/openshift-kube-apiserver/authentication/oauth"
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 )
 
 const authenticatedOAuthGroup = "system:authenticated:oauth"
@@ -26,7 +26,7 @@ const authenticatedOAuthGroup = "system:authenticated:oauth"
 // before then we should try to eliminate our direct to storage access.  It's making us do weird things.
 const defaultInformerResyncPeriod = 10 * time.Minute
 
-func AddOAuthServerAuthenticatorIfNeeded(tokenAuthenticators []authenticator.Token, serviceAccountTokenGetter serviceaccount.ServiceAccountTokenGetter) []authenticator.Token {
+func AddOAuthServerAuthenticatorIfNeeded(tokenAuthenticators []authenticator.Token, implicitAudiences authenticator.Audiences) []authenticator.Token {
 	if !enablement.IsOpenShift() {
 		return tokenAuthenticators
 	}
@@ -72,7 +72,7 @@ func AddOAuthServerAuthenticatorIfNeeded(tokenAuthenticators []authenticator.Tok
 		return nil
 	})
 	groupMapper := usercache.NewGroupCache(userInformer.User().V1().Groups())
-	oauthTokenAuthenticator := oauth.NewTokenAuthenticator(oauthClient.OauthV1().OAuthAccessTokens(), userClient.UserV1().Users(), groupMapper, validators...)
+	oauthTokenAuthenticator := oauth.NewTokenAuthenticator(oauthClient.OauthV1().OAuthAccessTokens(), userClient.UserV1().Users(), groupMapper, implicitAudiences, validators...)
 	tokenAuthenticators = append(tokenAuthenticators,
 		// if you have an OAuth bearer token, you're a human (usually)
 		group.NewTokenGroupAdder(oauthTokenAuthenticator, []string{authenticatedOAuthGroup}))
