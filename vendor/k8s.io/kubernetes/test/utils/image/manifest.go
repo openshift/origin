@@ -29,6 +29,7 @@ import (
 type RegistryList struct {
 	DockerLibraryRegistry string `yaml:"dockerLibraryRegistry"`
 	E2eRegistry           string `yaml:"e2eRegistry"`
+	E2eVolumeRegistry           string `yaml:"e2eVolumeRegistry"`
 	EtcdRegistry          string `yaml:"etcdRegistry"`
 	GcRegistry            string `yaml:"gcRegistry"`
         GcrReleaseRegistry      string `yaml:"gcrReleaseRegistry"`
@@ -64,12 +65,13 @@ func initReg() RegistryList {
 	registry := RegistryList{
 		DockerLibraryRegistry: "docker.io/library",
 		E2eRegistry:           "gcr.io/kubernetes-e2e-test-images",
+		E2eVolumeRegistry:     "gcr.io/kubernetes-e2e-test-images/volume",
 		EtcdRegistry:          "quay.io/coreos",
 		GcRegistry:            "k8s.gcr.io",
-                GcrReleaseRegistry:      "gcr.io/gke-release",
+                GcrReleaseRegistry:    "gcr.io/gke-release",
 		PrivateRegistry:       "gcr.io/k8s-authenticated-test",
 		SampleRegistry:        "gcr.io/google-samples",
-                QuayK8sCSI:              "quay.io/k8scsi",
+                QuayK8sCSI:            "quay.io/k8scsi",
 	}
 	repoList := os.Getenv("KUBE_TEST_REPO_LIST")
 	if repoList == "" {
@@ -92,6 +94,8 @@ var (
 	registry              = initReg()
 	dockerLibraryRegistry = registry.DockerLibraryRegistry
 	e2eRegistry           = registry.E2eRegistry
+	e2eVolumeRegistry     = registry.E2eVolumeRegistry
+
 	etcdRegistry          = registry.EtcdRegistry
 	gcRegistry            = registry.GcRegistry
         gcrReleaseRegistry      = registry.GcrReleaseRegistry
@@ -245,10 +249,10 @@ func initImageConfigs() map[int]Config {
 	configs[ResourceController] = Config{e2eRegistry, "resource-consumer/controller", "1.0"}
 	configs[ServeHostname] = Config{e2eRegistry, "serve-hostname", "1.1"}
 	configs[TestWebserver] = Config{e2eRegistry, "test-webserver", "1.0"}
-	configs[VolumeNFSServer] = Config{e2eRegistry, "volume/nfs", "1.0"}
-	configs[VolumeISCSIServer] = Config{e2eRegistry, "volume/iscsi", "1.0"}
-	configs[VolumeGlusterServer] = Config{e2eRegistry, "volume/gluster", "1.0"}
-	configs[VolumeRBDServer] = Config{e2eRegistry, "volume/rbd", "1.0.1"}
+	configs[VolumeNFSServer] = Config{e2eVolumeRegistry, "nfs", "1.0"}
+	configs[VolumeISCSIServer] = Config{e2eVolumeRegistry, "iscsi", "1.0"}
+	configs[VolumeGlusterServer] = Config{e2eVolumeRegistry, "gluster", "1.0"}
+	configs[VolumeRBDServer] = Config{e2eVolumeRegistry, "rbd", "1.0.1"}
 	return configs
 }
 
@@ -286,6 +290,8 @@ func ReplaceRegistryInImageURL(imageURL string) (string, error) {
 	switch registryAndUser {
 	case "gcr.io/kubernetes-e2e-test-images":
 		registryAndUser = e2eRegistry
+	case "gcr.io/kubernetes-e2e-test-images/volume":
+		registryAndUser = e2eVolumeRegistry
 	case "k8s.gcr.io":
 		registryAndUser = gcRegistry
 	case "gcr.io/k8s-authenticated-test":
