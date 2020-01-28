@@ -192,6 +192,10 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 			}
 			return false, err
 		}); err != nil {
+			out, outErr := oc.AsAdmin().Run("get").Args("secret", dockercfgSecretName, "-n", sa.Namespace, "-o", "yaml").Output()
+			if outErr == nil {
+				e2e.Logf("pull secret %s/%s: %s", sa.Namespace, dockercfgSecretName, out)
+			}
 			t.Fatalf("error waiting for pull secret deletion: %v", err)
 		}
 	})
