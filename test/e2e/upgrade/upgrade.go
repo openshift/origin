@@ -123,7 +123,8 @@ var _ = g.Describe("[Disruptive]", func() {
 			kubeClient := kubernetes.NewForConfigOrDie(config)
 			kcmPods, err := kubeClient.CoreV1().Pods("openshift-kube-controller-manager").List(metav1.ListOptions{LabelSelector: "kube-controller-manager=true"})
 			framework.ExpectNoError(err)
-			for _, pod := range kcmPods.Items {
+			for i := range kcmPods.Items {
+				pod := kcmPods.Items[i]
 				go func() {
 					var kcmContainer string
 					for _, container := range pod.Spec.Containers {
