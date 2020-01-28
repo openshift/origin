@@ -222,7 +222,7 @@ func (g *BuildGenerator) Instantiate(ctx context.Context, request *buildv1.Build
 	for i := 0; i < conflictRetries; i++ {
 		build, err = g.instantiate(ctx, request)
 		if errors.IsConflict(err) {
-			glog.V(4).Infof("instantiate returned conflict, try %d/%d", i+1, conflictRetries)
+			glog.V(2).Infof("instantiate returned conflict, try %d/%d", i+1, conflictRetries)
 			continue
 		}
 		if err != nil {
@@ -315,7 +315,7 @@ func (g *BuildGenerator) instantiate(ctx context.Context, request *buildv1.Build
 	// need to update the BuildConfig because LastVersion and possibly
 	// LastTriggeredImageID changed
 	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
-		glog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", bc.Namespace, bc.Name)
+		glog.V(2).Infof("Failed to update BuildConfig %s/%s so no Build will be created", bc.Namespace, bc.Name)
 		return nil, err
 	}
 

@@ -206,7 +206,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 					}
 				}
 			}
-			glog.V(2).Infof("failed to instantiate: %#v", request)
+			glog.V(2).Infof("failed to instantiate: %#v with error %#v", request, err)
 			return false, err
 		}
 		build = result
@@ -278,12 +278,14 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 
 	exec, err := remotecommand.NewSPDYExecutor(h.r.ClientConfig, "POST", req.URL())
 	if err != nil {
+		glog.Warningf("error with SPDY POST binary content to build pod %s/%s: %#v", build.Namespace, buildPodName, err)
 		return nil, err
 	}
 	err = exec.Stream(remotecommand.StreamOptions{
 		Stdin: r,
 	})
 	if err != nil {
+		glog.Warningf("error streaming binary content with build pod %s/%s: %#v", build.Namespace, buildPodName, err)
 		return nil, errors.NewInternalError(err)
 	}
 	cancel = false
