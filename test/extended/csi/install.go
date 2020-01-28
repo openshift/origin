@@ -84,9 +84,17 @@ func executeTemplate(templatePath string) (string, error) {
 		imageFormat = defaultImageFormat
 	}
 
-	variables := struct{ AttacherImage, ProvisionerImage, NodeDriverRegistrarImage, LivenessProbeImage, ImageFormat string }{
+	variables := struct {
+		AttacherImage            string
+		ProvisionerImage         string
+		ResizerImage             string
+		NodeDriverRegistrarImage string
+		LivenessProbeImage       string
+		ImageFormat              string
+	}{
 		AttacherImage:            strings.ReplaceAll(imageFormat, "${component}", "csi-external-attacher"),
 		ProvisionerImage:         strings.ReplaceAll(imageFormat, "${component}", "csi-external-provisioner"),
+		ResizerImage:             strings.ReplaceAll(imageFormat, "${component}", "csi-external-resizer"),
 		NodeDriverRegistrarImage: strings.ReplaceAll(imageFormat, "${component}", "csi-node-driver-registrar"),
 		LivenessProbeImage:       strings.ReplaceAll(imageFormat, "${component}", "csi-livenessprobe"),
 		ImageFormat:              imageFormat,

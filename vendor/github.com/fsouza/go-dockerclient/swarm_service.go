@@ -5,15 +5,13 @@
 package docker
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/docker/docker/api/types/swarm"
-	"golang.org/x/net/context"
 )
 
 // NoSuchService is the error returned when a given service does not exist.
@@ -48,7 +46,7 @@ func (c *Client) CreateService(opts CreateServiceOptions) (*swarm.Service, error
 		return nil, err
 	}
 	path := "/services/create?" + queryString(opts)
-	resp, err := c.do("POST", path, doOptions{
+	resp, err := c.do(http.MethodPost, path, doOptions{
 		headers:   headers,
 		data:      opts.ServiceSpec,
 		forceJSON: true,
@@ -78,7 +76,7 @@ type RemoveServiceOptions struct {
 // See https://goo.gl/Tqrtya for more details.
 func (c *Client) RemoveService(opts RemoveServiceOptions) error {
 	path := "/services/" + opts.ID
-	resp, err := c.do("DELETE", path, doOptions{context: opts.Context})
+	resp, err := c.do(http.MethodDelete, path, doOptions{context: opts.Context})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return &NoSuchService{ID: opts.ID}
@@ -93,10 +91,11 @@ func (c *Client) RemoveService(opts RemoveServiceOptions) error {
 //
 // See https://goo.gl/wu3MmS for more details.
 type UpdateServiceOptions struct {
-	Auth AuthConfiguration `qs:"-"`
-	swarm.ServiceSpec
-	Context context.Context
-	Version uint64
+	Auth              AuthConfiguration `qs:"-"`
+	swarm.ServiceSpec `qs:"-"`
+	Context           context.Context
+	Version           uint64
+	Rollback          string
 }
 
 // UpdateService updates the service at ID with the options
@@ -107,9 +106,7 @@ func (c *Client) UpdateService(id string, opts UpdateServiceOptions) error {
 	if err != nil {
 		return err
 	}
-	params := make(url.Values)
-	params.Set("version", strconv.FormatUint(opts.Version, 10))
-	resp, err := c.do("POST", "/services/"+id+"/update?"+params.Encode(), doOptions{
+	resp, err := c.do(http.MethodPost, "/services/"+id+"/update?"+queryString(opts), doOptions{
 		headers:   headers,
 		data:      opts.ServiceSpec,
 		forceJSON: true,
@@ -130,7 +127,7 @@ func (c *Client) UpdateService(id string, opts UpdateServiceOptions) error {
 // See https://goo.gl/dHmr75 for more details.
 func (c *Client) InspectService(id string) (*swarm.Service, error) {
 	path := "/services/" + id
-	resp, err := c.do("GET", path, doOptions{})
+	resp, err := c.do(http.MethodGet, path, doOptions{})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return nil, &NoSuchService{ID: id}
@@ -158,7 +155,7 @@ type ListServicesOptions struct {
 // See https://goo.gl/DwvNMd for more details.
 func (c *Client) ListServices(opts ListServicesOptions) ([]swarm.Service, error) {
 	path := "/services?" + queryString(opts)
-	resp, err := c.do("GET", path, doOptions{context: opts.Context})
+	resp, err := c.do(http.MethodGet, path, doOptions{context: opts.Context})
 	if err != nil {
 		return nil, err
 	}
@@ -179,10 +176,10 @@ type LogsServiceOptions struct {
 	ErrorStream       io.Writer     `qs:"-"`
 	InactivityTimeout time.Duration `qs:"-"`
 	Tail              string
+	Since             int64
 
 	// Use raw terminal? Usually true when the container contains a TTY.
 	RawTerminal bool `qs:"-"`
-	Since       int64
 	Follow      bool
 	Stdout      bool
 	Stderr      bool
@@ -206,7 +203,7 @@ func (c *Client) GetServiceLogs(opts LogsServiceOptions) error {
 		opts.Tail = "all"
 	}
 	path := "/services/" + opts.Service + "/logs?" + queryString(opts)
-	return c.stream("GET", path, streamOptions{
+	return c.stream(http.MethodGet, path, streamOptions{
 		setRawTerminal:    opts.RawTerminal,
 		stdout:            opts.OutputStream,
 		stderr:            opts.ErrorStream,

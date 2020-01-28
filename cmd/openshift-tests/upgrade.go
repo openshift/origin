@@ -9,12 +9,10 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/kubectl/pkg/util/templates"
-	"k8s.io/kubernetes/test/e2e/cloud/gcp"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/test/e2e/upgrade"
-	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // upgradeSuites are all known upgade test suites this binary should run
@@ -84,30 +82,30 @@ func (o *UpgradeOptions) ToEnv() string {
 	return string(out)
 }
 
-func initUpgrade(value string) error {
-	if len(value) == 0 {
-		return nil
-	}
+func initUpgrade(value string) (*UpgradeOptions, error) {
 	var opt UpgradeOptions
+	if len(value) == 0 {
+		return &opt, nil
+	}
 	if err := json.Unmarshal([]byte(value), &opt); err != nil {
-		return err
+		return nil, err
 	}
 	for _, suite := range upgradeSuites {
 		if suite.Name == opt.Suite {
-			gcp.SetUpgradeTarget("")
-			gcp.SetUpgradeImage(opt.ToImage)
-			exutil.TestContext.ReportDir = opt.JUnitDir
 			o, err := opt.OptionsMap()
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if suite.Init != nil {
-				return suite.Init(o)
+				if err := suite.Init(o); err != nil {
+					return nil, err
+				}
 			}
-			return nil
+			upgrade.SetToImage(opt.ToImage)
+			return &opt, nil
 		}
 	}
-	return fmt.Errorf("unrecognized upgrade info")
+	return nil, fmt.Errorf("unrecognized upgrade info")
 }
 
 func filterUpgrade(tests []upgrades.Test, match func(string) bool) error {

@@ -137,13 +137,6 @@ var (
 		{Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
 
 		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
-
-		// FIXME
-		// {Group: "network.openshift.io", Version: "v1", Resource: "clusternetworks"},
-		// {Group: "network.openshift.io", Version: "v1", Resource: "egressnetworkpolicies"},
-		// {Group: "network.openshift.io", Version: "v1", Resource: "hostsubnets"},
-		// {Group: "network.openshift.io", Version: "v1", Resource: "netnamespaces"},
-		// {Group: "network.operator.openshift.io", Version: "v1", Resource: "operatorpkis"},
 	}
 
 	specialTypes = []explainExceptions{
@@ -322,6 +315,26 @@ var (
 			field:   "consoleyamlsamples.spec",
 			pattern: `DESCRIPTION\:.*`,
 		},
+		{
+			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
+			field:   "clusternetworks",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
+			field:   "hostsubnets",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
+			field:   "netnamespaces",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
+			field:   "egressnetworkpolicies",
+			pattern: `DESCRIPTION\:.*`,
+		},
 	}
 )
 
@@ -329,7 +342,6 @@ var _ = g.Describe("[cli] oc explain", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
-	crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 
 	g.It("should contain spec+status for builtinTypes", func() {
 		for _, bt := range builtinTypes {
@@ -339,6 +351,7 @@ var _ = g.Describe("[cli] oc explain", func() {
 	})
 
 	g.It("should contain proper spec+status for CRDs", func() {
+		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 		for _, ct := range crdTypes {
 			e2e.Logf("Checking %s...", ct)
 			o.Expect(verifyCRDSpecStatusExplain(oc, crdClient, ct)).NotTo(o.HaveOccurred())

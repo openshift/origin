@@ -28,7 +28,11 @@ type Options struct {
 	JUnitDir    string
 	TestFile    string
 	OutFile     string
-	Regex       string
+
+	// Regex allows a selection of a subset of tests
+	Regex string
+	// MatchFn if set is also used to filter the suite contents
+	MatchFn func(name string) bool
 
 	IncludeSuccessOutput bool
 
@@ -91,7 +95,13 @@ func (opt *Options) Run(args []string) error {
 
 	if len(opt.Regex) > 0 {
 		if err := filterWithRegex(suite, opt.Regex); err != nil {
-			return fmt.Errorf("regular expression for filtering tests is invalid: %v", err)
+			return err
+		}
+	}
+	if opt.MatchFn != nil {
+		original := suite.Matches
+		suite.Matches = func(name string) bool {
+			return original(name) && opt.MatchFn(name)
 		}
 	}
 

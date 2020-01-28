@@ -117,11 +117,7 @@ func filterWithRegex(suite *TestSuite, regex string) error {
 	}
 	origMatches := suite.Matches
 	suite.Matches = func(name string) bool {
-		if match := origMatches(name); !match {
-			return false
-		}
-
-		return re.MatchString(name)
+		return origMatches(name) && re.MatchString(name)
 	}
 	return nil
 }

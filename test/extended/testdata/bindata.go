@@ -16518,7 +16518,7 @@ objects:
           value: ${NPM_MIRROR}
         from:
           kind: ImageStreamTag
-          name: nodejs:8
+          name: nodejs:12
           namespace: ${NAMESPACE}
       type: Source
     triggers:
@@ -17519,7 +17519,7 @@ objects:
           value: ${NPM_MIRROR}
         from:
           kind: ImageStreamTag
-          name: nodejs:8
+          name: nodejs:12
           namespace: ${NAMESPACE}
       type: Source
     triggers:
@@ -31168,28 +31168,28 @@ os::cmd::expect_failure_and_text "oc new-build --binary" "you must provide a --n
 os::cmd::expect_success "oc new-build --binary --name=binary-test"
 os::cmd::expect_success_and_text "oc get bc/binary-test" 'Binary'
 
-os::cmd::expect_success 'oc delete is/binary-test bc/binary-test'
+os::cmd::expect_success 'oc delete is/binary-test bc/binary-test bc/centos'
 
 # Build from Dockerfile with output to DockerImage
-os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1' --to-docker"
-os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage origin:latest$'
+os::cmd::expect_success "oc new-build -D \$'FROM centos:7' --to-docker"
+os::cmd::expect_success_and_text "oc get bc/centos --template '${template}'" '^DockerImage centos:latest$'
 
-os::cmd::expect_success 'oc delete is/origin'
+os::cmd::expect_success 'oc delete is/centos bc/centos'
 
 # Build from Dockerfile with given output ImageStreamTag spec
-os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to origin-test:v1.1"
+os::cmd::expect_success "oc new-build -D \$'FROM centos:7\nENV ok=1' --to origin-test:v1.1"
 os::cmd::expect_success_and_text "oc get bc/origin-test --template '${template}'" '^ImageStreamTag origin-test:v1.1$'
 
-os::cmd::expect_success 'oc delete is/origin bc/origin'
+os::cmd::expect_success 'oc delete is/centos bc/origin-test'
 
 # Build from Dockerfile with given output DockerImage spec
-os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to-docker --to openshift/origin:v1.1-test"
+os::cmd::expect_success "oc new-build -D \$'FROM centos:7\nENV ok=1' --to-docker --to openshift/origin:v1.1-test"
 os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage openshift/origin:v1.1-test$'
 
-os::cmd::expect_success 'oc delete is/origin'
+os::cmd::expect_success 'oc delete is/centos'
 
 # Build from Dockerfile with custom name and given output ImageStreamTag spec
-os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to origin-name-test --name origin-test2"
+os::cmd::expect_success "oc new-build -D \$'FROM centos:7\nENV ok=1' --to origin-name-test --name origin-test2"
 os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
 
 #os::cmd::try_until_text 'oc get is ruby-25-centos7' 'latest'
@@ -32236,7 +32236,7 @@ os::cmd::expect_success_and_not_text 'oc -h' 'Options'
 os::cmd::expect_success_and_not_text 'oc -h' 'Global Options'
 os::cmd::expect_failure_and_text 'oc adm ca' 'Manage certificates'
 os::cmd::expect_success_and_text 'oc exec --help' '\-\- COMMAND \[args\.\.\.\]$'
-os::cmd::expect_success_and_text 'oc rsh --help' '\[flags\] POD \[COMMAND\]$'
+os::cmd::expect_success_and_text 'oc rsh --help' 'COMMAND'
 
 # help for root commands with --help flag must be consistent
 os::cmd::expect_success_and_text 'oc --help' 'OpenShift Client'
@@ -47121,6 +47121,43 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 
 ---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ebs-external-resizer-role
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims/status"]
+    verbs: ["update", "patch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ebs-csi-resizer-binding
+subjects:
+  - kind: ServiceAccount
+    name: ebs-csi-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: ebs-external-resizer-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
 
 kind: StatefulSet
 apiVersion: apps/v1
@@ -47197,11 +47234,23 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-resizer
+          image: {{.ResizerImage}}
+          args:
+            - --csi-address=$(ADDRESS)
+            - --v=5
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
       volumes:
         - name: socket-dir
           emptyDir: {}
 
 ---
+
 # Node Service
 kind: DaemonSet
 apiVersion: apps/v1
@@ -47351,6 +47400,8 @@ DriverInfo:
     block: true
     exec: true
     volumeLimits: false
+    controllerExpansion: true
+    nodeExpansion: true
 `)
 
 func testExtendedTestdataCsiAwsEbsManifestYamlBytes() ([]byte, error) {
