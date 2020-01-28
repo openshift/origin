@@ -896,6 +896,29 @@ func (j *TestJig) TestReachableHTTP(host string, port int, timeout time.Duration
 	j.TestReachableHTTPWithRetriableErrorCodes(host, port, []int{}, timeout)
 }
 
+func (j *TestJig) TestReachableHTTP2(host string, port int, timeout time.Duration) {
+	pollfn := func() (bool, error) {
+		result := framework.PokeHTTP(host, port, "/echo?msg=hello",
+			&framework.HTTPPokeParams{
+				BodyContains:   "hello",
+				Timeout: 1*time.Second,
+			})
+		if result.Status == framework.HTTPSuccess {
+			return true, nil
+		}
+		framework.Logf("DEBUG: Disruption: code=%d, err=%v\n", result.Code, result.Error)
+		return false, nil // caller can retry
+	}
+
+	if err := wait.PollImmediate(framework.Poll, timeout, pollfn); err != nil {
+		if err == wait.ErrWaitTimeout {
+			framework.Failf("Could not reach HTTP service through %v:%v after %v", host, port, timeout)
+		} else {
+			framework.Failf("Failed to reach HTTP service through %v:%v: %v", host, port, err)
+		}
+	}
+}
+
 // TestReachableHTTPWithRetriableErrorCodes tests that the given host serves HTTP on the given port with the given retriableErrCodes.
 func (j *TestJig) TestReachableHTTPWithRetriableErrorCodes(host string, port int, retriableErrCodes []int, timeout time.Duration) {
 	pollfn := func() (bool, error) {

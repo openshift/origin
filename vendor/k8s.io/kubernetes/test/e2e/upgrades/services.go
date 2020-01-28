@@ -103,7 +103,7 @@ func (t *ServiceUpgradeTest) test(f *framework.Framework, done <-chan struct{}, 
 		// Continuous validation
 		ginkgo.By("continuously hitting the pod through the service's LoadBalancer")
 		wait.Until(func() {
-			t.jig.TestReachableHTTP(t.tcpIngressIP, t.svcPort, e2eservice.LoadBalancerLagTimeoutDefault)
+			t.jig.TestReachableHTTP2(t.tcpIngressIP, t.svcPort, e2eservice.LoadBalancerLagTimeoutDefault)
 		}, framework.Poll, done)
 	} else {
 		// Block until upgrade is done
