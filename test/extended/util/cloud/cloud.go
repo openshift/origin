@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
@@ -15,18 +16,26 @@ import (
 )
 
 type ClusterConfiguration struct {
-	ProviderName string
+	ProviderName string `json:"type"`
 
 	// These fields chosen to match the e2e configuration we fill
-	ProjectID       string
-	Region          string
-	Zone            string
-	NumNodes        int
-	MultiMaster     bool
-	MultiZone       bool
-	CloudConfigFile string
+	ProjectID   string
+	Region      string
+	Zone        string
+	NumNodes    int
+	MultiMaster bool
+	MultiZone   bool
+	ConfigFile  string
 
 	NetworkPlugin string
+}
+
+func (c *ClusterConfiguration) ToJSONString() string {
+	out, err := json.Marshal(c)
+	if err != nil {
+		panic(err)
+	}
+	return string(out)
 }
 
 // LoadConfig uses the cluster to setup the cloud provider config.
@@ -119,7 +128,7 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 		if err := ioutil.WriteFile(tmpFile.Name(), data, 0600); err != nil {
 			return nil, err
 		}
-		config.CloudConfigFile = tmpFile.Name()
+		config.ConfigFile = tmpFile.Name()
 	}
 
 	return config, nil
