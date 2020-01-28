@@ -1,22 +1,26 @@
 package upgrade
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/lifecycle"
 	"k8s.io/kubernetes/test/e2e/upgrades"
@@ -26,6 +30,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+
 	"github.com/openshift/origin/test/extended/util/disruption"
 )
 
@@ -114,6 +119,40 @@ var _ = g.Describe("[Disruptive]", func() {
 			framework.ExpectNoError(err)
 			client := configv1client.NewForConfigOrDie(config)
 			dynamicClient := dynamic.NewForConfigOrDie(config)
+
+			kubeClient := kubernetes.NewForConfigOrDie(config)
+			kcmPods, err := kubeClient.CoreV1().Pods("openshift-kube-controller-manager").List(metav1.ListOptions{LabelSelector: "kube-controller-manager=true"})
+			framework.ExpectNoError(err)
+			for _, pod := range kcmPods.Items {
+				go func() {
+					var kcmContainer string
+					for _, container := range pod.Spec.Containers {
+						if strings.HasPrefix(container.Name, "kube-controller-manager") {
+							kcmContainer = container.Name
+							break
+						}
+					}
+					if len(kcmContainer) == 0 {
+						framework.Failf("couldn't find kcm container in pod %s", pod.Name)
+					}
+					logs, err := kubeClient.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &corev1.PodLogOptions{
+						Container: kcmContainer,
+						Follow: true,
+					}).Stream()
+					if err != nil {
+						fmt.Printf("ERROR: %v\n", err)
+						framework.ExpectNoError(err, "streaming logs for pod %s", kcmContainer)
+					}
+					scanner := bufio.NewScanner(logs)
+					fmt.Printf("DEBUG: reading logs from %s\n", pod.Name)
+					for scanner.Scan() {
+						fmt.Printf("DEBUG: %s: %s\n", kcmContainer, scanner.Text())
+					}
+					if err := scanner.Err(); err != nil {
+						fmt.Printf("error reading logs from pod %s: %v\n", pod.Name, err)
+					}
+				}()
+			}
 
 			upgCtx, err := getUpgradeContext(client, lifecycle.GetUpgradeTarget(), lifecycle.GetUpgradeImage())
 			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", lifecycle.GetUpgradeTarget(), lifecycle.GetUpgradeImage())
