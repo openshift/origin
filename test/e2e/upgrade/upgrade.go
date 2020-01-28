@@ -26,12 +26,13 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/util/disruption"
 )
 
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
-		&upgrades.ServiceUpgradeTest{},
+		&service.UpgradeTest{},
 		&upgrades.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
 		&apps.StatefulSetUpgradeTest{},
@@ -235,7 +236,10 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 
 	if version.NodeImage == "[pause]" {
 		framework.Logf("Running a dry-run upgrade test")
-		time.Sleep(2 * time.Minute)
+		wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
+			framework.Logf("Waiting ...")
+			return false, nil
+		})
 		return nil
 	}
 
