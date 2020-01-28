@@ -21,8 +21,14 @@ type Monitor struct {
 
 // NewMonitor creates a monitor with the default sampling interval.
 func NewMonitor() *Monitor {
+	return NewMonitorWithInterval(15 * time.Second)
+}
+
+// NewMonitorWithInterval creates a monitor that samples at the provided
+// interval.
+func NewMonitorWithInterval(interval time.Duration) *Monitor {
 	return &Monitor{
-		interval: 15 * time.Second,
+		interval: interval,
 	}
 }
 
