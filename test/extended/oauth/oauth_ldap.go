@@ -83,7 +83,7 @@ var _ = g.Describe("[Suite:openshift/oauth] LDAP IDP", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// Deploy an OAuth server
-		tokenOpts, _, err := oauthutil.DeployOAuthServer(oc, []osinv1.IdentityProvider{
+		tokenOpts, cleanup, err := oauthutil.DeployOAuthServer(oc, []osinv1.IdentityProvider{
 			{
 				Name:            providerName,
 				UseAsChallenger: true,
@@ -92,6 +92,7 @@ var _ = g.Describe("[Suite:openshift/oauth] LDAP IDP", func() {
 				Provider:        *ldapProvider,
 			},
 		}, []corev1.ConfigMap{caConfigMap}, nil)
+		defer cleanup()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("configuring LDAP users")
