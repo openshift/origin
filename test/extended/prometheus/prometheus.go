@@ -51,15 +51,6 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 	g.Describe("when installed on the cluster", func() {
 		g.It("should report telemetry if a cloud.openshift.com token is present", func() {
-			// https://github.com/openshift/cluster-monitoring-operator/pull/434
-			// changes the behavior from using the extra telemeter-client to
-			// the Prometheus native remote-write protocol. This causes the
-			// telemeter-client metrics to not be available anymore, causing
-			// this test to fail on that PR, but we can't merge modifying this
-			// test yet because the new metrics are not there yet. Skipping
-			// this test intermediately to merge the PR.
-			e2e.Skipf("skipping in order to merge https://github.com/openshift/cluster-monitoring-operator/pull/434")
-
 			if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 				e2e.Skipf("Telemetry is disabled")
 			}
@@ -70,9 +61,9 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
 
 			tests := map[string]bool{
-				// Should have successfully sent at least some metrics to remote write endpoint
-				// uncomment this once https://github.com/openshift/cluster-monitoring-operator/pull/434
-				// is merged, and remove the other two checks.
+				// Should have successfully sent at least some metrics to
+				// remote write endpoint uncomment this once sending telemetry
+				// via remote write is merged, and remove the other two checks.
 				// `prometheus_remote_storage_succeeded_samples_total{job="prometheus-k8s"} >= 1`: true,
 
 				// should have successfully sent at least once to remote
