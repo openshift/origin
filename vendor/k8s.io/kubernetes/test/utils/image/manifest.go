@@ -28,6 +28,7 @@ import (
 // RegistryList holds public and private image registries
 type RegistryList struct {
 	DockerLibraryRegistry string `yaml:"dockerLibraryRegistry"`
+	DockerGluster           string `yaml:"dockerGluster"`
 	E2eRegistry           string `yaml:"e2eRegistry"`
 	E2eVolumeRegistry           string `yaml:"e2eVolumeRegistry"`
 	EtcdRegistry          string `yaml:"etcdRegistry"`
@@ -64,6 +65,7 @@ func (i *Config) SetVersion(version string) {
 func initReg() RegistryList {
 	registry := RegistryList{
 		DockerLibraryRegistry: "docker.io/library",
+		DockerGluster:           "docker.io/gluster",
 		E2eRegistry:           "gcr.io/kubernetes-e2e-test-images",
 		E2eVolumeRegistry:     "gcr.io/kubernetes-e2e-test-images/volume",
 		EtcdRegistry:          "quay.io/coreos",
@@ -72,6 +74,7 @@ func initReg() RegistryList {
 		PrivateRegistry:       "gcr.io/k8s-authenticated-test",
 		SampleRegistry:        "gcr.io/google-samples",
                 QuayK8sCSI:            "quay.io/k8scsi",
+		QuayIncubator:           "quay.io/kubernetes_incubator",
 	}
 	repoList := os.Getenv("KUBE_TEST_REPO_LIST")
 	if repoList == "" {
@@ -93,13 +96,14 @@ func initReg() RegistryList {
 var (
 	registry              = initReg()
 	dockerLibraryRegistry = registry.DockerLibraryRegistry
+	dockerGluster           = registry.DockerGluster
 	e2eRegistry           = registry.E2eRegistry
 	e2eVolumeRegistry     = registry.E2eVolumeRegistry
-
 	etcdRegistry          = registry.EtcdRegistry
 	gcRegistry            = registry.GcRegistry
         gcrReleaseRegistry      = registry.GcrReleaseRegistry
         quayK8sCSI              = registry.QuayK8sCSI
+	quayIncubator           = registry.QuayIncubator
 	// PrivateRegistry is an image repository that requires authentication
 	PrivateRegistry = registry.PrivateRegistry
 	sampleRegistry  = registry.SampleRegistry
@@ -139,6 +143,8 @@ const (
 	Fakegitserver
 	// GBFrontend image
 	GBFrontend
+	// GlusterDynamicProvisioner image
+	GlusterDynamicProvisioner
 	// GBRedisSlave image
 	GBRedisSlave
 	// Hostexec image
@@ -167,6 +173,8 @@ const (
 	Netexec
 	// Nettest image
 	Nettest
+	// NFSProvisioner image
+	NFSProvisioner
 	// Nginx image
 	Nginx
 	// NginxNew image
@@ -221,6 +229,7 @@ func initImageConfigs() map[int]Config {
 	configs[Etcd] = Config{etcdRegistry, "etcd", "v3.3.10"}
 	configs[Fakegitserver] = Config{e2eRegistry, "fakegitserver", "1.0"}
 	configs[GBFrontend] = Config{sampleRegistry, "gb-frontend", "v6"}
+	configs[GlusterDynamicProvisioner] = Config{dockerGluster, "glusterdynamic-provisioner", "v1.0"}
 	configs[GBRedisSlave] = Config{sampleRegistry, "gb-redisslave", "v3"}
 	configs[Hostexec] = Config{e2eRegistry, "hostexec", "1.1"}
 	configs[IpcUtils] = Config{e2eRegistry, "ipc-utils", "1.0"}
@@ -235,6 +244,7 @@ func initImageConfigs() map[int]Config {
 	configs[Net] = Config{e2eRegistry, "net", "1.0"}
 	configs[Netexec] = Config{e2eRegistry, "netexec", "1.1"}
 	configs[Nettest] = Config{e2eRegistry, "nettest", "1.0"}
+	configs[NFSProvisioner] = Config{quayIncubator, "nfs-provisioner", "v2.2.0-k8s1.12"}
 	configs[Nginx] = Config{dockerLibraryRegistry, "nginx", "1.14-alpine"}
 	configs[NginxNew] = Config{dockerLibraryRegistry, "nginx", "1.15-alpine"}
 	configs[Nonewprivs] = Config{e2eRegistry, "nonewprivs", "1.0"}
