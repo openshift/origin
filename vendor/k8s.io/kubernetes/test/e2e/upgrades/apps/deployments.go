@@ -157,13 +157,13 @@ func (t *DeploymentUpgradeTest) Test(f *framework.Framework, done <-chan struct{
 
 	// Verify the upgraded deployment is active by scaling up the deployment by 1
 	By(fmt.Sprintf("Scaling up replicaset of deployment %q by 1", deploymentName))
-	_, err = framework.UpdateDeploymentWithRetries(c, ns, deploymentName, func(deployment *apps.Deployment) {
+	deploymentWithUpdatedReplicas, err := framework.UpdateDeploymentWithRetries(c, ns, deploymentName, func(deployment *apps.Deployment) {
 		*deployment.Spec.Replicas = *deployment.Spec.Replicas + 1
 	})
 	framework.ExpectNoError(err)
 
 	By(fmt.Sprintf("Waiting for deployment %q to complete after scaling", deploymentName))
-	framework.ExpectNoError(framework.WaitForDeploymentComplete(c, deployment))
+	framework.ExpectNoError(framework.WaitForDeploymentComplete(c, deploymentWithUpdatedReplicas))
 }
 
 // Teardown cleans up any remaining resources.
