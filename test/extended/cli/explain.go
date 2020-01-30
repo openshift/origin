@@ -139,6 +139,13 @@ var (
 		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
 	}
 
+	networkCRDTypes = []schema.GroupVersionResource{
+		{Group: "network.openshift.io", Version: "v1", Resource: "clusternetworks"},
+		{Group: "network.openshift.io", Version: "v1", Resource: "egressnetworkpolicies"},
+		{Group: "network.openshift.io", Version: "v1", Resource: "hostsubnets"},
+		{Group: "network.openshift.io", Version: "v1", Resource: "netnamespaces"},
+	}
+
 	specialTypes = []explainExceptions{
 		{
 			gv:      schema.GroupVersion{Group: "apps.openshift.io", Version: "v1"},
@@ -316,29 +323,6 @@ var (
 			pattern: `DESCRIPTION\:.*`,
 		},
 	}
-
-	specialNetworkingTypes = []explainExceptions{
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "clusternetworks",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "hostsubnets",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "netnamespaces",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "egressnetworkpolicies",
-			pattern: `DESCRIPTION\:.*`,
-		},
-	}
 )
 
 var _ = g.Describe("[cli] oc explain", func() {
@@ -375,11 +359,11 @@ var _ = g.Describe("[cli] oc explain networking types", func() {
 
 	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
 
-	g.It("should contain proper fields description for special networking types", func() {
-		for _, st := range specialNetworkingTypes {
-			e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
-			o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
-				st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
+	g.It("should contain proper spec+status for networking CRDs", func() {
+		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
+		for _, ct := range networkCRDTypes {
+			e2e.Logf("Checking %s...", ct)
+			o.Expect(verifyCRDSpecStatusExplain(oc, crdClient, ct)).NotTo(o.HaveOccurred())
 		}
 	})
 })
