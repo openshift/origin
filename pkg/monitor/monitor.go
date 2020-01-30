@@ -37,14 +37,15 @@ func (m *Monitor) StartSampling(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(m.interval)
 		defer ticker.Stop()
+		hasConditions := false
 		for {
 			select {
 			case <-ticker.C:
 			case <-ctx.Done():
-				m.sample()
+				hasConditions = m.sample(hasConditions)
 				return
 			}
-			m.sample()
+			hasConditions = m.sample(hasConditions)
 		}
 	}()
 }
@@ -75,7 +76,7 @@ func (m *Monitor) Record(conditions ...Condition) {
 	}
 }
 
-func (m *Monitor) sample() {
+func (m *Monitor) sample(hasPrevious bool) bool {
 	m.lock.Lock()
 	samplers := m.samplers
 	m.lock.Unlock()
@@ -86,7 +87,9 @@ func (m *Monitor) sample() {
 		conditions = append(conditions, fn(now)...)
 	}
 	if len(conditions) == 0 {
-		return
+		if !hasPrevious {
+			return false
+		}
 	}
 
 	m.lock.Lock()
@@ -96,6 +99,7 @@ func (m *Monitor) sample() {
 		at:         t,
 		conditions: conditions,
 	})
+	return len(conditions) > 0
 }
 
 func (m *Monitor) snapshot() ([]*sample, []*Event) {
