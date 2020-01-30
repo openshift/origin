@@ -315,6 +315,9 @@ var (
 			field:   "consoleyamlsamples.spec",
 			pattern: `DESCRIPTION\:.*`,
 		},
+	}
+
+	specialNetworkingTypes = []explainExceptions{
 		{
 			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
 			field:   "clusternetworks",
@@ -360,6 +363,20 @@ var _ = g.Describe("[cli] oc explain", func() {
 
 	g.It("should contain proper fields description for special types", func() {
 		for _, st := range specialTypes {
+			e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
+			o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
+				st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
+		}
+	})
+})
+
+var _ = g.Describe("[cli] oc explain networking types", func() {
+	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
+
+	g.It("should contain proper fields description for special networking types", func() {
+		for _, st := range specialNetworkingTypes {
 			e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
 			o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
 				st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
