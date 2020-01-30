@@ -2,7 +2,9 @@ package ginkgo
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -236,6 +238,23 @@ func (opt *Options) Run(args []string) error {
 	// anomalies
 	var syntheticTestResults []*JUnitTestCase
 	if events := m.Events(time.Time{}, time.Time{}); len(events) > 0 {
+		// Serialize the interval data for easier external analysis
+		intervalsFilename := filepath.Join(opt.JUnitDir, "intervals.json.gz")
+		if file, err := os.Create(intervalsFilename); err != nil {
+			fmt.Fprintf(opt.Out, "ERROR: failed to create %s: %v\n", intervalsFilename, err)
+		} else {
+			gz := gzip.NewWriter(file)
+			defer func() {
+				if err := gz.Close(); err != nil {
+					fmt.Fprintf(opt.Out, "ERROR: failed to close %s: %v\n", intervalsFilename, err)
+				}
+			}()
+			if err := json.NewEncoder(gz).Encode(events); err != nil {
+				fmt.Fprintf(opt.Out, "ERROR: failed to write %s: %v\n", intervalsFilename, err)
+			} else {
+				fmt.Fprintf(opt.Out, "wrote monitor interval data to %s\n", intervalsFilename)
+			}
+		}
 		buf, errBuf := &bytes.Buffer{}, &bytes.Buffer{}
 		fmt.Fprintf(buf, "\nTimeline:\n\n")
 		errorCount := 0
