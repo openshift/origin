@@ -2,7 +2,6 @@ package ginkgo
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -239,20 +238,16 @@ func (opt *Options) Run(args []string) error {
 	var syntheticTestResults []*JUnitTestCase
 	if events := m.Events(time.Time{}, time.Time{}); len(events) > 0 {
 		// Serialize the interval data for easier external analysis
-		intervalsFilename := filepath.Join(opt.JUnitDir, "intervals.json.gz")
-		if file, err := os.Create(intervalsFilename); err != nil {
-			fmt.Fprintf(opt.Out, "ERROR: failed to create %s: %v\n", intervalsFilename, err)
-		} else {
-			gz := gzip.NewWriter(file)
-			defer func() {
-				if err := gz.Close(); err != nil {
-					fmt.Fprintf(opt.Out, "ERROR: failed to close %s: %v\n", intervalsFilename, err)
-				}
-			}()
-			if err := json.NewEncoder(gz).Encode(events); err != nil {
-				fmt.Fprintf(opt.Out, "ERROR: failed to write %s: %v\n", intervalsFilename, err)
+		if len(opt.JUnitDir) > 0 {
+			if file, err := os.OpenFile(filepath.Join(opt.JUnitDir, "intervals.json"), os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm); err != nil {
+				fmt.Fprintf(opt.ErrOut, "error: Failed to create event output: %v\n", err)
 			} else {
-				fmt.Fprintf(opt.Out, "wrote monitor interval data to %s\n", intervalsFilename)
+				if err := json.NewEncoder(file).Encode(events); err != nil {
+					fmt.Fprintf(opt.ErrOut, "error: Failed to encode event output: %v\n", err)
+				}
+				if err := file.Close(); err != nil {
+					fmt.Fprintf(opt.ErrOut, "error: Failed to close event output: %v\n", err)
+				}
 			}
 		}
 		buf, errBuf := &bytes.Buffer{}, &bytes.Buffer{}
