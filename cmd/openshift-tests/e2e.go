@@ -141,7 +141,7 @@ var staticSuites = []*ginkgo.TestSuite{
         See https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/external/README.md for required format of the files.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/csi") && !strings.Contains(name, "[Disruptive]")
+			return strings.Contains(name, "External Storage [Driver:") && !strings.Contains(name, "[Disruptive]")
 		},
 	},
 	{
