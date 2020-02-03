@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var GroupVersion = schema.GroupVersion{Group: "network.openshift.io", Version: runtime.APIVersionInternal}
+var GroupVersion = schema.GroupVersion{Group: "network.openshift.io", Version: runtime.APIVersion}
 
 var (
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
