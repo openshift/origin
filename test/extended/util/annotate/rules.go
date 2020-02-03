@@ -133,6 +133,8 @@ var (
 			`\[Feature:ManualPerformance\]`,      // requires isolation
 			`\[Feature:HighDensityPerformance\]`, // requires no other namespaces
 
+			`\[NodeConformance\]`,
+
 			`Service endpoints latency`, // requires low latency
 			`Clean up pods on node`,     // schedules up to max pods per node
 			`should allow starting 95 pods per node`,
