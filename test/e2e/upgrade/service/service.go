@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades"
 
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/test/extended/util/disruption"
 )
 
 // UpgradeTest tests that a service is available before, during, and
@@ -119,10 +120,10 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			duration += i
 		}
 	}
-	if duration > 2*time.Second {
+	if duration > 60*time.Second {
 		framework.Failf("Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
 	} else if duration > 0 {
-		framework.Logf("Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
+		disruption.Flakef(f, "Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
 	}
 
 	// verify finalizer behavior

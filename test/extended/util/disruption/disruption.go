@@ -21,6 +21,20 @@ import (
 	"k8s.io/kubernetes/test/utils/junit"
 )
 
+// flakeSummary is a test summary type that allows upgrades to report violations
+// without failing the upgrade test.
+type flakeSummary string
+
+func (s flakeSummary) PrintHumanReadable() string { return string(s) }
+func (s flakeSummary) SummaryKind() string        { return "Flake" }
+func (s flakeSummary) PrintJSON() string          { return `{"type":"Flake"}` }
+
+// Flakef records a flake on the current framework.
+func Flakef(f *framework.Framework, format string, options ...interface{}) {
+	framework.Logf(format, options...)
+	f.TestSummaries = append(f.TestSummaries, flakeSummary(fmt.Sprintf(format, options...)))
+}
+
 // TestData is passed to the invariant tests executed during the upgrade. The default UpgradeType
 // is MasterUpgrade.
 type TestData struct {
@@ -37,7 +51,7 @@ func Run(description, testname string, adapter TestData, invariants []upgrades.T
 	testSuite.TestCases = append(testSuite.TestCases, test)
 	cm := chaosmonkey.New(func() {
 		start := time.Now()
-		defer finalizeTest(start, test)
+		defer finalizeTest(start, test, nil)
 		fn()
 	})
 	runChaosmonkey(cm, adapter, invariants, testSuite)
@@ -103,25 +117,37 @@ func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
 			sem.Ready()
 		})
 	}
-	defer finalizeTest(start, cma.testReport)
+	defer finalizeTest(start, cma.testReport, cma.framework)
 	defer ready()
 	if skippable, ok := cma.test.(upgrades.Skippable); ok && skippable.Skip(cma.UpgradeContext) {
 		g.By("skipping test " + cma.test.Name())
 		cma.testReport.Skipped = "skipping test " + cma.test.Name()
 		return
 	}
-
+	fmt.Printf("DEBUG: starting test\n")
 	cma.framework.BeforeEach()
+	fmt.Printf("DEBUG: starting test, setup\n")
 	cma.test.Setup(cma.framework)
 	defer cma.test.Teardown(cma.framework)
 	ready()
 	cma.test.Test(cma.framework, sem.StopCh, cma.UpgradeType)
 }
 
-func finalizeTest(start time.Time, tc *junit.TestCase) {
+func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
 	tc.Time = time.Since(start).Seconds()
 	r := recover()
 	if r == nil {
+		if f != nil {
+			for _, summary := range f.TestSummaries {
+				if summary.SummaryKind() == "Flake" {
+					tc.Failures = append(tc.Failures, &junit.Failure{
+						Message: summary.PrintHumanReadable(),
+						Type:    "Failure",
+						Value:   summary.PrintHumanReadable(),
+					})
+				}
+			}
+		}
 		return
 	}
 
