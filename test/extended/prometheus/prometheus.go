@@ -33,6 +33,51 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+var _ = g.Describe("[Feature:Prometheus][Late] Alerts", func() {
+	defer g.GinkgoRecover()
+	var (
+		oc = exutil.NewCLIWithoutNamespace("prometheus")
+
+		url, bearerToken string
+	)
+	g.BeforeEach(func() {
+		var ok bool
+		url, bearerToken, ok = locatePrometheus(oc)
+		if !ok {
+			e2e.Skipf("Prometheus could not be located on this cluster, skipping prometheus test")
+		}
+	})
+	g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured", func() {
+		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+			e2e.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
+		}
+		oc.SetupProject()
+		ns := oc.Namespace()
+		execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+		defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+
+		tests := map[string]bool{
+			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
+			`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured",alertstate="firing"}[2h]) >= 1`: false,
+		}
+		runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+	})
+	g.It("should have a Watchdog alert in firing state the entire cluster run", func() {
+		oc.SetupProject()
+		ns := oc.Namespace()
+		execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+		defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+
+		tests := map[string]bool{
+			// should have constantly firing a watchdog alert
+			`count_over_time(ALERTS{alertstate="firing",alertname="Watchdog", severity="none"}[1h])`: true,
+		}
+		runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+
+		e2e.Logf("Watchdog alert is firing")
+	})
+})
+
 var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
@@ -161,20 +206,6 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				return true, nil
 			})).NotTo(o.HaveOccurred(), "possibly some services didn't register ServiceMonitors to allow metrics collection")
 		})
-		g.It("should have a Watchdog alert in firing state", func() {
-			oc.SetupProject()
-			ns := oc.Namespace()
-			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
-
-			tests := map[string]bool{
-				// should have constantly firing a watchdog alert
-				`ALERTS{alertstate="firing",alertname="Watchdog",severity="none"} == 1`: true,
-			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
-
-			e2e.Logf("Watchdog alert is firing")
-		})
 		g.It("should have a AlertmanagerReceiversNotConfigured alert in firing state", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
@@ -248,7 +279,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			})
 		})
-		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Smoke]", func() {
+		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early]", func() {
 			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 				e2e.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 			}
