@@ -183,6 +183,10 @@ func (m *managerImpl) Start(diskInfoProvider DiskInfoProvider, podFunc ActivePod
 			}
 		}
 	}
+	// report all configured signals at zero
+	for _, t := range m.config.Thresholds {
+		metrics.Evictions.WithLabelValues(string(t.Signal)).Add(0)
+	}
 	// start the eviction manager monitoring
 	go func() {
 		for {
