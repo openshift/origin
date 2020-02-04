@@ -20,6 +20,10 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/browsersafe"
+	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/scopeauthorizer"
+
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	"k8s.io/apiserver/pkg/authorization/union"
@@ -115,8 +119,16 @@ func (config Config) New() (authorizer.Authorizer, authorizer.RuleResolver, erro
 				&rbac.ClusterRoleGetter{Lister: config.VersionedInformerFactory.Rbac().V1().ClusterRoles().Lister()},
 				&rbac.ClusterRoleBindingLister{Lister: config.VersionedInformerFactory.Rbac().V1().ClusterRoleBindings().Lister()},
 			)
-			authorizers = append(authorizers, rbacAuthorizer)
+			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+			authorizers = append(authorizers, browsersafe.NewBrowserSafeAuthorizer(rbacAuthorizer, user.AllAuthenticated))
 			ruleResolvers = append(ruleResolvers, rbacAuthorizer)
+		case modes.ModeScope:
+			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+			scopeLimitedAuthorizer := scopeauthorizer.NewAuthorizer(config.VersionedInformerFactory.Rbac().V1().ClusterRoles().Lister())
+			authorizers = append(authorizers, browsersafe.NewBrowserSafeAuthorizer(scopeLimitedAuthorizer, user.AllAuthenticated))
+		case modes.ModeSystemMasters:
+			// no browsersafeauthorizer here becase that rewrites the resources.  This authorizer matches no matter which resource matches.
+			authorizers = append(authorizers, authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup))
 		default:
 			return nil, nil, fmt.Errorf("unknown authorization mode %s specified", authorizationMode)
 		}
