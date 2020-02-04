@@ -83,7 +83,6 @@ var (
 			`TaintBasedEvictions`,                                                        // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
 			`recreate nodes and ensure they function upon restart`,                       // https://bugzilla.redhat.com/show_bug.cgi?id=1756428
 			`\[Driver: iscsi\]`,                                                          // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
-			`\[Feature:VolumeSnapshotDataSource\]`,                                       // Alpha (disabled by default) in Kubernetes 1.16
 			// TODO(workloads): reenable
 			`SchedulerPreemption`,
 
