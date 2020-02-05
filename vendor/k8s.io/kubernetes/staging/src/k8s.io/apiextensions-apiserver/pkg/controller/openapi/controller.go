@@ -32,6 +32,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	"k8s.io/kube-openapi/pkg/handler"
+	"k8s.io/utils/diff"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	informers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion/apiextensions/internalversion"
@@ -181,6 +182,10 @@ func (c *Controller) sync(name string) error {
 	}
 	if !changed {
 		return nil
+	}
+
+	if klog.V(6) {
+		klog.Infof("CRD schema diff for %s: %s", name, diff.ObjectDiff(oldSpecs, newSpecs))
 	}
 
 	// update specs of this CRD
