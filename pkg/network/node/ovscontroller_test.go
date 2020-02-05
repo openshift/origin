@@ -827,6 +827,32 @@ func TestFindUnusedVNIDs(t *testing.T) {
 		unused []int
 	}{
 		{
+			/* VNID 0 is never unused, even if there are no table 60/70 rules for it */
+			flows: []string{
+				"table=60,priority=100,ip,nw_dst=172.30.0.1,nw_frag=later actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,ip,nw_dst=172.30.156.103,nw_frag=later actions=load:0xcb81e9->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,ip,nw_dst=172.30.76.192,nw_frag=later actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=443 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,udp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.156.103,tp_dst=5454 actions=load:0xcb81e9->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.76.192,tp_dst=5454 actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.76.192,tp_dst=5455 actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=0 actions=drop",
+				"table=70,priority=100,ip,nw_dst=10.129.0.2 actions=load:0x55fac->NXM_NX_REG1[],load:0x3->NXM_NX_REG2[],goto_table:80",
+				"table=70,priority=100,ip,nw_dst=10.129.0.3 actions=load:0xcb81e9->NXM_NX_REG1[],load:0x4->NXM_NX_REG2[],goto_table:80",
+				"table=70,priority=0 actions=drop",
+				"table=80,priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg0=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg1=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0x55fac,reg1=0x55fac actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0xcb81e9,reg1=0xcb81e9 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=0 actions=drop",
+			},
+			policy: []int{0x0, 0x55fac, 0xcb81e9},
+			unused: []int{},
+		},
+		{
 			/* Both VNIDs have 1 pod and 1 service, so they stay */
 			flows: []string{
 				"table=60,priority=200,reg0=0 actions=output:2",
@@ -971,11 +997,11 @@ func TestFindPolicyVNIDs(t *testing.T) {
 		policyVNIDs sets.Int
 	}{
 		{
-			// 0 must always be present
+			// No rules -> no VNIDs
 			flows: []string{
 				"table=80,priority=0 actions=drop",
 			},
-			policyVNIDs: sets.NewInt(0x0),
+			policyVNIDs: sets.NewInt(),
 		},
 		{
 			// Namespaces without any rule on table 80 must be present.
@@ -983,6 +1009,7 @@ func TestFindPolicyVNIDs(t *testing.T) {
 				"table=60, priority=200 actions=output:tun0",
 				"table=60, priority=0 actions=drop",
 				"table=70, priority=100,ip,nw_dst=10.129.0.52 actions=load:0x2bd973->NXM_NX_REG1[],load:0x15->NXM_NX_REG2[],goto_table:80",
+				"table=70, priority=100,ip,nw_dst=10.129.0.53 actions=load:0x0->NXM_NX_REG1[],load:0x16->NXM_NX_REG2[],goto_table:80",
 				"table=70, priority=0 actions=drop",
 				"table=80, priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
 				"table=80, priority=200,ct_state=+rpl,ip actions=output:NXM_NX_REG2[]",
@@ -996,6 +1023,7 @@ func TestFindPolicyVNIDs(t *testing.T) {
 				"table=80, priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
 				"table=80, priority=200,ct_state=+rpl,ip actions=output:NXM_NX_REG2[]",
 				"table=80, priority=50,reg1=0x58bb64 actions=output:NXM_NX_REG2[]",
+				"table=80, priority=50,reg1=0x0 actions=output:NXM_NX_REG2[]",
 				"table=80, priority=0 actions=drop",
 			},
 			policyVNIDs: sets.NewInt(0x0, 0x58bb64),
@@ -1014,7 +1042,7 @@ func TestFindPolicyVNIDs(t *testing.T) {
 				"table=80, priority=50,reg1=0x243c14 actions=output:NXM_NX_REG2[]",
 				"table=80, priority=0 actions=drop",
 			},
-			policyVNIDs: sets.NewInt(0x0, 0x2bd973, 0x58bb64, 0x243c14),
+			policyVNIDs: sets.NewInt(0x2bd973, 0x58bb64, 0x243c14),
 		},
 	}
 
