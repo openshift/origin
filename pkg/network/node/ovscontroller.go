@@ -684,12 +684,16 @@ func (oc *ovsController) FindPolicyVNIDs() sets.Int {
 // race condition.
 func (oc *ovsController) FindUnusedVNIDs() []int {
 	inUseVNIDs, policyVNIDs := oc.findInUseAndPolicyVNIDs()
+	// VNID 0 is always in use, even if there aren't any flows for it in table 60/70
+	inUseVNIDs.Insert(0)
 	return policyVNIDs.Difference(inUseVNIDs).UnsortedList()
 }
 
+// findInUseAndPolicyVNIDs returns two sets: the VNIDs that are currently in use by pods
+// or services on this node, and the VNIDs that are currently in use by NetworkPolicies
+// on this node.
 func (oc *ovsController) findInUseAndPolicyVNIDs() (sets.Int, sets.Int) {
-	// VNID 0 is always in use, even if there aren't any explicit flows for it
-	inUseVNIDs := sets.NewInt(0)
+	inUseVNIDs := sets.NewInt()
 	policyVNIDs := sets.NewInt()
 
 	flows, err := oc.ovs.DumpFlows("")
