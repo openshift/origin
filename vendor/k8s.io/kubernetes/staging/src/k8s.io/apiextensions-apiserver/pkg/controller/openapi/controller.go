@@ -184,9 +184,9 @@ func (c *Controller) sync(name string) error {
 		return nil
 	}
 
-	if klog.V(6) {
-		klog.Infof("CRD schema diff for %s: %s", name, diff.ObjectDiff(oldSpecs, newSpecs))
-	}
+	//if klog.V(6) {
+	klog.Infof("CRD schema diff for %s: %s", name, diff.ObjectDiff(oldSpecs, newSpecs))
+	//}
 
 	// update specs of this CRD
 	c.crdSpecs[crd.Name] = newSpecs
