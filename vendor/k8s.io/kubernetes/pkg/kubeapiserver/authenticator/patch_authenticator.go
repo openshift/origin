@@ -80,7 +80,7 @@ func AddOAuthServerAuthenticatorIfNeeded(tokenAuthenticators []authenticator.Tok
 	// add the bootstrap user token authenticator
 	tokenAuthenticators = append(tokenAuthenticators,
 		// bootstrap oauth user that can do anything, backed by a secret
-		oauth.NewBootstrapAuthenticator(oauthClient.OauthV1().OAuthAccessTokens(), bootstrapUserDataGetter, validators...))
+		oauth.NewBootstrapAuthenticator(oauthClient.OauthV1().OAuthAccessTokens(), bootstrapUserDataGetter, implicitAudiences, validators...))
 
 	return tokenAuthenticators
 }
