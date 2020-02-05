@@ -45,7 +45,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 		var ok bool
 		url, bearerToken, ok = locatePrometheus(oc)
 		if !ok {
-			e2e.Skipf("Prometheus could not be located on this cluster, skipping prometheus test")
+			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
 		}
 	})
 
@@ -234,7 +234,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			})
 		})
-		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured", func() {
+		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Smoke]", func() {
 			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 				e2e.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 			}
