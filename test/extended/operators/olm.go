@@ -166,7 +166,7 @@ var _ = g.Describe("[Feature:Platform] an end user use OLM", func() {
 	)
 
 	files := []string{operatorGroup, etcdSub}
-	g.It("can subscribe to the etcd operator", func() {
+	g.It("can subscribe to the etcd operator [Skipped:azure]", func() {
 		g.By("Cluster-admin user subscribe the operator resource")
 		for _, v := range files {
 			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
