@@ -19,7 +19,7 @@ import (
 var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby image", func() {
 	defer g.GinkgoRecover()
 	var (
-		railsTemplate = "https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json"
+		railsTemplate = "rails-postgresql-example"
 		oc            = exutil.NewCLI("s2i-ruby", exutil.KubeConfigPath())
 		modifyCommand = []string{"sed", "-ie", `s%render :file => 'public/index.html'%%`, "app/controllers/welcome_controller.rb"}
 		removeCommand = []string{"rm", "-f", "public/index.html"}
@@ -46,8 +46,8 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 			g.It(fmt.Sprintf("should work with hot deploy"), func() {
 
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
-				g.By(fmt.Sprintf("calling oc new-app -f %q", railsTemplate))
-				err := oc.Run("new-app").Args("-f", railsTemplate).Execute()
+				g.By(fmt.Sprintf("calling oc new-app %q", railsTemplate))
+				err := oc.Run("new-app").Args(railsTemplate).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for build to finish")
