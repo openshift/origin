@@ -49,10 +49,10 @@ var _ = g.Describe("[Feature:Builds][Slow] builds should support proxies", func(
 				buildLog, err := br.Logs()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildLog).NotTo(o.ContainSubstring("clone"))
-				if !strings.Contains(buildLog, `unable to access 'https://github.com/openshift/ruby-hello-world.git/': Failed connect to 127.0.0.1:3128`) {
+				if !strings.Contains(buildLog, `unable to access 'https://github.com/openshift/ruby-hello-world.git/': Failed connect to`) {
 					fmt.Fprintf(g.GinkgoWriter, "\nbuild log:\n%s\n", buildLog)
 				}
-				o.Expect(buildLog).To(o.ContainSubstring(`unable to access 'https://github.com/openshift/ruby-hello-world.git/': Failed connect to 127.0.0.1:3128`))
+				o.Expect(buildLog).To(o.ContainSubstring(`unable to access 'https://github.com/openshift/ruby-hello-world.git/': Failed connect to`))
 
 				g.By("verifying the build sample-build-1 status")
 				o.Expect(br.Build.Status.Phase).Should(o.BeEquivalentTo(buildv1.BuildPhaseFailed))

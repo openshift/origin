@@ -290,7 +290,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				g.By("expecting the build logs to indicate invalid proxy")
 				buildLog, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(buildLog).To(o.ContainSubstring("Could not resolve proxy: invalid.proxy.redhat.com; Unknown error"))
+				o.Expect(buildLog).To(o.ContainSubstring("Could not resolve proxy: invalid.proxy.redhat.com"))
 				g.By("checking pod as well")
 				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(br.BuildName+"-build", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -324,7 +324,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				g.By("expecting the build logs to indicate invalid proxy")
 				buildLog, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(buildLog).To(o.ContainSubstring("Could not resolve proxy: invalid.proxy.redhat.com; Unknown error"))
+				o.Expect(buildLog).To(o.ContainSubstring("Could not resolve proxy: invalid.proxy.redhat.com"))
 				g.By("checking build stored in pod as well")
 				// note, only the build stored in the Pod's "BUILD" env var has the updated proxy settings; they do not
 				// get propagated to the associated build stored in etcd
