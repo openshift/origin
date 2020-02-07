@@ -34582,21 +34582,20 @@ trap os::test::junit::reconcile_output EXIT
 os::test::junit::declare_suite_start "cmd/secrets"
 # This test validates secret interaction
 touch Makefile
-os::cmd::expect_failure_and_text 'oc secrets new foo --type=blah makefile=Makefile' 'error: unknown secret type "blah"'
-os::cmd::expect_success 'oc secrets new foo --type=blah makefile=Makefile --confirm'
+os::cmd::expect_success 'oc create secret generic foo --type=blah --from-file=makefile=Makefile'
 os::cmd::expect_success_and_text 'oc get secrets/foo -o jsonpath={.type}' 'blah'
 
-os::cmd::expect_success 'oc secrets new-dockercfg dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org'
+os::cmd::expect_success 'oc create secret docker-registry dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org'
 # can't use a go template here because the output needs to be base64 decoded.  base64 isn't installed by default in all distros
 os::cmd::expect_success "oc get secrets/dockerconfigjson -o jsonpath='{ .data.\.dockerconfigjson }' | base64 -d > ${HOME}/dockerconfigjson"
-os::cmd::expect_success 'oc secrets new from-file .dockerconfigjson=${HOME}/dockerconfigjson'
+os::cmd::expect_success 'oc create secret generic from-file --from-file=.dockerconfigjson=${HOME}/dockerconfigjson --type=kubernetes.io/dockerconfigjson'
 # check to make sure the type was correctly auto-detected
 os::cmd::expect_success_and_text 'oc get secret/from-file --template="{{ .type }}"' 'kubernetes.io/dockerconfigjson'
 # make sure the -o works correctly
-os::cmd::expect_success_and_text 'oc secrets new-dockercfg dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o yaml' 'kubernetes.io/dockerconfigjson'
-os::cmd::expect_success_and_text 'oc secrets new from-file .dockerconfigjson=${HOME}/dockerconfigjson -o yaml' 'kubernetes.io/dockerconfigjson'
+os::cmd::expect_success_and_text 'oc create secret docker-registry dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org --dry-run -o yaml' 'kubernetes.io/dockerconfigjson'
+os::cmd::expect_success_and_text 'oc create secret generic from-file-again --from-file=.dockerconfigjson=${HOME}/dockerconfigjson --type=kubernetes.io/dockerconfigjson -o yaml' 'kubernetes.io/dockerconfigjson'
 # check to make sure malformed names fail as expected
-os::cmd::expect_failure_and_text 'oc secrets new bad-name .docker=cfg=${HOME}/dockerconfigjson' "error: Key names or file paths cannot contain '='."
+os::cmd::expect_failure_and_text 'oc create secret generic bad-name --from-file=.docker=cfg=${HOME}/dockerconfigjson' "error: Key names or file paths cannot contain '='"
 
 workingdir="$( mktemp -d )"
 os::cmd::try_until_success "oc get secret/dockerconfigjson"
@@ -34613,13 +34612,13 @@ os::cmd::expect_failure_and_text "oc extract secret/dockerconfigjson --to missin
 
 # attach secrets to service account
 # single secret with prefix
-os::cmd::expect_success 'oc secrets add deployer dockerconfigjson'
+os::cmd::expect_success 'oc secrets link deployer dockerconfigjson'
 # don't add the same secret twice
-os::cmd::expect_success 'oc secrets add serviceaccounts/deployer dockerconfigjson secrets/from-file'
+os::cmd::expect_success 'oc secrets link serviceaccounts/deployer dockerconfigjson secrets/from-file'
 # make sure we can add as as pull secret
-os::cmd::expect_success 'oc secrets add deployer dockerconfigjson from-file --for=pull'
+os::cmd::expect_success 'oc secrets link deployer dockerconfigjson from-file --for=pull'
 # make sure we can add as as pull secret and mount secret at once
-os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/dockerconfigjson secrets/from-file --for=pull,mount'
+os::cmd::expect_success 'oc secrets link serviceaccounts/deployer secrets/dockerconfigjson secrets/from-file --for=pull,mount'
 
 GIT_CONFIG_PATH="${ARTIFACT_DIR}/.gitconfig"
 touch "${GIT_CONFIG_PATH}"
@@ -34634,25 +34633,23 @@ function create_valid_file() {
 CA_CERT_PATH=$(create_valid_file ca.pem)
 PRIVATE_KEY_PATH=$(create_valid_file id_rsa)
 
-os::cmd::expect_success "oc secrets new-basicauth basicauth --username=sample-user --password=sample-password --gitconfig='${GIT_CONFIG_PATH}' --ca-cert='${CA_CERT_PATH}'"
-# check to make sure two mutual exclusive flags return error as expected
-os::cmd::expect_failure_and_text 'oc secrets new-basicauth bad-file --password=sample-password --prompt' 'error: must provide either --prompt or --password flag'
+os::cmd::expect_success "oc create secret generic basicauth --type=kubernetes.io/basic-auth --from-literal=username=sample-user --from-literal=password=sample-password --from-file=gitconfig='${GIT_CONFIG_PATH}' --from-file=ca-cert='${CA_CERT_PATH}'"
 # check to make sure incorrect .gitconfig path fail as expected
-os::cmd::expect_failure_and_text 'oc secrets new-basicauth bad-file --username=user --gitconfig=/bad/path' 'error: open /bad/path: no such file or directory'
+os::cmd::expect_failure_and_text 'oc create secret generic bad-file --type=kubernetes.io/basic-auth --from-literal=username=user --from-file=gitconfig=/bad/path' 'error reading /bad/path: no such file or directory'
 
-os::cmd::expect_success "oc secrets new-sshauth sshauth --ssh-privatekey='${PRIVATE_KEY_PATH}' --ca-cert='${CA_CERT_PATH}'"
+os::cmd::expect_success "oc create secret generic sshauth --from-file=ssh-privatekey='${PRIVATE_KEY_PATH}' --from-file=ca-cert='${CA_CERT_PATH}'"
 # check to make sure incorrect SSH private-key path fail as expected
-os::cmd::expect_failure_and_text 'oc secrets new-sshauth bad-file --ssh-privatekey=/bad/path' 'error: open /bad/path: no such file or directory'
+os::cmd::expect_failure_and_text 'oc create secret generic bad-file --from-file=ssh-privatekey=/bad/path' 'error reading /bad/path: no such file or directory'
 
 # attach secrets to service account (deprecated)
 # single secret with prefix
-os::cmd::expect_success 'oc secrets add deployer basicauth'
+os::cmd::expect_success 'oc secrets link deployer basicauth'
 # don't add the same secret twice
-os::cmd::expect_success 'oc secrets add deployer basicauth sshauth'
+os::cmd::expect_success 'oc secrets link deployer basicauth sshauth'
 # make sure we can add as as pull secret
-os::cmd::expect_success 'oc secrets add deployer basicauth sshauth --for=pull'
+os::cmd::expect_success 'oc secrets link deployer basicauth sshauth --for=pull'
 # make sure we can add as as pull secret and mount secret at once
-os::cmd::expect_success 'oc secrets add deployer basicauth sshauth --for=pull,mount'
+os::cmd::expect_success 'oc secrets link deployer basicauth sshauth --for=pull,mount'
 
 # attach secrets to service account
 # test that those secrets can be unlinked
