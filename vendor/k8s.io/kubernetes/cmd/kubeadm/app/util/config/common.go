@@ -129,10 +129,10 @@ func VerifyAPIServerBindAddress(address string) error {
 	return nil
 }
 
-// ChooseAPIServerBindAddress is a wrapper for netutil.ChooseBindAddress that also handles
-// the case where no default routes were found and an IP for the API server could not be obatained.
+// ChooseAPIServerBindAddress is a wrapper for netutil.ResolveBindAddress that also handles
+// the case where no default routes were found and an IP for the API server could not be obtained.
 func ChooseAPIServerBindAddress(bindAddress net.IP) (net.IP, error) {
-	ip, err := netutil.ChooseBindAddress(bindAddress)
+	ip, err := netutil.ResolveBindAddress(bindAddress)
 	if err != nil {
 		if netutil.IsNoRoutesError(err) {
 			klog.Warningf("WARNING: could not obtain a bind address for the API Server: %v; using: %s", err, constants.DefaultAPIServerBindAddress)
