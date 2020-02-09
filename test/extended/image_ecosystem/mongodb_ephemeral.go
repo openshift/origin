@@ -15,7 +15,7 @@ import (
 var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() {
 	defer g.GinkgoRecover()
 
-	templatePath := exutil.FixturePath("..", "..", "examples", "db-templates", "mongodb-ephemeral-template.json")
+	templatePath := "mongodb-ephemeral"
 	oc := exutil.NewCLI("mongodb-create", exutil.KubeConfigPath()).Verbose()
 
 	g.Context("", func() {
@@ -35,7 +35,7 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() 
 
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By("creating a new app")
-				o.Expect(oc.Run("new-app").Args("-f", templatePath).Execute()).Should(o.Succeed())
+				o.Expect(oc.Run("new-app").Args(templatePath).Execute()).Should(o.Succeed())
 
 				g.By("waiting for the deployment to complete")
 				err := exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "mongodb", 1, true, oc)
