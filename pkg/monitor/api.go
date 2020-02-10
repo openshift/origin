@@ -40,7 +40,7 @@ func Start(ctx context.Context) (*Monitor, error) {
 		return nil, err
 	}
 
-	if err := startAPIMonitoring(ctx, m, clusterConfig); err != nil {
+	if err := StartAPIMonitoring(ctx, m, clusterConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
 	startPodMonitoring(ctx, m, client)
@@ -52,9 +52,9 @@ func Start(ctx context.Context) (*Monitor, error) {
 	return m, nil
 }
 
-func startAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config) error {
+func StartAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	pollingConfig := *clusterConfig
-	pollingConfig.Timeout = 3 * time.Second
+	pollingConfig.Timeout = timeout
 	pollingClient, err := clientcorev1.NewForConfig(&pollingConfig)
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func startAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Con
 				condition = &Condition{
 					Level:   Info,
 					Locator: "openshift-apiserver",
-					Message: fmt.Sprintf("OpenShift API started failing: %v", err),
+					Message: fmt.Sprintf("OpenShift API stopped responding to GET requests: %v", err),
 				}
 			}
 			return condition, err == nil
