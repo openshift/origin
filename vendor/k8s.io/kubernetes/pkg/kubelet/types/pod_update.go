@@ -141,6 +141,11 @@ func (sp SyncPodType) String() string {
 	}
 }
 
+func IsStaticPod(pod *v1.Pod) bool {
+	source, err := GetPodSource(pod)
+	return err == nil && source != ApiserverSource
+}
+
 // IsCriticalPod returns true if the pod bears the critical pod annotation key or if pod's priority is greater than
 // or equal to SystemCriticalPriority. Both the rescheduler(deprecated in 1.10) and the kubelet use this function
 // to make admission and scheduling decisions.
