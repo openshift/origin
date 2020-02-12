@@ -12,6 +12,58 @@ import (
 
 // Type Function Tests
 
+type versionErrorTest struct {
+	err VersionError
+	str string
+}
+
+var versionStr = fmt.Sprintf("%d.%d.%d", verMajor, verMinor, verMicro)
+
+var versionErrorTests = []versionErrorTest{
+	{
+		VersionError{
+			"deadbeef",
+			"x.y.z",
+		},
+		"Libseccomp version too low: deadbeef: " +
+			"minimum supported is x.y.z: detected " + versionStr,
+	},
+	{
+		VersionError{
+			"",
+			"x.y.z",
+		},
+		"Libseccomp version too low: minimum supported is x.y.z: " +
+			"detected " + versionStr,
+	},
+	{
+		VersionError{
+			"deadbeef",
+			"",
+		},
+		"Libseccomp version too low: " +
+			"deadbeef: minimum supported is 2.2.0: " +
+			"detected " + versionStr,
+	},
+	{
+		VersionError{
+			"",
+			"",
+		},
+		"Libseccomp version too low: minimum supported is 2.2.0: " +
+			"detected " + versionStr,
+	},
+}
+
+func TestVersionError(t *testing.T) {
+	for i, test := range versionErrorTests {
+		str := test.err.Error()
+		if str != test.str {
+			t.Errorf("VersionError %d: got %q: expected %q", i, str, test.str)
+		}
+	}
+}
+
 func TestActionSetReturnCode(t *testing.T) {
 	if ActInvalid.SetReturnCode(0x0010) != ActInvalid {
 		t.Errorf("Able to set a return code on invalid action!")

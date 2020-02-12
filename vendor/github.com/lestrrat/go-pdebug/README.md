@@ -1,14 +1,10 @@
 # go-pdebug
 
-[![Build Status](https://travis-ci.org/lestrrat/go-pdebug.svg?branch=master)](https://travis-ci.org/lestrrat/go-pdebug)
+[![Build Status](https://travis-ci.org/lestrrat-go/pdebug.svg?branch=master)](https://travis-ci.org/lestrrat-go/pdebug)
 
-[![GoDoc](https://godoc.org/github.com/lestrrat/go-pdebug?status.svg)](https://godoc.org/github.com/lestrrat/go-pdebug)
+[![GoDoc](https://godoc.org/github.com/lestrrat-go/pdebug?status.svg)](https://godoc.org/github.com/lestrrat-go/pdebug)
 
 Utilities for my print debugging fun. YMMV
-
-# WARNING
-
-This repository has been moved to [github.com/lestrrat-go/pdebug](https://github.com/lestrrat-go/pdebug). This repository exists so that libraries pointing to this URL will keep functioning, but this repository will NOT be updated in the future. Please use the new import path.
 
 # Synopsis
 
@@ -28,7 +24,7 @@ func Foo() {
 }
 ```
 
-Note that using `github.com/lestrrat/go-pdebug` and `-tags debug` only
+Note that using `github.com/lestrrat-go/pdebug` and `-tags debug` only
 compiles in the code. In order to actually show the debug trace, you need
 to specify an environment variable:
 

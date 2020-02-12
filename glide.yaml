@@ -170,9 +170,11 @@ import:
   version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
 # dev-ex (template service broker)
 - package: github.com/lestrrat/go-jspointer
+  repo: https://github.com/lestrrat-go/jspointer
   version: f4881e611bdbe9fb413a7780721ef8400a1f2341
 # dev-ex (template service broker)
 - package: github.com/lestrrat/go-jsref
+  repo: https://github.com/lestrrat-go/jsref
   version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
 # dev-ex (template service broker)
 - package: github.com/lestrrat/go-jsschema
@@ -382,9 +384,11 @@ import:
 - package: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - package: github.com/lestrrat/go-pdebug
-  version: 569c97477ae8837e053e5a50bc739e15172b8ebe
+  repo: https://github.com/lestrrat-go/pdebug
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
 - package: github.com/lestrrat/go-structinfo
-  version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
+  repo: https://github.com/lestrrat-go/structinfo
+  version: acd51874663bf3297433cb1f1015075c3cbe6130
 - package: github.com/libopenstorage/openstorage
   version: 093a0c3888753c2056e7373183693d670c6bba01
 - package: github.com/lpabon/godbc
@@ -482,7 +486,7 @@ import:
 - package: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - package: github.com/seccomp/libseccomp-golang
-  version: 1b506fc7c24eec5a3693cdcbed40d9c226cfc6a1
+  version: 06e7a29f36a34b8cf419aeb87b979ee508e58f9e
 - package: github.com/shurcooL/sanitized_anchor_name
   version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - package: github.com/spf13/afero
