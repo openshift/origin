@@ -547,6 +547,64 @@ func Test_verifyManifest_Get(t *testing.T) {
 	}
 }
 
+func Test_verifyManifest_Put(t *testing.T) {
+	tests := []struct {
+		name     string
+		dgst     digest.Digest
+		err      error
+		manifest distribution.Manifest
+		options  []distribution.ManifestServiceOption
+		want     digest.Digest
+		wantErr  string
+	}{
+		{
+			dgst:     payload1Digest,
+			manifest: &fakeManifest{payload: []byte(payload1)},
+			want:     payload1Digest,
+		},
+		{
+			dgst:     payload2Digest,
+			manifest: &fakeManifest{payload: []byte(payload2)},
+			want:     payload2Digest,
+		},
+		{
+			dgst:     payload1Digest,
+			manifest: &fakeManifest{payload: []byte(payload2)},
+			wantErr:  "the manifest retrieved with digest sha256:59685d14054198fee6005106a66462a924cabe21f4b0c7c1fdf4da95ccee52bd does not match the digest calculated from the content sha256:b79e87ded1ea5293efe92bdb3caa9b7212cfa7c98aafb7c1c568d11d43519968",
+		},
+		{
+			err:      fmt.Errorf("put error"),
+			manifest: &fakeManifest{payload: []byte(payload2)},
+			wantErr:  "put error",
+		},
+		{
+			manifest: &fakeManifest{payload: []byte(payload2)},
+		},
+		{
+			manifest: &fakeManifest{payload: []byte(payload1), err: fmt.Errorf("unknown")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &fakeManifestService{err: tt.err, manifest: tt.manifest, digest: tt.dgst}
+			m := manifestServiceVerifier{
+				ManifestService: ms,
+			}
+			ctx := context.Background()
+			got, err := m.Put(ctx, tt.manifest, tt.options...)
+			if len(tt.wantErr) > 0 && err != nil && !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("verifyManifest.Get() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if (err != nil) != (len(tt.wantErr) > 0) {
+				t.Fatalf("verifyManifest.Get() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("verifyManifest.Get() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 const (
 	payload1 = `{"some":"content"}`
 	payload2 = `{"some":"content"} `
@@ -572,6 +630,7 @@ func (m *fakeManifest) Payload() (mediaType string, payload []byte, err error) {
 }
 
 type fakeManifestService struct {
+	digest   digest.Digest
 	manifest distribution.Manifest
 	err      error
 }
@@ -585,7 +644,7 @@ func (s *fakeManifestService) Get(ctx context.Context, dgst digest.Digest, optio
 }
 
 func (s *fakeManifestService) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
-	panic("not implemented")
+	return s.digest, s.err
 }
 
 func (s *fakeManifestService) Delete(ctx context.Context, dgst digest.Digest) error {

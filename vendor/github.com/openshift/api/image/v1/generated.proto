@@ -222,9 +222,11 @@ message ImageStream {
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec describes the desired state of this stream
+  // +optional
   optional ImageStreamSpec spec = 2;
 
   // Status describes the current state of this stream
+  // +optional
   optional ImageStreamStatus status = 3;
 }
 

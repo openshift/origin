@@ -1,5 +1,5 @@
 hash: bd7f3626cf55d8e0d9623e29ba2b13ab601411fbc582497a8e990a246eb6f636
-updated: 2019-12-12T09:58:44.020907548+01:00
+updated: 2020-01-22T21:07:22.179254036-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -811,7 +811,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 1537aa86567a5d75725bdba96c2439f0d16469d2
+  version: 2987a591a72cee08898c93dcc09816783d39a5bc
   subpackages:
   - annotations
   - apps
@@ -863,7 +863,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: fd2d074a871f3e8f4588d32a33e4c5d69b9ebbce
+  version: 7cd72bdf3d45b07e8df6986e71531cd2ab6a4174
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -984,7 +984,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 37b9180d4790343c9f169c4ccc60bbb40ed90c3a
+  version: e8b3a065ded2917960eb402ccba30d90433c17f3
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1474,7 +1474,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 8d124dde0b0941bc0ef1abba944bfe12862543ca
+  version: 39608c34db27d6b27522fda531435a7f40480d1a
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apihelpers
@@ -1730,7 +1730,7 @@ imports:
   - pkg/printers
   - pkg/resource
 - name: k8s.io/client-go
-  version: b167779e8a836c2af8742c3b83d56fef2b2b4b59
+  version: 1f3b2931966858d724e363b2707cb87da322fd45
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -2163,7 +2163,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: a49679c4e3351b82c865952e04cbbd036409e828
+  version: 2f8a9755ef72445cfba9c42db5410f107209f495
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app

@@ -31,6 +31,7 @@ message Project {
   optional ProjectSpec spec = 2;
 
   // Status describes the current status of a Namespace
+  // +optional
   optional ProjectStatus status = 3;
 }
 

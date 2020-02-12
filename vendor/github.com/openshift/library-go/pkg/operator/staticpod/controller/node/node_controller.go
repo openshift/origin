@@ -110,7 +110,7 @@ func (c NodeController) sync() error {
 	for _, node := range nodes {
 		for _, con := range node.Status.Conditions {
 			if con.Type == coreapiv1.NodeReady && con.Status != coreapiv1.ConditionTrue {
-				notReadyNodes = append(notReadyNodes, node.Name)
+				notReadyNodes = append(notReadyNodes, fmt.Sprintf("node %q not ready since %s because %s (%s)", node.Name, con.LastTransitionTime, con.Reason, con.Message))
 			}
 		}
 	}
@@ -120,11 +120,11 @@ func (c NodeController) sync() error {
 	if len(notReadyNodes) > 0 {
 		newCondition.Status = operatorv1.ConditionTrue
 		newCondition.Reason = "MasterNodesReady"
-		newCondition.Message = fmt.Sprintf("The master node(s) %q not ready", strings.Join(notReadyNodes, ","))
+		newCondition.Message = fmt.Sprintf("The master nodes not ready: %s", strings.Join(notReadyNodes, ", "))
 	} else {
 		newCondition.Status = operatorv1.ConditionFalse
 		newCondition.Reason = "MasterNodesReady"
-		newCondition.Message = "All master node(s) are ready"
+		newCondition.Message = "All master nodes are ready"
 	}
 
 	oldStatus := &operatorv1.StaticPodOperatorStatus{}

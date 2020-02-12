@@ -131,6 +131,7 @@ var FeatureSets = map[FeatureSet]*FeatureGateEnabledDisabled{
 			"TopologyManager",                // sig-pod, sjenning
 			"NodeDisruptionExclusion",        // sig-scheduling, ccoleman
 			"ServiceNodeExclusion",           // sig-scheduling, ccoleman
+			"SCTPSupport",                    // sig-network, ccallend
 		},
 		Disabled: []string{
 			"LegacyNodeRoleBehavior", // sig-scheduling, ccoleman

@@ -152,7 +152,7 @@ func (c *InstallerStateController) handlePendingInstallerPodsNetworkEvents(pods 
 			}
 			// If we already find the pod that is pending because of the networking problem, skip other pods.
 			// This will reduce the events we fire.
-			if v1helpers.FindOperatorCondition(conditions, "InstallerPodNetworkingDegraded") != nil {
+			if c := v1helpers.FindOperatorCondition(conditions, "InstallerPodNetworkingDegraded"); c != nil && c.Status == operatorv1.ConditionTrue {
 				break
 			}
 			condition := operatorv1.OperatorCondition{
@@ -198,7 +198,7 @@ func (c *InstallerStateController) handlePendingInstallerPods(pods []*v1.Pod) []
 					Type:    "InstallerPodContainerWaitingDegraded",
 					Reason:  state.Reason,
 					Status:  operatorv1.ConditionTrue,
-					Message: fmt.Sprintf("Pod %q on node %q container %q is waiting for %s because %s", pod.Name, pod.Spec.NodeName, containerStatus.Name, pendingTime, state.Message),
+					Message: fmt.Sprintf("Pod %q on node %q container %q is waiting for %s because %q", pod.Name, pod.Spec.NodeName, containerStatus.Name, pendingTime, state.Message),
 				}
 				conditions = append(conditions, condition)
 				c.eventRecorder.Warningf(condition.Reason, condition.Message)

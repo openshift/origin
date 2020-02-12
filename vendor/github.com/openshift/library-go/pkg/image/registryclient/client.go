@@ -587,6 +587,20 @@ func (m manifestServiceVerifier) Get(ctx context.Context, dgst digest.Digest, op
 	return manifest, nil
 }
 
+// Put ensures the manifest is hashable to the returned digest, or returns no digest and an error.
+func (m manifestServiceVerifier) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
+	dgst, err := m.ManifestService.Put(ctx, manifest, options...)
+	if err != nil {
+		return "", err
+	}
+	if len(dgst) > 0 {
+		if err := VerifyManifestIntegrity(manifest, dgst); err != nil {
+			return "", err
+		}
+	}
+	return dgst, nil
+}
+
 // VerifyManifestIntegrity checks the provided manifest against the specified digest and returns an error
 // if the manifest does not match that digest.
 func VerifyManifestIntegrity(manifest distribution.Manifest, dgst digest.Digest) error {
