@@ -8,6 +8,9 @@ import (
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -111,5 +114,58 @@ RUN touch /test-image
 		o.Expect(tag.Tag).To(o.Equal("latest"))
 		o.Expect(tag.Items).To(o.HaveLen(1))
 		o.Expect(tag.Items[0].DockerImageReference).To(o.Equal(fmt.Sprintf("%s/%s/%s@%s", registryHost, oc.Namespace(), isName2, digest)))
+	})
+
+	g.It("should work when only imagestreams api is available", func() {
+		err := oc.Run("tag").Args("--source=docker", "busybox:latest", "testis:latest").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "testis", "latest")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("create").Args("serviceaccount", "testsa").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		e2e.Logf("Creating a role that allows to work with imagestreams, but not imagestreamtags...")
+
+		_, err = oc.AdminAuthorizationClient().AuthorizationV1().Roles(oc.Namespace()).Create(&authorizationv1.Role{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "testrole",
+			},
+			Rules: []authorizationv1.PolicyRule{
+				{
+					Verbs:     []string{"get", "update"},
+					APIGroups: []string{"image.openshift.io"},
+					Resources: []string{"imagestreams"},
+				},
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("policy").Args("add-role-to-user", "testrole", "-z", "testsa", "--role-namespace="+oc.Namespace()).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		token, err := oc.Run("serviceaccounts").Args("get-token", "testsa").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("login").Args("--token=" + token).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("whoami").Args().Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("tag").Args("testis:latest", "testis:copy").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		e2e.Logf("Checking that the imagestream is updated...")
+
+		is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get("testis", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var tags []string
+		for _, t := range is.Spec.Tags {
+			tags = append(tags, t.Name)
+		}
+		o.Expect(tags).To(o.ContainElement("copy"), "testis spec.tags should contain the tag copy")
 	})
 })
