@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"html"
 	"net/http"
 	"regexp"
 	"strings"
@@ -149,7 +150,7 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 	if len(redirectHandlerName) > 0 {
 		redirectHandler, ok := authHandler.redirectors.Get(redirectHandlerName)
 		if !ok {
-			return false, fmt.Errorf("Unable to locate redirect handler: %v", redirectHandlerName)
+			return false, fmt.Errorf("Unable to locate redirect handler: %v", html.EscapeString(redirectHandlerName))
 		}
 		err := redirectHandler.AuthenticationRedirect(w, req)
 		if err != nil {
