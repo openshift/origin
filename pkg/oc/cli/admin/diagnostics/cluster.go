@@ -10,7 +10,6 @@ import (
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	cronjobclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
@@ -91,10 +90,6 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	if err != nil {
 		return nil, err
 	}
-	cronJobClient, err := cronjobclient.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
 	securityClient, err := securityclient.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -114,7 +109,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 		switch diagnosticName {
 		case agldiags.AggregatedLoggingName:
 			p := o.ParameterizedDiagnostics[agldiags.AggregatedLoggingName].(*agldiags.AggregatedLogging).Project
-			d = agldiags.NewAggregatedLogging(p, kclusterClient, oauthClient.Oauth(), projectClient.Project(), routeClient.Route(), rbacClient, appsClient.Apps(), securityClient.Security(), cronJobClient)
+			d = agldiags.NewAggregatedLogging(p, kclusterClient, oauthClient.Oauth(), projectClient.Project(), routeClient.Route(), rbacClient, appsClient.Apps(), securityClient.Security(), kubeClient.BatchV1beta1())
 		case appcreate.AppCreateName:
 			ac := o.ParameterizedDiagnostics[diagnosticName].(*appcreate.AppCreate)
 			ac.KubeClient = kclusterClient

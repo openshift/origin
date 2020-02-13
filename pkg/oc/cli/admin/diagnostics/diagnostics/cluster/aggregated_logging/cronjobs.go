@@ -17,7 +17,7 @@ const (
 // loggingComponents are those 'managed' by rep controllers (e.g. fluentd is deployed with a DaemonSet)
 var expectedLoggingCronJobs = sets.NewString(componentNameCurator)
 var optionalLoggingCronJobs = sets.NewString(componentNameCuratorOps)
-var loggingCronjobs = expectedLoggingComponents.Union(optionalLoggingCronJobs)
+var loggingCronjobs = expectedLoggingCronJobs.Union(optionalLoggingCronJobs)
 
 const cronjobConfigWarnOptionalMissing = `
 Did not find a Cronjob to support optional component '%s'. If you require
@@ -47,7 +47,7 @@ func checkCronJobs(r diagnosticReporter, adapter cronJobAdapter, project string)
 	}
 	for _, entry := range loggingCronjobs.List() {
 		if !found.Has(entry) {
-			if optionalLoggingComponents.Has(entry) {
+			if optionalLoggingCronJobs.Has(entry) {
 				r.Info("AGL0860", fmt.Sprintf(cronjobConfigWarnOptionalMissing, entry))
 			} else {
 				r.Error("AGL0865", nil, fmt.Sprintf("Did not find a CronJob to support component '%s'", entry))
