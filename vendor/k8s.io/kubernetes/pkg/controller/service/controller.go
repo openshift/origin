@@ -42,7 +42,6 @@ import (
 	servicehelper "k8s.io/cloud-provider/service/helpers"
 	"k8s.io/component-base/metrics/prometheus/ratelimiter"
 	"k8s.io/klog"
-	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 )
 
 const (
@@ -311,10 +310,6 @@ func (s *Controller) syncLoadBalancerIfNeeded(service *v1.Service, key string) (
 	var err error
 
 	if !wantsLoadBalancer(service) || needsCleanup(service) {
-		if v1helper.LoadBalancerStatusEqual(previousStatus, &v1.LoadBalancerStatus{}) {
-			return op, nil
-		}
-		klog.V(3).Infof("Getting load balancer for service %s", key)
 		// Delete the load balancer if service no longer wants one, or if service needs cleanup.
 		op = deleteLoadBalancer
 		newStatus = &v1.LoadBalancerStatus{}
