@@ -138,7 +138,8 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					targets.Expect(labels{"job": "controller-manager"}, "up", "^https://.*/metrics$"),
 
 					// The kube control plane
-					targets.Expect(labels{"job": "etcd"}, "up", "^https://.*/metrics$"),
+					// TODO restore this after etcd operator lands
+					//targets.Expect(labels{"job": "etcd"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "apiserver"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "scheduler"}, "up", "^https://.*/metrics$"),
