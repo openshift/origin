@@ -1,5 +1,5 @@
 hash: 5671aacc3676fd74dcdeb293e092dfb8227668801663b3f577be7bbb731568d9
-updated: 2020-01-20T14:31:31.507668+01:00
+updated: 2020-02-13T16:14:31.017988724+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -767,7 +767,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 5b4a83e36885b787f9877e3316ecceefbeeeda9a
+  version: 9499095c46b2798bb0ccbf0983e15e4da66dc449
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -1591,7 +1591,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: ed563d1b80a10ff7dba8a58ff67d531b66183984
+  version: de9ab59ec64c164e561427eab338df283bc6e88e
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1729,7 +1729,7 @@ imports:
   - pkg/printers
   - pkg/resource
 - name: k8s.io/client-go
-  version: 1fda2942f64d288516eec69a7bbf30b45bcc99ca
+  version: b01ef7c0bd89587b0b6dec9cbf90eb50c9a7bca3
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -2032,7 +2032,7 @@ imports:
 - name: k8s.io/klog
   version: 2ca9ad30301bf30a8a6e0fa2110db6b8df699a91
 - name: k8s.io/kube-aggregator
-  version: 1e3c0eec4d61024d8312cc05f068af7b428748cc
+  version: 0f3be7240130f822a9cbcd42f290e150f216d554
   repo: https://github.com/openshift/kubernetes-kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -2091,7 +2091,7 @@ imports:
   - config/v1
   - config/v1alpha1
 - name: k8s.io/kubectl
-  version: 2e30d91b9aa3682742665e9e364f8c1bde40b21f
+  version: a53e0ee267cac8aee02619c9fde607b1fa974212
   repo: https://github.com/openshift/kubernetes-kubectl.git
   subpackages:
   - pkg/apps
@@ -2177,7 +2177,7 @@ imports:
   - pkg/apis/deviceplugin/v1beta1
   - pkg/apis/pluginregistration/v1
 - name: k8s.io/kubernetes
-  version: f6ab88c0d4d1baa5be56e7f41f0883091e3d673b
+  version: c3347160193f96e659cdb5ddc979c6022d690425
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -2993,7 +2993,6 @@ imports:
   - test/e2e/auth
   - test/e2e/autoscaling
   - test/e2e/chaosmonkey
-  - test/e2e/cloud/gcp
   - test/e2e/common
   - test/e2e/framework
   - test/e2e/framework/auth
@@ -3006,7 +3005,6 @@ imports:
   - test/e2e/framework/ingress
   - test/e2e/framework/job
   - test/e2e/framework/kubelet
-  - test/e2e/framework/lifecycle
   - test/e2e/framework/log
   - test/e2e/framework/metrics
   - test/e2e/framework/network
@@ -3058,7 +3056,6 @@ imports:
   - test/e2e/system
   - test/e2e/upgrades
   - test/e2e/upgrades/apps
-  - test/e2e/upgrades/storage
   - test/images/agnhost/net/common
   - test/images/agnhost/net/nat
   - test/integration
