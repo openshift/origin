@@ -210,15 +210,19 @@ func (opt *Options) Run(args []string) error {
 	}
 	status := newTestStatus(opt.Out, includeSuccess, len(tests), timeout, m, opt.AsEnv())
 
-	smoke, normal := splitTests(tests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[Smoke]")
+	early, normal := splitTests(tests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[Early]")
+	})
+
+	late, normal := splitTests(normal, func(t *testCase) bool {
+		return strings.Contains(t.name, "[Late]")
 	})
 
 	// run the tests
 	start := time.Now()
 
-	// run our smoke tests first
-	q := newParallelTestQueue(smoke)
+	// run our Early tests first
+	q := newParallelTestQueue(early)
 	q.Execute(ctx, parallelism, status.Run)
 
 	// run other tests next
@@ -229,6 +233,10 @@ func (opt *Options) Run(args []string) error {
 	if duration > time.Minute {
 		duration = duration.Round(time.Second)
 	}
+
+	// run Late test suits after everything else
+	q = newParallelTestQueue(late)
+	q.Execute(ctx, parallelism, status.Run)
 
 	pass, fail, skip, failing := summarizeTests(tests)
 
