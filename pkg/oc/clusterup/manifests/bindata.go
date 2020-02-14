@@ -7418,7 +7418,7 @@ spec:
                             openshift.withCluster() {
                                 openshift.withProject() {
                                     // create a new application from the templatePath
-                                    openshift.newApp(templatePath)
+                                    openshift.newApp(templatePath,  "-p NODEJS_VERSION=8")
                                 }
                             }
                         } // script
