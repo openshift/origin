@@ -33,6 +33,7 @@ func Register(plugins *admission.Plugins) {
 
 type GroupCache interface {
 	GroupsFor(string) ([]*userv1.Group, error)
+	HasSynced() bool
 }
 
 // restrictUsersAdmission implements admission.ValidateInterface and enforces
