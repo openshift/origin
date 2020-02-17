@@ -1,0 +1,260 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: cm-lightbend-template
+objects:
+- apiVersion: v1
+  data:
+    clusterServiceVersions: |
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: "[{\n  \"apiVersion\": \"app.lightbend.com/v1alpha1\",\n  \"kind\"\
+              : \"Console\",\n  \"metadata\": {\n    \"name\": \"example-console\",\n    \"\
+              namespace\": \"placeholder\"\n  },\n  \"spec\": {\n    \"alertManagers\": null,\n\
+              \    \"alpineImage\": \"alpine\",\n    \"alpineVersion\": \"3.8\",\n    \"apiGroupVersion\"\
+              : \"rbac.authorization.k8s.io\",\n    \"busyboxImage\": \"busybox\",\n    \"\
+              busyboxVersion\": \"1.30\",\n    \"configMapReloadImage\": \"jimmidyson/configmap-reload\"\
+              ,\n    \"configMapReloadVersion\": \"v0.2.2\",\n    \"consoleAPI\": {\n    \
+              \  \"defaultMonitorWarmup\": \"1m\",\n      \"defaultMonitorsConfigMap\": \"\
+              console-api-default-monitors\",\n      \"staticRulesConfigMap\": \"console-api-static-rules\"\
+              \n    },\n    \"consoleUIConfig\": {\n      \"isMonitorEditEnabled\": false,\n\
+              \      \"logo\": \"\"\n    },\n    \"daemonSetApiVersion\": \"apps/v1beta2\"\
+              ,\n    \"defaultCPURequest\": \"100m\",\n    \"defaultMemoryRequest\": \"50Mi\"\
+              ,\n    \"deploymentApiVersion\": \"apps/v1beta2\",\n    \"elasticsearchImage\"\
+              : \"elasticsearch\",\n    \"elasticsearchMemoryRequest\": \"510Mi\",\n    \"\
+              elasticsearchVersion\": \"7.2.0\",\n    \"enableElasticsearch\": false,\n  \
+              \  \"esConsoleExposePort\": 30080,\n    \"esConsoleImage\": \"{{.Values.imageCredentials.registry}}/enterprise-suite/es-console\"\
+              ,\n    \"esConsoleVersion\": \"v1.2.6\",\n    \"esGrafanaEnvVars\": null,\n\
+              \    \"esGrafanaImage\": \"{{.Values.imageCredentials.registry}}/enterprise-suite/es-grafana\"\
+              ,\n    \"esGrafanaVersion\": \"v0.3.0\",\n    \"esGrafanaVolumeSize\": \"32Gi\"\
+              ,\n    \"esMonitorImage\": \"{{.Values.imageCredentials.registry}}/enterprise-suite/console-api\"\
+              ,\n    \"esMonitorVersion\": \"v1.2.3\",\n    \"exposeServices\": false,\n \
+              \   \"goDnsmasqImage\": \"lightbend-docker-registry.bintray.io/lightbend/go-dnsmasq\"\
+              ,\n    \"goDnsmasqVersion\": \"v0.1.7-1\",\n    \"imageCredentials\": {\n  \
+              \    \"registry\": \"lightbend-docker-commercial-registry.bintray.io\",\n  \
+              \    \"username\": \"setme\",\n      \"password\": \"setme\"\n    },\n    \"\
+              imagePullPolicy\": \"IfNotPresent\",\n    \"kubeStateMetricsImage\": \"gcr.io/google_containers/kube-state-metrics\"\
+              ,\n    \"kubeStateMetricsVersion\": \"v1.2.0\",\n    \"minikube\": false,\n\
+              \    \"podUID\": null,\n    \"prometheusDomain\": \"prometheus.io\",\n    \"\
+              prometheusImage\": \"prom/prometheus\",\n    \"prometheusMemoryRequest\": \"\
+              250Mi\",\n    \"prometheusVersion\": \"v2.9.2\",\n    \"prometheusVolumeSize\"\
+              : \"256Gi\",\n    \"rbacApiVersion\": \"rbac.authorization.k8s.io/v1\",\n  \
+              \  \"usePersistentVolumes\": true\n  }\n}]"
+            capabilities: Basic Install
+            categories: Monitoring
+            certified: 'false'
+            containerImage: lightbend-docker-registry.bintray.io/lightbend/console-operator:1.2.3
+            createdAt: '2019-09-18T00:00:00Z'
+            description: Lightbend Console provides visualizations for Akka, Play, and Lagom
+              applications. See https://developer.lightbend.com/docs/console/current/ for
+              details.
+            repository: https://github.com/lightbend/console-charts/tree/master/operator
+            support: Lightbend, Inc.
+          name: lightbend-console-operator.v0.0.1
+          namespace: placeholder
+        spec:
+          customresourcedefinitions:
+            owned:
+            - description: Console
+              displayName: Console
+              kind: Console
+              name: consoles.app.lightbend.com
+              resources:
+              - kind: Deployment
+                version: v1
+              - kind: Service
+                version: v1
+              - kind: ReplicaSet
+                version: v1
+              - kind: Pod
+                version: v1
+              - kind: Secret
+                version: v1
+              - kind: ConfigMap
+                version: v1
+              specDescriptors: []
+              statusDescriptors: []
+              version: v1alpha1
+            required: []
+          description: '## About the managed application
+            Lightbend Console provides visualization and basic monitoring for Akka, Play,
+            and Lagom applications. See https://developer.lightbend.com/docs/console/current/
+            for further details.
+            ## About this Operator
+            The operator provides a simple installation of Lightbend Console. See https://github.com/lightbend/console-charts/blob/master/operator/README.md
+            for details.
+            ## Prerequisites for enabling this Operator
+            None are required to install the operator.
+            To install an instance of Console, you will need to add at minimum your credentials
+            to the Console custom resource.
+            '
+          displayName: Lightbend Console Operator
+          icon:
+          - base64data: PHN2ZyBpZD0ibGlnaHRiZW5kLWljb24tZnVsbC1jb2xvciIgY2xhc3M9InN2Zy1pY29uIHN2Zy1pY29uLWxpZ2h0YmVuZC1mdWxsLWNvbG9yIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDIgMjYyIj48dGl0bGU+bGlnaHRiZW5kLWljb248L3RpdGxlPjxnIGlkPSJpY29uIj48cGF0aCBkPSJNMSwxOTV2NTZhMTAsMTAsMCwwLDAsMTAsMTBIMjkxYTEwLDEwLDAsMCwwLDEwLTEwVjE5NWE1NTcuODUsNTU3Ljg1LDAsMCwxLTE1MCwyMEE1NTcuODUsNTU3Ljg1LDAsMCwxLDEsMTk1WiIgc3R5bGU9ImZpbGw6I2ZmOTMxZSIvPjxwYXRoIGQ9Ik0yOTEsMUgxMUExMCwxMCwwLDAsMCwxLDExVjE3NmE1MzkuOTQsNTM5Ljk0LDAsMCwwLDE1MCwyMSw1MzkuOTQsNTM5Ljk0LDAsMCwwLDE1MC0yMVYxMUExMCwxMCwwLDAsMCwyOTEsMVoiIHN0eWxlPSJmaWxsOiNmZjkzMWUiLz48L2c+PC9zdmc+
+            mediatype: image/svg+xml
+          install:
+            spec:
+              clusterPermissions:
+              - rules:
+                - apiGroups:
+                  - ''
+                  resources:
+                  - namespaces
+                  - serviceaccounts
+                  verbs:
+                  - get
+                - apiGroups:
+                  - ''
+                  resources:
+                  - configmaps
+                  - secrets
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - rbac.authorization.k8s.io
+                  resources:
+                  - clusterrolebindings
+                  - clusterroles
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - ''
+                  resources:
+                  - configmaps
+                  - persistentvolumeclaims
+                  - secrets
+                  - serviceaccounts
+                  - services
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - deployments
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - console-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                - apiGroups:
+                  - ''
+                  resources:
+                  - pods
+                  verbs:
+                  - get
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  verbs:
+                  - get
+                - apiGroups:
+                  - app.lightbend.com
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                serviceAccountName: console-operator
+              deployments:
+              - name: console-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: console-operator
+                  template:
+                    metadata:
+                      labels:
+                        name: console-operator
+                    spec:
+                      containers:
+                      - env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.namespace
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: console-operator
+                        image: lightbend-docker-registry.bintray.io/lightbend/console-operator:1.2.3
+                        imagePullPolicy: Always
+                        name: console-operator
+                      serviceAccountName: console-operator
+              permissions: []
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          keywords:
+          - Monitoring
+          labels: {}
+          links:
+          - name: Documentation
+            url: https://developer.lightbend.com/docs/console/current/
+          maintainers:
+          - email: info@lightbend.com
+            name: Lightbend, Inc.
+          maturity: alpha
+          minKubeVersion: 1.10.0
+          provider:
+            name: Lightbend, Inc.
+          selector:
+            matchLabels: {}
+          version: 0.0.1
+    customResourceDefinitions: |
+      - apiVersion: apiextensions.k8s.io/v1beta1
+        kind: CustomResourceDefinition
+        metadata:
+          name: consoles.app.lightbend.com
+          namespace: lightbend
+        spec:
+          group: app.lightbend.com
+          names:
+            kind: Console
+            listKind: ConsoleList
+            plural: consoles
+            singular: console
+          scope: Namespaced
+          subresources:
+            status: {}
+          version: v1alpha1
+          versions:
+          - name: v1alpha1
+            served: true
+            storage: true
+    packages: |
+      - channels:
+        - currentCSV: lightbend-console-operator.v0.0.1
+          name: alpha
+        packageName: lightbend-console-operator
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+

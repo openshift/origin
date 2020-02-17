@@ -418,8 +418,21 @@
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
 // test/extended/testdata/oauthserver/oauth-sa.yaml
+// test/extended/testdata/olm/catalogsource-address.yaml
+// test/extended/testdata/olm/catalogsource-configmap.yaml
+// test/extended/testdata/olm/cm-certutil-readytest.yaml
+// test/extended/testdata/olm/cm-certutil-readytests.yaml
+// test/extended/testdata/olm/cm-learn-v1.yaml
+// test/extended/testdata/olm/cm-learn-v2.yaml
+// test/extended/testdata/olm/cm-lightbend.yaml
+// test/extended/testdata/olm/cm-namespaceconfig.yaml
+// test/extended/testdata/olm/csc.yaml
 // test/extended/testdata/olm/etcd-subscription.yaml
+// test/extended/testdata/olm/og-allns.yaml
+// test/extended/testdata/olm/og-multins.yaml
+// test/extended/testdata/olm/olm-subscription.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
+// test/extended/testdata/olm/opsrc.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
 // test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml
@@ -53919,6 +53932,2056 @@ func testExtendedTestdataOauthserverOauthSaYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmCatalogsourceAddressYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: catalogsource-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: CatalogSource
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    address: "${ADDRESS}"
+    displayName: "${DISPLAYNAME}"
+    icon:
+      base64data: ""
+      mediatype: ""
+    publisher: "${PUBLISHER}"
+    sourceType: "${SOURCETYPE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: ADDRESS
+- name: DISPLAYNAME
+- name: PUBLISHER
+- name: SOURCETYPE
+`)
+
+func testExtendedTestdataOlmCatalogsourceAddressYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCatalogsourceAddressYaml, nil
+}
+
+func testExtendedTestdataOlmCatalogsourceAddressYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCatalogsourceAddressYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/catalogsource-address.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmCatalogsourceConfigmapYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: catalogsource-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: CatalogSource
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    configMap: "${ADDRESS}"
+    displayName: "${DISPLAYNAME}"
+    icon:
+      base64data: ""
+      mediatype: ""
+    publisher: "${PUBLISHER}"
+    sourceType: "${SOURCETYPE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: ADDRESS
+- name: DISPLAYNAME
+- name: PUBLISHER
+- name: SOURCETYPE
+`)
+
+func testExtendedTestdataOlmCatalogsourceConfigmapYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCatalogsourceConfigmapYaml, nil
+}
+
+func testExtendedTestdataOlmCatalogsourceConfigmapYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCatalogsourceConfigmapYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/catalogsource-configmap.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmCmCertutilReadytestYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: cm-cert-readytest-template
+objects:
+- apiVersion: v1
+  data:
+    clusterServiceVersions: |
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: '[]
+              '
+            capabilities: Full Lifecycle
+            categories: Security
+            certified: 'false'
+            containerImage: quay.io/redhat-cop/cert-utils-operator:latest
+            createdAt: 5/26/2019
+            description: Set of utilities for TLS certificates
+            repository: https://github.com/redhat-cop/cert-utils-operator
+            support: Best Effort
+          name: cert-utils-operator.v0.0.3
+          namespace: cert-utils-operator
+        spec:
+          apiservicedefinitions: {}
+          customresourcedefinitions:
+            owned:
+            - description: ReadyTest
+              displayName: readytest
+              group: stable.example.com
+              kind: ReadyTest
+              name: readytest.stable.example.com
+              version: v1
+          description: 'Cert utils operator is a set of functionalities around certificates
+            packaged in a [Kubernetes operator](https://github.com/operator-framework/operator-sdk).
+            Certificates are assumed to be available in a [secret](https://kubernetes.io/docs/concepts/configuration/secret/)
+            of type `+"`"+`kubernetes.io/tls`+"`"+` (other types of secrets are *ignored* by this operator).
+            By convention this type of secrets have three optional entries:
+            1. `+"`"+`tls.key`+"`"+`: the private key of the certificate.
+            2. `+"`"+`tls.crt`+"`"+`: the actual certificate.
+            3. `+"`"+`ca.crt`+"`"+`: the CA bundle that validates the certificate.
+            The functionalities are the following:
+            1. [Ability to populate route certificates](https://github.com/redhat-cop/cert-utils-operator#Populating-route-certificates)
+            2. [Ability to create java keystore and truststore from the certificates](https://github.com/redhat-cop/cert-utils-operator#Creating-java-keystore-and-truststore)
+            3. [Ability to show info regarding the certificates](https://github.com/redhat-cop/cert-utils-operator#Showing-info-on-the-certificates)
+            4. [Ability to alert when a certificate is about to expire](https://github.com/redhat-cop/cert-utils-operator#Alerting-when-a-certificate-is-about-to-expire)
+            5. [Ability to inject ca bundles in ValidatingWebhookConfiguration, MutatingWebhookConfiguration,
+            CustomResourceDefinition object](https://github.com/redhat-cop/cert-utils-operator#CA-injection)
+            All these feature are activated via opt-in annotations.
+            '
+          displayName: Cert Utils Operator
+          icon:
+          - base64data: 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
+            mediatype: image/png
+          install:
+            spec:
+              clusterPermissions:
+              - rules:
+                - apiGroups:
+                  - ''
+                  resources:
+                  - events
+                  - secrets
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - route.openshift.io
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - admissionregistration.k8s.io
+                  resources:
+                  - validatingwebhookconfigurations
+                  - mutatingwebhookconfigurations
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apiextensions.k8s.io
+                  resources:
+                  - customresourcedefinitions
+                  verbs:
+                  - '*'
+                serviceAccountName: cert-utils-operator
+              deployments:
+              - name: cert-utils-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: cert-utils-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: cert-utils-operator
+                    spec:
+                      containers:
+                      - command:
+                        - cert-utils-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.annotations['olm.targetNamespaces']
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: cert-utils-operator
+                        image: quay.io/redhat-cop/cert-utils-operator:v0.0.3
+                        imagePullPolicy: Always
+                        name: cert-utils-operator
+                        resources: {}
+                      serviceAccountName: cert-utils-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ''
+                  resources:
+                  - configmaps
+                  - pods
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - ''
+                  resources:
+                  - services
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                  - list
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - cert-utils-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                serviceAccountName: cert-utils-operator
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          keywords:
+          - TLS
+          - secrets
+          - security
+          - certificates
+          links:
+          - name: repository
+            url: https://github.com/redhat-cop/cert-utils-operator
+          - name: conatinerImage
+            url: https://quay.io/redhat-cop/cert-utils-operator:latest
+          maintainers:
+          - email: rspazzol@redhat.com
+            name: Raffaele Spazzoli
+          maturity: alpha
+          provider:
+            name: Containers & PaaS CoP
+          version: 0.0.3
+    customResourceDefinitions: |
+      - apiVersion: apiextensions.k8s.io/v1beta1
+        kind: CustomResourceDefinition
+        metadata:
+          name: readytest.stable.example.com
+        spec:
+          group: stable.example.com
+          versions:
+            - name: v1
+              served: true
+              storage: true
+          scope: Namespaced
+          names:
+            plural: readytests
+            singular: readytest
+            kind: ReadyTest
+            shortNames:
+            - rt
+    packages: |
+      - channels:
+        - currentCSV: cert-utils-operator.v0.0.3
+          name: alpha
+        defaultChannel: alpha
+        packageName: cert-utils-operator
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+
+`)
+
+func testExtendedTestdataOlmCmCertutilReadytestYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCmCertutilReadytestYaml, nil
+}
+
+func testExtendedTestdataOlmCmCertutilReadytestYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCmCertutilReadytestYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/cm-certutil-readytest.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmCmCertutilReadytestsYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: cm-cert-readytests-template
+objects:
+- apiVersion: v1
+  data:
+    clusterServiceVersions: |
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: '[]
+              '
+            capabilities: Full Lifecycle
+            categories: Security
+            certified: 'false'
+            containerImage: quay.io/redhat-cop/cert-utils-operator:latest
+            createdAt: 5/26/2019
+            description: Set of utilities for TLS certificates
+            repository: https://github.com/redhat-cop/cert-utils-operator
+            support: Best Effort
+          name: cert-utils-operator.v0.0.3
+          namespace: cert-utils-operator
+        spec:
+          apiservicedefinitions: {}
+          customresourcedefinitions:
+            owned:
+            - description: ReadyTest
+              displayName: readytest
+              group: stable.example.com
+              kind: ReadyTest
+              name: readytests.stable.example.com
+              version: v1
+          description: 'Cert utils operator is a set of functionalities around certificates
+            packaged in a [Kubernetes operator](https://github.com/operator-framework/operator-sdk).
+            Certificates are assumed to be available in a [secret](https://kubernetes.io/docs/concepts/configuration/secret/)
+            of type `+"`"+`kubernetes.io/tls`+"`"+` (other types of secrets are *ignored* by this operator).
+            By convention this type of secrets have three optional entries:
+            1. `+"`"+`tls.key`+"`"+`: the private key of the certificate.
+            2. `+"`"+`tls.crt`+"`"+`: the actual certificate.
+            3. `+"`"+`ca.crt`+"`"+`: the CA bundle that validates the certificate.
+            The functionalities are the following:
+            1. [Ability to populate route certificates](https://github.com/redhat-cop/cert-utils-operator#Populating-route-certificates)
+            2. [Ability to create java keystore and truststore from the certificates](https://github.com/redhat-cop/cert-utils-operator#Creating-java-keystore-and-truststore)
+            3. [Ability to show info regarding the certificates](https://github.com/redhat-cop/cert-utils-operator#Showing-info-on-the-certificates)
+            4. [Ability to alert when a certificate is about to expire](https://github.com/redhat-cop/cert-utils-operator#Alerting-when-a-certificate-is-about-to-expire)
+            5. [Ability to inject ca bundles in ValidatingWebhookConfiguration, MutatingWebhookConfiguration,
+            CustomResourceDefinition object](https://github.com/redhat-cop/cert-utils-operator#CA-injection)
+            All these feature are activated via opt-in annotations.
+            '
+          displayName: Cert Utils Operator
+          icon:
+          - base64data: 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
+            mediatype: image/png
+          install:
+            spec:
+              clusterPermissions:
+              - rules:
+                - apiGroups:
+                  - ''
+                  resources:
+                  - events
+                  - secrets
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - route.openshift.io
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - admissionregistration.k8s.io
+                  resources:
+                  - validatingwebhookconfigurations
+                  - mutatingwebhookconfigurations
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apiextensions.k8s.io
+                  resources:
+                  - customresourcedefinitions
+                  verbs:
+                  - '*'
+                serviceAccountName: cert-utils-operator
+              deployments:
+              - name: cert-utils-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: cert-utils-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: cert-utils-operator
+                    spec:
+                      containers:
+                      - command:
+                        - cert-utils-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.annotations['olm.targetNamespaces']
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: cert-utils-operator
+                        image: quay.io/redhat-cop/cert-utils-operator:v0.0.3
+                        imagePullPolicy: Always
+                        name: cert-utils-operator
+                        resources: {}
+                      serviceAccountName: cert-utils-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ''
+                  resources:
+                  - configmaps
+                  - pods
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - ''
+                  resources:
+                  - services
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                  - list
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - cert-utils-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                serviceAccountName: cert-utils-operator
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          keywords:
+          - TLS
+          - secrets
+          - security
+          - certificates
+          links:
+          - name: repository
+            url: https://github.com/redhat-cop/cert-utils-operator
+          - name: conatinerImage
+            url: https://quay.io/redhat-cop/cert-utils-operator:latest
+          maintainers:
+          - email: rspazzol@redhat.com
+            name: Raffaele Spazzoli
+          maturity: alpha
+          provider:
+            name: Containers & PaaS CoP
+          version: 0.0.3
+    customResourceDefinitions: |
+      - apiVersion: apiextensions.k8s.io/v1beta1
+        kind: CustomResourceDefinition
+        metadata:
+          name: readytests.stable.example.com
+        spec:
+          group: stable.example.com
+          versions:
+            - name: v1
+              served: true
+              storage: true
+          scope: Namespaced
+          names:
+            plural: readytests
+            singular: readytest
+            kind: ReadyTest
+            shortNames:
+            - rt
+    packages: |
+      - channels:
+        - currentCSV: cert-utils-operator.v0.0.3
+          name: alpha
+        defaultChannel: alpha
+        packageName: cert-utils-operator
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+
+`)
+
+func testExtendedTestdataOlmCmCertutilReadytestsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCmCertutilReadytestsYaml, nil
+}
+
+func testExtendedTestdataOlmCmCertutilReadytestsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCmCertutilReadytestsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/cm-certutil-readytests.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmCmLearnV1Yaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: cm-learn-v1-template
+objects:
+- apiVersion: v1
+  data:
+    clusterServiceVersions: |
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: |-
+              [
+                {
+                  "apiVersion": "app.learn.com/v1",
+                  "kind": "Learn",
+                  "metadata": {
+                    "name": "example-learn"
+                  },
+                  "spec": {
+                    "size": 2
+                  }
+                }
+              ]
+            capabilities: Basic Install
+          name: learn-operator.v0.0.1
+          namespace: learn
+        spec:
+          apiservicedefinitions: {}
+          customresourcedefinitions:
+            owned:
+            - kind: Learn
+              name: learns.app.learn.com
+              version: v1
+              description: An example to show how to make it managed by OLM
+              displayName: Jian's Learn Operator
+          description: Placeholder description
+          displayName: Learn Operator
+          install:
+            spec:
+              deployments:
+              - name: learn-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: learn-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: learn-operator
+                    spec:
+                      containers:
+                      - command:
+                        - learn-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.annotations['olm.targetNamespaces']
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: learn-operator
+                        image: quay.io/jiazha/learn-operator-image
+                        imagePullPolicy: Always
+                        name: learn-operator
+                        resources: {}
+                      serviceAccountName: learn-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ""
+                  resources:
+                  - pods
+                  - services
+                  - services/finalizers
+                  - endpoints
+                  - persistentvolumeclaims
+                  - events
+                  - configmaps
+                  - secrets
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - deployments
+                  - daemonsets
+                  - replicasets
+                  - statefulsets
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - learn-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                - apiGroups:
+                  - ""
+                  resources:
+                  - pods
+                  verbs:
+                  - get
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                - apiGroups:
+                  - app.learn.com
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                serviceAccountName: learn-operator
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          maturity: alpha
+          provider: {}
+          version: 0.0.1
+    customResourceDefinitions: |
+      - apiVersion: apiextensions.k8s.io/v1beta1
+        kind: CustomResourceDefinition
+        metadata:
+          name: learns.app.learn.com
+        spec:
+          group: app.learn.com
+          names:
+            kind: Learn
+            listKind: LearnList
+            plural: learns
+            singular: learn
+          scope: Namespaced
+          subresources:
+            status: {}
+          validation:
+            openAPIV3Schema:
+              description: Learn is the Schema for the learns API
+              properties:
+                apiVersion:
+                  description: 'APIVersion defines the versioned schema of this representation
+                    of an object. Servers should convert recognized schemas to the latest
+                    internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+                  type: string
+                kind:
+                  description: 'Kind is a string value representing the REST resource this
+                    object represents. Servers may infer this from the endpoint the client
+                    submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+                  type: string
+                metadata:
+                  type: object
+                spec:
+                  description: LearnSpec defines the desired state of Learn
+                  type: object
+                status:
+                  description: LearnStatus defines the observed state of Learn
+                  type: object
+              type: object
+          version: v1
+          versions:
+          - name: v1
+            served: true
+            storage: true
+    packages: |
+      - channels:
+        - currentCSV: learn-operator.v0.0.1
+          name: alpha
+        defaultChannel: alpha
+        packageName: learn-operator
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+
+`)
+
+func testExtendedTestdataOlmCmLearnV1YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCmLearnV1Yaml, nil
+}
+
+func testExtendedTestdataOlmCmLearnV1Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCmLearnV1YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/cm-learn-v1.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmCmLearnV2Yaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: cm-learn-v2-template
+objects:
+- apiVersion: v1
+  data:
+    clusterServiceVersions: |
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: |-
+              [
+                {
+                  "apiVersion": "app.learn.com/v1",
+                  "kind": "Learn",
+                  "metadata": {
+                    "name": "example-learn"
+                  },
+                  "spec": {
+                    "size": 2
+                  }
+                }
+              ]
+            capabilities: Basic Install
+          name: learn-operator.v0.0.2
+          namespace: learn
+        spec:
+          apiservicedefinitions: {}
+          customresourcedefinitions:
+            owned:
+            - kind: Learn
+              name: learns.app.learn.com
+              version: v2
+              description: An example to show how to make it managed by OLM
+              displayName: Jian's Learn Operator
+          description: Placeholder description
+          displayName: Learn Operator
+          install:
+            spec:
+              deployments:
+              - name: learn-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: learn-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: learn-operator
+                    spec:
+                      containers:
+                      - command:
+                        - learn-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.annotations['olm.targetNamespaces']
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: learn-operator
+                        image: quay.io/jiazha/learn-operator-image
+                        imagePullPolicy: Always
+                        name: learn-operator
+                        resources: {}
+                      serviceAccountName: learn-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ""
+                  resources:
+                  - pods
+                  - services
+                  - services/finalizers
+                  - endpoints
+                  - persistentvolumeclaims
+                  - events
+                  - configmaps
+                  - secrets
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - deployments
+                  - daemonsets
+                  - replicasets
+                  - statefulsets
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - learn-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                - apiGroups:
+                  - ""
+                  resources:
+                  - pods
+                  verbs:
+                  - get
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                - apiGroups:
+                  - app.learn.com
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                serviceAccountName: learn-operator
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          maturity: alpha
+          provider: {}
+          replaces: learn-operator.v0.0.1
+          version: 0.0.2
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: |-
+              [
+                {
+                  "apiVersion": "app.learn.com/v1",
+                  "kind": "Learn",
+                  "metadata": {
+                    "name": "example-learn"
+                  },
+                  "spec": {
+                    "size": 2
+                  }
+                }
+              ]
+            capabilities: Basic Install
+          name: learn-operator.v0.0.1
+          namespace: learn
+        spec:
+          apiservicedefinitions: {}
+          customresourcedefinitions:
+            owned:
+            - kind: Learn
+              name: learns.app.learn.com
+              version: v1
+              description: An example to show how to make it managed by OLM
+              displayName: Jian's Learn Operator
+          description: Placeholder description
+          displayName: Learn Operator
+          install:
+            spec:
+              deployments:
+              - name: learn-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: learn-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: learn-operator
+                    spec:
+                      containers:
+                      - command:
+                        - learn-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.annotations['olm.targetNamespaces']
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: learn-operator
+                        image: quay.io/jiazha/learn-operator-image
+                        imagePullPolicy: Always
+                        name: learn-operator
+                        resources: {}
+                      serviceAccountName: learn-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ""
+                  resources:
+                  - pods
+                  - services
+                  - services/finalizers
+                  - endpoints
+                  - persistentvolumeclaims
+                  - events
+                  - configmaps
+                  - secrets
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - deployments
+                  - daemonsets
+                  - replicasets
+                  - statefulsets
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - learn-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                - apiGroups:
+                  - ""
+                  resources:
+                  - pods
+                  verbs:
+                  - get
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                - apiGroups:
+                  - app.learn.com
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                serviceAccountName: learn-operator
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          maturity: alpha
+          provider: {}
+          version: 0.0.1
+    customResourceDefinitions: |
+      - apiVersion: apiextensions.k8s.io/v1beta1
+        kind: CustomResourceDefinition
+        metadata:
+          name: learns.app.learn.com
+        spec:
+          group: app.learn.com
+          names:
+            kind: Learn
+            listKind: LearnList
+            plural: learns
+            singular: learn
+          scope: Namespaced
+          subresources:
+            status: {}
+          validation:
+            openAPIV3Schema:
+              description: Learn is the Schema for the learns API
+              properties:
+                apiVersion:
+                  description: 'APIVersion defines the versioned schema of this representation
+                    of an object. Servers should convert recognized schemas to the latest
+                    internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+                  type: string
+                kind:
+                  description: 'Kind is a string value representing the REST resource this
+                    object represents. Servers may infer this from the endpoint the client
+                    submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+                  type: string
+                metadata:
+                  type: object
+                spec:
+                  description: LearnSpec defines the desired state of Learn
+                  type: object
+                status:
+                  description: LearnStatus defines the observed state of Learn
+                  type: object
+              type: object
+          version: v2
+          versions:
+          - name: v2
+            served: true
+            storage: true
+          - name: v1
+            served: true
+            storage: false
+    packages: |
+      - channels:
+        - currentCSV: learn-operator.v0.0.1
+          name: alpha
+        - currentCSV: learn-operator.v0.0.2
+          name: beta
+        defaultChannel: alpha
+        packageName: learn-operator
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+
+`)
+
+func testExtendedTestdataOlmCmLearnV2YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCmLearnV2Yaml, nil
+}
+
+func testExtendedTestdataOlmCmLearnV2Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCmLearnV2YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/cm-learn-v2.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmCmLightbendYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: cm-lightbend-template
+objects:
+- apiVersion: v1
+  data:
+    clusterServiceVersions: |
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: "[{\n  \"apiVersion\": \"app.lightbend.com/v1alpha1\",\n  \"kind\"\
+              : \"Console\",\n  \"metadata\": {\n    \"name\": \"example-console\",\n    \"\
+              namespace\": \"placeholder\"\n  },\n  \"spec\": {\n    \"alertManagers\": null,\n\
+              \    \"alpineImage\": \"alpine\",\n    \"alpineVersion\": \"3.8\",\n    \"apiGroupVersion\"\
+              : \"rbac.authorization.k8s.io\",\n    \"busyboxImage\": \"busybox\",\n    \"\
+              busyboxVersion\": \"1.30\",\n    \"configMapReloadImage\": \"jimmidyson/configmap-reload\"\
+              ,\n    \"configMapReloadVersion\": \"v0.2.2\",\n    \"consoleAPI\": {\n    \
+              \  \"defaultMonitorWarmup\": \"1m\",\n      \"defaultMonitorsConfigMap\": \"\
+              console-api-default-monitors\",\n      \"staticRulesConfigMap\": \"console-api-static-rules\"\
+              \n    },\n    \"consoleUIConfig\": {\n      \"isMonitorEditEnabled\": false,\n\
+              \      \"logo\": \"\"\n    },\n    \"daemonSetApiVersion\": \"apps/v1beta2\"\
+              ,\n    \"defaultCPURequest\": \"100m\",\n    \"defaultMemoryRequest\": \"50Mi\"\
+              ,\n    \"deploymentApiVersion\": \"apps/v1beta2\",\n    \"elasticsearchImage\"\
+              : \"elasticsearch\",\n    \"elasticsearchMemoryRequest\": \"510Mi\",\n    \"\
+              elasticsearchVersion\": \"7.2.0\",\n    \"enableElasticsearch\": false,\n  \
+              \  \"esConsoleExposePort\": 30080,\n    \"esConsoleImage\": \"{{.Values.imageCredentials.registry}}/enterprise-suite/es-console\"\
+              ,\n    \"esConsoleVersion\": \"v1.2.6\",\n    \"esGrafanaEnvVars\": null,\n\
+              \    \"esGrafanaImage\": \"{{.Values.imageCredentials.registry}}/enterprise-suite/es-grafana\"\
+              ,\n    \"esGrafanaVersion\": \"v0.3.0\",\n    \"esGrafanaVolumeSize\": \"32Gi\"\
+              ,\n    \"esMonitorImage\": \"{{.Values.imageCredentials.registry}}/enterprise-suite/console-api\"\
+              ,\n    \"esMonitorVersion\": \"v1.2.3\",\n    \"exposeServices\": false,\n \
+              \   \"goDnsmasqImage\": \"lightbend-docker-registry.bintray.io/lightbend/go-dnsmasq\"\
+              ,\n    \"goDnsmasqVersion\": \"v0.1.7-1\",\n    \"imageCredentials\": {\n  \
+              \    \"registry\": \"lightbend-docker-commercial-registry.bintray.io\",\n  \
+              \    \"username\": \"setme\",\n      \"password\": \"setme\"\n    },\n    \"\
+              imagePullPolicy\": \"IfNotPresent\",\n    \"kubeStateMetricsImage\": \"gcr.io/google_containers/kube-state-metrics\"\
+              ,\n    \"kubeStateMetricsVersion\": \"v1.2.0\",\n    \"minikube\": false,\n\
+              \    \"podUID\": null,\n    \"prometheusDomain\": \"prometheus.io\",\n    \"\
+              prometheusImage\": \"prom/prometheus\",\n    \"prometheusMemoryRequest\": \"\
+              250Mi\",\n    \"prometheusVersion\": \"v2.9.2\",\n    \"prometheusVolumeSize\"\
+              : \"256Gi\",\n    \"rbacApiVersion\": \"rbac.authorization.k8s.io/v1\",\n  \
+              \  \"usePersistentVolumes\": true\n  }\n}]"
+            capabilities: Basic Install
+            categories: Monitoring
+            certified: 'false'
+            containerImage: lightbend-docker-registry.bintray.io/lightbend/console-operator:1.2.3
+            createdAt: '2019-09-18T00:00:00Z'
+            description: Lightbend Console provides visualizations for Akka, Play, and Lagom
+              applications. See https://developer.lightbend.com/docs/console/current/ for
+              details.
+            repository: https://github.com/lightbend/console-charts/tree/master/operator
+            support: Lightbend, Inc.
+          name: lightbend-console-operator.v0.0.1
+          namespace: placeholder
+        spec:
+          customresourcedefinitions:
+            owned:
+            - description: Console
+              displayName: Console
+              kind: Console
+              name: consoles.app.lightbend.com
+              resources:
+              - kind: Deployment
+                version: v1
+              - kind: Service
+                version: v1
+              - kind: ReplicaSet
+                version: v1
+              - kind: Pod
+                version: v1
+              - kind: Secret
+                version: v1
+              - kind: ConfigMap
+                version: v1
+              specDescriptors: []
+              statusDescriptors: []
+              version: v1alpha1
+            required: []
+          description: '## About the managed application
+            Lightbend Console provides visualization and basic monitoring for Akka, Play,
+            and Lagom applications. See https://developer.lightbend.com/docs/console/current/
+            for further details.
+            ## About this Operator
+            The operator provides a simple installation of Lightbend Console. See https://github.com/lightbend/console-charts/blob/master/operator/README.md
+            for details.
+            ## Prerequisites for enabling this Operator
+            None are required to install the operator.
+            To install an instance of Console, you will need to add at minimum your credentials
+            to the Console custom resource.
+            '
+          displayName: Lightbend Console Operator
+          icon:
+          - base64data: PHN2ZyBpZD0ibGlnaHRiZW5kLWljb24tZnVsbC1jb2xvciIgY2xhc3M9InN2Zy1pY29uIHN2Zy1pY29uLWxpZ2h0YmVuZC1mdWxsLWNvbG9yIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDIgMjYyIj48dGl0bGU+bGlnaHRiZW5kLWljb248L3RpdGxlPjxnIGlkPSJpY29uIj48cGF0aCBkPSJNMSwxOTV2NTZhMTAsMTAsMCwwLDAsMTAsMTBIMjkxYTEwLDEwLDAsMCwwLDEwLTEwVjE5NWE1NTcuODUsNTU3Ljg1LDAsMCwxLTE1MCwyMEE1NTcuODUsNTU3Ljg1LDAsMCwxLDEsMTk1WiIgc3R5bGU9ImZpbGw6I2ZmOTMxZSIvPjxwYXRoIGQ9Ik0yOTEsMUgxMUExMCwxMCwwLDAsMCwxLDExVjE3NmE1MzkuOTQsNTM5Ljk0LDAsMCwwLDE1MCwyMSw1MzkuOTQsNTM5Ljk0LDAsMCwwLDE1MC0yMVYxMUExMCwxMCwwLDAsMCwyOTEsMVoiIHN0eWxlPSJmaWxsOiNmZjkzMWUiLz48L2c+PC9zdmc+
+            mediatype: image/svg+xml
+          install:
+            spec:
+              clusterPermissions:
+              - rules:
+                - apiGroups:
+                  - ''
+                  resources:
+                  - namespaces
+                  - serviceaccounts
+                  verbs:
+                  - get
+                - apiGroups:
+                  - ''
+                  resources:
+                  - configmaps
+                  - secrets
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - rbac.authorization.k8s.io
+                  resources:
+                  - clusterrolebindings
+                  - clusterroles
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - ''
+                  resources:
+                  - configmaps
+                  - persistentvolumeclaims
+                  - secrets
+                  - serviceaccounts
+                  - services
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - deployments
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - console-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                - apiGroups:
+                  - ''
+                  resources:
+                  - pods
+                  verbs:
+                  - get
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  verbs:
+                  - get
+                - apiGroups:
+                  - app.lightbend.com
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                serviceAccountName: console-operator
+              deployments:
+              - name: console-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: console-operator
+                  template:
+                    metadata:
+                      labels:
+                        name: console-operator
+                    spec:
+                      containers:
+                      - env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.namespace
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: console-operator
+                        image: lightbend-docker-registry.bintray.io/lightbend/console-operator:1.2.3
+                        imagePullPolicy: Always
+                        name: console-operator
+                      serviceAccountName: console-operator
+              permissions: []
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          keywords:
+          - Monitoring
+          labels: {}
+          links:
+          - name: Documentation
+            url: https://developer.lightbend.com/docs/console/current/
+          maintainers:
+          - email: info@lightbend.com
+            name: Lightbend, Inc.
+          maturity: alpha
+          minKubeVersion: 1.10.0
+          provider:
+            name: Lightbend, Inc.
+          selector:
+            matchLabels: {}
+          version: 0.0.1
+    customResourceDefinitions: |
+      - apiVersion: apiextensions.k8s.io/v1beta1
+        kind: CustomResourceDefinition
+        metadata:
+          name: consoles.app.lightbend.com
+          namespace: lightbend
+        spec:
+          group: app.lightbend.com
+          names:
+            kind: Console
+            listKind: ConsoleList
+            plural: consoles
+            singular: console
+          scope: Namespaced
+          subresources:
+            status: {}
+          version: v1alpha1
+          versions:
+          - name: v1alpha1
+            served: true
+            storage: true
+    packages: |
+      - channels:
+        - currentCSV: lightbend-console-operator.v0.0.1
+          name: alpha
+        packageName: lightbend-console-operator
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+
+`)
+
+func testExtendedTestdataOlmCmLightbendYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCmLightbendYaml, nil
+}
+
+func testExtendedTestdataOlmCmLightbendYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCmLightbendYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/cm-lightbend.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmCmNamespaceconfigYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: cm-namespaceconfig-template
+objects:
+- apiVersion: v1
+  data:
+    clusterServiceVersions: |
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: |-
+              [
+                {
+                  "apiVersion": "redhatcop.redhat.io/v1alpha1",
+                  "kind": "NamespaceConfig",
+                  "metadata": {
+                    "name": "example-namespaceconfig"
+                  },
+                  "spec": {
+                    "size": 3
+                  }
+                }
+              ]
+            capabilities: Full Lifecycle
+            categories: Security
+            certified: "false"
+            containerImage: quay.io/redhat-cop/namespace-configuration-operator:latest
+            createdAt: 5/28/2019
+            description: This operator provides a facility to define and enforce namespace
+              configurations
+            repository: https://github.com/redhat-cop/namespace-configuration-operator
+            support: Best Effort
+          name: namespace-configuration-operator.v0.1.0
+          namespace: namespace-configuration-operator
+        spec:
+          apiservicedefinitions: {}
+          customresourcedefinitions:
+            owned:
+            - description: Represent the desired configuration for a set of namespaces selected
+                via labels
+              displayName: Namespace Configuration
+              kind: NamespaceConfig
+              name: namespaceconfigs.redhatcop.redhat.io
+              version: v1alpha1
+          description: "The namespace configuration operator helps keeping a namespace's configuration
+            aligned with one of more policies specified as a CRs.\n\nThe `+"`"+`NamespaceConfig`+"`"+`
+            CR allows specifying one or more objects that will be created in the selected
+            namespaces.\n\nFor example using this operator an administrator can enforce a
+            specific ResourceQuota or LimitRange on a set of namespaces. For example with
+            the following snippet:\n\n`+"`"+``+"`"+``+"`"+`\napiVersion: redhatcop.redhat.io/v1alpha1\nkind:
+            NamespaceConfig\nmetadata:\n  name: small-size\nspec:\n  selector:\n    matchLabels:\n
+            \     size: small  \n  resources:\n  - apiVersion: v1\n    kind: ResourceQuota\n
+            \   metadata:\n      name: small-size  \n    spec:\n      hard:\n        requests.cpu:
+            \"4\"\n        requests.memory: \"2Gi\"\n`+"`"+``+"`"+``+"`"+`\n\nwe are enforcing that all the
+            namespaces with label: `+"`"+`size=small`+"`"+` receive the specified resource quota.  \n"
+          displayName: Namespace Configuration Operator
+          icon:
+          - base64data: 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
+            mediatype: image/png
+          install:
+            spec:
+              clusterPermissions:
+              - rules:
+                - apiGroups:
+                  - '*'
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                serviceAccountName: namespace-configuration-operator
+              deployments:
+              - name: namespace-configuration-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: namespace-configuration-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: namespace-configuration-operator
+                    spec:
+                      containers:
+                      - command:
+                        - namespace-configuration-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.annotations['olm.targetNamespaces']
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: namespace-configuration-operator
+                        image: quay.io/redhat-cop/namespace-configuration-operator:v0.1.0
+                        imagePullPolicy: Always
+                        name: namespace-configuration-operator
+                        resources: {}
+                      serviceAccountName: namespace-configuration-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ""
+                  resources:
+                  - configmaps
+                  - pods
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - ""
+                  resources:
+                  - services
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                  - list
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - namespace-configuration-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                serviceAccountName: namespace-configuration-operator
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          keywords:
+          - namespace
+          - configuration
+          - policy
+          - management
+          links:
+          - name: repository
+            url: https://github.com/redhat-cop/namespace-configuration-operator
+          - name: conatinerImage
+            url: https://quay.io/redhat-cop/namespace-configuration-operator:latest
+          - name: blog
+            url: https://blog.openshift.com/controlling-namespace-configurations
+          maintainers:
+          - email: rspazzol@redhat.com
+            name: Raffaele Spazzoli
+          maturity: alpha
+          minKubeVersion: 1.10.0
+          provider:
+            name: Containers & PaaS CoP
+          replaces: namespace-configuration-operator.v0.0.1
+          skips:
+          - namespace-configuration-operator.v0.0.2
+          version: 0.1.0
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: '[{"apiVersion":"redhatcop.redhat.io/v1alpha1","kind":"NamespaceConfig","metadata":{"name":"example-namespaceconfig"},"spec":{"size":3}}]'
+            capabilities: Full Lifecycle
+            categories: Security
+            certified: "false"
+            containerImage: quay.io/redhat-cop/namespace-configuration-operator:latest
+            createdAt: 5/28/2019
+            description: This operator provides a facility to define and enforce namespace
+              configurations
+            repository: https://github.com/redhat-cop/namespace-configuration-operator
+            support: Best Effort
+          name: namespace-configuration-operator.v0.0.2
+          namespace: namespace-configuration-operator
+        spec:
+          apiservicedefinitions: {}
+          customresourcedefinitions:
+            owned:
+            - description: Represent the desired configuration for a set of namespaces selected
+                via labels
+              displayName: Namespace Configuration
+              kind: NamespaceConfig
+              name: namespaceconfigs.redhatcop.redhat.io
+              version: v1alpha1
+          description: "The namespace configuration operator helps keeping a namespace's configuration
+            aligned with one of more policies specified as a CRs.\n\nThe `+"`"+`NamespaceConfig`+"`"+`
+            CR allows specifying one or more objects that will be created in the selected
+            namespaces.\n\nFor example using this operator an administrator can enforce a
+            specific ResourceQuota or LimitRange on a set of namespaces. For example with
+            the following snippet:\n\n`+"`"+``+"`"+``+"`"+`\napiVersion: redhatcop.redhat.io/v1alpha1\nkind:
+            NamespaceConfig\nmetadata:\n  name: small-size\nspec:\n  selector:\n    matchLabels:\n
+            \     size: small  \n  resources:\n  - apiVersion: v1\n    kind: ResourceQuota\n
+            \   metadata:\n      name: small-size  \n    spec:\n      hard:\n        requests.cpu:
+            \"4\"\n        requests.memory: \"2Gi\"\n`+"`"+``+"`"+``+"`"+`\n\nwe are enforcing that all the
+            namespaces with label: `+"`"+`size=small`+"`"+` receive the specified resource quota.  \n"
+          displayName: Namespace Configuration Operator
+          icon:
+          - base64data: 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
+            mediatype: image/png
+          install:
+            spec:
+              clusterPermissions:
+              - rules:
+                - apiGroups:
+                  - '*'
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                serviceAccountName: namespace-configuration-operator
+              deployments:
+              - name: namespace-configuration-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: namespace-configuration-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: namespace-configuration-operator
+                    spec:
+                      containers:
+                      - command:
+                        - namespace-configuration-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.annotations['olm.targetNamespaces']
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: namespace-configuration-operator
+                        image: quay.io/redhat-cop/namespace-configuration-operator:v0.0.2
+                        imagePullPolicy: Always
+                        name: namespace-configuration-operator
+                        resources: {}
+                      serviceAccountName: namespace-configuration-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ""
+                  resources:
+                  - configmaps
+                  - pods
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - ""
+                  resources:
+                  - services
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                  - list
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - namespace-configuration-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                serviceAccountName: namespace-configuration-operator
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          keywords:
+          - namespace
+          - configuration
+          - policy
+          - management
+          links:
+          - name: repository
+            url: https://github.com/redhat-cop/namespace-configuration-operator
+          - name: conatinerImage
+            url: https://quay.io/redhat-cop/namespace-configuration-operator:latest
+          - name: blog
+            url: https://blog.openshift.com/controlling-namespace-configurations
+          maintainers:
+          - email: rspazzol@redhat.com
+            name: Raffaele Spazzoli
+          maturity: alpha
+          provider:
+            name: Containers & PaaS CoP
+          replaces: namespace-configuration-operator.v0.0.1
+          version: 0.0.2
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            capabilities: Full Lifecycle
+            categories: Security
+            certified: "false"
+            description: This operator provides a facility to define and enforce namespace configurations
+            containerImage: quay.io/redhat-cop/namespace-configuration-operator:latest
+            createdAt: 5/28/2019
+            support: Best Effort
+            repository: https://github.com/redhat-cop/namespace-configuration-operator
+            alm-examples: |
+              [
+                {
+                  "apiVersion": "redhatcop.redhat.io/v1alpha1",
+                  "kind": "NamespaceConfig",
+                  "metadata": {
+                      "name": "small-size"
+                  },
+                  "spec": {
+                      "selector": {
+                        "matchLabels": {
+                            "size": "small"
+                        }
+                      },
+                      "resources": [
+                        {
+                            "apiVersion": "v1",
+                            "kind": "ResourceQuota",
+                            "metadata": {
+                              "name": "small-size"
+                            },
+                            "spec": {
+                              "hard": {
+                                  "requests.cpu": "4",
+                                  "requests.memory": "2Gi"
+                              }
+                            }
+                        }
+                      ]
+                  }
+                }
+              ]
+          name: namespace-configuration-operator.v0.0.1
+          namespace: namespace-configuration-operator
+        spec:
+          icon:
+          - base64data: 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
+            mediatype: image/png
+          links:
+          - name: repository
+            url: https://github.com/redhat-cop/namespace-configuration-operator
+          - name: conatinerImage
+            url: https://quay.io/redhat-cop/namespace-configuration-operator:latest
+          - name: blog
+            url: https://blog.openshift.com/controlling-namespace-configurations
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          maturity: alpha
+          version: 0.0.1
+          keywords: ['namespace', 'configuration', 'policy', 'management']
+          maintainers:
+          - name: Raffaele Spazzoli
+            email: rspazzol@redhat.com
+          provider:
+            name: Containers & PaaS CoP
+          apiservicedefinitions: {}
+          description: |
+            The namespace configuration operator helps keeping a namespace's configuration aligned with one of more policies specified as a CRs.
+            The `+"`"+`NamespaceConfig`+"`"+` CR allows specifying one or more objects that will be created in the selected namespaces.
+            For example using this operator an administrator can enforce a specific ResourceQuota or LimitRange on a set of namespaces. For example with the following snippet:
+            `+"`"+``+"`"+``+"`"+`
+            apiVersion: redhatcop.redhat.io/v1alpha1
+            kind: NamespaceConfig
+            metadata:
+              name: small-size
+            spec:
+              selector:
+                matchLabels:
+                  size: small
+              resources:
+              - apiVersion: v1
+                kind: ResourceQuota
+                metadata:
+                  name: small-size
+                spec:
+                  hard:
+                    requests.cpu: "4"
+                    requests.memory: "2Gi"
+            `+"`"+``+"`"+``+"`"+`
+            we are enforcing that all the namespaces with label: `+"`"+`size=small`+"`"+` receive the specified resource quota.
+          customresourcedefinitions:
+            owned:
+            - kind: NamespaceConfig
+              name: namespaceconfigs.redhatcop.redhat.io
+              version: v1alpha1
+              displayName: Namespace Configuration
+              description: Represent the desired configuration for a set of namespaces selected via labels
+          displayName: Namespace Configuration Operator
+          install:
+            spec:
+              clusterPermissions:
+              - rules:
+                - apiGroups:
+                  - "*"
+                  resources:
+                  - "*"
+                  verbs:
+                  - '*'
+                serviceAccountName: namespace-configuration-operator
+              deployments:
+              - name: namespace-configuration-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: namespace-configuration-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: namespace-configuration-operator
+                    spec:
+                      containers:
+                      - command:
+                        - namespace-configuration-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          value: ""
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: namespace-configuration-operator
+                        image: quay.io/redhat-cop/namespace-configuration-operator:latest
+                        imagePullPolicy: Always
+                        name: namespace-configuration-operator
+                        resources: {}
+                      serviceAccountName: namespace-configuration-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ""
+                  resources:
+                  - configmaps
+                  - pods
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - ""
+                  resources:
+                  - services
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                  - list
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - namespace-configuration-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                serviceAccountName: namespace-configuration-operator
+            strategy: deployment
+    customResourceDefinitions: |
+      - apiVersion: apiextensions.k8s.io/v1beta1
+        kind: CustomResourceDefinition
+        metadata:
+          name: namespaceconfigs.redhatcop.redhat.io
+        spec:
+          group: redhatcop.redhat.io
+          names:
+            kind: NamespaceConfig
+            listKind: NamespaceConfigList
+            plural: namespaceconfigs
+            singular: namespaceconfig
+          scope: Namespaced
+          subresources:
+            status: {}
+          validation:
+            openAPIV3Schema:
+              properties:
+                apiVersion:
+                  description: 'APIVersion defines the versioned schema of this representation
+                    of an object. Servers should convert recognized schemas to the latest
+                    internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+                  type: string
+                kind:
+                  description: 'Kind is a string value representing the REST resource this
+                    object represents. Servers may infer this from the endpoint the client
+                    submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+                  type: string
+                metadata:
+                  type: object
+                spec:
+                  properties:
+                    resources:
+                      items:
+                        type: object
+                      type: array
+                    selector:
+                      type: object
+                  type: object
+                status:
+                  properties:
+                    lastUpdate:
+                      format: date-time
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      enum:
+                      - Success
+                      - Failure
+                      type: string
+                  type: object
+          version: v1alpha1
+          versions:
+          - name: v1alpha1
+            served: true
+            storage: true
+    packages: |
+      - channels:
+        - currentCSV: namespace-configuration-operator.v0.1.0
+          name: alpha
+        defaultChannel: alpha
+        packageName: namespace-configuration-operator
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+
+`)
+
+func testExtendedTestdataOlmCmNamespaceconfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCmNamespaceconfigYaml, nil
+}
+
+func testExtendedTestdataOlmCmNamespaceconfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCmNamespaceconfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/cm-namespaceconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmCscYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: opsrc-template
+objects:
+- kind: CatalogSourceConfig
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    packages: "${PACKAGES}"
+    targetNamespace: "${TARGETNAMESPACE}"
+    source: "${SOURCE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PACKAGES
+- name: TARGETNAMESPACE
+- name: SOURCE
+`)
+
+func testExtendedTestdataOlmCscYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCscYaml, nil
+}
+
+func testExtendedTestdataOlmCscYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCscYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/csc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOlmEtcdSubscriptionYaml = []byte(`apiVersion: v1
 kind: Template
 metadata:
@@ -53958,6 +56021,114 @@ func testExtendedTestdataOlmEtcdSubscriptionYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmOgAllnsYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: operatorgroup-allns-template
+objects:
+- kind: OperatorGroup
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+
+`)
+
+func testExtendedTestdataOlmOgAllnsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmOgAllnsYaml, nil
+}
+
+func testExtendedTestdataOlmOgAllnsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmOgAllnsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/og-allns.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmOgMultinsYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: operatorgroup-multins-template
+objects:
+- kind: OperatorGroup
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    selector:
+      matchLabels:
+        env: "olmtestmultins"
+parameters:
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataOlmOgMultinsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmOgMultinsYaml, nil
+}
+
+func testExtendedTestdataOlmOgMultinsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmOgMultinsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/og-multins.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmOlmSubscriptionYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: sub-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "${SUBNAME}"
+    namespace: "${SUBNAMESPACE}"
+  spec:
+    channel: "${CHANNEL}"
+    installPlanApproval: "${APPROVAL}"
+    name: "${OPERATORNAME}"
+    source: "${SOURCENAME}"
+    sourceNamespace: "${SOURCENAMESPACE}"
+    startingCSV: "${STARTINGCSV}"
+parameters:
+- name: SUBNAME
+- name: SUBNAMESPACE
+- name: CHANNEL
+- name: APPROVAL
+- name: OPERATORNAME
+- name: SOURCENAME
+- name: SOURCENAMESPACE
+- name: STARTINGCSV
+`)
+
+func testExtendedTestdataOlmOlmSubscriptionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmOlmSubscriptionYaml, nil
+}
+
+func testExtendedTestdataOlmOlmSubscriptionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmOlmSubscriptionYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/olm-subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOlmOperatorgroupYaml = []byte(`apiVersion: v1
 kind: Template
 metadata:
@@ -53989,6 +56160,48 @@ func testExtendedTestdataOlmOperatorgroupYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/olm/operatorgroup.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmOpsrcYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: opsrc-template
+objects:
+- kind: OperatorSource
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      opsrc-provider: "${NAMELABEL}"
+  spec:
+    type: appregistry
+    endpoint: "https://quay.io/cnr"
+    registryNamespace: "${REGISTRYNAMESPACE}"
+    displayName: "${DISPLAYNAME}"
+    publisher: "${PUBLISHER}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NAMELABEL
+- name: REGISTRYNAMESPACE
+- name: DISPLAYNAME
+- name: PUBLISHER
+`)
+
+func testExtendedTestdataOlmOpsrcYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmOpsrcYaml, nil
+}
+
+func testExtendedTestdataOlmOpsrcYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmOpsrcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/opsrc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -59407,8 +61620,21 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-network.yaml": testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml": testExtendedTestdataOauthserverOauthPodYaml,
 	"test/extended/testdata/oauthserver/oauth-sa.yaml": testExtendedTestdataOauthserverOauthSaYaml,
+	"test/extended/testdata/olm/catalogsource-address.yaml": testExtendedTestdataOlmCatalogsourceAddressYaml,
+	"test/extended/testdata/olm/catalogsource-configmap.yaml": testExtendedTestdataOlmCatalogsourceConfigmapYaml,
+	"test/extended/testdata/olm/cm-certutil-readytest.yaml": testExtendedTestdataOlmCmCertutilReadytestYaml,
+	"test/extended/testdata/olm/cm-certutil-readytests.yaml": testExtendedTestdataOlmCmCertutilReadytestsYaml,
+	"test/extended/testdata/olm/cm-learn-v1.yaml": testExtendedTestdataOlmCmLearnV1Yaml,
+	"test/extended/testdata/olm/cm-learn-v2.yaml": testExtendedTestdataOlmCmLearnV2Yaml,
+	"test/extended/testdata/olm/cm-lightbend.yaml": testExtendedTestdataOlmCmLightbendYaml,
+	"test/extended/testdata/olm/cm-namespaceconfig.yaml": testExtendedTestdataOlmCmNamespaceconfigYaml,
+	"test/extended/testdata/olm/csc.yaml": testExtendedTestdataOlmCscYaml,
 	"test/extended/testdata/olm/etcd-subscription.yaml": testExtendedTestdataOlmEtcdSubscriptionYaml,
+	"test/extended/testdata/olm/og-allns.yaml": testExtendedTestdataOlmOgAllnsYaml,
+	"test/extended/testdata/olm/og-multins.yaml": testExtendedTestdataOlmOgMultinsYaml,
+	"test/extended/testdata/olm/olm-subscription.yaml": testExtendedTestdataOlmOlmSubscriptionYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml": testExtendedTestdataOlmOperatorgroupYaml,
+	"test/extended/testdata/olm/opsrc.yaml": testExtendedTestdataOlmOpsrcYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references": testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
 	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml": testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
@@ -60143,8 +62369,21 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"oauth-sa.yaml": &bintree{testExtendedTestdataOauthserverOauthSaYaml, map[string]*bintree{}},
 				}},
 				"olm": &bintree{nil, map[string]*bintree{
+					"catalogsource-address.yaml": &bintree{testExtendedTestdataOlmCatalogsourceAddressYaml, map[string]*bintree{}},
+					"catalogsource-configmap.yaml": &bintree{testExtendedTestdataOlmCatalogsourceConfigmapYaml, map[string]*bintree{}},
+					"cm-certutil-readytest.yaml": &bintree{testExtendedTestdataOlmCmCertutilReadytestYaml, map[string]*bintree{}},
+					"cm-certutil-readytests.yaml": &bintree{testExtendedTestdataOlmCmCertutilReadytestsYaml, map[string]*bintree{}},
+					"cm-learn-v1.yaml": &bintree{testExtendedTestdataOlmCmLearnV1Yaml, map[string]*bintree{}},
+					"cm-learn-v2.yaml": &bintree{testExtendedTestdataOlmCmLearnV2Yaml, map[string]*bintree{}},
+					"cm-lightbend.yaml": &bintree{testExtendedTestdataOlmCmLightbendYaml, map[string]*bintree{}},
+					"cm-namespaceconfig.yaml": &bintree{testExtendedTestdataOlmCmNamespaceconfigYaml, map[string]*bintree{}},
+					"csc.yaml": &bintree{testExtendedTestdataOlmCscYaml, map[string]*bintree{}},
 					"etcd-subscription.yaml": &bintree{testExtendedTestdataOlmEtcdSubscriptionYaml, map[string]*bintree{}},
+					"og-allns.yaml": &bintree{testExtendedTestdataOlmOgAllnsYaml, map[string]*bintree{}},
+					"og-multins.yaml": &bintree{testExtendedTestdataOlmOgMultinsYaml, map[string]*bintree{}},
+					"olm-subscription.yaml": &bintree{testExtendedTestdataOlmOlmSubscriptionYaml, map[string]*bintree{}},
 					"operatorgroup.yaml": &bintree{testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},
+					"opsrc.yaml": &bintree{testExtendedTestdataOlmOpsrcYaml, map[string]*bintree{}},
 				}},
 				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
 				"releases": &bintree{nil, map[string]*bintree{
