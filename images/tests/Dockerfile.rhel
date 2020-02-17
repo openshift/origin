@@ -9,8 +9,7 @@ FROM registry.svc.ci.openshift.org/ocp/4.2:cli
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
 RUN yum install --setopt=tsflags=nodocs -y git gzip util-linux && yum clean all && rm -rf /var/cache/yum/* && \
     git config --system user.name test && \
-    git config --system user.email test@test.com && \
-    chmod g+w /etc/passwd
+    git config --system user.email test@test.com
 LABEL io.k8s.display-name="OpenShift End-to-End Tests" \
       io.k8s.description="OpenShift is a platform for developing, building, and deploying containerized applications." \
       io.openshift.tags="openshift,tests,e2e"
