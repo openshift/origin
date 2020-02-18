@@ -124,9 +124,7 @@ func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
 		cma.testReport.Skipped = "skipping test " + cma.test.Name()
 		return
 	}
-	fmt.Printf("DEBUG: starting test\n")
 	cma.framework.BeforeEach()
-	fmt.Printf("DEBUG: starting test, setup\n")
 	cma.test.Setup(cma.framework)
 	defer cma.test.Teardown(cma.framework)
 	ready()
