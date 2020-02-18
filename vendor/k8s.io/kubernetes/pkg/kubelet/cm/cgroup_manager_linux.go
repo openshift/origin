@@ -435,8 +435,22 @@ func (m *cgroupManagerImpl) Update(cgroupConfig *CgroupConfig) error {
 		libcontainerCgroupConfig.PidsLimit = *cgroupConfig.ResourceParameters.PidsLimit
 	}
 
-	if err := setSupportedSubsystems(libcontainerCgroupConfig); err != nil {
-		return fmt.Errorf("failed to set supported cgroup subsystems for cgroup %v: %v", cgroupConfig.Name, err)
+	if m.adapter.cgroupManagerType == libcontainerSystemd {
+		klog.Infof("rphillips: CGroupManagerImpl Update (%v)", cgroupConfig.Name)
+		manager, err := m.adapter.newManager(libcontainerCgroupConfig, nil)
+		if err != nil {
+			klog.Infof("rphillips: CGroupManagerImpl Update (%v) newManager err %v", cgroupConfig.Name, err)
+			return fmt.Errorf("rphillips: failed to create newManager  %v: %v", cgroupConfig.Name, err)
+		}
+		err = manager.Apply(-1)
+		if err != nil {
+			klog.Infof("rphillips: CGroupManagerImpl Update newManager apply %v", err)
+			return fmt.Errorf("rphillips: failed to set supported cgroup subsystems for cgroup %v: %v", cgroupConfig.Name, err)
+		}
+	} else {
+		if err := setSupportedSubsystems(libcontainerCgroupConfig); err != nil {
+			return fmt.Errorf("failed to set supported cgroup subsystems for cgroup %v: %v", cgroupConfig.Name, err)
+		}
 	}
 	return nil
 }

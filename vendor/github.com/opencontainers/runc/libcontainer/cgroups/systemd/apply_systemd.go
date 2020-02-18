@@ -113,6 +113,21 @@ func NewSystemdCgroupsManager() (func(config *configs.Cgroup, paths map[string]s
 	}, nil
 }
 
+func (m *Manager) Update() error {
+	var (
+		c        = m.Cgroups
+		unitName = getUnitName(c)
+	)
+
+	properties := generateLimitProperties(c)
+
+	if err := theConn.SetUnitProperties(unitName, true, properties...); err != nil {
+		logrus.Warnf("Could not set unit properties on update: %s", unitName)
+	}
+
+	return nil
+}
+
 func (m *Manager) Apply(pid int) error {
 	var (
 		c          = m.Cgroups
@@ -135,6 +150,7 @@ func (m *Manager) Apply(pid int) error {
 			paths[name] = path
 		}
 		m.Paths = paths
+		m.Update()
 		return cgroups.EnterPid(m.Paths, pid)
 	}
 
@@ -174,46 +190,7 @@ func (m *Manager) Apply(pid int) error {
 	properties = append(properties,
 		newProp("DefaultDependencies", false))
 
-	if c.Resources.Memory != 0 {
-		properties = append(properties,
-			newProp("MemoryLimit", uint64(c.Resources.Memory)))
-	}
-
-	if c.Resources.CpuShares != 0 {
-		properties = append(properties,
-			newProp("CPUShares", c.Resources.CpuShares))
-	}
-
-	// cpu.cfs_quota_us and cpu.cfs_period_us are controlled by systemd.
-	if c.Resources.CpuQuota != 0 && c.Resources.CpuPeriod != 0 {
-		// corresponds to USEC_INFINITY in systemd
-		// if USEC_INFINITY is provided, CPUQuota is left unbound by systemd
-		// always setting a property value ensures we can apply a quota and remove it later
-		cpuQuotaPerSecUSec := uint64(math.MaxUint64)
-		if c.Resources.CpuQuota > 0 {
-			// systemd converts CPUQuotaPerSecUSec (microseconds per CPU second) to CPUQuota
-			// (integer percentage of CPU) internally.  This means that if a fractional percent of
-			// CPU is indicated by Resources.CpuQuota, we need to round up to the nearest
-			// 10ms (1% of a second) such that child cgroups can set the cpu.cfs_quota_us they expect.
-			cpuQuotaPerSecUSec = uint64(c.Resources.CpuQuota*1000000) / c.Resources.CpuPeriod
-			if cpuQuotaPerSecUSec%10000 != 0 {
-				cpuQuotaPerSecUSec = ((cpuQuotaPerSecUSec / 10000) + 1) * 10000
-			}
-		}
-		properties = append(properties,
-			newProp("CPUQuotaPerSecUSec", cpuQuotaPerSecUSec))
-	}
-
-	if c.Resources.BlkioWeight != 0 {
-		properties = append(properties,
-			newProp("BlockIOWeight", uint64(c.Resources.BlkioWeight)))
-	}
-
-	if c.Resources.PidsLimit > 0 {
-		properties = append(properties,
-			newProp("TasksAccounting", true),
-			newProp("TasksMax", uint64(c.Resources.PidsLimit)))
-	}
+	properties = append(properties, generateLimitProperties(c)...)
 
 	// We have to set kernel memory here, as we can't change it once
 	// processes have been attached to the cgroup.
@@ -287,6 +264,53 @@ func join(c *configs.Cgroup, subsystem string, pid int) (string, error) {
 		return "", err
 	}
 	return path, nil
+}
+
+func generateLimitProperties(c *configs.Cgroup) []systemdDbus.Property {
+	var properties []systemdDbus.Property
+
+	if c.Resources.Memory != 0 {
+		properties = append(properties,
+			newProp("MemoryLimit", uint64(c.Resources.Memory)))
+	}
+
+	if c.Resources.CpuShares != 0 {
+		properties = append(properties,
+			newProp("CPUShares", c.Resources.CpuShares))
+	}
+
+	// cpu.cfs_quota_us and cpu.cfs_period_us are controlled by systemd.
+	if c.Resources.CpuQuota != 0 && c.Resources.CpuPeriod != 0 {
+		// corresponds to USEC_INFINITY in systemd
+		// if USEC_INFINITY is provided, CPUQuota is left unbound by systemd
+		// always setting a property value ensures we can apply a quota and remove it later
+		cpuQuotaPerSecUSec := uint64(math.MaxUint64)
+		if c.Resources.CpuQuota > 0 {
+			// systemd converts CPUQuotaPerSecUSec (microseconds per CPU second) to CPUQuota
+			// (integer percentage of CPU) internally.  This means that if a fractional percent of
+			// CPU is indicated by Resources.CpuQuota, we need to round up to the nearest
+			// 10ms (1% of a second) such that child cgroups can set the cpu.cfs_quota_us they expect.
+			cpuQuotaPerSecUSec = uint64(c.Resources.CpuQuota*1000000) / c.Resources.CpuPeriod
+			if cpuQuotaPerSecUSec%10000 != 0 {
+				cpuQuotaPerSecUSec = ((cpuQuotaPerSecUSec / 10000) + 1) * 10000
+			}
+		}
+		properties = append(properties,
+			newProp("CPUQuotaPerSecUSec", cpuQuotaPerSecUSec))
+	}
+
+	if c.Resources.BlkioWeight != 0 {
+		properties = append(properties,
+			newProp("BlockIOWeight", uint64(c.Resources.BlkioWeight)))
+	}
+
+	if c.Resources.PidsLimit > 0 {
+		properties = append(properties,
+			newProp("TasksAccounting", true),
+			newProp("TasksMax", uint64(c.Resources.PidsLimit)))
+	}
+
+	return properties
 }
 
 func joinCgroups(c *configs.Cgroup, pid int) error {
