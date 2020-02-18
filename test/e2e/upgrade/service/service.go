@@ -32,8 +32,10 @@ type UpgradeTest struct {
 	tcpService *v1.Service
 }
 
-// Name returns the tracking name of the test.
-func (UpgradeTest) Name() string { return "k8s-service-upgrade" }
+func (UpgradeTest) Name() string { return "k8s-service-lb-available" }
+func (UpgradeTest) DisplayName() string {
+	return "Application behind service load balancer with PDB is not disrupted"
+}
 
 func shouldTestPDBs() bool { return true }
 
