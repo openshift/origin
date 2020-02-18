@@ -615,6 +615,7 @@ type BuildStrategy struct {
 	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty" protobuf:"bytes,4,opt,name=customStrategy"`
 
 	// JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.
+	// Deprecated: use OpenShift Pipelines
 	JenkinsPipelineStrategy *JenkinsPipelineBuildStrategy `json:"jenkinsPipelineStrategy,omitempty" protobuf:"bytes,5,opt,name=jenkinsPipelineStrategy"`
 }
 
@@ -690,9 +691,9 @@ const (
 
 // DockerBuildStrategy defines input parameters specific to container image build.
 type DockerBuildStrategy struct {
-	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
-	// the container image should be pulled
-	// the resulting image will be used in the FROM line of the Dockerfile for this build.
+	// from is a reference to an DockerImage, ImageStreamTag, or ImageStreamImage which overrides
+	// the FROM image in the Dockerfile for the build. If the Dockerfile uses multi-stage builds,
+	// this will replace the image in the last FROM directive of the file.
 	From *corev1.ObjectReference `json:"from,omitempty" protobuf:"bytes,1,opt,name=from"`
 
 	// pullSecret is the name of a Secret that would be used for setting up
@@ -760,6 +761,7 @@ type SourceBuildStrategy struct {
 }
 
 // JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.
+// Deprecated: use OpenShift Pipelines
 type JenkinsPipelineBuildStrategy struct {
 	// JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
 	// relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are

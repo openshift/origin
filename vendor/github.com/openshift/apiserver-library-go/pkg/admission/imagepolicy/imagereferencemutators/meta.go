@@ -7,16 +7,40 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+
+	imagepolicyv1 "github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1"
 )
 
 type KubeImageMutators struct{}
 
 var errNoImageMutator = fmt.Errorf("No list of images available for this object")
 
+func ResolveAllNames(annotations AnnotationAccessor) bool {
+	if annotations == nil {
+		return false
+	}
+
+	a, ok := annotations.TemplateAnnotations()
+	if ok && a[imagepolicyv1.ResolveNamesAnnotation] == "*" {
+		return true
+	}
+
+	a = annotations.Annotations()
+	if a != nil && a[imagepolicyv1.ResolveNamesAnnotation] == "*" {
+		return true
+	}
+
+	return false
+}
+
 // GetImageReferenceMutator returns a mutator for the provided object, or an error if no
 // such mutator is defined. Only references that are different between obj and old will
 // be returned unless old is nil.
-func (KubeImageMutators) GetImageReferenceMutator(obj, old runtime.Object) (ImageReferenceMutator, error) {
+func (m KubeImageMutators) GetImageReferenceMutator(obj, old runtime.Object) (ImageReferenceMutator, error) {
+	oldAnnotations, _ := m.GetAnnotationAccessor(old)
+	annotations, _ := m.GetAnnotationAccessor(obj)
+	resolveAnnotationChanged := ResolveAllNames(annotations) != ResolveAllNames(oldAnnotations)
+
 	if spec, path, err := GetPodSpec(obj); err == nil {
 		var oldSpec *kapi.PodSpec
 		if old != nil {
@@ -25,7 +49,7 @@ func (KubeImageMutators) GetImageReferenceMutator(obj, old runtime.Object) (Imag
 				return nil, fmt.Errorf("old and new pod spec objects were not of the same type %T != %T: %v", obj, old, err)
 			}
 		}
-		return NewPodSpecMutator(spec, oldSpec, path), nil
+		return NewPodSpecMutator(spec, oldSpec, path, resolveAnnotationChanged), nil
 	}
 	if spec, path, err := GetPodSpecV1(obj); err == nil {
 		var oldSpec *kapiv1.PodSpec
@@ -35,7 +59,7 @@ func (KubeImageMutators) GetImageReferenceMutator(obj, old runtime.Object) (Imag
 				return nil, fmt.Errorf("old and new pod spec objects were not of the same type %T != %T: %v", obj, old, err)
 			}
 		}
-		return NewPodSpecV1Mutator(spec, oldSpec, path), nil
+		return NewPodSpecV1Mutator(spec, oldSpec, path, resolveAnnotationChanged), nil
 	}
 	return nil, errNoImageMutator
 }

@@ -6,58 +6,36 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
-const (
-	controllerWorkQueueKey = "key"
-)
-
 // UnsupportedConfigOverridesController is a controller that will copy source configmaps and secrets to their destinations.
 // It will also mirror deletions by deleting destinations.
 type UnsupportedConfigOverridesController struct {
 	operatorClient v1helpers.OperatorClient
-
-	cachesToSync  []cache.InformerSynced
-	queue         workqueue.RateLimitingInterface
-	eventRecorder events.Recorder
 }
 
 // NewUnsupportedConfigOverridesController creates UnsupportedConfigOverridesController.
 func NewUnsupportedConfigOverridesController(
 	operatorClient v1helpers.OperatorClient,
 	eventRecorder events.Recorder,
-) *UnsupportedConfigOverridesController {
-	c := &UnsupportedConfigOverridesController{
-		operatorClient: operatorClient,
-
-		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "UnsupportedConfigOverridesController"),
-		eventRecorder: eventRecorder.WithComponentSuffix("unsupported-config-overrides-controller"),
-	}
-
-	operatorClient.Informer().AddEventHandler(c.eventHandler())
-
-	c.cachesToSync = append(c.cachesToSync, operatorClient.Informer().HasSynced)
-
-	return c
+) factory.Controller {
+	c := &UnsupportedConfigOverridesController{operatorClient: operatorClient}
+	return factory.New().WithInformers(operatorClient.Informer()).WithSync(c.sync).ToController("UnsupportedConfigOverridesController", eventRecorder)
 }
 
-func (c *UnsupportedConfigOverridesController) sync() error {
+func (c *UnsupportedConfigOverridesController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	operatorSpec, _, _, err := c.operatorClient.GetOperatorState()
 	if err != nil {
 		return err
@@ -143,53 +121,4 @@ func keysSetInUnsupportedConfigSlice(pathSoFar []string, config []interface{}) s
 	}
 
 	return ret
-}
-
-func (c *UnsupportedConfigOverridesController) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting UnsupportedConfigOverridesController")
-	defer klog.Infof("Shutting down UnsupportedConfigOverridesController")
-	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
-		return
-	}
-
-	// doesn't matter what workers say, only start one.
-	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
-
-	<-ctx.Done()
-}
-
-func (c *UnsupportedConfigOverridesController) runWorker(ctx context.Context) {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *UnsupportedConfigOverridesController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-// eventHandler queues the operator to check spec and status
-func (c *UnsupportedConfigOverridesController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(controllerWorkQueueKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(controllerWorkQueueKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(controllerWorkQueueKey) },
-	}
 }

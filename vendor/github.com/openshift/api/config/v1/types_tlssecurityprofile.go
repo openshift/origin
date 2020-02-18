@@ -136,6 +136,7 @@ type CustomTLSProfile struct {
 }
 
 // TLSProfileType defines a TLS security profile type.
+// +kubebuilder:validation:Enum=Old;Intermediate;Modern;Custom
 type TLSProfileType string
 
 const (
@@ -180,6 +181,7 @@ type TLSProfileSpec struct {
 //
 // Note that SSLv3.0 is not a supported protocol version due to well known
 // vulnerabilities such as POODLE: https://en.wikipedia.org/wiki/POODLE
+// +kubebuilder:validation:Enum=VersionTLS10;VersionTLS11;VersionTLS12;VersionTLS13
 type TLSProtocolVersion string
 
 const (

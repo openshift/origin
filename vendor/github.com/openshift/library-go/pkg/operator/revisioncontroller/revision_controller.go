@@ -5,23 +5,18 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"k8s.io/klog"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
 
-	operatorv1 "github.com/openshift/api/operator/v1"
-
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
@@ -55,10 +50,6 @@ type RevisionController struct {
 	operatorClient  LatestRevisionClient
 	configMapGetter corev1client.ConfigMapsGetter
 	secretGetter    corev1client.SecretsGetter
-
-	cachesToSync  []cache.InformerSynced
-	queue         workqueue.RateLimitingInterface
-	eventRecorder events.Recorder
 }
 
 type RevisionResource struct {
@@ -76,7 +67,7 @@ func NewRevisionController(
 	configMapGetter corev1client.ConfigMapsGetter,
 	secretGetter corev1client.SecretsGetter,
 	eventRecorder events.Recorder,
-) *RevisionController {
+) factory.Controller {
 	c := &RevisionController{
 		targetNamespace: targetNamespace,
 		configMaps:      configMaps,
@@ -85,25 +76,17 @@ func NewRevisionController(
 		operatorClient:  operatorClient,
 		configMapGetter: configMapGetter,
 		secretGetter:    secretGetter,
-		eventRecorder:   eventRecorder.WithComponentSuffix("revision-controller"),
-
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "RevisionController"),
 	}
 
-	operatorClient.Informer().AddEventHandler(c.eventHandler())
-	kubeInformersForTargetNamespace.Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
-	kubeInformersForTargetNamespace.Core().V1().Secrets().Informer().AddEventHandler(c.eventHandler())
-
-	c.cachesToSync = append(c.cachesToSync, operatorClient.Informer().HasSynced)
-	c.cachesToSync = append(c.cachesToSync, kubeInformersForTargetNamespace.Core().V1().ConfigMaps().Informer().HasSynced)
-	c.cachesToSync = append(c.cachesToSync, kubeInformersForTargetNamespace.Core().V1().Secrets().Informer().HasSynced)
-
-	return c
+	return factory.New().WithInformers(
+		operatorClient.Informer(),
+		kubeInformersForTargetNamespace.Core().V1().ConfigMaps().Informer(),
+		kubeInformersForTargetNamespace.Core().V1().Secrets().Informer()).WithSync(c.sync).ToController("RevisionController", eventRecorder)
 }
 
 // createRevisionIfNeeded takes care of creating content for the static pods to use.
 // returns whether or not requeue and if an error happened when updating status.  Normally it updates status itself.
-func (c RevisionController) createRevisionIfNeeded(latestAvailableRevision int32, resourceVersion string) (bool, error) {
+func (c RevisionController) createRevisionIfNeeded(recorder events.Recorder, latestAvailableRevision int32, resourceVersion string) (bool, error) {
 	isLatestRevisionCurrent, reason := c.isLatestRevisionCurrent(latestAvailableRevision)
 
 	// check to make sure that the latestRevision has the exact content we expect.  No mutation here, so we start creating the next Revision only when it is required
@@ -112,8 +95,8 @@ func (c RevisionController) createRevisionIfNeeded(latestAvailableRevision int32
 	}
 
 	nextRevision := latestAvailableRevision + 1
-	c.eventRecorder.Eventf("RevisionTriggered", "new revision %d triggered by %q", nextRevision, reason)
-	if err := c.createNewRevision(nextRevision); err != nil {
+	recorder.Eventf("RevisionTriggered", "new revision %d triggered by %q", nextRevision, reason)
+	if err := c.createNewRevision(recorder, nextRevision); err != nil {
 		cond := operatorv1.OperatorCondition{
 			Type:    "RevisionControllerDegraded",
 			Status:  operatorv1.ConditionTrue,
@@ -121,7 +104,7 @@ func (c RevisionController) createRevisionIfNeeded(latestAvailableRevision int32
 			Message: err.Error(),
 		}
 		if _, _, updateError := v1helpers.UpdateStatus(c.operatorClient, v1helpers.UpdateConditionFn(cond)); updateError != nil {
-			c.eventRecorder.Warningf("RevisionCreateFailed", "Failed to create revision %d: %v", nextRevision, err.Error())
+			recorder.Warningf("RevisionCreateFailed", "Failed to create revision %d: %v", nextRevision, err.Error())
 			return true, updateError
 		}
 		return true, nil
@@ -134,7 +117,7 @@ func (c RevisionController) createRevisionIfNeeded(latestAvailableRevision int32
 	if _, updated, updateError := c.operatorClient.UpdateLatestRevisionOperatorStatus(nextRevision, v1helpers.UpdateConditionFn(cond)); updateError != nil {
 		return true, updateError
 	} else if updated {
-		c.eventRecorder.Eventf("RevisionCreate", "Revision %d created because %s", latestAvailableRevision, reason)
+		recorder.Eventf("RevisionCreate", "Revision %d created because %s", latestAvailableRevision, reason)
 	}
 
 	return false, nil
@@ -207,7 +190,7 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 	return true, ""
 }
 
-func (c RevisionController) createNewRevision(revision int32) error {
+func (c RevisionController) createNewRevision(recorder events.Recorder, revision int32) error {
 	statusConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: c.targetNamespace,
@@ -218,7 +201,7 @@ func (c RevisionController) createNewRevision(revision int32) error {
 			"revision": fmt.Sprintf("%d", revision),
 		},
 	}
-	statusConfigMap, _, err := resourceapply.ApplyConfigMap(c.configMapGetter, c.eventRecorder, statusConfigMap)
+	statusConfigMap, _, err := resourceapply.ApplyConfigMap(c.configMapGetter, recorder, statusConfigMap)
 	if err != nil {
 		return err
 	}
@@ -230,7 +213,7 @@ func (c RevisionController) createNewRevision(revision int32) error {
 	}}
 
 	for _, cm := range c.configMaps {
-		obj, _, err := resourceapply.SyncConfigMap(c.configMapGetter, c.eventRecorder, c.targetNamespace, cm.Name, c.targetNamespace, nameFor(cm.Name, revision), ownerRefs)
+		obj, _, err := resourceapply.SyncConfigMap(c.configMapGetter, recorder, c.targetNamespace, cm.Name, c.targetNamespace, nameFor(cm.Name, revision), ownerRefs)
 		if err != nil {
 			return err
 		}
@@ -239,7 +222,7 @@ func (c RevisionController) createNewRevision(revision int32) error {
 		}
 	}
 	for _, s := range c.secrets {
-		obj, _, err := resourceapply.SyncSecret(c.secretGetter, c.eventRecorder, c.targetNamespace, s.Name, c.targetNamespace, nameFor(s.Name, revision), ownerRefs)
+		obj, _, err := resourceapply.SyncSecret(c.secretGetter, recorder, c.targetNamespace, s.Name, c.targetNamespace, nameFor(s.Name, revision), ownerRefs)
 		if err != nil {
 			return err
 		}
@@ -277,7 +260,7 @@ func (c RevisionController) getLatestAvailableRevision(operatorStatus *operatorv
 	return latestRevision, nil
 }
 
-func (c RevisionController) sync() error {
+func (c RevisionController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	operatorSpec, originalOperatorStatus, latestAvailableRevision, resourceVersion, err := c.operatorClient.GetLatestRevisionState()
 	if err != nil {
 		return err
@@ -304,7 +287,7 @@ func (c RevisionController) sync() error {
 		}
 	}
 
-	requeue, syncErr := c.createRevisionIfNeeded(latestAvailableRevision, resourceVersion)
+	requeue, syncErr := c.createRevisionIfNeeded(syncCtx.Recorder(), latestAvailableRevision, resourceVersion)
 	if requeue && syncErr == nil {
 		return fmt.Errorf("synthetic requeue request (err: %v)", syncErr)
 	}
@@ -327,54 +310,4 @@ func (c RevisionController) sync() error {
 	}
 
 	return err
-}
-
-// Run starts the kube-apiserver and blocks until stopCh is closed.
-func (c *RevisionController) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting RevisionController")
-	defer klog.Infof("Shutting down RevisionController")
-	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
-		return
-	}
-
-	// doesn't matter what workers say, only start one.
-	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
-
-	<-ctx.Done()
-}
-
-func (c *RevisionController) runWorker(ctx context.Context) {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *RevisionController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-// eventHandler queues the operator to check spec and status
-func (c *RevisionController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(revisionControllerWorkQueueKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(revisionControllerWorkQueueKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(revisionControllerWorkQueueKey) },
-	}
 }

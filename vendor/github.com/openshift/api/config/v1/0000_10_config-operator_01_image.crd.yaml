@@ -22,9 +22,9 @@ spec:
       description: Image governs policies related to imagestream imports and runtime
         configuration for external registries. It allows cluster admins to configure
         which registries OpenShift is allowed to import images from, extra CA trust
-        bundles for external registries, and policies to blacklist/whitelist registry
-        hostnames. When exposing OpenShift's image registry to the public, this also
-        lets cluster admins specify the external hostname.
+        bundles for external registries, and policies to block or allow registry hostnames.
+        When exposing OpenShift's image registry to the public, this also lets cluster
+        admins specify the external hostname.
       type: object
       required:
       - spec
@@ -101,16 +101,16 @@ spec:
               type: object
               properties:
                 allowedRegistries:
-                  description: "allowedRegistries are whitelisted for image pull/push.
-                    All other registries are blocked. \n Only one of BlockedRegistries
-                    or AllowedRegistries may be set."
+                  description: "allowedRegistries are the only registries permitted
+                    for image pull and push actions. All other registries are denied.
+                    \n Only one of BlockedRegistries or AllowedRegistries may be set."
                   type: array
                   items:
                     type: string
                 blockedRegistries:
-                  description: "blockedRegistries are blacklisted from image pull/push.
-                    All other registries are allowed. \n Only one of BlockedRegistries
-                    or AllowedRegistries may be set."
+                  description: "blockedRegistries cannot be used for image pull and
+                    push actions. All other registries are permitted. \n Only one
+                    of BlockedRegistries or AllowedRegistries may be set."
                   type: array
                   items:
                     type: string

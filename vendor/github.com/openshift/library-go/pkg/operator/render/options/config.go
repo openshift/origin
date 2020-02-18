@@ -32,9 +32,6 @@ type FileConfig struct {
 	// BootstrapConfig holds the rendered control plane component config file for bootstrapping (phase 1).
 	BootstrapConfig []byte
 
-	// PostBootstrapConfig holds the rendered control plane component config file after bootstrapping (phase 2).
-	PostBootstrapConfig []byte
-
 	// Assets holds the loaded assets like certs and keys.
 	Assets map[string][]byte
 }

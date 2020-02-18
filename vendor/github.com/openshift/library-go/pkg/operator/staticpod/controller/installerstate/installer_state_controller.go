@@ -9,16 +9,12 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
@@ -31,11 +27,8 @@ var maxToleratedPodPendingDuration = 5 * time.Minute
 type InstallerStateController struct {
 	podsGetter      corev1client.PodsGetter
 	eventsGetter    corev1client.EventsGetter
-	queue           workqueue.RateLimitingInterface
-	cachesToSync    []cache.InformerSynced
 	targetNamespace string
 	operatorClient  v1helpers.StaticPodOperatorClient
-	eventRecorder   events.Recorder
 
 	timeNowFn func() time.Time
 }
@@ -46,29 +39,16 @@ func NewInstallerStateController(kubeInformersForTargetNamespace informers.Share
 	operatorClient v1helpers.StaticPodOperatorClient,
 	targetNamespace string,
 	recorder events.Recorder,
-) *InstallerStateController {
+) factory.Controller {
 	c := &InstallerStateController{
 		podsGetter:      podsGetter,
 		eventsGetter:    eventsGetter,
 		targetNamespace: targetNamespace,
 		operatorClient:  operatorClient,
-		eventRecorder:   recorder.WithComponentSuffix("installer-state-controller"),
-		queue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "InstallerStateController"),
 		timeNowFn:       time.Now,
 	}
 
-	c.cachesToSync = append(c.cachesToSync, kubeInformersForTargetNamespace.Core().V1().Pods().Informer().HasSynced)
-	kubeInformersForTargetNamespace.Core().V1().Pods().Informer().AddEventHandler(c.eventHandler())
-
-	return c
-}
-
-func (c *InstallerStateController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(installerStateControllerWorkQueueKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(installerStateControllerWorkQueueKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(installerStateControllerWorkQueueKey) },
-	}
+	return factory.New().WithInformers(kubeInformersForTargetNamespace.Core().V1().Pods().Informer()).WithSync(c.sync).ResyncEvery(1*time.Minute).ToController("InstallerStateController", recorder)
 }
 
 // degradedConditionNames lists all supported condition types.
@@ -78,7 +58,7 @@ var degradedConditionNames = []string{
 	"InstallerPodNetworkingDegraded",
 }
 
-func (c *InstallerStateController) sync() error {
+func (c *InstallerStateController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	pods, err := c.podsGetter.Pods(c.targetNamespace).List(metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{"app": "installer"}).String(),
 	})
@@ -100,10 +80,10 @@ func (c *InstallerStateController) sync() error {
 	// in theory, there should never be two installer startingObjects pending as we don't roll new installer pod
 	// until the previous/existing pod has finished its job.
 	foundConditions := []operatorv1.OperatorCondition{}
-	foundConditions = append(foundConditions, c.handlePendingInstallerPods(pendingPods)...)
+	foundConditions = append(foundConditions, c.handlePendingInstallerPods(syncCtx.Recorder(), pendingPods)...)
 
 	// handle networking conditions that are based on events
-	networkConditions, err := c.handlePendingInstallerPodsNetworkEvents(pendingPods)
+	networkConditions, err := c.handlePendingInstallerPodsNetworkEvents(syncCtx.Recorder(), pendingPods)
 	if err != nil {
 		return err
 	}
@@ -131,7 +111,7 @@ func (c *InstallerStateController) sync() error {
 	return nil
 }
 
-func (c *InstallerStateController) handlePendingInstallerPodsNetworkEvents(pods []*v1.Pod) ([]operatorv1.OperatorCondition, error) {
+func (c *InstallerStateController) handlePendingInstallerPodsNetworkEvents(recorder events.Recorder, pods []*v1.Pod) ([]operatorv1.OperatorCondition, error) {
 	conditions := []operatorv1.OperatorCondition{}
 	if len(pods) == 0 {
 		return conditions, nil
@@ -163,13 +143,13 @@ func (c *InstallerStateController) handlePendingInstallerPodsNetworkEvents(pods 
 				Message: fmt.Sprintf("Pod %q on node %q observed degraded networking: %s", pod.Name, pod.Spec.NodeName, event.Message),
 			}
 			conditions = append(conditions, condition)
-			c.eventRecorder.Warningf(condition.Reason, condition.Message)
+			recorder.Warningf(condition.Reason, condition.Message)
 		}
 	}
 	return conditions, nil
 }
 
-func (c *InstallerStateController) handlePendingInstallerPods(pods []*v1.Pod) []operatorv1.OperatorCondition {
+func (c *InstallerStateController) handlePendingInstallerPods(recorder events.Recorder, pods []*v1.Pod) []operatorv1.OperatorCondition {
 	conditions := []operatorv1.OperatorCondition{}
 	for _, pod := range pods {
 		// at this point we already know the pod is pending for longer than expected
@@ -185,7 +165,7 @@ func (c *InstallerStateController) handlePendingInstallerPods(pods []*v1.Pod) []
 				Message: fmt.Sprintf("Pod %q on node %q is Pending for %s because %s", pod.Name, pod.Spec.NodeName, pendingTime, pod.Status.Message),
 			}
 			conditions = append(conditions, condition)
-			c.eventRecorder.Warningf(condition.Reason, condition.Message)
+			recorder.Warningf(condition.Reason, condition.Message)
 		}
 
 		// one or more containers are in waiting state for longer than maxToleratedPodPendingDuration, report the reason and message
@@ -202,54 +182,10 @@ func (c *InstallerStateController) handlePendingInstallerPods(pods []*v1.Pod) []
 					Message: fmt.Sprintf("Pod %q on node %q container %q is waiting for %s because %q", pod.Name, pod.Spec.NodeName, containerStatus.Name, pendingTime, state.Message),
 				}
 				conditions = append(conditions, condition)
-				c.eventRecorder.Warningf(condition.Reason, condition.Message)
+				recorder.Warningf(condition.Reason, condition.Message)
 			}
 		}
 	}
 
 	return conditions
-}
-
-// Run starts the kube-apiserver and blocks until stopCh is closed.
-func (c *InstallerStateController) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting InstallerStateController")
-	defer klog.Infof("Shutting down InstallerStateController")
-	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
-		return
-	}
-
-	// doesn't matter what workers say, only start one.
-	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
-
-	// add time based trigger
-	go wait.UntilWithContext(ctx, func(context.Context) { c.queue.Add(installerStateControllerWorkQueueKey) }, time.Minute)
-
-	<-ctx.Done()
-}
-
-func (c *InstallerStateController) runWorker(ctx context.Context) {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *InstallerStateController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
 }

@@ -106,6 +106,9 @@ spec:
                       description: scope indicates the scope at which the load balancer
                         is exposed. Possible values are "External" and "Internal".
                       type: string
+                      enum:
+                      - Internal
+                      - External
                 nodePort:
                   description: nodePort holds parameters for the NodePortService endpoint
                     publishing strategy. Present only if type is NodePortService.
@@ -143,6 +146,11 @@ spec:
                     changes to the node port field of the managed NodePort Service
                     will preserved."
                   type: string
+                  enum:
+                  - LoadBalancerService
+                  - HostNetwork
+                  - Private
+                  - NodePortService
             namespaceSelector:
               description: "namespaceSelector is used to filter the set of namespaces
                 serviced by the ingress controller. This is useful for implementing
@@ -303,6 +311,9 @@ spec:
                     different paths of the same   host name across namespaces. \n
                     If empty, the default is Strict."
                   type: string
+                  enum:
+                  - InterNamespaceAllowed
+                  - Strict
             routeSelector:
               description: "routeSelector is used to filter the set of Routes serviced
                 by the ingress controller. This is useful for implementing shards.
@@ -386,6 +397,11 @@ spec:
                         \n   minTLSVersion: TLSv1.1 \n NOTE: currently the highest
                         minTLSVersion allowed is VersionTLS12"
                       type: string
+                      enum:
+                      - VersionTLS10
+                      - VersionTLS11
+                      - VersionTLS12
+                      - VersionTLS13
                   nullable: true
                 intermediate:
                   description: "intermediate is a TLS security profile based on: \n
@@ -436,6 +452,11 @@ spec:
                     profile is currently not supported because it is not yet well
                     adopted by common software libraries."
                   type: string
+                  enum:
+                  - Old
+                  - Intermediate
+                  - Modern
+                  - Custom
         status:
           description: status is the most recently observed status of the IngressController.
           type: object
@@ -504,6 +525,9 @@ spec:
                       description: scope indicates the scope at which the load balancer
                         is exposed. Possible values are "External" and "Internal".
                       type: string
+                      enum:
+                      - Internal
+                      - External
                 nodePort:
                   description: nodePort holds parameters for the NodePortService endpoint
                     publishing strategy. Present only if type is NodePortService.
@@ -541,6 +565,11 @@ spec:
                     changes to the node port field of the managed NodePort Service
                     will preserved."
                   type: string
+                  enum:
+                  - LoadBalancerService
+                  - HostNetwork
+                  - Private
+                  - NodePortService
             observedGeneration:
               description: observedGeneration is the most recent generation observed.
               type: integer
@@ -570,6 +599,11 @@ spec:
                     TLSv1.1 \n NOTE: currently the highest minTLSVersion allowed is
                     VersionTLS12"
                   type: string
+                  enum:
+                  - VersionTLS10
+                  - VersionTLS11
+                  - VersionTLS12
+                  - VersionTLS13
   version: v1
   versions:
   - name: v1

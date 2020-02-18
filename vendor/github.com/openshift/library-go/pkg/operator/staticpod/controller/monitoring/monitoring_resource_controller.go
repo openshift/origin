@@ -4,23 +4,18 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"time"
-
-	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	rbaclisterv1 "k8s.io/client-go/listers/rbac/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
 	"github.com/openshift/library-go/pkg/assets"
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
@@ -30,24 +25,18 @@ import (
 )
 
 const (
-	controllerWorkQueueKey = "key"
-	manifestDir            = "pkg/operator/staticpod/controller/monitoring"
+	manifestDir = "pkg/operator/staticpod/controller/monitoring"
 )
 
 var syntheticRequeueError = fmt.Errorf("synthetic requeue request")
 
 type MonitoringResourceController struct {
-	targetNamespace    string
-	serviceMonitorName string
-
+	targetNamespace          string
+	serviceMonitorName       string
 	clusterRoleBindingLister rbaclisterv1.ClusterRoleBindingLister
 	kubeClient               kubernetes.Interface
 	dynamicClient            dynamic.Interface
 	operatorClient           v1helpers.StaticPodOperatorClient
-
-	cachesToSync  []cache.InformerSynced
-	queue         workqueue.RateLimitingInterface
-	eventRecorder events.Recorder
 }
 
 // NewMonitoringResourceController creates a new backing resource controller.
@@ -59,32 +48,16 @@ func NewMonitoringResourceController(
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
 	eventRecorder events.Recorder,
-) *MonitoringResourceController {
+) factory.Controller {
 	c := &MonitoringResourceController{
-		targetNamespace:    targetNamespace,
-		operatorClient:     operatorClient,
-		eventRecorder:      eventRecorder.WithComponentSuffix("monitoring-resource-controller"),
-		serviceMonitorName: serviceMonitorName,
-
+		targetNamespace:          targetNamespace,
+		operatorClient:           operatorClient,
+		serviceMonitorName:       serviceMonitorName,
 		clusterRoleBindingLister: kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Lister(),
-		cachesToSync: []cache.InformerSynced{
-			kubeInformersForTargetNamespace.Core().V1().ServiceAccounts().Informer().HasSynced,
-			operatorClient.Informer().HasSynced,
-		},
-
-		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "MonitoringResourceController"),
-		kubeClient:    kubeClient,
-		dynamicClient: dynamicClient,
+		kubeClient:               kubeClient,
+		dynamicClient:            dynamicClient,
 	}
-
-	operatorClient.Informer().AddEventHandler(c.eventHandler())
-	// TODO: We need a dynamic informer here to observe changes to ServiceMonitor resource.
-	kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Informer().AddEventHandler(c.eventHandler())
-
-	c.cachesToSync = append(c.cachesToSync, operatorClient.Informer().HasSynced)
-	c.cachesToSync = append(c.cachesToSync, kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Informer().HasSynced)
-
-	return c
+	return factory.New().WithInformers(operatorClient.Informer(), kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Informer()).WithSync(c.sync).ToController("MonitoringResourceController", eventRecorder)
 }
 
 func (c MonitoringResourceController) mustTemplateAsset(name string) ([]byte, error) {
@@ -96,7 +69,7 @@ func (c MonitoringResourceController) mustTemplateAsset(name string) ([]byte, er
 	return assets.MustCreateAssetFromTemplate(name, bindata.MustAsset(filepath.Join(manifestDir, name)), config).Data, nil
 }
 
-func (c MonitoringResourceController) sync() error {
+func (c MonitoringResourceController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	operatorSpec, _, _, err := c.operatorClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
@@ -106,7 +79,7 @@ func (c MonitoringResourceController) sync() error {
 		return nil
 	}
 
-	directResourceResults := resourceapply.ApplyDirectly(c.kubeClient, c.eventRecorder, c.mustTemplateAsset,
+	directResourceResults := resourceapply.ApplyDirectly(resourceapply.NewKubeClientHolder(c.kubeClient), syncCtx.Recorder(), c.mustTemplateAsset,
 		"manifests/prometheus-role.yaml",
 		"manifests/prometheus-role-binding.yaml",
 	)
@@ -122,7 +95,7 @@ func (c MonitoringResourceController) sync() error {
 	if err != nil {
 		errs = append(errs, fmt.Errorf("manifests/service-monitor.yaml: %v", err))
 	} else {
-		_, serviceMonitorErr := resourceapply.ApplyServiceMonitor(c.dynamicClient, c.eventRecorder, serviceMonitorBytes)
+		_, serviceMonitorErr := resourceapply.ApplyServiceMonitor(c.dynamicClient, syncCtx.Recorder(), serviceMonitorBytes)
 		// This is to handle 'the server could not find the requested resource' which occurs when the CRD is not available
 		// yet (the CRD is provided by prometheus operator). This produce noise and plenty of events.
 		if errors.IsNotFound(serviceMonitorErr) {
@@ -154,56 +127,4 @@ func (c MonitoringResourceController) sync() error {
 	}
 
 	return err
-}
-
-func (c *MonitoringResourceController) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting MonitoringResourceController")
-	defer klog.Infof("Shutting down MonitoringResourceController")
-	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
-		return
-	}
-
-	// doesn't matter what workers say, only start one.
-	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
-
-	<-ctx.Done()
-}
-
-func (c *MonitoringResourceController) runWorker(ctx context.Context) {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *MonitoringResourceController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	if err != syntheticRequeueError {
-		utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
-	}
-
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-// eventHandler queues the operator to check spec and status
-func (c *MonitoringResourceController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(controllerWorkQueueKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(controllerWorkQueueKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(controllerWorkQueueKey) },
-	}
 }

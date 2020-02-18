@@ -1,10 +1,12 @@
 package revisioncontroller
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
 	v1 "k8s.io/api/core/v1"
@@ -448,7 +450,7 @@ func TestRevisionController(t *testing.T) {
 				kubeClient.CoreV1(),
 				eventRecorder,
 			)
-			syncErr := c.sync()
+			syncErr := c.Sync(context.TODO(), factory.NewSyncContext("RevisionController", eventRecorder))
 			if tc.validateStatus != nil {
 				_, status, _, _ := tc.staticPodOperatorClient.GetStaticPodOperatorState()
 				tc.validateStatus(t, status)

@@ -3,15 +3,21 @@ package resourceapply
 import (
 	"fmt"
 
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
+	"github.com/openshift/api"
+	"github.com/openshift/library-go/pkg/operator/events"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
-
-	"github.com/openshift/api"
-	"github.com/openshift/library-go/pkg/operator/events"
 )
 
 var (
@@ -22,6 +28,7 @@ var (
 
 func init() {
 	utilruntime.Must(api.InstallKube(genericScheme))
+	utilruntime.Must(apiextensionsv1beta1.AddToScheme(genericScheme))
 }
 
 type AssetFunc func(name string) ([]byte, error)
@@ -34,8 +41,37 @@ type ApplyResult struct {
 	Error   error
 }
 
+type ClientHolder struct {
+	kubeClient          kubernetes.Interface
+	apiExtensionsClient apiextensionsclient.Interface
+	kubeInformers       v1helpers.KubeInformersForNamespaces
+}
+
+func NewClientHolder() *ClientHolder {
+	return &ClientHolder{}
+}
+
+func NewKubeClientHolder(client kubernetes.Interface) *ClientHolder {
+	return NewClientHolder().WithKubernetes(client)
+}
+
+func (c *ClientHolder) WithKubernetes(client kubernetes.Interface) *ClientHolder {
+	c.kubeClient = client
+	return c
+}
+
+func (c *ClientHolder) WithKubernetesInformers(kubeInformers v1helpers.KubeInformersForNamespaces) *ClientHolder {
+	c.kubeInformers = kubeInformers
+	return c
+}
+
+func (c *ClientHolder) WithAPIExtensionsClient(client apiextensionsclient.Interface) *ClientHolder {
+	c.apiExtensionsClient = client
+	return c
+}
+
 // ApplyDirectly applies the given manifest files to API server.
-func ApplyDirectly(kubeClient kubernetes.Interface, recorder events.Recorder, manifests AssetFunc, files ...string) []ApplyResult {
+func ApplyDirectly(clients *ClientHolder, recorder events.Recorder, manifests AssetFunc, files ...string) []ApplyResult {
 	ret := []ApplyResult{}
 
 	for _, file := range files {
@@ -57,25 +93,67 @@ func ApplyDirectly(kubeClient kubernetes.Interface, recorder events.Recorder, ma
 		// NOTE: Do not add CR resources into this switch otherwise the protobuf client can cause problems.
 		switch t := requiredObj.(type) {
 		case *corev1.Namespace:
-			result.Result, result.Changed, result.Error = ApplyNamespace(kubeClient.CoreV1(), recorder, t)
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyNamespace(clients.kubeClient.CoreV1(), recorder, t)
 		case *corev1.Service:
-			result.Result, result.Changed, result.Error = ApplyService(kubeClient.CoreV1(), recorder, t)
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyService(clients.kubeClient.CoreV1(), recorder, t)
 		case *corev1.Pod:
-			result.Result, result.Changed, result.Error = ApplyPod(kubeClient.CoreV1(), recorder, t)
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyPod(clients.kubeClient.CoreV1(), recorder, t)
 		case *corev1.ServiceAccount:
-			result.Result, result.Changed, result.Error = ApplyServiceAccount(kubeClient.CoreV1(), recorder, t)
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyServiceAccount(clients.kubeClient.CoreV1(), recorder, t)
 		case *corev1.ConfigMap:
-			result.Result, result.Changed, result.Error = ApplyConfigMap(kubeClient.CoreV1(), recorder, t)
+			client := clients.configMapsGetter()
+			if client == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyConfigMap(client, recorder, t)
 		case *corev1.Secret:
-			result.Result, result.Changed, result.Error = ApplySecret(kubeClient.CoreV1(), recorder, t)
+			client := clients.secretsGetter()
+			if client == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplySecret(client, recorder, t)
 		case *rbacv1.ClusterRole:
-			result.Result, result.Changed, result.Error = ApplyClusterRole(kubeClient.RbacV1(), recorder, t)
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyClusterRole(clients.kubeClient.RbacV1(), recorder, t)
 		case *rbacv1.ClusterRoleBinding:
-			result.Result, result.Changed, result.Error = ApplyClusterRoleBinding(kubeClient.RbacV1(), recorder, t)
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyClusterRoleBinding(clients.kubeClient.RbacV1(), recorder, t)
 		case *rbacv1.Role:
-			result.Result, result.Changed, result.Error = ApplyRole(kubeClient.RbacV1(), recorder, t)
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyRole(clients.kubeClient.RbacV1(), recorder, t)
 		case *rbacv1.RoleBinding:
-			result.Result, result.Changed, result.Error = ApplyRoleBinding(kubeClient.RbacV1(), recorder, t)
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyRoleBinding(clients.kubeClient.RbacV1(), recorder, t)
+		case *apiextensionsv1beta1.CustomResourceDefinition:
+			if clients.apiExtensionsClient == nil {
+				result.Error = fmt.Errorf("missing apiExtensionsClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyCustomResourceDefinitionV1Beta1(clients.apiExtensionsClient.ApiextensionsV1beta1(), recorder, t)
+		case *apiextensionsv1.CustomResourceDefinition:
+			if clients.apiExtensionsClient == nil {
+				result.Error = fmt.Errorf("missing apiExtensionsClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyCustomResourceDefinitionV1(clients.apiExtensionsClient.ApiextensionsV1(), recorder, t)
 		default:
 			result.Error = fmt.Errorf("unhandled type %T", requiredObj)
 		}
@@ -84,4 +162,24 @@ func ApplyDirectly(kubeClient kubernetes.Interface, recorder events.Recorder, ma
 	}
 
 	return ret
+}
+
+func (c *ClientHolder) configMapsGetter() corev1client.ConfigMapsGetter {
+	if c.kubeClient == nil {
+		return nil
+	}
+	if c.kubeInformers == nil {
+		return c.kubeClient.CoreV1()
+	}
+	return v1helpers.CachedConfigMapGetter(c.kubeClient.CoreV1(), c.kubeInformers)
+}
+
+func (c *ClientHolder) secretsGetter() corev1client.SecretsGetter {
+	if c.kubeClient == nil {
+		return nil
+	}
+	if c.kubeInformers == nil {
+		return c.kubeClient.CoreV1()
+	}
+	return v1helpers.CachedSecretGetter(c.kubeClient.CoreV1(), c.kubeInformers)
 }
