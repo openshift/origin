@@ -88,6 +88,7 @@ func executeTemplate(templatePath string) (string, error) {
 		AttacherImage            string
 		ProvisionerImage         string
 		ResizerImage             string
+		SnapshotterImage         string
 		NodeDriverRegistrarImage string
 		LivenessProbeImage       string
 		ImageFormat              string
@@ -95,6 +96,7 @@ func executeTemplate(templatePath string) (string, error) {
 		AttacherImage:            strings.ReplaceAll(imageFormat, "${component}", "csi-external-attacher"),
 		ProvisionerImage:         strings.ReplaceAll(imageFormat, "${component}", "csi-external-provisioner"),
 		ResizerImage:             strings.ReplaceAll(imageFormat, "${component}", "csi-external-resizer"),
+		SnapshotterImage:         strings.ReplaceAll(imageFormat, "${component}", "csi-external-snapshotter"),
 		NodeDriverRegistrarImage: strings.ReplaceAll(imageFormat, "${component}", "csi-node-driver-registrar"),
 		LivenessProbeImage:       strings.ReplaceAll(imageFormat, "${component}", "csi-livenessprobe"),
 		ImageFormat:              imageFormat,

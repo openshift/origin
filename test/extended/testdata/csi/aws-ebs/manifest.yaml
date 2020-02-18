@@ -2,15 +2,15 @@
 ShortName: ebs
 StorageClass:
   FromFile: storageclass.yaml
+SnapshotClass:
+  FromName: true
 DriverInfo:
   Name: ebs.csi.aws.com
   SupportedSizeRange:
     Min: 1Gi
     Max: 16Ti
-  SnapshotClass:
-    FromName: true
   SupportedFsType:
-    # xfs: {} xfs is broken: https://github.com/kubernetes-sigs/aws-ebs-csi-driver/issues/326
+    xfs: {}
     ext4: {}
   SupportedMountOption:
     dirsync: {}
@@ -23,3 +23,4 @@ DriverInfo:
     volumeLimits: false
     controllerExpansion: true
     nodeExpansion: true
+    snapshotDataSource: true

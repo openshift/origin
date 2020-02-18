@@ -47027,8 +47027,7 @@ func testExtendedTestdataConfigMapJenkinsSlavePodsYaml() (*asset, error) {
 
 var _testExtendedTestdataCsiAwsEbsInstallTemplateYaml = []byte(`# Installation of AWS EBS CSI driver into OpenShift.
 # Source: https://github.com/kubernetes-sigs/aws-ebs-csi-driver/blob/e727882eae38614ec3246b243255e536aeef5a0f/deploy/kubernetes/manifest.yaml
-# Tailored for OCP 4.2:
-#  - Removed features we don't support in 4.2 (snapshots)
+# Tailored for OCP:
 #  - Run controllers with hostNetwork: true to access AWS instance metadata (https://bugzilla.redhat.com/show_bug.cgi?id=1734600)
 #    - Removed livenessprobe for this
 #    - Scaled controllers to 1
@@ -47156,6 +47155,62 @@ roleRef:
 
 ---
 
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ebs-external-snapshotter-role
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["list", "watch", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshotclasses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshotcontents"]
+  verbs: ["create", "get", "list", "watch", "update", "delete"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshotcontents/status"]
+  verbs: ["update"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshots"]
+  verbs: ["get", "list", "watch", "update"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["create", "list", "watch", "delete"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "watch", "list", "delete", "update", "create"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ebs-csi-snapshotter-binding
+subjects:
+  - kind: ServiceAccount
+    name: ebs-csi-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: ebs-external-snapshotter-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
@@ -47242,6 +47297,17 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-snapshotter
+          image: {{.SnapshotterImage}}
+          args:
+            - --csi-address=$(ADDRESS)
+            - --v=5
+          env:
+          - name: ADDRESS
+            value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+          - mountPath: /var/lib/csi/sockets/pluginproxy/
+            name: socket-dir
       volumes:
         - name: socket-dir
           emptyDir: {}
@@ -47378,15 +47444,15 @@ var _testExtendedTestdataCsiAwsEbsManifestYaml = []byte(`# Test manifest for htt
 ShortName: ebs
 StorageClass:
   FromFile: storageclass.yaml
+SnapshotClass:
+  FromName: true
 DriverInfo:
   Name: ebs.csi.aws.com
   SupportedSizeRange:
     Min: 1Gi
     Max: 16Ti
-  SnapshotClass:
-    FromName: true
   SupportedFsType:
-    # xfs: {} xfs is broken: https://github.com/kubernetes-sigs/aws-ebs-csi-driver/issues/326
+    xfs: {}
     ext4: {}
   SupportedMountOption:
     dirsync: {}
@@ -47399,6 +47465,7 @@ DriverInfo:
     volumeLimits: false
     controllerExpansion: true
     nodeExpansion: true
+    snapshotDataSource: true
 `)
 
 func testExtendedTestdataCsiAwsEbsManifestYamlBytes() ([]byte, error) {

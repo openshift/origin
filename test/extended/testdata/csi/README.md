@@ -30,6 +30,7 @@ Following variables are available in the template:
   * `{{.AttacherImage}}`
   * `{{.ProvisionerImage}}`
   * `{{.ResizerImage}}`
+  * `{{.SnapshotterImage}}`
   * `{{.NodeDriverRegistrarImage}}`
   * `{{.LivenessProbeImage}}`
 
