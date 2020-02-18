@@ -81,6 +81,9 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 		ns := make(map[string]struct{})
 		for _, pod := range podsWithProblems {
 			delete(lastPending, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+			if strings.HasPrefix(pod.Name, "samename-") {
+				continue
+			}
 			if _, ok := ns[pod.Namespace]; !ok {
 				e2e.DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
 					return c.CoreV1().Events(ns).List(opts)
