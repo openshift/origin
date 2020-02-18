@@ -170,9 +170,14 @@ func authConfigs(confs map[string]dockerConfig) (*AuthConfigurations, error) {
 		if conf.Auth == "" {
 			continue
 		}
+
+		// support both padded and unpadded encoding
 		data, err := base64.StdEncoding.DecodeString(conf.Auth)
 		if err != nil {
-			return nil, err
+			data, err = base64.StdEncoding.WithPadding(base64.NoPadding).DecodeString(conf.Auth)
+		}
+		if err != nil {
+			return nil, errors.New("error decoding plaintext credentials")
 		}
 
 		userpass := strings.SplitN(string(data), ":", 2)

@@ -31,6 +31,7 @@ func SetDefaults_ImagePolicyConfig(obj *ImagePolicyConfig) {
 			{TargetResource: metav1.GroupResource{Group: "apps", Resource: "replicasets"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "batch", Resource: "cronjobs"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "daemonsets"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "deployments"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "replicasets"}, LocalNames: true},

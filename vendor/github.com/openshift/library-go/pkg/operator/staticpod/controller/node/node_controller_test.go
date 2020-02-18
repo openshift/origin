@@ -1,6 +1,7 @@
 package node
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -8,10 +9,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -130,7 +132,6 @@ func TestNodeControllerDegradedConditionType(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset(scenario.masterNodes...)
 			fakeLister := v1helpers.NewFakeNodeLister(kubeClient)
-			kubeInformers := informers.NewSharedInformerFactory(kubeClient, 1*time.Minute)
 			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
@@ -146,10 +147,11 @@ func TestNodeControllerDegradedConditionType(t *testing.T) {
 
 			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})
 
-			c := NewNodeController(fakeStaticPodOperatorClient, kubeInformers, eventRecorder)
-			// override the lister so we don't have to run the informer to list nodes
-			c.nodeLister = fakeLister
-			if err := c.sync(); err != nil {
+			c := &NodeController{
+				operatorClient: fakeStaticPodOperatorClient,
+				nodeLister:     fakeLister,
+			}
+			if err := c.sync(context.TODO(), factory.NewSyncContext("NodeController", eventRecorder)); err != nil {
 				t.Fatal(err)
 			}
 
@@ -240,7 +242,6 @@ func TestNewNodeController(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset(test.startNodes...)
 			fakeLister := v1helpers.NewFakeNodeLister(kubeClient)
-			kubeInformers := informers.NewSharedInformerFactory(kubeClient, 1*time.Minute)
 			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
@@ -257,10 +258,13 @@ func TestNewNodeController(t *testing.T) {
 
 			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})
 
-			c := NewNodeController(fakeStaticPodOperatorClient, kubeInformers, eventRecorder)
+			c := &NodeController{
+				operatorClient: fakeStaticPodOperatorClient,
+				nodeLister:     fakeLister,
+			}
 			// override the lister so we don't have to run the informer to list nodes
 			c.nodeLister = fakeLister
-			if err := c.sync(); err != nil {
+			if err := c.sync(context.TODO(), factory.NewSyncContext("NodeController", eventRecorder)); err != nil {
 				t.Fatal(err)
 			}
 

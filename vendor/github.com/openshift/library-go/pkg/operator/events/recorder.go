@@ -1,6 +1,7 @@
 package events
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -121,15 +122,20 @@ func guessControllerReferenceForNamespace(client corev1client.PodInterface) (*co
 		return nil, fmt.Errorf("unable to setup event recorder as %q env variable is not set and there are no pods", podNameEnv)
 	}
 
-	pod := &pods.Items[0]
-	ownerRef := metav1.GetControllerOf(pod)
-	return &corev1.ObjectReference{
-		Kind:       ownerRef.Kind,
-		Namespace:  pod.Namespace,
-		Name:       ownerRef.Name,
-		UID:        ownerRef.UID,
-		APIVersion: ownerRef.APIVersion,
-	}, nil
+	for _, pod := range pods.Items {
+		ownerRef := metav1.GetControllerOf(&pod)
+		if ownerRef == nil {
+			continue
+		}
+		return &corev1.ObjectReference{
+			Kind:       ownerRef.Kind,
+			Namespace:  pod.Namespace,
+			Name:       ownerRef.Name,
+			UID:        ownerRef.UID,
+			APIVersion: ownerRef.APIVersion,
+		}, nil
+	}
+	return nil, errors.New("can't guess controller ref")
 }
 
 // NewRecorder returns new event recorder.

@@ -65,8 +65,8 @@ func (EgressNetworkPolicyList) SwaggerDoc() map[string]string {
 
 var map_EgressNetworkPolicyPeer = map[string]string{
 	"":             "EgressNetworkPolicyPeer specifies a target to apply egress network policy to",
-	"cidrSelector": "cidrSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset",
-	"dnsName":      "dnsName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset",
+	"cidrSelector": "CIDRSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset Ideally we would have liked to use the cidr openapi format for this property. But openshift-sdn only supports v4 while specifying the cidr format allows both v4 and v6 cidrs We are therefore using a regex pattern to validate instead.",
+	"dnsName":      "DNSName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset",
 }
 
 func (EgressNetworkPolicyPeer) SwaggerDoc() map[string]string {

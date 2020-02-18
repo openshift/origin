@@ -24,9 +24,10 @@ func Test_podSpecMutator_Mutate(t *testing.T) {
 	}
 
 	type fields struct {
-		spec    *kapi.PodSpec
-		oldSpec *kapi.PodSpec
-		path    *field.Path
+		spec                     *kapi.PodSpec
+		oldSpec                  *kapi.PodSpec
+		path                     *field.Path
+		resolveAnnotationChanged bool
 	}
 	type args struct {
 		fn ImageReferenceMutateFunc
@@ -80,7 +81,6 @@ func Test_podSpecMutator_Mutate(t *testing.T) {
 				},
 			},
 		},
-
 		{
 			name: "mutates reference",
 			fields: fields{spec: &kapi.PodSpec{
@@ -125,6 +125,7 @@ func Test_podSpecMutator_Mutate(t *testing.T) {
 						{Name: "2", Image: "test-2"},
 					},
 				},
+				resolveAnnotationChanged: false,
 			},
 			args: args{fn: func(ref *kapi.ObjectReference) error {
 				if ref.Name != "test" {
@@ -142,13 +143,52 @@ func Test_podSpecMutator_Mutate(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "mutates works on update when it wasn't initially enabled",
+			fields: fields{
+				spec: &kapi.PodSpec{
+					InitContainers: []kapi.Container{
+						{Name: "1", Image: "test-1"},
+					},
+					Containers: []kapi.Container{
+						{Name: "2", Image: "test-2"},
+					},
+				},
+				oldSpec: &kapi.PodSpec{
+					InitContainers: []kapi.Container{
+						{Name: "1", Image: "test-1"},
+					},
+					Containers: []kapi.Container{
+						{Name: "2", Image: "test-2"},
+					},
+				},
+				resolveAnnotationChanged: true,
+			},
+			args: args{fn: func(ref *kapi.ObjectReference) error {
+				switch ref.Name {
+				case "test-1", "test-2":
+					ref.Name += ":sha"
+				default:
+				}
+				return nil
+			}},
+			wantSpec: &kapi.PodSpec{
+				InitContainers: []kapi.Container{
+					{Name: "1", Image: "test-1:sha"},
+				},
+				Containers: []kapi.Container{
+					{Name: "2", Image: "test-2:sha"},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &podSpecMutator{
-				spec:    tt.fields.spec,
-				oldSpec: tt.fields.oldSpec,
-				path:    tt.fields.path,
+				spec:                     tt.fields.spec,
+				oldSpec:                  tt.fields.oldSpec,
+				path:                     tt.fields.path,
+				resolveAnnotationChanged: tt.fields.resolveAnnotationChanged,
 			}
 			if tt.wantSpec == nil {
 				tt.wantSpec = &kapi.PodSpec{}

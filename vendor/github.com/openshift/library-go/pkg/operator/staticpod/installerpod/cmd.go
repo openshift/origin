@@ -32,6 +32,7 @@ type InstallOptions struct {
 	KubeClient kubernetes.Interface
 
 	Revision  string
+	NodeName  string
 	Namespace string
 
 	PodConfigMapNamePrefix        string
@@ -131,12 +132,19 @@ func (o *InstallOptions) Complete() error {
 	if err != nil {
 		return err
 	}
+
+	// set via downward API
+	o.NodeName = os.Getenv("NODE_NAME")
+
 	return nil
 }
 
 func (o *InstallOptions) Validate() error {
 	if len(o.Revision) == 0 {
 		return fmt.Errorf("--revision is required")
+	}
+	if len(o.NodeName) == 0 {
+		return fmt.Errorf("env var NODE_NAME is required")
 	}
 	if len(o.Namespace) == 0 {
 		return fmt.Errorf("--namespace is required")
@@ -294,7 +302,9 @@ func (o *InstallOptions) copyContent(ctx context.Context) error {
 		if !exists {
 			return true, fmt.Errorf("required 'pod.yaml' key does not exist in configmap")
 		}
-		podContent = strings.Replace(podData, "REVISION", o.Revision, -1)
+		podContent = strings.ReplaceAll(podData, "REVISION", o.Revision)
+		podContent = strings.ReplaceAll(podContent, "NODE_NAME", o.NodeName)
+		podContent = strings.ReplaceAll(podContent, "NODE_ENVVAR_NAME", strings.ReplaceAll(strings.ReplaceAll(o.NodeName, "-", "_"), ".", "_"))
 		return true, nil
 	})
 	if err != nil {

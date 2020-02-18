@@ -30,6 +30,9 @@ const (
 	// This condition is set to False when the pods change state to running and are observed ready.
 	StaticPodsDegradedConditionType = "StaticPodsDegraded"
 
+	// StaticPodsAvailableConditionType is true when the static pod is available on at least one node.
+	StaticPodsAvailableConditionType = "StaticPodsAvailable"
+
 	// ConfigObservationDegradedConditionType is true when the operator failed to observe or process configuration change.
 	// This is not transient condition and normally a correction or manual intervention is required on the config custom resource.
 	ConfigObservationDegradedConditionType = "ConfigObservationDegraded"
@@ -54,6 +57,9 @@ const (
 	// The AllNodesAtLatestRevision reason is set when all master nodes are updated to the latest revision. It is false when some masters are pending revision.
 	// ZeroNodesActive reason is set to True when no active master nodes are observed. Is set to False when there is at least one active master node.
 	NodeInstallerDegradedConditionType = "NodeInstallerDegraded"
+
+	// NodeInstallerProgressingConditionType is true when the operator is moving nodes to a new revision.
+	NodeInstallerProgressingConditionType = "NodeInstallerProgressing"
 
 	// RevisionControllerDegradedConditionType is true when the operator is not able to create new desired revision because an error occurred when
 	// the operator attempted to created required resource(s) (secrets, configmaps, ...).

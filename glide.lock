@@ -1,5 +1,5 @@
 hash: 5671aacc3676fd74dcdeb293e092dfb8227668801663b3f577be7bbb731568d9
-updated: 2020-01-20T14:31:31.507668+01:00
+updated: 2020-02-18T11:25:06.590898278+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -94,7 +94,7 @@ imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
-  version: a6d78f326758ac5f79e9c3eddc38723d07216c3a
+  version: c7c1fbc02894e7114f06f6a4d9ab31eee2225bdb
 - name: github.com/chai2010/gettext-go
   version: c6fed771bfd517099caf0f7a961671fa8ed08723
   subpackages:
@@ -256,7 +256,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/fsouza/go-dockerclient
-  version: d5f90d29b3660db2b8cb017c30476d6c66edfbe2
+  version: 0f160ccc8fad45a42791aa629d511f5516aa1641
 - name: github.com/getsentry/raven-go
   version: 5c24d5110e0e198d9ae16f1f3465366085001d92
 - name: github.com/ghodss/yaml
@@ -543,7 +543,7 @@ imports:
   subpackages:
   - provider
 - name: github.com/lestrrat-go/pdebug
-  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
+  version: 4d6bd78da58d473ea1a4f2aadaf7e768f2e7f288
 - name: github.com/lestrrat-go/structinfo
   version: acd51874663bf3297433cb1f1015075c3cbe6130
 - name: github.com/lestrrat/go-jspointer
@@ -715,7 +715,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: e7ccdda6ba67b868baceb40b6db943355967f26d
+  version: c99157bc6492218400b18cde7f66510f9ee56a9a
   subpackages:
   - annotations
   - apps
@@ -767,7 +767,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 5b4a83e36885b787f9877e3316ecceefbeeeda9a
+  version: ba8b80421765a458f9c50f767bbb5013b5bd5fdc
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -888,7 +888,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: bb27e57e2f2b425074ec7a020fb608b722656bdc
+  version: e77ad9dd8ebd3bba81f5aae761d097ff1f990cac
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -919,6 +919,7 @@ imports:
   - pkg/operator/resource/resourcehelper
   - pkg/operator/resource/resourcemerge
   - pkg/operator/resource/resourceread
+  - pkg/operator/v1helpers
   - pkg/quota/clusterquotamapping
   - pkg/quota/quotautil
   - pkg/security/ldaputil
@@ -946,6 +947,8 @@ imports:
 - name: github.com/prometheus/client_golang
   version: 4ab88e80c249ed361d3299e2930427d9ac43ef8d
   subpackages:
+  - api
+  - api/prometheus/v1
   - prometheus
   - prometheus/internal
   - prometheus/promhttp
@@ -1396,7 +1399,7 @@ imports:
   - status
   - tap
 - name: gopkg.in/asn1-ber.v1
-  version: 29be175fc3a3b1787c008093b829fbfee40decd6
+  version: effdc98edfb5dde0d9fd8dfba266f6483e6ce9f0
 - name: gopkg.in/fsnotify.v1
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: gopkg.in/gcfg.v1
@@ -1591,7 +1594,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: ed563d1b80a10ff7dba8a58ff67d531b66183984
+  version: 58e8566efff6c62a7f6eeea3ebfe6e784903f4b0
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1729,7 +1732,7 @@ imports:
   - pkg/printers
   - pkg/resource
 - name: k8s.io/client-go
-  version: 1fda2942f64d288516eec69a7bbf30b45bcc99ca
+  version: b01ef7c0bd89587b0b6dec9cbf90eb50c9a7bca3
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -2032,7 +2035,7 @@ imports:
 - name: k8s.io/klog
   version: 2ca9ad30301bf30a8a6e0fa2110db6b8df699a91
 - name: k8s.io/kube-aggregator
-  version: 1e3c0eec4d61024d8312cc05f068af7b428748cc
+  version: 0f3be7240130f822a9cbcd42f290e150f216d554
   repo: https://github.com/openshift/kubernetes-kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -2091,7 +2094,7 @@ imports:
   - config/v1
   - config/v1alpha1
 - name: k8s.io/kubectl
-  version: 2e30d91b9aa3682742665e9e364f8c1bde40b21f
+  version: a53e0ee267cac8aee02619c9fde607b1fa974212
   repo: https://github.com/openshift/kubernetes-kubectl.git
   subpackages:
   - pkg/apps
@@ -2177,7 +2180,7 @@ imports:
   - pkg/apis/deviceplugin/v1beta1
   - pkg/apis/pluginregistration/v1
 - name: k8s.io/kubernetes
-  version: f6ab88c0d4d1baa5be56e7f41f0883091e3d673b
+  version: f83e2aafe1c526ec7f38562e34b803013c84745d
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -2993,7 +2996,6 @@ imports:
   - test/e2e/auth
   - test/e2e/autoscaling
   - test/e2e/chaosmonkey
-  - test/e2e/cloud/gcp
   - test/e2e/common
   - test/e2e/framework
   - test/e2e/framework/auth
@@ -3006,7 +3008,6 @@ imports:
   - test/e2e/framework/ingress
   - test/e2e/framework/job
   - test/e2e/framework/kubelet
-  - test/e2e/framework/lifecycle
   - test/e2e/framework/log
   - test/e2e/framework/metrics
   - test/e2e/framework/network
@@ -3058,7 +3059,6 @@ imports:
   - test/e2e/system
   - test/e2e/upgrades
   - test/e2e/upgrades/apps
-  - test/e2e/upgrades/storage
   - test/images/agnhost/net/common
   - test/images/agnhost/net/nat
   - test/integration

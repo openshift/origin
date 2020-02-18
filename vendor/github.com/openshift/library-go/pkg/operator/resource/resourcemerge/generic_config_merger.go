@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"k8s.io/klog"
 	"sigs.k8s.io/yaml"
@@ -133,6 +134,13 @@ func MergePrunedProcessConfig(schema runtime.Object, specialCases map[string]Mer
 
 type MergeFunc func(dst, src interface{}, currentPath string) (interface{}, error)
 
+var _ MergeFunc = RemoveConfig
+
+// RemoveConfig is a merge func that elimintes an entire path from the config
+func RemoveConfig(dst, src interface{}, currentPath string) (interface{}, error) {
+	return dst, nil
+}
+
 // mergeConfig overwrites entries in curr by additional.  It modifies curr.
 func mergeConfig(curr, additional map[string]interface{}, currentPath string, specialCases map[string]MergeFunc) error {
 	for additionalKey, additionalVal := range additional {
@@ -227,4 +235,37 @@ func intersectValue(x1, x2 interface{}) interface{} {
 	default:
 		return x1
 	}
+}
+
+// IsRequiredConfigPresent can check an observedConfig to see if certain required paths are present in that config.
+// This allows operators to require certain configuration to be observed before proceeding to honor a configuration or roll it out.
+func IsRequiredConfigPresent(config []byte, requiredPaths [][]string) error {
+	if len(config) == 0 {
+		return fmt.Errorf("no observedConfig")
+	}
+
+	existingConfig := map[string]interface{}{}
+	if err := json.NewDecoder(bytes.NewBuffer(config)).Decode(&existingConfig); err != nil {
+		return fmt.Errorf("error parsing config, %v", err)
+	}
+
+	for _, requiredPath := range requiredPaths {
+		configVal, found, err := unstructured.NestedFieldNoCopy(existingConfig, requiredPath...)
+		if err != nil {
+			return fmt.Errorf("error reading %v from config, %v", strings.Join(requiredPath, "."), err)
+		}
+		if !found {
+			return fmt.Errorf("%v missing from config", strings.Join(requiredPath, "."))
+		}
+		if configVal == nil {
+			return fmt.Errorf("%v null in config", strings.Join(requiredPath, "."))
+		}
+		if configValSlice, ok := configVal.([]interface{}); ok && len(configValSlice) == 0 {
+			return fmt.Errorf("%v empty in config", strings.Join(requiredPath, "."))
+		}
+		if configValString, ok := configVal.(string); ok && len(configValString) == 0 {
+			return fmt.Errorf("%v empty in config", strings.Join(requiredPath, "."))
+		}
+	}
+	return nil
 }

@@ -1,6 +1,7 @@
 package staleconditions
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -64,22 +65,22 @@ func (c RemoveStaleConditions) sync() error {
 }
 
 // Run starts the kube-scheduler and blocks until stopCh is closed.
-func (c *RemoveStaleConditions) Run(workers int, stopCh <-chan struct{}) {
+func (c *RemoveStaleConditions) Run(ctx context.Context, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting RemoveStaleConditions")
 	defer klog.Infof("Shutting down RemoveStaleConditions")
 
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
 		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	go wait.Until(c.runWorker, time.Second, ctx.Done())
 
-	<-stopCh
+	<-ctx.Done()
 }
 
 func (c *RemoveStaleConditions) runWorker() {
