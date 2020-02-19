@@ -73,6 +73,9 @@ func newJournalArgsFromURL(query url.Values) (*journalArgs, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parameter 'output' is invalid: %v", err)
 	}
+	if len(format) == 0 {
+		format = "short-precise"
+	}
 	units, err := safeStrings(query["unit"])
 	if err != nil {
 		return nil, fmt.Errorf("parameter 'unit' is invalid: %v", err)
