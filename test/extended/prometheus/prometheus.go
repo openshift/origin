@@ -47,6 +47,7 @@ var _ = g.Describe("[Feature:Prometheus][Late] Alerts", func() {
 			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
 		}
 	})
+
 	g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 			e2e.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
@@ -62,6 +63,7 @@ var _ = g.Describe("[Feature:Prometheus][Late] Alerts", func() {
 		}
 		runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 	})
+
 	g.It("should have a Watchdog alert in firing state the entire cluster run", func() {
 		oc.SetupProject()
 		ns := oc.Namespace()
@@ -76,6 +78,27 @@ var _ = g.Describe("[Feature:Prometheus][Late] Alerts", func() {
 
 		e2e.Logf("Watchdog alert is firing")
 	})
+
+	g.It("shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster", func() {
+		if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
+			e2e.Skipf("Telemetry is disabled")
+		}
+		oc.SetupProject()
+		ns := oc.Namespace()
+
+		execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+		defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+
+		tests := map[string]bool{
+			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
+			// rule contains the count of the all the series that are sent via telemetry.
+			`max_over_time(cluster:telemetry_selected_series:count[2h]) >= 500`: false,
+		}
+		runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+
+		e2e.Logf("Total number of series sent via telemetry is below the limit")
+	})
+
 })
 
 var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
