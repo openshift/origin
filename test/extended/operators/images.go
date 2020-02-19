@@ -76,6 +76,13 @@ var _ = Describe("[Feature:Platform] Managed cluster", func() {
 			e2e.Failf("unable to list pods: %v", err)
 		}
 
+		// skip containers that are known to be already succeeded when this test run and they always result
+		// into error: cannot exec into a container in a completed pod; current phase is Succeeded.
+		skipPodContainersNames := sets.NewString(
+			"installer",
+			"pruner",
+		)
+
 		// list of pods that use images not in the release payload
 		invalidPodContainerImages := sets.NewString()
 		invalidPodContainerImagePullPolicy := sets.NewString()
@@ -91,9 +98,15 @@ var _ = Describe("[Feature:Platform] Managed cluster", func() {
 				}
 				containersToInspect := []v1.Container{}
 				for j := range pod.Spec.InitContainers {
+					if skipPodContainersNames.Has(pod.Spec.InitContainers[j].Name) {
+						continue
+					}
 					containersToInspect = append(containersToInspect, pod.Spec.InitContainers[j])
 				}
 				for j := range pod.Spec.Containers {
+					if skipPodContainersNames.Has(pod.Spec.Containers[j].Name) {
+						continue
+					}
 					containersToInspect = append(containersToInspect, pod.Spec.Containers[j])
 				}
 				for j := range containersToInspect {
