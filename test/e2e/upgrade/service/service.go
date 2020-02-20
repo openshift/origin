@@ -106,6 +106,8 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	m := monitor.NewMonitorWithInterval(1 * time.Second)
 	err = startEndpointMonitoring(ctx, m, t.tcpService, r)
 	framework.ExpectNoError(err, "unable to monitor API")
+
+	start := time.Now()
 	m.StartSampling(ctx)
 
 	// wait to ensure API is still up after the test ends
@@ -113,6 +115,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	ginkgo.By("waiting for any post disruption failures")
 	time.Sleep(15 * time.Second)
 	cancel()
+	end := time.Now()
 
 	var duration time.Duration
 	var describe []string
@@ -126,7 +129,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			duration += i
 		}
 	}
-	if duration > 60*time.Second {
+	if float64(duration)/float64(end.Sub(start)) > 0.02 {
 		framework.Failf("Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
 	} else if duration > 0 {
 		disruption.Flakef(f, "Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
