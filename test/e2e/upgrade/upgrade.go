@@ -29,11 +29,13 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 )
 
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
 		&controlplane.AvailableTest{},
+		&frontends.AvailableTest{},
 		&service.UpgradeTest{},
 		&upgrades.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
