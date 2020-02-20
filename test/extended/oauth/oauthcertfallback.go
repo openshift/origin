@@ -12,6 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/pkg/crypto"
@@ -32,6 +33,9 @@ var _ = g.Describe("[Feature:OAuthServer] OAuth server", func() {
 	oc := exutil.NewCLI("oauth", exutil.KubeConfigPath())
 
 	g.It("has the correct token and certificate fallback semantics", func() {
+		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+			e2e.Skipf("Authenticator order changed in 4.4 to match kubernetes which precludes running this test against a skewed cluster.")
+		}
 		var (
 			// We have to generate this dynamically in order to have an invalid cert signed by a signer with the same name as the valid CA
 			invalidCert = restclient.TLSClientConfig{}
