@@ -24,7 +24,6 @@ import (
 	"io/ioutil"
 	"time"
 
-	"k8s.io/kubernetes/pkg/controller/certificates/csrsuicider"
 	capi "k8s.io/api/certificates/v1beta1"
 	certificatesinformers "k8s.io/client-go/informers/certificates/v1beta1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -85,8 +84,6 @@ func newSigner(caFile, caKeyFile string, client clientset.Interface, certificate
 	if !ok {
 		return nil, fmt.Errorf("error reading CA key file %q: key did not implement crypto.Signer", caKeyFile)
 	}
-
-	csrsuicider.StartingCertValues(csrsuicider.NewFile(caFile, certPEM), csrsuicider.NewFile(caKeyFile, keyPEM))
 
 	return &signer{
 		ca: &authority.CertificateAuthority{
