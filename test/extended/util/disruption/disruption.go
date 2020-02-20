@@ -21,6 +21,12 @@ import (
 	"k8s.io/kubernetes/test/utils/junit"
 )
 
+// testWithDisplayName is implemented by tests that want more descriptive test names
+// than Name() (which must be namespace safe) allows.
+type testWithDisplayName interface {
+	DisplayName() string
+}
+
 // flakeSummary is a test summary type that allows upgrades to report violations
 // without failing the upgrade test.
 type flakeSummary string
@@ -65,8 +71,12 @@ func runChaosmonkey(
 ) {
 	testFrameworks := createTestFrameworks(tests)
 	for _, t := range tests {
+		displayName := t.Name()
+		if dn, ok := t.(testWithDisplayName); ok {
+			displayName = dn.DisplayName()
+		}
 		testCase := &junit.TestCase{
-			Name:      t.Name(),
+			Name:      displayName,
 			Classname: "disruption_tests",
 		}
 		testSuite.TestCases = append(testSuite.TestCases, testCase)
@@ -124,9 +134,7 @@ func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
 		cma.testReport.Skipped = "skipping test " + cma.test.Name()
 		return
 	}
-	fmt.Printf("DEBUG: starting test\n")
 	cma.framework.BeforeEach()
-	fmt.Printf("DEBUG: starting test, setup\n")
 	cma.test.Setup(cma.framework)
 	defer cma.test.Teardown(cma.framework)
 	ready()

@@ -17,8 +17,8 @@ import (
 type AvailableTest struct {
 }
 
-// Name returns the tracking name of the test.
-func (AvailableTest) Name() string { return "control-plane-upgrade" }
+func (AvailableTest) Name() string        { return "control-plane-available" }
+func (AvailableTest) DisplayName() string { return "Kubernetes and OpenShift APIs remain available" }
 
 // Setup does nothing
 func (t *AvailableTest) Setup(f *framework.Framework) {
