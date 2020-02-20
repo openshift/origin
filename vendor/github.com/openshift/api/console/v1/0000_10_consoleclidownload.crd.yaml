@@ -26,9 +26,6 @@ spec:
   - name: Age
     type: string
     JSONPath: .metadata.creationTimestamp
-  - name: Description
-    type: string
-    JSONPath: .spec.description
   subresources:
     status: {}
   "validation":

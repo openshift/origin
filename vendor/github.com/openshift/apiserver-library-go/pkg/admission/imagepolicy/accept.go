@@ -12,7 +12,6 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	imagepolicy "github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1"
 	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/rules"
 	"github.com/openshift/library-go/pkg/image/reference"
@@ -34,15 +33,7 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 	t := attr.GetResource().GroupResource()
 	gr := metav1.GroupResource{Resource: t.Resource, Group: t.Group}
 
-	var resolveAllNames bool
-	if annotations != nil {
-		if a, ok := annotations.TemplateAnnotations(); ok {
-			resolveAllNames = a[imagepolicy.ResolveNamesAnnotation] == "*"
-		}
-		if !resolveAllNames {
-			resolveAllNames = annotations.Annotations()[imagepolicy.ResolveNamesAnnotation] == "*"
-		}
-	}
+	resolveAllNames := imagereferencemutators.ResolveAllNames(annotations)
 
 	errs := m.Mutate(func(ref *kapi.ObjectReference) error {
 		// create the attribute set for this particular reference, if we have never seen the reference

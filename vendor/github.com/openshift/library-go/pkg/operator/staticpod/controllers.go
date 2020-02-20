@@ -4,11 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+	"github.com/openshift/library-go/pkg/operator/staticresourcecontroller"
+
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/loglevel"
 	"github.com/openshift/library-go/pkg/operator/revisioncontroller"
@@ -23,10 +27,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/unsupportedconfigoverridescontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
-
-type RunnableController interface {
-	Run(ctx context.Context, workers int)
-}
 
 type staticPodOperatorControllerBuilder struct {
 	// clients and related
@@ -85,7 +85,7 @@ type Builder interface {
 	WithCerts(certDir string, certConfigMaps, certSecrets []revisioncontroller.RevisionResource) Builder
 	WithInstaller(command []string) Builder
 	WithPruning(command []string, staticPodPrefix string) Builder
-	ToControllers() (RunnableController, error)
+	ToControllers() (factory.Controller, error)
 }
 
 func (b *staticPodOperatorControllerBuilder) WithEvents(eventRecorder events.Recorder) Builder {
@@ -134,7 +134,7 @@ func (b *staticPodOperatorControllerBuilder) WithPruning(command []string, stati
 	return b
 }
 
-func (b *staticPodOperatorControllerBuilder) ToControllers() (RunnableController, error) {
+func (b *staticPodOperatorControllerBuilder) ToControllers() (factory.Controller, error) {
 	controllers := &staticPodOperatorControllers{}
 
 	eventRecorder := b.eventRecorder
@@ -240,13 +240,18 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (RunnableController
 		eventRecorder,
 	))
 
-	controllers.add(backingresource.NewBackingResourceController(
-		b.operandNamespace,
+	// this cleverly sets the same condition that used to be set because of the way that the names are constructed
+	controllers.add(staticresourcecontroller.NewStaticResourceController(
+		"BackingResourceController",
+		backingresource.StaticPodManifests(b.operandNamespace),
+		[]string{
+			"manifests/installer-sa.yaml",
+			"manifests/installer-cluster-rolebinding.yaml",
+		},
+		resourceapply.NewKubeClientHolder(b.kubeClient),
 		b.staticPodOperatorClient,
-		operandInformers,
-		b.kubeClient,
 		eventRecorder,
-	))
+	).AddKubeInformers(b.kubeInformers))
 
 	if b.dynamicClient != nil && b.enableServiceMonitorController {
 		controllers.add(monitoring.NewMonitoringResourceController(
@@ -267,17 +272,24 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (RunnableController
 }
 
 type staticPodOperatorControllers struct {
-	controllers []RunnableController
+	controllers      []factory.Controller
+	shutdownContexts []context.Context
 }
 
-func (o *staticPodOperatorControllers) add(controller RunnableController) {
-	o.controllers = append(o.controllers, controller)
+// Sync implements the factory.Controller interface
+func (c *staticPodOperatorControllers) Sync(_ context.Context, _ factory.SyncContext) error {
+	return nil
 }
 
-func (o *staticPodOperatorControllers) Run(ctx context.Context, workers int) {
-	for i := range o.controllers {
-		go o.controllers[i].Run(ctx, workers)
+func (c *staticPodOperatorControllers) add(controller factory.Controller) {
+	c.controllers = append(c.controllers, controller)
+}
+
+func (c *staticPodOperatorControllers) Run(ctx context.Context, workers int) {
+	for i := range c.controllers {
+		go func(index int) {
+			c.controllers[index].Run(ctx, workers)
+		}(i)
 	}
-
 	<-ctx.Done()
 }

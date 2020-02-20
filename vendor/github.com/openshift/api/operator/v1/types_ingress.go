@@ -185,6 +185,7 @@ type NodePlacement struct {
 }
 
 // EndpointPublishingStrategyType is a way to publish ingress controller endpoints.
+// +kubebuilder:validation:Enum=LoadBalancerService;HostNetwork;Private;NodePortService
 type EndpointPublishingStrategyType string
 
 const (
@@ -204,6 +205,7 @@ const (
 )
 
 // LoadBalancerScope is the scope at which a load balancer is exposed.
+// +kubebuilder:validation:Enum=Internal;External
 type LoadBalancerScope string
 
 var (
@@ -337,6 +339,7 @@ type RouteAdmissionPolicy struct {
 
 // NamespaceOwnershipCheck is a route admission policy component that describes
 // how host name claims across namespaces should be handled.
+// +kubebuilder:validation:Enum=InterNamespaceAllowed;Strict
 type NamespaceOwnershipCheck string
 
 const (

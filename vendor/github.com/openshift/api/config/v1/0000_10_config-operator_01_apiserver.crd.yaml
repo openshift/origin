@@ -165,6 +165,11 @@ spec:
                         \n   minTLSVersion: TLSv1.1 \n NOTE: currently the highest
                         minTLSVersion allowed is VersionTLS12"
                       type: string
+                      enum:
+                      - VersionTLS10
+                      - VersionTLS11
+                      - VersionTLS12
+                      - VersionTLS13
                   nullable: true
                 intermediate:
                   description: "intermediate is a TLS security profile based on: \n
@@ -215,5 +220,10 @@ spec:
                     profile is currently not supported because it is not yet well
                     adopted by common software libraries."
                   type: string
+                  enum:
+                  - Old
+                  - Intermediate
+                  - Modern
+                  - Custom
         status:
           type: object

@@ -1,24 +1,24 @@
 package backingresource
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/condition"
+	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+	"github.com/openshift/library-go/pkg/operator/staticresourcecontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
-
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
-
-	operatorv1 "github.com/openshift/api/operator/v1"
-	"github.com/openshift/library-go/pkg/operator/events"
 )
 
 func filterCreateActions(actions []clienttesting.Action) []runtime.Object {
@@ -158,7 +158,7 @@ func TestBackingResourceController(t *testing.T) {
 				if status.Conditions[0].Type != condition.BackingResourceControllerDegradedConditionType {
 					t.Errorf("expected status condition to be failing, got %v", status.Conditions[0].Type)
 				}
-				if status.Conditions[0].Reason != "Error" {
+				if status.Conditions[0].Reason != "SyncError" {
 					t.Errorf("expected status condition reason to be 'Error', got %v", status.Conditions[0].Reason)
 				}
 				if !strings.Contains(status.Conditions[0].Message, "test error") {
@@ -175,14 +175,18 @@ func TestBackingResourceController(t *testing.T) {
 				kubeClient.PrependReactor(r.verb, r.resource, r.reaction)
 			}
 			eventRecorder := events.NewInMemoryRecorder("")
-			c := NewBackingResourceController(
-				tc.targetNamespace,
+			c := staticresourcecontroller.NewStaticResourceController(
+				"BackingResourceController",
+				StaticPodManifests(tc.targetNamespace),
+				[]string{
+					"manifests/installer-sa.yaml",
+					"manifests/installer-cluster-rolebinding.yaml",
+				},
+				resourceapply.NewKubeClientHolder(kubeClient),
 				tc.operatorClient,
-				informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace(tc.targetNamespace)),
-				kubeClient,
 				eventRecorder,
 			)
-			syncErr := c.sync()
+			syncErr := c.Sync(context.TODO(), factory.NewSyncContext("BackingResourceController", eventRecorder))
 			if tc.validateStatus != nil {
 				_, status, _, _ := tc.operatorClient.GetOperatorState()
 				tc.validateStatus(t, status)

@@ -61,6 +61,13 @@ spec:
     args: # Value set by operator
     image: # Value set by operator
     imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        memory: 100M
+        cpu: 150m
+      limits:
+        memory: 100M
+        cpu: 150m
     securityContext:
       privileged: true
       runAsUser: 0

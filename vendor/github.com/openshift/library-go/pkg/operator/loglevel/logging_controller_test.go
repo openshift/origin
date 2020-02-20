@@ -1,10 +1,12 @@
 package loglevel
 
 import (
+	"context"
 	"testing"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
@@ -30,7 +32,7 @@ func TestClusterOperatorLoggingController(t *testing.T) {
 
 	// no-op, desired == current
 	// When OperatorLogLevel is "" we assume the loglevel is Normal.
-	if err := controller.sync(); err != nil {
+	if err := controller.Sync(context.TODO(), factory.NewSyncContext("LoggingController", recorder)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -40,7 +42,7 @@ func TestClusterOperatorLoggingController(t *testing.T) {
 
 	// change the log level to trace should 1 emit event
 	operatorSpec.OperatorLogLevel = operatorv1.Trace
-	if err := controller.sync(); err != nil {
+	if err := controller.Sync(context.TODO(), factory.NewSyncContext("LoggingController", recorder)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -54,7 +56,7 @@ func TestClusterOperatorLoggingController(t *testing.T) {
 	}
 
 	// next sync should not produce any extra event
-	if err := controller.sync(); err != nil {
+	if err := controller.Sync(context.TODO(), factory.NewSyncContext("LoggingController", recorder)); err != nil {
 		t.Fatal(err)
 	}
 

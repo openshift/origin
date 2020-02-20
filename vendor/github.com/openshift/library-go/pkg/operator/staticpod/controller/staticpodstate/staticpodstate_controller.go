@@ -4,20 +4,14 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/informers"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/informers"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
@@ -41,10 +35,6 @@ type StaticPodStateController struct {
 	configMapGetter corev1client.ConfigMapsGetter
 	podsGetter      corev1client.PodsGetter
 	versionRecorder status.VersionGetter
-
-	cachesToSync  []cache.InformerSynced
-	queue         workqueue.RateLimitingInterface
-	eventRecorder events.Recorder
 }
 
 // NewStaticPodStateController creates a controller that watches static pods and will produce a failing status if the
@@ -57,32 +47,21 @@ func NewStaticPodStateController(
 	podsGetter corev1client.PodsGetter,
 	versionRecorder status.VersionGetter,
 	eventRecorder events.Recorder,
-) *StaticPodStateController {
+) factory.Controller {
 	c := &StaticPodStateController{
 		targetNamespace:   targetNamespace,
 		staticPodName:     staticPodName,
 		operandName:       operandName,
 		operatorNamespace: operatorNamespace,
-
-		operatorClient:  operatorClient,
-		configMapGetter: configMapGetter,
-		podsGetter:      podsGetter,
-		versionRecorder: versionRecorder,
-		eventRecorder:   eventRecorder.WithComponentSuffix("static-pod-state-controller"),
-
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "StaticPodStateController"),
+		operatorClient:    operatorClient,
+		configMapGetter:   configMapGetter,
+		podsGetter:        podsGetter,
+		versionRecorder:   versionRecorder,
 	}
-
-	operatorClient.Informer().AddEventHandler(c.eventHandler())
-	kubeInformersForTargetNamespace.Core().V1().Pods().Informer().AddEventHandler(c.eventHandler())
-
-	c.cachesToSync = append(c.cachesToSync, operatorClient.Informer().HasSynced)
-	c.cachesToSync = append(c.cachesToSync, kubeInformersForTargetNamespace.Core().V1().Pods().Informer().HasSynced)
-
-	return c
+	return factory.New().WithInformers(operatorClient.Informer(), kubeInformersForTargetNamespace.Core().V1().Pods().Informer()).WithSync(c.sync).ToController("StaticPodStateController", eventRecorder)
 }
 
-func (c *StaticPodStateController) sync() error {
+func (c *StaticPodStateController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	operatorSpec, originalOperatorStatus, _, err := c.operatorClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
@@ -128,9 +107,9 @@ func (c *StaticPodStateController) sync() error {
 	}
 
 	if len(images) == 0 {
-		c.eventRecorder.Warningf("MissingVersion", "no image found for operand pod")
+		syncCtx.Recorder().Warningf("MissingVersion", "no image found for operand pod")
 	} else if len(images) > 1 {
-		c.eventRecorder.Eventf("MultipleVersions", "multiple versions found, probably in transition: %v", strings.Join(images.List(), ","))
+		syncCtx.Recorder().Eventf("MultipleVersions", "multiple versions found, probably in transition: %v", strings.Join(images.List(), ","))
 	} else {
 		c.versionRecorder.SetVersion(
 			c.operandName,
@@ -167,54 +146,4 @@ func (c *StaticPodStateController) sync() error {
 
 func mirrorPodNameForNode(staticPodName, nodeName string) string {
 	return staticPodName + "-" + nodeName
-}
-
-// Run starts the kube-apiserver and blocks until stopCh is closed.
-func (c *StaticPodStateController) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting StaticPodStateController")
-	defer klog.Infof("Shutting down StaticPodStateController")
-	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
-		return
-	}
-
-	// doesn't matter what workers say, only start one.
-	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
-
-	<-ctx.Done()
-}
-
-func (c *StaticPodStateController) runWorker(ctx context.Context) {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *StaticPodStateController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-// eventHandler queues the operator to check spec and status
-func (c *StaticPodStateController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(staticPodStateControllerWorkQueueKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(staticPodStateControllerWorkQueueKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(staticPodStateControllerWorkQueueKey) },
-	}
 }

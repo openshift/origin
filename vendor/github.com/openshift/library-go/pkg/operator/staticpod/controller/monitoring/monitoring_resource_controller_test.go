@@ -1,14 +1,13 @@
 package monitoring
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
-
 	"github.com/ghodss/yaml"
-	"github.com/openshift/library-go/pkg/operator/events"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,8 +17,12 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	"github.com/openshift/library-go/pkg/assets"
+	"github.com/openshift/library-go/pkg/controller/factory"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/monitoring/bindata"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 func mustAssetServiceMonitor(namespace string) runtime.Object {
@@ -130,7 +133,7 @@ func TestNewMonitoringResourcesController(t *testing.T) {
 				eventRecorder,
 			)
 
-			syncErr := c.sync()
+			syncErr := c.Sync(context.TODO(), factory.NewSyncContext("MonitoringResourceController", eventRecorder))
 			if len(tc.expectSyncError) > 0 && syncErr == nil {
 				t.Errorf("expected %q error", tc.expectSyncError)
 				return

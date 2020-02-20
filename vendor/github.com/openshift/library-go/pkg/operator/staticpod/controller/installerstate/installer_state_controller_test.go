@@ -1,6 +1,7 @@
 package installerstate
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
@@ -158,7 +160,7 @@ func TestInstallerStateController(t *testing.T) {
 			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(&operatorv1.StaticPodOperatorSpec{}, &operatorv1.StaticPodOperatorStatus{}, nil, nil)
 			eventRecorder := eventstesting.NewTestingEventRecorder(t)
 			controller := NewInstallerStateController(kubeInformers, kubeClient.CoreV1(), kubeClient.CoreV1(), fakeStaticPodOperatorClient, "test", eventRecorder)
-			if err := controller.sync(); err != nil {
+			if err := controller.Sync(context.TODO(), factory.NewSyncContext("InstallerStateController", eventRecorder)); err != nil {
 				t.Error(err)
 				return
 			}

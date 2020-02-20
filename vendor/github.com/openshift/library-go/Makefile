@@ -8,7 +8,7 @@ GO_BUILD_PACKAGES :=$(GO_PACKAGES)
 # Do not auto-expand packages for libraries or it would compile them separately
 GO_BUILD_PACKAGES_EXPANDED :=$(GO_BUILD_PACKAGES)
 
-include $(addprefix alpha-build-machinery/make/, \
+include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	golang.mk \
 	targets/openshift/deps.mk \
 	targets/openshift/bindata.mk \
