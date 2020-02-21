@@ -219,12 +219,12 @@ func (in *HostSubnet) DeepCopyInto(out *HostSubnet) {
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	if in.EgressIPs != nil {
 		in, out := &in.EgressIPs, &out.EgressIPs
-		*out = make([]string, len(*in))
+		*out = make([]HostSubnetEgressIP, len(*in))
 		copy(*out, *in)
 	}
 	if in.EgressCIDRs != nil {
 		in, out := &in.EgressCIDRs, &out.EgressCIDRs
-		*out = make([]string, len(*in))
+		*out = make([]HostSubnetEgressCIDR, len(*in))
 		copy(*out, *in)
 	}
 	return
@@ -288,7 +288,7 @@ func (in *NetNamespace) DeepCopyInto(out *NetNamespace) {
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	if in.EgressIPs != nil {
 		in, out := &in.EgressIPs, &out.EgressIPs
-		*out = make([]string, len(*in))
+		*out = make([]NetNamespaceEgressIP, len(*in))
 		copy(*out, *in)
 	}
 	return

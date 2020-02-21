@@ -117,7 +117,6 @@ var defaultFeatures = &FeatureGateEnabledDisabled{
 		"NodeDisruptionExclusion",        // sig-scheduling, ccoleman
 		"ServiceNodeExclusion",           // sig-scheduling, ccoleman
 		"SCTPSupport",                    // sig-network, ccallend
-		"IPv6DualStack",                  // sig-network, ccoleman
 	},
 	Disabled: []string{
 		"LegacyNodeRoleBehavior", // sig-scheduling, ccoleman

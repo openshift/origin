@@ -1,6 +1,7 @@
 package certsyncpod
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"time"
@@ -66,6 +67,14 @@ func (o *CertSyncControllerOptions) Run() error {
 
 	stopCh := make(chan struct{})
 
+	// Make a context that is cancelled when stopCh is closed
+	// TODO: Replace stopCh with regular context.
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		defer cancel()
+		<-stopCh
+	}()
+
 	initialContent, _ := ioutil.ReadFile(o.KubeConfigFile)
 	observer.AddReactor(fileobserver.TerminateOnChangeReactor(func() {
 		close(stopCh)
@@ -81,7 +90,7 @@ func (o *CertSyncControllerOptions) Run() error {
 			Name:       os.Getenv("POD_NAME"),
 		})
 
-	controller, err := NewCertSyncController(
+	controller := NewCertSyncController(
 		o.DestinationDir,
 		o.Namespace,
 		o.configMaps,
@@ -90,12 +99,9 @@ func (o *CertSyncControllerOptions) Run() error {
 		kubeInformers,
 		eventRecorder,
 	)
-	if err != nil {
-		return err
-	}
 
-	// start everything. Informers start after they have been requested.
-	go controller.Run(1, stopCh)
+	// start everything. WithInformers start after they have been requested.
+	go controller.Run(ctx, 1)
 	go observer.Run(stopCh)
 	go kubeInformers.Start(stopCh)
 

@@ -7,11 +7,12 @@ include $(addprefix ./vendor/github.com/openshift/library-go/alpha-build-machine
 	targets/openshift/deps.mk \
 )
 
-clean:
-.PHONY: clean
-
-GO_TEST_PACKAGES :=./pkg/...
-
+# All the go packages (e.g. for verfy)
+GO_PACKAGES :=./...
+# Packages to be compiled
+GO_BUILD_PACKAGES :=$(GO_PACKAGES)
+# Do not auto-expand packages for libraries or it would compile them separately
+GO_BUILD_PACKAGES_EXPANDED :=$(GO_BUILD_PACKAGES)
 
 update: update-generated-deep-copies
 .PHONY: update

@@ -498,6 +498,7 @@ message BuildStrategy {
   optional CustomBuildStrategy customStrategy = 4;
 
   // JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.
+  // Deprecated: use OpenShift Pipelines
   optional JenkinsPipelineBuildStrategy jenkinsPipelineStrategy = 5;
 }
 
@@ -654,9 +655,9 @@ message CustomBuildStrategy {
 
 // DockerBuildStrategy defines input parameters specific to container image build.
 message DockerBuildStrategy {
-  // from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
-  // the container image should be pulled
-  // the resulting image will be used in the FROM line of the Dockerfile for this build.
+  // from is a reference to an DockerImage, ImageStreamTag, or ImageStreamImage which overrides
+  // the FROM image in the Dockerfile for the build. If the Dockerfile uses multi-stage builds,
+  // this will replace the image in the last FROM directive of the file.
   optional k8s.io.api.core.v1.ObjectReference from = 1;
 
   // pullSecret is the name of a Secret that would be used for setting up
@@ -875,6 +876,7 @@ message ImageSourcePath {
 }
 
 // JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.
+// Deprecated: use OpenShift Pipelines
 message JenkinsPipelineBuildStrategy {
   // JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
   // relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are

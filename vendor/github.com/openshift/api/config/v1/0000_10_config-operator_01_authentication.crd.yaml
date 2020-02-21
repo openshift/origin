@@ -62,6 +62,10 @@ spec:
                   description: name is the metadata.name of the referenced config
                     map
                   type: string
+            serviceAccountIssuer:
+              description: serviceAccountIssuer is the identifier of the bound service
+                account token issuer. The default is auth.openshift.io.
+              type: string
             type:
               description: type identifies the cluster managed, user facing authentication
                 mode in use. Specifically, it manages the component that responds
