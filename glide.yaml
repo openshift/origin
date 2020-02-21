@@ -213,7 +213,7 @@ import:
 # GOMOD for golang.org/x/crypto asks for this version of x/sys, which includes things we need
 # we wouldn't need this line if glide paid attention to gomod
 - package: golang.org/x/sys
-  version: 97732733099d
+  version: cb0a6d8edb6c3528b01a0be84a5fe513dbf880a6
 - package: golang.org/x/net
   version: ba9fcec4b297
 - package: github.com/agnivade/levenshtein
