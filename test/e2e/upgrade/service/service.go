@@ -50,6 +50,18 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	ginkgo.By("creating a TCP service " + serviceName + " with type=LoadBalancer in namespace " + ns.Name)
 	tcpService, err := jig.CreateTCPService(func(s *v1.Service) {
 		s.Spec.Type = v1.ServiceTypeLoadBalancer
+		if s.Annotations == nil {
+			s.Annotations = make(map[string]string)
+		}
+		// We tune the LB checks to match the longest intervals available so that interactions between
+		// upgrading components and the service are more obvious.
+		// - AWS allows configuration, default is 70s (6 failed with 10s interval in 1.17) set to match GCP
+		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval"] = "8"
+		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold"] = "3"
+		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold"] = "2"
+		// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
+		// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
+		//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
 	})
 	framework.ExpectNoError(err)
 	tcpService, err = jig.WaitForLoadBalancer(service.GetServiceLoadBalancerCreationTimeout(cs))
@@ -61,13 +73,15 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 
 	ginkgo.By("creating RC to be part of service " + serviceName)
 	rc, err := jig.Run(func(rc *v1.ReplicationController) {
-		// ensure the pod waits long enough for most LBs to take it out of rotation
-		minute := int64(60)
+		// ensure the pod waits long enough for most LBs to take it out of rotation, which has to be
+		// longer than the LB failed health check interval
 		rc.Spec.Template.Spec.Containers[0].Lifecycle = &v1.Lifecycle{
 			PreStop: &v1.Handler{
-				Exec: &v1.ExecAction{Command: []string{"sleep", "30"}},
+				Exec: &v1.ExecAction{Command: []string{"sleep", "45"}},
 			},
 		}
+		// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
+		minute := int64(60)
 		rc.Spec.Template.Spec.TerminationGracePeriodSeconds = &minute
 
 		jig.AddRCAntiAffinity(rc)
