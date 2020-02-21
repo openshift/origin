@@ -1,5 +1,19 @@
 # Changelog
 
+### 0.35.0 (2019-11-27)
+- Add hugepage info per-numa-node
+- Add support for cgoups v2 unified higherarchy
+- Drop support for rkt
+- Fix a bug that prevented running with multiple tmpfs mounts
+
+### 0.34.0 (2019-08-26)
+- Fix disk stats in LXD using ZFS storage pool
+- Support monitoring non-k8s containerd namespaces
+- The `storage_driver` flag now supports comma-separated inputs
+- Add `container_sockets`, `container_threads`, and `container_threads_max` metrics
+- Fix CRI-O missing network metris bug
+- Add `disable_root_cgroup_stats` flag to allow not collecting stats from the root cgroup.
+
 ### 0.33.0 (2019-02-26)
 - Add --raw_cgroup_prefix_whitelist flag to allow configuring which raw cgroup trees cAdvisor monitors
 - Replace `du` and `find` with a golang implementation

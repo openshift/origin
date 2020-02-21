@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
 
 	"golang.org/x/sys/unix"
@@ -41,6 +42,7 @@ func showFile(t *testing.T, fname string) error {
 }
 
 func TestUsernsCheckpoint(t *testing.T) {
+	t.Skip("Ubuntu kernel is broken to run criu (#2196, #2198)")
 	if _, err := os.Stat("/proc/self/ns/user"); os.IsNotExist(err) {
 		t.Skip("userns is unsupported")
 	}
@@ -52,6 +54,7 @@ func TestUsernsCheckpoint(t *testing.T) {
 }
 
 func TestCheckpoint(t *testing.T) {
+	t.Skip("Ubuntu kernel is broken to run criu (#2196, #2198)")
 	testCheckpoint(t, false)
 }
 
@@ -59,6 +62,10 @@ func testCheckpoint(t *testing.T, userns bool) {
 	if testing.Short() {
 		return
 	}
+	if cgroups.IsCgroup2UnifiedMode() {
+		t.Skip("cgroup v1 is not supported")
+	}
+
 	root, err := newTestRoot()
 	if err != nil {
 		t.Fatal(err)

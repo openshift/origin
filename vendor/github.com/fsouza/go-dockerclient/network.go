@@ -5,12 +5,12 @@
 package docker
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
+
+	"golang.org/x/net/context"
 )
 
 // ErrNetworkAlreadyExists is the error returned by CreateNetwork when the
@@ -48,7 +48,7 @@ type Endpoint struct {
 //
 // See https://goo.gl/6GugX3 for more details.
 func (c *Client) ListNetworks() ([]Network, error) {
-	resp, err := c.do(http.MethodGet, "/networks", doOptions{})
+	resp, err := c.do("GET", "/networks", doOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -72,10 +72,8 @@ func (c *Client) FilteredListNetworks(opts NetworkFilterOpts) ([]Network, error)
 	if err != nil {
 		return nil, err
 	}
-	qs := make(url.Values)
-	qs.Add("filters", string(params))
-	path := "/networks?" + qs.Encode()
-	resp, err := c.do(http.MethodGet, path, doOptions{})
+	path := "/networks?filters=" + string(params)
+	resp, err := c.do("GET", path, doOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +90,7 @@ func (c *Client) FilteredListNetworks(opts NetworkFilterOpts) ([]Network, error)
 // See https://goo.gl/6GugX3 for more details.
 func (c *Client) NetworkInfo(id string) (*Network, error) {
 	path := "/networks/" + id
-	resp, err := c.do(http.MethodGet, path, doOptions{})
+	resp, err := c.do("GET", path, doOptions{})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return nil, &NoSuchNetwork{ID: id}
@@ -114,24 +112,13 @@ func (c *Client) NetworkInfo(id string) (*Network, error) {
 type CreateNetworkOptions struct {
 	Name           string                 `json:"Name" yaml:"Name" toml:"Name"`
 	Driver         string                 `json:"Driver" yaml:"Driver" toml:"Driver"`
-	Scope          string                 `json:"Scope" yaml:"Scope" toml:"Scope"`
-	IPAM           *IPAMOptions           `json:"IPAM,omitempty" yaml:"IPAM" toml:"IPAM"`
-	ConfigFrom     *NetworkConfigFrom     `json:"ConfigFrom,omitempty" yaml:"ConfigFrom" toml:"ConfigFrom"`
+	IPAM           IPAMOptions            `json:"IPAM" yaml:"IPAM" toml:"IPAM"`
 	Options        map[string]interface{} `json:"Options" yaml:"Options" toml:"Options"`
 	Labels         map[string]string      `json:"Labels" yaml:"Labels" toml:"Labels"`
 	CheckDuplicate bool                   `json:"CheckDuplicate" yaml:"CheckDuplicate" toml:"CheckDuplicate"`
 	Internal       bool                   `json:"Internal" yaml:"Internal" toml:"Internal"`
 	EnableIPv6     bool                   `json:"EnableIPv6" yaml:"EnableIPv6" toml:"EnableIPv6"`
-	Attachable     bool                   `json:"Attachable" yaml:"Attachable" toml:"Attachable"`
-	ConfigOnly     bool                   `json:"ConfigOnly" yaml:"ConfigOnly" toml:"ConfigOnly"`
-	Ingress        bool                   `json:"Ingress" yaml:"Ingress" toml:"Ingress"`
 	Context        context.Context        `json:"-"`
-}
-
-// NetworkConfigFrom is used in network creation for specifying the source of a
-// network configuration.
-type NetworkConfigFrom struct {
-	Network string `json:"Network" yaml:"Network" toml:"Network"`
 }
 
 // IPAMOptions controls IP Address Management when creating a network
@@ -159,7 +146,7 @@ type IPAMConfig struct {
 // See https://goo.gl/6GugX3 for more details.
 func (c *Client) CreateNetwork(opts CreateNetworkOptions) (*Network, error) {
 	resp, err := c.do(
-		http.MethodPost,
+		"POST",
 		"/networks/create",
 		doOptions{
 			data:    opts,
@@ -193,7 +180,7 @@ func (c *Client) CreateNetwork(opts CreateNetworkOptions) (*Network, error) {
 //
 // See https://goo.gl/6GugX3 for more details.
 func (c *Client) RemoveNetwork(id string) error {
-	resp, err := c.do(http.MethodDelete, "/networks/"+id, doOptions{})
+	resp, err := c.do("DELETE", "/networks/"+id, doOptions{})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return &NoSuchNetwork{ID: id}
@@ -236,7 +223,6 @@ type EndpointConfig struct {
 	GlobalIPv6Address   string              `json:"GlobalIPv6Address,omitempty" yaml:"GlobalIPv6Address,omitempty" toml:"GlobalIPv6Address,omitempty"`
 	GlobalIPv6PrefixLen int                 `json:"GlobalIPv6PrefixLen,omitempty" yaml:"GlobalIPv6PrefixLen,omitempty" toml:"GlobalIPv6PrefixLen,omitempty"`
 	MacAddress          string              `json:"MacAddress,omitempty" yaml:"MacAddress,omitempty" toml:"MacAddress,omitempty"`
-	DriverOpts          map[string]string   `json:"DriverOpts,omitempty" yaml:"DriverOpts,omitempty" toml:"DriverOpts,omitempty"`
 }
 
 // EndpointIPAMConfig represents IPAM configurations for an
@@ -253,7 +239,7 @@ type EndpointIPAMConfig struct {
 //
 // See https://goo.gl/6GugX3 for more details.
 func (c *Client) ConnectNetwork(id string, opts NetworkConnectionOptions) error {
-	resp, err := c.do(http.MethodPost, "/networks/"+id+"/connect", doOptions{
+	resp, err := c.do("POST", "/networks/"+id+"/connect", doOptions{
 		data:    opts,
 		context: opts.Context,
 	})
@@ -272,7 +258,7 @@ func (c *Client) ConnectNetwork(id string, opts NetworkConnectionOptions) error 
 //
 // See https://goo.gl/6GugX3 for more details.
 func (c *Client) DisconnectNetwork(id string, opts NetworkConnectionOptions) error {
-	resp, err := c.do(http.MethodPost, "/networks/"+id+"/disconnect", doOptions{data: opts})
+	resp, err := c.do("POST", "/networks/"+id+"/disconnect", doOptions{data: opts})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return &NoSuchNetworkOrContainer{NetworkID: id, ContainerID: opts.Container}
@@ -303,7 +289,7 @@ type PruneNetworksResults struct {
 // See https://goo.gl/kX0S9h for more details.
 func (c *Client) PruneNetworks(opts PruneNetworksOptions) (*PruneNetworksResults, error) {
 	path := "/networks/prune?" + queryString(opts)
-	resp, err := c.do(http.MethodPost, path, doOptions{context: opts.Context})
+	resp, err := c.do("POST", path, doOptions{context: opts.Context})
 	if err != nil {
 		return nil, err
 	}

@@ -38,6 +38,9 @@ type ControllerCommandConfig struct {
 	version       version.Info
 
 	basicFlags *ControllerFlags
+
+	// DisableServing disables serving metrics, debug and health checks and so on.
+	DisableServing bool
 }
 
 // NewControllerConfig returns a new ControllerCommandConfig which can be used to wire up all the boiler plate of a controller
@@ -49,6 +52,8 @@ func NewControllerCommandConfig(componentName string, version version.Info, star
 		version:       version,
 
 		basicFlags: NewControllerFlags(),
+
+		DisableServing: false,
 	}
 }
 
@@ -268,8 +273,11 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 		WithKubeConfigFile(c.basicFlags.KubeConfigFile, nil).
 		WithComponentNamespace(c.basicFlags.Namespace).
 		WithLeaderElection(config.LeaderElection, c.basicFlags.Namespace, c.componentName+"-lock").
-		WithServer(config.ServingInfo, config.Authentication, config.Authorization).
 		WithRestartOnChange(exitOnChangeReactorCh, startingFileContent, observedFiles...)
+
+	if !c.DisableServing {
+		builder = builder.WithServer(config.ServingInfo, config.Authentication, config.Authorization)
+	}
 
 	return builder.Run(controllerCtx, unstructuredConfig)
 }

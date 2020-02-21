@@ -1,32 +1,32 @@
-dist: xenial
 language: go
+sudo: required
 go:
-  - 1.12.x
-  - 1.13.x
-  - 1.14rc1
+  - 1.8.x
+  - 1.9.x
+  - tip
 os:
   - linux
   - osx
-  - windows
 env:
   matrix:
-    - GOARCH=amd64
-    - GOARCH=386
+    - GOARCH=amd64 DOCKER_PKG_VERSION=17.06.0~ce-0~ubuntu
+    - GOARCH=386   DOCKER_PKG_VERSION=17.06.0~ce-0~ubuntu
+    - GOARCH=amd64 DOCKER_PKG_VERSION=17.05.0~ce-0~ubuntu-trusty
+    - GOARCH=386   DOCKER_PKG_VERSION=17.05.0~ce-0~ubuntu-trusty
   global:
-    - GOPROXY=https://proxy.golang.org
-    - GO111MODULE=on
+    - GO_TEST_FLAGS=-race
+    - DOCKER_HOST=tcp://127.0.0.1:2375
 install:
-  - travis-scripts/win-setup.bash
+  - make testdeps
+  - travis_retry travis-scripts/install-docker.bash
 script:
-  - travis_wait 25 travis-scripts/run-tests.bash
+  - travis-scripts/run-tests.bash
 services:
   - docker
 matrix:
   fast_finish: true
   exclude:
     - os: osx
-      env: GOARCH=386
+      env: GOARCH=amd64 DOCKER_PKG_VERSION=17.05.0~ce-0~ubuntu-trusty
     - os: osx
-      env: GOARCH=386
-  allow_failures:
-    - os: windows
+      env: GOARCH=386   DOCKER_PKG_VERSION=17.05.0~ce-0~ubuntu-trusty
