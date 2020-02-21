@@ -59,9 +59,7 @@ func TestFilteredListNetworks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantQuery := url.Values{
-		"filters": []string{`{"name":{"blah":true}}`},
-	}
+	wantQuery := "filters={\"name\":{\"blah\":true}}"
 	fakeRT := &FakeRoundTripper{message: jsonNetworks, status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	opts := NetworkFilterOpts{
@@ -74,9 +72,9 @@ func TestFilteredListNetworks(t *testing.T) {
 	if !reflect.DeepEqual(containers, expected) {
 		t.Errorf("ListNetworks: Expected %#v. Got %#v.", expected, containers)
 	}
-	query := fakeRT.requests[0].URL.Query()
-	if !reflect.DeepEqual(query, wantQuery) {
-		t.Errorf("FilteredListNetworks: wrong query\nWant %#v\nGot  %#v", wantQuery, query)
+	query := fakeRT.requests[0].URL.RawQuery
+	if query != wantQuery {
+		t.Errorf("FilteredListNetworks: wrong query\nWant %q\nGot  %q", wantQuery, query)
 	}
 }
 
@@ -144,7 +142,7 @@ func TestNetworkRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := http.MethodDelete
+	expectedMethod := "DELETE"
 	if req.Method != expectedMethod {
 		t.Errorf("RemoveNetwork(%q): Wrong HTTP method. Want %s. Got %s.", id, expectedMethod, req.Method)
 	}
@@ -165,7 +163,7 @@ func TestNetworkConnect(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := http.MethodPost
+	expectedMethod := "POST"
 	if req.Method != expectedMethod {
 		t.Errorf("ConnectNetwork(%q): Wrong HTTP method. Want %s. Got %s.", id, expectedMethod, req.Method)
 	}
@@ -196,7 +194,7 @@ func TestNetworkConnectWithEndpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := http.MethodPost
+	expectedMethod := "POST"
 	if req.Method != expectedMethod {
 		t.Errorf("ConnectNetwork(%q): Wrong HTTP method. Want %s. Got %s.", id, expectedMethod, req.Method)
 	}
@@ -234,7 +232,7 @@ func TestNetworkDisconnect(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := http.MethodPost
+	expectedMethod := "POST"
 	if req.Method != expectedMethod {
 		t.Errorf("DisconnectNetwork(%q): Wrong HTTP method. Want %s. Got %s.", id, expectedMethod, req.Method)
 	}

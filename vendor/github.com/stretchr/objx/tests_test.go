@@ -1,14 +1,13 @@
-package objx_test
+package objx
 
 import (
-	"testing"
-
-	"github.com/stretchr/objx"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestHas(t *testing.T) {
-	m := objx.Map(TestMap)
+
+	m := New(TestMap)
 
 	assert.True(t, m.Has("name"))
 	assert.True(t, m.Has("address.state"))
@@ -20,6 +19,6 @@ func TestHas(t *testing.T) {
 	assert.False(t, m.Has("numbers[5]"))
 
 	m = nil
-
 	assert.False(t, m.Has("nothing"))
+
 }

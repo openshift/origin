@@ -40,7 +40,7 @@ func TestNewTSLAPIClientUnixEndpoint(t *testing.T) {
 	if client.endpoint != endpoint {
 		t.Errorf("Expected endpoint %s. Got %s.", endpoint, client.endpoint)
 	}
-	rsp, err := client.do(http.MethodGet, "/", doOptions{})
+	rsp, err := client.do("GET", "/", doOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -184,31 +184,31 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 		}
 	}
 
-	if b.servingInfo == nil {
-		return fmt.Errorf("server config required for health checks and debugging endpoints")
-	}
-
 	kubeConfig := ""
 	if b.kubeAPIServerConfigFile != nil {
 		kubeConfig = *b.kubeAPIServerConfigFile
 	}
-	serverConfig, err := serving.ToServerConfig(ctx, *b.servingInfo, *b.authenticationConfig, *b.authorizationConfig, kubeConfig)
-	if err != nil {
-		return err
-	}
-	serverConfig.HealthzChecks = append(serverConfig.HealthzChecks, b.healthChecks...)
 
-	server, err := serverConfig.Complete(nil).New(b.componentName, genericapiserver.NewEmptyDelegate())
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		if err := server.PrepareRun().Run(ctx.Done()); err != nil {
-			klog.Error(err)
+	var server *genericapiserver.GenericAPIServer
+	if b.servingInfo != nil {
+		serverConfig, err := serving.ToServerConfig(ctx, *b.servingInfo, *b.authenticationConfig, *b.authorizationConfig, kubeConfig)
+		if err != nil {
+			return err
 		}
-		klog.Fatal("server exited")
-	}()
+		serverConfig.HealthzChecks = append(serverConfig.HealthzChecks, b.healthChecks...)
+
+		server, err = serverConfig.Complete(nil).New(b.componentName, genericapiserver.NewEmptyDelegate())
+		if err != nil {
+			return err
+		}
+
+		go func() {
+			if err := server.PrepareRun().Run(ctx.Done()); err != nil {
+				klog.Error(err)
+			}
+			klog.Fatal("server exited")
+		}()
+	}
 
 	protoConfig := rest.CopyConfig(clientConfig)
 	protoConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"

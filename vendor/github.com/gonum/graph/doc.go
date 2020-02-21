@@ -3,9 +3,6 @@
 // license that can be found in the LICENSE file.
 
 /*
-This repository is no longer maintained.
-Development has moved to https://github.com/gonum/gonum.
-
 Package graph implements functions and interfaces to deal with formal discrete graphs. It aims to
 be first and foremost flexible, with speed as a strong second priority.
 
