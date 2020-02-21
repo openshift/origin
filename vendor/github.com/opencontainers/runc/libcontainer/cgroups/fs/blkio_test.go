@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
 	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
@@ -96,7 +95,7 @@ func TestBlkioSetWeight(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamUint(helper.CgroupPath, "blkio.weight")
+	value, err := getCgroupParamUint(helper.CgroupPath, "blkio.weight")
 	if err != nil {
 		t.Fatalf("Failed to parse blkio.weight - %s", err)
 	}
@@ -127,7 +126,7 @@ func TestBlkioSetWeightDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "blkio.weight_device")
+	value, err := getCgroupParamString(helper.CgroupPath, "blkio.weight_device")
 	if err != nil {
 		t.Fatalf("Failed to parse blkio.weight_device - %s", err)
 	}
@@ -164,7 +163,7 @@ func TestBlkioSetMultipleWeightDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "blkio.weight_device")
+	value, err := getCgroupParamString(helper.CgroupPath, "blkio.weight_device")
 	if err != nil {
 		t.Fatalf("Failed to parse blkio.weight_device - %s", err)
 	}
@@ -536,7 +535,7 @@ func TestBlkioSetThrottleReadBpsDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "blkio.throttle.read_bps_device")
+	value, err := getCgroupParamString(helper.CgroupPath, "blkio.throttle.read_bps_device")
 	if err != nil {
 		t.Fatalf("Failed to parse blkio.throttle.read_bps_device - %s", err)
 	}
@@ -566,7 +565,7 @@ func TestBlkioSetThrottleWriteBpsDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "blkio.throttle.write_bps_device")
+	value, err := getCgroupParamString(helper.CgroupPath, "blkio.throttle.write_bps_device")
 	if err != nil {
 		t.Fatalf("Failed to parse blkio.throttle.write_bps_device - %s", err)
 	}
@@ -596,7 +595,7 @@ func TestBlkioSetThrottleReadIOpsDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "blkio.throttle.read_iops_device")
+	value, err := getCgroupParamString(helper.CgroupPath, "blkio.throttle.read_iops_device")
 	if err != nil {
 		t.Fatalf("Failed to parse blkio.throttle.read_iops_device - %s", err)
 	}
@@ -626,7 +625,7 @@ func TestBlkioSetThrottleWriteIOpsDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "blkio.throttle.write_iops_device")
+	value, err := getCgroupParamString(helper.CgroupPath, "blkio.throttle.write_iops_device")
 	if err != nil {
 		t.Fatalf("Failed to parse blkio.throttle.write_iops_device - %s", err)
 	}

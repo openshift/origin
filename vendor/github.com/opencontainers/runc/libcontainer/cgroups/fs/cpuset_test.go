@@ -4,8 +4,6 @@ package fs
 
 import (
 	"testing"
-
-	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
 )
 
 func TestCpusetSetCpus(t *testing.T) {
@@ -27,7 +25,7 @@ func TestCpusetSetCpus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "cpuset.cpus")
+	value, err := getCgroupParamString(helper.CgroupPath, "cpuset.cpus")
 	if err != nil {
 		t.Fatalf("Failed to parse cpuset.cpus - %s", err)
 	}
@@ -56,7 +54,7 @@ func TestCpusetSetMems(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "cpuset.mems")
+	value, err := getCgroupParamString(helper.CgroupPath, "cpuset.mems")
 	if err != nil {
 		t.Fatalf("Failed to parse cpuset.mems - %s", err)
 	}

@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	libcontainerUtils "github.com/opencontainers/runc/libcontainer/utils"
 )
@@ -32,12 +31,12 @@ func (s *CpusetGroup) Apply(d *cgroupData) error {
 
 func (s *CpusetGroup) Set(path string, cgroup *configs.Cgroup) error {
 	if cgroup.Resources.CpusetCpus != "" {
-		if err := fscommon.WriteFile(path, "cpuset.cpus", cgroup.Resources.CpusetCpus); err != nil {
+		if err := writeFile(path, "cpuset.cpus", cgroup.Resources.CpusetCpus); err != nil {
 			return err
 		}
 	}
 	if cgroup.Resources.CpusetMems != "" {
-		if err := fscommon.WriteFile(path, "cpuset.mems", cgroup.Resources.CpusetMems); err != nil {
+		if err := writeFile(path, "cpuset.mems", cgroup.Resources.CpusetMems); err != nil {
 			return err
 		}
 	}
@@ -136,12 +135,12 @@ func (s *CpusetGroup) copyIfNeeded(current, parent string) error {
 	}
 
 	if s.isEmpty(currentCpus) {
-		if err := fscommon.WriteFile(current, "cpuset.cpus", string(parentCpus)); err != nil {
+		if err := writeFile(current, "cpuset.cpus", string(parentCpus)); err != nil {
 			return err
 		}
 	}
 	if s.isEmpty(currentMems) {
-		if err := fscommon.WriteFile(current, "cpuset.mems", string(parentMems)); err != nil {
+		if err := writeFile(current, "cpuset.mems", string(parentMems)); err != nil {
 			return err
 		}
 	}

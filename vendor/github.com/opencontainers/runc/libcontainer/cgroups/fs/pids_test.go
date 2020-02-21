@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
 )
 
 const (
@@ -29,7 +28,7 @@ func TestPidsSetMax(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamUint(helper.CgroupPath, "pids.max")
+	value, err := getCgroupParamUint(helper.CgroupPath, "pids.max")
 	if err != nil {
 		t.Fatalf("Failed to parse pids.max - %s", err)
 	}
@@ -53,7 +52,7 @@ func TestPidsSetUnlimited(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "pids.max")
+	value, err := getCgroupParamString(helper.CgroupPath, "pids.max")
 	if err != nil {
 		t.Fatalf("Failed to parse pids.max - %s", err)
 	}
