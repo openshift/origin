@@ -329,7 +329,7 @@ func (node *OsdnNode) Start() error {
 	if !node.useConnTrack {
 		node.watchServices()
 	}
-	existingSandboxPods, err := node.getPodSandboxes()
+	existingSandboxPods, err := node.getSDNPodSandboxes()
 	if err != nil {
 		return err
 	}
@@ -392,8 +392,6 @@ func (node *OsdnNode) Start() error {
 // attached to the OVS bridge before restart, and either reattaches or kills each of the
 // corresponding pods.
 func (node *OsdnNode) reattachPods(existingPodSandboxes map[string]*kruntimeapi.PodSandbox, existingOFPodNetworks map[string]podNetworkInfo) error {
-
-	failed := []*kruntimeapi.PodSandbox{}
 	for sandboxID, podInfo := range existingOFPodNetworks {
 		sandbox, ok := existingPodSandboxes[sandboxID]
 		if !ok {
@@ -402,7 +400,6 @@ func (node *OsdnNode) reattachPods(existingPodSandboxes map[string]*kruntimeapi.
 		}
 		if _, err := netlink.LinkByName(podInfo.vethName); err != nil {
 			glog.Infof("Interface %s for pod '%s/%s' no longer exists", podInfo.vethName, sandbox.Metadata.Namespace, sandbox.Metadata.Name)
-			failed = append(failed, sandbox)
 			continue
 		}
 
@@ -418,15 +415,16 @@ func (node *OsdnNode) reattachPods(existingPodSandboxes map[string]*kruntimeapi.
 		glog.Infof("Reattaching pod '%s/%s' to SDN", req.PodNamespace, req.PodName)
 		// NB: we don't need to worry about locking here because the cniserver
 		// isn't running for real yet.
-		if _, err := node.podManager.handleCNIRequest(req); err != nil {
+		if _, err := node.podManager.handleCNIRequest(req); err == nil {
+			delete(existingPodSandboxes, sandboxID)
+		} else {
 			glog.Warningf("Could not reattach pod '%s/%s' to SDN: %v", req.PodNamespace, req.PodName, err)
-			failed = append(failed, sandbox)
 		}
 	}
 
 	// Kill pods we couldn't recover; they will get restarted and then
 	// we'll be able to set them up correctly
-	for _, sandbox := range failed {
+	for _, sandbox := range existingPodSandboxes {
 		podRef := &v1.ObjectReference{Kind: "Pod", Name: sandbox.Metadata.Name, Namespace: sandbox.Metadata.Namespace, UID: types.UID(sandbox.Metadata.Uid)}
 		node.recorder.Eventf(podRef, v1.EventTypeWarning, "NetworkFailed", "The pod's network interface has been lost and the pod will be stopped.")
 
