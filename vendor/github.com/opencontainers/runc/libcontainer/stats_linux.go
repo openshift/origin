@@ -1,13 +1,10 @@
 package libcontainer
 
-import (
-	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/intelrdt"
-	"github.com/opencontainers/runc/types"
-)
+import "github.com/opencontainers/runc/libcontainer/cgroups"
+import "github.com/opencontainers/runc/libcontainer/intelrdt"
 
 type Stats struct {
-	Interfaces    []*types.NetworkInterface
+	Interfaces    []*NetworkInterface
 	CgroupStats   *cgroups.Stats
 	IntelRdtStats *intelrdt.Stats
 }

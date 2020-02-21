@@ -7,14 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 func TestInvalidCgroupPath(t *testing.T) {
-	if cgroups.IsCgroup2UnifiedMode() {
-		t.Skip("cgroup v1 is not supported")
-	}
 	root, err := getCgroupRoot()
 	if err != nil {
 		t.Errorf("couldn't get cgroup root: %v", err)
@@ -46,9 +42,6 @@ func TestInvalidCgroupPath(t *testing.T) {
 }
 
 func TestInvalidAbsoluteCgroupPath(t *testing.T) {
-	if cgroups.IsCgroup2UnifiedMode() {
-		t.Skip("cgroup v1 is not supported")
-	}
 	root, err := getCgroupRoot()
 	if err != nil {
 		t.Errorf("couldn't get cgroup root: %v", err)
@@ -81,9 +74,6 @@ func TestInvalidAbsoluteCgroupPath(t *testing.T) {
 
 // XXX: Remove me after we get rid of configs.Cgroup.Name and configs.Cgroup.Parent.
 func TestInvalidCgroupParent(t *testing.T) {
-	if cgroups.IsCgroup2UnifiedMode() {
-		t.Skip("cgroup v1 is not supported")
-	}
 	root, err := getCgroupRoot()
 	if err != nil {
 		t.Errorf("couldn't get cgroup root: %v", err)
@@ -117,9 +107,6 @@ func TestInvalidCgroupParent(t *testing.T) {
 
 // XXX: Remove me after we get rid of configs.Cgroup.Name and configs.Cgroup.Parent.
 func TestInvalidAbsoluteCgroupParent(t *testing.T) {
-	if cgroups.IsCgroup2UnifiedMode() {
-		t.Skip("cgroup v1 is not supported")
-	}
 	root, err := getCgroupRoot()
 	if err != nil {
 		t.Errorf("couldn't get cgroup root: %v", err)
@@ -153,9 +140,6 @@ func TestInvalidAbsoluteCgroupParent(t *testing.T) {
 
 // XXX: Remove me after we get rid of configs.Cgroup.Name and configs.Cgroup.Parent.
 func TestInvalidCgroupName(t *testing.T) {
-	if cgroups.IsCgroup2UnifiedMode() {
-		t.Skip("cgroup v1 is not supported")
-	}
 	root, err := getCgroupRoot()
 	if err != nil {
 		t.Errorf("couldn't get cgroup root: %v", err)
@@ -190,9 +174,6 @@ func TestInvalidCgroupName(t *testing.T) {
 
 // XXX: Remove me after we get rid of configs.Cgroup.Name and configs.Cgroup.Parent.
 func TestInvalidAbsoluteCgroupName(t *testing.T) {
-	if cgroups.IsCgroup2UnifiedMode() {
-		t.Skip("cgroup v1 is not supported")
-	}
 	root, err := getCgroupRoot()
 	if err != nil {
 		t.Errorf("couldn't get cgroup root: %v", err)
@@ -226,9 +207,6 @@ func TestInvalidAbsoluteCgroupName(t *testing.T) {
 
 // XXX: Remove me after we get rid of configs.Cgroup.Name and configs.Cgroup.Parent.
 func TestInvalidCgroupNameAndParent(t *testing.T) {
-	if cgroups.IsCgroup2UnifiedMode() {
-		t.Skip("cgroup v1 is not supported")
-	}
 	root, err := getCgroupRoot()
 	if err != nil {
 		t.Errorf("couldn't get cgroup root: %v", err)
@@ -262,9 +240,6 @@ func TestInvalidCgroupNameAndParent(t *testing.T) {
 
 // XXX: Remove me after we get rid of configs.Cgroup.Name and configs.Cgroup.Parent.
 func TestInvalidAbsoluteCgroupNameAndParent(t *testing.T) {
-	if cgroups.IsCgroup2UnifiedMode() {
-		t.Skip("cgroup v1 is not supported")
-	}
 	root, err := getCgroupRoot()
 	if err != nil {
 		t.Errorf("couldn't get cgroup root: %v", err)

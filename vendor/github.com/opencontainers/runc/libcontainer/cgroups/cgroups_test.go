@@ -11,9 +11,7 @@ func TestParseCgroups(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if IsCgroup2UnifiedMode() {
-		return
-	}
+
 	if _, ok := cgroups["cpu"]; !ok {
 		t.Fail()
 	}

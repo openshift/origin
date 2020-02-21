@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
 	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
@@ -55,7 +54,7 @@ func TestHugetlbSetHugetlb(t *testing.T) {
 
 	for _, pageSize := range HugePageSizes {
 		limit := fmt.Sprintf(limit, pageSize)
-		value, err := fscommon.GetCgroupParamUint(helper.CgroupPath, limit)
+		value, err := getCgroupParamUint(helper.CgroupPath, limit)
 		if err != nil {
 			t.Fatalf("Failed to parse %s - %s", limit, err)
 		}

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
 	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
@@ -35,11 +34,11 @@ func (s *FreezerGroup) Set(path string, cgroup *configs.Cgroup) error {
 			// state, let's write again this state, hoping it's going to be properly
 			// set this time. Otherwise, this loop could run infinitely, waiting for
 			// a state change that would never happen.
-			if err := fscommon.WriteFile(path, "freezer.state", string(cgroup.Resources.Freezer)); err != nil {
+			if err := writeFile(path, "freezer.state", string(cgroup.Resources.Freezer)); err != nil {
 				return err
 			}
 
-			state, err := fscommon.ReadFile(path, "freezer.state")
+			state, err := readFile(path, "freezer.state")
 			if err != nil {
 				return err
 			}

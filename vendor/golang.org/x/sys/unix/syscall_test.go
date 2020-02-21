@@ -58,3 +58,14 @@ func TestUname(t *testing.T) {
 
 	t.Logf("OS: %s/%s %s", utsname.Sysname[:], utsname.Machine[:], utsname.Release[:])
 }
+
+// Test that this compiles. (Issue #31735)
+func TestStatFieldNames(t *testing.T) {
+	var st unix.Stat_t
+	var _ *unix.Timespec
+	_ = &st.Atim
+	_ = &st.Mtim
+	_ = &st.Ctim
+	_ = int64(st.Mtim.Sec)
+	_ = int64(st.Mtim.Nsec)
+}

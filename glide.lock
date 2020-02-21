@@ -1,5 +1,5 @@
-hash: 713e0f2de9adf0a32e3273db5a3cdd0972fe52a4522848c05b2e2f0e42371f91
-updated: 2020-02-21T08:50:37.210276037-06:00
+hash: dc0f9fbfb992cfe6a43ecadf62c187e2a497de2d01868b51e0748456e42517b8
+updated: 2020-02-21T09:16:42.853658425-06:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -106,13 +106,6 @@ imports:
   version: bdb7599cd87b22701b5c89b37940ea882a7d7dec
   subpackages:
   - rpc
-- name: github.com/cilium/ebpf
-  version: 243d06f69c38017ae0cc519e6aeede95d01dcd07
-  subpackages:
-  - asm
-  - internal
-  - internal/btf
-  - internal/unix
 - name: github.com/clusterhq/flocker-go
   version: 2b8b7259d3139c96c4a6871031355808ab3fd3b3
 - name: github.com/container-storage-interface/spec
@@ -691,16 +684,12 @@ imports:
   - specs-go
   - specs-go/v1
 - name: github.com/opencontainers/runc
-  version: dc9208a3303feef5b3839f4323d9beb36df0a9dd
+  version: d736ef14f0288d6993a1845745d6756cfc9ddd5a
   subpackages:
   - libcontainer
   - libcontainer/apparmor
   - libcontainer/cgroups
-  - libcontainer/cgroups/ebpf
-  - libcontainer/cgroups/ebpf/devicefilter
   - libcontainer/cgroups/fs
-  - libcontainer/cgroups/fs2
-  - libcontainer/cgroups/fscommon
   - libcontainer/cgroups/systemd
   - libcontainer/configs
   - libcontainer/configs/validate
@@ -713,7 +702,6 @@ imports:
   - libcontainer/system
   - libcontainer/user
   - libcontainer/utils
-  - types
 - name: github.com/opencontainers/runtime-spec
   version: 02137cd4e50b37a01665e1731fcd4ac2d2178230
   subpackages:
@@ -1256,7 +1244,7 @@ imports:
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: cb0a6d8edb6c3528b01a0be84a5fe513dbf880a6
+  version: fde4db37ae7ad8191b03d30d27f258b5291ae4e3
   subpackages:
   - cpu
   - unix
@@ -1299,10 +1287,6 @@ imports:
   subpackages:
   - container/intsets
   - imports
-- name: golang.org/x/xerrors
-  version: a985d3407aa71f30cf86696ee0a2f409709f22e1
-  subpackages:
-  - internal
 - name: gonum.org/v1/gonum
   version: 3d26580ed485bd4449873f6ca8ef1234e6f9ad45
   repo: https://github.com/gonum/gonum.git

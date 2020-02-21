@@ -187,7 +187,7 @@ import:
   version: 5213b809086156e6e2b262a41394993fcff97439
 
 - package: github.com/opencontainers/runc
-  version: v1.0.0-rc10
+  version: v1.0.0-rc9
 
 # required by opencontainers
 - package: github.com/sirupsen/logrus
@@ -213,7 +213,7 @@ import:
 # GOMOD for golang.org/x/crypto asks for this version of x/sys, which includes things we need
 # we wouldn't need this line if glide paid attention to gomod
 - package: golang.org/x/sys
-  version: cb0a6d8edb6c3528b01a0be84a5fe513dbf880a6
+  version: fde4db37ae7a
 - package: golang.org/x/net
   version: ba9fcec4b297
 - package: github.com/agnivade/levenshtein

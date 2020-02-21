@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
 	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
@@ -29,7 +28,7 @@ func TestNetPrioSetIfPrio(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "net_prio.ifpriomap")
+	value, err := getCgroupParamString(helper.CgroupPath, "net_prio.ifpriomap")
 	if err != nil {
 		t.Fatalf("Failed to parse net_prio.ifpriomap - %s", err)
 	}

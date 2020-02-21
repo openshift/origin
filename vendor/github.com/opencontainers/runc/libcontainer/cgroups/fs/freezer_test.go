@@ -5,7 +5,6 @@ package fs
 import (
 	"testing"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
 	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
@@ -23,7 +22,7 @@ func TestFreezerSetState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := fscommon.GetCgroupParamString(helper.CgroupPath, "freezer.state")
+	value, err := getCgroupParamString(helper.CgroupPath, "freezer.state")
 	if err != nil {
 		t.Fatalf("Failed to parse freezer.state - %s", err)
 	}

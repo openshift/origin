@@ -1,4 +1,4 @@
-// +build linux
+// +build linux,!static_build
 
 package systemd
 
@@ -14,9 +14,8 @@ import (
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
+	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,6 +23,15 @@ type UnifiedManager struct {
 	mu      sync.Mutex
 	Cgroups *configs.Cgroup
 	Paths   map[string]string
+}
+
+var unifiedSubsystems = subsystemSet{
+	&fs.CpusetGroupV2{},
+	&fs.FreezerGroupV2{},
+	&fs.CpuGroupV2{},
+	&fs.MemoryGroupV2{},
+	&fs.IOGroupV2{},
+	&fs.PidsGroupV2{},
 }
 
 func (m *UnifiedManager) Apply(pid int) error {
@@ -151,19 +159,19 @@ func (m *UnifiedManager) Apply(pid int) error {
 		return err
 	}
 
-	path, err := getSubsystemPath(m.Cgroups, "")
-	if err != nil {
-		return err
+	paths := make(map[string]string)
+	for _, s := range unifiedSubsystems {
+		subsystemPath, err := getSubsystemPath(m.Cgroups, s.Name())
+		if err != nil {
+			// Don't fail if a cgroup hierarchy was not found, just skip this subsystem
+			if cgroups.IsNotFound(err) {
+				continue
+			}
+			return err
+		}
+		paths[s.Name()] = subsystemPath
 	}
-	m.Paths = map[string]string{
-		"pids":    path,
-		"memory":  path,
-		"io":      path,
-		"cpu":     path,
-		"devices": path,
-		"cpuset":  path,
-		"freezer": path,
-	}
+	m.Paths = paths
 	return nil
 }
 
@@ -187,24 +195,7 @@ func (m *UnifiedManager) GetPaths() map[string]string {
 	m.mu.Unlock()
 	return paths
 }
-func (m *UnifiedManager) GetUnifiedPath() (string, error) {
-	unifiedPath := ""
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	for k, v := range m.Paths {
-		if unifiedPath == "" {
-			unifiedPath = v
-		} else if v != unifiedPath {
-			return unifiedPath,
-				errors.Errorf("expected %q path to be unified path %q, got %q", k, unifiedPath, v)
-		}
-	}
-	if unifiedPath == "" {
-		// FIXME: unified path could be detected even when no controller is available
-		return unifiedPath, errors.New("cannot detect unified path")
-	}
-	return unifiedPath, nil
-}
+
 func createCgroupsv2Path(path string) (Err error) {
 	content, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
 	if err != nil {
@@ -259,24 +250,27 @@ func joinCgroupsV2(c *configs.Cgroup, pid int) error {
 	return createCgroupsv2Path(path)
 }
 
-func (m *UnifiedManager) fsManager() (cgroups.Manager, error) {
-	path, err := m.GetUnifiedPath()
-	if err != nil {
-		return nil, err
-	}
-	return fs2.NewManager(m.Cgroups, path, false)
-}
-
 func (m *UnifiedManager) Freeze(state configs.FreezerState) error {
-	fsMgr, err := m.fsManager()
+	path, err := getSubsystemPath(m.Cgroups, "freezer")
 	if err != nil {
 		return err
 	}
-	return fsMgr.Freeze(state)
+	prevState := m.Cgroups.Resources.Freezer
+	m.Cgroups.Resources.Freezer = state
+	freezer, err := unifiedSubsystems.Get("freezer")
+	if err != nil {
+		return err
+	}
+	err = freezer.Set(path, m.Cgroups)
+	if err != nil {
+		m.Cgroups.Resources.Freezer = prevState
+		return err
+	}
+	return nil
 }
 
 func (m *UnifiedManager) GetPids() ([]int, error) {
-	path, err := m.GetUnifiedPath()
+	path, err := getSubsystemPath(m.Cgroups, "devices")
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +278,7 @@ func (m *UnifiedManager) GetPids() ([]int, error) {
 }
 
 func (m *UnifiedManager) GetAllPids() ([]int, error) {
-	path, err := m.GetUnifiedPath()
+	path, err := getSubsystemPath(m.Cgroups, "devices")
 	if err != nil {
 		return nil, err
 	}
@@ -292,21 +286,44 @@ func (m *UnifiedManager) GetAllPids() ([]int, error) {
 }
 
 func (m *UnifiedManager) GetStats() (*cgroups.Stats, error) {
-	fsMgr, err := m.fsManager()
-	if err != nil {
-		return nil, err
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	stats := cgroups.NewStats()
+	for name, path := range m.Paths {
+		sys, err := unifiedSubsystems.Get(name)
+		if err == errSubsystemDoesNotExist || !cgroups.PathExists(path) {
+			continue
+		}
+		if err := sys.GetStats(path, stats); err != nil {
+			return nil, err
+		}
 	}
-	return fsMgr.GetStats()
+
+	return stats, nil
 }
 
 func (m *UnifiedManager) Set(container *configs.Config) error {
-	fsMgr, err := m.fsManager()
-	if err != nil {
-		return err
+	// If Paths are set, then we are just joining cgroups paths
+	// and there is no need to set any values.
+	if m.Cgroups.Paths != nil {
+		return nil
 	}
-	return fsMgr.Set(container)
-}
+	for _, sys := range unifiedSubsystems {
+		// Get the subsystem path, but don't error out for not found cgroups.
+		path, err := getSubsystemPath(container.Cgroups, sys.Name())
+		if err != nil && !cgroups.IsNotFound(err) {
+			return err
+		}
 
-func (m *UnifiedManager) GetCgroups() (*configs.Cgroup, error) {
-	return m.Cgroups, nil
+		if err := sys.Set(path, container.Cgroups); err != nil {
+			return err
+		}
+	}
+
+	if m.Paths["cpu"] != "" {
+		if err := fs.CheckCpushares(m.Paths["cpu"], container.Cgroups.Resources.CpuShares); err != nil {
+			return err
+		}
+	}
+	return nil
 }

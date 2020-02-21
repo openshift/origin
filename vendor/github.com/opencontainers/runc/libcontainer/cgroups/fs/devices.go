@@ -4,7 +4,6 @@ package fs
 
 import (
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/system"
 )
@@ -38,7 +37,7 @@ func (s *DevicesGroup) Set(path string, cgroup *configs.Cgroup) error {
 			if dev.Allow {
 				file = "devices.allow"
 			}
-			if err := fscommon.WriteFile(path, file, dev.CgroupString()); err != nil {
+			if err := writeFile(path, file, dev.CgroupString()); err != nil {
 				return err
 			}
 		}
@@ -46,25 +45,25 @@ func (s *DevicesGroup) Set(path string, cgroup *configs.Cgroup) error {
 	}
 	if cgroup.Resources.AllowAllDevices != nil {
 		if *cgroup.Resources.AllowAllDevices == false {
-			if err := fscommon.WriteFile(path, "devices.deny", "a"); err != nil {
+			if err := writeFile(path, "devices.deny", "a"); err != nil {
 				return err
 			}
 
 			for _, dev := range cgroup.Resources.AllowedDevices {
-				if err := fscommon.WriteFile(path, "devices.allow", dev.CgroupString()); err != nil {
+				if err := writeFile(path, "devices.allow", dev.CgroupString()); err != nil {
 					return err
 				}
 			}
 			return nil
 		}
 
-		if err := fscommon.WriteFile(path, "devices.allow", "a"); err != nil {
+		if err := writeFile(path, "devices.allow", "a"); err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range cgroup.Resources.DeniedDevices {
-		if err := fscommon.WriteFile(path, "devices.deny", dev.CgroupString()); err != nil {
+		if err := writeFile(path, "devices.deny", dev.CgroupString()); err != nil {
 			return err
 		}
 	}
