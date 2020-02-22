@@ -1,6 +1,7 @@
 package objx
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,7 +28,7 @@ var arrayAccesRegex = regexp.MustCompile(arrayAccesRegexString)
 //
 //    o.Get("books[1].chapters[2].title")
 func (m Map) Get(selector string) *Value {
-	rawObj := access(m, selector, nil, false)
+	rawObj := access(m, selector, nil, false, false)
 	return &Value{data: rawObj}
 }
 
@@ -42,34 +43,47 @@ func (m Map) Get(selector string) *Value {
 //
 //    o.Set("books[1].chapters[2].title","Time to Go")
 func (m Map) Set(selector string, value interface{}) Map {
-	access(m, selector, value, true)
+	access(m, selector, value, true, false)
 	return m
 }
 
 // access accesses the object using the selector and performs the
 // appropriate action.
-func access(current, selector, value interface{}, isSet bool) interface{} {
+func access(current, selector, value interface{}, isSet, panics bool) interface{} {
+
 	switch selector.(type) {
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+
 		if array, ok := current.([]interface{}); ok {
 			index := intFromInterface(selector)
+
 			if index >= len(array) {
+				if panics {
+					panic(fmt.Sprintf("objx: Index %d is out of range. Slice only contains %d items.", index, len(array)))
+				}
 				return nil
 			}
+
 			return array[index]
 		}
+
 		return nil
 
 	case string:
+
 		selStr := selector.(string)
 		selSegs := strings.SplitN(selStr, PathSeparator, 2)
 		thisSel := selSegs[0]
 		index := -1
 		var err error
 
+		// https://github.com/stretchr/objx/issues/12
 		if strings.Contains(thisSel, "[") {
+
 			arrayMatches := arrayAccesRegex.FindStringSubmatch(thisSel)
+
 			if len(arrayMatches) > 0 {
+
 				// Get the key into the map
 				thisSel = arrayMatches[1]
 
@@ -81,11 +95,14 @@ func access(current, selector, value interface{}, isSet bool) interface{} {
 					// seriously wrong. Panic.
 					panic("objx: Array index is not an integer.  Must use array[int].")
 				}
+
 			}
 		}
+
 		if curMap, ok := current.(Map); ok {
 			current = map[string]interface{}(curMap)
 		}
+
 		// get the object in question
 		switch current.(type) {
 		case map[string]interface{}:
@@ -93,26 +110,39 @@ func access(current, selector, value interface{}, isSet bool) interface{} {
 			if len(selSegs) <= 1 && isSet {
 				curMSI[thisSel] = value
 				return nil
+			} else {
+				current = curMSI[thisSel]
 			}
-			current = curMSI[thisSel]
 		default:
 			current = nil
 		}
+
+		if current == nil && panics {
+			panic(fmt.Sprintf("objx: '%v' invalid on object.", selector))
+		}
+
 		// do we need to access the item of an array?
 		if index > -1 {
 			if array, ok := current.([]interface{}); ok {
 				if index < len(array) {
 					current = array[index]
 				} else {
+					if panics {
+						panic(fmt.Sprintf("objx: Index %d is out of range. Slice only contains %d items.", index, len(array)))
+					}
 					current = nil
 				}
 			}
 		}
+
 		if len(selSegs) > 1 {
-			current = access(current, selSegs[1], value, isSet)
+			current = access(current, selSegs[1], value, isSet, panics)
 		}
+
 	}
+
 	return current
+
 }
 
 // intFromInterface converts an interface object to the largest
@@ -142,7 +172,8 @@ func intFromInterface(selector interface{}) int {
 	case uint64:
 		value = int(selector.(uint64))
 	default:
-		return 0
+		panic("objx: array access argument is not an integer type (this should never happen)")
 	}
+
 	return value
 }

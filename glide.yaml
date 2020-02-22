@@ -94,6 +94,8 @@ import:
   version: v2.2.4
 - package: sigs.k8s.io/structured-merge-diff
   version: b1b620dd3f06c352be11cbf3dda1a04606bbf10a
+- package: github.com/google/cadvisor
+  version: v0.35.0
 
 # for gengo
 - package: golang.org/x/tools/imports
@@ -124,9 +126,6 @@ import:
 - package: github.com/onsi/ginkgo
   repo:    https://github.com/openshift/onsi-ginkgo.git
   version: origin-4.3
-- package: github.com/google/cadvisor
-  repo:    https://github.com/openshift/google-cadvisor.git
-  version: openshift-4.3-cadvisor-v0.33.2
 # these need to match the kubelet
 # TODO(node): recheck these levels
 - package: github.com/docker/distribution
@@ -187,10 +186,9 @@ import:
 - package: google.golang.org/api
   version: 5213b809086156e6e2b262a41394993fcff97439
 
-# runc for delegation fix BZ#1755991
 - package: github.com/opencontainers/runc
-  repo:    https://github.com/openshift/opencontainers-runc
-  version: release-4.3
+  version: v1.0.0-rc9
+
 # required by opencontainers
 - package: github.com/sirupsen/logrus
   version: 839c75faf7f98a33d445d181f3018b5c3409a45e
@@ -215,7 +213,7 @@ import:
 # GOMOD for golang.org/x/crypto asks for this version of x/sys, which includes things we need
 # we wouldn't need this line if glide paid attention to gomod
 - package: golang.org/x/sys
-  version: 97732733099d
+  version: fde4db37ae7a
 - package: golang.org/x/net
   version: ba9fcec4b297
 - package: github.com/agnivade/levenshtein
