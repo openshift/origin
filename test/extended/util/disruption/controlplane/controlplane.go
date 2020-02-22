@@ -33,12 +33,15 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	m := monitor.NewMonitorWithInterval(time.Second)
 	err = monitor.StartAPIMonitoring(ctx, m, config, 15*time.Second)
 	framework.ExpectNoError(err, "unable to monitor API")
+
+	start := time.Now()
 	m.StartSampling(ctx)
 
 	// wait to ensure API is still up after the test ends
 	<-done
 	time.Sleep(15 * time.Second)
 	cancel()
+	end := time.Now()
 
 	var duration time.Duration
 	var describe []string
@@ -52,7 +55,7 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 			duration += i
 		}
 	}
-	if duration > 120*time.Second {
+	if float64(duration)/float64(end.Sub(start)) > 0.04 {
 		framework.Failf("API was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
 	} else if duration > 0 {
 		disruption.Flakef(f, "API was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))

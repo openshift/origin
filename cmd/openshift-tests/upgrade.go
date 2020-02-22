@@ -25,26 +25,42 @@ var upgradeSuites = []*ginkgo.TestSuite{
 		Matches: func(name string) bool {
 			return strings.Contains(name, "[Feature:ClusterUpgrade]") && strings.Contains(name, "[Suite:openshift]")
 		},
-
 		Init: func(opt map[string]string) error {
-			for k, v := range opt {
-				switch k {
-				case "abort-at":
-					if err := upgrade.SetUpgradeAbortAt(v); err != nil {
-						return err
-					}
-				case "disrupt-reboot":
-					if err := upgrade.SetUpgradeDisruptReboot(v); err != nil {
-						return err
-					}
-				default:
-					return fmt.Errorf("unrecognized upgrade option: %s", k)
-				}
-			}
-			return filterUpgrade(upgrade.AllTests(), func(name string) bool { return true })
+			return upgradeInitArguments(opt, func(string) bool { return true })
 		},
-		TestTimeout: 120 * time.Minute,
+		TestTimeout: 240 * time.Minute,
 	},
+	{
+		Name: "platform",
+		Description: templates.LongDesc(`
+		Run only the tests that verify the platform remains available.
+		`),
+		Matches: func(name string) bool {
+			return strings.Contains(name, "[Feature:ClusterUpgrade]") && strings.Contains(name, "[Suite:openshift]")
+		},
+		Init: func(opt map[string]string) error {
+			return upgradeInitArguments(opt, func(name string) bool { return name == "control-plane-available" })
+		},
+		TestTimeout: 240 * time.Minute,
+	},
+}
+
+func upgradeInitArguments(opt map[string]string, filterFn func(name string) bool) error {
+	for k, v := range opt {
+		switch k {
+		case "abort-at":
+			if err := upgrade.SetUpgradeAbortAt(v); err != nil {
+				return err
+			}
+		case "disrupt-reboot":
+			if err := upgrade.SetUpgradeDisruptReboot(v); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unrecognized upgrade option: %s", k)
+		}
+	}
+	return filterUpgrade(upgrade.AllTests(), filterFn)
 }
 
 type UpgradeOptions struct {
