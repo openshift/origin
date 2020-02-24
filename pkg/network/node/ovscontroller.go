@@ -222,6 +222,14 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 	// eg, "table=120, priority=100, reg0=${tenant_id}, actions=output:${ovs_port_1},output:${ovs_port_2}"
 	otx.AddFlow("table=120, priority=0, actions=drop")
 
+	return otx.Commit()
+}
+
+// Perform the final step of SDN setup; this is done after everything else, so if the SDN
+// pod is killed partway through setup, then when it is restarted, oc.AlreadySetUp() will
+// fail and we'll destroy and recreate the bridge again.
+func (oc *ovsController) FinishSetupOVS() error {
+	otx := oc.ovs.NewTransaction()
 	// Table 253: rule version note
 	otx.AddFlow("table=%d, actions=note:%s", ruleVersionTable, oc.getVersionNote())
 

@@ -99,7 +99,9 @@ type OsdnNode struct {
 	oc                 *ovsController
 	networkInfo        *common.NetworkInfo
 	podManager         *podManager
+	clusterCIDRs       []string
 	localSubnetCIDR    string
+	localGatewayCIDR   string
 	localIP            string
 	hostName           string
 	useConnTrack       bool
@@ -297,11 +299,10 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	var cidrList []string
 	for _, cn := range node.networkInfo.ClusterNetworks {
-		cidrList = append(cidrList, cn.ClusterCIDR.String())
+		node.clusterCIDRs = append(node.clusterCIDRs, cn.ClusterCIDR.String())
 	}
-	nodeIPTables := newNodeIPTables(cidrList, node.iptablesSyncPeriod, !node.useConnTrack, node.networkInfo.VXLANPort, node.masqueradeBit)
+	nodeIPTables := newNodeIPTables(node.clusterCIDRs, node.iptablesSyncPeriod, !node.useConnTrack, node.networkInfo.VXLANPort, node.masqueradeBit)
 
 	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("failed to set up iptables: %v", err)
@@ -355,6 +356,10 @@ func (node *OsdnNode) Start() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if err := node.FinishSetupSDN(); err != nil {
+		return fmt.Errorf("could not complete SDN setup: %v", err)
 	}
 
 	if err := os.MkdirAll(node.cniDirPath, 0755); err != nil {

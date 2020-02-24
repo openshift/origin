@@ -20,7 +20,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetworkCIDR []string) error {
+func (plugin *OsdnNode) alreadySetUp() error {
 	var found bool
 
 	l, err := netlink.LinkByName(Tun0)
@@ -34,7 +34,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 	}
 	found = false
 	for _, addr := range addrs {
-		if addr.IPNet.String() == localSubnetGatewayCIDR {
+		if addr.IPNet.String() == plugin.localGatewayCIDR {
 			found = true
 			break
 		}
@@ -47,7 +47,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 	if err != nil {
 		return err
 	}
-	for _, clusterCIDR := range clusterNetworkCIDR {
+	for _, clusterCIDR := range plugin.clusterCIDRs {
 		found = false
 		for _, route := range routes {
 			if route.Dst != nil && route.Dst.String() == clusterCIDR {
@@ -111,11 +111,6 @@ func (plugin *OsdnNode) SetupSDN() (bool, map[string]podNetworkInfo, error) {
 		return false, nil, fmt.Errorf("net/ipv4/ip_forward=0, it must be set to 1")
 	}
 
-	var clusterNetworkCIDRs []string
-	for _, cn := range plugin.networkInfo.ClusterNetworks {
-		clusterNetworkCIDRs = append(clusterNetworkCIDRs, cn.ClusterCIDR.String())
-	}
-
 	localSubnetCIDR := plugin.localSubnetCIDR
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	if err != nil {
@@ -126,7 +121,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, map[string]podNetworkInfo, error) {
 
 	glog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
 
-	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
+	plugin.localGatewayCIDR = fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
 
 	if err := waitForOVS(ovsDialDefaultNetwork, ovsDialDefaultAddress); err != nil {
 		return false, nil, err
@@ -137,34 +132,40 @@ func (plugin *OsdnNode) SetupSDN() (bool, map[string]podNetworkInfo, error) {
 	if err != nil {
 		glog.Warningf("[SDN setup] Could not get details of existing pods: %v", err)
 	}
-	if err := plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs); err == nil {
-		glog.V(5).Infof("[SDN setup] no SDN setup required")
+	if err := plugin.alreadySetUp(); err == nil {
+		glog.V(5).Infof("[SDN setup] SDN is already setup")
 	} else {
 		glog.Infof("[SDN setup] full SDN setup required (%v)", err)
-		if err := plugin.setup(clusterNetworkCIDRs, localSubnetCIDR, localSubnetGateway, gwCIDR); err != nil {
+		if err := plugin.setup(localSubnetCIDR, localSubnetGateway); err != nil {
 			return false, nil, err
 		}
 		changed = true
 	}
 
-	// TODO: make it possible to safely reestablish node configuration after restart
-	// If OVS goes down and fails the health check, restart the entire process
-	healthFn := func() error { return plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs) }
-	runOVSHealthCheck(ovsDialDefaultNetwork, ovsDialDefaultAddress, healthFn)
-
 	return changed, existingPods, nil
 }
 
-func (plugin *OsdnNode) setup(clusterNetworkCIDRs []string, localSubnetCIDR, localSubnetGateway, gwCIDR string) error {
+func (plugin *OsdnNode) FinishSetupSDN() error {
+	err := plugin.oc.FinishSetupOVS()
+	if err != nil {
+		return err
+	}
+	// TODO: make it possible to safely reestablish node configuration after restart
+	// If OVS goes down and fails the health check, restart the entire process
+	runOVSHealthCheck(ovsDialDefaultNetwork, ovsDialDefaultAddress, plugin.alreadySetUp)
+	return nil
+}
+
+func (plugin *OsdnNode) setup(localSubnetCIDR, localSubnetGateway string) error {
 	serviceNetworkCIDR := plugin.networkInfo.ServiceNetwork.String()
 
-	if err := plugin.oc.SetupOVS(clusterNetworkCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway, plugin.mtu, plugin.networkInfo.VXLANPort); err != nil {
+	if err := plugin.oc.SetupOVS(plugin.clusterCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway, plugin.mtu, plugin.networkInfo.VXLANPort); err != nil {
 		return err
 	}
 
 	l, err := netlink.LinkByName(Tun0)
 	if err == nil {
-		gwIP, _ := netlink.ParseIPNet(gwCIDR)
+		gwIP, _ := netlink.ParseIPNet(plugin.localGatewayCIDR)
 		err = netlink.AddrAdd(l, &netlink.Addr{IPNet: gwIP})
 		if err == nil {
 			defer deleteLocalSubnetRoute(Tun0, localSubnetCIDR)
