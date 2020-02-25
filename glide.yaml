@@ -85,7 +85,7 @@ import:
 - package: k8s.io/gengo
   version: 26a664648505d962332bda642b27306bc10d1082
 - package: k8s.io/utils
-  version: e782cd3c129fc98ee807f3c889c0f26eb7c9daf5
+  version: 5f6fbceb4c31d35291b2de756aeaae2ddeee3e92
 - package: k8s.io/kube-openapi
   version: 30be4d16710ac61bce31eb28a01054596fe6a9f1
 - package: k8s.io/klog
