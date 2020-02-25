@@ -1,0 +1,15 @@
+[fedora31]
+name=Fedora 31 - $basearch
+metalink=https://mirrors.fedoraproject.org/metalink?repo=fedora-31&arch=$basearch
+enabled=0
+repo_gpgcheck=0
+type=rpm
+gpgcheck=0
+
+[fedora31-updates]
+name=Fedora 31 - $basearch - Updates
+metalink=https://mirrors.fedoraproject.org/metalink?repo=updates-released-f31&arch=$basearch
+enabled=0
+repo_gpgcheck=0
+type=rpm
+gpgcheck=0

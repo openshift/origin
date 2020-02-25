@@ -23,16 +23,14 @@ RUN dnf -y update && dnf -y install\
  iptables-services\
  conntrack-tools\
  openvswitch\
- openvswitch-ovn-*\
  python-netaddr\
  python2-pyroute2\
  python2-requests\
- PyYAML\
- cri-o\
- cri-tools
+ PyYAML
 
-# Remove the CRI-O CNI network configs so openshift-sdn's will be used instead
-RUN rm -f /etc/cni/net.d/*
+COPY fedora31.repo /etc/yum.repos.d/
+RUN dnf -y --enablerepo=fedora31 --enablerepo=fedora31-updates install \
+	ovn ovn-central ovn-host
 
 # A default deny firewall (either iptables or firewalld) is
 # installed by default on non-cloud fedora and rhel, so all
@@ -94,12 +92,3 @@ RUN systemctl enable ovn-kubernetes-node-setup.service
 COPY ovn-kubernetes-node.service /etc/systemd/system/
 COPY ovn-kubernetes-node.sh /usr/local/bin/
 RUN systemctl enable ovn-kubernetes-node.service
-
-COPY crio-node.sh /usr/local/bin/
-COPY crio-node.service /etc/systemd/system/
-RUN systemctl enable crio-node.service
-
-# Default crio storage to vfs. overlay on overlayfs is not supported in crio.
-RUN echo "CRIO_STORAGE_OPTIONS=--storage-driver vfs" > /etc/sysconfig/crio-storage
-RUN sed -i 's/^plugin_dir .*/plugin_dir = "\/opt\/cni\/bin\/"/g' /etc/crio/crio.conf
-RUN sed -i 's/^registries .*/registries = [\n\t"docker.io",\n\t"registry.fedoraproject.org",\n\t"registry.access.redhat.com",/g' /etc/crio/crio.conf
