@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -131,23 +130,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	cancel()
 	end := time.Now()
 
-	var duration time.Duration
-	var describe []string
-	for _, interval := range m.Events(time.Time{}, time.Time{}) {
-		describe = append(describe, interval.String())
-		i := interval.To.Sub(interval.From)
-		if i < time.Second {
-			i = time.Second
-		}
-		if interval.Condition.Level > monitor.Info {
-			duration += i
-		}
-	}
-	if float64(duration)/float64(end.Sub(start)) > 0.02 {
-		framework.Failf("Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
-	} else if duration > 0 {
-		disruption.Flakef(f, "Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
-	}
+	disruption.ExpectNoDisruption(f, 0.02, end.Sub(start), m.Events(time.Time{}, time.Time{}), "Service was unreachable during disruption")
 
 	// verify finalizer behavior
 	defer func() {
