@@ -18,8 +18,11 @@ limitations under the License.
 package types
 
 import (
+	"errors"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/utils/mount"
 )
 
 // UniquePodName defines the type to key pods off of
@@ -49,6 +52,16 @@ func (o *GeneratedOperations) Run() (eventErr, detailedErr error) {
 	// Handle panic, if any, from operationFunc()
 	defer runtime.RecoverFromPanic(&detailedErr)
 	return o.OperationFunc()
+}
+
+// IsFilesystemMismatchError checks if mount failed because requested filesystem
+// on PVC and actual filesystem on disk did not match
+func IsFilesystemMismatchError(err error) bool {
+	mountError := &mount.MountError{}
+	if errors.As(err, &mountError) && mountError.Type == mount.FilesystemMismatch {
+		return true
+	}
+	return false
 }
 
 const (

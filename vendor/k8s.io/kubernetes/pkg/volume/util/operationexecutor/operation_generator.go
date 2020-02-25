@@ -580,6 +580,7 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 				devicePath,
 				deviceMountPath)
 			if err != nil {
+				og.checkForFailedMount(volumeToMount, err)
 				// On failure, return error. Caller will log and retry.
 				return volumeToMount.GenerateError("MountVolume.MountDevice failed", err)
 			}
@@ -622,6 +623,7 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 			DesiredSize: volumeToMount.DesiredSizeLimit,
 		})
 		if mountErr != nil {
+			og.checkForFailedMount(volumeToMount, mountErr)
 			// On failure, return error. Caller will log and retry.
 			return volumeToMount.GenerateError("MountVolume.SetUp failed", mountErr)
 		}
@@ -676,6 +678,18 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 		OperationFunc:     mountVolumeFunc,
 		EventRecorderFunc: eventRecorderFunc,
 		CompleteFunc:      util.OperationCompleteHook(util.GetFullQualifiedPluginNameForVolume(volumePluginName, volumeToMount.VolumeSpec), "volume_mount"),
+	}
+}
+
+func (og *operationGenerator) checkForFailedMount(volumeToMount VolumeToMount, mountError error) {
+	pv := volumeToMount.VolumeSpec.PersistentVolume
+	if pv == nil {
+		return
+	}
+
+	if volumetypes.IsFilesystemMismatchError(mountError) {
+		simpleMsg, _ := volumeToMount.GenerateMsg("MountVolume failed", mountError.Error())
+		og.recorder.Eventf(pv, v1.EventTypeWarning, kevents.FailedMountOnFilesystemMismatch, simpleMsg)
 	}
 }
 
