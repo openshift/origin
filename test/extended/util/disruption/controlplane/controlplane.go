@@ -55,7 +55,7 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 			duration += i
 		}
 	}
-	if float64(duration)/float64(end.Sub(start)) > 0.04 {
+	if float64(duration)/float64(end.Sub(start)) > 0.08 {
 		framework.Failf("API was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
 	} else if duration > 0 {
 		disruption.Flakef(f, "API was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
