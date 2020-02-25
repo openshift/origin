@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -57,7 +56,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 		checkOCMProgressing = func(progressing operatorv1.ConditionStatus) {
 			g.By("check that the OCM enters Progressing==" + string(progressing))
 			var err error
-			err = wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+			err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
 				ocm, err := oc.AdminOperatorClient().OperatorV1().OpenShiftControllerManagers().Get("cluster", metav1.GetOptions{})
 				if err != nil {
 					g.By("intermediate error accessing ocm: " + err.Error())
@@ -68,40 +67,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 						return true, nil
 					}
 				}
-				return false, nil
-			})
-			o.Expect(err).NotTo(o.HaveOccurred())
-		}
-		checkDSRolloutState = func(inProgress bool) {
-			g.By(fmt.Sprintf("check that a OCM DS rollout being in progress is %v", inProgress))
-			var err error
-			err = wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
-				ds, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-controller-manager").Get("controller-manager", metav1.GetOptions{})
-				if err != nil {
-					g.By("intermediate error access ds: " + err.Error())
-					return false, nil
-				}
-				if inProgress {
-					if ds.Status.CurrentNumberScheduled < ds.Status.DesiredNumberScheduled ||
-						ds.Status.NumberReady < ds.Status.DesiredNumberScheduled ||
-						ds.Status.NumberAvailable < ds.Status.DesiredNumberScheduled ||
-						ds.Status.UpdatedNumberScheduled < ds.Status.DesiredNumberScheduled {
-						return true, nil
-					}
-					return false, nil
-				}
-				if ds.Status.CurrentNumberScheduled == ds.Status.DesiredNumberScheduled &&
-					ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
-					ds.Status.NumberAvailable == ds.Status.DesiredNumberScheduled &&
-					ds.Status.UpdatedNumberScheduled == ds.Status.DesiredNumberScheduled {
-					return true, nil
-				}
-				e2e.Logf("ocm Desired: %d, Current: %d, Ready: %d, Available: %d, Updated: %d",
-					ds.Status.DesiredNumberScheduled,
-					ds.Status.CurrentNumberScheduled,
-					ds.Status.NumberReady,
-					ds.Status.NumberAvailable,
-					ds.Status.UpdatedNumberScheduled)
 				return false, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -350,8 +315,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				o.Expect(err).NotTo(o.HaveOccurred())
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
-				checkDSRolloutState(true)
-				checkDSRolloutState(false)
 			})
 
 			// this replaces coverage from the TestBuildDefaultEnvironment integration test
@@ -373,11 +336,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				o.Expect(err).NotTo(o.HaveOccurred())
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
-				checkDSRolloutState(true)
-				checkDSRolloutState(false)
-				// there is no way programmatically to check leader election outcome
-				g.By("waiting 10s for controller-manager leader election to complete")
-				time.Sleep(10 * time.Second)
 				g.By("verify build.config is set")
 				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -431,11 +389,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				o.Expect(err).NotTo(o.HaveOccurred())
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
-				checkDSRolloutState(true)
-				checkDSRolloutState(false)
-				// there is no way programmatically to check leader election outcome
-				g.By("waiting 10s for controller-manager leader election to complete")
-				time.Sleep(10 * time.Second)
 				g.By("verify build.config is set")
 				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -490,11 +443,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				o.Expect(err).NotTo(o.HaveOccurred())
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
-				checkDSRolloutState(true)
-				checkDSRolloutState(false)
-				// there is no way programmatically to check leader election outcome
-				g.By("waiting 10s for controller-manager leader election to complete")
-				time.Sleep(10 * time.Second)
 				g.By("verify build.config is set")
 				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -543,11 +491,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
-				checkDSRolloutState(true)
-				checkDSRolloutState(false)
-				// there is no way programmatically to check leader election outcome
-				g.By("waiting 10s for controller-manager leader election to complete")
-				time.Sleep(10 * time.Second)
 				g.By("verify build.config is set")
 				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -596,11 +539,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
-				checkDSRolloutState(true)
-				checkDSRolloutState(false)
-				// there is no way programmatically to check leader election outcome
-				g.By("waiting 10s for controller-manager leader election to complete")
-				time.Sleep(10 * time.Second)
 				g.By("verify build.config is set")
 				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
