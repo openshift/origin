@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -101,23 +100,7 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	cancel()
 	end := time.Now()
 
-	var duration time.Duration
-	var describe []string
-	for _, interval := range m.Events(time.Time{}, time.Time{}) {
-		describe = append(describe, interval.String())
-		i := interval.To.Sub(interval.From)
-		if i < time.Second {
-			i = time.Second
-		}
-		if interval.Condition.Level > monitor.Info {
-			duration += i
-		}
-	}
-	if float64(duration)/float64(end.Sub(start)) > 0.15 {
-		framework.Failf("Frontends were unreachable during disruption for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
-	} else if duration > 0 {
-		disruption.Flakef(f, "Frontends were unreachable during disruption for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
-	}
+	disruption.ExpectNoDisruption(f, 0.20, end.Sub(start), m.Events(time.Time{}, time.Time{}), "Frontends were unreachable during disruption")
 }
 
 // Teardown cleans up any remaining resources.

@@ -19,6 +19,8 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework/ginkgowrapper"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	"k8s.io/kubernetes/test/utils/junit"
+
+	"github.com/openshift/origin/pkg/monitor"
 )
 
 // testWithDisplayName is implemented by tests that want more descriptive test names
@@ -202,4 +204,27 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 		}
 	}
 	return testFrameworks
+}
+
+// ExpectNoDisruption fails if the sum of the duration of all events exceeds tolerate as a fraction ([0-1]) of total, reports a
+// disruption flake if any disruption occurs, and uses reason to prefix the message. I.e. tolerate 0.1 of 10m total will fail
+// if the sum of the intervals is greater than 1m, or report a flake if any interval is found.
+func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Duration, events monitor.EventIntervals, reason string) {
+	var duration time.Duration
+	var describe []string
+	for _, interval := range events {
+		describe = append(describe, interval.String())
+		i := interval.To.Sub(interval.From)
+		if i < time.Second {
+			i = time.Second
+		}
+		if interval.Condition.Level > monitor.Info {
+			duration += i
+		}
+	}
+	if percent := float64(duration) / float64(total); percent > tolerate {
+		framework.Failf("%s for at least %s of %s (%0.0f%%):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
+	} else if duration > 0 {
+		Flakef(f, "%s for at least %s of %s (%0.0f%%):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
+	}
 }
