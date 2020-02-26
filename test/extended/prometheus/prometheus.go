@@ -58,7 +58,7 @@ var _ = g.Describe("[Feature:Prometheus][Late] Alerts", func() {
 
 		tests := map[string]bool{
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
-			`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh|FailingOperator",alertstate="firing"}[2h]) >= 1`: false,
+			`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing"}[2h]) >= 1`: false,
 		}
 		runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 	})
