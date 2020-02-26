@@ -99,6 +99,19 @@ var _ = g.Describe("[Feature:Platform][Serial] Service Catalog should", func() {
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
+		g.By("Check if the apiservice is removed successfully after ServiceCatalog disabled")
+		err = wait.Poll(3*time.Second, serviceCatalogWait, func() (bool, error) {
+			output, err := oc.AsAdmin().Run("get").Args("apiservices", "v1beta1.servicecatalog.k8s.io", "-o=jsonpath={.status.conditions[0].reason}").Output()
+			if err != nil {
+				if strings.Contains(output, "not found") {
+					e2e.Logf("v1beta1.servicecatalog.k8s.io apiservice is removed successfully!")
+					return true, nil
+				}
+				return false, err
+			}
+			return false, err
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
 	}, 120)
 
 	g.It("check basic usages: OCP-24062, OCP-24049, OCP-15600", func() {
