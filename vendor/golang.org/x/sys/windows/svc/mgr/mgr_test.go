@@ -80,6 +80,9 @@ func testConfig(t *testing.T, s *mgr.Service, should mgr.Config) mgr.Config {
 	if err != nil {
 		t.Fatalf("Config failed: %s", err)
 	}
+	if should.DelayedAutoStart != is.DelayedAutoStart {
+		t.Fatalf("config mismatch: DelayedAutoStart is %v, but should have %v", is.DelayedAutoStart, should.DelayedAutoStart)
+	}
 	if should.DisplayName != is.DisplayName {
 		t.Fatalf("config mismatch: DisplayName is %q, but should have %q", is.DisplayName, should.DisplayName)
 	}
@@ -250,6 +253,15 @@ func TestMyService(t *testing.T) {
 	c = testConfig(t, s, c)
 
 	c.StartType = mgr.StartManual
+	err = s.UpdateConfig(c)
+	if err != nil {
+		t.Fatalf("UpdateConfig failed: %v", err)
+	}
+
+	testConfig(t, s, c)
+
+	c.StartType = mgr.StartAutomatic
+	c.DelayedAutoStart = true
 	err = s.UpdateConfig(c)
 	if err != nil {
 		t.Fatalf("UpdateConfig failed: %v", err)

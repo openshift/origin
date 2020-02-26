@@ -7,10 +7,16 @@
 package unix_test
 
 import (
+	"bufio"
+	"bytes"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"runtime"
 	"runtime/debug"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -510,7 +516,7 @@ func TestClockNanosleep(t *testing.T) {
 		t.Skip("clock_nanosleep syscall is not available, skipping test")
 	} else if err != nil {
 		t.Errorf("ClockNanosleep(CLOCK_MONOTONIC, 0, %#v, nil) = %v", &rel, err)
-	} else if slept := time.Now().Sub(start); slept < delay {
+	} else if slept := time.Since(start); slept < delay {
 		t.Errorf("ClockNanosleep(CLOCK_MONOTONIC, 0, %#v, nil) slept only %v", &rel, slept)
 	}
 
@@ -521,7 +527,7 @@ func TestClockNanosleep(t *testing.T) {
 	err = unix.ClockNanosleep(unix.CLOCK_REALTIME, unix.TIMER_ABSTIME, &abs, nil)
 	if err != nil {
 		t.Errorf("ClockNanosleep(CLOCK_REALTIME, TIMER_ABSTIME, %#v (=%v), nil) = %v", &abs, until, err)
-	} else if slept := time.Now().Sub(start); slept < delay {
+	} else if slept := time.Since(start); slept < delay {
 		t.Errorf("ClockNanosleep(CLOCK_REALTIME, TIMER_ABSTIME, %#v (=%v), nil) slept only %v", &abs, until, slept)
 	}
 
@@ -530,4 +536,78 @@ func TestClockNanosleep(t *testing.T) {
 	if err != unix.EINVAL && err != unix.EOPNOTSUPP {
 		t.Errorf("ClockNanosleep(CLOCK_THREAD_CPUTIME_ID, 0, %#v, nil) = %v, want EINVAL or EOPNOTSUPP", &rel, err)
 	}
+}
+
+func TestOpenByHandleAt(t *testing.T) {
+	skipIfNotSupported := func(t *testing.T, name string, err error) {
+		if err == unix.EPERM {
+			t.Skipf("skipping %s test without CAP_DAC_READ_SEARCH", name)
+		}
+		if err == unix.ENOSYS {
+			t.Skipf("%s system call not available", name)
+		}
+		if err == unix.EOPNOTSUPP {
+			t.Skipf("%s not supported on this filesystem", name)
+		}
+	}
+
+	h, mountID, err := unix.NameToHandleAt(unix.AT_FDCWD, "syscall_linux_test.go", 0)
+	if err != nil {
+		skipIfNotSupported(t, "name_to_handle_at", err)
+		t.Fatalf("NameToHandleAt: %v", err)
+	}
+	t.Logf("mountID: %v, handle: size=%d, type=%d, bytes=%q", mountID,
+		h.Size(), h.Type(), h.Bytes())
+	mount, err := openMountByID(mountID)
+	if err != nil {
+		t.Fatalf("openMountByID: %v", err)
+	}
+	defer mount.Close()
+
+	for _, clone := range []bool{false, true} {
+		t.Run("clone="+strconv.FormatBool(clone), func(t *testing.T) {
+			if clone {
+				h = unix.NewFileHandle(h.Type(), h.Bytes())
+			}
+			fd, err := unix.OpenByHandleAt(int(mount.Fd()), h, unix.O_RDONLY)
+			skipIfNotSupported(t, "open_by_handle_at", err)
+			if err != nil {
+				t.Fatalf("OpenByHandleAt: %v", err)
+			}
+			defer unix.Close(fd)
+
+			t.Logf("opened fd %v", fd)
+			f := os.NewFile(uintptr(fd), "")
+			slurp, err := ioutil.ReadAll(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			const substr = "Some substring for a test."
+			if !strings.Contains(string(slurp), substr) {
+				t.Errorf("didn't find substring %q in opened file; read %d bytes", substr, len(slurp))
+			}
+		})
+	}
+}
+
+func openMountByID(mountID int) (f *os.File, err error) {
+	mi, err := os.Open("/proc/self/mountinfo")
+	if err != nil {
+		return nil, err
+	}
+	defer mi.Close()
+	bs := bufio.NewScanner(mi)
+	wantPrefix := []byte(fmt.Sprintf("%v ", mountID))
+	for bs.Scan() {
+		if !bytes.HasPrefix(bs.Bytes(), wantPrefix) {
+			continue
+		}
+		fields := strings.Fields(bs.Text())
+		dev := fields[4]
+		return os.Open(dev)
+	}
+	if err := bs.Err(); err != nil {
+		return nil, err
+	}
+	return nil, errors.New("mountID not found")
 }
