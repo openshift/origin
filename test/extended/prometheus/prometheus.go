@@ -291,7 +291,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			tests := map[string]bool{
 				// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
-				`ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|PrometheusRemoteWriteDesiredShards",alertstate="firing"} >= 1`: false,
+				`ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|PrometheusRemoteWriteDesiredShards",alertstate="firing",severity!="info"} >= 1`: false,
 			}
 			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		})
