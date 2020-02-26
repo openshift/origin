@@ -61,6 +61,7 @@ USER 1001
 
 				buildName := "busybox-1"
 				g.By("expecting the Dockerfile build is in Complete phase")
+				// DEBUG: Will WaitForABuild always fail?
 				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), buildName, nil, nil, nil)
 				//debug for failures
 				if err != nil {
