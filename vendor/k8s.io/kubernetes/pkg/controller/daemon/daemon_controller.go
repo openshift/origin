@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -797,6 +798,7 @@ func (dsc *DaemonSetsController) podsShouldBeOnNode(
 	node *v1.Node,
 	nodeToDaemonPods map[string][]*v1.Pod,
 	ds *apps.DaemonSet,
+	hash string,
 ) (nodesNeedingDaemonPods, podsToDelete []string, err error) {
 
 	_, shouldSchedule, shouldContinueRunning, err := dsc.nodeShouldRunDaemonPod(node, ds)
@@ -844,6 +846,38 @@ func (dsc *DaemonSetsController) podsShouldBeOnNode(
 				daemonPodsRunning = append(daemonPodsRunning, pod)
 			}
 		}
+
+		// If surge is allowed, there can be 2 pods on the node as long as:
+		// * the oldest new pod is not yet ready
+		// * the oldest old pod is ready
+		if util.AllowsSurge(ds) {
+			if len(daemonPodsRunning) > 1 {
+				var oldestNewPod, oldestOldPod *v1.Pod
+				sort.Sort(podByCreationTimestampAndPhase(daemonPodsRunning))
+				for _, pod := range daemonPodsRunning {
+					if pod.Labels[apps.ControllerRevisionHashLabelKey] == hash {
+						if oldestNewPod == nil {
+							oldestNewPod = pod
+							continue
+						}
+					} else {
+						if oldestOldPod == nil {
+							oldestOldPod = pod
+							continue
+						}
+					}
+					podsToDelete = append(podsToDelete, pod.Name)
+				}
+				if oldestNewPod != nil && oldestOldPod != nil && (podutil.IsPodReady(oldestNewPod) || !podutil.IsPodReady(oldestOldPod)) {
+					podsToDelete = append(podsToDelete, oldestOldPod.Name)
+				}
+				if klog.V(0) {
+					klog.Infof("Deleting extra pods for ds %s on node %s: %s", ds.Name, node.Name, strings.Join(podNames(daemonPodsRunning), ","))
+				}
+			}
+			break
+		}
+
 		// If daemon pod is supposed to be running on node, but more than 1 daemon pod is running, delete the excess daemon pods.
 		// Sort the daemon pods by creation time, so the oldest is preserved.
 		if len(daemonPodsRunning) > 1 {
@@ -881,7 +915,7 @@ func (dsc *DaemonSetsController) manage(ds *apps.DaemonSet, nodeList []*v1.Node,
 	var nodesNeedingDaemonPods, podsToDelete []string
 	for _, node := range nodeList {
 		nodesNeedingDaemonPodsOnNode, podsToDeleteOnNode, err := dsc.podsShouldBeOnNode(
-			node, nodeToDaemonPods, ds)
+			node, nodeToDaemonPods, ds, hash)
 
 		if err != nil {
 			continue
@@ -1390,6 +1424,14 @@ func (o podByCreationTimestampAndPhase) Less(i, j int) bool {
 		return o[i].Name < o[j].Name
 	}
 	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
+}
+
+func podNames(pods []*v1.Pod) []string {
+	names := make([]string, 0, len(pods))
+	for _, pod := range pods {
+		names = append(names, pod.Name)
+	}
+	return names
 }
 
 func failedPodsBackoffKey(ds *apps.DaemonSet, nodeName string) string {

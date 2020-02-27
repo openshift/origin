@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"time"
 
 	"k8s.io/klog"
 
@@ -32,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/apimachinery/pkg/util/sets"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/daemon/util"
@@ -45,13 +47,17 @@ func (dsc *DaemonSetsController) rollingUpdate(ds *apps.DaemonSet, nodeList []*v
 	if err != nil {
 		return fmt.Errorf("couldn't get node to daemon pod mapping for daemon set %q: %v", ds.Name, err)
 	}
-
-	_, oldPods := dsc.getAllDaemonSetPods(ds, nodeToDaemonPods, hash)
-	maxUnavailable, numUnavailable, err := dsc.getUnavailableNumbers(ds, nodeList, nodeToDaemonPods)
+	newPods, oldPods := dsc.getAllDaemonSetPods(ds, nodeToDaemonPods, hash)
+	maxUnavailable, numUnavailable, desiredNumberScheduled, err := dsc.getUnavailableNumbers(ds, nodeList, nodeToDaemonPods)
 	if err != nil {
 		return fmt.Errorf("couldn't get unavailable numbers: %v", err)
 	}
 	oldAvailablePods, oldUnavailablePods := util.SplitByAvailablePods(ds.Spec.MinReadySeconds, oldPods)
+
+	maxSurge, err := util.MaxSurge(ds, desiredNumberScheduled)
+	if err != nil {
+		return fmt.Errorf("couldn't get max surge value: %v", err)
+	}
 
 	// for oldPods delete all not running pods
 	var oldPodsToDelete []string
@@ -65,17 +71,106 @@ func (dsc *DaemonSetsController) rollingUpdate(ds *apps.DaemonSet, nodeList []*v
 		oldPodsToDelete = append(oldPodsToDelete, pod.Name)
 	}
 
-	klog.V(4).Infof("Marking old pods for deletion")
+	var newNodesToCreate []string
+	var excludeNode sets.String
+	var numSurge int
+	now := time.Now()
+
+	if maxSurge > 0 {
+		klog.V(0).Infof("Marking old available pods for deletion after surge pods go ready: surge=%d unavailable=%d available=%d", maxSurge, maxUnavailable, len(oldAvailablePods))
+		// calculate the number of surge pods left
+		_, newUnavailablePods := util.SplitByAvailablePods(ds.Spec.MinReadySeconds, newPods)
+		for _, pod := range newUnavailablePods {
+			if pod.DeletionTimestamp != nil {
+				continue
+			}
+			numSurge++
+			if excludeNode == nil {
+				excludeNode = sets.NewString()
+			}
+			nodeName, err := util.GetTargetNodeName(pod)
+			if err != nil {
+				klog.Warningf("Failed to get target node name of Pod %v/%v in DaemonSet %v/%v",
+					pod.Namespace, pod.Name, ds.Namespace, ds.Name)
+				continue
+			}
+			excludeNode.Insert(nodeName)
+		}
+
+	} else {
+		klog.V(4).Infof("Marking old available pods for deletion")
+	}
 	for _, pod := range oldAvailablePods {
+		// If we have slack surge capacity, and the current node hasn't already been surged, we should
+		// create an updated pod. Until the pod is ready, it consumes surge capacity (if the old pod goes
+		// unavailable or is deleted that is not considered surge and is handled in other methods). A
+		// surging daemonset leaves no pods unavailable.
+		if maxSurge > 0 {
+			// When using a surging strategy, we never delete available old pods
+			if numSurge >= maxSurge {
+				klog.V(0).Infof("Number of surge DaemonSet pods: %d, is equal to or exceeds allowed maximum: %d", numSurge, maxSurge)
+				break
+			}
+
+			nodeName, err := util.GetTargetNodeName(pod)
+			if err != nil {
+				klog.Warningf("Failed to get target node name of Pod %v/%v in DaemonSet %v/%v",
+					pod.Namespace, pod.Name, ds.Namespace, ds.Name)
+				continue
+			}
+			if excludeNode.Has(nodeName) {
+				klog.V(0).Infof("Already added pod to node: %s", nodeName)
+				continue
+			}
+			if excludeNode == nil {
+				excludeNode = sets.NewString()
+			}
+			excludeNode.Insert(nodeName)
+
+			updated, ready := hasReadyUpdatedPod(nodeToDaemonPods[nodeName], ds.Spec.MinReadySeconds, hash, now)
+			if !updated {
+				klog.V(0).Infof("Creating surge pod for ds %s on node %s", ds.Name, nodeName)
+				newNodesToCreate = append(newNodesToCreate, nodeName)
+				numSurge++
+				continue
+			}
+			if !ready {
+				klog.V(0).Infof("Waiting for pod %s/%s on node %s to be ready", ds.Name, pod.Name, nodeName)
+				numSurge++
+				continue
+			}
+
+			klog.V(0).Infof("Marking old pod %s/%s for deletion because updated pod is now available", ds.Name, pod.Name)
+			oldPodsToDelete = append(oldPodsToDelete, pod.Name)
+			continue
+		}
+
 		if numUnavailable >= maxUnavailable {
 			klog.V(4).Infof("Number of unavailable DaemonSet pods: %d, is equal to or exceeds allowed maximum: %d", numUnavailable, maxUnavailable)
 			break
 		}
+
 		klog.V(4).Infof("Marking pod %s/%s for deletion", ds.Name, pod.Name)
 		oldPodsToDelete = append(oldPodsToDelete, pod.Name)
 		numUnavailable++
 	}
-	return dsc.syncNodes(ds, oldPodsToDelete, []string{}, hash)
+	return dsc.syncNodes(ds, oldPodsToDelete, newNodesToCreate, hash)
+}
+
+// hasReadyUpdatedPod returns true if there is any pod in the provided list that matches hash and has not been deleted.
+// It returns ready if at least one of those pods is in the ready state for at least minReady seconds.
+func hasReadyUpdatedPod(pods []*v1.Pod, minReady int32, hash string, now time.Time) (hasUpdatedPod, hasReadyUpdatedPod bool) {
+	for _, pod := range pods {
+		if pod.DeletionTimestamp != nil || pod.Labels[apps.DefaultDaemonSetUniqueLabelKey] != hash {
+			continue
+		}
+		hasUpdatedPod = true
+		if !podutil.IsPodAvailable(pod, minReady, metav1.Time{now}) {
+			continue
+		}
+		return true, true
+	}
+	return hasUpdatedPod, false
 }
 
 // constructHistory finds all histories controlled by the given DaemonSet, and
@@ -384,14 +479,14 @@ func (dsc *DaemonSetsController) getAllDaemonSetPods(ds *apps.DaemonSet, nodeToD
 	return newPods, oldPods
 }
 
-func (dsc *DaemonSetsController) getUnavailableNumbers(ds *apps.DaemonSet, nodeList []*v1.Node, nodeToDaemonPods map[string][]*v1.Pod) (int, int, error) {
+func (dsc *DaemonSetsController) getUnavailableNumbers(ds *apps.DaemonSet, nodeList []*v1.Node, nodeToDaemonPods map[string][]*v1.Pod) (int, int, int, error) {
 	klog.V(4).Infof("Getting unavailable numbers")
 	var numUnavailable, desiredNumberScheduled int
 	for i := range nodeList {
 		node := nodeList[i]
 		wantToRun, _, _, err := dsc.nodeShouldRunDaemonPod(node, ds)
 		if err != nil {
-			return -1, -1, err
+			return -1, -1, -1, err
 		}
 		if !wantToRun {
 			continue
@@ -416,10 +511,10 @@ func (dsc *DaemonSetsController) getUnavailableNumbers(ds *apps.DaemonSet, nodeL
 	}
 	maxUnavailable, err := intstrutil.GetValueFromIntOrPercent(ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable, desiredNumberScheduled, true)
 	if err != nil {
-		return -1, -1, fmt.Errorf("invalid value for MaxUnavailable: %v", err)
+		return -1, -1, desiredNumberScheduled, fmt.Errorf("invalid value for MaxUnavailable: %v", err)
 	}
-	klog.V(4).Infof(" DaemonSet %s/%s, maxUnavailable: %d, numUnavailable: %d", ds.Namespace, ds.Name, maxUnavailable, numUnavailable)
-	return maxUnavailable, numUnavailable, nil
+	klog.V(4).Infof(" DaemonSet %s/%s, maxUnavailable: %d, numUnavailable: %d, desiredNumberScheduled: %d", ds.Namespace, ds.Name, maxUnavailable, numUnavailable, desiredNumberScheduled)
+	return maxUnavailable, numUnavailable, desiredNumberScheduled, nil
 }
 
 type historiesByRevision []*apps.ControllerRevision

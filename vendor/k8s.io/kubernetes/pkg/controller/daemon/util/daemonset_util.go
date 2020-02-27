@@ -24,6 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
@@ -123,6 +124,29 @@ func CreatePodTemplate(template v1.PodTemplateSpec, generation *int64, hash stri
 	return newTemplate
 }
 
+// AllowsSurge returns true if the daemonset allows more than a single pod on any node.
+func AllowsSurge(ds *apps.DaemonSet) bool {
+	if ds.Spec.UpdateStrategy.Type != apps.RollingUpdateDaemonSetStrategyType {
+		return false
+	}
+	_, ok := ds.Annotations["alpha.apps.openshift.io/surge"]
+	return ok
+}
+
+// MaxSurge returns the allowed number of pods within desiredNumberScheduled to surge, or an
+// error. If no surge is requested 0 will be returned.
+func MaxSurge(ds *apps.DaemonSet, desiredNumberScheduled int) (int, error) {
+	if ds.Spec.UpdateStrategy.Type != apps.RollingUpdateDaemonSetStrategyType {
+		return 0, nil
+	}
+	value, ok := ds.Annotations["alpha.apps.openshift.io/surge"]
+	if !ok {
+		return 0, nil
+	}
+	valueStr := intstrutil.Parse(value)
+	return intstrutil.GetValueFromIntOrPercent(&valueStr, desiredNumberScheduled, true)
+}
+
 // IsPodUpdated checks if pod contains label value that either matches templateGeneration or hash
 func IsPodUpdated(pod *v1.Pod, hash string, dsTemplateGeneration *int64) bool {
 	// Compare with hash to see if the pod is updated, need to maintain backward compatibility of templateGeneration
@@ -134,8 +158,8 @@ func IsPodUpdated(pod *v1.Pod, hash string, dsTemplateGeneration *int64) bool {
 
 // SplitByAvailablePods splits provided daemon set pods by availability
 func SplitByAvailablePods(minReadySeconds int32, pods []*v1.Pod) ([]*v1.Pod, []*v1.Pod) {
-	unavailablePods := []*v1.Pod{}
-	availablePods := []*v1.Pod{}
+	availablePods := make([]*v1.Pod, 0, len(pods))
+	var unavailablePods []*v1.Pod
 	for _, pod := range pods {
 		if podutil.IsPodAvailable(pod, minReadySeconds, metav1.Now()) {
 			availablePods = append(availablePods, pod)

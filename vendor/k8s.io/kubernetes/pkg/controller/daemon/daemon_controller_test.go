@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/clock"
+	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -379,6 +380,7 @@ func resetCounters(manager *daemonSetsController) {
 }
 
 func validateSyncDaemonSets(t *testing.T, manager *daemonSetsController, fakePodControl *fakePodControl, expectedCreates, expectedDeletes int, expectedEvents int) {
+	t.Helper()
 	if len(fakePodControl.Templates) != expectedCreates {
 		t.Errorf("Unexpected number of creates.  Expected %d, saw %d\n", expectedCreates, len(fakePodControl.Templates))
 	}
@@ -407,11 +409,14 @@ func validateSyncDaemonSets(t *testing.T, manager *daemonSetsController, fakePod
 }
 
 func syncAndValidateDaemonSets(t *testing.T, manager *daemonSetsController, ds *apps.DaemonSet, podControl *fakePodControl, expectedCreates, expectedDeletes int, expectedEvents int) {
+	t.Helper()
 	key, err := controller.KeyFunc(ds)
 	if err != nil {
 		t.Errorf("Could not get key for daemon.")
 	}
-	manager.syncHandler(key)
+	if err := manager.syncHandler(key); err != nil {
+		t.Logf("error syncing daemonset: %v", err)
+	}
 	validateSyncDaemonSets(t, manager, podControl, expectedCreates, expectedDeletes, expectedEvents)
 }
 
@@ -2568,4 +2573,115 @@ func getQueuedKeys(queue workqueue.RateLimitingInterface) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+// Controller should not create pods on nodes which have daemon pods, and should remove excess pods from nodes that have extra pods.
+func TestSurgeDealsWithExistingPods(t *testing.T) {
+	ds := newDaemonSet("foo")
+	ds.Annotations = map[string]string{"alpha.apps.openshift.io/surge": "1"}
+	ds.Spec.UpdateStrategy.Type = apps.RollingUpdateDaemonSetStrategyType
+	manager, podControl, _, err := newTestController(ds)
+	if err != nil {
+		t.Fatalf("error creating DaemonSets controller: %v", err)
+	}
+	manager.dsStore.Add(ds)
+	addNodes(manager.nodeStore, 0, 5, nil)
+	addPods(manager.podStore, "node-1", simpleDaemonSetLabel, ds, 1)
+	addPods(manager.podStore, "node-2", simpleDaemonSetLabel, ds, 2)
+	addPods(manager.podStore, "node-3", simpleDaemonSetLabel, ds, 5)
+	addPods(manager.podStore, "node-4", simpleDaemonSetLabel2, ds, 2)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 2, 5, 0)
+}
+
+func TestSurgePreservesReadyOldPods(t *testing.T) {
+	ds := newDaemonSet("foo")
+	ds.Annotations = map[string]string{"alpha.apps.openshift.io/surge": "1"}
+	ds.Spec.UpdateStrategy = *newRollbackStrategy()
+	manager, podControl, _, err := newTestController(ds)
+	if err != nil {
+		t.Fatalf("error creating DaemonSets controller: %v", err)
+	}
+	manager.dsStore.Add(ds)
+	addNodes(manager.nodeStore, 0, 5, nil)
+
+	pod := newPod("node-1-", "node-1", simpleDaemonSetLabel, ds)
+	pod.CreationTimestamp.Time = time.Unix(100, 0)
+	manager.podStore.Add(pod)
+
+	pod = newPod("node-1-old-", "node-1", simpleDaemonSetLabel, ds)
+	delete(pod.Labels, apps.ControllerRevisionHashLabelKey)
+	pod.CreationTimestamp.Time = time.Unix(50, 0)
+	pod.Status.Conditions = []v1.PodCondition{{Type: v1.PodReady, Status: v1.ConditionTrue}}
+	manager.podStore.Add(pod)
+
+	oldReadyPod := newPod("node-1-delete-", "node-1", simpleDaemonSetLabel, ds)
+	delete(oldReadyPod.Labels, apps.ControllerRevisionHashLabelKey)
+	oldReadyPod.CreationTimestamp.Time = time.Unix(60, 0)
+	oldReadyPod.Status.Conditions = []v1.PodCondition{{Type: v1.PodReady, Status: v1.ConditionTrue}}
+	manager.podStore.Add(oldReadyPod)
+
+	addPods(manager.podStore, "node-2", simpleDaemonSetLabel, ds, 2)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 3, 2, 0)
+
+	var deletedReadyPod bool
+	for _, name := range podControl.DeletePodName {
+		if oldReadyPod.Name == name {
+			deletedReadyPod = true
+		}
+	}
+	if !deletedReadyPod {
+		t.Fatalf("did not delete expected pods: %v", podControl.DeletePodName)
+	}
+}
+
+func Test_podByHashPhaseAndCreationTimestamp_Sort(t *testing.T) {
+	ds1 := newDaemonSet("test-1")
+	ds1.Spec.Template.Annotations = map[string]string{"a": "1"}
+	ds2 := newDaemonSet("test-2")
+	ds2.Spec.Template.Annotations = map[string]string{"a": "2"}
+
+	pod1 := newPod("pod-", "node-1", nil, ds1)
+	pod1.CreationTimestamp.Time = time.Unix(10, 0)
+	pod2 := newPod("pod-", "node-1", nil, ds1)
+	pod2.CreationTimestamp.Time = time.Unix(20, 0)
+	pod3 := newPod("pod-", "node-1", nil, ds2)
+	pod3.CreationTimestamp.Time = time.Unix(30, 0)
+
+	tests := []struct {
+		name     string
+		pods     []*v1.Pod
+		hash     string
+		expected []*v1.Pod
+	}{
+		{
+			pods:     []*v1.Pod{pod2, pod1},
+			expected: []*v1.Pod{pod1, pod2},
+		},
+		{
+			pods:     []*v1.Pod{pod3, pod2},
+			expected: []*v1.Pod{pod2, pod3},
+		},
+		{
+			pods:     []*v1.Pod{pod3, pod2},
+			hash:     pod3.Labels[apps.ControllerRevisionHashLabelKey],
+			expected: []*v1.Pod{pod3, pod2},
+		},
+		{
+			pods:     []*v1.Pod{pod2, pod1},
+			hash:     pod1.Labels[apps.ControllerRevisionHashLabelKey],
+			expected: []*v1.Pod{pod1, pod2},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := podByHashPhaseAndCreationTimestamp{
+				pods: tt.pods,
+				hash: tt.hash,
+			}
+			sort.Sort(o)
+			if !reflect.DeepEqual(o.pods, tt.expected) {
+				t.Fatalf("unexpected order: %s", diff.ObjectReflectDiff(o.pods, tt.expected))
+			}
+		})
+	}
 }

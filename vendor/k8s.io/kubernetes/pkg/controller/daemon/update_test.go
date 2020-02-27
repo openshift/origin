@@ -17,6 +17,7 @@ limitations under the License.
 package daemon
 
 import (
+	"strconv"
 	"testing"
 
 	apps "k8s.io/api/apps/v1"
@@ -67,6 +68,56 @@ func TestDaemonSetUpdatesPods(t *testing.T) {
 	clearExpectations(t, manager, ds, podControl)
 }
 
+func TestDaemonSetUpdatesPodsWithMaxSurge(t *testing.T) {
+	ds := newDaemonSet("foo")
+	manager, podControl, _, err := newTestController(ds)
+	if err != nil {
+		t.Fatalf("error creating DaemonSets controller: %v", err)
+	}
+	maxUnavailable := 3
+	addNodes(manager.nodeStore, 0, 5, nil)
+	manager.dsStore.Add(ds)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 5, 0, 0)
+	markPodsReady(podControl.podStore)
+
+	// surge is thhe controlling amount
+	maxSurge := 2
+	ds.Annotations = map[string]string{"alpha.apps.openshift.io/surge": strconv.Itoa(maxSurge)}
+	ds.Spec.Template.Spec.Containers[0].Image = "foo2/bar2"
+	ds.Spec.UpdateStrategy.Type = apps.RollingUpdateDaemonSetStrategyType
+	intStr := intstr.FromInt(maxUnavailable)
+	ds.Spec.UpdateStrategy.RollingUpdate = &apps.RollingUpdateDaemonSet{MaxUnavailable: &intStr}
+	manager.dsStore.Update(ds)
+
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, maxSurge, 0, 0)
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 0)
+	markPodsReady(podControl.podStore)
+
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, maxSurge, maxSurge, 0)
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 0)
+	markPodsReady(podControl.podStore)
+
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 1, maxSurge, 0)
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 0)
+	markPodsReady(podControl.podStore)
+
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 1, 0)
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 0)
+	markPodsReady(podControl.podStore)
+
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 0)
+	clearExpectations(t, manager, ds, podControl)
+}
+
 func TestDaemonSetUpdatesWhenNewPosIsNotReady(t *testing.T) {
 	ds := newDaemonSet("foo")
 	manager, podControl, _, err := newTestController(ds)
@@ -107,6 +158,36 @@ func TestDaemonSetUpdatesAllOldPodsNotReady(t *testing.T) {
 	manager.dsStore.Add(ds)
 	syncAndValidateDaemonSets(t, manager, ds, podControl, 5, 0, 0)
 
+	ds.Spec.Template.Spec.Containers[0].Image = "foo2/bar2"
+	ds.Spec.UpdateStrategy.Type = apps.RollingUpdateDaemonSetStrategyType
+	intStr := intstr.FromInt(maxUnavailable)
+	ds.Spec.UpdateStrategy.RollingUpdate = &apps.RollingUpdateDaemonSet{MaxUnavailable: &intStr}
+	manager.dsStore.Update(ds)
+
+	// all old pods are unavailable so should be removed
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 5, 0)
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 5, 0, 0)
+
+	clearExpectations(t, manager, ds, podControl)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0, 0)
+	clearExpectations(t, manager, ds, podControl)
+}
+
+func TestDaemonSetUpdatesAllOldPodsNotReadyMaxSurge(t *testing.T) {
+	ds := newDaemonSet("foo")
+	manager, podControl, _, err := newTestController(ds)
+	if err != nil {
+		t.Fatalf("error creating DaemonSets controller: %v", err)
+	}
+	maxUnavailable := 2
+	addNodes(manager.nodeStore, 0, 5, nil)
+	manager.dsStore.Add(ds)
+	syncAndValidateDaemonSets(t, manager, ds, podControl, 5, 0, 0)
+
+	maxSurge := 3
+	ds.Annotations = map[string]string{"alpha.apps.openshift.io/surge": strconv.Itoa(maxSurge)}
 	ds.Spec.Template.Spec.Containers[0].Image = "foo2/bar2"
 	ds.Spec.UpdateStrategy.Type = apps.RollingUpdateDaemonSetStrategyType
 	intStr := intstr.FromInt(maxUnavailable)
@@ -298,7 +379,7 @@ func TestGetUnavailableNumbers(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error listing nodes: %v", err)
 		}
-		maxUnavailable, numUnavailable, err := c.Manager.getUnavailableNumbers(c.ds, nodeList, c.nodeToPods)
+		maxUnavailable, numUnavailable, _, err := c.Manager.getUnavailableNumbers(c.ds, nodeList, c.nodeToPods)
 		if err != nil && c.Err != nil {
 			if c.Err != err {
 				t.Errorf("Test case: %s. Expected error: %v but got: %v", c.name, c.Err, err)
