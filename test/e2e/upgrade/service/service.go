@@ -92,7 +92,10 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	// Hit it once before considering ourselves ready
 	ginkgo.By("hitting pods through the service's LoadBalancer")
 	timeout := service.LoadBalancerLagTimeoutAWS
-	jig.TestReachableHTTP(tcpIngressIP, svcPort, timeout)
+	// require five passing requests to continue (in case the SLB becomes available and then degrades)
+	for i := 0; i < 5; i++ {
+		jig.TestReachableHTTP(tcpIngressIP, svcPort, timeout)
+	}
 
 	t.jig = jig
 	t.tcpService = tcpService
