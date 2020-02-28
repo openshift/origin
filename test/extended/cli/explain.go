@@ -119,8 +119,6 @@ var (
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecas"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogapiservers"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogcontrollermanagers"},
 
 		{Group: "quota.openshift.io", Version: "v1", Resource: "appliedclusterresourcequotas"},
 
