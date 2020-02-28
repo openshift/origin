@@ -18,6 +18,11 @@ import (
 )
 
 func createTarStream(srcPath, dockerfilePath string) (io.ReadCloser, error) {
+	srcPath, err := filepath.Abs(srcPath)
+	if err != nil {
+		return nil, err
+	}
+
 	excludes, err := parseDockerignore(srcPath)
 	if err != nil {
 		return nil, err
