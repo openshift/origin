@@ -6,15 +6,13 @@ package docker
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"testing"
-
-	"encoding/base64"
-	"strings"
 
 	"github.com/docker/docker/api/types/swarm"
 )
@@ -41,8 +39,8 @@ func TestCreateService(t *testing.T) {
 		t.Errorf("CreateServce: wrong ID. Want %q. Got %q.", id, service.ID)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
-		t.Errorf("CreateService: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
+	if req.Method != http.MethodPost {
+		t.Errorf("CreateService: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/services/create"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -54,13 +52,9 @@ func TestCreateService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	auth, err := base64.URLEncoding.DecodeString(req.Header.Get("X-Registry-Auth"))
-	if err != nil {
-		t.Errorf("CreateService: caught error decoding auth. %#v", err.Error())
-	}
-	if strings.TrimSpace(string(auth)) != "{}" {
-		t.Errorf("CreateService: wrong body. Want %q. Got %q.",
-			base64.URLEncoding.EncodeToString([]byte("{}")), req.Header.Get("X-Registry-Auth"))
+	authHeader, ok := req.Header["X-Registry-Auth"]
+	if ok {
+		t.Errorf("CreateService: unexpected non-empty X-Registry-Auth header: %v", authHeader)
 	}
 }
 
@@ -91,8 +85,8 @@ func TestCreateServiceWithAuthentication(t *testing.T) {
 		t.Errorf("CreateServce: wrong ID. Want %q. Got %q.", id, service.ID)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
-		t.Errorf("CreateService: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
+	if req.Method != http.MethodPost {
+		t.Errorf("CreateService: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/services/create"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -130,8 +124,8 @@ func TestRemoveService(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "DELETE" {
-		t.Errorf("RemoveService(%q): wrong HTTP method. Want %q. Got %q.", id, "DELETE", req.Method)
+	if req.Method != http.MethodDelete {
+		t.Errorf("RemoveService(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodDelete, req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/services/" + id))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -144,7 +138,7 @@ func TestRemoveServiceNotFound(t *testing.T) {
 	client := newTestClient(&FakeRoundTripper{message: "no such service", status: http.StatusNotFound})
 	err := client.RemoveService(RemoveServiceOptions{ID: "a2334"})
 	expected := &NoSuchService{ID: "a2334"}
-	if !reflect.DeepEqual(err, expected) {
+	if e := err.(*NoSuchService); e.ID != expected.ID {
 		t.Errorf("RemoveService: Wrong error returned. Want %#v. Got %#v.", expected, err)
 	}
 }
@@ -160,8 +154,8 @@ func TestUpdateService(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
-		t.Errorf("UpdateService: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
+	if req.Method != http.MethodPost {
+		t.Errorf("UpdateService: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/services/" + id + "/update?version=23"))
 	if gotURI := req.URL.RequestURI(); gotURI != expectedURL.RequestURI() {
@@ -178,6 +172,29 @@ func TestUpdateService(t *testing.T) {
 	update.Version = 0
 	if !reflect.DeepEqual(out, update) {
 		t.Errorf("UpdateService: wrong body\ngot  %#v\nwant %#v", out, update)
+	}
+}
+
+func TestUpdateServiceRollback(t *testing.T) {
+	t.Parallel()
+	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
+	update := UpdateServiceOptions{Version: 23, Rollback: "previous"}
+	err := client.UpdateService(id, update)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := fakeRT.requests[0]
+	if req.Method != http.MethodPost {
+		t.Errorf("UpdateService: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
+	}
+	expectedURL, _ := url.Parse(client.getURL("/services/" + id + "/update?version=23&rollback=previous"))
+	if req.URL.Path != expectedURL.Path {
+		t.Errorf("UpdateService: Wrong path in request. Want %q. Got %q.", expectedURL.Path, req.URL.Path)
+	}
+	if !reflect.DeepEqual(req.URL.Query(), expectedURL.Query()) {
+		t.Errorf("UpdateService: Wrong querystring in request. Want %v. Got %v.", expectedURL.Query(), req.URL.Query())
 	}
 }
 
@@ -198,8 +215,8 @@ func TestUpdateServiceWithAuthentication(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
-		t.Errorf("UpdateService: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
+	if req.Method != http.MethodPost {
+		t.Errorf("UpdateService: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/services/" + id + "/update?version=23"))
 	if gotURI := req.URL.RequestURI(); gotURI != expectedURL.RequestURI() {
@@ -236,7 +253,7 @@ func TestUpdateServiceNotFound(t *testing.T) {
 	update := UpdateServiceOptions{}
 	err := client.UpdateService("notfound", update)
 	expected := &NoSuchService{ID: "notfound"}
-	if !reflect.DeepEqual(err, expected) {
+	if e := err.(*NoSuchService); e.ID != expected.ID {
 		t.Errorf("UpdateService: Wrong error returned. Want %#v. Got %#v.", expected, err)
 	}
 }
@@ -249,7 +266,7 @@ func TestInspectServiceNotFound(t *testing.T) {
 		t.Errorf("InspectService: Expected <nil> service, got %#v", service)
 	}
 	expected := &NoSuchService{ID: "notfound"}
-	if !reflect.DeepEqual(err, expected) {
+	if e := err.(*NoSuchService); e.ID != expected.ID {
 		t.Errorf("InspectService: Wrong error returned. Want %#v. Got %#v.", expected, err)
 	}
 }
@@ -446,7 +463,7 @@ func TestGetServiceLogs(t *testing.T) {
 	if buf.String() != expected {
 		t.Errorf("Logs: wrong output. Want %q. Got %q.", expected, buf.String())
 	}
-	if req.Method != "GET" {
+	if req.Method != http.MethodGet {
 		t.Errorf("Logs: wrong HTTP method. Want GET. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/services/a123456/logs"))
@@ -466,7 +483,7 @@ func TestGetServiceLogs(t *testing.T) {
 	}
 }
 
-func TesGetServicetLogsNilStdoutDoesntFail(t *testing.T) {
+func TestGetServicetLogsNilStdoutDoesntFail(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		prefix := []byte{1, 0, 0, 0, 0, 0, 0, 19}
 		w.Write(prefix)
@@ -539,7 +556,7 @@ func TestGetServiceLogsSpecifyingTail(t *testing.T) {
 	if buf.String() != expected {
 		t.Errorf("Logs: wrong output. Want %q. Got %q.", expected, buf.String())
 	}
-	if req.Method != "GET" {
+	if req.Method != http.MethodGet {
 		t.Errorf("Logs: wrong HTTP method. Want GET. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/services/a123456/logs"))
@@ -591,7 +608,7 @@ func TestGetServiceLogsNoContainer(t *testing.T) {
 	var client Client
 	err := client.GetServiceLogs(LogsServiceOptions{})
 	expected := &NoSuchService{ID: ""}
-	if !reflect.DeepEqual(err, expected) {
+	if e := err.(*NoSuchService); e.ID != expected.ID {
 		t.Errorf("AttachToContainer: wrong error. Want %#v. Got %#v.", expected, err)
 	}
 }

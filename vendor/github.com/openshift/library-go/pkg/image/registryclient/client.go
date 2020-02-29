@@ -47,14 +47,15 @@ func (e *ErrNotV2Registry) Error() string {
 type AuthHandlersFunc func(transport http.RoundTripper, registry *url.URL, repoName string) []auth.AuthenticationHandler
 
 // NewContext is capable of creating RepositoryRetrievers.
-func NewContext(transport, insecureTransport http.RoundTripper) *Context {
+func NewContext(transp, insecureTransport http.RoundTripper) *Context {
 	return &Context{
-		Transport:         transport,
+		Transport:         transp,
 		InsecureTransport: insecureTransport,
 		Challenges:        challenge.NewSimpleManager(),
 		Actions:           []string{"pull"},
 		Retries:           2,
 		Credentials:       NoCredentials,
+		RequestModifiers:  make([]transport.RequestModifier, 0),
 
 		pings:    make(map[url.URL]error),
 		redirect: make(map[url.URL]*url.URL),
@@ -75,6 +76,7 @@ type Context struct {
 	Actions           []string
 	Retries           int
 	Credentials       auth.CredentialStore
+	RequestModifiers  []transport.RequestModifier
 	Limiter           *rate.Limiter
 
 	DisableDigestVerification bool
@@ -107,6 +109,11 @@ func (c *Context) Copy() *Context {
 		copied.redirect[k] = v
 	}
 	return copied
+}
+
+func (c *Context) WithRequestModifiers(modifiers ...transport.RequestModifier) *Context {
+	c.RequestModifiers = modifiers
+	return c
 }
 
 func (c *Context) WithRateLimiter(limiter *rate.Limiter) *Context {
@@ -303,8 +310,7 @@ func (c *Context) cachedTransport(rt http.RoundTripper, scopes []auth.Scope) htt
 		scopes = append(scopes, stringScope(s))
 	}
 
-	t := transport.NewTransport(
-		rt,
+	modifiers := []transport.RequestModifier{
 		// TODO: slightly smarter authorizer that retries unauthenticated requests
 		// TODO: make multiple attempts if the first credential fails
 		auth.NewAuthorizer(
@@ -316,7 +322,9 @@ func (c *Context) cachedTransport(rt http.RoundTripper, scopes []auth.Scope) htt
 			}),
 			auth.NewBasicHandler(c.Credentials),
 		),
-	)
+	}
+	modifiers = append(modifiers, c.RequestModifiers...)
+	t := transport.NewTransport(rt, modifiers...)
 	c.cachedTransports = append(c.cachedTransports, transportCache{
 		rt:        rt,
 		scopes:    scopeNames,
