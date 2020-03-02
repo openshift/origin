@@ -15,6 +15,7 @@
 package ipam
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -28,11 +29,11 @@ import (
 )
 
 func ExecAdd(plugin string, netconf []byte) (types.Result, error) {
-	return invoke.DelegateAdd(plugin, netconf)
+	return invoke.DelegateAdd(context.Background(), plugin, netconf, nil)
 }
 
 func ExecDel(plugin string, netconf []byte) error {
-	return invoke.DelegateDel(plugin, netconf)
+	return invoke.DelegateDel(context.Background(), plugin, netconf, nil)
 }
 
 // ConfigureIface takes the result of IPAM plugin and

@@ -243,6 +243,10 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 	return result.Print()
 }
 
+func (p *cniPlugin) cmdCheck(args *skel.CmdArgs) error {
+	return nil
+}
+
 func (p *cniPlugin) CmdDel(args *skel.CmdArgs) error {
 	_, err := p.doCNI("http://dummy/", newCNIRequest(args))
 	return err
@@ -256,5 +260,5 @@ func main() {
 	}
 	defer hostNS.Close()
 	p := NewCNIPlugin(cniserver.CNIServerSocketPath, hostNS)
-	skel.PluginMain(p.CmdAdd, p.CmdDel, version.Legacy)
+	skel.PluginMain(p.CmdAdd, p.cmdCheck, p.CmdDel, version.Legacy, "dsafafd")
 }

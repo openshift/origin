@@ -17,6 +17,7 @@ limitations under the License.
 package cni
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -255,7 +256,7 @@ func (plugin *cniNetworkPlugin) addToNetwork(network *cniNetwork, podName string
 
 	netConf, cniNet := network.NetworkConfig, network.CNIConfig
 	glog.V(4).Infof("About to add CNI network %v (type=%v)", netConf.Name, netConf.Plugins[0].Network.Type)
-	res, err := cniNet.AddNetworkList(netConf, rt)
+	res, err := cniNet.AddNetworkList(context.Background(), netConf, rt)
 	if err != nil {
 		glog.Errorf("Error adding network: %v", err)
 		return nil, err
@@ -273,7 +274,7 @@ func (plugin *cniNetworkPlugin) deleteFromNetwork(network *cniNetwork, podName s
 
 	netConf, cniNet := network.NetworkConfig, network.CNIConfig
 	glog.V(4).Infof("About to del CNI network %v (type=%v)", netConf.Name, netConf.Plugins[0].Network.Type)
-	err = cniNet.DelNetworkList(netConf, rt)
+	err = cniNet.DelNetworkList(context.Background(), netConf, rt)
 	// The pod may not get deleted successfully at the first time.
 	// Ignore "no such file or directory" error in case the network has already been deleted in previous attempts.
 	if err != nil && !strings.Contains(err.Error(), "no such file or directory") {

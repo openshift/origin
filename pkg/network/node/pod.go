@@ -3,6 +3,7 @@
 package node
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -428,7 +429,7 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*cni020.Result, net.I
 	}
 
 	args := createIPAMArgs(netnsPath, m.cniBinPath, cniserver.CNI_ADD, id)
-	r, err := invoke.ExecPluginWithResult(m.cniBinPath+"/host-local", m.ipamConfig, args)
+	r, err := invoke.ExecPluginWithResult(context.Background(), m.cniBinPath+"/host-local", m.ipamConfig, args, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
 	}
@@ -448,7 +449,7 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*cni020.Result, net.I
 // Run CNI IPAM release for the container
 func (m *podManager) ipamDel(id string) error {
 	args := createIPAMArgs("", m.cniBinPath, cniserver.CNI_DEL, id)
-	err := invoke.ExecPluginWithoutResult(m.cniBinPath+"/host-local", m.ipamConfig, args)
+	err := invoke.ExecPluginWithoutResult(context.Background(), m.cniBinPath+"/host-local", m.ipamConfig, args, nil)
 	if err != nil {
 		return fmt.Errorf("failed to run CNI IPAM DEL: %v", err)
 	}

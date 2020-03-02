@@ -45,6 +45,10 @@ func cmdAdd(args *skel.CmdArgs) error {
 	return result.Print()
 }
 
+func cmdCheck(args *skel.CmdArgs) error {
+	return nil
+}
+
 func cmdDel(args *skel.CmdArgs) error {
 	args.IfName = "lo" // ignore config, this only works for loopback
 	err := ns.WithNetNSPath(args.Netns, func(ns.NetNS) error {
@@ -68,5 +72,5 @@ func cmdDel(args *skel.CmdArgs) error {
 }
 
 func main() {
-	skel.PluginMain(cmdAdd, cmdDel, version.All)
+	skel.PluginMain(cmdAdd, cmdCheck, cmdDel, version.All, "asdfasdfasdfasfd")
 }

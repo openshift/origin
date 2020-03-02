@@ -29,7 +29,7 @@ import (
 )
 
 func main() {
-	skel.PluginMain(cmdAdd, cmdDel, version.All)
+	skel.PluginMain(cmdAdd, cmdCheck, cmdDel, version.All, "asdfsadf")
 }
 
 func cmdAdd(args *skel.CmdArgs) error {
@@ -108,6 +108,10 @@ func cmdAdd(args *skel.CmdArgs) error {
 	result.Routes = ipamConf.Routes
 
 	return types.PrintResult(result, confVersion)
+}
+
+func cmdCheck(args *skel.CmdArgs) error {
+	return nil
 }
 
 func cmdDel(args *skel.CmdArgs) error {
