@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	storage "k8s.io/api/storage/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1178,6 +1178,10 @@ func (ctrl *PersistentVolumeController) deleteVolumeOperation(volume *v1.Persist
 	newVolume, err := ctrl.kubeClient.CoreV1().PersistentVolumes().Get(volume.Name, metav1.GetOptions{})
 	if err != nil {
 		glog.V(3).Infof("error reading persistent volume %q: %v", volume.Name, err)
+		return nil
+	}
+	if newVolume.GetDeletionTimestamp() != nil {
+		glog.V(3).Infof("Volume %q is already being deleted", volume.Name)
 		return nil
 	}
 	needsReclaim, err := ctrl.isVolumeReleased(newVolume)
