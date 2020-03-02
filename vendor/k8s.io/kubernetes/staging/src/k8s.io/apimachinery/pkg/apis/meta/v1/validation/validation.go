@@ -49,6 +49,11 @@ func ValidateLabelSelectorRequirement(sr metav1.LabelSelectorRequirement, fldPat
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("operator"), sr.Operator, "not a valid selector operator"))
 	}
 	allErrs = append(allErrs, ValidateLabelName(sr.Key, fldPath.Child("key"))...)
+	for _, v := range sr.Values {
+		for _, msg := range validation.IsValidLabelValue(v) {
+			allErrs = append(allErrs, field.Invalid(fldPath, v, msg))
+		}
+	}
 	return allErrs
 }
 

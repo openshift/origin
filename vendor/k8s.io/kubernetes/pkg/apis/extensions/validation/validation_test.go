@@ -1219,6 +1219,26 @@ func TestValidateDeployment(t *testing.T) {
 	invalidProgressDeadlineDeployment.Spec.MinReadySeconds = seconds
 	errorCases["must be greater than minReadySeconds"] = invalidProgressDeadlineDeployment
 
+	invalidAntiAffinity := validDeployment()
+	invalidAntiAffinity.Spec.Template.Spec.Affinity = &api.Affinity{
+		PodAntiAffinity: &api.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []api.WeightedPodAffinityTerm{
+				{
+					Weight: 100,
+					PodAffinityTerm: api.PodAffinityTerm{
+						TopologyKey: "kubernetes.io/hostname",
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{Key: "app.kubernetes.io/instance", Operator: metav1.LabelSelectorOpIn, Values: []string{"{{ .Release.Name }}"}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	errorCases["a valid label must be an empty string or consist of alphanumeric characters"] = invalidAntiAffinity
+
 	for k, v := range errorCases {
 		errs := ValidateDeployment(v)
 		if len(errs) == 0 {
