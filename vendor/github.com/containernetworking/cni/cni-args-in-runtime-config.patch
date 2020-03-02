@@ -1,0 +1,249 @@
+diff --git a/libcni/api.go b/libcni/api.go
+index ea2a5bb..63269e5 100644
+--- a/libcni/api.go
++++ b/libcni/api.go
+@@ -86,53 +86,20 @@ func buildOneConfig(list *NetworkConfigList, orig *NetworkConfig, prevResult typ
+ 
+ // This function takes a libcni RuntimeConf structure and injects values into
+ // a "runtimeConfig" dictionary in the CNI network configuration JSON that
+-// will be passed to the plugin on stdin.  It injects values with slightly
+-// different behavior depending the value:
+-//
+-// 1) simple standard values (ContainerID, NetNS, IfName): adds the keys
+-//    to "runtimeConfig" dictionary with string values
+-//
+-// 2) list standard values (Args): splits the elements into key/value pairs
+-//    and adds an "args" key to the "runtimeConfig" dictionary, where "args"
+-//    is itself a string:string dictionary of the original key/value pairs.
+-//    eg, "FOOBAR=BAZ;BLAH=BORK" end up as:
+-//
+-//        "runtimeConfig": {
+-//            "args": {
+-//                "FOOBAR": "BAZ",
+-//                "BLAH": "BORK",
+-//            }
+-//        }
+-//
+-// 3) capabilities arguments: filters any keys in the CapabilityArgs dictionary
+-//    through the network plugin capabilities list given by the plugin's config
+-//    JSON, and adds the filtered items to the "runtimeConfig" dictionary.
+-//    eg if the plugin's capabilities include "portMappings", and the
+-//    CapabilityArgs map includes a "portMappings" key, that key and its value
+-//    are added to the "runtimeConfig" dictionary to be passed to the plugin's
+-//    stdin.
++// will be passed to the plugin on stdin.
++//
++// Only "capabilities arguments" passed by the runtime are currently injected.
++// These capabilities arguments are filtered through the plugin's advertised
++// capabilities from its config JSON, and any keys in the CapabilityArgs
++// matching plugin capabilities are added to the "runtimeConfig" dictionary
++// sent to the plugin via JSON on stdin.  For exmaple, if the plugin's
++// capabilities include "portMappings", and the CapabilityArgs map includes a
++// "portMappings" key, that key and its value are added to the "runtimeConfig"
++// dictionary to be passed to the plugin's stdin.
+ func injectRuntimeConfig(orig *NetworkConfig, rt *RuntimeConf) (*NetworkConfig, error) {
+ 	var err error
+ 
+-	rc := map[string]interface{}{
+-		"containerId": rt.ContainerID,
+-	}
+-	if len(rt.NetNS) > 0 {
+-		rc["netNs"] = rt.NetNS
+-	}
+-	if len(rt.IfName) > 0 {
+-		rc["ifName"] = rt.IfName
+-	}
+-	if len(rt.Args) > 0 {
+-		args := make(map[string]string)
+-		for _, a := range rt.Args {
+-			args[a[0]] = a[1]
+-		}
+-		rc["args"] = args
+-	}
+-
+-	// Beyond the standard attributes, use plugin capabilities to inject
+-	// JSON for specific capabilities into the config
++	rc := make(map[string]interface{})
+ 	for capability, supported := range orig.Network.Capabilities {
+ 		if !supported {
+ 			continue
+diff --git a/libcni/api_test.go b/libcni/api_test.go
+index 33cab79..e5c76f5 100644
+--- a/libcni/api_test.go
++++ b/libcni/api_test.go
+@@ -96,10 +96,8 @@ func newPluginInfo(configValue, prevResult string, injectDebugFilePath bool, res
+ 
+ 	// Only include standard runtime config and capability args that this plugin advertises
+ 	newRuntimeConfig := make(map[string]interface{})
+-	allowedKeys := []string{"containerId", "netNs", "ifName", "args"}
+-	allowedKeys = append(allowedKeys, capabilities...)
+ 	for key, value := range runtimeConfig {
+-		if stringInList(key, allowedKeys) {
++		if stringInList(key, capabilities) {
+ 			newRuntimeConfig[key] = value
+ 		}
+ 	}
+@@ -169,7 +167,7 @@ var _ = Describe("Invoking plugins", func() {
+ 			rawRc := conf["runtimeConfig"]
+ 			rc, ok := rawRc.(map[string]interface{})
+ 			Expect(ok).To(Equal(true))
+-			expectedKeys := []string{"containerId", "netNs", "ifName", "args", "portMappings", "somethingElse"}
++			expectedKeys := []string{"portMappings", "somethingElse"}
+ 			Expect(len(rc)).To(Equal(len(expectedKeys)))
+ 			for _, key := range expectedKeys {
+ 				_, ok := rc[key]
+@@ -233,12 +231,6 @@ var _ = Describe("Invoking plugins", func() {
+ 			err = json.Unmarshal([]byte(pluginConfig), &conf)
+ 			Expect(err).NotTo(HaveOccurred())
+ 			conf["runtimeConfig"] = map[string]interface{}{
+-				"args": map[string]string{
+-					runtimeConfig.Args[0][0]: runtimeConfig.Args[0][1],
+-				},
+-				"containerId":  runtimeConfig.ContainerID,
+-				"netNs":        runtimeConfig.NetNS,
+-				"ifName":       runtimeConfig.IfName,
+ 				"portMappings": portMappings,
+ 			}
+ 			newBytes, err := json.Marshal(conf)
+diff --git a/SPEC.md b/SPEC.md
+index 9699700..52295d6 100644
+--- a/SPEC.md
++++ b/SPEC.md
+@@ -253,8 +253,8 @@ The list is described in JSON form, and can be stored on disk or generated from
+ - `name` (string): Network name. This should be unique across all containers on the host (or other administrative domain).
+ - `plugins` (list): A list of standard CNI network configuration dictionaries (see above).
+ 
+-When executing a plugin list, the runtime MUST replace the `name` and `cniVersion` fields in each individual network configuration in the list with the `name` and `cniVersion` field of the list itself.
+-The runtime may pass capability-based keys in the top-level `runtimeConfig` key of the plugin's config JSON if a plugin advertises it supports a specific capability via the `capabilities` key of its network configuration.  The key passed in `runtimeConfig` MUST match the name of the specific capability from the `capabilities` key of the plugins network configuration. See CONVENTIONS.md for more information on capabilities.
++When executing a plugin list, the runtime MUST replace the `name` and `cniVersion` fields in each individual network configuration in the list with the `name` and `cniVersion` field of the list itself. This ensures that the name and CNI version is the same for all plugin executions in the list, preventing versioning conflicts between plugins.
++The runtime may also pass capability-based keys as a map in the top-level `runtimeConfig` key of the plugin's config JSON if a plugin advertises it supports a specific capability via the `capabilities` key of its network configuration.  The key passed in `runtimeConfig` MUST match the name of the specific capability from the `capabilities` key of the plugins network configuration. See CONVENTIONS.md for more information on capabilities and how they are sent to plugins via the `runtimeConfig` key.
+ 
+ For the ADD action, the runtime MUST also add a `prevResult` field to the configuration JSON of any plugin after the first one, which MUST be the Result of the previous plugin (if any) in JSON format ([see below](#network-configuration-list-runtime-examples)).
+ For the ADD action, plugins SHOULD echo the contents of the `prevResult` field to their stdout to allow subsequent plugins (and the runtime) to receive the result, unless they wish to modify or suppress a previous result.
+diff --git a/libcni/api.go b/libcni/api.go
+index 63269e5..a23cbb2 100644
+--- a/libcni/api.go
++++ b/libcni/api.go
+@@ -109,9 +109,11 @@ func injectRuntimeConfig(orig *NetworkConfig, rt *RuntimeConf) (*NetworkConfig,
+ 		}
+ 	}
+ 
+-	orig, err = InjectConf(orig, map[string]interface{}{"runtimeConfig": rc})
+-	if err != nil {
+-		return nil, err
++	if len(rc) > 0 {
++		orig, err = InjectConf(orig, map[string]interface{}{"runtimeConfig": rc})
++		if err != nil {
++			return nil, err
++		}
+ 	}
+ 
+ 	return orig, nil
+diff --git a/libcni/api_test.go b/libcni/api_test.go
+index e5c76f5..5f5207c 100644
+--- a/libcni/api_test.go
++++ b/libcni/api_test.go
+@@ -101,7 +101,9 @@ func newPluginInfo(configValue, prevResult string, injectDebugFilePath bool, res
+ 			newRuntimeConfig[key] = value
+ 		}
+ 	}
+-	newConfig["runtimeConfig"] = newRuntimeConfig
++	if len(newRuntimeConfig) > 0 {
++		newConfig["runtimeConfig"] = newRuntimeConfig
++	}
+ 
+ 	stdinData, err := json.Marshal(newConfig)
+ 	Expect(err).NotTo(HaveOccurred())
+@@ -116,26 +118,31 @@ func newPluginInfo(configValue, prevResult string, injectDebugFilePath bool, res
+ 
+ var _ = Describe("Invoking plugins", func() {
+ 	Describe("Capabilities", func() {
+-		var debugFilePath string
++		var (
++			debugFilePath string
++			debug         *noop_debug.Debug
++			pluginConfig  []byte
++			cniConfig     libcni.CNIConfig
++			runtimeConfig *libcni.RuntimeConf
++			netConfig     *libcni.NetworkConfig
++		)
+ 
+-		AfterEach(func() {
+-			Expect(os.RemoveAll(debugFilePath)).To(Succeed())
+-		})
+-
+-		It("adds correct runtime config for capabilities to stdin", func() {
++		BeforeEach(func() {
+ 			debugFile, err := ioutil.TempFile("", "cni_debug")
+ 			Expect(err).NotTo(HaveOccurred())
+ 			Expect(debugFile.Close()).To(Succeed())
+ 			debugFilePath = debugFile.Name()
+ 
+-			debug := &noop_debug.Debug{}
++			debug = &noop_debug.Debug{}
+ 			Expect(debug.WriteDebug(debugFilePath)).To(Succeed())
+ 
+-			pluginConfig := []byte(`{ "type": "noop", "cniVersion": "0.3.0", "capabilities": { "portMappings": true, "somethingElse": true, "noCapability": false } }`)
+-			netConf, err := libcni.ConfFromBytes(pluginConfig)
++			pluginConfig = []byte(`{ "type": "noop", "cniVersion": "0.3.0", "capabilities": { "portMappings": true, "somethingElse": true, "noCapability": false } }`)
++			netConfig, err = libcni.ConfFromBytes(pluginConfig)
+ 			Expect(err).NotTo(HaveOccurred())
+ 
+-			runtimeConfig := &libcni.RuntimeConf{
++			cniConfig = libcni.CNIConfig{Path: []string{filepath.Dir(pluginPaths["noop"])}}
++
++			runtimeConfig = &libcni.RuntimeConf{
+ 				ContainerID: "some-container-id",
+ 				NetNS:       "/some/netns/path",
+ 				IfName:      "some-eth0",
+@@ -149,10 +156,14 @@ var _ = Describe("Invoking plugins", func() {
+ 					"notAdded":      []bool{true, false},
+ 				},
+ 			}
++		})
+ 
+-			cniConfig := libcni.CNIConfig{Path: []string{filepath.Dir(pluginPaths["noop"])}}
++		AfterEach(func() {
++			Expect(os.RemoveAll(debugFilePath)).To(Succeed())
++		})
+ 
+-			_, err = cniConfig.AddNetwork(netConf, runtimeConfig)
++		It("adds correct runtime config for capabilities to stdin", func() {
++			_, err := cniConfig.AddNetwork(netConfig, runtimeConfig)
+ 			Expect(err).NotTo(HaveOccurred())
+ 
+ 			debug, err = noop_debug.ReadDebug(debugFilePath)
+@@ -174,6 +185,33 @@ var _ = Describe("Invoking plugins", func() {
+ 				Expect(ok).To(Equal(true))
+ 			}
+ 		})
++
++		It("adds no runtimeConfig when the plugin advertises no used capabilities", func() {
++			// Replace CapabilityArgs with ones we know the plugin
++			// doesn't support
++			runtimeConfig.CapabilityArgs = map[string]interface{}{
++				"portMappings22": []portMapping{
++					{HostPort: 8080, ContainerPort: 80, Protocol: "tcp"},
++				},
++				"somethingElse22": []string{"foobar", "baz"},
++			}
++
++			_, err := cniConfig.AddNetwork(netConfig, runtimeConfig)
++			Expect(err).NotTo(HaveOccurred())
++
++			debug, err = noop_debug.ReadDebug(debugFilePath)
++			Expect(err).NotTo(HaveOccurred())
++			Expect(debug.Command).To(Equal("ADD"))
++
++			conf := make(map[string]interface{})
++			err = json.Unmarshal(debug.CmdArgs.StdinData, &conf)
++			Expect(err).NotTo(HaveOccurred())
++
++			// No intersection of plugin capabilities and CapabilityArgs,
++			// so plugin should not receive a "runtimeConfig" key
++			_, ok := conf["runtimeConfig"]
++			Expect(ok).Should(BeFalse())
++		})
+ 	})
+ 
+ 	Describe("Invoking a single plugin", func() {

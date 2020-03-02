@@ -1,0 +1,84 @@
+diff --git a/libcni/api.go b/libcni/api.go
+index 7d0fc0456180a..4fe9cf902a22f 100644
+--- a/libcni/api.go
++++ b/libcni/api.go
+@@ -270,25 +271,13 @@ func (c *CNIConfig) cacheDel(netName string, rt *RuntimeConf) error {
+ 	return os.Remove(fname)
+ }
+ 
+-func (c *CNIConfig) getCachedConfig(netName string, rt *RuntimeConf) ([]byte, *RuntimeConf, error) {
+-	var bytes []byte
+-
+-	fname, err := c.getCacheFilePath(netName, rt)
+-	if err != nil {
+-		return nil, nil, err
+-	}
+-	bytes, err = ioutil.ReadFile(fname)
+-	if err != nil {
+-		// Ignore read errors; the cached result may not exist on-disk
+-		return nil, nil, nil
+-	}
+-
++func (c *CNIConfig) getCachedConfig(data []byte, rt *RuntimeConf) ([]byte, *RuntimeConf, error) {
+ 	unmarshaled := cachedInfo{}
+-	if err := json.Unmarshal(bytes, &unmarshaled); err != nil {
+-		return nil, nil, fmt.Errorf("failed to unmarshal cached network %q config: %v", netName, err)
++	if err := json.Unmarshal(data, &unmarshaled); err != nil {
++		return nil, nil, fmt.Errorf("failed to unmarshal cached config: %v", err)
+ 	}
+ 	if unmarshaled.Kind != CNICacheV1 {
+-		return nil, nil, fmt.Errorf("read cached network %q config has wrong kind: %v", netName, unmarshaled.Kind)
++		return nil, nil, fmt.Errorf("read cached network config has wrong kind: %v", unmarshaled.Kind)
+ 	}
+ 
+ 	newRt := *rt
+@@ -300,6 +289,20 @@ func (c *CNIConfig) getCachedConfig(netName string, rt *RuntimeConf) ([]byte, *R
+ 	return unmarshaled.Config, &newRt, nil
+ }
+ 
++func (c *CNIConfig) getCachedConfigFromFile(netName string, rt *RuntimeConf) ([]byte, *RuntimeConf, error) {
++	fname, err := c.getCacheFilePath(netName, rt)
++	if err != nil {
++		return nil, nil, err
++	}
++	fdata, err := ioutil.ReadFile(fname)
++	if err != nil {
++		// Ignore read errors; the cached result may not exist on-disk
++		return nil, nil, nil
++	}
++
++	return c.getCachedConfig(fdata, rt)
++}
++
+ func (c *CNIConfig) getLegacyCachedResult(data []byte, cniVersion string) (types.Result, error) {
+ 	// Read the version of the cached result
+ 	decoder := version.ConfigDecoder{}
+@@ -458,13 +392,13 @@ func (c *CNIConfig) GetNetworkCachedResult(net *NetworkConfig, rt *RuntimeConf)
+ // GetNetworkListCachedConfig copies the input RuntimeConf to output
+ // RuntimeConf with fields updated with info from the cached Config.
+ func (c *CNIConfig) GetNetworkListCachedConfig(list *NetworkConfigList, rt *RuntimeConf) ([]byte, *RuntimeConf, error) {
+-	return c.getCachedConfig(list.Name, rt)
++	return c.getCachedConfigFromFile(list.Name, rt)
+ }
+ 
+ // GetNetworkCachedConfig copies the input RuntimeConf to output
+ // RuntimeConf with fields updated with info from the cached Config.
+ func (c *CNIConfig) GetNetworkCachedConfig(net *NetworkConfig, rt *RuntimeConf) ([]byte, *RuntimeConf, error) {
+-	return c.getCachedConfig(net.Network.Name, rt)
++	return c.getCachedConfigFromFile(net.Network.Name, rt)
+ }
+ 
+ func (c *CNIConfig) addNetwork(ctx context.Context, name, cniVersion string, net *NetworkConfig, prevResult types.Result, rt *RuntimeConf) (types.Result, error) {
+diff --git a/libcni/api_test.go b/libcni/api_test.go
+index fc01153d24d32..da60f404aee9d 100644
+--- a/libcni/api_test.go
++++ b/libcni/api_test.go
+@@ -1699,7 +1699,7 @@ var _ = Describe("Invoking plugins", func() {
+ 					Expect(err).NotTo(HaveOccurred())
+ 
+ 					cachedConfig, newRt, err := cniConfig.GetNetworkCachedConfig(netConfig, runtimeConfig)
+-					Expect(err).To(MatchError("failed to unmarshal cached network \"cachetest\" config: invalid character 'a' looking for beginning of value"))
++					Expect(err).To(MatchError("failed to unmarshal cached config: invalid character 'a' looking for beginning of value"))
+ 					Expect(cachedConfig).To(BeNil())
+ 					Expect(newRt).To(BeNil())
+ 				})

@@ -1,0 +1,30 @@
+diff --git a/test.sh b/test.sh
+index ba27e0b..0c2f2e4 100755
+--- a/test.sh
++++ b/test.sh
+@@ -4,11 +4,17 @@ set -euo pipefail
+ # switch into the repo root directory
+ cd "$(dirname $0)"
+ 
++go get -t ./...
++
+ echo -n "Running tests "
+ function testrun {
+     bash -c "umask 0; PATH=$PATH go test $@"
+ }
+ if [ ! -z "${COVERALLS:-""}" ]; then
++    go get golang.org/x/tools/cmd/cover
++    go get github.com/modocache/gover
++    go get github.com/mattn/goveralls
++
+     # coverage profile only works per-package
+     PKGS="$(go list ./... | xargs echo)"
+     echo "with coverage profile generation..."
+@@ -18,7 +24,6 @@ if [ ! -z "${COVERALLS:-""}" ]; then
+         i=$((i+1))
+     done
+     gover
+-    goveralls -service=travis-ci -coverprofile=gover.coverprofile
+ else
+     echo "without coverage profile generation..."
+     testrun "./..."

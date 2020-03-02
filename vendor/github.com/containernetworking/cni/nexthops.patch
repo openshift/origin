@@ -1,0 +1,345 @@
+diff --git a/pkg/ip/route.go b/pkg/ip/route.go
+index 6c8658b..eb8405e 100644
+--- a/pkg/ip/route.go
++++ b/pkg/ip/route.go
+@@ -20,6 +20,32 @@ import (
+ 	"github.com/vishvananda/netlink"
+ )
+ 
++func addNextHops(route *netlink.Route, nextHops []net.IP, linkIndex int) {
++	switch {
++	case len(nextHops) == 0:
++		return
++	case len(nextHops) == 1:
++		route.Gw = nextHops[0]
++	case len(nextHops) > 1:
++		for _, nh := range nextHops {
++			nextHop = netlink.NexthopInfo{
++				LinkIndex: linkIndex,
++				Hops:      0,
++				Gw:        nh,
++			}
++			route.MultiPath = append(route.MultiPath, nextHop)
++		}
++	}
++
++type NexthopInfo struct {
++	LinkIndex int
++	Hops      int
++	Gw        net.IP
++}
++
++	}
++}
++
+ // AddDefaultRoute sets the default route on the given gateway.
+ func AddDefaultRoute(gw net.IP, dev netlink.Link) error {
+ 	_, defNet, _ := net.ParseCIDR("0.0.0.0/0")
+@@ -27,7 +53,7 @@ func AddDefaultRoute(gw net.IP, dev netlink.Link) error {
+ }
+ 
+ // AddRoute adds a universally-scoped route to a device.
+-func AddRoute(ipn *net.IPNet, gw net.IP, dev netlink.Link) error {
++func AddRoute(ipn *net.IPNet, nextHops []net.IP, dev netlink.Link) error {
+ 	return netlink.RouteAdd(&netlink.Route{
+ 		LinkIndex: dev.Attrs().Index,
+ 		Scope:     netlink.SCOPE_UNIVERSE,
+@@ -37,11 +63,12 @@ func AddRoute(ipn *net.IPNet, gw net.IP, dev netlink.Link) error {
+ }
+ 
+ // AddHostRoute adds a host-scoped route to a device.
+-func AddHostRoute(ipn *net.IPNet, gw net.IP, dev netlink.Link) error {
+-	return netlink.RouteAdd(&netlink.Route{
++func AddHostRoute(ipn *net.IPNet, nextHops []net.IP, dev netlink.Link) error {
++	route := &netlink.Route{
+ 		LinkIndex: dev.Attrs().Index,
+ 		Scope:     netlink.SCOPE_HOST,
+ 		Dst:       ipn,
+-		Gw:        gw,
+-	})
++	}
++
++	return netlink.RouteAdd()
+ }
+diff --git a/pkg/ipam/ipam.go b/pkg/ipam/ipam.go
+index b76780f..09ddf0e 100644
+--- a/pkg/ipam/ipam.go
++++ b/pkg/ipam/ipam.go
+@@ -73,8 +73,7 @@ func ConfigureIface(ifName string, res *current.Result) error {
+ 
+ 	for _, r := range res.Routes {
+ 		routeIsV4 := r.Dst.IP.To4() != nil
+-		gw := r.GW
+-		if gw == nil {
++		if len(r.NextHops) == 0 {
+ 			if routeIsV4 && v4gw != nil {
+ 				gw = v4gw
+ 			} else if !routeIsV4 && v6gw != nil {
+diff --git a/pkg/types/020/types.go b/pkg/types/020/types.go
+index 666cfe9..404fc91 100644
+--- a/pkg/types/020/types.go
++++ b/pkg/types/020/types.go
+@@ -97,7 +97,16 @@ func (r *Result) String() string {
+ type IPConfig struct {
+ 	IP      net.IPNet
+ 	Gateway net.IP
+-	Routes  []types.Route
++	Routes  []Route
++}
++
++type Route struct {
++	Dst net.IPNet
++	GW  net.IP
++}
++
++func (r *Route) String() string {
++	return fmt.Sprintf("%+v", *r)
+ }
+ 
+ // net.IPNet is not JSON (un)marshallable so this duality is needed
+@@ -105,9 +114,9 @@ type IPConfig struct {
+ 
+ // JSON (un)marshallable types
+ type ipConfig struct {
+-	IP      types.IPNet   `json:"ip"`
+-	Gateway net.IP        `json:"gateway,omitempty"`
+-	Routes  []types.Route `json:"routes,omitempty"`
++	IP      types.IPNet `json:"ip"`
++	Gateway net.IP      `json:"gateway,omitempty"`
++	Routes  []Route     `json:"routes,omitempty"`
+ }
+ 
+ func (c *IPConfig) MarshalJSON() ([]byte, error) {
+@@ -131,3 +140,28 @@ func (c *IPConfig) UnmarshalJSON(data []byte) error {
+ 	c.Routes = ipc.Routes
+ 	return nil
+ }
++
++type route struct {
++	Dst types.IPNet `json:"dst"`
++	GW  net.IP      `json:"gw,omitempty"`
++}
++
++func (r *Route) UnmarshalJSON(data []byte) error {
++	rt := route{}
++	if err := json.Unmarshal(data, &rt); err != nil {
++		return err
++	}
++
++	r.Dst = net.IPNet(rt.Dst)
++	r.GW = rt.GW
++	return nil
++}
++
++func (r *Route) MarshalJSON() ([]byte, error) {
++	rt := route{
++		Dst: types.IPNet(r.Dst),
++		GW:  r.GW,
++	}
++
++	return json.Marshal(rt)
++}
+diff --git a/pkg/types/current/types.go b/pkg/types/current/types.go
+index e686a9a..9f7aa6a 100644
+--- a/pkg/types/current/types.go
++++ b/pkg/types/current/types.go
+@@ -64,7 +64,7 @@ func convertFrom020(result types.Result) (*Result, error) {
+ 
+ 	newResult := &Result{
+ 		DNS:    oldResult.DNS,
+-		Routes: []*types.Route{},
++		Routes: []*Route{},
+ 	}
+ 
+ 	if oldResult.IP4 != nil {
+@@ -79,9 +79,9 @@ func convertFrom020(result types.Result) (*Result, error) {
+ 			if gw == nil {
+ 				gw = oldResult.IP4.Gateway
+ 			}
+-			newResult.Routes = append(newResult.Routes, &types.Route{
+-				Dst: route.Dst,
+-				GW:  gw,
++			newResult.Routes = append(newResult.Routes, &Route{
++				Dst:      route.Dst,
++				NextHops: []net.IP{gw},
+ 			})
+ 		}
+ 	}
+@@ -98,9 +98,9 @@ func convertFrom020(result types.Result) (*Result, error) {
+ 			if gw == nil {
+ 				gw = oldResult.IP6.Gateway
+ 			}
+-			newResult.Routes = append(newResult.Routes, &types.Route{
+-				Dst: route.Dst,
+-				GW:  gw,
++			newResult.Routes = append(newResult.Routes, &Route{
++				Dst:      route.Dst,
++				NextHops: []net.IP{gw},
+ 			})
+ 		}
+ 	}
+@@ -134,10 +134,10 @@ func NewResultFromResult(result types.Result) (*Result, error) {
+ 
+ // Result is what gets returned from the plugin (via stdout) to the caller
+ type Result struct {
+-	Interfaces []*Interface   `json:"interfaces,omitempty"`
+-	IPs        []*IPConfig    `json:"ips,omitempty"`
+-	Routes     []*types.Route `json:"routes,omitempty"`
+-	DNS        types.DNS      `json:"dns,omitempty"`
++	Interfaces []*Interface `json:"interfaces,omitempty"`
++	IPs        []*IPConfig  `json:"ips,omitempty"`
++	Routes     []*Route     `json:"routes,omitempty"`
++	DNS        types.DNS    `json:"dns,omitempty"`
+ }
+ 
+ // Convert to the older 0.2.0 CNI spec Result type
+@@ -167,16 +167,20 @@ func (r *Result) convertTo020() (*types020.Result, error) {
+ 	}
+ 
+ 	for _, route := range r.Routes {
++		var nextHop net.IP
++		if len(route.NextHops) > 0 {
++			nextHop = route.NextHops[0]
++		}
+ 		is4 := route.Dst.IP.To4() != nil
+ 		if is4 && oldResult.IP4 != nil {
+-			oldResult.IP4.Routes = append(oldResult.IP4.Routes, types.Route{
++			oldResult.IP4.Routes = append(oldResult.IP4.Routes, types020.Route{
+ 				Dst: route.Dst,
+-				GW:  route.GW,
++				GW:  nextHop,
+ 			})
+ 		} else if !is4 && oldResult.IP6 != nil {
+-			oldResult.IP6.Routes = append(oldResult.IP6.Routes, types.Route{
++			oldResult.IP6.Routes = append(oldResult.IP6.Routes, types020.Route{
+ 				Dst: route.Dst,
+-				GW:  route.GW,
++				GW:  nextHop,
+ 			})
+ 		}
+ 	}
+@@ -289,3 +293,37 @@ func (c *IPConfig) UnmarshalJSON(data []byte) error {
+ 	c.Gateway = ipc.Gateway
+ 	return nil
+ }
++
++type Route struct {
++	Dst      net.IPNet
++	NextHops []net.IP
++}
++
++func (r *Route) String() string {
++	return fmt.Sprintf("%+v", *r)
++}
++
++type route struct {
++	Dst      types.IPNet `json:"dst"`
++	NextHops []net.IP    `json:"nextHops"`
++}
++
++func (r *Route) UnmarshalJSON(data []byte) error {
++	rt := route{}
++	if err := json.Unmarshal(data, &rt); err != nil {
++		return err
++	}
++
++	r.Dst = net.IPNet(rt.Dst)
++	r.NextHops = rt.NextHops
++	return nil
++}
++
++func (r *Route) MarshalJSON() ([]byte, error) {
++	rt := route{
++		Dst:      types.IPNet(r.Dst),
++		NextHops: r.NextHops,
++	}
++
++	return json.Marshal(rt)
++}
+diff --git a/pkg/types/types.go b/pkg/types/types.go
+index a81ac70..16cf08a 100644
+--- a/pkg/types/types.go
++++ b/pkg/types/types.go
+@@ -16,7 +16,6 @@ package types
+ 
+ import (
+ 	"encoding/json"
+-	"fmt"
+ 	"net"
+ 	"os"
+ )
+@@ -110,15 +109,6 @@ type DNS struct {
+ 	Options     []string `json:"options,omitempty"`
+ }
+ 
+-type Route struct {
+-	Dst net.IPNet
+-	GW  net.IP
+-}
+-
+-func (r *Route) String() string {
+-	return fmt.Sprintf("%+v", *r)
+-}
+-
+ // Well known error codes
+ // see https://github.com/containernetworking/cni/blob/master/SPEC.md#well-known-error-codes
+ const (
+@@ -141,35 +131,6 @@ func (e *Error) Print() error {
+ 	return prettyPrint(e)
+ }
+ 
+-// net.IPNet is not JSON (un)marshallable so this duality is needed
+-// for our custom IPNet type
+-
+-// JSON (un)marshallable types
+-type route struct {
+-	Dst IPNet  `json:"dst"`
+-	GW  net.IP `json:"gw,omitempty"`
+-}
+-
+-func (r *Route) UnmarshalJSON(data []byte) error {
+-	rt := route{}
+-	if err := json.Unmarshal(data, &rt); err != nil {
+-		return err
+-	}
+-
+-	r.Dst = net.IPNet(rt.Dst)
+-	r.GW = rt.GW
+-	return nil
+-}
+-
+-func (r *Route) MarshalJSON() ([]byte, error) {
+-	rt := route{
+-		Dst: IPNet(r.Dst),
+-		GW:  r.GW,
+-	}
+-
+-	return json.Marshal(rt)
+-}
+-
+ func prettyPrint(obj interface{}) error {
+ 	data, err := json.MarshalIndent(obj, "", "    ")
+ 	if err != nil {
+diff --git a/plugins/meta/flannel/flannel.go b/plugins/meta/flannel/flannel.go
+index e1eb278..9b38735 100644
+--- a/plugins/meta/flannel/flannel.go
++++ b/plugins/meta/flannel/flannel.go
+@@ -32,6 +32,7 @@ import (
+ 	"github.com/containernetworking/cni/pkg/invoke"
+ 	"github.com/containernetworking/cni/pkg/skel"
+ 	"github.com/containernetworking/cni/pkg/types"
++	"github.com/containernetworking/cni/pkg/types/current"
+ 	"github.com/containernetworking/cni/pkg/version"
+ )
+ 
+@@ -227,8 +228,8 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 	n.Delegate["ipam"] = map[string]interface{}{
+ 		"type":   "host-local",
+ 		"subnet": fenv.sn.String(),
+-		"routes": []types.Route{
+-			types.Route{
++		"routes": []*current.Route{
++			&current.Route{
+ 				Dst: *fenv.nw,
+ 			},
+ 		},

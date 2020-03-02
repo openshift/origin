@@ -71,8 +71,6 @@ var _ = Describe("Ensures compatibility with the 0.1.0/0.2.0 spec", func() {
 			},
 		}
 
-		Expect(res.String()).To(Equal("IP4:{IP:{IP:1.2.3.30 Mask:ffffff00} Gateway:1.2.3.1 Routes:[{Dst:{IP:15.5.6.0 Mask:ffffff00} GW:15.5.6.8}]}, IP6:{IP:{IP:abcd:1234:ffff::cdde Mask:ffffffffffffffff0000000000000000} Gateway:abcd:1234:ffff::1 Routes:[{Dst:{IP:1111:dddd:: Mask:ffffffffffffffffffff000000000000} GW:1111:dddd::aaaa}]}, DNS:{Nameservers:[1.2.3.4 1::cafe] Domain:acompany.com Search:[somedomain.com otherdomain.net] Options:[foo bar]}"))
-
 		// Redirect stdout to capture JSON result
 		oldStdout := os.Stdout
 		r, w, err := os.Pipe()

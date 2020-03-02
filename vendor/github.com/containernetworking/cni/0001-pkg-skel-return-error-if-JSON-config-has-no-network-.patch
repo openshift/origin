@@ -1,0 +1,214 @@
+From 371d4a6a24bf0a6f21ed518913df17c26a2bd1ff Mon Sep 17 00:00:00 2001
+From: Dan Williams <dcbw@redhat.com>
+Date: Fri, 16 Feb 2018 15:44:31 -0600
+Subject: [PATCH 1/2] pkg/skel: return error if JSON config has no network name
+
+SPEC.md has indicated that 'name' is required since at least mid-2015,
+but that was not enforced in pkg/skel or our unit tests.  That could
+lead to configs passing no network name and plugins like host-local
+that require the name failing or causing odd behavior.
+
+Since the name is required by the spec, require it in the code too.
+---
+ libcni/api_test.go             | 19 +++++++++++++++++--
+ pkg/invoke/delegate_test.go    |  3 ++-
+ pkg/invoke/raw_exec_test.go    |  2 +-
+ pkg/skel/skel.go               | 21 +++++++++++++++++++++
+ pkg/skel/skel_test.go          |  6 +++---
+ plugins/test/noop/noop_test.go |  9 ++++++---
+ 6 files changed, 50 insertions(+), 10 deletions(-)
+
+diff --git a/libcni/api_test.go b/libcni/api_test.go
+index 711ffc1..b1be11b 100644
+--- a/libcni/api_test.go
++++ b/libcni/api_test.go
+@@ -136,7 +136,16 @@ var _ = Describe("Invoking plugins", func() {
+ 			debug = &noop_debug.Debug{}
+ 			Expect(debug.WriteDebug(debugFilePath)).To(Succeed())
+ 
+-			pluginConfig = []byte(`{ "type": "noop", "cniVersion": "0.3.1", "capabilities": { "portMappings": true, "somethingElse": true, "noCapability": false } }`)
++			pluginConfig = []byte(`{
++				"type": "noop",
++				"name": "apitest",
++				"cniVersion": "0.3.1",
++				"capabilities": {
++					"portMappings": true,
++					"somethingElse": true,
++					"noCapability": false
++				}
++			}`)
+ 			netConfig, err = libcni.ConfFromBytes(pluginConfig)
+ 			Expect(err).NotTo(HaveOccurred())
+ 
+@@ -243,7 +252,13 @@ var _ = Describe("Invoking plugins", func() {
+ 			}
+ 
+ 			cniBinPath = filepath.Dir(pluginPaths["noop"])
+-			pluginConfig = `{ "type": "noop", "some-key": "some-value", "cniVersion": "0.3.1", "capabilities": { "portMappings": true } }`
++			pluginConfig = `{
++				"type": "noop",
++				"name": "apitest",
++				"some-key": "some-value",
++				"cniVersion": "0.3.1",
++				"capabilities": { "portMappings": true }
++			}`
+ 			cniConfig = libcni.CNIConfig{Path: []string{cniBinPath}}
+ 			netConfig = &libcni.NetworkConfig{
+ 				Network: &types.NetConf{
+diff --git a/pkg/invoke/delegate_test.go b/pkg/invoke/delegate_test.go
+index 78f4e69..118aeca 100644
+--- a/pkg/invoke/delegate_test.go
++++ b/pkg/invoke/delegate_test.go
+@@ -40,13 +40,14 @@ var _ = Describe("Delegate", func() {
+ 
+ 	BeforeEach(func() {
+ 		netConf, _ = json.Marshal(map[string]string{
++			"name":       "delegate-test",
+ 			"cniVersion": "0.3.1",
+ 		})
+ 
+ 		expectedResult = &current.Result{
+ 			CNIVersion: "0.3.1",
+ 			IPs: []*current.IPConfig{
+-				&current.IPConfig{
++				{
+ 					Version: "4",
+ 					Address: net.IPNet{
+ 						IP:   net.ParseIP("10.1.2.3"),
+diff --git a/pkg/invoke/raw_exec_test.go b/pkg/invoke/raw_exec_test.go
+index 5d759f2..e372e2f 100644
+--- a/pkg/invoke/raw_exec_test.go
++++ b/pkg/invoke/raw_exec_test.go
+@@ -58,7 +58,7 @@ var _ = Describe("RawExec", func() {
+ 			"CNI_PATH=/some/bin/path",
+ 			"CNI_IFNAME=some-eth0",
+ 		}
+-		stdin = []byte(`{"some":"stdin-json", "cniVersion": "0.3.1"}`)
++		stdin = []byte(`{"name": "raw-exec-test", "some":"stdin-json", "cniVersion": "0.3.1"}`)
+ 		execer = &invoke.RawExec{}
+ 	})
+ 
+diff --git a/pkg/skel/skel.go b/pkg/skel/skel.go
+index 71ae559..1e3c5a2 100644
+--- a/pkg/skel/skel.go
++++ b/pkg/skel/skel.go
+@@ -18,6 +18,7 @@ package skel
+ 
+ import (
+ 	"bytes"
++	"encoding/json"
+ 	"fmt"
+ 	"io"
+ 	"io/ioutil"
+@@ -167,12 +168,32 @@ func (t *dispatcher) checkVersionAndCall(cmdArgs *CmdArgs, pluginVersionInfo ver
+ 	return toCall(cmdArgs)
+ }
+ 
++func validateConfig(jsonBytes []byte) error {
++	var conf struct {
++		Name string `json:"name"`
++	}
++	if err := json.Unmarshal(jsonBytes, &conf); err != nil {
++		return fmt.Errorf("error reading network config: %s", err)
++	}
++	if conf.Name == "" {
++		return fmt.Errorf("missing network name")
++	}
++	return nil
++}
++
+ func (t *dispatcher) pluginMain(cmdAdd, cmdDel func(_ *CmdArgs) error, versionInfo version.PluginInfo) *types.Error {
+ 	cmd, cmdArgs, err := t.getCmdArgsFromEnv()
+ 	if err != nil {
+ 		return createTypedError(err.Error())
+ 	}
+ 
++	if cmd != "VERSION" {
++		err = validateConfig(cmdArgs.StdinData)
++		if err != nil {
++			return createTypedError(err.Error())
++		}
++	}
++
+ 	switch cmd {
+ 	case "ADD":
+ 		err = t.checkVersionAndCall(cmdArgs, versionInfo, cmdAdd)
+diff --git a/pkg/skel/skel_test.go b/pkg/skel/skel_test.go
+index ef501c0..8b10dbd 100644
+--- a/pkg/skel/skel_test.go
++++ b/pkg/skel/skel_test.go
+@@ -64,7 +64,7 @@ var _ = Describe("dispatching to the correct callback", func() {
+ 			"CNI_PATH":        "/some/cni/path",
+ 		}
+ 
+-		stdinData = `{ "some": "config", "cniVersion": "9.8.7" }`
++		stdinData = `{ "name":"skel-test", "some": "config", "cniVersion": "9.8.7" }`
+ 		stdout = &bytes.Buffer{}
+ 		stderr = &bytes.Buffer{}
+ 		versionInfo = version.PluginSupports("9.8.7")
+@@ -146,13 +146,13 @@ var _ = Describe("dispatching to the correct callback", func() {
+ 
+ 		Context("when the stdin data is missing the required cniVersion config", func() {
+ 			BeforeEach(func() {
+-				dispatch.Stdin = strings.NewReader(`{ "some": "config" }`)
++				dispatch.Stdin = strings.NewReader(`{ "name": "skel-test", "some": "config" }`)
+ 			})
+ 
+ 			Context("when the plugin supports version 0.1.0", func() {
+ 				BeforeEach(func() {
+ 					versionInfo = version.PluginSupports("0.1.0")
+-					expectedCmdArgs.StdinData = []byte(`{ "some": "config" }`)
++					expectedCmdArgs.StdinData = []byte(`{ "name": "skel-test", "some": "config" }`)
+ 				})
+ 
+ 				It("infers the config is 0.1.0 and calls the cmdAdd callback", func() {
+diff --git a/plugins/test/noop/noop_test.go b/plugins/test/noop/noop_test.go
+index 4658fc0..cfdcd95 100644
+--- a/plugins/test/noop/noop_test.go
++++ b/plugins/test/noop/noop_test.go
+@@ -64,14 +64,15 @@ var _ = Describe("No-op plugin", func() {
+ 			// Keep this last
+ 			"CNI_ARGS=" + args,
+ 		}
+-		cmd.Stdin = strings.NewReader(`{"some":"stdin-json", "cniVersion": "0.3.1"}`)
++		stdinData := `{"name": "noop-test", "some":"stdin-json", "cniVersion": "0.3.1"}`
++		cmd.Stdin = strings.NewReader(stdinData)
+ 		expectedCmdArgs = skel.CmdArgs{
+ 			ContainerID: "some-container-id",
+ 			Netns:       "/some/netns/path",
+ 			IfName:      "some-eth0",
+ 			Args:        args,
+ 			Path:        "/some/bin/path",
+-			StdinData:   []byte(`{"some":"stdin-json", "cniVersion": "0.3.1"}`),
++			StdinData:   []byte(stdinData),
+ 		}
+ 	})
+ 
+@@ -101,6 +102,7 @@ var _ = Describe("No-op plugin", func() {
+ 		Expect(debug.WriteDebug(debugFileName)).To(Succeed())
+ 
+ 		cmd.Stdin = strings.NewReader(`{
++	"name":"noop-test",
+ 	"some":"stdin-json",
+ 	"cniVersion": "0.3.1",
+ 	"prevResult": {
+@@ -118,6 +120,7 @@ var _ = Describe("No-op plugin", func() {
+ 		Expect(debug.WriteDebug(debugFileName)).To(Succeed())
+ 
+ 		cmd.Stdin = strings.NewReader(`{
++	"name":"noop-test",
+ 	"some":"stdin-json",
+ 	"cniVersion": "0.3.1",
+ 	"prevResult": {
+@@ -140,7 +143,7 @@ var _ = Describe("No-op plugin", func() {
+ 		// Remove the DEBUG option from CNI_ARGS and regular args
+ 		newArgs := "FOO=BAR"
+ 		cmd.Env[len(cmd.Env)-1] = "CNI_ARGS=" + newArgs
+-		newStdin := fmt.Sprintf(`{"some":"stdin-json", "cniVersion": "0.3.1", "debugFile": %q}`, debugFileName)
++		newStdin := fmt.Sprintf(`{"name":"noop-test", "some": "stdin-json", "cniVersion": "0.3.1", "debugFile": %q}`, debugFileName)
+ 		cmd.Stdin = strings.NewReader(newStdin)
+ 		expectedCmdArgs.Args = newArgs
+ 		expectedCmdArgs.StdinData = []byte(newStdin)
+-- 
+2.14.3
+

@@ -1,0 +1,18 @@
+					// Inject prevResult into the expected plugin config
+					expectedData := plugins[i].stdinData
+					config := make(map[string]interface{})
+					err = json.Unmarshal(expectedData, &config)
+					Expect(err).NotTo(HaveOccurred())
+
+					// The second plugin's stdin config will not have
+					// 'dns' because the first plugin does not pass
+					// through the prevResult
+					tmpResult := result
+					if i == 1 {
+						tmpResult.DNS = types.DNS{}
+					}
+					config["prevResult"] = tmpResult
+					expectedData, err = json.Marshal(config)
+					Expect(err).NotTo(HaveOccurred())
+
+

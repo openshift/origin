@@ -1,0 +1,1191 @@
+From 6646c0a7654808752f8fffe851182d4278e8ff78 Mon Sep 17 00:00:00 2001
+From: Dan Williams <dcbw@redhat.com>
+Date: Wed, 18 Jan 2017 16:40:01 -0600
+Subject: [PATCH] routes stuff
+
+---
+ libcni/api_test.go                                 |   4 +-
+ pkg/invoke/exec_test.go                            |   6 +-
+ pkg/ipam/ipam.go                                   |  38 ++++---
+ pkg/types/020/types.go                             |  34 ++++++-
+ pkg/types/020/types_test.go                        |   4 +-
+ pkg/types/current/types.go                         | 112 +++++++++++++++++----
+ pkg/types/current/types_test.go                    |  42 ++++----
+ pkg/version/legacy_examples/examples.go            |   4 +-
+ plugins/ipam/dhcp/daemon.go                        |   4 +-
+ plugins/ipam/dhcp/lease.go                         |   4 +-
+ plugins/ipam/dhcp/options.go                       |  14 +--
+ plugins/ipam/dhcp/options_test.go                  |  10 +-
+ .../ipam/host-local/backend/allocator/allocator.go |  28 +++---
+ .../host-local/backend/allocator/allocator_test.go |  34 +++----
+ .../ipam/host-local/backend/allocator/config.go    |  37 +++++--
+ plugins/ipam/host-local/host_local_test.go         |   8 +-
+ plugins/ipam/host-local/main.go                    |   5 +-
+ plugins/main/bridge/bridge.go                      |  20 ++--
+ plugins/main/ipvlan/ipvlan.go                      |   4 +-
+ plugins/main/ipvlan/ipvlan_test.go                 |   2 +-
+ plugins/main/macvlan/macvlan.go                    |   4 +-
+ plugins/main/macvlan/macvlan_test.go               |   2 +-
+ plugins/main/ptp/ptp.go                            |  10 +-
+ plugins/meta/flannel/flannel.go                    |   5 +-
+ 24 files changed, 284 insertions(+), 151 deletions(-)
+
+diff --git a/libcni/api_test.go b/libcni/api_test.go
+index d13fe4c..299cb00 100644
+--- a/libcni/api_test.go
++++ b/libcni/api_test.go
+@@ -49,7 +49,7 @@ var _ = Describe("Invoking the plugin", func() {
+ 		debugFilePath = debugFile.Name()
+ 
+ 		debug = &noop_debug.Debug{
+-			ReportResult: `{ "ip": [{ "version": "4", "address": "10.1.2.3/24" }], "dns": {} }`,
++			ReportResult: `{ "ips": [{ "version": "4", "address": "10.1.2.3/24" }], "dns": {} }`,
+ 		}
+ 		Expect(debug.WriteDebug(debugFilePath)).To(Succeed())
+ 
+@@ -88,7 +88,7 @@ var _ = Describe("Invoking the plugin", func() {
+ 			Expect(err).NotTo(HaveOccurred())
+ 
+ 			Expect(result).To(Equal(&current.Result{
+-				IP: []*current.IPConfig{
++				IPs: []*current.IPConfig{
+ 					{
+ 						Version: "4",
+ 						Address: net.IPNet{
+diff --git a/pkg/invoke/exec_test.go b/pkg/invoke/exec_test.go
+index b389d9c..7e804ab 100644
+--- a/pkg/invoke/exec_test.go
++++ b/pkg/invoke/exec_test.go
+@@ -40,7 +40,7 @@ var _ = Describe("Executing a plugin, unit tests", func() {
+ 
+ 	BeforeEach(func() {
+ 		rawExec = &fakes.RawExec{}
+-		rawExec.ExecPluginCall.Returns.ResultBytes = []byte(`{ "ip": [ { "version": "4", "address": "1.2.3.4/24" } ] }`)
++		rawExec.ExecPluginCall.Returns.ResultBytes = []byte(`{ "ips": [ { "version": "4", "address": "1.2.3.4/24" } ] }`)
+ 
+ 		versionDecoder = &fakes.VersionDecoder{}
+ 		versionDecoder.DecodeCall.Returns.PluginInfo = version.PluginSupports("0.42.0")
+@@ -62,8 +62,8 @@ var _ = Describe("Executing a plugin, unit tests", func() {
+ 
+ 			result, err := current.GetResult(r)
+ 			Expect(err).NotTo(HaveOccurred())
+-			Expect(len(result.IP)).To(Equal(1))
+-			Expect(result.IP[0].Address.IP.String()).To(Equal("1.2.3.4"))
++			Expect(len(result.IPs)).To(Equal(1))
++			Expect(result.IPs[0].Address.IP.String()).To(Equal("1.2.3.4"))
+ 		})
+ 
+ 		It("passes its arguments through to the rawExec", func() {
+diff --git a/pkg/ipam/ipam.go b/pkg/ipam/ipam.go
+index 4b03c0b..b76780f 100644
+--- a/pkg/ipam/ipam.go
++++ b/pkg/ipam/ipam.go
+@@ -16,6 +16,7 @@ package ipam
+ 
+ import (
+ 	"fmt"
++	"net"
+ 	"os"
+ 
+ 	"github.com/containernetworking/cni/pkg/invoke"
+@@ -50,27 +51,40 @@ func ConfigureIface(ifName string, res *current.Result) error {
+ 		return fmt.Errorf("failed to set %q UP: %v", ifName, err)
+ 	}
+ 
+-	for _, ipc := range res.IP {
++	var v4gw, v6gw net.IP
++	for _, ipc := range res.IPs {
+ 		if int(ipc.Interface) >= len(res.Interfaces) || res.Interfaces[ipc.Interface].Name != ifName {
+ 			// IP address is for a different interface
+-			continue
++			return fmt.Errorf("failed to add IP addr %v to %q: invalid interface index", ipc, ifName)
+ 		}
+ 
+ 		addr := &netlink.Addr{IPNet: &ipc.Address, Label: ""}
+ 		if err = netlink.AddrAdd(link, addr); err != nil {
+-			return fmt.Errorf("failed to add IP addr to %q: %v", ifName, err)
++			return fmt.Errorf("failed to add IP addr %v to %q: %v", ipc, ifName, err)
+ 		}
+ 
+-		for _, r := range ipc.Routes {
+-			gw := r.GW
+-			if gw == nil {
+-				gw = ipc.Gateway
++		gwIsV4 := ipc.Gateway.To4() != nil
++		if gwIsV4 && v4gw == nil {
++			v4gw = ipc.Gateway
++		} else if !gwIsV4 && v6gw == nil {
++			v6gw = ipc.Gateway
++		}
++	}
++
++	for _, r := range res.Routes {
++		routeIsV4 := r.Dst.IP.To4() != nil
++		gw := r.GW
++		if gw == nil {
++			if routeIsV4 && v4gw != nil {
++				gw = v4gw
++			} else if !routeIsV4 && v6gw != nil {
++				gw = v6gw
+ 			}
+-			if err = ip.AddRoute(&r.Dst, gw, link); err != nil {
+-				// we skip over duplicate routes as we assume the first one wins
+-				if !os.IsExist(err) {
+-					return fmt.Errorf("failed to add route '%v via %v dev %v': %v", r.Dst, gw, ifName, err)
+-				}
++		}
++		if err = ip.AddRoute(&r.Dst, gw, link); err != nil {
++			// we skip over duplicate routes as we assume the first one wins
++			if !os.IsExist(err) {
++				return fmt.Errorf("failed to add route '%v via %v dev %v': %v", r.Dst, gw, ifName, err)
+ 			}
+ 		}
+ 	}
+diff --git a/pkg/types/020/types.go b/pkg/types/020/types.go
+index 666cfe9..4931229 100644
+--- a/pkg/types/020/types.go
++++ b/pkg/types/020/types.go
+@@ -97,7 +97,12 @@ func (r *Result) String() string {
+ type IPConfig struct {
+ 	IP      net.IPNet
+ 	Gateway net.IP
+-	Routes  []types.Route
++	Routes  []Route
++}
++
++type Route struct {
++	Dst net.IPNet
++	GW  net.IP
+ }
+ 
+ // net.IPNet is not JSON (un)marshallable so this duality is needed
+@@ -107,7 +112,7 @@ type IPConfig struct {
+ type ipConfig struct {
+ 	IP      types.IPNet   `json:"ip"`
+ 	Gateway net.IP        `json:"gateway,omitempty"`
+-	Routes  []types.Route `json:"routes,omitempty"`
++	Routes  []Route `json:"routes,omitempty"`
+ }
+ 
+ func (c *IPConfig) MarshalJSON() ([]byte, error) {
+@@ -131,3 +136,28 @@ func (c *IPConfig) UnmarshalJSON(data []byte) error {
+ 	c.Routes = ipc.Routes
+ 	return nil
+ }
++
++type route struct {
++	Dst types.IPNet  `json:"dst"`
++	GW  net.IP `json:"gw,omitempty"`
++}
++
++func (r *Route) UnmarshalJSON(data []byte) error {
++	rt := route{}
++	if err := json.Unmarshal(data, &rt); err != nil {
++		return err
++	}
++
++	r.Dst = net.IPNet(rt.Dst)
++	r.GW = rt.GW
++	return nil
++}
++
++func (r *Route) MarshalJSON() ([]byte, error) {
++	rt := route{
++		Dst: types.IPNet(r.Dst),
++		GW:  r.GW,
++	}
++
++	return json.Marshal(rt)
++}
+diff --git a/pkg/types/020/types_test.go b/pkg/types/020/types_test.go
+index 1bcdda7..9a2f38e 100644
+--- a/pkg/types/020/types_test.go
++++ b/pkg/types/020/types_test.go
+@@ -51,14 +51,14 @@ var _ = Describe("Ensures compatibility with the 0.1.0/0.2.0 spec", func() {
+ 			IP4: &types020.IPConfig{
+ 				IP:      *ipv4,
+ 				Gateway: net.ParseIP("1.2.3.1"),
+-				Routes: []types.Route{
++				Routes: []types020.Route{
+ 					{Dst: *routev4, GW: routegwv4},
+ 				},
+ 			},
+ 			IP6: &types020.IPConfig{
+ 				IP:      *ipv6,
+ 				Gateway: net.ParseIP("abcd:1234:ffff::1"),
+-				Routes: []types.Route{
++				Routes: []types020.Route{
+ 					{Dst: *routev6, GW: routegwv6},
+ 				},
+ 			},
+diff --git a/pkg/types/current/types.go b/pkg/types/current/types.go
+index 2a850a3..84efc94 100644
+--- a/pkg/types/current/types.go
++++ b/pkg/types/current/types.go
+@@ -63,30 +63,49 @@ func convertFrom020(result types.Result) (*Result, error) {
+ 	}
+ 
+ 	newResult := &Result{
+-		DNS: oldResult.DNS,
++		DNS:    oldResult.DNS,
++		Routes: []*Route{},
+ 	}
+ 
+ 	if oldResult.IP4 != nil {
+-		newResult.IP = append(newResult.IP, &IPConfig{
++		newResult.IPs = append(newResult.IPs, &IPConfig{
+ 			Version:   "4",
+ 			Interface: -1,
+ 			Address:   oldResult.IP4.IP,
+ 			Gateway:   oldResult.IP4.Gateway,
+-			Routes:    oldResult.IP4.Routes,
+ 		})
++		for _, route := range oldResult.IP4.Routes {
++			gw := route.GW
++			if gw == nil {
++				gw = oldResult.IP4.Gateway
++			}
++			newResult.Routes = append(newResult.Routes, &Route{
++				Dst: route.Dst,
++				GW:  gw,
++			})
++		}
+ 	}
+ 
+ 	if oldResult.IP6 != nil {
+-		newResult.IP = append(newResult.IP, &IPConfig{
++		newResult.IPs = append(newResult.IPs, &IPConfig{
+ 			Version:   "6",
+ 			Interface: -1,
+ 			Address:   oldResult.IP6.IP,
+ 			Gateway:   oldResult.IP6.Gateway,
+-			Routes:    oldResult.IP6.Routes,
+ 		})
++		for _, route := range oldResult.IP6.Routes {
++			gw := route.GW
++			if gw == nil {
++				gw = oldResult.IP6.Gateway
++			}
++			newResult.Routes = append(newResult.Routes, &Route{
++				Dst: route.Dst,
++				GW:  gw,
++			})
++		}
+ 	}
+ 
+-	if len(newResult.IP) == 0 {
++	if len(newResult.IPs) == 0 {
+ 		return nil, fmt.Errorf("cannot convert: no valid IP addresses")
+ 	}
+ 
+@@ -116,7 +135,8 @@ func NewResultFromResult(result types.Result) (*Result, error) {
+ // Result is what gets returned from the plugin (via stdout) to the caller
+ type Result struct {
+ 	Interfaces []*Interface `json:"interfaces,omitempty"`
+-	IP         []*IPConfig  `json:"ip,omitempty"`
++	IPs        []*IPConfig  `json:"ips,omitempty"`
++	Routes     []*Route     `json:"routes,omitempty"`
+ 	DNS        types.DNS    `json:"dns,omitempty"`
+ }
+ 
+@@ -126,25 +146,41 @@ func (r *Result) convertTo020() (*types020.Result, error) {
+ 		DNS: r.DNS,
+ 	}
+ 
+-	for _, ip := range r.IP {
++	for _, ip := range r.IPs {
++		// Only convert the first IP address of each version as 0.2.0
++		// and earlier cannot handle multiple IP addresses
+ 		if ip.Version == "4" && oldResult.IP4 == nil {
+ 			oldResult.IP4 = &types020.IPConfig{
+ 				IP:      ip.Address,
+ 				Gateway: ip.Gateway,
+-				Routes:  ip.Routes,
+ 			}
+ 		} else if ip.Version == "6" && oldResult.IP6 == nil {
+ 			oldResult.IP6 = &types020.IPConfig{
+ 				IP:      ip.Address,
+ 				Gateway: ip.Gateway,
+-				Routes:  ip.Routes,
+ 			}
+ 		}
++
+ 		if oldResult.IP4 != nil && oldResult.IP6 != nil {
+ 			break
+ 		}
+ 	}
+ 
++	for _, route := range r.Routes {
++		is4 := route.Dst.IP.To4() != nil
++		if is4 && oldResult.IP4 != nil {
++			oldResult.IP4.Routes = append(oldResult.IP4.Routes, types020.Route{
++				Dst: route.Dst,
++				GW:  route.GW,
++			})
++		} else if !is4 && oldResult.IP6 != nil {
++			oldResult.IP6.Routes = append(oldResult.IP6.Routes, types020.Route{
++				Dst: route.Dst,
++				GW:  route.GW,
++			})
++		}
++	}
++
+ 	if oldResult.IP4 == nil && oldResult.IP6 == nil {
+ 		return nil, fmt.Errorf("cannot convert: no valid IP addresses")
+ 	}
+@@ -183,8 +219,11 @@ func (r *Result) String() string {
+ 	if len(r.Interfaces) > 0 {
+ 		str += fmt.Sprintf("Interfaces:%+v, ", r.Interfaces)
+ 	}
+-	if len(r.IP) > 0 {
+-		str += fmt.Sprintf("IP:%+v, ", r.IP)
++	if len(r.IPs) > 0 {
++		str += fmt.Sprintf("IP:%+v, ", r.IPs)
++	}
++	if len(r.Routes) > 0 {
++		str += fmt.Sprintf("Routes:%+v, ", r.Routes)
+ 	}
+ 	return fmt.Sprintf("%sDNS:%+v", str, r.DNS)
+ }
+@@ -205,7 +244,7 @@ func (i *Interface) String() string {
+ 	return fmt.Sprintf("%+v", *i)
+ }
+ 
+-// IPConfig contains values necessary to configure an interface
++// IPConfig contains values necessary to configure an IP address on an interface
+ type IPConfig struct {
+ 	// IP version, either "4" or "6"
+ 	Version string
+@@ -213,20 +252,28 @@ type IPConfig struct {
+ 	Interface int
+ 	Address   net.IPNet
+ 	Gateway   net.IP
+-	Routes    []types.Route
+ }
+ 
+ func (i *IPConfig) String() string {
+ 	return fmt.Sprintf("%+v", *i)
+ }
+ 
++// Route contains values necessary to configure routes
++type Route struct {
++	Dst net.IPNet
++	GW  net.IP
++}
++
++func (r *Route) String() string {
++	return fmt.Sprintf("%+v", *r)
++}
++
+ // JSON (un)marshallable types
+ type ipConfig struct {
+-	Version   string        `json:"version"`
+-	Interface int           `json:"interface,omitempty"`
+-	Address   types.IPNet   `json:"address"`
+-	Gateway   net.IP        `json:"gateway,omitempty"`
+-	Routes    []types.Route `json:"routes,omitempty"`
++	Version   string      `json:"version"`
++	Interface int         `json:"interface,omitempty"`
++	Address   types.IPNet `json:"address"`
++	Gateway   net.IP      `json:"gateway,omitempty"`
+ }
+ 
+ func (c *IPConfig) MarshalJSON() ([]byte, error) {
+@@ -235,7 +282,6 @@ func (c *IPConfig) MarshalJSON() ([]byte, error) {
+ 		Interface: c.Interface,
+ 		Address:   types.IPNet(c.Address),
+ 		Gateway:   c.Gateway,
+-		Routes:    c.Routes,
+ 	}
+ 
+ 	return json.Marshal(ipc)
+@@ -251,6 +297,30 @@ func (c *IPConfig) UnmarshalJSON(data []byte) error {
+ 	c.Interface = ipc.Interface
+ 	c.Address = net.IPNet(ipc.Address)
+ 	c.Gateway = ipc.Gateway
+-	c.Routes = ipc.Routes
+ 	return nil
+ }
++
++type route struct {
++	Dst types.IPNet  `json:"dst"`
++	GW  net.IP `json:"gw,omitempty"`
++}
++
++func (r *Route) UnmarshalJSON(data []byte) error {
++	rt := route{}
++	if err := json.Unmarshal(data, &rt); err != nil {
++		return err
++	}
++
++	r.Dst = net.IPNet(rt.Dst)
++	r.GW = rt.GW
++	return nil
++}
++
++func (r *Route) MarshalJSON() ([]byte, error) {
++	rt := route{
++		Dst: types.IPNet(r.Dst),
++		GW:  r.GW,
++	}
++
++	return json.Marshal(rt)
++}
+diff --git a/pkg/types/current/types_test.go b/pkg/types/current/types_test.go
+index 60c3119..1454440 100644
+--- a/pkg/types/current/types_test.go
++++ b/pkg/types/current/types_test.go
+@@ -54,26 +54,24 @@ func testResult() *current.Result {
+ 				Sandbox: "/proc/3553/ns/net",
+ 			},
+ 		},
+-		IP: []*current.IPConfig{
++		IPs: []*current.IPConfig{
+ 			{
+ 				Version:   "4",
+ 				Interface: 0,
+ 				Address:   *ipv4,
+ 				Gateway:   net.ParseIP("1.2.3.1"),
+-				Routes: []types.Route{
+-					{Dst: *routev4, GW: routegwv4},
+-				},
+ 			},
+ 			{
+ 				Version:   "6",
+ 				Interface: 0,
+ 				Address:   *ipv6,
+ 				Gateway:   net.ParseIP("abcd:1234:ffff::1"),
+-				Routes: []types.Route{
+-					{Dst: *routev6, GW: routegwv6},
+-				},
+ 			},
+ 		},
++		Routes: []*current.Route{
++			{Dst: *routev4, GW: routegwv4},
++			{Dst: *routev6, GW: routegwv6},
++		},
+ 		DNS: types.DNS{
+ 			Nameservers: []string{"1.2.3.4", "1::cafe"},
+ 			Domain:      "acompany.com",
+@@ -87,7 +85,7 @@ var _ = Describe("Ensures compatibility with the 0.3.0 spec", func() {
+ 	It("correctly encodes a 0.3.0 Result", func() {
+ 		res := testResult()
+ 
+-		Expect(res.String()).To(Equal("Interfaces:[{Name:eth0 Mac:00:11:22:33:44:55 Sandbox:/proc/3553/ns/net}], IP:[{Version:4 Interface:0 Address:{IP:1.2.3.30 Mask:ffffff00} Gateway:1.2.3.1 Routes:[{Dst:{IP:15.5.6.0 Mask:ffffff00} GW:15.5.6.8}]} {Version:6 Interface:0 Address:{IP:abcd:1234:ffff::cdde Mask:ffffffffffffffff0000000000000000} Gateway:abcd:1234:ffff::1 Routes:[{Dst:{IP:1111:dddd:: Mask:ffffffffffffffffffff000000000000} GW:1111:dddd::aaaa}]}], DNS:{Nameservers:[1.2.3.4 1::cafe] Domain:acompany.com Search:[somedomain.com otherdomain.net] Options:[foo bar]}"))
++		Expect(res.String()).To(Equal("Interfaces:[{Name:eth0 Mac:00:11:22:33:44:55 Sandbox:/proc/3553/ns/net}], IP:[{Version:4 Interface:0 Address:{IP:1.2.3.30 Mask:ffffff00} Gateway:1.2.3.1} {Version:6 Interface:0 Address:{IP:abcd:1234:ffff::cdde Mask:ffffffffffffffff0000000000000000} Gateway:abcd:1234:ffff::1}], Routes:[{Dst:{IP:15.5.6.0 Mask:ffffff00} GW:15.5.6.8} {Dst:{IP:1111:dddd:: Mask:ffffffffffffffffffff000000000000} GW:1111:dddd::aaaa}], DNS:{Nameservers:[1.2.3.4 1::cafe] Domain:acompany.com Search:[somedomain.com otherdomain.net] Options:[foo bar]}"))
+ 
+ 		// Redirect stdout to capture JSON result
+ 		oldStdout := os.Stdout
+@@ -112,28 +110,26 @@ var _ = Describe("Ensures compatibility with the 0.3.0 spec", func() {
+             "sandbox": "/proc/3553/ns/net"
+         }
+     ],
+-    "ip": [
++    "ips": [
+         {
+             "version": "4",
+             "address": "1.2.3.30/24",
+-            "gateway": "1.2.3.1",
+-            "routes": [
+-                {
+-                    "dst": "15.5.6.0/24",
+-                    "gw": "15.5.6.8"
+-                }
+-            ]
++            "gateway": "1.2.3.1"
+         },
+         {
+             "version": "6",
+             "address": "abcd:1234:ffff::cdde/64",
+-            "gateway": "abcd:1234:ffff::1",
+-            "routes": [
+-                {
+-                    "dst": "1111:dddd::/80",
+-                    "gw": "1111:dddd::aaaa"
+-                }
+-            ]
++            "gateway": "abcd:1234:ffff::1"
++        }
++    ],
++    "routes": [
++        {
++            "dst": "15.5.6.0/24",
++            "gw": "15.5.6.8"
++        },
++        {
++            "dst": "1111:dddd::/80",
++            "gw": "1111:dddd::aaaa"
+         }
+     ],
+     "dns": {
+diff --git a/pkg/version/legacy_examples/examples.go b/pkg/version/legacy_examples/examples.go
+index 1bf406b..b7310d4 100644
+--- a/pkg/version/legacy_examples/examples.go
++++ b/pkg/version/legacy_examples/examples.go
+@@ -122,8 +122,8 @@ var ExpectedResult = &types020.Result{
+ 			Mask: net.CIDRMask(24, 32),
+ 		},
+ 		Gateway: net.ParseIP("10.1.2.1"),
+-		Routes: []types.Route{
+-			types.Route{
++		Routes: []types020.Route{
++			types020.Route{
+ 				Dst: net.IPNet{
+ 					IP:   net.ParseIP("0.0.0.0"),
+ 					Mask: net.CIDRMask(0, 32),
+diff --git a/plugins/ipam/dhcp/daemon.go b/plugins/ipam/dhcp/daemon.go
+index db032e6..c6660b7 100644
+--- a/plugins/ipam/dhcp/daemon.go
++++ b/plugins/ipam/dhcp/daemon.go
+@@ -71,12 +71,12 @@ func (d *DHCP) Allocate(args *skel.CmdArgs, result *current.Result) error {
+ 
+ 	d.setLease(args.ContainerID, conf.Name, l)
+ 
+-	result.IP = []*current.IPConfig{{
++	result.IPs = []*current.IPConfig{{
+ 		Version: "4",
+ 		Address: *ipn,
+ 		Gateway: l.Gateway(),
+-		Routes:  l.Routes(),
+ 	}}
++	result.Routes = l.Routes()
+ 
+ 	return nil
+ }
+diff --git a/plugins/ipam/dhcp/lease.go b/plugins/ipam/dhcp/lease.go
+index eb2b403..d7e86aa 100644
+--- a/plugins/ipam/dhcp/lease.go
++++ b/plugins/ipam/dhcp/lease.go
+@@ -27,7 +27,7 @@ import (
+ 	"github.com/vishvananda/netlink"
+ 
+ 	"github.com/containernetworking/cni/pkg/ns"
+-	"github.com/containernetworking/cni/pkg/types"
++	"github.com/containernetworking/cni/pkg/types/current"
+ )
+ 
+ // RFC 2131 suggests using exponential backoff, starting with 4sec
+@@ -291,7 +291,7 @@ func (l *DHCPLease) Gateway() net.IP {
+ 	return parseRouter(l.opts)
+ }
+ 
+-func (l *DHCPLease) Routes() []types.Route {
++func (l *DHCPLease) Routes() []*current.Route {
+ 	routes := parseRoutes(l.opts)
+ 	return append(routes, parseCIDRRoutes(l.opts)...)
+ }
+diff --git a/plugins/ipam/dhcp/options.go b/plugins/ipam/dhcp/options.go
+index b11ec21..10493dc 100644
+--- a/plugins/ipam/dhcp/options.go
++++ b/plugins/ipam/dhcp/options.go
+@@ -20,7 +20,7 @@ import (
+ 	"net"
+ 	"time"
+ 
+-	"github.com/containernetworking/cni/pkg/types"
++	"github.com/containernetworking/cni/pkg/types/current"
+ 	"github.com/d2g/dhcp4"
+ )
+ 
+@@ -40,17 +40,17 @@ func classfulSubnet(sn net.IP) net.IPNet {
+ 	}
+ }
+ 
+-func parseRoutes(opts dhcp4.Options) []types.Route {
++func parseRoutes(opts dhcp4.Options) []*current.Route {
+ 	// StaticRoutes format: pairs of:
+ 	// Dest = 4 bytes; Classful IP subnet
+ 	// Router = 4 bytes; IP address of router
+ 
+-	routes := []types.Route{}
++	routes := []*current.Route{}
+ 	if opt, ok := opts[dhcp4.OptionStaticRoute]; ok {
+ 		for len(opt) >= 8 {
+ 			sn := opt[0:4]
+ 			r := opt[4:8]
+-			rt := types.Route{
++			rt := &current.Route{
+ 				Dst: classfulSubnet(sn),
+ 				GW:  r,
+ 			}
+@@ -62,10 +62,10 @@ func parseRoutes(opts dhcp4.Options) []types.Route {
+ 	return routes
+ }
+ 
+-func parseCIDRRoutes(opts dhcp4.Options) []types.Route {
++func parseCIDRRoutes(opts dhcp4.Options) []*current.Route {
+ 	// See RFC4332 for format (http://tools.ietf.org/html/rfc3442)
+ 
+-	routes := []types.Route{}
++	routes := []*current.Route{}
+ 	if opt, ok := opts[dhcp4.OptionClasslessRouteFormat]; ok {
+ 		for len(opt) >= 5 {
+ 			width := int(opt[0])
+@@ -89,7 +89,7 @@ func parseCIDRRoutes(opts dhcp4.Options) []types.Route {
+ 
+ 			gw := net.IP(opt[octets+1 : octets+5])
+ 
+-			rt := types.Route{
++			rt := &current.Route{
+ 				Dst: net.IPNet{
+ 					IP:   net.IP(sn),
+ 					Mask: net.CIDRMask(width, 32),
+diff --git a/plugins/ipam/dhcp/options_test.go b/plugins/ipam/dhcp/options_test.go
+index f69ae7b..056dceb 100644
+--- a/plugins/ipam/dhcp/options_test.go
++++ b/plugins/ipam/dhcp/options_test.go
+@@ -18,20 +18,20 @@ import (
+ 	"net"
+ 	"testing"
+ 
+-	"github.com/containernetworking/cni/pkg/types"
++	"github.com/containernetworking/cni/pkg/types/current"
+ 	"github.com/d2g/dhcp4"
+ )
+ 
+-func validateRoutes(t *testing.T, routes []types.Route) {
+-	expected := []types.Route{
+-		types.Route{
++func validateRoutes(t *testing.T, routes []*current.Route) {
++	expected := []*current.Route{
++		&current.Route{
+ 			Dst: net.IPNet{
+ 				IP:   net.IPv4(10, 0, 0, 0),
+ 				Mask: net.CIDRMask(8, 32),
+ 			},
+ 			GW: net.IPv4(10, 1, 2, 3),
+ 		},
+-		types.Route{
++		&current.Route{
+ 			Dst: net.IPNet{
+ 				IP:   net.IPv4(192, 168, 1, 0),
+ 				Mask: net.CIDRMask(24, 32),
+diff --git a/plugins/ipam/host-local/backend/allocator/allocator.go b/plugins/ipam/host-local/backend/allocator/allocator.go
+index 8e910fd..d2a95e7 100644
+--- a/plugins/ipam/host-local/backend/allocator/allocator.go
++++ b/plugins/ipam/host-local/backend/allocator/allocator.go
+@@ -129,7 +129,7 @@ func validateRangeIP(ip net.IP, ipnet *net.IPNet, start net.IP, end net.IP) erro
+ }
+ 
+ // Returns newly allocated IP along with its config
+-func (a *IPAllocator) Get(id string) (*current.IPConfig, error) {
++func (a *IPAllocator) Get(id string) (*current.IPConfig, []*current.Route, error) {
+ 	a.store.Lock()
+ 	defer a.store.Unlock()
+ 
+@@ -145,7 +145,7 @@ func (a *IPAllocator) Get(id string) (*current.IPConfig, error) {
+ 
+ 	if requestedIP != nil {
+ 		if gw != nil && gw.Equal(a.conf.Args.IP) {
+-			return nil, fmt.Errorf("requested IP must differ gateway IP")
++			return nil, nil, fmt.Errorf("requested IP must differ gateway IP")
+ 		}
+ 
+ 		subnet := net.IPNet{
+@@ -154,23 +154,24 @@ func (a *IPAllocator) Get(id string) (*current.IPConfig, error) {
+ 		}
+ 		err := validateRangeIP(requestedIP, &subnet, a.start, a.end)
+ 		if err != nil {
+-			return nil, err
++			return nil, nil, err
+ 		}
+ 
+ 		reserved, err := a.store.Reserve(id, requestedIP)
+ 		if err != nil {
+-			return nil, err
++			return nil, nil, err
+ 		}
+ 
+ 		if reserved {
+-			return &current.IPConfig{
++			ipConfig := &current.IPConfig{
+ 				Version: "4",
+ 				Address: net.IPNet{IP: requestedIP, Mask: a.conf.Subnet.Mask},
+ 				Gateway: gw,
+-				Routes:  a.conf.Routes,
+-			}, nil
++			}
++			routes := convertRoutesToCurrent(a.conf.Routes)
++			return ipConfig, routes, nil
+ 		}
+-		return nil, fmt.Errorf("requested IP address %q is not available in network: %s", requestedIP, a.conf.Name)
++		return nil, nil, fmt.Errorf("requested IP address %q is not available in network: %s", requestedIP, a.conf.Name)
+ 	}
+ 
+ 	startIP, endIP := a.getSearchRange()
+@@ -182,22 +183,23 @@ func (a *IPAllocator) Get(id string) (*current.IPConfig, error) {
+ 
+ 		reserved, err := a.store.Reserve(id, cur)
+ 		if err != nil {
+-			return nil, err
++			return nil, nil, err
+ 		}
+ 		if reserved {
+-			return &current.IPConfig{
++			ipConfig := &current.IPConfig{
+ 				Version: "4",
+ 				Address: net.IPNet{IP: cur, Mask: a.conf.Subnet.Mask},
+ 				Gateway: gw,
+-				Routes:  a.conf.Routes,
+-			}, nil
++			}
++			routes := convertRoutesToCurrent(a.conf.Routes)
++			return ipConfig, routes, nil
+ 		}
+ 		// break here to complete the loop
+ 		if cur.Equal(endIP) {
+ 			break
+ 		}
+ 	}
+-	return nil, fmt.Errorf("no IP addresses available in network: %s", a.conf.Name)
++	return nil, nil, fmt.Errorf("no IP addresses available in network: %s", a.conf.Name)
+ }
+ 
+ // Releases all IPs allocated for the container with given ID
+diff --git a/plugins/ipam/host-local/backend/allocator/allocator_test.go b/plugins/ipam/host-local/backend/allocator/allocator_test.go
+index e5607a1..3cd584a 100644
+--- a/plugins/ipam/host-local/backend/allocator/allocator_test.go
++++ b/plugins/ipam/host-local/backend/allocator/allocator_test.go
+@@ -31,10 +31,10 @@ type AllocatorTestCase struct {
+ 	lastIP       string
+ }
+ 
+-func (t AllocatorTestCase) run() (*current.IPConfig, error) {
++func (t AllocatorTestCase) run() (*current.IPConfig, []*current.Route, error) {
+ 	subnet, err := types.ParseCIDR(t.subnet)
+ 	if err != nil {
+-		return nil, err
++		return nil, nil, err
+ 	}
+ 
+ 	conf := IPAMConfig{
+@@ -45,14 +45,14 @@ func (t AllocatorTestCase) run() (*current.IPConfig, error) {
+ 	store := fakestore.NewFakeStore(t.ipmap, net.ParseIP(t.lastIP))
+ 	alloc, err := NewIPAllocator(&conf, store)
+ 	if err != nil {
+-		return nil, err
++		return nil, nil, err
+ 	}
+-	res, err := alloc.Get("ID")
++	res, routes, err := alloc.Get("ID")
+ 	if err != nil {
+-		return nil, err
++		return nil, nil, err
+ 	}
+ 
+-	return res, nil
++	return res, routes, nil
+ }
+ 
+ var _ = Describe("host-local ip allocator", func() {
+@@ -129,7 +129,7 @@ var _ = Describe("host-local ip allocator", func() {
+ 			}
+ 
+ 			for _, tc := range testCases {
+-				res, err := tc.run()
++				res, _, err := tc.run()
+ 				Expect(err).ToNot(HaveOccurred())
+ 				Expect(res.Address.IP.String()).To(Equal(tc.expectResult))
+ 			}
+@@ -149,14 +149,14 @@ var _ = Describe("host-local ip allocator", func() {
+ 			Expect(err).ToNot(HaveOccurred())
+ 
+ 			for i := 1; i < 254; i++ {
+-				res, err := alloc.Get("ID")
++				res, _, err := alloc.Get("ID")
+ 				Expect(err).ToNot(HaveOccurred())
+ 				// i+1 because the gateway address is skipped
+ 				s := fmt.Sprintf("192.168.1.%d/24", i+1)
+ 				Expect(s).To(Equal(res.Address.String()))
+ 			}
+ 
+-			_, err = alloc.Get("ID")
++			_, _, err = alloc.Get("ID")
+ 			Expect(err).To(HaveOccurred())
+ 		})
+ 
+@@ -174,11 +174,11 @@ var _ = Describe("host-local ip allocator", func() {
+ 			alloc, err := NewIPAllocator(&conf, store)
+ 			Expect(err).ToNot(HaveOccurred())
+ 
+-			res, err := alloc.Get("ID")
++			res, _, err := alloc.Get("ID")
+ 			Expect(err).ToNot(HaveOccurred())
+ 			Expect(res.Address.String()).To(Equal("192.168.1.10/24"))
+ 
+-			res, err = alloc.Get("ID")
++			res, _, err = alloc.Get("ID")
+ 			Expect(err).ToNot(HaveOccurred())
+ 			Expect(res.Address.String()).To(Equal("192.168.1.11/24"))
+ 		})
+@@ -198,13 +198,13 @@ var _ = Describe("host-local ip allocator", func() {
+ 			Expect(err).ToNot(HaveOccurred())
+ 
+ 			for i := 1; i < 5; i++ {
+-				res, err := alloc.Get("ID")
++				res, _, err := alloc.Get("ID")
+ 				Expect(err).ToNot(HaveOccurred())
+ 				// i+1 because the gateway address is skipped
+ 				Expect(res.Address.String()).To(Equal(fmt.Sprintf("192.168.1.%d/24", i+1)))
+ 			}
+ 
+-			_, err = alloc.Get("ID")
++			_, _, err = alloc.Get("ID")
+ 			Expect(err).To(HaveOccurred())
+ 		})
+ 
+@@ -222,7 +222,7 @@ var _ = Describe("host-local ip allocator", func() {
+ 				}
+ 				store := fakestore.NewFakeStore(ipmap, nil)
+ 				alloc, _ := NewIPAllocator(&conf, store)
+-				res, err := alloc.Get("ID")
++				res, _, err := alloc.Get("ID")
+ 				Expect(err).ToNot(HaveOccurred())
+ 				Expect(res.Address.IP.String()).To(Equal(requestedIP.String()))
+ 			})
+@@ -240,7 +240,7 @@ var _ = Describe("host-local ip allocator", func() {
+ 				}
+ 				store := fakestore.NewFakeStore(ipmap, nil)
+ 				alloc, _ := NewIPAllocator(&conf, store)
+-				_, err = alloc.Get("ID")
++				_, _, err = alloc.Get("ID")
+ 				Expect(err).To(HaveOccurred())
+ 			})
+ 
+@@ -257,7 +257,7 @@ var _ = Describe("host-local ip allocator", func() {
+ 				}
+ 				store := fakestore.NewFakeStore(ipmap, nil)
+ 				alloc, _ := NewIPAllocator(&conf, store)
+-				_, err = alloc.Get("ID")
++				_, _, err = alloc.Get("ID")
+ 				Expect(err).To(HaveOccurred())
+ 			})
+ 		})
+@@ -332,7 +332,7 @@ var _ = Describe("host-local ip allocator", func() {
+ 				},
+ 			}
+ 			for _, tc := range testCases {
+-				_, err := tc.run()
++				_, _, err := tc.run()
+ 				Expect(err).To(MatchError("no IP addresses available in network: test"))
+ 			}
+ 		})
+diff --git a/plugins/ipam/host-local/backend/allocator/config.go b/plugins/ipam/host-local/backend/allocator/config.go
+index 5f78e93..e4fdcb8 100644
+--- a/plugins/ipam/host-local/backend/allocator/config.go
++++ b/plugins/ipam/host-local/backend/allocator/config.go
+@@ -20,20 +20,28 @@ import (
+ 	"net"
+ 
+ 	"github.com/containernetworking/cni/pkg/types"
++	"github.com/containernetworking/cni/pkg/types/current"
+ )
+ 
+ // IPAMConfig represents the IP related network configuration.
+ type IPAMConfig struct {
+ 	Name       string
+-	Type       string        `json:"type"`
+-	RangeStart net.IP        `json:"rangeStart"`
+-	RangeEnd   net.IP        `json:"rangeEnd"`
+-	Subnet     types.IPNet   `json:"subnet"`
+-	Gateway    net.IP        `json:"gateway"`
+-	Routes     []types.Route `json:"routes"`
+-	DataDir    string        `json:"dataDir"`
+-	ResolvConf string        `json:"resolvConf"`
+-	Args       *IPAMArgs     `json:"-"`
++	Type       string      `json:"type"`
++	RangeStart net.IP      `json:"rangeStart"`
++	RangeEnd   net.IP      `json:"rangeEnd"`
++	Subnet     types.IPNet `json:"subnet"`
++	Gateway    net.IP      `json:"gateway"`
++	Routes     []route     `json:"routes"`
++	DataDir    string      `json:"dataDir"`
++	ResolvConf string      `json:"resolvConf"`
++	Args       *IPAMArgs   `json:"-"`
++}
++
++// Private Route structure to divorce host-local config syntax from
++// any spec version changes
++type route struct {
++	Dst types.IPNet  `json:"dst"`
++	GW  net.IP `json:"gw"`
+ }
+ 
+ type IPAMArgs struct {
+@@ -71,3 +79,14 @@ func LoadIPAMConfig(bytes []byte, args string) (*IPAMConfig, string, error) {
+ 
+ 	return n.IPAM, n.CNIVersion, nil
+ }
++
++func convertRoutesToCurrent(routes []route) []*current.Route {
++	var currentRoutes []*current.Route
++	for _, r := range routes {
++		currentRoutes = append(currentRoutes, &current.Route{
++			Dst: net.IPNet(r.Dst),
++			GW:  r.GW,
++		})
++	}
++	return currentRoutes
++}
+diff --git a/plugins/ipam/host-local/host_local_test.go b/plugins/ipam/host-local/host_local_test.go
+index c11a9fc..52b1c79 100644
+--- a/plugins/ipam/host-local/host_local_test.go
++++ b/plugins/ipam/host-local/host_local_test.go
+@@ -76,10 +76,10 @@ var _ = Describe("host-local Operations", func() {
+ 
+ 		expectedAddress, err := types.ParseCIDR("10.1.2.2/24")
+ 		Expect(err).NotTo(HaveOccurred())
+-		Expect(len(result.IP)).To(Equal(1))
++		Expect(len(result.IPs)).To(Equal(1))
+ 		expectedAddress.IP = expectedAddress.IP.To16()
+-		Expect(result.IP[0].Address).To(Equal(*expectedAddress))
+-		Expect(result.IP[0].Gateway).To(Equal(net.ParseIP("10.1.2.1")))
++		Expect(result.IPs[0].Address).To(Equal(*expectedAddress))
++		Expect(result.IPs[0].Gateway).To(Equal(net.ParseIP("10.1.2.1")))
+ 
+ 		ipFilePath := filepath.Join(tmpDir, "mynet", "10.1.2.2")
+ 		contents, err := ioutil.ReadFile(ipFilePath)
+@@ -202,7 +202,7 @@ var _ = Describe("host-local Operations", func() {
+ 		result, err := current.GetResult(r)
+ 		Expect(err).NotTo(HaveOccurred())
+ 
+-		ipFilePath := filepath.Join(tmpDir, "mynet", result.IP[0].Address.IP.String())
++		ipFilePath := filepath.Join(tmpDir, "mynet", result.IPs[0].Address.IP.String())
+ 		contents, err := ioutil.ReadFile(ipFilePath)
+ 		Expect(err).NotTo(HaveOccurred())
+ 		Expect(string(contents)).To(Equal("dummy"))
+diff --git a/plugins/ipam/host-local/main.go b/plugins/ipam/host-local/main.go
+index 4eef020..2f77912 100644
+--- a/plugins/ipam/host-local/main.go
++++ b/plugins/ipam/host-local/main.go
+@@ -55,11 +55,12 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 		return err
+ 	}
+ 
+-	ipConf, err := allocator.Get(args.ContainerID)
++	ipConf, routes, err := allocator.Get(args.ContainerID)
+ 	if err != nil {
+ 		return err
+ 	}
+-	result.IP = []*current.IPConfig{ipConf}
++	result.IPs = []*current.IPConfig{ipConf}
++	result.Routes = routes
+ 
+ 	return types.PrintResult(result, confVersion)
+ }
+diff --git a/plugins/main/bridge/bridge.go b/plugins/main/bridge/bridge.go
+index d2b1f29..dfb1ceb 100644
+--- a/plugins/main/bridge/bridge.go
++++ b/plugins/main/bridge/bridge.go
+@@ -254,13 +254,13 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 		return err
+ 	}
+ 
+-	if len(result.IP) == 0 {
++	if len(result.IPs) == 0 {
+ 		return errors.New("IPAM plugin returned missing IP config")
+ 	}
+ 
+ 	result.Interfaces = []*current.Interface{brInterface, hostInterface, containerInterface}
+ 
+-	for _, ipc := range result.IP {
++	for _, ipc := range result.IPs {
+ 		// All IPs currently refer to the container interface
+ 		ipc.Interface = 2
+ 		if ipc.Gateway == nil && n.IsGW {
+@@ -271,7 +271,7 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 	if err := netns.Do(func(_ ns.NetNS) error {
+ 		// set the default gateway if requested
+ 		if n.IsDefaultGW {
+-			for _, ipc := range result.IP {
++			for _, ipc := range result.IPs {
+ 				defaultNet := &net.IPNet{}
+ 				switch {
+ 				case ipc.Address.IP.To4() != nil:
+@@ -284,7 +284,7 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 					return fmt.Errorf("Unknown IP object: %v", ipc)
+ 				}
+ 
+-				for _, route := range ipc.Routes {
++				for _, route := range result.Routes {
+ 					if defaultNet.String() == route.Dst.String() {
+ 						if route.GW != nil && !route.GW.Equal(ipc.Gateway) {
+ 							return fmt.Errorf(
+@@ -295,9 +295,9 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 					}
+ 				}
+ 
+-				ipc.Routes = append(
+-					ipc.Routes,
+-					types.Route{Dst: *defaultNet, GW: ipc.Gateway},
++				result.Routes = append(
++					result.Routes,
++					&current.Route{Dst: *defaultNet, GW: ipc.Gateway},
+ 				)
+ 			}
+ 		}
+@@ -306,7 +306,7 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 			return err
+ 		}
+ 
+-		if err := ip.SetHWAddrByIP(args.IfName, result.IP[0].Address.IP, nil /* TODO IPv6 */); err != nil {
++		if err := ip.SetHWAddrByIP(args.IfName, result.IPs[0].Address.IP, nil /* TODO IPv6 */); err != nil {
+ 			return err
+ 		}
+ 
+@@ -324,7 +324,7 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 
+ 	if n.IsGW {
+ 		var firstV4Addr net.IP
+-		for _, ipc := range result.IP {
++		for _, ipc := range result.IPs {
+ 			gwn := &net.IPNet{
+ 				IP:   ipc.Gateway,
+ 				Mask: ipc.Address.Mask,
+@@ -352,7 +352,7 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 	if n.IPMasq {
+ 		chain := utils.FormatChainName(n.Name, args.ContainerID)
+ 		comment := utils.FormatComment(n.Name, args.ContainerID)
+-		for _, ipc := range result.IP {
++		for _, ipc := range result.IPs {
+ 			if err = ip.SetupIPMasq(ip.Network(&ipc.Address), chain, comment); err != nil {
+ 				return err
+ 			}
+diff --git a/plugins/main/ipvlan/ipvlan.go b/plugins/main/ipvlan/ipvlan.go
+index 031d48b..3afced3 100644
+--- a/plugins/main/ipvlan/ipvlan.go
++++ b/plugins/main/ipvlan/ipvlan.go
+@@ -154,10 +154,10 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 		return err
+ 	}
+ 
+-	if len(result.IP) == 0 {
++	if len(result.IPs) == 0 {
+ 		return errors.New("IPAM plugin returned missing IP config")
+ 	}
+-	for _, ipc := range result.IP {
++	for _, ipc := range result.IPs {
+ 		// All addresses belong to the ipvlan interface
+ 		ipc.Interface = 0
+ 	}
+diff --git a/plugins/main/ipvlan/ipvlan_test.go b/plugins/main/ipvlan/ipvlan_test.go
+index 3cf13e2..7f2d64e 100644
+--- a/plugins/main/ipvlan/ipvlan_test.go
++++ b/plugins/main/ipvlan/ipvlan_test.go
+@@ -141,7 +141,7 @@ var _ = Describe("ipvlan Operations", func() {
+ 
+ 			Expect(len(result.Interfaces)).To(Equal(1))
+ 			Expect(result.Interfaces[0].Name).To(Equal(IFNAME))
+-			Expect(len(result.IP)).To(Equal(1))
++			Expect(len(result.IPs)).To(Equal(1))
+ 			return nil
+ 		})
+ 		Expect(err).NotTo(HaveOccurred())
+diff --git a/plugins/main/macvlan/macvlan.go b/plugins/main/macvlan/macvlan.go
+index 1b65227..c4502f1 100644
+--- a/plugins/main/macvlan/macvlan.go
++++ b/plugins/main/macvlan/macvlan.go
+@@ -171,13 +171,13 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 		return err
+ 	}
+ 
+-	if len(result.IP) == 0 {
++	if len(result.IPs) == 0 {
+ 		return errors.New("IPAM plugin returned missing IP config")
+ 	}
+ 	result.Interfaces = []*current.Interface{macvlanInterface}
+ 
+ 	var firstV4Addr net.IP
+-	for _, ipc := range result.IP {
++	for _, ipc := range result.IPs {
+ 		// All addresses apply to the container macvlan interface
+ 		ipc.Interface = 0
+ 
+diff --git a/plugins/main/macvlan/macvlan_test.go b/plugins/main/macvlan/macvlan_test.go
+index 0d5faae..dfb4e8c 100644
+--- a/plugins/main/macvlan/macvlan_test.go
++++ b/plugins/main/macvlan/macvlan_test.go
+@@ -140,7 +140,7 @@ var _ = Describe("macvlan Operations", func() {
+ 
+ 			Expect(len(result.Interfaces)).To(Equal(1))
+ 			Expect(result.Interfaces[0].Name).To(Equal(IFNAME))
+-			Expect(len(result.IP)).To(Equal(1))
++			Expect(len(result.IPs)).To(Equal(1))
+ 			return nil
+ 		})
+ 		Expect(err).NotTo(HaveOccurred())
+diff --git a/plugins/main/ptp/ptp.go b/plugins/main/ptp/ptp.go
+index c3d3e09..796c458 100644
+--- a/plugins/main/ptp/ptp.go
++++ b/plugins/main/ptp/ptp.go
+@@ -73,7 +73,7 @@ func setupContainerVeth(netns, ifName string, mtu int, pr *current.Result) (*cur
+ 		containerInterface.Mac = contVeth.Attrs().HardwareAddr.String()
+ 
+ 		var firstV4Addr net.IP
+-		for _, ipc := range pr.IP {
++		for _, ipc := range pr.IPs {
+ 			// All addresses apply to the container veth interface
+ 			ipc.Interface = 1
+ 
+@@ -112,7 +112,7 @@ func setupContainerVeth(netns, ifName string, mtu int, pr *current.Result) (*cur
+ 			return fmt.Errorf("failed to look up %q: %v", ifName, err)
+ 		}
+ 
+-		for _, ipc := range pr.IP {
++		for _, ipc := range pr.IPs {
+ 			// Delete the route that was automatically added
+ 			route := netlink.Route{
+ 				LinkIndex: contVeth.Attrs().Index,
+@@ -169,7 +169,7 @@ func setupHostVeth(vethName string, result *current.Result) error {
+ 		return fmt.Errorf("failed to lookup %q: %v", vethName, err)
+ 	}
+ 
+-	for _, ipc := range result.IP {
++	for _, ipc := range result.IPs {
+ 		maskLen := 128
+ 		if ipc.Address.IP.To4() != nil {
+ 			maskLen = 32
+@@ -218,7 +218,7 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 		return err
+ 	}
+ 
+-	if len(result.IP) == 0 {
++	if len(result.IPs) == 0 {
+ 		return errors.New("IPAM plugin returned missing IP config")
+ 	}
+ 
+@@ -234,7 +234,7 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 	if conf.IPMasq {
+ 		chain := utils.FormatChainName(conf.Name, args.ContainerID)
+ 		comment := utils.FormatComment(conf.Name, args.ContainerID)
+-		for _, ipc := range result.IP {
++		for _, ipc := range result.IPs {
+ 			if err = ip.SetupIPMasq(&ipc.Address, chain, comment); err != nil {
+ 				return err
+ 			}
+diff --git a/plugins/meta/flannel/flannel.go b/plugins/meta/flannel/flannel.go
+index e1eb278..34ef545 100644
+--- a/plugins/meta/flannel/flannel.go
++++ b/plugins/meta/flannel/flannel.go
+@@ -32,6 +32,7 @@ import (
+ 	"github.com/containernetworking/cni/pkg/invoke"
+ 	"github.com/containernetworking/cni/pkg/skel"
+ 	"github.com/containernetworking/cni/pkg/types"
++	"github.com/containernetworking/cni/pkg/types/current"
+ 	"github.com/containernetworking/cni/pkg/version"
+ )
+ 
+@@ -227,8 +228,8 @@ func cmdAdd(args *skel.CmdArgs) error {
+ 	n.Delegate["ipam"] = map[string]interface{}{
+ 		"type":   "host-local",
+ 		"subnet": fenv.sn.String(),
+-		"routes": []types.Route{
+-			types.Route{
++		"routes": []current.Route{
++			current.Route{
+ 				Dst: *fenv.nw,
+ 			},
+ 		},
+-- 
+2.9.3
+
