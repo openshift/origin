@@ -83,8 +83,6 @@ var (
 			`TaintBasedEvictions`,                                                        // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
 			`recreate nodes and ensure they function upon restart`,                       // https://bugzilla.redhat.com/show_bug.cgi?id=1756428
 			`\[Driver: iscsi\]`,                                                          // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
-			// TODO(workloads): reenable
-			`SchedulerPreemption`,
 
 			// requires a 1.14 kubelet, enable when rhcos is built for 4.2
 			"when the NodeLease feature is enabled",
