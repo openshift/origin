@@ -125,6 +125,7 @@ var _ = g.Describe("[cli] oc adm must-gather", func() {
 		// make sure we do not log OAuth tokens
 		for _, auditDirectory := range auditDirectories {
 			eventsChecked := 0
+			wrongPrefix := 0
 			err := filepath.Walk(path.Join(auditDirectory...), func(path string, info os.FileInfo, err error) error {
 				g.By(path)
 				o.Expect(err).ToNot(o.HaveOccurred())
@@ -147,7 +148,9 @@ var _ = g.Describe("[cli] oc adm must-gather", func() {
 					if !strings.HasSuffix(text, "}") {
 						continue // ignore truncated data
 					}
-					o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
+					if !strings.HasPrefix(text, `{"kind":"Event",`) {
+						wrongPrefix++
+					}
 					for _, token := range []string{"oauthaccesstokens", "oauthauthorizetokens", tokenName} {
 						o.Expect(text).ToNot(o.ContainSubstring(token))
 					}
@@ -162,6 +165,7 @@ var _ = g.Describe("[cli] oc adm must-gather", func() {
 			})
 			o.Expect(err).ToNot(o.HaveOccurred())
 			o.Expect(eventsChecked).To(o.BeNumerically(">", 10000))
+			o.Expect(wrongPrefix).To(o.BeNumerically("<", 5))
 		}
 	})
 
