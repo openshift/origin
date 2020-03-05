@@ -64,6 +64,20 @@ func masterNodes(oc *exutil.CLI) []*corev1.Node {
 	return nodes
 }
 
+func clusterNodes(oc *exutil.CLI) (masters, workers []*corev1.Node) {
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	for i := range nodes.Items {
+		node := &nodes.Items[i]
+		if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+			masters = append(masters, node)
+		} else {
+			workers = append(workers, node)
+		}
+	}
+	return
+}
+
 func constructEtcdConnectionString(masters []string) string {
 	//TODO vrutkovs: replace this nonsense with `etcdctl member list -w json ...`
 	etcdConnectionString := ""
