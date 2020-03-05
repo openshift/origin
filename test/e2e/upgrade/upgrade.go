@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,11 +29,13 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 )
 
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
 		&controlplane.AvailableTest{},
+		&frontends.AvailableTest{},
 		&service.UpgradeTest{},
 		&upgrades.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
@@ -61,7 +64,8 @@ func SetTests(tests []upgrades.Test) {
 	upgradeTests = tests
 }
 
-// SetToImage sets the image that will be upgraded to.
+// SetToImage sets the image that will be upgraded to. This may be a comma delimited list
+// of sequential upgrade attempts.
 func SetToImage(image string) {
 	upgradeToImage = image
 }
@@ -116,7 +120,7 @@ var _ = g.Describe("[Disruptive]", func() {
 			client := configv1client.NewForConfigOrDie(config)
 			dynamicClient := dynamic.NewForConfigOrDie(config)
 
-			upgCtx, err := getUpgradeContext(client, "", upgradeToImage)
+			upgCtx, err := getUpgradeContext(client, upgradeToImage)
 			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", "", upgradeToImage)
 
 			disruption.Run(
@@ -128,7 +132,9 @@ var _ = g.Describe("[Disruptive]", func() {
 				},
 				upgradeTests,
 				func() {
-					framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[1]), "during upgrade")
+					for i := 1; i < len(upgCtx.Versions); i++ {
+						framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
+					}
 				},
 			)
 		})
@@ -151,8 +157,8 @@ func latestCompleted(history []configv1.UpdateHistory) (*configv1.Update, bool) 
 	return nil, false
 }
 
-func getUpgradeContext(c configv1client.Interface, upgradeTarget, upgradeImage string) (*upgrades.UpgradeContext, error) {
-	if upgradeTarget == "[pause]" {
+func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrades.UpgradeContext, error) {
+	if upgradeImage == "[pause]" {
 		return &upgrades.UpgradeContext{
 			Versions: []upgrades.VersionContext{
 				{Version: *version.MustParseSemantic("0.0.1"), NodeImage: "[pause]"},
@@ -206,24 +212,23 @@ func getUpgradeContext(c configv1client.Interface, upgradeTarget, upgradeImage s
 		},
 	}
 
-	if len(upgradeTarget) == 0 && len(upgradeImage) == 0 {
+	if len(upgradeImage) == 0 {
 		return upgCtx, nil
 	}
 
-	if (len(upgradeImage) > 0 && upgradeImage == current.Image) || (len(upgradeTarget) > 0 && upgradeTarget == current.Version) {
+	upgradeImages := strings.Split(upgradeImage, ",")
+	if (len(upgradeImages[0]) > 0 && upgradeImages[0] == current.Image) || (len(upgradeImages[0]) > 0 && upgradeImages[0] == current.Version) {
 		return nil, fmt.Errorf("cluster is already at version %s", versionString(*current))
 	}
-
-	var next upgrades.VersionContext
-	next.NodeImage = upgradeImage
-	if len(upgradeTarget) > 0 {
-		nextVer, err := version.ParseSemantic(upgradeTarget)
-		if err != nil {
-			return nil, err
+	for _, upgradeImage := range upgradeImages {
+		var next upgrades.VersionContext
+		if nextVer, err := version.ParseSemantic(upgradeImage); err == nil {
+			next.Version = *nextVer
+		} else {
+			next.NodeImage = upgradeImage
 		}
-		next.Version = *nextVer
+		upgCtx.Versions = append(upgCtx.Versions, next)
 	}
-	upgCtx.Versions = append(upgCtx.Versions, next)
 
 	return upgCtx, nil
 }

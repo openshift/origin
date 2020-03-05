@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -32,8 +31,10 @@ type UpgradeTest struct {
 	tcpService *v1.Service
 }
 
-// Name returns the tracking name of the test.
-func (UpgradeTest) Name() string { return "k8s-service-upgrade" }
+func (UpgradeTest) Name() string { return "k8s-service-lb-available" }
+func (UpgradeTest) DisplayName() string {
+	return "Application behind service load balancer with PDB is not disrupted"
+}
 
 func shouldTestPDBs() bool { return true }
 
@@ -48,6 +49,18 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	ginkgo.By("creating a TCP service " + serviceName + " with type=LoadBalancer in namespace " + ns.Name)
 	tcpService, err := jig.CreateTCPService(func(s *v1.Service) {
 		s.Spec.Type = v1.ServiceTypeLoadBalancer
+		if s.Annotations == nil {
+			s.Annotations = make(map[string]string)
+		}
+		// We tune the LB checks to match the longest intervals available so that interactions between
+		// upgrading components and the service are more obvious.
+		// - AWS allows configuration, default is 70s (6 failed with 10s interval in 1.17) set to match GCP
+		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval"] = "8"
+		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold"] = "3"
+		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold"] = "2"
+		// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
+		// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
+		//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
 	})
 	framework.ExpectNoError(err)
 	tcpService, err = jig.WaitForLoadBalancer(service.GetServiceLoadBalancerCreationTimeout(cs))
@@ -59,13 +72,15 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 
 	ginkgo.By("creating RC to be part of service " + serviceName)
 	rc, err := jig.Run(func(rc *v1.ReplicationController) {
-		// ensure the pod waits long enough for most LBs to take it out of rotation
-		minute := int64(60)
+		// ensure the pod waits long enough for most LBs to take it out of rotation, which has to be
+		// longer than the LB failed health check interval
 		rc.Spec.Template.Spec.Containers[0].Lifecycle = &v1.Lifecycle{
 			PreStop: &v1.Handler{
-				Exec: &v1.ExecAction{Command: []string{"sleep", "30"}},
+				Exec: &v1.ExecAction{Command: []string{"sleep", "45"}},
 			},
 		}
+		// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
+		minute := int64(60)
 		rc.Spec.Template.Spec.TerminationGracePeriodSeconds = &minute
 
 		jig.AddRCAntiAffinity(rc)
@@ -81,7 +96,10 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	// Hit it once before considering ourselves ready
 	ginkgo.By("hitting pods through the service's LoadBalancer")
 	timeout := service.LoadBalancerLagTimeoutAWS
-	service.TestReachableHTTP(tcpIngressIP, svcPort, timeout)
+	// require five passing requests to continue (in case the SLB becomes available and then degrades)
+	for i := 0; i < 5; i++ {
+		service.TestReachableHTTP(tcpIngressIP, svcPort, timeout)
+	}
 
 	t.jig = jig
 	t.tcpService = tcpService
@@ -104,6 +122,8 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	m := monitor.NewMonitorWithInterval(1 * time.Second)
 	err = startEndpointMonitoring(ctx, m, t.tcpService, r)
 	framework.ExpectNoError(err, "unable to monitor API")
+
+	start := time.Now()
 	m.StartSampling(ctx)
 
 	// wait to ensure API is still up after the test ends
@@ -111,24 +131,9 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	ginkgo.By("waiting for any post disruption failures")
 	time.Sleep(15 * time.Second)
 	cancel()
+	end := time.Now()
 
-	var duration time.Duration
-	var describe []string
-	for _, interval := range m.Events(time.Time{}, time.Time{}) {
-		describe = append(describe, interval.String())
-		i := interval.To.Sub(interval.From)
-		if i < time.Second {
-			i = time.Second
-		}
-		if interval.Condition.Level > monitor.Info {
-			duration += i
-		}
-	}
-	if duration > 60*time.Second {
-		framework.Failf("Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
-	} else if duration > 0 {
-		disruption.Flakef(f, "Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
-	}
+	disruption.ExpectNoDisruption(f, 0.02, end.Sub(start), m.Events(time.Time{}, time.Time{}), "Service was unreachable during disruption")
 
 	// verify finalizer behavior
 	defer func() {
