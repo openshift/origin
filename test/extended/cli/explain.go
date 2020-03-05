@@ -98,13 +98,11 @@ var (
 		// {Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheusrules"},
 		// {Group: "monitoring.coreos.com", Version: "v1", Resource: "servicemonitors"},
 
-		// FIXME
-		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "containerruntimeconfigs"},
-		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "controllerconfigs"},
-		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "kubeletconfigs"},
-		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigpools"},
-		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
-		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "mcoconfigs"},
+		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "containerruntimeconfigs"},
+		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "controllerconfigs"},
+		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "kubeletconfigs"},
+		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigpools"},
+		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
 
 		{Group: "operator.openshift.io", Version: "v1alpha1", Resource: "imagecontentsourcepolicies"},
 
