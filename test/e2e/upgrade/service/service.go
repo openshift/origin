@@ -11,17 +11,18 @@ import (
 
 	"github.com/onsi/ginkgo"
 
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/test/extended/util/disruption"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
 	"k8s.io/kubernetes/test/e2e/framework/service"
 	"k8s.io/kubernetes/test/e2e/upgrades"
-
-	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/test/extended/util/disruption"
 )
 
 // UpgradeTest tests that a service is available before, during, and
@@ -97,17 +98,7 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	ginkgo.By("hitting pods through the service's LoadBalancer")
 	timeout := service.LoadBalancerLagTimeoutAWS
 	// require thirty seconds of passing requests to continue (in case the SLB becomes available and then degrades)
-	for successCount := 0; successCount < 30; successCount++ {
-		// sleep for 1s between successive tries.
-		time.Sleep(1 * time.Second)
-		func() {
-			defer func() {
-				recover()
-				successCount = 0
-			}()
-			service.TestReachableHTTP(tcpIngressIP, svcPort, timeout)
-		}()
-	}
+	TestReachableHTTPWithMinSuccessCount(tcpIngressIP, svcPort, 30, timeout)
 
 	t.jig = jig
 	t.tcpService = tcpService
@@ -266,4 +257,24 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 
 func locateService(svc *v1.Service) string {
 	return fmt.Sprintf("ns/%s svc/%s", svc.Namespace, svc.Name)
+}
+
+// TestReachableHTTPWithMinSuccessCount tests that the given host serves HTTP on the given port for a minimum of successCount number of
+// counts at a given interval. If the service reachability fails, the counter gets reset
+func TestReachableHTTPWithMinSuccessCount(host string, port int, successCount int, timeout time.Duration) {
+	consecutiveSuccessCnt := 0
+	err := wait.PollImmediate(framework.Poll, timeout, func() (bool, error) {
+		result := e2enetwork.PokeHTTP(host, port, "/echo?msg=hello",
+			&e2enetwork.HTTPPokeParams{
+				BodyContains:   "hello",
+				RetriableCodes: []int{},
+			})
+		if result.Status == e2enetwork.HTTPSuccess {
+			consecutiveSuccessCnt++
+			return consecutiveSuccessCnt >= successCount, nil
+		}
+		consecutiveSuccessCnt = 0
+		return false, nil // caller can retry
+	})
+	framework.ExpectNoError(err)
 }
