@@ -64,7 +64,7 @@ func getTestPod() *v1.Pod {
 // After adding reconciliation, if status in pod manager is different from the cached status, a reconciliation
 // will be triggered, which will mess up all the old unit test.
 // To simplify the implementation of unit test, we add testSyncBatch() here, it will make sure the statuses in
-// pod manager the same with cached ones before syncBatch() so as to avoid reconciling.
+// pod manager the same with cached ones before syncBatch(true) so as to avoid reconciling.
 func (m *manager) testSyncBatch() {
 	for uid, status := range m.podStatuses {
 		pod, ok := m.podManager.GetPodByUID(uid)
@@ -76,7 +76,7 @@ func (m *manager) testSyncBatch() {
 			pod.Status = status.status
 		}
 	}
-	m.syncBatch()
+	m.syncBatch(true)
 }
 
 func newTestManager(kubeClient clientset.Interface) *manager {
@@ -125,8 +125,8 @@ func (m *manager) consumeUpdates() int {
 	updates := 0
 	for {
 		select {
-		case syncRequest := <-m.podStatusChannel:
-			m.syncPod(syncRequest.podUID, syncRequest.status)
+		case <-m.podStatusChannel:
+			m.syncBatch(false)
 			updates++
 		default:
 			return updates
@@ -396,7 +396,7 @@ func TestStaleUpdates(t *testing.T) {
 	m.SetPodStatus(pod, status)
 
 	t.Logf("sync batch before syncPods pushes latest status, so we should see three statuses in the channel, but only one update")
-	m.syncBatch()
+	m.syncBatch(true)
 	verifyUpdates(t, m, 3)
 	verifyActions(t, m, []core.Action{getAction(), patchAction()})
 	t.Logf("Nothing left in the channel to sync")
@@ -411,7 +411,7 @@ func TestStaleUpdates(t *testing.T) {
 	m.apiStatusVersions[mirrorPodUID] = m.apiStatusVersions[mirrorPodUID] - 1
 
 	m.SetPodStatus(pod, status)
-	m.syncBatch()
+	m.syncBatch(true)
 	verifyActions(t, m, []core.Action{getAction()})
 
 	t.Logf("Nothing stuck in the pipe.")
@@ -533,7 +533,7 @@ func TestStaticPod(t *testing.T) {
 	assert.True(t, isPodStatusByKubeletEqual(&status, &retrievedStatus), "Expected: %+v, Got: %+v", status, retrievedStatus)
 
 	t.Logf("Should not sync pod in syncBatch because there is no corresponding mirror pod for the static pod.")
-	m.syncBatch()
+	m.syncBatch(true)
 	assert.Equal(t, len(m.kubeClient.(*fake.Clientset).Actions()), 0, "Expected no updates after syncBatch, got %+v", m.kubeClient.(*fake.Clientset).Actions())
 
 	t.Logf("Create the mirror pod")
@@ -559,7 +559,7 @@ func TestStaticPod(t *testing.T) {
 	m.podManager.AddPod(mirrorPod)
 
 	t.Logf("Should not update to mirror pod, because UID has changed.")
-	m.syncBatch()
+	m.syncBatch(true)
 	verifyActions(t, m, []core.Action{getAction()})
 }
 
@@ -808,7 +808,7 @@ func TestSyncBatchCleanupVersions(t *testing.T) {
 	t.Logf("Orphaned pods should be removed.")
 	m.apiStatusVersions[kubetypes.MirrorPodUID(testPod.UID)] = 100
 	m.apiStatusVersions[kubetypes.MirrorPodUID(mirrorPod.UID)] = 200
-	m.syncBatch()
+	m.syncBatch(true)
 	if _, ok := m.apiStatusVersions[kubetypes.MirrorPodUID(testPod.UID)]; ok {
 		t.Errorf("Should have cleared status for testPod")
 	}
@@ -840,7 +840,7 @@ func TestReconcilePodStatus(t *testing.T) {
 	syncer := newTestManager(client)
 	syncer.SetPodStatus(testPod, getRandomPodStatus())
 	t.Logf("Call syncBatch directly to test reconcile")
-	syncer.syncBatch() // The apiStatusVersions should be set now
+	syncer.syncBatch(true) // The apiStatusVersions should be set now
 	client.ClearActions()
 
 	podStatus, ok := syncer.GetPodStatus(testPod.UID)
@@ -855,7 +855,7 @@ func TestReconcilePodStatus(t *testing.T) {
 		t.Fatalf("Pod status is the same, a reconciliation is not needed")
 	}
 	syncer.SetPodStatus(testPod, podStatus)
-	syncer.syncBatch()
+	syncer.syncBatch(true)
 	verifyActions(t, syncer, []core.Action{})
 
 	// If the pod status is the same, only the timestamp is in Rfc3339 format (lower precision without nanosecond),
@@ -870,7 +870,7 @@ func TestReconcilePodStatus(t *testing.T) {
 		t.Fatalf("Pod status only differs for timestamp format, a reconciliation is not needed")
 	}
 	syncer.SetPodStatus(testPod, podStatus)
-	syncer.syncBatch()
+	syncer.syncBatch(true)
 	verifyActions(t, syncer, []core.Action{})
 
 	t.Logf("If the pod status is different, a reconciliation is needed, syncBatch should trigger an update")
@@ -880,7 +880,7 @@ func TestReconcilePodStatus(t *testing.T) {
 		t.Fatalf("Pod status is different, a reconciliation is needed")
 	}
 	syncer.SetPodStatus(testPod, changedPodStatus)
-	syncer.syncBatch()
+	syncer.syncBatch(true)
 	verifyActions(t, syncer, []core.Action{getAction(), patchAction()})
 }
 

@@ -114,13 +114,14 @@ var (
 
 	// PodStatusSyncDuration is a Histogram that tracks the duration (in seconds) in takes from the time a pod
 	// status is generated to the time it is synced with the apiserver.
-	PodStatusSyncDuration = metrics.NewSummary(
+	PodStatusSyncDuration = metrics.NewSummaryVec(
 		&metrics.SummaryOpts{
 			Subsystem:      KubeletSubsystem,
 			Name:           PodStatusSyncDurationKey,
 			Help:           "Duration in seconds to sync a pod status update. Measures time from detection to write.",
 			StabilityLevel: metrics.ALPHA,
 		},
+		[]string{"priority"},
 	)
 
 	// PodWorkerDuration is a Histogram that tracks the duration (in seconds) in takes to sync a single pod.
