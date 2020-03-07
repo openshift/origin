@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1194,5 +1193,69 @@ func getPodStatus() v1.PodStatus {
 			},
 		},
 		Message: "Message",
+	}
+}
+
+func Test_podVersionCompare(t *testing.T) {
+	tests := []struct {
+		name       string
+		a          *v1.Pod
+		b          *v1.Pod
+		rel        int
+		comparable bool
+	}{
+		{
+			a:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "10"}},
+			b:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: ""}},
+			rel:        0,
+			comparable: false,
+		},
+		{
+			a:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: ""}},
+			b:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "10"}},
+			rel:        0,
+			comparable: false,
+		},
+		{
+			a:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "a"}},
+			b:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "10"}},
+			rel:        0,
+			comparable: false,
+		},
+		{
+			a:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "10"}},
+			b:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "a"}},
+			rel:        0,
+			comparable: false,
+		},
+		{
+			a:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "10"}},
+			b:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "11"}},
+			rel:        1,
+			comparable: true,
+		},
+		{
+			a:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "10"}},
+			b:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "10"}},
+			rel:        0,
+			comparable: true,
+		},
+		{
+			a:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "10"}},
+			b:          &v1.Pod{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "9"}},
+			rel:        -1,
+			comparable: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rel, comparable := podVersionCompare(tt.a, tt.b)
+			if rel != tt.rel {
+				t.Errorf("podVersionCompare() got = %v, want %v", rel, tt.rel)
+			}
+			if comparable != tt.comparable {
+				t.Errorf("podVersionCompare() got1 = %v, want %v", comparable, tt.comparable)
+			}
+		})
 	}
 }
