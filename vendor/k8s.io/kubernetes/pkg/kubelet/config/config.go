@@ -457,6 +457,7 @@ func checkAndUpdatePod(existing, ref *v1.Pod) (needUpdate, needReconcile, needGr
 		if !reflect.DeepEqual(existing.Status, ref.Status) {
 			// Pod with changed pod status needs reconcile, because kubelet should
 			// be the source of truth of pod status.
+			existing.ResourceVersion = ref.ResourceVersion
 			existing.Status = ref.Status
 			needReconcile = true
 		}
@@ -467,6 +468,7 @@ func checkAndUpdatePod(existing, ref *v1.Pod) (needUpdate, needReconcile, needGr
 	// internal annotation, there is no need to update.
 	ref.Annotations[kubetypes.ConfigFirstSeenAnnotationKey] = existing.Annotations[kubetypes.ConfigFirstSeenAnnotationKey]
 
+	existing.ResourceVersion = ref.ResourceVersion
 	existing.Spec = ref.Spec
 	existing.Labels = ref.Labels
 	existing.DeletionTimestamp = ref.DeletionTimestamp
