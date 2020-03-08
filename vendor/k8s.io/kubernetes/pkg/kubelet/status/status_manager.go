@@ -34,6 +34,7 @@ import (
 	"k8s.io/klog"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	"k8s.io/kubernetes/pkg/kubelet/metrics"
 	kubepod "k8s.io/kubernetes/pkg/kubelet/pod"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
@@ -49,6 +50,7 @@ type versionedPodStatus struct {
 	// Pod name & namespace, for sending updates to API server.
 	podName      string
 	podNamespace string
+	at           time.Time
 }
 
 type podStatusSyncRequest struct {
@@ -62,9 +64,10 @@ type manager struct {
 	kubeClient clientset.Interface
 	podManager kubepod.Manager
 	// Map from pod UID to sync status of the corresponding pod.
-	podStatuses      map[types.UID]versionedPodStatus
-	podStatusesLock  sync.RWMutex
-	podStatusChannel chan podStatusSyncRequest
+	podStatuses       map[types.UID]versionedPodStatus
+	podStatusesLock   sync.RWMutex
+	podStatusChannel  chan podStatusSyncRequest
+	hasReportedStatus bool
 	// Map from (mirror) pod UID to latest status version successfully sent to the API server.
 	// apiStatusVersions must only be accessed from the sync thread.
 	apiStatusVersions map[kubetypes.MirrorPodUID]uint64
@@ -441,7 +444,17 @@ func (m *manager) updateStatusInternal(pod *v1.Pod, status v1.PodStatus, forceUp
 		podName:      pod.Name,
 		podNamespace: pod.Namespace,
 	}
+	var now time.Time
+	if m.hasReportedStatus {
+		now = time.Now()
+	}
+	if cachedStatus.at.IsZero() {
+		newStatus.at = now
+	} else {
+		newStatus.at = cachedStatus.at
+	}
 	m.podStatuses[pod.UID] = newStatus
+	newStatus.at = now
 
 	select {
 	case m.podStatusChannel <- podStatusSyncRequest{pod.UID, newStatus}:
@@ -571,11 +584,36 @@ func (m *manager) syncPod(uid types.UID, status versionedPodStatus) {
 		klog.Warningf("Failed to update status for pod %q: %v", format.Pod(pod), err)
 		return
 	}
-	if unchanged {
-		klog.V(3).Infof("Status for pod %q is up-to-date: (%d)", format.Pod(pod), status.version)
+
+	var duration time.Duration
+	if status.at.IsZero() {
+		klog.V(3).Infof("Pod %q had no status time set", format.Pod(pod))
 	} else {
-		klog.V(3).Infof("Status for pod %q updated successfully: (%d, %+v)", format.Pod(pod), status.version, status.status)
+		duration = time.Now().Sub(status.at).Truncate(time.Millisecond)
+		metrics.PodStatusSyncDuration.Observe(duration.Seconds())
+
+		// clear the pod status time if set
+		func() {
+			m.podStatusesLock.Lock()
+			defer m.podStatusesLock.Unlock()
+			if current, ok := m.podStatuses[uid]; ok && current.version == status.version {
+				current.at = time.Time{}
+				m.podStatuses[uid] = current
+			}
+		}()
+	}
+
+	if unchanged {
+		klog.V(3).Infof("Status for pod %q is up-to-date after %s: (%d)", format.Pod(pod), duration, status.version)
+	} else {
+		klog.V(3).Infof("Status for pod %q updated successfully after %s: (%d, %+v)", format.Pod(pod), duration, status.version, status.status)
 		pod = newPod
+
+		func() {
+			m.podStatusesLock.Lock()
+			defer m.podStatusesLock.Unlock()
+			m.hasReportedStatus = true
+		}()
 	}
 
 	m.apiStatusVersions[kubetypes.MirrorPodUID(pod.UID)] = status.version
