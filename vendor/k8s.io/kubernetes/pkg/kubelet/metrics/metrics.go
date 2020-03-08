@@ -37,6 +37,7 @@ const (
 	KubeletSubsystem                     = "kubelet"
 	NodeNameKey                          = "node_name"
 	NodeLabelKey                         = "node"
+	PodStatusSyncDurationKey             = "pod_status_sync_duration_seconds"
 	PodWorkerDurationKey                 = "pod_worker_duration_seconds"
 	PodStartDurationKey                  = "pod_start_duration_seconds"
 	CgroupManagerOperationsKey           = "cgroup_manager_duration_seconds"
@@ -110,6 +111,18 @@ var (
 			StabilityLevel: metrics.ALPHA,
 		},
 	)
+
+	// PodStatusSyncDuration is a Histogram that tracks the duration (in seconds) in takes from the time a pod
+	// status is generated to the time it is synced with the apiserver.
+	PodStatusSyncDuration = metrics.NewSummary(
+		&metrics.SummaryOpts{
+			Subsystem:      KubeletSubsystem,
+			Name:           PodStatusSyncDurationKey,
+			Help:           "Duration in seconds to sync a pod status update. Measures time from detection to write.",
+			StabilityLevel: metrics.ALPHA,
+		},
+	)
+
 	// PodWorkerDuration is a Histogram that tracks the duration (in seconds) in takes to sync a single pod.
 	// Broken down by the operation type.
 	PodWorkerDuration = metrics.NewHistogramVec(
@@ -504,6 +517,7 @@ func Register(containerCache kubecontainer.RuntimeCache, collectors ...metrics.S
 	registerMetrics.Do(func() {
 		legacyregistry.MustRegister(NodeName)
 		legacyregistry.MustRegister(PodWorkerDuration)
+		legacyregistry.MustRegister(PodStatusSyncDuration)
 		legacyregistry.MustRegister(PodStartDuration)
 		legacyregistry.MustRegister(CgroupManagerDuration)
 		legacyregistry.MustRegister(PodWorkerStartDuration)
