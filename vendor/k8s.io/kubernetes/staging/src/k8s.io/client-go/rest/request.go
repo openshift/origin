@@ -806,7 +806,7 @@ func (r *Request) request(fn func(*http.Request, *http.Response)) error {
 			r.backoff.UpdateBackoff(r.URL(), err, resp.StatusCode)
 		}
 		if err != nil {
-			// "Connection reset by peer", "Connection refused" or "apiserver is shutting down" are usually a transient errors.
+			// "Connection reset by peer" or "apiserver is shutting down" are usually a transient errors.
 			// Thus in case of "GET" operations, we simply retry it.
 			// We are not automatically retrying "write" operations, as
 			// they are not idempotent.
@@ -814,7 +814,7 @@ func (r *Request) request(fn func(*http.Request, *http.Response)) error {
 				return err
 			}
 			// For connection errors and apiserver shutdown errors retry.
-			if net.IsConnectionReset(err) || net.IsConnectionRefused(err) {
+			if net.IsConnectionReset(err) || net.IsProbableEOF(err) {
 				// For the purpose of retry, we set the artificial "retry-after" response.
 				// TODO: Should we clean the original response if it exists?
 				resp = &http.Response{
