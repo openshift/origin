@@ -1415,16 +1415,15 @@ func (kl *Kubelet) generateAPIPodStatus(pod *v1.Pod, podStatus *kubecontainer.Po
 // alter the kubelet state at all.
 func (kl *Kubelet) convertStatusToAPIStatus(pod *v1.Pod, podStatus *kubecontainer.PodStatus) *v1.PodStatus {
 	var apiPodStatus v1.PodStatus
-	apiPodStatus.PodIPs = make([]v1.PodIP, 0, len(podStatus.IPs))
-	for _, ip := range podStatus.IPs {
-		apiPodStatus.PodIPs = append(apiPodStatus.PodIPs, v1.PodIP{
-			IP: ip,
-		})
-	}
 
-	if len(apiPodStatus.PodIPs) > 0 {
+	if len(podStatus.IPs) > 0 {
+		apiPodStatus.PodIPs = make([]v1.PodIP, 0, len(podStatus.IPs))
+		for _, ip := range podStatus.IPs {
+			apiPodStatus.PodIPs = append(apiPodStatus.PodIPs, v1.PodIP{IP: ip})
+		}
 		apiPodStatus.PodIP = apiPodStatus.PodIPs[0].IP
 	}
+
 	// set status for Pods created on versions of kube older than 1.6
 	apiPodStatus.QOSClass = v1qos.GetPodQOS(pod)
 
