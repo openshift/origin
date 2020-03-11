@@ -27,6 +27,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -233,6 +234,14 @@ func (m *manager) SetPodStatus(pod *v1.Pod, status v1.PodStatus) {
 	// Make sure we're caching a deep copy.
 	status = *status.DeepCopy()
 
+	for _, c := range pod.Status.ContainerStatuses {
+		if c.Started == nil {
+			if c, _, ok := findContainerStatus(&status, c.Name); ok && c.Started != nil {
+				klog.V(3).Infof("DEBUG: SetPodStatus is setting %q container=%s to started=%t from pod nil", format.Pod(pod), c.Name, *c.Started)
+			}
+		}
+	}
+
 	// Force a status update if deletion timestamp is set. This is necessary
 	// because if the pod is in the non-running state, the pod worker still
 	// needs to be able to trigger an update and/or deletion.
@@ -293,6 +302,15 @@ func (m *manager) SetContainerReadiness(podUID types.UID, containerID kubecontai
 	}
 	updateConditionFunc(v1.PodReady, GeneratePodReadyCondition(&pod.Spec, status.Conditions, status.ContainerStatuses, status.Phase))
 	updateConditionFunc(v1.ContainersReady, GenerateContainersReadyCondition(&pod.Spec, status.ContainerStatuses, status.Phase))
+
+	for _, c := range pod.Status.ContainerStatuses {
+		if c.Started == nil {
+			if c, _, ok := findContainerStatus(&status, c.Name); ok && c.Started != nil {
+				klog.V(3).Infof("DEBUG: SetContainerReadiness is setting %q container=%s to started=%t from pod nil", format.Pod(pod), c.Name, *c.Started)
+			}
+		}
+	}
+
 	m.updateStatusInternal(pod, status, false)
 }
 
@@ -325,6 +343,10 @@ func (m *manager) SetContainerStartup(podUID types.UID, containerID kubecontaine
 		klog.V(4).Infof("Container startup unchanged (%v): %q - %q", started,
 			format.Pod(pod), containerID.String())
 		return
+	}
+
+	if c, _, ok := findContainerStatus(&pod.Status, containerID.String()); ok && c.Started == nil {
+		klog.V(3).Infof("DEBUG: SetContainerStartup is setting %q container=%s to started=%t from pod nil", format.Pod(pod), c.Name, started)
 	}
 
 	// Make sure we're not updating the cached version.
@@ -675,7 +697,9 @@ func (m *manager) finalizePod(uid types.UID, pod *v1.Pod) {
 	// Use the pod UID as the precondition for deletion to prevent deleting a newly created pod with the same name and namespace.
 	deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(pod.UID))
 	if err := m.kubeClient.CoreV1().Pods(pod.Namespace).Delete(pod.Name, deleteOptions); err != nil {
-		klog.Warningf("Failed to delete status for pod %q: %v", podDesc, err)
+		if !errors.IsNotFound(err) {
+			klog.Warningf("Failed to delete pod %q: %v", podDesc, err)
+		}
 		return
 	}
 	klog.V(3).Infof("Pod %q fully terminated and removed from etcd", podDesc)
