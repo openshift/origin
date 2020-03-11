@@ -17,7 +17,11 @@ RUN set -x && yum install -y ostree rpm-ostree yum-utils selinux-policy-targeted
     ostree --repo=/srv/repo checkout -U $commit --subpath /usr/etc/selinux /tmp/tmprootfs/etc/selinux && \
     ostree --repo=/srv/repo commit --parent=$commit --tree=ref=$commit --tree=dir=. \
         --selinux-policy /tmp/tmprootfs \
-        -s "origin-ci-dev overlay RPMs" --branch=origin-ci-dev
+        -s "origin-ci-dev overlay RPMs" --branch=origin-ci-dev && \
+    mkdir /tmp/iptables-rpms && cd /tmp/iptables-rpms && \
+    curl -O http://download.eng.bos.redhat.com/brewroot/work/tasks/8958/27208958/iptables-services-1.8.4-10.el8.x86_64.rpm && \
+    yum localinstall -y iptables-services-1.8.4-10.el8.x86_64.rpm
+
 
 FROM scratch
 COPY --from=build /srv/ /srv/
