@@ -1742,8 +1742,7 @@ func (kl *Kubelet) getPodsToSync() []*v1.Pod {
 // 1.  stopping the associated pod worker asynchronously
 // 2.  signaling to kill the pod by sending on the podKillingCh channel
 //
-// deletePod returns an error if not all sources are ready or the pod is not
-// found in the runtime cache.
+// deletePod returns an error if not all sources are ready.
 func (kl *Kubelet) deletePod(pod *v1.Pod) error {
 	if pod == nil {
 		return fmt.Errorf("deletePod does not allow nil pod")
@@ -1763,7 +1762,7 @@ func (kl *Kubelet) deletePod(pod *v1.Pod) error {
 	}
 	runningPod := kubecontainer.Pods(runningPods).FindPod("", pod.UID)
 	if runningPod.IsEmpty() {
-		return fmt.Errorf("pod not found")
+		return nil
 	}
 	podPair := kubecontainer.PodPair{APIPod: pod, RunningPod: &runningPod}
 
