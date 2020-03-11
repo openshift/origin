@@ -41,14 +41,14 @@ func getTestBinaries(streams genericclioptions.IOStreams) ([]string, error) {
 	if err != nil {
 		log.Println(err)
 	}
-	exectuablePath, err := os.Executable()
+	executablePath, err := os.Executable()
 	if err != nil {
 		log.Println(err)
 	}
-	exectuableDir := filepath.Dir(exectuablePath)
+	executableDir := filepath.Dir(executablePath)
 	testBinaryDirectories := []string{}
 	testBinaryDirectories = append(testBinaryDirectories, cwd)
-	testBinaryDirectories = append(testBinaryDirectories, exectuableDir)
+	testBinaryDirectories = append(testBinaryDirectories, executableDir)
 	testBinaryDirectories = append(testBinaryDirectories, filepath.SplitList(os.Getenv("PATH"))...)
 
 	warnings := 0
