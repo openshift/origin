@@ -67,17 +67,18 @@ var _ = ginkgo.Describe("[Area:Networking] Internal connectivity", func() {
 						TerminationGracePeriodSeconds: &one,
 						Containers: []v1.Container{
 							{
-								Name:  "webserver",
-								Image: e2enetwork.NetexecImageName,
-								Args:  []string{"netexec", fmt.Sprintf("--http-port=%d", 9000), fmt.Sprintf("--udp-port=%d", 9999)},
+								Name:    "webserver",
+								Image:   e2enetwork.NetexecImageName,
+								Command: []string{"/bin/bash", "-c", fmt.Sprintf("#!/bin/bash\napk add -q --update tcpdump\n./agnhost netexec --http-port=%v --udp-port=%v &\nexec tcpdump -i any port %v or port %v -n", nodeTCPPort, nodeUDPPort, nodeTCPPort, nodeUDPPort)},
 								Ports: []v1.ContainerPort{
-									{Name: "tcp", ContainerPort: 9000},
-									{Name: "udp", ContainerPort: 9999},
+									{Name: "tcp", ContainerPort: nodeTCPPort},
+									{Name: "udp", ContainerPort: nodeUDPPort},
 								},
 								ReadinessProbe: &v1.Probe{
+									InitialDelaySeconds: 10,
 									Handler: v1.Handler{
 										HTTPGet: &v1.HTTPGetAction{
-											Port: intstr.FromInt(9000),
+											Port: intstr.FromInt(nodeTCPPort),
 										},
 									},
 								},
@@ -113,7 +114,7 @@ var _ = ginkgo.Describe("[Area:Networking] Internal connectivity", func() {
 		// TODO: on large clusters this is O(N^2), we could potentially sample or split by topology
 		var testFns []func() error
 		protocols := []v1.Protocol{v1.ProtocolTCP, v1.ProtocolUDP}
-		ports := []int{9000, 9999}
+		ports := []int{nodeTCPPort, nodeUDPPort}
 		for j := range pods.Items {
 			for i := range pods.Items {
 				if i == j {
@@ -126,8 +127,8 @@ var _ = ginkgo.Describe("[Area:Networking] Internal connectivity", func() {
 							to := pods.Items[i]
 							protocol := protocols[k]
 							testingMsg := fmt.Sprintf("[%s: %s -> %s:%d]", protocol, from.Spec.NodeName, to.Spec.NodeName, ports[k])
-
-							command, err := testRemoteConnectivityCommand(protocol, "localhost:9000", to.Spec.NodeName, ports[k], "hello")
+							testMsg := fmt.Sprintf("%s-from-%s-to-%s", "hello", from.Status.PodIP, to.Status.PodIP)
+							command, err := testRemoteConnectivityCommand(protocol, "localhost:"+strconv.Itoa(nodeTCPPort), to.Spec.NodeName, ports[k], testMsg)
 							if err != nil {
 								return fmt.Errorf("test of %s failed: %v", testingMsg, err)
 							}
@@ -135,7 +136,7 @@ var _ = ginkgo.Describe("[Area:Networking] Internal connectivity", func() {
 							if err != nil {
 								return fmt.Errorf("test of %s failed: %v", testingMsg, err)
 							}
-							if res != `{"responses":["hello"]}` {
+							if res != `{"responses":["`+testMsg+`"]}` {
 								return fmt.Errorf("test of %s failed, unexpected response: %s", testingMsg, res)
 							}
 							return nil
