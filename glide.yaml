@@ -193,7 +193,7 @@ import:
   version: v1.0.8
 # etcd pins a very old version that has contention issues
 - package: github.com/google/btree
-  version: master
+  version: be84af90a1f71c9eeac820a4cdacb863122396d6
 
 # why do we have this?
 - package: google.golang.org/appengine
