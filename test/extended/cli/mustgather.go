@@ -32,40 +32,6 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("oc-adm-must-gather").AsAdmin()
 	g.It("runs successfully", func() {
-		// makes some tokens that should not show in the audit logs
-		const tokenName = "must-gather-audit-logs-token-plus-some-padding-here-to-make-the-limit"
-		oauthClient := oauthv1client.NewForConfigOrDie(oc.AdminConfig())
-		_, err1 := oauthClient.OAuthAccessTokens().Create(context.Background(), &oauthv1.OAuthAccessToken{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: tokenName,
-			},
-			ClientName:  "openshift-challenging-client",
-			ExpiresIn:   30,
-			Scopes:      []string{"user:info"},
-			RedirectURI: "https://127.0.0.1:12000/oauth/token/implicit",
-			UserName:    "a",
-			UserUID:     "1",
-		}, metav1.CreateOptions{})
-		o.Expect(err1).ToNot(o.HaveOccurred())
-		_, err2 := oauthClient.OAuthAuthorizeTokens().Create(context.Background(), &oauthv1.OAuthAuthorizeToken{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: tokenName,
-			},
-			ClientName:  "openshift-challenging-client",
-			ExpiresIn:   30,
-			Scopes:      []string{"user:info"},
-			RedirectURI: "https://127.0.0.1:12000/oauth/token/implicit",
-			UserName:    "a",
-			UserUID:     "1",
-		}, metav1.CreateOptions{})
-		o.Expect(err2).ToNot(o.HaveOccurred())
-		// let audit log writes occurs to disk (best effort, should be enough to make the test fail most of the time)
-		time.Sleep(10 * time.Second)
-
-		// wait for the default service account to be avaiable
-		err := exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
-		o.Expect(err).ToNot(o.HaveOccurred())
-
 		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
 		o.Expect(err).ToNot(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
@@ -73,19 +39,14 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 		pluginOutputDir := getPluginOutputDir(oc, tempDir)
 
-		auditDirectories := [][]string{
-			{pluginOutputDir, "audit_logs", "kube-apiserver"},
-			{pluginOutputDir, "audit_logs", "openshift-apiserver"},
-		}
-
-		expectedDirectories := append([][]string{
+		expectedDirectories := [][]string{
 			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io"},
 			{pluginOutputDir, "cluster-scoped-resources", "operator.openshift.io"},
 			{pluginOutputDir, "cluster-scoped-resources", "core"},
 			{pluginOutputDir, "cluster-scoped-resources", "apiregistration.k8s.io"},
 			{pluginOutputDir, "namespaces", "openshift"},
 			{pluginOutputDir, "namespaces", "openshift-kube-apiserver-operator"},
-		}, auditDirectories...)
+		}
 
 		expectedFiles := [][]string{
 			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "apiservers.yaml"},
@@ -135,9 +96,91 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		if len(emptyFiles) > 0 {
 			o.Expect(fmt.Errorf("expected files should not be empty: %s", strings.Join(emptyFiles, ","))).NotTo(o.HaveOccurred())
 		}
+	})
+
+	g.It("runs successfully with options", func() {
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+		o.Expect(err).ToNot(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+		args := []string{
+			"--dest-dir", tempDir,
+			"--source-dir", "/artifacts",
+			"--",
+			"/bin/bash", "-c",
+			"ls -l > /artifacts/ls.log",
+		}
+		o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
+		expectedFilePath := path.Join(getPluginOutputDir(oc, tempDir), "ls.log")
+		o.Expect(expectedFilePath).To(o.BeAnExistingFile())
+		stat, err := os.Stat(expectedFilePath)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		o.Expect(stat.Size()).To(o.BeNumerically(">", 0))
+	})
+
+	g.It("runs successfully for audit logs", func() {
+		// makes some tokens that should not show in the audit logs
+		const tokenName = "must-gather-audit-logs-token-plus-some-padding-here-to-make-the-limit"
+		oauthClient := oauthv1client.NewForConfigOrDie(oc.AdminConfig())
+		_, err1 := oauthClient.OAuthAccessTokens().Create(context.Background(), &oauthv1.OAuthAccessToken{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: tokenName,
+			},
+			ClientName:  "openshift-challenging-client",
+			ExpiresIn:   30,
+			Scopes:      []string{"user:info"},
+			RedirectURI: "https://127.0.0.1:12000/oauth/token/implicit",
+			UserName:    "a",
+			UserUID:     "1",
+		}, metav1.CreateOptions{})
+		o.Expect(err1).ToNot(o.HaveOccurred())
+		_, err2 := oauthClient.OAuthAuthorizeTokens().Create(context.Background(), &oauthv1.OAuthAuthorizeToken{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: tokenName,
+			},
+			ClientName:  "openshift-challenging-client",
+			ExpiresIn:   30,
+			Scopes:      []string{"user:info"},
+			RedirectURI: "https://127.0.0.1:12000/oauth/token/implicit",
+			UserName:    "a",
+			UserUID:     "1",
+		}, metav1.CreateOptions{})
+		o.Expect(err2).ToNot(o.HaveOccurred())
+
+		// let audit log writes occurs to disk (best effort, should be enough to make the test fail most of the time)
+		time.Sleep(10 * time.Second)
+
+		// wait for the default service account to be avaiable
+		err := exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+		o.Expect(err).ToNot(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+
+		args := []string{
+			"--dest-dir", tempDir,
+			"--",
+			"/usr/bin/gather_audit_logs",
+		}
+
+		o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
+		// wait for the contents to show up in the plugin output directory, avoiding EOF errors
+		time.Sleep(10 * time.Second)
+
+		pluginOutputDir := getPluginOutputDir(oc, tempDir)
+
+		expectedDirectories := [][]string{
+			{pluginOutputDir, "audit_logs", "kube-apiserver"},
+			{pluginOutputDir, "audit_logs", "openshift-apiserver"},
+		}
+
+		expectedFiles := [][]string{
+			{pluginOutputDir, "audit_logs", "kube-apiserver.audit_logs_listing"},
+			{pluginOutputDir, "audit_logs", "openshift-apiserver.audit_logs_listing"},
+		}
 
 		// make sure we do not log OAuth tokens
-		for _, auditDirectory := range auditDirectories {
+		for _, auditDirectory := range expectedDirectories {
 			eventsChecked := 0
 			err := filepath.Walk(path.Join(auditDirectory...), func(path string, info os.FileInfo, err error) error {
 				g.By(path)
@@ -182,25 +225,20 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 				o.Expect(eventsChecked).To(o.BeNumerically(">", 10000))
 			}
 		}
-	})
 
-	g.It("runs successfully with options", func() {
-		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
-		o.Expect(err).ToNot(o.HaveOccurred())
-		defer os.RemoveAll(tempDir)
-		args := []string{
-			"--dest-dir", tempDir,
-			"--source-dir", "/artifacts",
-			"--",
-			"/bin/bash", "-c",
-			"ls -l > /artifacts/ls.log",
+		emptyFiles := []string{}
+		for _, expectedFile := range expectedFiles {
+			expectedFilePath := path.Join(expectedFile...)
+			o.Expect(expectedFilePath).To(o.BeAnExistingFile())
+			stat, err := os.Stat(expectedFilePath)
+			o.Expect(err).ToNot(o.HaveOccurred())
+			if size := stat.Size(); size < 50 {
+				emptyFiles = append(emptyFiles, expectedFilePath)
+			}
 		}
-		o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
-		expectedFilePath := path.Join(getPluginOutputDir(oc, tempDir), "ls.log")
-		o.Expect(expectedFilePath).To(o.BeAnExistingFile())
-		stat, err := os.Stat(expectedFilePath)
-		o.Expect(err).ToNot(o.HaveOccurred())
-		o.Expect(stat.Size()).To(o.BeNumerically(">", 0))
+		if len(emptyFiles) > 0 {
+			o.Expect(fmt.Errorf("expected files should not be empty: %s", strings.Join(emptyFiles, ","))).NotTo(o.HaveOccurred())
+		}
 	})
 })
 
