@@ -1,5 +1,6 @@
 FROM fedora:29 AS build
 COPY iptables-services-1.8.4-10.el8.x86_64.rpm /tmp/iptables-rpms/
+COPY iptables-1.8.4-10.el8.x86_64.rpm /tmp/iptables-rpms/
 COPY --from=registry.svc.ci.openshift.org/openshift/origin-v4.0:machine-os-content /srv/ /srv/
 RUN set -x && yum install -y ostree rpm-ostree yum-utils selinux-policy-targeted && \
     curl http://base-4-3-rhel8.ocp.svc > /etc/yum.repos.d/rhel8.repo && \
@@ -9,6 +10,7 @@ RUN set -x && yum install -y ostree rpm-ostree yum-utils selinux-policy-targeted
     PACKAGES=(openshift-hyperkube) && \
     yumdownloader -y --disablerepo=* --enablerepo=built --destdir=/tmp/rpms "${PACKAGES[@]}" && \
     mv /tmp/iptables-rpms/iptables-services-1.8.4-10.el8.x86_64.rpm /tmp/rpms/. && \
+    mv /tmp/iptables-rpms/iptables-1.8.4-10.el8.x86_64.rpm /tmp/rpms/. && \
     if ! grep -q cri-o /tmp/packages; then yumdownloader -y --disablerepo=* --enablerepo=rhel-8* --destdir=/tmp/rpms cri-o cri-tools; fi && \
     if ! grep -q machine-config-daemon /tmp/packages; then yumdownloader -y --disablerepo=* --enablerepo=rhel-8* --destdir=/tmp/rpms machine-config-daemon; fi && \
     ls /tmp/rpms/ && (cd /tmp/rpms/ && ls ${PACKAGES[@]/%/*}) && \
