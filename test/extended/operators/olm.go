@@ -157,7 +157,7 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 
 	var (
 		oc           = exutil.NewCLI("olm-23440", exutil.KubeConfigPath())
-		operatorWait = 120 * time.Second
+		operatorWait = 150 * time.Second
 
 		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")
 		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
@@ -177,9 +177,10 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		err := wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "csv", "etcdoperator.v0.9.4", "-o=jsonpath={.status.phase}").Output()
 			if err != nil {
-				e2e.Failf("Failed to deploy etcdoperator.v0.9.4, error:%v", err)
-				return false, err
+				e2e.Logf("Failed to check etcdoperator.v0.9.4, error:%v, try next round", err)
+				return false, nil
 			}
+			e2e.Logf("the output is %s", output)
 			if strings.Contains(output, "Succeeded") {
 				return true, nil
 			}
