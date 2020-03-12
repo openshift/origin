@@ -80,7 +80,7 @@ func (node *OsdnNode) getSDNPodSandboxes() (map[string]*kruntimeapi.PodSandbox, 
 
 	podSandboxMap := make(map[string]*kruntimeapi.PodSandbox)
 	for _, sandbox := range podSandboxList {
-		status, err := runtimeService.PodSandboxStatus(getPodKey(sandbox.Metadata.Namespace, sandbox.Metadata.Name))
+		status, err := runtimeService.PodSandboxStatus(sandbox.Id)
 		if err != nil {
 			glog.Warningf("Could not get status of pod %s/%s: %v", sandbox.Metadata.Namespace, sandbox.Metadata.Name, err)
 			continue
@@ -90,7 +90,7 @@ func (node *OsdnNode) getSDNPodSandboxes() (map[string]*kruntimeapi.PodSandbox, 
 			continue
 		}
 		glog.V(4).Infof("Found existing pod %s/%s", sandbox.Metadata.Namespace, sandbox.Metadata.Name)
-		podSandboxMap[getPodKey(sandbox.Metadata.Namespace, sandbox.Metadata.Name)] = sandbox
+		podSandboxMap[sandbox.Id] = sandbox
 	}
 	return podSandboxMap, nil
 }
