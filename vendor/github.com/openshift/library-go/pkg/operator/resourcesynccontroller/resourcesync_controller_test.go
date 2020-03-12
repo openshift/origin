@@ -10,8 +10,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ktesting "k8s.io/client-go/testing"
-	"k8s.io/client-go/tools/cache"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
@@ -73,9 +73,9 @@ func TestSyncSecret(t *testing.T) {
 		if actual.GetNamespace() == "operator" {
 			switch actual.GetName() {
 			case "bar":
-				close(destinationSecretBarChecked)
+				destinationSecretBarChecked <- struct{}{}
 			case "empty-source":
-				close(destinationSecretEmptySourceChecked)
+				destinationSecretEmptySourceChecked <- struct{}{}
 			}
 		}
 		return false, nil, nil
@@ -101,9 +101,8 @@ func TestSyncSecret(t *testing.T) {
 		kubeClient.CoreV1(),
 		eventRecorder,
 	)
-	c.cachesToSync = []cache.InformerSynced{
-		secretInformers.Core().V1().Secrets().Informer().HasSynced,
-	}
+
+	c.controllerFactory.ResyncEvery(0)
 	c.configMapGetter = kubeClient.CoreV1()
 	c.secretGetter = kubeClient.CoreV1()
 
@@ -111,6 +110,7 @@ func TestSyncSecret(t *testing.T) {
 	defer ctxCancel()
 
 	go secretInformers.Start(ctx.Done())
+	go operatorInformers.Start(ctx.Done())
 	go c.Run(ctx, 1)
 
 	// The source secret was removed (404) but the destination exists. This should increase the "deleteSecretCounter"
@@ -130,7 +130,7 @@ func TestSyncSecret(t *testing.T) {
 	}
 
 	// The source resource location is not set and the destination does not exists. This should close the "destinationSecretEmptySourceChecked" and
-	// should not increase the deleteSecretCounter (this is special case in resource sync controller.
+	// should not increase the deleteSecretCounter (this is special case in resource sync controllerFactory.
 	if err := c.SyncSecret(ResourceLocation{Namespace: "operator", Name: "empty-source"}, ResourceLocation{}); err != nil {
 		t.Fatal(err)
 	}
@@ -191,6 +191,8 @@ func TestSyncConfigMap(t *testing.T) {
 
 	kubeInformersForNamespaces := v1helpers.NewFakeKubeInformersForNamespaces(map[string]informers.SharedInformerFactory{"other": configInformers})
 
+	syncCtx := factory.NewSyncContext("ResourceSyncController", eventRecorder)
+
 	c := NewResourceSyncController(
 		fakeStaticPodOperatorClient,
 		v1helpers.NewFakeKubeInformersForNamespaces(map[string]informers.SharedInformerFactory{
@@ -202,6 +204,8 @@ func TestSyncConfigMap(t *testing.T) {
 		v1helpers.CachedConfigMapGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
 		eventRecorder,
 	)
+	c.queue = syncCtx.Queue()
+	c.controllerFactory.ResyncEvery(0) // disable time based resyncs as they might conflict with tests
 	c.configMapGetter = kubeClient.CoreV1()
 	c.secretGetter = kubeClient.CoreV1()
 
@@ -227,7 +231,7 @@ func TestSyncConfigMap(t *testing.T) {
 	if err := c.SyncConfigMap(ResourceLocation{Namespace: "operator", Name: "apple"}, ResourceLocation{Namespace: "config-managed", Name: "pear"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.sync(); err != nil {
+	if err := c.Sync(context.TODO(), syncCtx); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := kubeClient.CoreV1().Secrets("operator").Get("foo", metav1.GetOptions{}); err != nil {
@@ -245,7 +249,7 @@ func TestSyncConfigMap(t *testing.T) {
 	if err := c.SyncConfigMap(ResourceLocation{Namespace: "operator", Name: "apple"}, ResourceLocation{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.sync(); err != nil {
+	if err := c.Sync(context.TODO(), syncCtx); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := kubeClient.CoreV1().Secrets("operator").Get("foo", metav1.GetOptions{}); !apierrors.IsNotFound(err) {

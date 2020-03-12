@@ -188,14 +188,3 @@ func (suite *Suite) PushAfterEachNode(body interface{}, codeLocation types.CodeL
 	}
 	suite.currentContainer.PushSetupNode(leafnodes.NewAfterEachNode(body, codeLocation, timeout, suite.failer, suite.containerIndex))
 }
-
-func (suite *Suite) WalkTests(fn func(testName string, test types.TestNode)) {
-	suite.topLevelContainer.BackPropagateProgrammaticFocus()
-	for _, collatedNodes := range suite.topLevelContainer.Collate() {
-		itNode, ok := collatedNodes.Subject.(*leafnodes.ItNode)
-		if !ok {
-			continue
-		}
-		fn(spec.New(collatedNodes.Subject, collatedNodes.Containers, false).ConcatenatedString(), itNode)
-	}
-}

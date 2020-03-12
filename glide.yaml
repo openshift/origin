@@ -125,7 +125,7 @@ import:
 # forks third
 - package: github.com/onsi/ginkgo
   repo:    https://github.com/openshift/onsi-ginkgo.git
-  version: origin-4.3
+  version: origin-4.5
 # these need to match the kubelet
 # TODO(node): recheck these levels
 - package: github.com/docker/distribution

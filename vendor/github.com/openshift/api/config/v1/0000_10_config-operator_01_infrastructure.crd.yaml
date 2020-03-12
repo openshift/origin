@@ -150,6 +150,22 @@ spec:
                       description: region holds the region for new GCP resources created
                         for the cluster.
                       type: string
+                ibmcloud:
+                  description: IBMCloud contains settings specific to the IBMCloud
+                    infrastructure provider.
+                  type: object
+                  properties:
+                    location:
+                      description: Location is where the cluster has been deployed
+                      type: string
+                    providerType:
+                      description: ProviderType indicates the type of cluster that
+                        was created
+                      type: string
+                    resourceGroupName:
+                      description: ResourceGroupName is the Resource Group for new
+                        IBMCloud resources created for the cluster.
+                      type: string
                 openstack:
                   description: OpenStack contains settings specific to the OpenStack
                     infrastructure provider.

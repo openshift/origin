@@ -2470,7 +2470,7 @@ func TestListVolumes(t *testing.T) {
 
 	gotVolumes, ok := got["Volumes"]
 	if !ok {
-		t.Fatal(fmt.Errorf("ListVolumes failed can not find Volumes"))
+		t.Fatal("ListVolumes failed can not find Volumes")
 	}
 	if !reflect.DeepEqual(gotVolumes, expected) {
 		t.Errorf("ListVolumes.  Want %#v.  Got %#v.", expected, got)

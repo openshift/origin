@@ -3,11 +3,14 @@ package apiservercontrollerset
 import (
 	"context"
 	"fmt"
+
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
+	openshiftconfigclientv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions/config/v1"
 	"github.com/openshift/library-go/pkg/operator/apiserver/controller/apiservice"
 	"github.com/openshift/library-go/pkg/operator/apiserver/controller/nsfinalizer"
+	"github.com/openshift/library-go/pkg/operator/apiserver/controller/workload"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/loglevel"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
@@ -15,10 +18,12 @@ import (
 	"github.com/openshift/library-go/pkg/operator/status"
 	"github.com/openshift/library-go/pkg/operator/unsupportedconfigoverridescontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	"k8s.io/apimachinery/pkg/util/errors"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
 	apiregistrationv1client "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
 	apiregistrationinformers "k8s.io/kube-aggregator/pkg/client/informers/externalversions"
 )
@@ -58,6 +63,7 @@ type APIServerControllerSet struct {
 	logLevelController              controllerWrapper
 	finalizerController             controllerWrapper
 	staticResourceController        controllerWrapper
+	workloadController              controllerWrapper
 }
 
 func NewAPIServerControllerSet(
@@ -188,9 +194,54 @@ func (cs *APIServerControllerSet) WithStaticResourcesController(
 	return cs
 }
 
-func (cs *APIServerControllerSet) WithoutStaticResourcesController() {
+func (cs *APIServerControllerSet) WithoutStaticResourcesController() *APIServerControllerSet {
 	cs.staticResourceController.controller = nil
 	cs.staticResourceController.emptyAllowed = true
+	return cs
+}
+
+func (cs *APIServerControllerSet) WithWorkloadController(
+	name, operatorNamespace, targetNamespace, targetOperandVersion, operandNamePrefix, conditionsPrefix string,
+	kubeClient kubernetes.Interface,
+	delegate workload.Delegate,
+	openshiftClusterConfigClient openshiftconfigclientv1.ClusterOperatorInterface,
+	versionRecorder status.VersionGetter,
+	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
+	informers ...cache.SharedIndexInformer) *APIServerControllerSet {
+
+	workloadController := workload.NewController(
+		name,
+		operatorNamespace,
+		targetNamespace,
+		targetOperandVersion,
+		operandNamePrefix,
+		conditionsPrefix,
+		cs.operatorClient,
+		kubeClient,
+		delegate,
+		openshiftClusterConfigClient,
+		cs.eventRecorder,
+		versionRecorder)
+
+	workloadController.AddInformer(kubeInformersForNamespaces.InformersFor(targetNamespace).Core().V1().ConfigMaps().Informer())
+	workloadController.AddInformer(kubeInformersForNamespaces.InformersFor(targetNamespace).Core().V1().Secrets().Informer())
+	workloadController.AddInformer(kubeInformersForNamespaces.InformersFor(targetNamespace).Apps().V1().Deployments().Informer())
+
+	workloadController.AddNamespaceInformer(kubeInformersForNamespaces.InformersFor(targetNamespace).Core().V1().Namespaces().Informer())
+
+	for _, informer := range informers {
+		workloadController.AddInformer(informer)
+	}
+
+	cs.workloadController.controller = workloadController
+
+	return cs
+}
+
+func (cs *APIServerControllerSet) WithoutWorkloadController() *APIServerControllerSet {
+	cs.workloadController.controller = nil
+	cs.workloadController.emptyAllowed = true
+	return cs
 }
 
 func (cs *APIServerControllerSet) PrepareRun() (preparedAPIServerControllerSet, error) {
@@ -204,6 +255,7 @@ func (cs *APIServerControllerSet) PrepareRun() (preparedAPIServerControllerSet, 
 		"logLevelController":              cs.logLevelController,
 		"finalizerController":             cs.finalizerController,
 		"staticResourceController":        cs.staticResourceController,
+		"workloadController":              cs.workloadController,
 	} {
 		c, err := cw.prepare()
 		if err != nil {

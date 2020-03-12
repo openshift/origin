@@ -22,8 +22,10 @@ import (
 func ApplyNamespace(client coreclientv1.NamespacesGetter, recorder events.Recorder, required *corev1.Namespace) (*corev1.Namespace, bool, error) {
 	existing, err := client.Namespaces().Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.Namespaces().Create(required)
-		reportCreateEvent(recorder, required, err)
+		requiredCopy := required.DeepCopy()
+		actual, err := client.Namespaces().
+			Create(resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*corev1.Namespace))
+		reportCreateEvent(recorder, requiredCopy, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -53,8 +55,10 @@ func ApplyNamespace(client coreclientv1.NamespacesGetter, recorder events.Record
 func ApplyService(client coreclientv1.ServicesGetter, recorder events.Recorder, required *corev1.Service) (*corev1.Service, bool, error) {
 	existing, err := client.Services(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.Services(required.Namespace).Create(required)
-		reportCreateEvent(recorder, required, err)
+		requiredCopy := required.DeepCopy()
+		actual, err := client.Services(requiredCopy.Namespace).
+			Create(resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*corev1.Service))
+		reportCreateEvent(recorder, requiredCopy, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -94,8 +98,10 @@ func ApplyService(client coreclientv1.ServicesGetter, recorder events.Recorder, 
 func ApplyPod(client coreclientv1.PodsGetter, recorder events.Recorder, required *corev1.Pod) (*corev1.Pod, bool, error) {
 	existing, err := client.Pods(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.Pods(required.Namespace).Create(required)
-		reportCreateEvent(recorder, required, err)
+		requiredCopy := required.DeepCopy()
+		actual, err := client.Pods(requiredCopy.Namespace).
+			Create(resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*corev1.Pod))
+		reportCreateEvent(recorder, requiredCopy, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -123,8 +129,10 @@ func ApplyPod(client coreclientv1.PodsGetter, recorder events.Recorder, required
 func ApplyServiceAccount(client coreclientv1.ServiceAccountsGetter, recorder events.Recorder, required *corev1.ServiceAccount) (*corev1.ServiceAccount, bool, error) {
 	existing, err := client.ServiceAccounts(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.ServiceAccounts(required.Namespace).Create(required)
-		reportCreateEvent(recorder, required, err)
+		requiredCopy := required.DeepCopy()
+		actual, err := client.ServiceAccounts(requiredCopy.Namespace).
+			Create(resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*corev1.ServiceAccount))
+		reportCreateEvent(recorder, requiredCopy, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -150,8 +158,10 @@ func ApplyServiceAccount(client coreclientv1.ServiceAccountsGetter, recorder eve
 func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Recorder, required *corev1.ConfigMap) (*corev1.ConfigMap, bool, error) {
 	existing, err := client.ConfigMaps(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.ConfigMaps(required.Namespace).Create(required)
-		reportCreateEvent(recorder, required, err)
+		requiredCopy := required.DeepCopy()
+		actual, err := client.ConfigMaps(requiredCopy.Namespace).
+			Create(resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*corev1.ConfigMap))
+		reportCreateEvent(recorder, requiredCopy, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -230,8 +240,10 @@ func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 
 	existing, err := client.Secrets(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.Secrets(required.Namespace).Create(required)
-		reportCreateEvent(recorder, required, err)
+		requiredCopy := required.DeepCopy()
+		actual, err := client.Secrets(requiredCopy.Namespace).
+			Create(resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*corev1.Secret))
+		reportCreateEvent(recorder, requiredCopy, err)
 		return actual, true, err
 	}
 	if err != nil {

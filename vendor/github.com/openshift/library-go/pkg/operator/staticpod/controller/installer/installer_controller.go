@@ -145,7 +145,11 @@ func NewInstallerController(
 }
 
 func (c *InstallerController) Run(ctx context.Context, workers int) {
-	c.factory.WithSync(c.Sync).ToController("InstallerController", c.eventRecorder).Run(ctx, workers)
+	c.factory.WithSync(c.Sync).ToController(c.Name(), c.eventRecorder).Run(ctx, workers)
+}
+
+func (c InstallerController) Name() string {
+	return "InstallerController"
 }
 
 func (c *InstallerController) getStaticPodState(nodeName string) (state staticPodState, revision, reason string, errors []string, err error) {

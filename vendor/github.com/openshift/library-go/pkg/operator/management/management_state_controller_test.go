@@ -1,11 +1,13 @@
 package management
 
 import (
+	"context"
 	"testing"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 )
 
@@ -71,12 +73,12 @@ func TestOperatorManagementStateController(t *testing.T) {
 					Conditions: tc.initialConditions,
 				},
 			}
+			recorder := events.NewInMemoryRecorder("status")
 			controller := &ManagementStateController{
 				operatorName:   "OPERATOR_NAME",
 				operatorClient: statusClient,
-				eventRecorder:  events.NewInMemoryRecorder("status"),
 			}
-			if err := controller.sync(); err != nil {
+			if err := controller.sync(context.TODO(), factory.NewSyncContext("test", recorder)); err != nil {
 				t.Errorf("unexpected sync error: %v", err)
 				return
 			}

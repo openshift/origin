@@ -802,6 +802,7 @@ var map_PlatformStatus = map[string]string{
 	"openstack": "OpenStack contains settings specific to the OpenStack infrastructure provider.",
 	"ovirt":     "Ovirt contains settings specific to the oVirt infrastructure provider.",
 	"vsphere":   "VSphere contains settings specific to the VSphere infrastructure provider.",
+	"ibmcloud":  "IBMCloud contains settings specific to the IBMCloud infrastructure provider.",
 }
 
 func (PlatformStatus) SwaggerDoc() map[string]string {

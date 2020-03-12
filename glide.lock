@@ -1,5 +1,5 @@
-hash: 073b1ef0c892ab9f8c6568b523a29b7fa2608fff565a1fe16cc4b69494fe909d
-updated: 2020-02-28T16:49:58.635811+01:00
+hash: 88213a325b4af3e8f58b7651702b8903fa64bd0f088bc497997201edf83c0ad2
+updated: 2020-03-12T19:33:06.859997-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -127,7 +127,7 @@ imports:
   - errdefs
   - namespaces
 - name: github.com/containerd/continuity
-  version: 26c1120b8d4107d2471b93ad78ef7ce1fc84c4c4
+  version: 0f16d7a0959cac64d7a54ce015e50cf4839d1970
   subpackages:
   - pathdriver
 - name: github.com/containernetworking/cni
@@ -254,7 +254,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/fsouza/go-dockerclient
-  version: 6b08daccc3a365d66114466bef85a2da20b9c05b
+  version: 66f08f919cc7c4cd138d669ba7b0a894f0a2e52c
 - name: github.com/getsentry/raven-go
   version: 5c24d5110e0e198d9ae16f1f3465366085001d92
 - name: github.com/ghodss/yaml
@@ -638,7 +638,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/onsi/ginkgo
-  version: d0603c19fe78143eb81221b59025ebcb9b534957
+  version: b924d292118891ca4066a9c0d429e599558bb251
   repo: https://github.com/openshift/onsi-ginkgo.git
   subpackages:
   - config
@@ -711,7 +711,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: c99157bc6492218400b18cde7f66510f9ee56a9a
+  version: 85e16cc5dd7c18585be10a6cac2f286e2cc079f3
   subpackages:
   - annotations
   - apps
@@ -884,7 +884,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 19fff9ed3c270aa119555a78218795ab8f76ec98
+  version: c88b841096eac29300e638eb9b14d5112ac91a9c
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1589,7 +1589,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 88b9298d361a9e8ce440f2ae4aa76762cd75bc77
+  version: d1c97850def3f085f8069f49162a9d3c8397eede
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1727,7 +1727,7 @@ imports:
   - pkg/printers
   - pkg/resource
 - name: k8s.io/client-go
-  version: b01ef7c0bd89587b0b6dec9cbf90eb50c9a7bca3
+  version: bff17428e76121a43982eef853f825fc0366cce7
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1990,7 +1990,7 @@ imports:
   version: e1c67ed4df45bc49c46fe56e6a3b8bc41d824276
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/component-base
-  version: a0bef0b48107bb6f22b85819be168b1ce56f463e
+  version: c3d9db3cc41c21c26ac761eac89acc7bd0306199
   repo: https://github.com/openshift/kubernetes-component-base.git
   subpackages:
   - cli/flag
@@ -2030,7 +2030,7 @@ imports:
 - name: k8s.io/klog
   version: 2ca9ad30301bf30a8a6e0fa2110db6b8df699a91
 - name: k8s.io/kube-aggregator
-  version: 0f3be7240130f822a9cbcd42f290e150f216d554
+  version: ff75c05c1494a93e4c81eed5abc77295d20da0a7
   repo: https://github.com/openshift/kubernetes-kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -2175,7 +2175,7 @@ imports:
   - pkg/apis/deviceplugin/v1beta1
   - pkg/apis/pluginregistration/v1
 - name: k8s.io/kubernetes
-  version: 8b31f4d1219ebdda12ceb444bb25c15b5036dd85
+  version: 2bc5d1de3e55838e061d5e33542ef0a3fef9450e
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app

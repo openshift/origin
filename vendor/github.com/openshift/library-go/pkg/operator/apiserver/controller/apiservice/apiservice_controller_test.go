@@ -1,10 +1,9 @@
 package apiservice
 
 import (
+	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/tools/cache"
 	"sort"
 	"strings"
 	"testing"
@@ -14,14 +13,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	kubetesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	kubeaggregatorfake "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/fake"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	operatorlistersv1 "github.com/openshift/client-go/operator/listers/operator/v1"
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorv1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 )
@@ -312,7 +314,6 @@ func TestHandlingControlOverTheAPI(t *testing.T) {
 			operator := &APIServiceController{
 				precondition:            func([]*apiregistrationv1.APIService) (bool, error) { return true, nil },
 				kubeClient:              kubeClient,
-				eventRecorder:           eventRecorder,
 				operatorClient:          fakeOperatorClient,
 				apiregistrationv1Client: kubeAggregatorClient.ApiregistrationV1(),
 				getAPIServicesToManageFn: NewAPIServicesToManage(
@@ -325,7 +326,7 @@ func TestHandlingControlOverTheAPI(t *testing.T) {
 				).GetAPIServicesToManage,
 			}
 
-			err := operator.sync()
+			err := operator.sync(context.TODO(), factory.NewSyncContext("test", eventRecorder))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -500,7 +501,6 @@ func TestAvailableStatus(t *testing.T) {
 			operator := &APIServiceController{
 				precondition:            func([]*apiregistrationv1.APIService) (bool, error) { return true, nil },
 				kubeClient:              kubeClient,
-				eventRecorder:           eventRecorder,
 				operatorClient:          fakeOperatorClient,
 				apiregistrationv1Client: kubeAggregatorClient.ApiregistrationV1(),
 				getAPIServicesToManageFn: NewAPIServicesToManage(
@@ -522,7 +522,7 @@ func TestAvailableStatus(t *testing.T) {
 				).GetAPIServicesToManage,
 			}
 
-			_ = operator.sync()
+			_ = operator.sync(context.TODO(), factory.NewSyncContext("test", eventRecorder))
 
 			_, resultStatus, _, err := fakeOperatorClient.GetOperatorState()
 			if err != nil {
