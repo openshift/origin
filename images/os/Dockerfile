@@ -1,5 +1,5 @@
 FROM fedora:29 AS build
-COPY iptables-services-1.8.4-10.el8.x86_64.rpm /tmp/iptables-rpms
+COPY iptables-services-1.8.4-10.el8.x86_64.rpm /tmp/iptables-rpms/
 COPY --from=registry.svc.ci.openshift.org/openshift/origin-v4.0:machine-os-content /srv/ /srv/
 RUN set -x && yum install -y ostree rpm-ostree yum-utils selinux-policy-targeted && \
     curl http://base-4-3-rhel8.ocp.svc > /etc/yum.repos.d/rhel8.repo && \
