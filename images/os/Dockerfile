@@ -8,7 +8,7 @@ RUN set -x && yum install -y ostree rpm-ostree yum-utils selinux-policy-targeted
     rpm-ostree db list --repo /srv/repo $commit > /tmp/packages && \
     PACKAGES=(openshift-hyperkube) && \
     yumdownloader -y --disablerepo=* --enablerepo=built --destdir=/tmp/rpms "${PACKAGES[@]}" && \
-    && mv /tmp/iptables-rpms/iptables-services-1.8.4-10.el8.x86_64.rpm /tmp/rpms/. && \
+    mv /tmp/iptables-rpms/iptables-services-1.8.4-10.el8.x86_64.rpm /tmp/rpms/. && \
     if ! grep -q cri-o /tmp/packages; then yumdownloader -y --disablerepo=* --enablerepo=rhel-8* --destdir=/tmp/rpms cri-o cri-tools; fi && \
     if ! grep -q machine-config-daemon /tmp/packages; then yumdownloader -y --disablerepo=* --enablerepo=rhel-8* --destdir=/tmp/rpms machine-config-daemon; fi && \
     ls /tmp/rpms/ && (cd /tmp/rpms/ && ls ${PACKAGES[@]/%/*}) && \
