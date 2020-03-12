@@ -1,5 +1,5 @@
-hash: cf7ec48f1bb6db439c6d0bf9046f6d82e59ce06f073571a6454cc722ad67f0b7
-updated: 2019-10-14T10:41:19.59248441-04:00
+hash: 2b76b06886cad4a6eea3dd231434bb1d7f9fa7aa18ae7123711eadbed45318b9
+updated: 2020-03-12T18:13:26.382493584+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -823,7 +823,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 8741ff068a473be041d7bafb4502c12e4f10aab5
+  version: 779a333deb138a2a3821ba58b72d538f60930920
   subpackages:
   - apps
   - apps/v1
@@ -1403,7 +1403,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 7e311602c75d6a2483b2928d99c44183e42a0136
+  version: 5db9fa770e2267b69ea7ac1afe556b94eb057426
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1440,7 +1440,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/testserver
 - name: k8s.io/apimachinery
-  version: 5c0e7e0ce91a8083e170765a544def530b8ee4f0
+  version: 8cfbc07164f4fd91a3c05ebaec532684d9465e72
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/equality
@@ -1508,7 +1508,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 6eafd6a7ccfb33517f1d852155d8862d8b5d3e93
+  version: e46c46eda5f2d5bbf60122c71895782b33d05784
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1621,7 +1621,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 9feea9d4142fd23f46451ef4292787b85e2e0a52
+  version: 7a88268e115d643c24d43ee0eca15bb00c1f6386
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1863,7 +1863,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: ad88da9c44a16b896cd5eecdbed1d63515543b2d
+  version: 70e138c6ce2a07236dadd2bfdb53b285842ec5da
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

@@ -30,6 +30,7 @@ type ProjectSpec struct {
 // ProjectStatus is information about the current status of a Project
 type ProjectStatus struct {
 	// Phase is the current lifecycle phase of the project
+	// +optional
 	Phase corev1.NamespacePhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase,casttype=k8s.io/api/core/v1.NamespacePhase"`
 }
 
@@ -58,6 +59,7 @@ type Project struct {
 	Spec ProjectSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status describes the current status of a Namespace
+	// +optional
 	Status ProjectStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
