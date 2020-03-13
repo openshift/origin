@@ -56,7 +56,7 @@ type certAuthTest struct {
 	expectedError string
 }
 
-var _ = g.Describe("[Serial] [Feature:OAuthServer] [RequestHeaders] [IdP]", func() {
+var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP]", func() {
 	var oc = exutil.NewCLI("request-headers", exutil.KubeConfigPath())
 
 	g.It("test RequestHeaders IdP", func() {

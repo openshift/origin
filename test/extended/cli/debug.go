@@ -7,7 +7,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[cli][Slow] oc debug", func() {
+var _ = g.Describe("[sig-cli][Slow] oc debug", func() {
 	oc := exutil.NewCLI("oc-debug", exutil.KubeConfigPath())
 	templatePath := exutil.FixturePath("testdata", "test-cli-debug.yaml")
 

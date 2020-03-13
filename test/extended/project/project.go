@@ -27,7 +27,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 
@@ -88,7 +88,7 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 
@@ -147,7 +147,7 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 
@@ -318,7 +318,7 @@ func waitForOnlyDelete(projectName string, w watch.Interface) {
 	})
 }
 
-var _ = g.Describe("[Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 
@@ -432,7 +432,7 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 

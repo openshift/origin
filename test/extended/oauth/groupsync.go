@@ -18,7 +18,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[Suite:openshift/oauth][Serial] ldap group sync", func() {
+var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                 = testutil.NewCLI("ldap-group-sync", testutil.KubeConfigPath())

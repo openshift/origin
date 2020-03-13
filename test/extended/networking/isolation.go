@@ -8,7 +8,7 @@ import (
 	testexutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = Describe("[Area:Networking] network isolation", func() {
+var _ = Describe("[sig-network] network isolation", func() {
 	oc := testexutil.NewCLI("ns-global", testexutil.KubeConfigPath())
 
 	InNonIsolatingContext(func() {

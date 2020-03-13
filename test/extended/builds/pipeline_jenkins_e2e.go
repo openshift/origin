@@ -26,7 +26,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
 
-var _ = g.Describe("[Feature:Jenkins][Slow]jenkins repos e2e openshift using slow openshift pipeline build", func() {
+var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 
 	var (

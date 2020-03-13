@@ -17,7 +17,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[Feature:Platform] OLM should", func() {
+var _ = g.Describe("[sig-operator] OLM should", func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLIWithoutNamespace("default")
@@ -152,7 +152,7 @@ var _ = g.Describe("[Feature:Platform] OLM should", func() {
 })
 
 // This context will cover test case: OCP-23440, author: jiazha@redhat.com
-var _ = g.Describe("[Feature:Platform] an end user use OLM", func() {
+var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 	defer g.GinkgoRecover()
 
 	var (

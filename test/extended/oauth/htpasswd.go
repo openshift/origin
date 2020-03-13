@@ -26,7 +26,7 @@ func init() {
 	utilruntime.Must(osinv1.Install(scheme))
 }
 
-var _ = g.Describe("[Suite:openshift/oauth/htpasswd] HTPasswd IDP", func() {
+var _ = g.Describe("[sig-auth][Feature:HTPasswdAuth] HTPasswd IDP", func() {
 	var oc = exutil.NewCLI("htpasswd-idp", exutil.KubeConfigPath())
 
 	g.It("should successfully configure htpasswd and be responsive", func() {

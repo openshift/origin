@@ -20,7 +20,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:UserAPI]", func() {
+var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("user-api", exutil.KubeConfigPath())
 

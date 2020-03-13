@@ -19,7 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Image][triggers][Serial] ImageStream API", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream API", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("imagestream-api", exutil.KubeConfigPath())
 

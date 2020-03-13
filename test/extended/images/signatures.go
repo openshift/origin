@@ -13,7 +13,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[registry][Serial][Suite:openshift/registry/serial] Image signature workflow", func() {
+var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial] Image signature workflow", func() {
 	defer g.GinkgoRecover()
 
 	var (

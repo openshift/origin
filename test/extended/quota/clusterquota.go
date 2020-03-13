@@ -20,12 +20,12 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:ClusterResourceQuota] ", func() {
+var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("crq", exutil.KubeConfigPath())
 
-	g.Describe("TestClusterQuota", func() {
-		g.It(fmt.Sprintf("should succeed"), func() {
+	g.Describe("Cluster resource quota", func() {
+		g.It(fmt.Sprintf("should control resource limits across namespaces"), func() {
 			t := g.GinkgoT()
 
 			clusterAdminKubeClient := oc.AdminKubeClient()

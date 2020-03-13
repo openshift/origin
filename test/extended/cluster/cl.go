@@ -36,7 +36,7 @@ const checkPodRunningTimeout = 5 * time.Minute
 var podLabelMap = map[string]string{"purpose": "test"}
 var rootDir string
 
-var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
+var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                = exutil.NewCLIWithoutNamespace("cl")
@@ -71,7 +71,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		}
 	})
 
-	g.It("should load the cluster", func() {
+	g.It("should populate the cluster [Slow][Serial]", func() {
 		project := ConfigContext.ClusterLoader.Projects
 		tuningSets := ConfigContext.ClusterLoader.TuningSets
 		sync := ConfigContext.ClusterLoader.Sync

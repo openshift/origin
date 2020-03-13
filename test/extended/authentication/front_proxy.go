@@ -18,7 +18,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Authentication] ", func() {
+var _ = g.Describe("[sig-auth][Feature:Authentication] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 

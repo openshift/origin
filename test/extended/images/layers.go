@@ -20,7 +20,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:ImageLayers][registry] Image layer subresource", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subresource", func() {
 	defer g.GinkgoRecover()
 	var oc *exutil.CLI
 	var ns []string

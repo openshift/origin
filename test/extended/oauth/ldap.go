@@ -7,7 +7,7 @@ import (
 	testutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/oauth] LDAP", func() {
+var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = testutil.NewCLI("oauth-ldap", testutil.KubeConfigPath())

@@ -13,7 +13,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = Describe("[Feature:Platform] Managed cluster should", func() {
+var _ = Describe("[sig-arch] Managed cluster should", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 
 	It("ensure control plane operators do not make themselves unevictable", func() {

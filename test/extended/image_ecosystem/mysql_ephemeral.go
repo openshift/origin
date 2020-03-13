@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql image", func() {
+var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift mysql image", func() {
 	defer g.GinkgoRecover()
 	var (
 		templatePath = "mysql-ephemeral"

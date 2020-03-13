@@ -16,7 +16,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl image", func() {
+var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image", func() {
 	defer g.GinkgoRecover()
 	var (
 		appSource     = exutil.FixturePath("testdata", "image_ecosystem", "perl-hotdeploy")

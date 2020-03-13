@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("[Area:Networking] multicast", func() {
+var _ = Describe("[sig-network] multicast", func() {
 	oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
 
 	// The subnet plugin should block all multicast. The multitenant and networkpolicy

@@ -7,7 +7,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Builds][Conformance] build can reference a cluster service", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds][Conformance] build can reference a cluster service", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc             = exutil.NewCLI("build-service", exutil.KubeConfigPath())

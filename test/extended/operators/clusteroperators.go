@@ -14,7 +14,7 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 )
 
-var _ = g.Describe("[Feature:Platform] ClusterOperators", func() {
+var _ = g.Describe("[sig-arch] ClusterOperators", func() {
 	defer g.GinkgoRecover()
 
 	var clusterOperators []config.ClusterOperator

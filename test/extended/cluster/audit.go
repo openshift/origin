@@ -16,7 +16,7 @@ import (
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
-var _ = g.Describe("[Feature:Audit] Basic audit", func() {
+var _ = g.Describe("[sig-api-machinery][Feature:Audit] Basic audit", func() {
 	f := framework.NewDefaultFramework("audit")
 
 	g.It("should audit API calls", func() {

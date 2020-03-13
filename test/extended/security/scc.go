@@ -17,7 +17,7 @@ import (
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 )
 
-var _ = g.Describe("[Feature:SecurityContextConstraints] ", func() {
+var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("scc", exutil.KubeConfigPath())
 
@@ -76,7 +76,7 @@ var _ = g.Describe("[Feature:SecurityContextConstraints] ", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:SecurityContextConstraints] ", func() {
+var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("scc", exutil.KubeConfigPath())
 

@@ -17,7 +17,7 @@ import (
 	exurl "github.com/openshift/origin/test/extended/util/url"
 )
 
-var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
+var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	var (

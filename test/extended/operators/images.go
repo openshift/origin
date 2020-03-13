@@ -16,7 +16,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = Describe("[Feature:Platform] Managed cluster", func() {
+var _ = Describe("[sig-arch] Managed cluster", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 	It("should ensure pods use downstream images from our release image with proper ImagePullPolicy", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {

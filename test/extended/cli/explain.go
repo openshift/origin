@@ -337,7 +337,7 @@ var (
 	}
 )
 
-var _ = g.Describe("[cli] oc explain", func() {
+var _ = g.Describe("[sig-cli] oc explain", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
@@ -366,7 +366,7 @@ var _ = g.Describe("[cli] oc explain", func() {
 	})
 })
 
-var _ = g.Describe("[cli] oc explain networking types", func() {
+var _ = g.Describe("[sig-cli] oc explain networking types", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())

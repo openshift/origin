@@ -204,11 +204,6 @@ var (
 			`\[sig-network\] Services should be rejected when no endpoints exist`,
 			`\[cli\] oc explain networking types should contain proper fields description for special networking types`,
 		},
-		"[Suite:openshift/scalability]": {},
-		// tests that replace the old test-cmd script
-		"[Suite:openshift/test-cmd]": {
-			`\[Suite:openshift/test-cmd\]`,
-		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite

@@ -19,12 +19,12 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Serial] API data in etcd", func() {
+var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("etcd-storage-path", exutil.KubeConfigPath())
 
-	_ = g.It("should be stored at the correct location and version for all resources", func() {
+	_ = g.It("should be stored at the correct location and version for all resources [Serial]", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		cmd := exec.CommandContext(ctx, "oc", "port-forward", "service/etcd", ":2379", "-n", "openshift-etcd", "--config", exutil.KubeConfigPath())
 

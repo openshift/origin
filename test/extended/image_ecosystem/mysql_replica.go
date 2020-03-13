@@ -193,7 +193,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 }
 
 /*
-var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication", func() {
+var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift mysql replication", func() {
 	defer g.GinkgoRecover()
 	g.Skip("db replica tests are currently flaky and disabled")
 

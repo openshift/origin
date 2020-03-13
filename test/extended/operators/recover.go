@@ -20,7 +20,7 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 )
 
-var _ = g.Describe("[Feature:Platform] Managed cluster should recover", func() {
+var _ = g.Describe("[sig-arch] Managed cluster should recover", func() {
 	defer g.GinkgoRecover()
 
 	g.It("when operator-owned objects are deleted [Disruptive]", func() {

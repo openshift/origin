@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] self-SAR compatibility", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
 

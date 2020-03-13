@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/oauthserver"
 )
 
-var _ = g.Describe("[Feature:OAuthServer] [Headers]", func() {
+var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers]", func() {
 	var oc = util.NewCLI("oauth-server-headers", util.KubeConfigPath())
 	var transport http.RoundTripper
 	var oauthServerAddr string

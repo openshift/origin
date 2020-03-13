@@ -13,7 +13,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[Feature:Marketplace] Marketplace diff name test", func() {
+var _ = g.Describe("[sig-operator][Feature:Marketplace] Marketplace diff name test", func() {
 
 	defer g.GinkgoRecover()
 

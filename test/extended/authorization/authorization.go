@@ -35,7 +35,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
 
@@ -367,7 +367,7 @@ func (test localResourceAccessReviewTest) run() {
 }
 
 // serial because it is vulnerable to access added by other tests
-var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authorization", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
 
@@ -466,7 +466,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", fun
 	})
 })
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
 
@@ -1021,7 +1021,7 @@ func AddUserViewToProject(oc *exutil.CLI, namespace, user string) string {
 	return AddUserToRoleInProject(oc, "view", namespace, user)
 }
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
 
@@ -1157,7 +1157,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
 

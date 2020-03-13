@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php image", func() {
+var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy for openshift php image", func() {
 	defer g.GinkgoRecover()
 	var (
 		cakephpTemplate = "cakephp-mysql-example"

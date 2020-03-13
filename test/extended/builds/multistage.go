@@ -15,7 +15,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Builds] Multi-stage image builds", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds] Multi-stage image builds", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc             = exutil.NewCLI("build-multistage", exutil.KubeConfigPath())

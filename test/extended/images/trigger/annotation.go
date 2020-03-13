@@ -17,7 +17,7 @@ var (
 	SyncTimeout = 30 * time.Second
 )
 
-var _ = g.Describe("[Feature:AnnotationTrigger] Annotation trigger", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Annotation trigger", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())

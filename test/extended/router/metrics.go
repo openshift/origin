@@ -32,7 +32,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
+var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLI("router-metrics", exutil.KubeConfigPath())

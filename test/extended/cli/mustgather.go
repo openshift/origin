@@ -25,7 +25,7 @@ import (
 	"github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[cli] oc adm must-gather", func() {
+var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	defer g.GinkgoRecover()
 	oc := util.NewCLI("oc-adm-must-gather", util.KubeConfigPath()).AsAdmin()
 	g.It("runs successfully", func() {

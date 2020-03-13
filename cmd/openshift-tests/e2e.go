@@ -50,7 +50,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		The disruptive test suite.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Disruptive]") && strings.Contains(name, "[dr-quorum-restore]")
+			return strings.Contains(name, "[Disruptive]") && strings.Contains(name, "[Feature:EtcdRecovery]")
 		},
 		TestTimeout: 60 * time.Minute,
 	},
@@ -84,7 +84,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Tests that exercise the OpenShift image-registry functionality.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[registry]") && !strings.Contains(name, "[Local]")
+			return strings.Contains(name, "[sig-imageregistry]") && !strings.Contains(name, "[Local]")
 		},
 	},
 	{
@@ -93,7 +93,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Tests that exercise language and tooling images shipped as part of OpenShift.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[image_ecosystem]") && !strings.Contains(name, "[Local]")
+			return strings.Contains(name, "[Feature:ImageEcosystem]") && !strings.Contains(name, "[Local]")
 		},
 		Parallelism: 7,
 		TestTimeout: 20 * time.Minute,
@@ -132,7 +132,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Run only tests for test-cmd.
 		`),
-		Matches: func(name string) bool { return strings.Contains(name, "[Suite:openshift/test-cmd]") },
+		Matches: func(name string) bool { return strings.Contains(name, "[Feature:LegacyCommandTests]") },
 	},
 	{
 		Name: "openshift/csi",

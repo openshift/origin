@@ -27,7 +27,7 @@ const (
 	anonymousError    = `users.user.openshift.io "~" is forbidden: User "system:anonymous" cannot get resource "users" in API group "user.openshift.io" at the cluster scope`
 )
 
-var _ = g.Describe("[Feature:OAuthServer] OAuth server", func() {
+var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("oauth", exutil.KubeConfigPath())
 

@@ -37,14 +37,14 @@ const (
 	localEtcdSignerYaml   = "/tmp/kube-etcd-cert-signer.yaml"
 )
 
-var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
+var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 	f := framework.NewDefaultFramework("disaster-recovery")
 	f.SkipNamespaceCreation = true
 	f.SkipPrivilegedPSPBinding = true
 
 	oc := exutil.NewCLIWithoutNamespace("disaster-recovery")
 
-	g.It("[dr-quorum-restore] Cluster should restore itself after quorum loss", func() {
+	g.It("[Feature:EtcdRecovery] Cluster should restore itself after quorum loss", func() {
 		framework.SkipUnlessProviderIs("aws")
 
 		disruption.Run("Quorum Loss and Restore", "quorum_restore",

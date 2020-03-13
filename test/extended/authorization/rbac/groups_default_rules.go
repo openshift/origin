@@ -155,7 +155,7 @@ var (
 	}
 )
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] The default cluster RBAC policy", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default cluster RBAC policy", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("default-rbac-policy", exutil.KubeConfigPath())

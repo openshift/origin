@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/crdvalidation/apiserver] APIServer CR fields validation", func() {
+var _ = g.Describe("[sig-api-machinery] APIServer CR fields validation", func() {
 	var (
 		oc = exutil.NewCLI("cluster-basic-auth", exutil.KubeConfigPath())
 	)

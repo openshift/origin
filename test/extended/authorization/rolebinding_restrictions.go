@@ -16,7 +16,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature: RoleBinding Restrictions] RoleBindingRestrictions should be functional", func() {
+var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("rolebinding-restrictions", exutil.KubeConfigPath())
 	g.Context("", func() {
