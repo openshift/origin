@@ -122,7 +122,7 @@ var _ = g.Describe("[sig-storage][Feature:LocalStorageQuota] Test local storage 
 		emptyDirPodFixture = exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.json")
 	)
 
-	g.Describe("FSGroup local storage quota [local]", func() {
+	g.Describe("FSGroup local storage quota [Local]", func() {
 		g.It("should be applied to XFS filesystem when a pod is created", func() {
 
 			project := oc.Namespace()

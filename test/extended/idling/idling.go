@@ -253,8 +253,8 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 		os.Remove(idlingFile)
 	})
 
-	g.Describe("idling [local]", func() {
-		g.Context("with a single service and DeploymentConfig [Conformance]", func() {
+	g.Describe("idling [Local]", func() {
+		g.Context("with a single service and DeploymentConfig", func() {
 			g.BeforeEach(func() {
 				framework.BeforeEach()
 				fixture = echoServerFixture
@@ -283,7 +283,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			fixture = echoServerFixture
 		})
 
-		g.It("should work with TCP (when fully idled) [Conformance] [local]", func() {
+		g.It("should work with TCP (when fully idled) [Local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -312,7 +312,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with TCP (while idling) [local]", func() {
+		g.It("should work with TCP (while idling) [Local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -336,7 +336,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should handle many TCP connections by dropping those under a certain bound [local]", func() {
+		g.It("should handle many TCP connections by dropping those under a certain bound [Local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -388,7 +388,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with UDP [local]", func() {
+		g.It("should work with UDP [Local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -418,7 +418,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 		})
 
 		// TODO: Work out how to make this test work correctly when run on AWS
-		g.XIt("should handle many UDP senders (by continuing to drop all packets on the floor) [local]", func() {
+		g.XIt("should handle many UDP senders (by continuing to drop all packets on the floor) [Local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())

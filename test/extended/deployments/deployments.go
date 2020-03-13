@@ -105,7 +105,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		imageChangeTriggerFixture       = exutil.FixturePath("testdata", "deployments", "deployment-trigger.yaml")
 	)
 
-	g.Describe("when run iteratively [Conformance]", func() {
+	g.Describe("when run iteratively", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -280,7 +280,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("should respect image stream tag reference policy [Conformance]", func() {
+	g.Describe("should respect image stream tag reference policy", func() {
 		dcName := "deployment-image-resolution"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -328,7 +328,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("with test deployments [Conformance]", func() {
+	g.Describe("with test deployments", func() {
 		dcName := "deployment-test"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -412,7 +412,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("when changing image change trigger [Conformance]", func() {
+	g.Describe("when changing image change trigger", func() {
 		dcName := "example"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -464,7 +464,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("when tagging images [Conformance]", func() {
+	g.Describe("when tagging images", func() {
 		dcName := "tag-images"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -509,7 +509,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("with env in params referencing the configmap [Conformance]", func() {
+	g.Describe("with env in params referencing the configmap", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -536,7 +536,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("with multiple image change triggers [Conformance]", func() {
+	g.Describe("with multiple image change triggers", func() {
 		dcName := "example"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -561,7 +561,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("with enhanced status [Conformance]", func() {
+	g.Describe("with enhanced status", func() {
 		dcName := "deployment-simple"
 
 		g.AfterEach(func() {
@@ -595,7 +595,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("with custom deployments [Conformance]", func() {
+	g.Describe("with custom deployments", func() {
 		dcName := "custom-deployment"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -632,7 +632,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("viewing rollout history [Conformance]", func() {
+	g.Describe("viewing rollout history", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -683,7 +683,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("generation [Conformance]", func() {
+	g.Describe("generation", func() {
 		dcName := "generation-test"
 		g.AfterEach(func() {
 			failureTrap(oc, "generation-test", g.CurrentGinkgoTestDescription().Failed)
@@ -772,7 +772,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("paused [Conformance]", func() {
+	g.Describe("paused", func() {
 		dcName := "paused"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -835,7 +835,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("with failing hook [Conformance]", func() {
+	g.Describe("with failing hook", func() {
 		dcName := "hook"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -858,7 +858,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("rolled back [Conformance]", func() {
+	g.Describe("rolled back", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -905,7 +905,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("reaper [Conformance][Slow]", func() {
+	g.Describe("reaper [Slow]", func() {
 		dcName := "brokendeployment"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -946,7 +946,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("initially [Conformance]", func() {
+	g.Describe("initially", func() {
 		dcName := "readiness"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -963,7 +963,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("with revision history limits [Conformance]", func() {
+	g.Describe("with revision history limits", func() {
 		dcName := "history-limit"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -1028,7 +1028,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("with minimum ready seconds set [Conformance]", func() {
+	g.Describe("with minimum ready seconds set", func() {
 		dcName := "minreadytest"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -1113,7 +1113,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("ignores deployer and lets the config with a NewReplicationControllerCreated reason [Conformance]", func() {
+	g.Describe("ignores deployer and lets the config with a NewReplicationControllerCreated reason", func() {
 		dcName := "database"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
@@ -1162,7 +1162,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			failureTrapForDetachedRCs(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should adhere to Three Laws of Controllers [Conformance]", func() {
+		g.It("should adhere to Three Laws of Controllers", func() {
 			namespace := oc.Namespace()
 			rcName := func(i int) string { return fmt.Sprintf("%s-%d", dcName, i) }
 
@@ -1257,7 +1257,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("keep the deployer pod invariant valid [Conformance]", func() {
+	g.Describe("keep the deployer pod invariant valid", func() {
 		dcName := "deployment-simple"
 		const deploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
 
@@ -1484,7 +1484,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("won't deploy RC with unresolved images [Conformance]", func() {
+	g.Describe("won't deploy RC with unresolved images", func() {
 		dcName := "example"
 		rcName := func(i int) string { return fmt.Sprintf("%s-%d", dcName, i) }
 		g.AfterEach(func() {
@@ -1561,7 +1561,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 	})
 
-	g.Describe("adoption [Conformance]", func() {
+	g.Describe("adoption", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
 			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)

@@ -298,7 +298,7 @@ func ipsForEndpoints(ep *kapiv1.Endpoints) []string {
 var _ = Describe("[sig-network-edge] DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
 
-	It("should answer endpoint and wildcard queries for the cluster [Conformance]", func() {
+	It("should answer endpoint and wildcard queries for the cluster", func() {
 		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(createServiceSpec("headless", true, "", nil)); err != nil {
 			e2e.Failf("unable to create headless service: %v", err)
 		}

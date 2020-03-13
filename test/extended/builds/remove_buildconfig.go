@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Conformance] remove all builds when build configuration is removed", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds] remove all builds when build configuration is removed", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-build.yaml")

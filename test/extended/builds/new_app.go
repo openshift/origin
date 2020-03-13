@@ -13,7 +13,7 @@ const (
 	a59 = "a2345678901234567890123456789012345678901234567890123456789"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Conformance] oc new-app", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds] oc new-app", func() {
 	// Previously, the maximum length of app names creatable by new-app has
 	// inadvertently been decreased, e.g. by creating an annotation somewhere
 	// whose name itself includes the app name.  Ensure we can create and fully

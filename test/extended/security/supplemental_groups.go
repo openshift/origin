@@ -30,8 +30,8 @@ var _ = g.Describe("[security] supplemental groups", func() {
 		f  = oc.KubeFramework()
 	)
 
-	g.Describe("[Conformance]Ensure supplemental groups propagate to docker", func() {
-		g.It("should propagate requested groups to the container [local]", func() {
+	g.Describe("Ensure supplemental groups propagate to docker", func() {
+		g.It("should propagate requested groups to the container [Local]", func() {
 
 			fsGroup := int64(1111)
 			supGroup := int64(2222)

@@ -39,7 +39,7 @@ COPY --from=busybox:latest /bin/ping /test/
 			}
 		})
 
-		g.It("should succeed [Conformance]", func() {
+		g.It("should succeed", func() {
 			g.By("creating a build directly")
 			registryURL, err := eximages.GetDockerRegistryURL(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())

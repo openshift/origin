@@ -8,7 +8,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Conformance] custom build with buildah", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds] custom build with buildah", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                 = exutil.NewCLI("custom-build", exutil.KubeConfigPath())

@@ -10,7 +10,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Conformance][valueFrom] process valueFrom in build strategy environment variables", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables", func() {
 	var (
 		valueFromBaseDir               = exutil.FixturePath("testdata", "builds", "valuefrom")
 		testImageStreamFixture         = filepath.Join(valueFromBaseDir, "test-is.json")
