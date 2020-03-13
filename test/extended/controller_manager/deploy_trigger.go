@@ -20,7 +20,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
+var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("deployment-trigger", exutil.KubeConfigPath())
 
@@ -90,7 +90,7 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	})
 })
 
-var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
+var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("deployment-trigger", exutil.KubeConfigPath())
 
@@ -191,7 +191,7 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	})
 })
 
-var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
+var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("deployment-trigger", exutil.KubeConfigPath())
 
@@ -368,7 +368,7 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	})
 })
 
-var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
+var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("deployment-trigger", exutil.KubeConfigPath())
 
@@ -525,7 +525,7 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	})
 })
 
-var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
+var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("deployment-trigger", exutil.KubeConfigPath())
 
