@@ -27,7 +27,7 @@ const (
 	waitTimeout = time.Second * 600
 )
 
-var _ = g.Describe("[Feature:ImageQuota][registry] Image resource quota", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota] Image resource quota", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("resourcequota-admission", exutil.KubeConfigPath())
 

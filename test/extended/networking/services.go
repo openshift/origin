@@ -8,7 +8,7 @@ import (
 	testexutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = Describe("[Area:Networking] services", func() {
+var _ = Describe("[sig-network] services", func() {
 	Context("basic functionality", func() {
 		f1 := e2e.NewDefaultFramework("net-services1")
 

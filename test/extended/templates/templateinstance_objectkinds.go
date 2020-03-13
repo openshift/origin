@@ -17,7 +17,7 @@ import (
 
 // ensure that we can instantiate Kubernetes and OpenShift objects, legacy and
 // non-legacy, from a range of API groups.
-var _ = g.Describe("[Conformance][templates] templateinstance object kinds test", func() {
+var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance object kinds test", func() {
 	defer g.GinkgoRecover()
 
 	var (

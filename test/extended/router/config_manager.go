@@ -18,7 +18,7 @@ import (
 
 const timeoutSeconds = 3 * 60
 
-var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
+var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "router-config-manager.yaml")

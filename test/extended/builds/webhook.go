@@ -19,7 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Builds][webhook]", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds][webhook]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("build-webhooks", exutil.KubeConfigPath())
 

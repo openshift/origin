@@ -115,7 +115,7 @@ func isNodeReady(node corev1.Node) bool {
 	return false
 }
 
-var _ = g.Describe("[Feature:Machines][Disruptive] Managed cluster should", func() {
+var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	g.It("recover from deleted worker machines", func() {

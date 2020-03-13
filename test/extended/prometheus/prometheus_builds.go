@@ -22,7 +22,7 @@ const (
 	prometheusQueryRetrySleep  = 10 * time.Second
 )
 
-var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
+var _ = g.Describe("[sig-instrumentation][sig-devex][Feature:Builds] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLIWithoutNamespace("prometheus")

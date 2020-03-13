@@ -19,7 +19,7 @@ import (
 	oauthutil "github.com/openshift/origin/test/extended/util/oauthserver"
 )
 
-var _ = g.Describe("[Suite:openshift/oauth] LDAP IDP", func() {
+var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = testutil.NewCLI("oauth-ldap-idp", testutil.KubeConfigPath())

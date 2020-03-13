@@ -295,7 +295,7 @@ func ipsForEndpoints(ep *kapiv1.Endpoints) []string {
 	return ips.List()
 }
 
-var _ = Describe("DNS", func() {
+var _ = Describe("[sig-network-edge] DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
 
 	It("should answer endpoint and wildcard queries for the cluster [Conformance]", func() {

@@ -203,7 +203,7 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 	}))
 }
 
-var _ = g.Describe("idling and unidling", func() {
+var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                  = exutil.NewCLI("cli-idling", exutil.KubeConfigPath()).Verbose()

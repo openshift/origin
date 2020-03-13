@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("etcd", func() {
+var _ = g.Describe("[sig-etcd] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("etcd-leader-change", exutil.KubeConfigPath())
 	g.It("leader changes are not excessive", func() {

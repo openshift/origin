@@ -42,7 +42,7 @@ type dicEntry struct {
 	cancel func()
 }
 
-var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
+var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", func() {
 	defer g.GinkgoRecover()
 
 	dicMap := make(map[string]dicEntry)

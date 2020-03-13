@@ -15,7 +15,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Conformance][templates] templateinstance creation with invalid object reports error", func() {
+var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance creation with invalid object reports error", func() {
 	defer g.GinkgoRecover()
 
 	var (

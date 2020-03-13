@@ -115,7 +115,7 @@ func waitForQuotaToBeApplied(oc *exutil.CLI, fsGroup int, volDir string) error {
 	return fmt.Errorf("expected quota was not applied in time")
 }
 
-var _ = g.Describe("[Conformance][volumes] Test local storage quota", func() {
+var _ = g.Describe("[sig-storage][Feature:LocalStorageQuota] Test local storage quota", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                 = exutil.NewCLI("local-quota", exutil.KubeConfigPath())

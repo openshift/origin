@@ -7,7 +7,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:ImageInfo] Image info", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 	defer g.GinkgoRecover()
 
 	var oc *exutil.CLI

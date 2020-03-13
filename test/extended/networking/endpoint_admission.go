@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-var _ = g.Describe("[Area:Networking][endpoints] admission", func() {
+var _ = g.Describe("[sig-network][endpoints] admission", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("endpoint-admission", exutil.KubeConfigPath())
 

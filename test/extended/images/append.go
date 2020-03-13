@@ -66,7 +66,7 @@ func cliPodWithPullSecret(cli *exutil.CLI, shell string) *kapiv1.Pod {
 	}
 }
 
-var _ = g.Describe("[Feature:ImageAppend] Image append", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func() {
 	defer g.GinkgoRecover()
 
 	var oc *exutil.CLI

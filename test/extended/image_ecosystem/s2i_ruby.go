@@ -16,7 +16,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby image", func() {
+var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy for openshift ruby image", func() {
 	defer g.GinkgoRecover()
 	var (
 		railsTemplate = "rails-postgresql-example"

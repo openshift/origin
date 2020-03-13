@@ -16,7 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = g.Describe("[Feature:ProjectAPI] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 
@@ -59,7 +59,7 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:ProjectAPI][Serial] ", func() {
+var _ = g.Describe("[sig-auth][Feature:ProjectAPI][Serial] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 

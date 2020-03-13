@@ -14,7 +14,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[cli] oc adm", func() {
+var _ = g.Describe("[sig-cli] oc adm", func() {
 	defer g.GinkgoRecover()
 
 	f := framework.NewDefaultFramework("oc-adm")

@@ -27,11 +27,11 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("node client cert requests armoring:", func() {
+var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 	oc := exutil.NewCLI("cluster-client-cert", exutil.KubeConfigPath())
 	defer g.GinkgoRecover()
 
-	g.It("deny pod's access to /config/master API endpoint", func() {
+	g.It("Pods cannot access the /config/master API endpoint", func() {
 		// the /config/master API port+endpoint is only visible from inside the cluster
 		// (-> we need to create a pod to try to reach it)  and contains the token
 		// of the node-bootstrapper SA, so no random pods should be able to see it
@@ -58,7 +58,7 @@ var _ = g.Describe("node client cert requests armoring:", func() {
 		o.Expect(curlOutput).To(o.ContainSubstring("Connection refused"))
 	})
 
-	g.It("node-approver SA token compromised, don't approve random CSRs with client auth", func() {
+	g.It("CSRs from machines that are not recognized by the cloud provider are not approved", func() {
 		// we somehow were able to get the node-approver token, make sure we can't
 		// create node certs with client auth with it
 		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)

@@ -117,9 +117,9 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 	}
 }
 
-var _ = g.Describe("[image_ecosystem][Slow] openshift sample application repositories", func() {
+var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories", func() {
 
-	g.Describe("[image_ecosystem][ruby] test ruby images with rails-ex db repo", NewSampleRepoTest(
+	g.Describe("[sig-devex][Feature:ImageEcosystem][ruby] test ruby images with rails-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "rails-postgresql",
 			templateURL:            "rails-postgresql-example",
@@ -133,7 +133,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 		},
 	))
 
-	g.Describe("[image_ecosystem][python] test python images with django-ex db repo", NewSampleRepoTest(
+	g.Describe("[sig-devex][Feature:ImageEcosystem][python] test python images with django-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "django-psql",
 			templateURL:            "django-psql-example",
@@ -147,7 +147,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 		},
 	))
 
-	g.Describe("[image_ecosystem][nodejs] test nodejs images with nodejs-ex db repo", NewSampleRepoTest(
+	g.Describe("[sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "nodejs-mongodb",
 			templateURL:            "nodejs-mongodb-example",
@@ -161,7 +161,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 		},
 	))
 
-	var _ = g.Describe("[image_ecosystem][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
+	var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "cakephp-mysql",
 			templateURL:            "cakephp-mysql-example",
@@ -176,7 +176,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	))
 
 	// dependency download is intermittently slow enough to blow away the e2e timeouts
-	/*var _ = g.Describe("[image_ecosystem][perl] test perl images with dancer-ex db repo", NewSampleRepoTest(
+	/*var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl] test perl images with dancer-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "dancer-mysql",
 			templateURL:            "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json",
@@ -191,7 +191,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	))*/
 
 	// dependency download is intermittently slow enough to blow away the e2e timeouts
-	/*var _ = g.Describe("[image_ecosystem][perl] test perl images with dancer-ex repo", NewSampleRepoTest(
+	/*var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl] test perl images with dancer-ex repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "dancer",
 			templateURL:            "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer.json",

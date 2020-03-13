@@ -138,7 +138,7 @@ func scaleMachineSet(name string, replicas int) error {
 	return nil
 }
 
-var _ = g.Describe("[Feature:Machines][Serial] Managed cluster should", func() {
+var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should", func() {
 	g.It("grow and decrease when scaling different machineSets simultaneously", func() {
 		// expect new nodes to come up for machineSet
 		verifyNodeScalingFunc := func(c *kubernetes.Clientset, dc dynamic.Interface, expectedScaleOut int, machineSet objx.Map) bool {

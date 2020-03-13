@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Builds][Slow] using pull secrets in a build", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds][Slow] using pull secrets in a build", func() {
 	defer g.GinkgoRecover()
 	var (
 		exampleBuild    = exutil.FixturePath("testdata", "builds", "test-docker-app")

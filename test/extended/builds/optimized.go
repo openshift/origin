@@ -14,7 +14,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Builds] Optimized image builds", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds] Optimized image builds", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc             = exutil.NewCLI("build-dockerfile-env", exutil.KubeConfigPath())

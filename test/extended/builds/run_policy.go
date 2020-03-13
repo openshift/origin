@@ -29,7 +29,7 @@ func hasConditionState(build *buildv1.Build, condition buildv1.BuildPhase, expec
 	return false
 }
 
-var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds][Slow] using build configuration runPolicy", func() {
 	defer g.GinkgoRecover()
 	var (
 		// Use invalid source here as we don't care about the result

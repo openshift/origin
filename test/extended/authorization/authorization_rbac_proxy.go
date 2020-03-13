@@ -25,7 +25,7 @@ import (
 	kauthorizationv1client "k8s.io/client-go/kubernetes/typed/authorization/v1"
 )
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] RBAC proxy for openshift authz", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("rbac-proxy", exutil.KubeConfigPath())
 	g.Context("", func() {

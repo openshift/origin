@@ -36,7 +36,7 @@ import (
 	g "github.com/onsi/ginkgo"
 )
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
 
@@ -97,7 +97,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
 
@@ -132,7 +132,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
 
@@ -207,7 +207,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
 
@@ -438,7 +438,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
 

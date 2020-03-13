@@ -29,7 +29,7 @@ const (
 	cvoWait      = 5 * time.Minute
 )
 
-var _ = g.Describe("[Feature:Platform][Early] Managed cluster should", func() {
+var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	g.It("start all core operators", func() {
@@ -166,7 +166,7 @@ var _ = g.Describe("[Feature:Platform][Early] Managed cluster should", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
+var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	g.It("have operators on the cluster version", func() {

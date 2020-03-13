@@ -21,7 +21,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("The bootstrap user", func() {
+var _ = g.Describe("[sig-auth][Feature:BootstrapUser] The bootstrap user", func() {
 	defer g.GinkgoRecover()
 
 	// since login mutates the current kubeconfig we want to use NewCLI

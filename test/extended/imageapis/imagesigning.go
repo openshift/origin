@@ -20,7 +20,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Image] signature", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("image", exutil.KubeConfigPath())
 
@@ -119,7 +119,7 @@ var _ = g.Describe("[Feature:Image] signature", func() {
 	})
 })
 
-var _ = g.Describe("[Feature:Image] signature", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("image", exutil.KubeConfigPath())
 

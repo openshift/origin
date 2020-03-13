@@ -17,7 +17,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Image][triggers] Image change build triggers", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Image change build triggers", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("image-change-build-trigger", exutil.KubeConfigPath())
 

@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds][Slow] builds with a context directory", func() {
 	defer g.GinkgoRecover()
 	var (
 		appFixture            = exutil.FixturePath("testdata", "builds", "test-context-build.json")

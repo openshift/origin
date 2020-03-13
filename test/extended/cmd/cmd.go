@@ -32,7 +32,7 @@ var blacklist = sets.NewString(
 	"registry.sh", // this was dead before we made this switch
 )
 
-var _ = g.Describe("[Suite:openshift/test-cmd][Serial][Disruptive] test-cmd:", func() {
+var _ = g.Describe("[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd:", func() {
 	hacklibDir := exutil.FixturePath("testdata", "cmd", "hack")
 	testsDir := exutil.FixturePath("testdata", "cmd", "test", "cmd")
 

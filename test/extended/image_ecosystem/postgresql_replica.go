@@ -27,7 +27,7 @@ var (
 )
 
 /*
-var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgresql replication", func() {
+var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][postgresql][Slow][local] openshift postgresql replication", func() {
 	defer g.GinkgoRecover()
 	g.Skip("db replica tests are currently flaky and disabled")
 

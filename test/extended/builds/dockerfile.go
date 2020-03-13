@@ -14,7 +14,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Builds][Slow] build can have Dockerfile input", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds][Slow] build can have Dockerfile input", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc             = exutil.NewCLI("build-dockerfile-env", exutil.KubeConfigPath())

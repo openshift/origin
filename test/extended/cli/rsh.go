@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[cli]oc rsh[Conformance]", func() {
+var _ = g.Describe("[sig-cli]oc rsh[Conformance]", func() {
 	defer g.GinkgoRecover()
 
 	var (

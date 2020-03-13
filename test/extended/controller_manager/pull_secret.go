@@ -55,7 +55,7 @@ func getServiceAccountToken(client kubernetes.Interface, ns, name string) (strin
 	return "", nil
 }
 
-var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
+var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("pull-secrets", exutil.KubeConfigPath())
 
@@ -126,7 +126,7 @@ func getServiceAccountPullSecret(client kubernetes.Interface, ns, name string) (
 	return "", "", nil
 }
 
-var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
+var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("pull-secrets", exutil.KubeConfigPath())
 

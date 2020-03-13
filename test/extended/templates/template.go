@@ -23,7 +23,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Conformance][templates] template-api", func() {
+var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("templates", exutil.KubeConfigPath())
 
@@ -96,7 +96,7 @@ var _ = g.Describe("[Conformance][templates] template-api", func() {
 	})
 })
 
-var _ = g.Describe("[Conformance][templates] template-api", func() {
+var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("templates", exutil.KubeConfigPath())
 

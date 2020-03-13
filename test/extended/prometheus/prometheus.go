@@ -33,7 +33,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Prometheus][Late] Alerts", func() {
+var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLIWithoutNamespace("prometheus")
@@ -101,7 +101,7 @@ var _ = g.Describe("[Feature:Prometheus][Late] Alerts", func() {
 
 })
 
-var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
+var _ = g.Describe("[sig-instrumentation][Conformance] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLIWithoutNamespace("prometheus")

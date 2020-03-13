@@ -15,7 +15,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Image] oc tag", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("image-oc-tag", exutil.KubeConfigPath())
 

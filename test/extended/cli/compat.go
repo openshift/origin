@@ -100,7 +100,7 @@ func cliPodWithImage(cli *exutil.CLI, image string, shell string) *kapiv1.Pod {
 	}
 }
 
-var _ = g.Describe("[Feature:CLI] CLI", func() {
+var _ = g.Describe("[sig-cli] CLI", func() {
 	defer g.GinkgoRecover()
 
 	var oc *exutil.CLI

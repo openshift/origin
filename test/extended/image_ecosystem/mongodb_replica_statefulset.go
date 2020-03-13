@@ -14,7 +14,7 @@ import (
 )
 
 /*
-var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mongodb replication (with statefulset)", func() {
+var _ = g.Describe("[Conformance][sig-devex][Feature:ImageEcosystem][mongodb][Slow] openshift mongodb replication (with statefulset)", func() {
 	defer g.GinkgoRecover()
 
 	const templatePath = "https://raw.githubusercontent.com/sclorg/mongodb-container/master/examples/petset/mongodb-petset-persistent.yaml"

@@ -15,7 +15,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:APIServer]", func() {
+var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("apiserver", exutil.KubeConfigPath())

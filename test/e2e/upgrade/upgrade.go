@@ -108,36 +108,34 @@ func SetUpgradeAbortAt(policy string) error {
 	return fmt.Errorf("abort-at must be empty, set to 'random', or an integer in [0,100], inclusive")
 }
 
-var _ = g.Describe("[Disruptive]", func() {
+var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 	f := framework.NewDefaultFramework("cluster-upgrade")
 	f.SkipNamespaceCreation = true
 	f.SkipPrivilegedPSPBinding = true
 
-	g.Describe("Cluster upgrade", func() {
-		g.It("should maintain a functioning cluster [Feature:ClusterUpgrade]", func() {
-			config, err := framework.LoadConfig()
-			framework.ExpectNoError(err)
-			client := configv1client.NewForConfigOrDie(config)
-			dynamicClient := dynamic.NewForConfigOrDie(config)
+	g.It("Cluster should remain functional during upgrade [Disruptive]", func() {
+		config, err := framework.LoadConfig()
+		framework.ExpectNoError(err)
+		client := configv1client.NewForConfigOrDie(config)
+		dynamicClient := dynamic.NewForConfigOrDie(config)
 
-			upgCtx, err := getUpgradeContext(client, upgradeToImage)
-			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", "", upgradeToImage)
+		upgCtx, err := getUpgradeContext(client, upgradeToImage)
+		framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", "", upgradeToImage)
 
-			disruption.Run(
-				"Cluster upgrade",
-				"upgrade",
-				disruption.TestData{
-					UpgradeType:    upgrades.ClusterUpgrade,
-					UpgradeContext: *upgCtx,
-				},
-				upgradeTests,
-				func() {
-					for i := 1; i < len(upgCtx.Versions); i++ {
-						framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
-					}
-				},
-			)
-		})
+		disruption.Run(
+			"Cluster upgrade",
+			"upgrade",
+			disruption.TestData{
+				UpgradeType:    upgrades.ClusterUpgrade,
+				UpgradeContext: *upgCtx,
+			},
+			upgradeTests,
+			func() {
+				for i := 1; i < len(upgCtx.Versions); i++ {
+					framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
+				}
+			},
+		)
 	})
 })
 

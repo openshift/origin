@@ -24,7 +24,7 @@ const (
 	rollBackMachineConfig = "99-rollback-test"
 )
 
-var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
+var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 	f := e2e.NewDefaultFramework("disaster-recovery")
 	f.SkipNamespaceCreation = true
 	f.SkipPrivilegedPSPBinding = true

@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/db"
 )
 
-var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() {
+var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mongodb] openshift mongodb image", func() {
 	defer g.GinkgoRecover()
 
 	templatePath := "mongodb-ephemeral"

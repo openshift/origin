@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/oauthserver"
 )
 
-var _ = g.Describe("[Feature:OAuthServer] [Token Expiration]", func() {
+var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() {
 	var oc = util.NewCLI("oauth-expiration", util.KubeConfigPath())
 	var newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc
 	var oauthServerCleanup func()

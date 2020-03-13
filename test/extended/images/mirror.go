@@ -262,7 +262,7 @@ RUN echo %s > /3
 	return isName, ist.Image.Name
 }
 
-var _ = g.Describe("[Feature:ImageMirror][registry][Slow] Image mirror", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImageMirror][Slow] Image mirror", func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLI("image-mirror", exutil.KubeConfigPath())

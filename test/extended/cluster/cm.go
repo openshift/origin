@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var _ = g.Describe("[Feature:Performance][Serial][Slow] Mirror cluster", func() {
+var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror cluster", func() {
 	defer g.GinkgoRecover()
 	const filename string = "cm.yml"
 	var oc = exutil.NewCLI("cl", exutil.KubeConfigPath())

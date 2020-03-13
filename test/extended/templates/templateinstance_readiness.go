@@ -22,7 +22,7 @@ import (
 )
 
 // ensure that template instantiation waits for annotated objects
-var _ = g.Describe("[Conformance][templates] templateinstance readiness test", func() {
+var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness test", func() {
 	defer g.GinkgoRecover()
 
 	var (

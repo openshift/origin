@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", func() {
+var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mariadb][Slow] openshift mariadb image", func() {
 	defer g.GinkgoRecover()
 	var (
 		templatePath = "mariadb-ephemeral"
