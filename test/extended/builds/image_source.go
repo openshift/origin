@@ -38,7 +38,7 @@ func init() {
 	Encoder = annotationEncoderCodecFactory.LegacyCodec(buildv1.GroupVersion)
 }
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] build can have container image source", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have container image source", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildConfigFixture = exutil.FixturePath("testdata", "builds", "test-imagesource-buildconfig.yaml")

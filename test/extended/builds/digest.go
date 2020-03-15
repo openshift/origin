@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] completed builds should have digest of the image in their status", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status", func() {
 	defer g.GinkgoRecover()
 	var (
 		imageStreamFixture = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")

@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds] build have source revision metadata", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] build have source revision metadata", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-revision.json")

@@ -92,7 +92,7 @@ func clearTransient(dc *appsv1.DeploymentConfig) {
 	dc.ObjectMeta.CreationTimestamp.Time = time.Time{}
 }
 
-var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
+var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("deployment-defaults", exutil.KubeConfigPath())
 

@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds] build with empty source", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] build with empty source", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-nosrc-build.json")

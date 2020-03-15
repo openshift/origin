@@ -18,7 +18,7 @@ import (
 // These build pruning tests create 4 builds and check that 2-3 of them are left after pruning.
 // This variation in the number of builds that could be left is caused by the HandleBuildPruning
 // function using cached information from the buildLister.
-var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings in the buildconfig", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig", func() {
 	var (
 		buildPruningBaseDir   = exutil.FixturePath("testdata", "builds", "build-pruning")
 		isFixture             = filepath.Join(buildPruningBaseDir, "imagestream.yaml")

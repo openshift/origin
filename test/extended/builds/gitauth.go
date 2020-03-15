@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] can use private repositories as build input", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositories as build input", func() {
 	defer g.GinkgoRecover()
 
 	const (

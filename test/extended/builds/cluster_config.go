@@ -21,7 +21,7 @@ import (
 
 // e2e tests of the build controller configuration.
 // These are tagged [Serial] because each test modifies the cluster-wide build controller config.
-var _ = g.Describe("[sig-devex][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture              = exutil.FixturePath("testdata", "builds", "test-build.yaml")
