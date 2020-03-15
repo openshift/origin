@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds] build without output image", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] build without output image", func() {
 	defer g.GinkgoRecover()
 	var (
 		dockerImageFixture = exutil.FixturePath("testdata", "builds", "test-docker-no-outputname.json")
