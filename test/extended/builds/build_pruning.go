@@ -287,7 +287,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 
 		})
 
-		g.It("[Conformance] buildconfigs should have a default history limit set when created via the group api", func() {
+		g.It("buildconfigs should have a default history limit set when created via the group api", func() {
 
 			g.By("creating a build config with the group api")
 			err := oc.Run("create").Args("-f", groupBuildConfig).Execute()

@@ -24,7 +24,7 @@ func After(oc *exutil.CLI) {
 	}
 }
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Conformance] s2i build with a root user image", func() {
+var _ = g.Describe("[sig-devex][Feature:Builds] s2i build with a root user image", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("s2i-build-root", exutil.KubeConfigPath())
 

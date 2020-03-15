@@ -101,7 +101,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 
 })
 
-var _ = g.Describe("[sig-instrumentation][Conformance] Prometheus", func() {
+var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLIWithoutNamespace("prometheus")

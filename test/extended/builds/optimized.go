@@ -40,7 +40,7 @@ USER 1001
 			}
 		})
 
-		g.It("should succeed [Conformance]", func() {
+		g.It("should succeed", func() {
 			g.By("creating a build directly")
 			build, err := oc.AdminBuildClient().BuildV1().Builds(oc.Namespace()).Create(&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
