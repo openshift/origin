@@ -7,6 +7,7 @@ package testing
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -1361,10 +1362,10 @@ func addTestService(server *DockerServer) (*swarm.Service, error) {
 		return nil, fmt.Errorf("unexpected status %d", recorder.Code)
 	}
 	if len(server.services) == 0 {
-		return nil, fmt.Errorf("no service created on server")
+		return nil, errors.New("no service created on server")
 	}
 	if len(server.tasks) == 0 {
-		return nil, fmt.Errorf("no tasks created on server")
+		return nil, errors.New("no tasks created on server")
 	}
 	return server.services[0], nil
 }

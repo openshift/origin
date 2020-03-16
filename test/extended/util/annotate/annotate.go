@@ -54,11 +54,15 @@ var annotations = map[string]string{
 }
 
 func init() {
-	ginkgo.WalkTests(func(name string, node types.TestNode) {
-		if updated, ok := annotations[name]; ok {
+	ginkgo.WalkTests(func(name, parentName string, node types.TestNode) {
+		combined := name
+		if len(parentName) > 0 {
+			combined = parentName + " " + combined
+		}
+		if updated, ok := annotations[combined]; ok {
 			node.SetText(updated)
 		} else {
-			panic(fmt.Sprintf("unable to find test %%s", name))
+			panic(fmt.Sprintf("unable to find test %%s", combined))
 		}	
 	})
 }
@@ -132,45 +136,47 @@ type ginkgoTestRenamer struct {
 	missing map[string]struct{}
 }
 
-func (r *ginkgoTestRenamer) updateNodeText(name string, node types.TestNode) {
-	if updated, ok := r.output[name]; ok {
+func (r *ginkgoTestRenamer) updateNodeText(name, parentName string, node types.TestNode) {
+	if updated, ok := r.output[combineNames(parentName, name)]; ok {
 		node.SetText(updated)
 	} else {
-		r.missing[name] = struct{}{}
+		r.missing[combineNames(parentName, name)] = struct{}{}
 	}
 }
 
-func (r *ginkgoTestRenamer) generateRename(name string, node types.TestNode) {
+func (r *ginkgoTestRenamer) generateRename(name, parentName string, node types.TestNode) {
 	originalName := name
+	combinedName := combineNames(parentName, name)
 
 	labels := ""
 	for {
 		count := 0
 		for _, label := range r.allLabels {
-			if strings.Contains(name, label) {
+			if strings.Contains(combinedName, label) {
 				continue
 			}
 
 			var hasLabel bool
 			for _, segment := range r.stringMatches[label] {
-				hasLabel = strings.Contains(name, segment)
+				hasLabel = strings.Contains(combinedName, segment)
 				if hasLabel {
 					break
 				}
 			}
 			if !hasLabel {
 				if re := r.matches[label]; re != nil {
-					hasLabel = r.matches[label].MatchString(name)
+					hasLabel = r.matches[label].MatchString(combinedName)
 				}
 			}
 
 			if hasLabel {
 				// TODO: remove when we no longer need it
-				if re, ok := r.excludes[label]; ok && re.MatchString(name) {
+				if re, ok := r.excludes[label]; ok && re.MatchString(combinedName) {
 					continue
 				}
 				count++
 				labels += " " + label
+				combinedName += " " + label
 				name += " " + label
 			}
 		}
@@ -179,9 +185,9 @@ func (r *ginkgoTestRenamer) generateRename(name string, node types.TestNode) {
 		}
 	}
 
-	if !r.excludedTestsFilter.MatchString(name) {
-		isSerial := strings.Contains(name, "[Serial]")
-		isConformance := strings.Contains(name, "[Conformance]")
+	if !r.excludedTestsFilter.MatchString(combinedName) {
+		isSerial := strings.Contains(combinedName, "[Serial]")
+		isConformance := strings.Contains(combinedName, "[Conformance]")
 		switch {
 		case isSerial && isConformance:
 			name += " [Suite:openshift/conformance/serial/minimal]"
@@ -200,5 +206,12 @@ func (r *ginkgoTestRenamer) generateRename(name string, node types.TestNode) {
 		name += " [Suite:k8s]"
 	}
 
-	r.output[originalName] = name
+	r.output[combineNames(parentName, originalName)] = name
+}
+
+func combineNames(parentName, name string) string {
+	if len(parentName) == 0 {
+		return name
+	}
+	return parentName + " " + name
 }

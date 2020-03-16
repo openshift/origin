@@ -182,6 +182,7 @@ var map_ImageRegistrySpec = map[string]string{
 	"nodeSelector":    "nodeSelector defines the node selection constraints for the registry pod.",
 	"tolerations":     "tolerations defines the tolerations for the registry pod.",
 	"rolloutStrategy": "rolloutStrategy defines rollout strategy for the image registry deployment.",
+	"affinity":        "affinity is a group of node affinity scheduling rules for the image registry pod(s).",
 }
 
 func (ImageRegistrySpec) SwaggerDoc() map[string]string {

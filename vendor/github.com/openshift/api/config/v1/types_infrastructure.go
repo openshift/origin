@@ -151,6 +151,10 @@ type PlatformStatus struct {
 	// VSphere contains settings specific to the VSphere infrastructure provider.
 	// +optional
 	VSphere *VSpherePlatformStatus `json:"vsphere,omitempty"`
+
+	// IBMCloud contains settings specific to the IBMCloud infrastructure provider.
+	// +optional
+	IBMCloud *IBMCloudPlatformStatus `json:"ibmcloud,omitempty"`
 }
 
 // AWSPlatformStatus holds the current status of the Amazon Web Services infrastructure provider.

@@ -2,14 +2,16 @@ package factory
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
-	coreinformersv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -24,57 +26,6 @@ func makeFakeSecret() *v1.Secret {
 		Data: map[string][]byte{
 			"test": {},
 		},
-	}
-}
-
-type FakeController struct {
-	synced chan struct{}
-	t      *testing.T
-}
-
-func NewFakeController(t *testing.T, synced chan struct{}, secretsInformer coreinformersv1.SecretInformer) Controller {
-	factory := New().WithInformers(secretsInformer.Informer())
-	controller := &FakeController{synced: synced, t: t}
-	return factory.WithSync(controller.Sync).WithRuntimeObject().ToController("FakeController", events.NewInMemoryRecorder("fake-controller"))
-}
-
-func (f *FakeController) Sync(ctx context.Context, controllerContext SyncContext) error {
-	defer close(f.synced)
-	if ctx.Err() != nil {
-		f.t.Logf("syncContext %v", ctx.Err())
-		return ctx.Err()
-	}
-	if name := controllerContext.GetObject().(*v1.Secret).GetName(); name != "test-secret" {
-		f.t.Errorf("expected controller context to give secret name 'test-secret', got %q", name)
-	}
-	if _, ok := controllerContext.GetObject().(*v1.Secret); !ok {
-		f.t.Errorf("expected Secret object, got %+v", controllerContext.GetObject())
-	}
-	f.t.Logf("controller sync called")
-	return nil
-}
-
-func TestEmbeddedController(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
-	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 3*time.Second, informers.WithNamespace("test"))
-	ctx, cancel := context.WithCancel(context.TODO())
-
-	go kubeInformers.Start(ctx.Done())
-
-	controllerSynced := make(chan struct{})
-	controller := NewFakeController(t, controllerSynced, kubeInformers.Core().V1().Secrets())
-	go controller.Run(ctx, 1)
-
-	time.Sleep(1 * time.Second) // Give controller time to start
-	if _, err := kubeClient.CoreV1().Secrets("test").Create(makeFakeSecret()); err != nil {
-		t.Fatalf("failed to create fake secret: %v", err)
-	}
-
-	select {
-	case <-controllerSynced:
-		cancel()
-	case <-time.After(30 * time.Second):
-		t.Fatal("test timeout")
 	}
 }
 
@@ -156,24 +107,67 @@ func TestMultiWorkerControllerShutdown(t *testing.T) {
 	workersShutdownMutex.Unlock()
 }
 
-func TestSimpleController(t *testing.T) {
+func TestControllerWithInformer(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
 
 	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
 	ctx, cancel := context.WithCancel(context.TODO())
-
 	go kubeInformers.Start(ctx.Done())
+
 	factory := New().WithInformers(kubeInformers.Core().V1().Secrets().Informer())
 
 	controllerSynced := make(chan struct{})
 	controller := factory.WithSync(func(ctx context.Context, syncContext SyncContext) error {
 		defer close(controllerSynced)
-		t.Logf("controller sync called")
-		if syncContext.GetObject() != nil {
-			t.Errorf("expected queue object to be nil, it is %+v", syncContext.GetObject())
-		}
 		if syncContext.Queue() == nil {
 			t.Errorf("expected queue to be initialized, it is not")
+		}
+		if syncContext.QueueKey() != "key" {
+			t.Errorf("expected queue key to be 'key', got %q", syncContext.QueueKey())
+		}
+		return nil
+	}).ToController("FakeController", events.NewInMemoryRecorder("fake-controller"))
+
+	go controller.Run(ctx, 1)
+	time.Sleep(1 * time.Second) // Give controller time to start
+
+	if _, err := kubeClient.CoreV1().Secrets("test").Create(makeFakeSecret()); err != nil {
+		t.Fatalf("failed to create fake secret: %v", err)
+	}
+
+	select {
+	case <-controllerSynced:
+		cancel()
+	case <-time.After(30 * time.Second):
+		t.Fatal("test timeout")
+	}
+}
+
+func TestControllerWithQueueFunction(t *testing.T) {
+	kubeClient := fake.NewSimpleClientset()
+
+	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
+	ctx, cancel := context.WithCancel(context.TODO())
+	go kubeInformers.Start(ctx.Done())
+
+	queueFn := func(obj runtime.Object) string {
+		metaObj, err := apimeta.Accessor(obj)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return fmt.Sprintf("%s/%s", metaObj.GetNamespace(), metaObj.GetName())
+	}
+
+	factory := New().WithInformersQueueKeyFunc(queueFn, kubeInformers.Core().V1().Secrets().Informer())
+
+	controllerSynced := make(chan struct{})
+	controller := factory.WithSync(func(ctx context.Context, syncContext SyncContext) error {
+		defer close(controllerSynced)
+		if syncContext.Queue() == nil {
+			t.Errorf("expected queue to be initialized, it is not")
+		}
+		if syncContext.QueueKey() != "test/test-secret" {
+			t.Errorf("expected queue key to be 'test/test-secret', got %q", syncContext.QueueKey())
 		}
 		return nil
 	}).ToController("FakeController", events.NewInMemoryRecorder("fake-controller"))

@@ -3,7 +3,6 @@ package factory
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -22,6 +21,9 @@ type Controller interface {
 	// Sync contain the main controller logic.
 	// This should not be called directly, but can be used in unit tests to exercise the sync.
 	Sync(ctx context.Context, controllerContext SyncContext) error
+
+	// Name returns the controller name string.
+	Name() string
 }
 
 // SyncContext interface represents a context given to the Sync() function where the main controller logic happen.
@@ -32,9 +34,8 @@ type SyncContext interface {
 	// an error, the object is automatically re-queued. Use with caution.
 	Queue() workqueue.RateLimitingInterface
 
-	// GetObject provides access to current synced object deep copy.
-	// It is safe to mutate this object inside Sync().
-	GetObject() runtime.Object
+	// QueueKey represents the queue key passed to the Sync function.
+	QueueKey() string
 
 	// Recorder provide access to event recorder.
 	Recorder() events.Recorder

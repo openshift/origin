@@ -469,3 +469,120 @@ func TestApplySecret(t *testing.T) {
 		})
 	}
 }
+
+func TestApplyNamespace(t *testing.T) {
+	tests := []struct {
+		name     string
+		existing []runtime.Object
+		input    *corev1.Namespace
+
+		expectedModified bool
+		verifyActions    func(actions []clienttesting.Action, t *testing.T)
+	}{
+		{
+			name: "create",
+			input: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: "foo", Annotations: map[string]string{"something-": ""}},
+			},
+
+			expectedModified: true,
+			verifyActions: func(actions []clienttesting.Action, t *testing.T) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "namespaces") || actions[0].(clienttesting.GetAction).GetName() != "foo" {
+					t.Error(spew.Sdump(actions))
+				}
+				if !actions[1].Matches("create", "namespaces") {
+					t.Error(spew.Sdump(actions))
+				}
+				expected := &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+				}
+				actual := actions[1].(clienttesting.CreateAction).GetObject().(*corev1.Namespace)
+				if !equality.Semantic.DeepEqual(expected, actual) {
+					t.Error(JSONPatchNoError(expected, actual))
+				}
+			},
+		},
+		{
+			name: "remove run-level if requested",
+			existing: []runtime.Object{
+				&corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{Name: "foo", Labels: map[string]string{"some-label": "labelval", "run-level": "1"}},
+				},
+			},
+			input: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: "foo", Labels: map[string]string{"run-level-": ""}},
+			},
+
+			expectedModified: true,
+			verifyActions: func(actions []clienttesting.Action, t *testing.T) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+
+				if !actions[0].Matches("get", "namespaces") || actions[0].(clienttesting.GetAction).GetName() != "foo" {
+					t.Error(spew.Sdump(actions))
+				}
+
+				if !actions[1].Matches("update", "namespaces") {
+					t.Error(spew.Sdump(actions))
+				}
+				expected := &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{Name: "foo", Labels: map[string]string{"some-label": "labelval"}},
+				}
+				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.Namespace)
+				if !equality.Semantic.DeepEqual(expected, actual) {
+					t.Error(JSONPatchNoError(expected, actual))
+				}
+			},
+		},
+		{
+			name: "add run-level if requested",
+			existing: []runtime.Object{
+				&corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{Name: "foo", Labels: map[string]string{"some-label": "labelval"}},
+				},
+			},
+			input: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: "foo", Labels: map[string]string{"run-level": "1"}},
+			},
+
+			expectedModified: true,
+			verifyActions: func(actions []clienttesting.Action, t *testing.T) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+
+				if !actions[0].Matches("get", "namespaces") || actions[0].(clienttesting.GetAction).GetName() != "foo" {
+					t.Error(spew.Sdump(actions))
+				}
+
+				if !actions[1].Matches("update", "namespaces") {
+					t.Error(spew.Sdump(actions))
+				}
+				expected := &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{Name: "foo", Labels: map[string]string{"run-level": "1", "some-label": "labelval"}},
+				}
+				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.Namespace)
+				if !equality.Semantic.DeepEqual(expected, actual) {
+					t.Error(JSONPatchNoError(expected, actual))
+				}
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			client := fake.NewSimpleClientset(test.existing...)
+			_, actualModified, err := ApplyNamespace(client.CoreV1(), events.NewInMemoryRecorder("test"), test.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.expectedModified != actualModified {
+				t.Errorf("expected %v, got %v", test.expectedModified, actualModified)
+			}
+			test.verifyActions(client.Actions(), t)
+		})
+	}
+}

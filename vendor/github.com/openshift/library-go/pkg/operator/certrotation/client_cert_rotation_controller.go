@@ -3,18 +3,14 @@ package certrotation
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
-
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/condition"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
@@ -27,9 +23,9 @@ const (
 	CertificateIssuer = "auth.openshift.io/certificate-issuer"
 	// CertificateHostnames contains the hostnames used by a signer.
 	CertificateHostnames = "auth.openshift.io/certificate-hostnames"
+	// RunOnceContextKey is a context value key that can be used to call the controller Sync() and make it only run the syncWorker once and report error.
+	RunOnceContextKey = "cert-rotation-controller.openshift.io/run-once"
 )
-
-const workQueueKey = "key"
 
 // CertRotationController does:
 //
@@ -46,9 +42,6 @@ type CertRotationController struct {
 	CABundleRotation CABundleRotation
 	TargetRotation   TargetRotation
 	OperatorClient   v1helpers.StaticPodOperatorClient
-
-	cachesToSync []cache.InformerSynced
-	queue        workqueue.RateLimitingInterface
 }
 
 func NewCertRotationController(
@@ -57,31 +50,36 @@ func NewCertRotationController(
 	caBundleRotation CABundleRotation,
 	targetRotation TargetRotation,
 	operatorClient v1helpers.StaticPodOperatorClient,
-) (*CertRotationController, error) {
+	recorder events.Recorder,
+) factory.Controller {
 	c := &CertRotationController{
-		name: name,
-
+		name:             name,
 		SigningRotation:  signingRotation,
 		CABundleRotation: caBundleRotation,
 		TargetRotation:   targetRotation,
 		OperatorClient:   operatorClient,
-
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), strings.Replace(name, "-", "_", -1)),
 	}
-
-	signingRotation.Informer.Informer().AddEventHandler(c.eventHandler())
-	caBundleRotation.Informer.Informer().AddEventHandler(c.eventHandler())
-	targetRotation.Informer.Informer().AddEventHandler(c.eventHandler())
-
-	c.cachesToSync = append(c.cachesToSync, signingRotation.Informer.Informer().HasSynced)
-	c.cachesToSync = append(c.cachesToSync, caBundleRotation.Informer.Informer().HasSynced)
-	c.cachesToSync = append(c.cachesToSync, targetRotation.Informer.Informer().HasSynced)
-
-	return c, nil
+	return factory.New().
+		ResyncEvery(30*time.Second).
+		WithSync(c.Sync).
+		WithInformers(
+			signingRotation.Informer.Informer(),
+			caBundleRotation.Informer.Informer(),
+			targetRotation.Informer.Informer(),
+		).
+		WithPostStartHooks(
+			c.targetCertRecheckerPostRunHook,
+		).
+		ToController("CertRotationController", recorder.WithComponentSuffix("cert-rotation-controller"))
 }
 
-func (c CertRotationController) sync() error {
+func (c CertRotationController) Sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	syncErr := c.syncWorker()
+
+	// running this function with RunOnceContextKey value context will make this "run-once" without updating status.
+	if ctx.Value(RunOnceContextKey).(bool) == true {
+		return syncErr
+	}
 
 	newCondition := operatorv1.OperatorCondition{
 		Type:   fmt.Sprintf(condition.CertRotationDegradedConditionTypeFmt, c.name),
@@ -92,8 +90,12 @@ func (c CertRotationController) sync() error {
 		newCondition.Reason = "RotationError"
 		newCondition.Message = syncErr.Error()
 	}
-	if _, _, updateErr := v1helpers.UpdateStaticPodStatus(c.OperatorClient, v1helpers.UpdateStaticPodConditionFn(newCondition)); updateErr != nil {
+	_, updated, updateErr := v1helpers.UpdateStaticPodStatus(c.OperatorClient, v1helpers.UpdateStaticPodConditionFn(newCondition))
+	if updateErr != nil {
 		return updateErr
+	}
+	if updated && syncErr != nil {
+		syncCtx.Recorder().Warningf("RotationError", newCondition.Message)
 	}
 
 	return syncErr
@@ -117,97 +119,24 @@ func (c CertRotationController) syncWorker() error {
 	return nil
 }
 
-func (c *CertRotationController) WaitForReady(stopCh <-chan struct{}) {
-	klog.Infof("Waiting for CertRotationController - %q", c.name)
-	defer klog.Infof("Finished waiting for CertRotationController - %q", c.name)
-
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
-		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
-		return
+func (c CertRotationController) targetCertRecheckerPostRunHook(ctx context.Context, syncCtx factory.SyncContext) error {
+	// If we have a need to force rechecking the cert, use this channel to do it.
+	refresher, ok := c.TargetRotation.CertCreator.(TargetCertRechecker)
+	if !ok {
+		return nil
 	}
-}
-
-// RunOnce will run the cert rotation logic, but will not try to update the static pod status.
-// This eliminates the need to pass an OperatorClient and avoids dubious writes and status.
-func (c *CertRotationController) RunOnce() error {
-	return c.syncWorker()
-}
-
-func (c *CertRotationController) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting CertRotationController - %q", c.name)
-	defer klog.Infof("Shutting down CertRotationController - %q", c.name)
-	c.WaitForReady(ctx.Done())
-
-	// doesn't matter what workers say, only start one.
-	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
-
-	// start a time based thread to ensure we stay up to date
+	targetRefresh := refresher.RecheckChannel()
 	go wait.Until(func() {
-		ticker := time.NewTicker(time.Minute)
-		defer ticker.Stop()
-
 		for {
-			c.queue.Add(workQueueKey)
 			select {
-			case <-ticker.C:
+			case <-targetRefresh:
+				syncCtx.Queue().Add(factory.DefaultQueueKey)
 			case <-ctx.Done():
 				return
 			}
 		}
-
 	}, time.Minute, ctx.Done())
 
-	// if we have a need to force rechecking the cert, use this channel to do it.
-	if refresher, ok := c.TargetRotation.CertCreator.(TargetCertRechecker); ok {
-		targetRefresh := refresher.RecheckChannel()
-		go wait.Until(func() {
-			for {
-				select {
-				case <-targetRefresh:
-					c.queue.Add(workQueueKey)
-				case <-ctx.Done():
-					return
-				}
-			}
-
-		}, time.Minute, ctx.Done())
-	}
-
 	<-ctx.Done()
-}
-
-func (c *CertRotationController) runWorker(_ context.Context) {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *CertRotationController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v: %v failed with: %v", c.name, dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-// eventHandler queues the operator to check spec and status
-func (c *CertRotationController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(workQueueKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(workQueueKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(workQueueKey) },
-	}
+	return nil
 }

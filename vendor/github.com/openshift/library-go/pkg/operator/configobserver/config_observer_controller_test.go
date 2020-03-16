@@ -1,11 +1,13 @@
 package configobserver
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 
@@ -20,6 +22,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
@@ -208,9 +211,8 @@ func TestSyncStatus(t *testing.T) {
 				listers:        &fakeLister{},
 				operatorClient: operatorConfigClient,
 				observers:      tc.observers,
-				eventRecorder:  events.NewRecorder(eventClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{}),
 			}
-			err := configObserver.sync()
+			err := configObserver.sync(context.TODO(), factory.NewSyncContext("test", events.NewRecorder(eventClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})))
 			if tc.expectError && err == nil {
 				t.Fatal("error expected")
 			}

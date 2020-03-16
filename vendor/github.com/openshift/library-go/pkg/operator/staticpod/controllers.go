@@ -1,9 +1,9 @@
 package staticpod
 
 import (
-	"context"
 	"fmt"
 
+	"github.com/openshift/library-go/pkg/controller/manager"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/staticresourcecontroller"
 
@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
-	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/loglevel"
 	"github.com/openshift/library-go/pkg/operator/revisioncontroller"
@@ -85,7 +84,7 @@ type Builder interface {
 	WithCerts(certDir string, certConfigMaps, certSecrets []revisioncontroller.RevisionResource) Builder
 	WithInstaller(command []string) Builder
 	WithPruning(command []string, staticPodPrefix string) Builder
-	ToControllers() (factory.Controller, error)
+	ToControllers() (manager.ControllerManager, error)
 }
 
 func (b *staticPodOperatorControllerBuilder) WithEvents(eventRecorder events.Recorder) Builder {
@@ -134,8 +133,8 @@ func (b *staticPodOperatorControllerBuilder) WithPruning(command []string, stati
 	return b
 }
 
-func (b *staticPodOperatorControllerBuilder) ToControllers() (factory.Controller, error) {
-	controllers := &staticPodOperatorControllers{}
+func (b *staticPodOperatorControllerBuilder) ToControllers() (manager.ControllerManager, error) {
+	manager := manager.NewControllerManager()
 
 	eventRecorder := b.eventRecorder
 	if eventRecorder == nil {
@@ -156,7 +155,7 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (factory.Controller
 	var errs []error
 
 	if len(b.operandNamespace) > 0 {
-		controllers.add(revisioncontroller.NewRevisionController(
+		manager.WithController(revisioncontroller.NewRevisionController(
 			b.operandNamespace,
 			b.revisionConfigMaps,
 			b.revisionSecrets,
@@ -165,13 +164,13 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (factory.Controller
 			configMapClient,
 			secretClient,
 			eventRecorder,
-		))
+		), 1)
 	} else {
 		errs = append(errs, fmt.Errorf("missing revisionController; cannot proceed"))
 	}
 
 	if len(b.installCommand) > 0 {
-		controllers.add(installer.NewInstallerController(
+		manager.WithController(installer.NewInstallerController(
 			b.operandNamespace,
 			b.staticPodName,
 			b.revisionConfigMaps,
@@ -187,23 +186,23 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (factory.Controller
 			b.certDir,
 			b.certConfigMaps,
 			b.certSecrets,
-		))
+		), 1)
 
-		controllers.add(installerstate.NewInstallerStateController(
+		manager.WithController(installerstate.NewInstallerStateController(
 			operandInformers,
 			podClient,
 			eventsClient,
 			b.staticPodOperatorClient,
 			b.operandNamespace,
 			eventRecorder,
-		))
+		), 1)
 	} else {
 		errs = append(errs, fmt.Errorf("missing installerController; cannot proceed"))
 	}
 
 	if len(b.operandName) > 0 {
 		// TODO add handling for operator configmap changes to get version-mapping changes
-		controllers.add(staticpodstate.NewStaticPodStateController(
+		manager.WithController(staticpodstate.NewStaticPodStateController(
 			b.operandNamespace,
 			b.staticPodName,
 			b.operatorNamespace,
@@ -214,13 +213,13 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (factory.Controller
 			podClient,
 			versionRecorder,
 			eventRecorder,
-		))
+		), 1)
 	} else {
 		eventRecorder.Warning("StaticPodStateControllerMissing", "not enough information provided, not all functionality is present")
 	}
 
 	if len(b.pruneCommand) > 0 {
-		controllers.add(prune.NewPruneController(
+		manager.WithController(prune.NewPruneController(
 			b.operandNamespace,
 			b.staticPodPrefix,
 			b.pruneCommand,
@@ -229,19 +228,19 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (factory.Controller
 			podClient,
 			b.staticPodOperatorClient,
 			eventRecorder,
-		))
+		), 1)
 	} else {
 		eventRecorder.Warning("PruningControllerMissing", "not enough information provided, not all functionality is present")
 	}
 
-	controllers.add(node.NewNodeController(
+	manager.WithController(node.NewNodeController(
 		b.staticPodOperatorClient,
 		clusterInformers,
 		eventRecorder,
-	))
+	), 1)
 
 	// this cleverly sets the same condition that used to be set because of the way that the names are constructed
-	controllers.add(staticresourcecontroller.NewStaticResourceController(
+	manager.WithController(staticresourcecontroller.NewStaticResourceController(
 		"BackingResourceController",
 		backingresource.StaticPodManifests(b.operandNamespace),
 		[]string{
@@ -251,10 +250,10 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (factory.Controller
 		resourceapply.NewKubeClientHolder(b.kubeClient),
 		b.staticPodOperatorClient,
 		eventRecorder,
-	).AddKubeInformers(b.kubeInformers))
+	).AddKubeInformers(b.kubeInformers), 1)
 
 	if b.dynamicClient != nil && b.enableServiceMonitorController {
-		controllers.add(monitoring.NewMonitoringResourceController(
+		manager.WithController(monitoring.NewMonitoringResourceController(
 			b.operandNamespace,
 			b.operandNamespace,
 			b.staticPodOperatorClient,
@@ -262,34 +261,11 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (factory.Controller
 			b.kubeClient,
 			b.dynamicClient,
 			eventRecorder,
-		))
+		), 1)
 	}
 
-	controllers.add(unsupportedconfigoverridescontroller.NewUnsupportedConfigOverridesController(b.staticPodOperatorClient, eventRecorder))
-	controllers.add(loglevel.NewClusterOperatorLoggingController(b.staticPodOperatorClient, eventRecorder))
+	manager.WithController(unsupportedconfigoverridescontroller.NewUnsupportedConfigOverridesController(b.staticPodOperatorClient, eventRecorder), 1)
+	manager.WithController(loglevel.NewClusterOperatorLoggingController(b.staticPodOperatorClient, eventRecorder), 1)
 
-	return controllers, errors.NewAggregate(errs)
-}
-
-type staticPodOperatorControllers struct {
-	controllers      []factory.Controller
-	shutdownContexts []context.Context
-}
-
-// Sync implements the factory.Controller interface
-func (c *staticPodOperatorControllers) Sync(_ context.Context, _ factory.SyncContext) error {
-	return nil
-}
-
-func (c *staticPodOperatorControllers) add(controller factory.Controller) {
-	c.controllers = append(c.controllers, controller)
-}
-
-func (c *staticPodOperatorControllers) Run(ctx context.Context, workers int) {
-	for i := range c.controllers {
-		go func(index int) {
-			c.controllers[index].Run(ctx, workers)
-		}(i)
-	}
-	<-ctx.Done()
+	return manager, errors.NewAggregate(errs)
 }

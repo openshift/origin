@@ -2,54 +2,33 @@ package staleconditions
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
-
 	operatorv1 "github.com/openshift/api/operator/v1"
+
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
-const workQueueKey = "key"
-
-type RemoveStaleConditions struct {
-	conditions []string
-
+type RemoveStaleConditionsController struct {
+	conditions     []string
 	operatorClient v1helpers.OperatorClient
-	cachesToSync   []cache.InformerSynced
-
-	eventRecorder events.Recorder
-	// queue only ever has one item, but it has nice error handling backoff/retry semantics
-	queue workqueue.RateLimitingInterface
 }
 
-func NewRemoveStaleConditions(
+func NewRemoveStaleConditionsController(
 	conditions []string,
 	operatorClient v1helpers.OperatorClient,
 	eventRecorder events.Recorder,
-) *RemoveStaleConditions {
-	c := &RemoveStaleConditions{
-		conditions: conditions,
-
+) factory.Controller {
+	c := &RemoveStaleConditionsController{
+		conditions:     conditions,
 		operatorClient: operatorClient,
-		eventRecorder:  eventRecorder,
-		cachesToSync:   []cache.InformerSynced{operatorClient.Informer().HasSynced},
-
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "RemoveStaleConditions"),
 	}
-
-	operatorClient.Informer().AddEventHandler(c.eventHandler())
-
-	return c
+	return factory.New().ResyncEvery(time.Second).WithSync(c.sync).WithInformers(operatorClient.Informer()).ToController("RemoveStaleConditionsController", eventRecorder.WithComponentSuffix("remove-stale-conditions"))
 }
 
-func (c RemoveStaleConditions) sync() error {
+func (c RemoveStaleConditionsController) sync(ctx context.Context, syncContext factory.SyncContext) error {
 	removeStaleConditionsFn := func(status *operatorv1.OperatorStatus) error {
 		for _, condition := range c.conditions {
 			v1helpers.RemoveOperatorCondition(&status.Conditions, condition)
@@ -62,56 +41,4 @@ func (c RemoveStaleConditions) sync() error {
 	}
 
 	return nil
-}
-
-// Run starts the kube-scheduler and blocks until stopCh is closed.
-func (c *RemoveStaleConditions) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting RemoveStaleConditions")
-	defer klog.Infof("Shutting down RemoveStaleConditions")
-
-	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
-		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
-		return
-	}
-
-	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, ctx.Done())
-
-	<-ctx.Done()
-}
-
-func (c *RemoveStaleConditions) runWorker() {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *RemoveStaleConditions) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-// eventHandler queues the operator to check spec and status
-func (c *RemoveStaleConditions) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(workQueueKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(workQueueKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(workQueueKey) },
-	}
 }
