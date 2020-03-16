@@ -10,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	kapiv1 "k8s.io/api/core/v1"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/client/conditions"
@@ -20,6 +21,12 @@ import (
 
 func getPodNameForTest(image string, t tc) string {
 	return fmt.Sprintf("%s-%s-centos7", image, t.Version)
+}
+
+func debugSCCForbidden(err error, oc *exutil.CLI) {
+	if err != nil && kapierrors.IsForbidden(err) {
+		oc.DebugSCCForbidden()
+	}
 }
 
 // defineTest will create the gingko test.  This ensures the test
@@ -36,6 +43,9 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 				Image: t.DockerImageReference,
 			})
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
+			if err != nil {
+				debugSCCForbidden(err, oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the pod to be running")
@@ -75,6 +85,9 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			})
 
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
+			if err != nil {
+				debugSCCForbidden(err, oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)

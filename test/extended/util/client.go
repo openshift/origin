@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -292,9 +293,31 @@ func (c *CLI) CreateProject() string {
 	return newNamespace
 }
 
+func (c *CLI) DebugSCCForbidden() {
+	sccList, err := c.AsAdmin().AdminSecurityClient().SecurityV1().SecurityContextConstraints().List(metav1.ListOptions{})
+	if err != nil {
+		framework.Logf("error trying to dump SCC for failure debug: %s", err.Error())
+		return
+	}
+
+	buf := bytes.Buffer{}
+	for _, scc := range sccList.Items {
+		data, err := json.MarshalIndent(scc, "", "    ")
+		if err != nil {
+			framework.Logf("error trying to marshal scc: %#v: %s", scc, err.Error())
+			continue
+		}
+		data = append(data, '\n')
+		buf.Write(data)
+	}
+
+	framework.Logf("SCC dump:\n%s", buf.String())
+}
+
 // TeardownProject removes projects created by this test.
 func (c *CLI) TeardownProject() {
 	if len(c.Namespace()) > 0 && g.CurrentGinkgoTestDescription().Failed && framework.TestContext.DumpLogsOnFailure {
+		c.DebugSCCForbidden()
 		framework.DumpAllNamespaceInfo(c.kubeFramework.ClientSet, c.Namespace())
 	}
 
