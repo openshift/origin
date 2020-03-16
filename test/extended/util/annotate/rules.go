@@ -203,6 +203,28 @@ var (
 			`\[sig-network\] Services should be rejected when no endpoints exist`,
 			`\[cli\] oc explain networking types should contain proper fields description for special networking types`,
 		},
+
+		"[sig-node]": {
+			`\[NodeConformance\]`,
+			`NodeLease`,
+			`lease API`,
+			`\[NodeFeature`,
+			`\[NodeAlphaFeature`,
+			`Probing container`,
+			`Security Context When creating a`,
+			`Downward API should create a pod that prints his name and namespace`,
+			`Liveness liveness pods should be automatically restarted`,
+			`Secret should create a pod that reads a secret`,
+		},
+		"[sig-cluster-lifecycle]": {
+			`Feature:ClusterAutoscalerScalability`,
+			`recreate nodes and ensure they function`,
+		},
+		"[sig-arch]": {
+			// not run, assigned to arch as catch-all
+			`\[Feature:GKELocalSSD\]`,
+			`\[Feature:GKENodePool\]`,
+		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite
