@@ -28,8 +28,9 @@ import (
 )
 
 const (
-	nodeTCPPort = 9000
-	nodeUDPPort = 9999
+	nodeTCPPort            = 9000
+	nodeUDPPort            = 9999
+	udpPacketDropThreshold = 0.01
 )
 
 var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
@@ -38,6 +39,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 	ginkgo.It("for TCP and UDP on ports 9000-9999 is allowed", func() {
 		e2eskipper.SkipUnlessNodeCountIsAtLeast(2)
 		clientConfig := f.ClientConfig()
+		tcpDumpFile := "/tcpdump.log"
 
 		one := int64(0)
 		ds := &appsv1.DaemonSet{
@@ -71,7 +73,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 							{
 								Name:    "webserver",
 								Image:   e2enetwork.NetexecImageName,
-								Command: []string{"/bin/bash", "-c", fmt.Sprintf("#!/bin/bash\napk add -q --update tcpdump\n./agnhost netexec --http-port=%v --udp-port=%v &\nexec tcpdump -i any port %v or port %v -n", nodeTCPPort, nodeUDPPort, nodeTCPPort, nodeUDPPort)},
+								Command: []string{"/bin/bash", "-c", fmt.Sprintf("#!/bin/bash\napk add -q --update tcpdump\n./agnhost netexec --http-port=%v --udp-port=%v &> /dev/null &\nexec tcpdump -i any port %v or port %v -n | tee %s", nodeTCPPort, nodeUDPPort, nodeTCPPort, nodeUDPPort, tcpDumpFile)},
 								Ports: []v1.ContainerPort{
 									{Name: "tcp", ContainerPort: nodeTCPPort},
 									{Name: "udp", ContainerPort: nodeUDPPort},
@@ -115,22 +117,27 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 		// verify connectivity across pairs of pods in parallel
 		// TODO: on large clusters this is O(N^2), we could potentially sample or split by topology
 		var testFns []func() error
-		protocols := []v1.Protocol{v1.ProtocolTCP, v1.ProtocolUDP}
-		ports := []int{nodeTCPPort, nodeUDPPort}
+		protocolTests := map[v1.Protocol]struct {
+			retries string
+			port    int
+		}{
+			v1.ProtocolTCP: {"1", nodeTCPPort},
+			v1.ProtocolUDP: {"1000", nodeUDPPort},
+		}
 		for j := range pods.Items {
 			for i := range pods.Items {
 				if i == j {
 					continue
 				}
-				for k := range protocols {
-					func(i, j, k int) {
+				for protocol, protocolTest := range protocolTests {
+					func(i, j int) {
 						testFns = append(testFns, func() error {
+							defer ginkgo.GinkgoRecover()
 							from := pods.Items[j]
 							to := pods.Items[i]
-							protocol := protocols[k]
-							testingMsg := fmt.Sprintf("[%s: %s -> %s:%d]", protocol, from.Spec.NodeName, to.Spec.NodeName, ports[k])
+							testingMsg := fmt.Sprintf("[%s: %s -> %s:%d]", protocol, from.Spec.NodeName, to.Spec.NodeName, protocolTest.port)
 							testMsg := fmt.Sprintf("%s-from-%s-to-%s", "hello", from.Status.PodIP, to.Status.PodIP)
-							command, err := testRemoteConnectivityCommand(protocol, "localhost:"+strconv.Itoa(nodeTCPPort), to.Spec.NodeName, ports[k], testMsg)
+							command, err := testRemoteConnectivityCommand(protocol, protocolTest.retries, "localhost:"+strconv.Itoa(nodeTCPPort), to.Spec.NodeName, protocolTest.port, testMsg)
 							if err != nil {
 								return fmt.Errorf("test of %s failed: %v", testingMsg, err)
 							}
@@ -138,12 +145,32 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 							if err != nil {
 								return fmt.Errorf("test of %s failed: %v", testingMsg, err)
 							}
-							if res != `{"responses":["`+testMsg+`"]}` {
-								return fmt.Errorf("test of %s failed, unexpected response: %s", testingMsg, res)
+							if protocol == v1.ProtocolTCP {
+								if res != `{"responses":["`+testMsg+`"]}` {
+									return fmt.Errorf("test of %s failed, unexpected response: %s", testingMsg, res)
+								}
+							} else {
+								o.Eventually(func() float64 {
+									udpPacketCheck := []string{"grep", "-c", "-w", "IP.*UDP", tcpDumpFile}
+									udpPacketCheckCmd := strings.Join(udpPacketCheck, " ")
+									res, err := commandResult(f.ClientSet.CoreV1(), clientConfig, from.Namespace, from.Name, "webserver", []string{"/bin/sh", "-cex", udpPacketCheckCmd})
+									if err != nil {
+										fmt.Printf("could not execute UDP packet count command: %s, err: %v", udpPacketCheckCmd, err)
+									}
+									res = strings.TrimSuffix(res, "\n")
+									udpPacketCount, err := strconv.Atoi(res)
+									if err != nil {
+										fmt.Printf("could not convert UDP packet count result: %s to int: %v", res, err)
+									}
+									// The above grep command will perform a count of all bi-directional UDP packets inside every container, hence the "2" below
+									udpRetries, _ := strconv.Atoi(protocolTest.retries)
+									expectedUDPPacketCount := len(pods.Items) * 2 * udpRetries
+									return 1 - float64(udpPacketCount)/float64(expectedUDPPacketCount)
+								}, 10).Should(o.BeNumerically("<", udpPacketDropThreshold), fmt.Sprintf("UDP packet drop rate supersedes the defined threshold: %v", udpPacketDropThreshold))
 							}
 							return nil
 						})
-					}(i, j, k)
+					}(i, j)
 				}
 			}
 		}
@@ -187,9 +214,9 @@ func parallelTest(workers int, fns []func() error) []error {
 	return errs
 }
 
-func testRemoteConnectivityCommand(protocol v1.Protocol, localHostPort, host string, port int, echoMessage string) ([]string, error) {
-	var protocolType string
-	var dialCommand string
+func testRemoteConnectivityCommand(protocol v1.Protocol, retries string, localHostPort, host string, port int, echoMessage string) ([]string, error) {
+	var protocolType, dialCommand string
+
 	switch protocol {
 	case v1.ProtocolTCP:
 		protocolType = "http"
@@ -207,31 +234,14 @@ func testRemoteConnectivityCommand(protocol v1.Protocol, localHostPort, host str
 	// argument to disable globbing to handle the IPv6 case.
 	command := []string{
 		"curl", "-g", "-q", "-s",
-		fmt.Sprintf("'http://%s/dial?request=%s&protocol=%s&host=%s&port=%d&tries=1'",
+		fmt.Sprintf("'http://%s/dial?request=%s&protocol=%s&host=%s&port=%d&tries=%s'",
 			localHostPort,
 			dialCommand,
 			protocolType,
 			host,
-			port),
+			port,
+			retries),
 	}
-	return command, nil
-}
-
-func testConnectivityCommand(protocol v1.Protocol, host string, port, timeout int) ([]string, error) {
-	command := []string{
-		"nc",
-		"-vz",
-		"-w", strconv.Itoa(timeout),
-	}
-	switch protocol {
-	case v1.ProtocolTCP:
-		command = append(command, "-t")
-	case v1.ProtocolUDP:
-		command = append(command, "-u")
-	default:
-		return nil, fmt.Errorf("nc does not support protocol %s", protocol)
-	}
-	command = append(command, host, strconv.Itoa(port))
 	return command, nil
 }
 
