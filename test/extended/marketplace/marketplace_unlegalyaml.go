@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Marketplace] [Serial] Marketplace unlegal yaml file test", func() {
+var _ = g.Describe("[sig-operator] [Feature:Marketplace] [Serial] Marketplace unlegal yaml file test", func() {
 
 	defer g.GinkgoRecover()
 
