@@ -44,9 +44,14 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		g.It("should set Forwarded headers appropriately", func() {
 			o.Expect(infra).NotTo(o.BeNil())
 
-			if !(infra.Status.PlatformStatus.Type == configv1.AWSPlatformType ||
-				infra.Status.PlatformStatus.Type == configv1.AzurePlatformType ||
-				infra.Status.PlatformStatus.Type == configv1.GCPPlatformType) {
+			platformType := infra.Status.Platform
+			if infra.Status.PlatformStatus != nil {
+				platformType = infra.Status.PlatformStatus.Type
+			}
+			switch platformType {
+			case configv1.AWSPlatformType, configv1.AzurePlatformType, configv1.GCPPlatformType:
+				// supported
+			default:
 				g.Skip(fmt.Sprintf("BZ 1772125 -- not verified on platform type %q", infra.Status.PlatformStatus.Type))
 			}
 
@@ -111,7 +116,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			g.By(fmt.Sprintf("inspecting the echoed headers"))
 			ffHeader := req.Header.Get("X-Forwarded-For")
 
-			switch infra.Status.PlatformStatus.Type {
+			switch platformType {
 			case configv1.AWSPlatformType:
 				// On AWS we can only assert that we
 				// get an X-Forwarded-For header; we
