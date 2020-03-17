@@ -18,6 +18,54 @@ import (
 var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
+	g.It("have no terminating pods or namespaces at the end of the test suite [Late]", func() {
+		c, err := e2e.LoadClientset()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// fail if 2 minutes elapse and these are still terminating
+		var terminating []string
+		err = wait.Poll(5*time.Second, 2*time.Minute, func() (bool, error) {
+			terminating = terminating[:]
+
+			pods, err := c.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{})
+			if err != nil {
+				return false, err
+			}
+			var podsTerminating bool
+			for _, pod := range pods.Items {
+				if pod.DeletionTimestamp != nil {
+					e2e.Logf("pod %q is still terminating", pod.Name)
+					podsTerminating = true
+					terminating = append(terminating, fmt.Sprintf("pod/%s", pod.Name))
+				}
+			}
+			if podsTerminating {
+				return false, nil
+			}
+
+			namespaces, err := c.CoreV1().Namespaces().List(metav1.ListOptions{})
+			if err != nil {
+				return false, err
+			}
+			var nsTerminating bool
+			for _, ns := range namespaces.Items {
+				if ns.Status.Phase == corev1.NamespaceTerminating {
+					e2e.Logf("namespace %q is still terminating", ns.Name)
+					nsTerminating = true
+					terminating = append(terminating, fmt.Sprintf("ns/%s", ns.Name))
+				}
+			}
+			if nsTerminating {
+				return false, nil
+			}
+			return true, nil
+		})
+		if err == wait.ErrWaitTimeout {
+			e2e.Failf("Resources still in terminating state: %v", strings.Join(terminating, ", "))
+		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to wait for namespaces and pods to terminate")
+	})
+
 	g.It("have no crashlooping pods in core namespaces over two minutes", func() {
 		c, err := e2e.LoadClientset()
 		o.Expect(err).NotTo(o.HaveOccurred())
