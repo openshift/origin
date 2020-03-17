@@ -112,6 +112,7 @@ func SpreadServiceOrFail(f *framework.Framework, replicaCount int, image string)
 	// Now make sure they're spread across zones
 	zoneNames, err := framework.GetClusterZones(f.ClientSet)
 	framework.ExpectNoError(err)
+
 	checkZoneSpreading(f.ClientSet, pods, zoneNames.List())
 }
 
@@ -147,9 +148,14 @@ func getZoneNameForPod(c clientset.Interface, pod v1.Pod) (string, error) {
 // across a given set of zones
 func checkZoneSpreading(c clientset.Interface, pods *v1.PodList, zoneNames []string) {
 	podsPerZone := make(map[string]int)
-	for _, zoneName := range zoneNames {
-		podsPerZone[zoneName] = 0
-	}
+	// FIXME: Not all clusters are required to allow scheduling across all nodes, nor
+	//   is there a guarantee that users can schedule across all nodes. The combination
+	//   of those two requires that we only consider zones that we actually scheduled on
+	// TODO: the upstream test needs to take as input the default schedulable nodes from
+	//   the caller and use that to calculate zones
+	// for _, zoneName := range zoneNames {
+	// 	podsPerZone[zoneName] = 0
+	// }
 	for _, pod := range pods.Items {
 		if pod.DeletionTimestamp != nil {
 			continue
@@ -168,6 +174,7 @@ func checkZoneSpreading(c clientset.Interface, pods *v1.PodList, zoneNames []str
 			maxPodsPerZone = podCount
 		}
 	}
+	gomega.Expect(len(podsPerZone)).To(gomega.BeNumerically(">", 1), "Test requires more than one zone of scheduling: %#v", podsPerZone)
 	gomega.Expect(minPodsPerZone).To(gomega.BeNumerically("~", maxPodsPerZone, 1),
 		"Pods were not evenly spread across zones.  %d in one zone and %d in another zone",
 		minPodsPerZone, maxPodsPerZone)
