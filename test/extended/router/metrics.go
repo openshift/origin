@@ -47,7 +47,11 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	g.BeforeEach(func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		proxyProtocol = infra.Status.PlatformStatus.Type == configv1.AWSPlatformType
+		platformType := infra.Status.Platform
+		if infra.Status.PlatformStatus != nil {
+			platformType = infra.Status.PlatformStatus.Type
+		}
+		proxyProtocol = platformType == configv1.AWSPlatformType
 
 		// This test needs to make assertions against a single router pod, so all access
 		// to the router should happen through a single endpoint.
