@@ -19,6 +19,7 @@ package scheduling
 import (
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -27,8 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	testutils "k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
@@ -49,6 +52,7 @@ var _ = SIGDescribe("Multi-AZ Clusters", func() {
 		msg := fmt.Sprintf("Zone count is %d, only run for multi-zone clusters, skipping test", zoneCount)
 		framework.SkipUnlessAtLeast(zoneCount, 2, msg)
 		// TODO: SkipUnlessDefaultScheduler() // Non-default schedulers might not spread
+		allNodesReady(f.ClientSet, time.Minute)
 	})
 	ginkgo.It("should spread the pods of a service across zones", func() {
 		SpreadServiceOrFail(f, (2*zoneCount)+1, image)
@@ -234,4 +238,46 @@ func SpreadRCOrFail(f *framework.Framework, replicaCount int32, image string, ar
 	zoneNames, err := framework.GetClusterZones(f.ClientSet)
 	framework.ExpectNoError(err)
 	checkZoneSpreading(f.ClientSet, pods, zoneNames.List())
+}
+
+func allNodesReady(c clientset.Interface, timeout time.Duration) error {
+	framework.Logf("Waiting up to %v for all (but %d) nodes to be ready", timeout, 0)
+
+	var notReady []*v1.Node
+	err := wait.PollImmediate(framework.Poll, timeout, func() (bool, error) {
+		notReady = nil
+		// It should be OK to list unschedulable Nodes here.
+		nodes, err := c.CoreV1().Nodes().List(metav1.ListOptions{})
+		if err != nil {
+			if testutils.IsRetryableAPIError(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		for i := range nodes.Items {
+			node := &nodes.Items[i]
+			if !e2enode.IsConditionSetAsExpected(node, v1.NodeReady, true) {
+				notReady = append(notReady, node)
+			}
+		}
+		// Framework allows for <TestContext.AllowedNotReadyNodes> nodes to be non-ready,
+		// to make it possible e.g. for incorrect deployment of some small percentage
+		// of nodes (which we allow in cluster validation). Some nodes that are not
+		// provisioned correctly at startup will never become ready (e.g. when something
+		// won't install correctly), so we can't expect them to be ready at any point.
+		return len(notReady) <= 0, nil
+	})
+
+	if err != nil && err != wait.ErrWaitTimeout {
+		return err
+	}
+
+	if len(notReady) > 0 {
+		msg := ""
+		for _, node := range notReady {
+			msg = fmt.Sprintf("%s, %s", msg, node.Name)
+		}
+		return fmt.Errorf("Not ready nodes: %#v", msg)
+	}
+	return nil
 }
