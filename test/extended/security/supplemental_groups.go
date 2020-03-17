@@ -22,7 +22,7 @@ const (
 	supplementalGroupsPod = "supplemental-groups"
 )
 
-var _ = g.Describe("[security] supplemental groups", func() {
+var _ = g.Describe("[sig-node] supplemental groups", func() {
 	defer g.GinkgoRecover()
 
 	var (

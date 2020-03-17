@@ -13,6 +13,8 @@ import (
 	"github.com/onsi/ginkgo/types"
 )
 
+var reHasSig = regexp.MustCompile(`\[sig-[\w-]+\]`)
+
 func main() {
 	if len(os.Args) != 2 && len(os.Args) != 3 {
 		fmt.Fprintf(os.Stderr, "error: requires exactly one argument\n")
@@ -32,6 +34,28 @@ func main() {
 		}
 		sort.Strings(names)
 		fmt.Fprintf(os.Stderr, "failed:\n%s\n", strings.Join(names, "\n"))
+		os.Exit(1)
+	}
+
+	// All tests must be associated with a sig (either upstream), or downstream
+	// If you get this error, you should add the [sig-X] tag to your test (if its
+	// in origin) or if it is upstream add a new rule to rules.go that assigns
+	// the test in question to the right sig.
+	//
+	// Upstream sigs map to teams (if you have representation on that sig, you
+	//   own those tests in origin)
+	// Downstream sigs: sig-imageregistry, sig-builds, sig-devex
+	var errors []string
+	for from, to := range generator.output {
+		if !reHasSig.MatchString(from) && !reHasSig.MatchString(to) {
+			errors = append(errors, fmt.Sprintf("all tests must define a [sig-XXXX] tag or have a rule %q", from))
+		}
+	}
+	if len(errors) > 0 {
+		sort.Strings(errors)
+		for _, s := range errors {
+			fmt.Fprintf(os.Stderr, "failed: %s\n", s)
+		}
 		os.Exit(1)
 	}
 
@@ -152,6 +176,10 @@ func (r *ginkgoTestRenamer) generateRename(name, parentName string, node types.T
 	for {
 		count := 0
 		for _, label := range r.allLabels {
+			// never apply a sig label twice
+			if strings.HasPrefix(label, "[sig-") && strings.Contains(combinedName, "[sig-") {
+				continue
+			}
 			if strings.Contains(combinedName, label) {
 				continue
 			}
