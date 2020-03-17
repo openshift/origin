@@ -408,7 +408,9 @@
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
 // test/extended/testdata/marketplace/csc/02-csc.yaml
+// test/extended/testdata/marketplace/csc/03-csc.yaml
 // test/extended/testdata/marketplace/opsrc/02-opsrc.yaml
+// test/extended/testdata/marketplace/opsrc/03-opsrc.yaml
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
@@ -53289,6 +53291,44 @@ func testExtendedTestdataMarketplaceCsc02CscYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataMarketplaceCsc03CscYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: csc-template
+objects:
+- apiVersion: operators.coreos.com/v1
+  kind: CatalogSourceConfig
+  metadata:
+    name: "${NAME}"
+    namespace: "${MARKETPLACE}"
+  spec:
+    source: ""
+    packages: 1
+    csDisplayName: "${DISPLAYNAME}"
+    csPublisher: "${PUBLISHER}"
+
+parameters:
+- name: NAME
+- name: MARKETPLACE
+- name: DISPLAYNAME
+- name: PUBLISHER
+`)
+
+func testExtendedTestdataMarketplaceCsc03CscYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMarketplaceCsc03CscYaml, nil
+}
+
+func testExtendedTestdataMarketplaceCsc03CscYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMarketplaceCsc03CscYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/marketplace/csc/03-csc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataMarketplaceOpsrc02OpsrcYaml = []byte(`apiVersion: v1
 kind: Template
 metadata:
@@ -53328,6 +53368,47 @@ func testExtendedTestdataMarketplaceOpsrc02OpsrcYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/marketplace/opsrc/02-opsrc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMarketplaceOpsrc03OpsrcYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: opsrc-template
+objects:
+- apiVersion: operators.coreos.com/v1
+  kind: OperatorSource
+  metadata:
+    name: "${NAME}"
+    namespace: "${MARKETPLACE}"
+    labels:
+      opsrc-provider: "${LABEL}"
+  spec:
+    endpoint: 
+    registryNamespace: 1
+    displayName: "${DISPLAYNAME}"
+    publisher: "${PUBLISHER}"
+
+parameters:
+- name: NAME
+- name: MARKETPLACE
+- name: LABEL
+- name: DISPLAYNAME
+- name: PUBLISHER
+`)
+
+func testExtendedTestdataMarketplaceOpsrc03OpsrcYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMarketplaceOpsrc03OpsrcYaml, nil
+}
+
+func testExtendedTestdataMarketplaceOpsrc03OpsrcYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMarketplaceOpsrc03OpsrcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/marketplace/opsrc/03-opsrc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -58743,7 +58824,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
 	"test/extended/testdata/marketplace/csc/02-csc.yaml": testExtendedTestdataMarketplaceCsc02CscYaml,
+	"test/extended/testdata/marketplace/csc/03-csc.yaml": testExtendedTestdataMarketplaceCsc03CscYaml,
 	"test/extended/testdata/marketplace/opsrc/02-opsrc.yaml": testExtendedTestdataMarketplaceOpsrc02OpsrcYaml,
+	"test/extended/testdata/marketplace/opsrc/03-opsrc.yaml": testExtendedTestdataMarketplaceOpsrc03OpsrcYaml,
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml": testExtendedTestdataOauthserverCabundleCmYaml,
@@ -59465,9 +59548,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"marketplace": &bintree{nil, map[string]*bintree{
 					"csc": &bintree{nil, map[string]*bintree{
 						"02-csc.yaml": &bintree{testExtendedTestdataMarketplaceCsc02CscYaml, map[string]*bintree{}},
+						"03-csc.yaml": &bintree{testExtendedTestdataMarketplaceCsc03CscYaml, map[string]*bintree{}},
 					}},
 					"opsrc": &bintree{nil, map[string]*bintree{
 						"02-opsrc.yaml": &bintree{testExtendedTestdataMarketplaceOpsrc02OpsrcYaml, map[string]*bintree{}},
+						"03-opsrc.yaml": &bintree{testExtendedTestdataMarketplaceOpsrc03OpsrcYaml, map[string]*bintree{}},
 					}},
 				}},
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
