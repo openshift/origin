@@ -90,6 +90,7 @@ func clearTransient(dc *appsv1.DeploymentConfig) {
 	dc.ObjectMeta.UID = ""
 	dc.ObjectMeta.ResourceVersion = ""
 	dc.ObjectMeta.CreationTimestamp.Time = time.Time{}
+	dc.ObjectMeta.ManagedFields = nil
 }
 
 var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
