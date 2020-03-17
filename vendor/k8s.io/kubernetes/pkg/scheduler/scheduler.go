@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/events"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
@@ -82,6 +83,9 @@ type Scheduler struct {
 	// It is expected that changes made via SchedulerCache will be observed
 	// by NodeLister and Algorithm.
 	SchedulerCache internalcache.Cache
+
+	podLister  corelisters.PodLister
+	nodeLister corelisters.NodeLister
 
 	Algorithm core.ScheduleAlgorithm
 	GetBinder func(pod *v1.Pod) Binder
@@ -367,6 +371,7 @@ func New(client clientset.Interface,
 		return nil, fmt.Errorf("unsupported algorithm source: %v", source)
 	}
 	metrics.Register()
+
 	// Additional tweaks to the config produced by the configurator.
 	sched.Recorder = recorder
 	sched.DisablePreemption = options.disablePreemption
@@ -420,6 +425,8 @@ func (sched *Scheduler) Run(ctx context.Context) {
 	if !cache.WaitForCacheSync(ctx.Done(), sched.scheduledPodsHasSynced) {
 		return
 	}
+
+	registerResourceMetrics(sched.podLister, sched.nodeLister)
 
 	wait.UntilWithContext(ctx, sched.scheduleOne, 0)
 }

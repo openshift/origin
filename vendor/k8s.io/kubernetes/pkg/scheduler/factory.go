@@ -317,6 +317,9 @@ func (c *Configurator) CreateFromKeys(predicateKeys, priorityKeys sets.String, e
 		SchedulingQueue: podQueue,
 		Plugins:         plugins,
 		PluginConfig:    pluginConfig,
+
+		podLister:  c.podInformer.Lister(),
+		nodeLister: c.informerFactory.Core().V1().Nodes().Lister(),
 	}, nil
 }
 
