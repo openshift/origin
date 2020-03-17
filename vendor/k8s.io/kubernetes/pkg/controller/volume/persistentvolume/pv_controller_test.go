@@ -22,7 +22,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -90,6 +90,21 @@ func TestControllerSync(t *testing.T) {
 				obj := ctrl.volumes.store.List()[0]
 				volume := obj.(*v1.PersistentVolume)
 				reactor.deleteVolumeEvent(volume)
+				return nil
+			},
+		},
+		{
+			// delete success(?) - volume has deletion timestamp before doDelete() starts
+			"8-13 - volume is has deletion timestamp and is not processed",
+			withVolumeDeletionTimestamp(newVolumeArray("volume8-13", "1Gi", "uid8-13", "claim8-13", v1.VolumeBound, v1.PersistentVolumeReclaimDelete, classEmpty)),
+			withVolumeDeletionTimestamp(newVolumeArray("volume8-13", "1Gi", "uid8-13", "claim8-13", v1.VolumeReleased, v1.PersistentVolumeReclaimDelete, classEmpty)),
+			noclaims,
+			noclaims,
+			noevents, noerrors,
+			// We don't need to do anything in test function because deletion will be noticed automatically and synced.
+			// Attempting to use testSyncVolume here will cause an error because of race condition between manually
+			// calling testSyncVolume and volume loop running.
+			func(ctrl *PersistentVolumeController, reactor *volumeReactor, test controllerTest) error {
 				return nil
 			},
 		},

@@ -29,7 +29,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	storage "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -736,6 +736,17 @@ func newVolumeArray(name, capacity, boundToClaimUID, boundToClaimName string, ph
 	return []*v1.PersistentVolume{
 		newVolume(name, capacity, boundToClaimUID, boundToClaimName, phase, reclaimPolicy, class, annotations...),
 	}
+}
+
+func withVolumeDeletionTimestamp(pvs []*v1.PersistentVolume) []*v1.PersistentVolume {
+	result := []*v1.PersistentVolume{}
+	for _, pv := range pvs {
+		// Using time.Now() here will cause mismatching deletion timestamps in tests
+		deleteTime := metav1.Date(2020, time.February, 18, 10, 30, 30, 10, time.UTC)
+		pv.SetDeletionTimestamp(&deleteTime)
+		result = append(result, pv)
+	}
+	return result
 }
 
 // newClaim returns a new claim with given attributes
