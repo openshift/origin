@@ -157,6 +157,18 @@ var staticSuites = []*ginkgo.TestSuite{
 		TestTimeout: 20 * time.Minute,
 	},
 	{
+		Name: "openshift/performance/support",
+		Description: templates.LongDesc(`
+		Tests that verify the cluster can run high performance workload.
+		`),
+		Matches: func(name string) bool {
+			return strings.Contains(name, "[Suite:openshift/performance]") && strings.Contains(name, "[sig-node]")
+		},
+		Parallelism: 1,
+		TestTimeout: 20 * time.Minute,
+	},
+
+	{
 		Name: "all",
 		Description: templates.LongDesc(`
 		Run all tests.

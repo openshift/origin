@@ -17,12 +17,15 @@ import (
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"sigs.k8s.io/yaml"
+
+	g "github.com/onsi/ginkgo"
 )
 
 const (
 	strictCheckEnvVar = "TOPOLOGY_MANAGER_TEST_STRICT"
 
-	defaultRoleWorker = "worker"
+	defaultRoleWorker        = "worker"
+	defaultMachineConfigPool = "worker"
 
 	namespaceMachineConfigOperator = "openshift-machine-config-operator"
 	containerMachineConfigDaemon   = "machine-config-daemon"
@@ -41,6 +44,15 @@ const (
 	filePathSysCPU        = "/sys/devices/system/cpu"
 )
 
+func getMachineConfigPoolName() string {
+	mcpName := defaultMachineConfigPool
+	if mn, ok := os.LookupEnv("MACHINE_CONFIG_POOL"); ok {
+		mcpName = mn
+	}
+	e2e.Logf("machine config pool: %q", mcpName)
+	return mcpName
+}
+
 func getRoleWorkerLabel() string {
 	roleWorker := defaultRoleWorker
 	if rw, ok := os.LookupEnv("ROLE_WORKER"); ok {
@@ -48,32 +60,6 @@ func getRoleWorkerLabel() string {
 	}
 	e2e.Logf("role worker: %q", roleWorker)
 	return roleWorker
-}
-
-func filterNodeWithTopologyManagerPolicy(workerNodes []corev1.Node, client clientset.Interface, oc *exutil.CLI, policy string) []corev1.Node {
-	ocRaw := (*oc).WithoutNamespace()
-
-	var topoMgrNodes []corev1.Node
-
-	for _, node := range workerNodes {
-		kubeletConfig, err := getKubeletConfig(client, ocRaw, &node)
-		e2e.ExpectNoError(err)
-
-		e2e.Logf("kubelet %s CPU Manager policy: %q", node.Name, kubeletConfig.CPUManagerPolicy)
-
-		// verify topology manager feature gate
-		if enabled, ok := kubeletConfig.FeatureGates[featureGateTopologyManager]; !ok || !enabled {
-			e2e.Logf("kubelet %s Topology Manager FeatureGate not enabled", node.Name)
-			continue
-		}
-
-		if kubeletConfig.TopologyManagerPolicy != policy {
-			e2e.Logf("kubelet %s Topology Manager policy: %q", node.Name, kubeletConfig.TopologyManagerPolicy)
-			continue
-		}
-		topoMgrNodes = append(topoMgrNodes, node)
-	}
-	return topoMgrNodes
 }
 
 func getNodeByRole(c clientset.Interface, role string) ([]corev1.Node, error) {
@@ -246,5 +232,27 @@ func waitForPhase(c clientset.Interface, namespace, name string, phase corev1.Po
 			return true, nil
 		}
 		return false, nil
+	})
+}
+
+// CAUTION: this breaks completely if tests are run in parallel
+
+var testCounter int = 0
+
+func BeforeAll(fn func()) {
+	g.BeforeEach(func() {
+		if testCounter == 0 {
+			fn()
+		}
+		testCounter++
+	})
+}
+
+func AfterAll(fn func()) {
+	g.AfterEach(func() {
+		testCounter--
+		if testCounter == 0 {
+			fn()
+		}
 	})
 }
