@@ -52,7 +52,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			case configv1.AWSPlatformType, configv1.AzurePlatformType, configv1.GCPPlatformType:
 				// supported
 			default:
-				g.Skip(fmt.Sprintf("BZ 1772125 -- not verified on platform type %q", infra.Status.PlatformStatus.Type))
+				g.Skip(fmt.Sprintf("BZ 1772125 -- not verified on platform type %q", platformType))
 			}
 
 			defer func() {
