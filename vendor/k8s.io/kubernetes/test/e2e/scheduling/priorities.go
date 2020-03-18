@@ -224,7 +224,7 @@ var _ = SIGDescribe("SchedulerPriorities [Serial]", func() {
 								TopologyKey: k,
 								Namespaces:  []string{ns},
 							},
-							Weight: 10,
+							Weight: 100,
 						},
 					},
 				},
