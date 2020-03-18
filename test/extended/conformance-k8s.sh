@@ -78,6 +78,8 @@ git checkout "${version}"
 
 # For OpenShift 4.3 (Kube 1.16) we build with Go 1.12, so replace the minimum version here - will not be needed in 4.4
 sed -i'' -e 's/minimum_go_version=go1.13.4/minimum_go_version=go1.12.8/' hack/lib/golang.sh
+# Go 1.12 requires space-separated tags
+sed -i'' -e 's/gotags="selinux,/gotags="selinux /' hack/lib/golang.sh
 
 make WHAT=cmd/kubectl
 make WHAT=test/e2e/e2e.test
