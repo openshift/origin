@@ -128,12 +128,6 @@ rules:
       source:
         branch: origin-4.5-kubernetes-1.18.0-rc.1
         dir: staging/src/k8s.io/metrics
-- destination: kubernetes-node-api
-  branches:
-    - name: origin-4.5-kubernetes-1.18.0-rc.1
-      source:
-        branch: origin-4.5-kubernetes-1.18.0-rc.1
-        dir: staging/src/k8s.io/node-api
 - destination: kubernetes-sample-apiserver
   branches:
     - name: origin-4.5-kubernetes-1.18.0-rc.1
