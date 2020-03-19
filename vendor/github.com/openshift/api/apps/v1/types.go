@@ -33,6 +33,7 @@ type DeploymentConfig struct {
 	Spec DeploymentConfigSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status represents the current deployment state.
+	// +optional
 	Status DeploymentConfigStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 

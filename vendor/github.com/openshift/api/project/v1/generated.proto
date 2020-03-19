@@ -33,6 +33,7 @@ message Project {
   optional ProjectSpec spec = 2;
 
   // Status describes the current status of a Namespace
+  // +optional
   optional ProjectStatus status = 3;
 }
 
@@ -66,6 +67,7 @@ message ProjectSpec {
 // ProjectStatus is information about the current status of a Project
 message ProjectStatus {
   // Phase is the current lifecycle phase of the project
+  // +optional
   optional string phase = 1;
 }
 

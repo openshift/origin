@@ -62,7 +62,7 @@ import:
 # master
 - package: github.com/onsi/ginkgo
   repo:    https://github.com/openshift/onsi-ginkgo.git
-  version: release-v1.2.0
+  version: origin-3.11
 - package: github.com/containers/image
   repo:    https://github.com/openshift/containers-image.git
   version: openshift-3.8

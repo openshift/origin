@@ -192,8 +192,10 @@ type ImageStream struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec describes the desired state of this stream
+	// +optional
 	Spec ImageStreamSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 	// Status describes the current state of this stream
+	// +optional
 	Status ImageStreamStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 

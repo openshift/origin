@@ -20,7 +20,7 @@ var map_Action = map[string]string{
 	"resource":           "Resource is one of the existing resource types",
 	"resourceName":       "ResourceName is the name of the resource being requested for a \"get\" or deleted for a \"delete\"",
 	"path":               "Path is the path of a non resource URL",
-	"isNonResourceURL":   "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+	"isNonResourceURL":   "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)",
 	"content":            "Content is the actual content of the request for create and update",
 }
 

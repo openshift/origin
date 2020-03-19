@@ -40,9 +40,11 @@ type ClusterResourceQuotaSpec struct {
 // the project must match both restrictions.
 type ClusterResourceQuotaSelector struct {
 	// LabelSelector is used to select projects by label.
+	// +optional
 	LabelSelector *metav1.LabelSelector `json:"labels" protobuf:"bytes,1,opt,name=labels"`
 
 	// AnnotationSelector is used to select projects by annotation.
+	// +optional
 	AnnotationSelector map[string]string `json:"annotations" protobuf:"bytes,2,rep,name=annotations"`
 }
 
@@ -54,6 +56,7 @@ type ClusterResourceQuotaStatus struct {
 	// Namespaces slices the usage by project.  This division allows for quick resolution of
 	// deletion reconciliation inside of a single project without requiring a recalculation
 	// across all projects.  This can be used to pull the deltas for a given project.
+	// +optional
 	Namespaces ResourceQuotasStatusByNamespace `json:"namespaces" protobuf:"bytes,2,rep,name=namespaces"`
 }
 
