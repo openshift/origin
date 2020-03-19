@@ -2,6 +2,7 @@ package operators
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 	"text/tabwriter"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const (
@@ -41,7 +43,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		skipUnlessMachineAPIOperator(c.CoreV1().Namespaces())
 
 		g.By("ensuring every node is linked to a machine api resource")
-		allNodes, err := c.CoreV1().Nodes().List(metav1.ListOptions{})
+		allNodes, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		nodeNames := sets.NewString()
@@ -57,7 +59,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		machineClient := dc.Resource(schema.GroupVersionResource{Group: "machine.openshift.io", Resource: "machines", Version: "v1beta1"})
 		var lastMachines []objx.Map
 		if err := wait.PollImmediate(3*time.Second, operatorWait, func() (bool, error) {
-			obj, err := machineClient.List(metav1.ListOptions{})
+			obj, err := machineClient.List(context.Background(), metav1.ListOptions{})
 			if err != nil {
 				e2e.Logf("Unable to check for machines: %v", err)
 				return false, nil
@@ -102,12 +104,12 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 
 func skipUnlessMachineAPIOperator(c coreclient.NamespaceInterface) {
 	err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-		_, err := c.Get("openshift-machine-api", metav1.GetOptions{})
+		_, err := c.Get(context.Background(), "openshift-machine-api", metav1.GetOptions{})
 		if err == nil {
 			return true, nil
 		}
 		if errors.IsNotFound(err) {
-			e2e.Skipf("The cluster machines are not managed by machine api operator")
+			e2eskipper.Skipf("The cluster machines are not managed by machine api operator")
 		}
 		e2e.Logf("Unable to check for machine api operator: %v", err)
 		return false, nil

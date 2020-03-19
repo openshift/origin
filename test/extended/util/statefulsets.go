@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +15,7 @@ func RemoveStatefulSets(oc *CLI, sets ...string) error {
 	errs := []error{}
 	for _, set := range sets {
 		e2e.Logf("Removing stateful set %s/%s", oc.Namespace(), set)
-		if err := oc.AdminKubeClient().AppsV1().StatefulSets(oc.Namespace()).Delete(set, &metav1.DeleteOptions{}); err != nil {
+		if err := oc.AdminKubeClient().AppsV1().StatefulSets(oc.Namespace()).Delete(context.Background(), set, metav1.DeleteOptions{}); err != nil {
 			e2e.Logf("Error occurred removing stateful set: %v", err)
 			errs = append(errs, err)
 		}

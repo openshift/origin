@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	app "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -46,23 +48,24 @@ func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
 		return "", nil, err
 	}
 	defer os.RemoveAll(certDir)
-
-	if _, err := oc.AdminKubeClient().CoreV1().ConfigMaps(oc.Namespace()).Create(ldif); err != nil {
+	ctx := context.Background()
+	createOpts := metav1.CreateOptions{}
+	if _, err := oc.AdminKubeClient().CoreV1().ConfigMaps(oc.Namespace()).Create(ctx, ldif, createOpts); err != nil {
 		return "", nil, err
 	}
-	if _, err := oc.AdminKubeClient().CoreV1().ConfigMaps(oc.Namespace()).Create(scripts); err != nil {
+	if _, err := oc.AdminKubeClient().CoreV1().ConfigMaps(oc.Namespace()).Create(ctx, scripts, createOpts); err != nil {
 		return "", nil, err
 	}
-	if _, err := oc.AdminKubeClient().CoreV1().Services(oc.Namespace()).Create(ldapService); err != nil {
+	if _, err := oc.AdminKubeClient().CoreV1().Services(oc.Namespace()).Create(ctx, ldapService, createOpts); err != nil {
 		return "", nil, err
 	}
 
 	// Create SA.
-	if _, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(oc.Namespace()).Create(&corev1.ServiceAccount{
+	if _, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(oc.Namespace()).Create(ctx, &corev1.ServiceAccount{
 		ObjectMeta: v1.ObjectMeta{
 			Name: saName,
 		},
-	}); err != nil {
+	}, createOpts); err != nil {
 		return "", nil, err
 	}
 
@@ -90,7 +93,7 @@ func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
 		return "", nil, err
 	}
 
-	_, err = oc.AdminKubeClient().CoreV1().Secrets(oc.Namespace()).Create(&corev1.Secret{
+	_, err = oc.AdminKubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), &corev1.Secret{
 		ObjectMeta: v1.ObjectMeta{
 			Name: certMountName,
 		},
@@ -100,7 +103,7 @@ func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
 			caCertFilename:          caPEM,
 		},
 		Type: corev1.SecretTypeTLS,
-	})
+	}, metav1.CreateOptions{})
 	if err != nil {
 		return "", nil, err
 	}
@@ -130,14 +133,14 @@ func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
 		return "", nil, err
 	}
 
-	serverDeployment, err := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Create(deploy)
+	serverDeployment, err := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Create(context.Background(), deploy, metav1.CreateOptions{})
 	if err != nil {
 		return "", nil, err
 	}
 
 	// Wait for an available replica.
 	err = wait.PollImmediate(1*time.Second, 5*time.Minute, func() (done bool, err error) {
-		dep, getErr := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Get(serverDeployment.Name,
+		dep, getErr := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Get(context.Background(), serverDeployment.Name,
 			v1.GetOptions{})
 		if getErr != nil {
 			return false, getErr

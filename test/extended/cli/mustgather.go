@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -32,7 +33,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		// makes some tokens that should not show in the audit logs
 		const tokenName = "must-gather-audit-logs-token-plus-some-padding-here-to-make-the-limit"
 		oauthClient := oauthv1client.NewForConfigOrDie(oc.AdminConfig())
-		_, err1 := oauthClient.OAuthAccessTokens().Create(&oauthv1.OAuthAccessToken{
+		_, err1 := oauthClient.OAuthAccessTokens().Create(context.Background(), &oauthv1.OAuthAccessToken{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: tokenName,
 			},
@@ -42,9 +43,9 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			RedirectURI: "https://127.0.0.1:12000/oauth/token/implicit",
 			UserName:    "a",
 			UserUID:     "1",
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err1).ToNot(o.HaveOccurred())
-		_, err2 := oauthClient.OAuthAuthorizeTokens().Create(&oauthv1.OAuthAuthorizeToken{
+		_, err2 := oauthClient.OAuthAuthorizeTokens().Create(context.Background(), &oauthv1.OAuthAuthorizeToken{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: tokenName,
 			},
@@ -54,7 +55,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			RedirectURI: "https://127.0.0.1:12000/oauth/token/implicit",
 			UserName:    "a",
 			UserUID:     "1",
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err2).ToNot(o.HaveOccurred())
 		// let audit log writes occurs to disk (best effort, should be enough to make the test fail most of the time)
 		time.Sleep(10 * time.Second)
@@ -187,7 +188,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 func getPluginOutputDir(oc *util.CLI, tempDir string) string {
 	imageClient := versioned.NewForConfigOrDie(oc.AdminConfig())
-	stream, err := imageClient.ImageV1().ImageStreams("openshift").Get("must-gather", metav1.GetOptions{})
+	stream, err := imageClient.ImageV1().ImageStreams("openshift").Get(context.Background(), "must-gather", metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	imageId, ok := imageutil.ResolveLatestTaggedImage(stream, "latest")
 	o.Expect(ok).To(o.BeTrue())

@@ -1,6 +1,8 @@
 package operators
 
 import (
+	"context"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	s "github.com/onsi/gomega/gstruct"
@@ -45,7 +47,7 @@ var _ = g.Describe("[sig-arch] ClusterOperators", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 		configClient, err := configclient.NewForConfig(kubeConfig)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		clusterOperatorsList, err := configClient.ClusterOperators().List(metav1.ListOptions{})
+		clusterOperatorsList, err := configClient.ClusterOperators().List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 		clusterOperators = clusterOperatorsList.Items
 	})

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"time"
 
 	o "github.com/onsi/gomega"
@@ -22,7 +23,7 @@ func waitForRouterExternalIP(oc *CLI) (string, error) {
 func routerShouldHaveExternalService(oc *CLI) (bool, error) {
 	foundLoadBalancerServiceStrategyType := false
 	err := wait.PollImmediate(2*time.Second, 30*time.Second, func() (bool, error) {
-		ic, err := oc.AdminOperatorClient().OperatorV1().IngressControllers("openshift-ingress-operator").Get("default", metav1.GetOptions{})
+		ic, err := oc.AdminOperatorClient().OperatorV1().IngressControllers("openshift-ingress-operator").Get(context.Background(), "default", metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
 			return false, nil
 		}
@@ -56,7 +57,7 @@ func waitForNamedRouterServiceIP(oc *CLI, name string) (string, error) {
 	// wait for the service to show up
 	var endpoint string
 	err = wait.PollImmediate(2*time.Second, 60*time.Second, func() (bool, error) {
-		svc, err := oc.AdminKubeClient().CoreV1().Services(ns).Get(name, metav1.GetOptions{})
+		svc, err := oc.AdminKubeClient().CoreV1().Services(ns).Get(context.Background(), name, metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
 			return false, nil
 		}

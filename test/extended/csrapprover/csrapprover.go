@@ -1,6 +1,7 @@
 package csrapprover
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -39,7 +40,7 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// get the API server URL, mutate to internal API (use infra.Status.APIServerURLInternal) once API is bumped
-		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		internalAPI, err := url.Parse(infra.Status.APIServerURL)
@@ -86,7 +87,7 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 		bootstrapperClient := kubeclient.NewForConfigOrDie(saClientConfig)
 
 		csrName := "node-client-csr"
-		bootstrapperClient.CertificatesV1beta1().CertificateSigningRequests().Create(&certv1beta1.CertificateSigningRequest{
+		bootstrapperClient.CertificatesV1beta1().CertificateSigningRequests().Create(context.Background(), &certv1beta1.CertificateSigningRequest{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: csrName,
 			},
@@ -98,7 +99,7 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 					certv1beta1.UsageClientAuth,
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 
 		csrClient := oc.AdminKubeClient().CertificatesV1beta1().CertificateSigningRequests()
 		defer cleanupCSR(csrClient, csrName)
@@ -115,7 +116,7 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 // waits for the CSR object to change status, checks that it did not get approved
 func waitCSRStatus(csrAdminClient certclientv1beta1.CertificateSigningRequestInterface, csrName string) error {
 	return wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
-		csr, err := csrAdminClient.Get(csrName, metav1.GetOptions{})
+		csr, err := csrAdminClient.Get(context.Background(), csrName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -131,5 +132,5 @@ func waitCSRStatus(csrAdminClient certclientv1beta1.CertificateSigningRequestInt
 }
 
 func cleanupCSR(csrAdminClient certclientv1beta1.CertificateSigningRequestInterface, name string) {
-	csrAdminClient.Delete(name, &metav1.DeleteOptions{})
+	csrAdminClient.Delete(context.Background(), name, metav1.DeleteOptions{})
 }

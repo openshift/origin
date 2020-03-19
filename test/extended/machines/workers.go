@@ -2,6 +2,7 @@ package operators
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"text/tabwriter"
 	"time"
@@ -38,7 +39,7 @@ func machineClient(dc dynamic.Interface) dynamic.ResourceInterface {
 // listMachines list all machines scoped by selector
 func listMachines(dc dynamic.Interface, labelSelector string) ([]objx.Map, error) {
 	mc := machineClient(dc)
-	obj, err := mc.List(metav1.ListOptions{
+	obj, err := mc.List(context.Background(), metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -52,7 +53,7 @@ func listMachines(dc dynamic.Interface, labelSelector string) ([]objx.Map, error
 // deleteMachine deletes the named machine
 func deleteMachine(dc dynamic.Interface, machineName string) error {
 	mc := machineClient(dc)
-	return mc.Delete(machineName, &metav1.DeleteOptions{})
+	return mc.Delete(context.Background(), machineName, metav1.DeleteOptions{})
 }
 
 // machineName returns the machine name
@@ -142,7 +143,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Disruptive] Manage
 		}
 
 		// fetch worker nodes
-		workerNodes, err := c.CoreV1().Nodes().List(metav1.ListOptions{
+		workerNodes, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: nodeLabelSelectorWorker,
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -169,7 +170,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Disruptive] Manage
 			if err != nil {
 				return false, nil
 			}
-			workerNodes, err = c.CoreV1().Nodes().List(metav1.ListOptions{
+			workerNodes, err = c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 				LabelSelector: nodeLabelSelectorWorker,
 			})
 			if err != nil {

@@ -1,6 +1,7 @@
 package azure
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -45,7 +46,7 @@ func LoadConfigFile() ([]byte, error) {
 }
 
 func cloudProviderConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*azure.Config, error) {
-	cm, err := client.ConfigMaps("openshift-config").Get("cloud-provider-config", metav1.GetOptions{})
+	cm, err := client.ConfigMaps("openshift-config").Get(context.Background(), "cloud-provider-config", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

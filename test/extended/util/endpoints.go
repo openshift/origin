@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -10,7 +11,7 @@ import (
 
 func WaitForEndpointsAvailable(oc *CLI, serviceName string) error {
 	return wait.Poll(200*time.Millisecond, 3*time.Minute, func() (bool, error) {
-		ep, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+		ep, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			return false, err
 		}

@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/origin/test/extended/templates/openservicebroker/api"
@@ -42,14 +42,14 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker bind te
 			var err error
 			brokercli, err = TSBClient(cli)
 			if kerrors.IsNotFound(err) {
-				e2e.Skipf("The template service broker is not installed: %v", err)
+				e2eskipper.Skipf("The template service broker is not installed: %v", err)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
 
 			// enable unauthenticated access to the service broker
-			clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
+			clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(context.Background(), &authorizationv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: cli.Namespace() + "templateservicebroker-client",
 				},
@@ -62,7 +62,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker bind te
 						Name: "system:unauthenticated",
 					},
 				},
-			})
+			}, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = cli.AsAdmin().Run("new-app").Args(fixture, "-p", "NAMESPACE="+cli.Namespace()).Execute()
@@ -70,7 +70,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker bind te
 
 			// wait for templateinstance controller to do its thing
 			err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-				templateinstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+				templateinstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), instanceID, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -98,16 +98,16 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker bind te
 				cli.SetNamespace(ns)
 			}
 
-			err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
+			err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(context.Background(), clusterrolebinding.Name, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})
+			err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(context.Background(), instanceID, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.It("should pass bind tests", func() {
 			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
-			svc, err := cli.KubeClient().CoreV1().Services(cli.Namespace()).Get("service", metav1.GetOptions{})
+			svc, err := cli.KubeClient().CoreV1().Services(cli.Namespace()).Get(context.Background(), "service", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			bind, err := brokercli.Bind(context.Background(), cliUser, instanceID, bindingID, &api.BindRequest{

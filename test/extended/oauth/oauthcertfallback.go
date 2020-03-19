@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path"
@@ -46,7 +47,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 		defer os.RemoveAll(fakecadir)
 
 		// openssl s_client shows the kube-control-plane-signer CA name sent as one of the acceptable client CAs, so use that.
-		realCASecret, err := oc.AsAdmin().KubeClient().CoreV1().Secrets("openshift-kube-apiserver-operator").Get("kube-control-plane-signer", metav1.GetOptions{})
+		realCASecret, err := oc.AsAdmin().KubeClient().CoreV1().Secrets("openshift-kube-apiserver-operator").Get(context.Background(), "kube-control-plane-signer", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		realCAPEM, ok := realCASecret.Data["tls.crt"]
@@ -148,7 +149,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 			adminConfig.CAData = oc.AdminConfig().CAData
 
 			userClient := userv1client.NewForConfigOrDie(adminConfig)
-			user, err := userClient.UserV1().Users().Get("~", metav1.GetOptions{})
+			user, err := userClient.UserV1().Users().Get(context.Background(), "~", metav1.GetOptions{})
 
 			if test.errorExpected {
 				o.Expect(err).ToNot(o.BeNil())

@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,7 +13,7 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/errors"
@@ -65,7 +66,7 @@ func CalculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclie
 		LocalPort:  "37587",
 	}
 
-	namespaces, err := adminClient.CoreV1().Namespaces().List(metav1.ListOptions{})
+	namespaces, err := adminClient.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -110,7 +111,7 @@ func CalculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclie
 }
 
 func getPodInfoForNamespace(adminClient kubernetes.Interface, adminConfig *restclient.Config, podURLGetter *portForwardURLGetter, namespace string) ([]*podInfo, error) {
-	pods, err := adminClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	pods, err := adminClient.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +322,7 @@ func (c *portForwardURLGetter) Get(urlPath string, pod *v1.Pod, config *rest.Con
 			return
 		}
 
-		ioCloser, err := restClient.Get().RequestURI(urlPath).Stream()
+		ioCloser, err := restClient.Get().RequestURI(urlPath).Stream(context.Background())
 		if err != nil {
 			lastErr = err
 			return

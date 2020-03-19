@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -200,7 +201,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 			setupJenkins(jenkinsPersistentTemplatePath)
 			// additionally ensure that the build works in a memory constrained
 			// environment
-			_, err := oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Create(&corev1.LimitRange{
+			_, err := oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Create(context.Background(), &corev1.LimitRange{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "limitrange",
 				},
@@ -214,9 +215,9 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 						},
 					},
 				},
-			})
+			}, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			defer oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Delete("limitrange", &metav1.DeleteOptions{})
+			defer oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Delete(context.Background(), "limitrange", metav1.DeleteOptions{})
 
 			g.By("delete jenkins job runs when jenkins re-establishes communications")
 			g.By("should delete job runs when the associated build is deleted - jenkins unreachable")
@@ -237,7 +238,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 				br.AssertSuccess()
 
 				// get the build information
-				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
+				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				jenkinsBuildURI, err := url.Parse(build.Annotations[buildv1.BuildJenkinsBuildURIAnnotation])
@@ -252,7 +253,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 			for buildName, buildInfo := range buildNameToBuildInfoMap {
 				_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+				_, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), buildName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 			}
@@ -265,7 +266,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 			for buildName, buildInfo := range buildNameToBuildInfoMap {
 				if buildInfo.number%2 == 0 {
 					fmt.Fprintf(g.GinkgoWriter, "Deleting build: %s", buildName)
-					err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
+					err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Delete(context.Background(), buildName, metav1.DeleteOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 				}
@@ -303,11 +304,11 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 				o.Expect(err).NotTo(o.HaveOccurred())
 				fmt.Fprintf(g.GinkgoWriter, "Checking %s, status: %v\n", buildName, status)
 				if buildInfo.number%2 == 0 {
-					_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), buildName, metav1.GetOptions{})
 					o.Expect(err).To(o.HaveOccurred())
 					o.Expect(status != http.StatusOK).To(o.BeTrue(), "Jenkins job run exists for %s but shouldn't.", buildName)
 				} else {
-					_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), buildName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 				}
@@ -427,7 +428,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 				err = oc.Run("new-app").Args(repo.RepoPath, "--strategy=pipeline", "--build-env=FOO1=BAR1").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(envVarsPipelineGitRepoBuildConfig, metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), envVarsPipelineGitRepoBuildConfig, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				envs := bc.Spec.Strategy.JenkinsPipelineStrategy.Env
 				o.Expect(len(envs)).To(o.Equal(1))
@@ -461,7 +462,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 						g.By("Waiting for the build uri")
 						var jenkinsBuildURI string
 						for {
-							build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+							build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), br.BuildName, metav1.GetOptions{})
 							if err != nil {
 								errs <- fmt.Errorf("error getting build: %s", err)
 								return
@@ -511,7 +512,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 						defer g.GinkgoRecover()
 
 						for {
-							build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+							build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), br.BuildName, metav1.GetOptions{})
 							switch {
 							case err != nil:
 								errs <- fmt.Errorf("error getting build: %s", err)
@@ -589,7 +590,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 					br.AssertSuccess()
 
 					// get the build information
-					build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
+					build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					jenkinsBuildURI, err := url.Parse(build.Annotations[buildv1.BuildJenkinsBuildURIAnnotation])
@@ -603,7 +604,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 				for buildName, buildInfo := range buildNameToBuildInfoMap {
 					_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
 					o.Expect(err).NotTo(o.HaveOccurred())
-					_, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					_, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), buildName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 				}
@@ -612,7 +613,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 				for buildName, buildInfo := range buildNameToBuildInfoMap {
 					if buildInfo.number%2 == 0 {
 						fmt.Fprintf(g.GinkgoWriter, "Deleting build: %s", buildName)
-						err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
+						err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Delete(context.Background(), buildName, metav1.DeleteOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 					}
@@ -640,11 +641,11 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 					_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					if buildInfo.number%2 == 0 {
-						_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+						_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), buildName, metav1.GetOptions{})
 						o.Expect(err).To(o.HaveOccurred())
 						o.Expect(status != http.StatusOK).To(o.BeTrue(), "Jenkins job run exists for %s but shouldn't.", buildName)
 					} else {
-						_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+						_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), buildName, metav1.GetOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 						o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 					}

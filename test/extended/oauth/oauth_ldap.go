@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"time"
@@ -45,8 +46,8 @@ var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 		adminConfig := oc.AdminConfig()
 
 		// Clean up mapped identity and user.
-		defer userv1client.NewForConfigOrDie(oc.AdminConfig()).Identities().Delete(fmt.Sprintf("%s:%s", providerName, myUserDNBase64), nil)
-		defer userv1client.NewForConfigOrDie(oc.AdminConfig()).Users().Delete(userName, nil)
+		defer userv1client.NewForConfigOrDie(oc.AdminConfig()).Identities().Delete(context.Background(), fmt.Sprintf("%s:%s", providerName, myUserDNBase64), metav1.DeleteOptions{})
+		defer userv1client.NewForConfigOrDie(oc.AdminConfig()).Users().Delete(context.Background(), userName, metav1.DeleteOptions{})
 
 		g.By("setting up an OpenLDAP server")
 		ldapService, ldapCA, err := testutil.CreateLDAPTestServer(oc)
@@ -112,14 +113,14 @@ var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 		userConfig.BearerToken = person1Token
 
 		// Confirm user name
-		user, err := userv1client.NewForConfigOrDie(userConfig).Users().Get("~", metav1.GetOptions{})
+		user, err := userv1client.NewForConfigOrDie(userConfig).Users().Get(context.Background(), "~", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(user.Name).Should(o.BeEquivalentTo(userName))
 		o.Expect(user.Identities).Should(o.HaveLen(1))
 
 		adminClient := userv1client.NewForConfigOrDie(oc.AdminConfig())
 		// Make sure the identity got created and contained the mapped attributes
-		identity, err := adminClient.Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDNBase64), metav1.GetOptions{})
+		identity, err := adminClient.Identities().Get(context.Background(), fmt.Sprintf("%s:%s", providerName, myUserDNBase64), metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(identity.User.Name).Should(o.BeEquivalentTo(user.Name))
 		o.Expect(identity.ProviderName + ":" + identity.ProviderUserName).Should(o.BeEquivalentTo(user.Identities[0]))
