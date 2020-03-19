@@ -51,7 +51,7 @@ var _ = g.Describe("[sig-operator][Feature:Marketplace] [Serial] Marketplace ret
 		outMesg, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("catalogsourceconfig", "retrycsc", "-o=jsonpath={.status.currentPhase.phase.name}", "-n", marketplaceNs).Output()
 		o.Expect(outMesg).Should(o.ContainSubstring("Configuring"))
 
-		// Create opsrc contains the package "camel-k-marketplace-e2e-tests" 
+		// Create opsrc contains the package "camel-k-marketplace-e2e-tests"
 		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrce2e", "NAMESPACE=marketplace_e2e", "LABEL=opsrce2e", "DISPLAYNAME=opsrce2e", "PUBLISHER=opsrce2e", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
