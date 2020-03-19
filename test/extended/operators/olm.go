@@ -209,6 +209,10 @@ var _ = g.Describe("[Feature:Platform] an end user use OLM", func() {
 		output, err := oc.Run("get").Args("deployments", "-n", oc.Namespace()).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(output).To(o.ContainSubstring("etcd"))
+
+		// clean up so that it doesn't emit an alert when namespace is deleted
+		_, err = oc.AsAdmin().Run("delete").Args("-n", oc.Namespace(), "csv", "etcdoperator.v0.9.4").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	// OCP-24829 - Report `Upgradeable` in OLM ClusterOperators status
