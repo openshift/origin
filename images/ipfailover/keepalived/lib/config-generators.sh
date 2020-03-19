@@ -190,6 +190,11 @@ function generate_vrrpd_instance_config() {
 
   [ "${instancetype}" = "master" ] && initialstate="state MASTER"
 
+  if [[ ${preempt} == "nopreempt" ]] ; then
+	initialstate="state BACKUP"
+	priority=1
+  fi
+
   local instance_name ; instance_name=$(generate_vrrp_instance_name "${servicename}" "${iid}")
 
   local auth_section ; auth_section=$(generate_authentication_info "${servicename}")
@@ -197,7 +202,12 @@ function generate_vrrpd_instance_config() {
   # Emit instance
   echo "
 vrrp_instance ${instance_name} {
-   interface ${interface}
+   "
+  # If a server is provided activate smtp alerts
+  if [[ -n ${SMTP_SERVER} ]] ; then
+	echo "   smtp_alert"
+  fi
+  echo "   interface ${interface}
    ${initialstate}
    virtual_router_id $((vrrpidoffset + iid))
    priority ${priority}
@@ -205,7 +215,7 @@ vrrp_instance ${instance_name} {
    ${auth_section}
    $(generate_track_script)
    "
-  if [[ -n $HA_NOTIFY_SCRIPT ]]; then
+  if [[ -n ${HA_NOTIFY_SCRIPT} ]]; then
       echo "   notify \"${HA_NOTIFY_SCRIPT}\""
   fi
   echo " $(generate_mucast_options)
