@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -371,12 +372,14 @@ var _ = g.Describe("[sig-cli] oc explain networking types", func() {
 
 	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
 
-	g.It("should contain proper fields description for special networking types", func() {
-		for _, st := range specialNetworkingTypes {
-			e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
-			o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
-				st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
-		}
+	networking.InOpenShiftSDNContext(func() {
+		g.It("should contain proper fields description for special networking types", func() {
+			for _, st := range specialNetworkingTypes {
+				e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
+				o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
+					st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
+			}
+		})
 	})
 })
 
