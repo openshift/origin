@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -113,12 +114,12 @@ var (
 
 		// FIXME
 		// {Group: "operator.openshift.io", Version: "v1", Resource: "credentialsrequestses"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "ingresscontrollers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecas"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogapiservers"},
@@ -375,12 +376,14 @@ var _ = g.Describe("[cli] oc explain networking types", func() {
 
 	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
 
-	g.It("should contain proper fields description for special networking types", func() {
-		for _, st := range specialNetworkingTypes {
-			e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
-			o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
-				st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
-		}
+	networking.InOpenShiftSDNContext(func() {
+		g.It("should contain proper fields description for special networking types", func() {
+			for _, st := range specialNetworkingTypes {
+				e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
+				o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
+					st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
+			}
+		})
 	})
 })
 
