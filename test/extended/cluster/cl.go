@@ -186,7 +186,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func()
 						configMapName := InjectConfigMap(c, nsName, pod.Parameters, config)
 						// Cleanup ConfigMap at some point after the Pods are created
 						defer func() {
-							_ = c.CoreV1().ConfigMaps(nsName).Delete(configMapName, nil)
+							_ = c.CoreV1().ConfigMaps(nsName).Delete(context.Background(), configMapName, metav1.DeleteOptions{})
 						}()
 					}
 					// TODO sjug: pass label via config
@@ -245,7 +245,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func()
 		if ConfigContext.ClusterLoader.Cleanup == true {
 			for _, ns := range namespaces {
 				e2e.Logf("Deleting project %s", ns)
-				err := oc.AsAdmin().KubeClient().CoreV1().Namespaces().Delete(ns, nil)
+				err := oc.AsAdmin().KubeClient().CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
@@ -256,7 +256,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func()
 func postCreateWait(oc *util.CLI, namespaces []string) error {
 	// Wait for builds and deployments to complete
 	for _, ns := range namespaces {
-		rcList, err := oc.AdminKubeClient().CoreV1().ReplicationControllers(ns).List(metav1.ListOptions{})
+		rcList, err := oc.AdminKubeClient().CoreV1().ReplicationControllers(ns).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return fmt.Errorf("Error listing RCs: %v", err)
 		}
@@ -277,7 +277,7 @@ func postCreateWait(oc *util.CLI, namespaces []string) error {
 		}
 
 		podLabels := exutil.ParseLabelsOrDie(mapToString(podLabelMap))
-		podList, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(metav1.ListOptions{LabelSelector: podLabels.String()})
+		podList, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{LabelSelector: podLabels.String()})
 		if err != nil {
 			return fmt.Errorf("Error in listing pods: %v", err)
 		}
@@ -294,7 +294,7 @@ func postCreateWait(oc *util.CLI, namespaces []string) error {
 			e2e.Logf("All pods in namespace %s running", ns)
 		}
 
-		buildList, err := oc.AsAdmin().BuildClient().BuildV1().Builds(ns).List(metav1.ListOptions{})
+		buildList, err := oc.AsAdmin().BuildClient().BuildV1().Builds(ns).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return fmt.Errorf("Error in listing builds: %v", err)
 		}
@@ -312,7 +312,7 @@ func postCreateWait(oc *util.CLI, namespaces []string) error {
 
 		}
 
-		dcList, err := oc.AsAdmin().AppsClient().AppsV1().DeploymentConfigs(ns).List(metav1.ListOptions{})
+		dcList, err := oc.AsAdmin().AppsClient().AppsV1().DeploymentConfigs(ns).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return fmt.Errorf("Error listing DeploymentConfigs: %v", err)
 		}
@@ -366,7 +366,7 @@ func waitForRCToStabilize(c clientset.Interface, ns, name string, timeout time.D
 		"metadata.name":      name,
 		"metadata.namespace": ns,
 	}.AsSelector().String()}
-	w, err := c.CoreV1().ReplicationControllers(ns).Watch(options)
+	w, err := c.CoreV1().ReplicationControllers(ns).Watch(context.Background(), options)
 	if err != nil {
 		return err
 	}

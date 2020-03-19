@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -35,7 +36,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:Audit] Basic audit", func() {
 			},
 		}
 		f.PodClient().CreateSync(pod)
-		f.PodClient().DeleteSync(pod.Name, &metav1.DeleteOptions{}, framework.DefaultPodDeletionTimeout)
+		f.PodClient().DeleteSync(pod.Name, metav1.DeleteOptions{}, framework.DefaultPodDeletionTimeout)
 
 		// Create, Read, Delete secret
 		secret := &apiv1.Secret{
@@ -46,15 +47,16 @@ var _ = g.Describe("[sig-api-machinery][Feature:Audit] Basic audit", func() {
 				"top-secret": []byte("foo-bar"),
 			},
 		}
-		_, err := f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Create(secret)
+		ctx := context.Background()
+		_, err := f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Create(ctx, secret, metav1.CreateOptions{})
 		framework.ExpectNoError(err, "failed to create audit-secret")
-		_, err = f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Get(secret.Name, metav1.GetOptions{})
+		_, err = f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Get(ctx, secret.Name, metav1.GetOptions{})
 		framework.ExpectNoError(err, "failed to get audit-secret")
-		err = f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Delete(secret.Name, &metav1.DeleteOptions{})
+		err = f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Delete(ctx, secret.Name, metav1.DeleteOptions{})
 		framework.ExpectNoError(err, "failed to delete audit-secret")
 
 		// /version should not be audited
-		_, err = f.ClientSet.CoreV1().RESTClient().Get().AbsPath("/version").DoRaw()
+		_, err = f.ClientSet.CoreV1().RESTClient().Get().AbsPath("/version").DoRaw(ctx)
 		framework.ExpectNoError(err, "failed to query version")
 
 		expectedEvents := []auditEvent{{

@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"context"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -42,7 +44,7 @@ RUN curl -vvv hello-openshift:8080
 				err := oc.Run("new-app").Args("docker.io/openshift/hello-openshift").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				deploy, derr := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get("hello-openshift", metav1.GetOptions{})
+				deploy, derr := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get(context.Background(), "hello-openshift", metav1.GetOptions{})
 				if kapierrs.IsNotFound(derr) {
 					// if deployment is not there we're working with old new-app producing deployment configs
 					err := exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "hello-openshift", 1, true, oc)

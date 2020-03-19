@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -68,7 +69,7 @@ func ParsePods(file string) (kapiv1.Pod, error) {
 func WaitForRCReady(oc *exutil.CLI, ns, name string, timeout time.Duration) error {
 	err := wait.Poll(2*time.Second, timeout,
 		func() (bool, error) {
-			rc, err := oc.AdminKubeClient().CoreV1().ReplicationControllers(ns).Get(name, metav1.GetOptions{})
+			rc, err := oc.AdminKubeClient().CoreV1().ReplicationControllers(ns).Get(context.Background(), name, metav1.GetOptions{})
 			if err != nil {
 				framework.Logf("Failed getting RCs: %v", err)
 				return false, nil // Ignore this error (nil) and try again in "Poll" time
@@ -169,7 +170,7 @@ func (p *ClusterLoaderObjectType) CreatePods(c kclientset.Interface, ns string, 
 		// Retry on pod creation failure
 		for retryCount := 0; retryCount <= maxRetries; retryCount++ {
 			pod := p.createPodStruct(ns, labels, spec, i)
-			_, err := c.CoreV1().Pods(ns).Create(pod)
+			_, err := c.CoreV1().Pods(ns).Create(context.Background(), pod, metav1.CreateOptions{})
 			if err == nil {
 				break
 			}
@@ -403,7 +404,7 @@ func InjectConfigMap(c kclientset.Interface, ns string, vars map[string]interfac
 	configMap := newConfigMap(ns, configMapName, dirtyConfigVars)
 	framework.Logf("Creating configMap %v in namespace %v", configMap.Name, ns)
 	var err error
-	if configMap, err = c.CoreV1().ConfigMaps(ns).Create(configMap); err != nil {
+	if configMap, err = c.CoreV1().ConfigMaps(ns).Create(context.Background(), configMap, metav1.CreateOptions{}); err != nil {
 		framework.Failf("Unable to create test configMap %s: %v", configMap.Name, err)
 	}
 
@@ -454,7 +455,7 @@ func concatenateIP(endpointInfo []ServiceInfo) (ip string) {
 
 func getEndpointsWithLabel(c kclientset.Interface, label string) (endpointInfo []ServiceInfo) {
 	selector, _ := labels.Parse(label)
-	endpoints, err := c.CoreV1().Endpoints("").List(metav1.ListOptions{LabelSelector: selector.String()})
+	endpoints, err := c.CoreV1().Endpoints("").List(context.Background(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		panic(err.Error())
 	}
@@ -664,7 +665,7 @@ func CreateSimpleTemplates(oc *exutil.CLI, nsName, config string, template Clust
 			}
 
 			mapping, err := restmapper.RESTMapping(unstructuredObj.GroupVersionKind().GroupKind(), unstructuredObj.GroupVersionKind().Version)
-			createdObj, err := dynamicClient.Resource(mapping.Resource).Namespace(nsName).Create(unstructuredObj, metav1.CreateOptions{})
+			createdObj, err := dynamicClient.Resource(mapping.Resource).Namespace(nsName).Create(context.Background(), unstructuredObj, metav1.CreateOptions{})
 			if err != nil {
 				return err
 			}
@@ -684,17 +685,17 @@ func SetNamespaceLabels(c kclientset.Interface, name string, labels map[string]s
 	if len(labels) == 0 {
 		return nil, nil
 	}
-	ns, err := c.CoreV1().Namespaces().Get(name, metav1.GetOptions{})
+	ns, err := c.CoreV1().Namespaces().Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	ns.Labels = labels
-	return c.CoreV1().Namespaces().Update(ns)
+	return c.CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
 }
 
 // ProjectExists checks to see if a namespace exists, returns boolean
 func ProjectExists(oc *exutil.CLI, name string) (bool, error) {
-	p, err := oc.AdminProjectClient().ProjectV1().Projects().Get(name, metav1.GetOptions{})
+	p, err := oc.AdminProjectClient().ProjectV1().Projects().Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return false, nil
@@ -710,7 +711,7 @@ func ProjectExists(oc *exutil.CLI, name string) (bool, error) {
 // DeleteProject deletes a namespace with timeout
 func DeleteProject(oc *exutil.CLI, name string, interval, timeout time.Duration) error {
 	e2e.Logf("Deleting project %v ...", name)
-	err := oc.AdminProjectClient().ProjectV1().Projects().Delete(name, &metav1.DeleteOptions{})
+	err := oc.AdminProjectClient().ProjectV1().Projects().Delete(context.Background(), name, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}

@@ -31,7 +31,7 @@ func readDeploymentFixture(path string) (*appsv1.Deployment, error) {
 }
 
 func waitForDeploymentModification(appsClient appsv1clientset.AppsV1Interface, objMeta metav1.ObjectMeta, timeout time.Duration, condition func(deployment *appsv1.Deployment) (bool, error)) (*appsv1.Deployment, error) {
-	watcher, err := appsClient.Deployments(objMeta.Namespace).Watch(metav1.SingleObject(objMeta))
+	watcher, err := appsClient.Deployments(objMeta.Namespace).Watch(context.Background(), metav1.SingleObject(objMeta))
 	if err != nil {
 		return nil, err
 	}

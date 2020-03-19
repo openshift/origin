@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 
 	g "github.com/onsi/ginkgo"
@@ -44,7 +45,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build with empty source", func(
 				br.AssertSuccess()
 
 				g.By(fmt.Sprintf("verifying the status of %q", br.BuildPath))
-				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Spec.Source.Dockerfile).To(o.BeNil())
 				o.Expect(build.Spec.Source.Git).To(o.BeNil())

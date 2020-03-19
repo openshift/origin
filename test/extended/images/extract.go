@@ -1,6 +1,7 @@
 package images
 
 import (
+	"context"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
@@ -30,7 +31,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 	oc = exutil.NewCLI("image-extract")
 
 	g.It("should extract content from an image", func() {
-		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get("php", metav1.GetOptions{})
+		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "php", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty(), "registry not yet configured?")
 		registry := strings.Split(is.Status.DockerImageRepository, "/")[0]
@@ -39,7 +40,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 		cli := oc.KubeFramework().PodClient()
 		client := imageclientset.NewForConfigOrDie(oc.UserConfig()).ImageV1()
 
-		_, err = client.ImageStreamImports(ns).Create(&imageapi.ImageStreamImport{
+		_, err = client.ImageStreamImports(ns).Create(context.Background(), &imageapi.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "1",
 			},
@@ -56,7 +57,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// busyboxLayers := isi.Status.Images[0].Image.DockerImageLayers

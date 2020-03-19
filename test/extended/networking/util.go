@@ -1,6 +1,7 @@
 package networking
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -21,6 +22,7 @@ import (
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -55,7 +57,7 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 	// FIXME: make e2e.LaunchWebserverPod() set the label when creating the pod
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
-		pod, err := podClient.Get(serviceName, metav1.GetOptions{})
+		pod, err := podClient.Get(context.Background(), serviceName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -63,7 +65,7 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 			pod.ObjectMeta.Labels = make(map[string]string)
 		}
 		pod.ObjectMeta.Labels["name"] = "web"
-		_, err = podClient.Update(pod)
+		_, err = podClient.Update(context.Background(), pod, metav1.UpdateOptions{})
 		return err
 	})
 	expectNoError(err)
@@ -87,10 +89,10 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 		},
 	}
 	serviceClient := f.ClientSet.CoreV1().Services(f.Namespace.Name)
-	_, err = serviceClient.Create(service)
+	_, err = serviceClient.Create(context.Background(), service, metav1.CreateOptions{})
 	expectNoError(err)
 	expectNoError(exutil.WaitForEndpoint(f.ClientSet, f.Namespace.Name, serviceName))
-	createdService, err := serviceClient.Get(serviceName, metav1.GetOptions{})
+	createdService, err := serviceClient.Get(context.Background(), serviceName, metav1.GetOptions{})
 	expectNoError(err)
 	serviceAddr = fmt.Sprintf("%s:%d", createdService.Spec.ClusterIP, servicePort)
 	e2e.Logf("Target service IP:port is %s", serviceAddr)
@@ -104,7 +106,7 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 	})
 	defer func() {
 		e2e.Logf("Cleaning up the exec pod")
-		err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(execPod.Name, nil)
+		err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.Background(), execPod.Name, metav1.DeleteOptions{})
 		Expect(err).NotTo(HaveOccurred())
 	}()
 
@@ -172,10 +174,10 @@ func pluginImplementsNetworkPolicy() bool {
 func makeNamespaceGlobal(oc *exutil.CLI, ns *corev1.Namespace) {
 	clientConfig := oc.AdminConfig()
 	networkClient := networkclient.NewForConfigOrDie(clientConfig)
-	netns, err := networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
+	netns, err := networkClient.NetNamespaces().Get(context.Background(), ns.Name, metav1.GetOptions{})
 	expectNoError(err)
 	netns.NetID = 0
-	_, err = networkClient.NetNamespaces().Update(netns)
+	_, err = networkClient.NetNamespaces().Update(context.Background(), netns, metav1.UpdateOptions{})
 	expectNoError(err)
 }
 
@@ -183,13 +185,13 @@ func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
 	// to avoid hassles dealing with selector limits, set the namespace label selector to empty
 	// to allow targeting all nodes
 	for {
-		ns, err := f.ClientSet.CoreV1().Namespaces().Get(f.Namespace.Name, metav1.GetOptions{})
+		ns, err := f.ClientSet.CoreV1().Namespaces().Get(context.Background(), f.Namespace.Name, metav1.GetOptions{})
 		expectNoError(err)
 		if ns.Annotations == nil {
 			ns.Annotations = make(map[string]string)
 		}
 		ns.Annotations[projectv1.ProjectNodeSelector] = ""
-		_, err = f.ClientSet.CoreV1().Namespaces().Update(ns)
+		_, err = f.ClientSet.CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
 		if err == nil {
 			return
 		}
@@ -247,7 +249,7 @@ func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *c
 
 	if nodeType == DIFFERENT_NODE {
 		if len(candidates) <= 1 {
-			e2e.Skipf("Only one node is available in this environment (%v out of %v)", candidateNames, nodeNames)
+			e2eskipper.Skipf("Only one node is available in this environment (%v out of %v)", candidateNames, nodeNames)
 		}
 		e2e.Logf("Using %s and %s for test (%v out of %v)", candidates[0].Name, candidates[1].Name, candidateNames, nodeNames)
 		return &candidates[0], &candidates[1], nil
@@ -264,7 +266,7 @@ func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
 		return err
 	}
 	podName := "isolation-webserver"
-	defer f1.ClientSet.CoreV1().Pods(f1.Namespace.Name).Delete(podName, nil)
+	defer f1.ClientSet.CoreV1().Pods(f1.Namespace.Name).Delete(context.Background(), podName, metav1.DeleteOptions{})
 	ip := exutil.LaunchWebserverPod(f1, podName, serverNode.Name)
 
 	return checkConnectivityToHost(f2, clientNode.Name, "isolation-wget", ip, 10*time.Second)
@@ -278,8 +280,8 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 		return err
 	}
 	podName := names.SimpleNameGenerator.GenerateName("service-")
-	defer serverFramework.ClientSet.CoreV1().Pods(serverFramework.Namespace.Name).Delete(podName, nil)
-	defer serverFramework.ClientSet.CoreV1().Services(serverFramework.Namespace.Name).Delete(podName, nil)
+	defer serverFramework.ClientSet.CoreV1().Pods(serverFramework.Namespace.Name).Delete(context.Background(), podName, metav1.DeleteOptions{})
+	defer serverFramework.ClientSet.CoreV1().Services(serverFramework.Namespace.Name).Delete(context.Background(), podName, metav1.DeleteOptions{})
 	ip := launchWebserverService(serverFramework, podName, serverNode.Name)
 
 	return checkConnectivityToHost(clientFramework, clientNode.Name, "service-wget", ip, 10*time.Second)
@@ -289,7 +291,7 @@ func InNonIsolatingContext(body func()) {
 	Context("when using a plugin that does not isolate namespaces by default", func() {
 		BeforeEach(func() {
 			if pluginIsolatesNamespaces() {
-				e2e.Skipf("This plugin isolates namespaces by default.")
+				e2eskipper.Skipf("This plugin isolates namespaces by default.")
 			}
 		})
 
@@ -301,7 +303,7 @@ func InIsolatingContext(body func()) {
 	Context("when using a plugin that isolates namespaces by default", func() {
 		BeforeEach(func() {
 			if !pluginIsolatesNamespaces() {
-				e2e.Skipf("This plugin does not isolate namespaces by default.")
+				e2eskipper.Skipf("This plugin does not isolate namespaces by default.")
 			}
 		})
 
@@ -313,7 +315,7 @@ func InNetworkPolicyContext(body func()) {
 	Context("when using a plugin that implements NetworkPolicy", func() {
 		BeforeEach(func() {
 			if !pluginImplementsNetworkPolicy() {
-				e2e.Skipf("This plugin does not implement NetworkPolicy.")
+				e2eskipper.Skipf("This plugin does not implement NetworkPolicy.")
 			}
 		})
 
@@ -333,7 +335,7 @@ func InPluginContext(plugins []string, body func()) {
 					}
 				}
 				if !found {
-					e2e.Skipf("Not using one of the specified plugins")
+					e2eskipper.Skipf("Not using one of the specified plugins")
 				}
 			})
 
@@ -347,7 +349,7 @@ func InOpenShiftSDNContext(body func()) {
 		func() {
 			BeforeEach(func() {
 				if networkPluginName() == "" {
-					e2e.Skipf("Not using openshift-sdn")
+					e2eskipper.Skipf("Not using openshift-sdn")
 				}
 			})
 

@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -56,12 +57,12 @@ var _ = g.Describe("[sig-builds][Feature:Builds] remove all builds when build co
 
 				g.By("waiting for builds to clear")
 				err = wait.Poll(3*time.Second, 3*time.Minute, func() (bool, error) {
-					builds, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					if len(builds.Items) > 0 {
 						return false, nil
 					}
-					configMaps, err := oc.KubeClient().CoreV1().ConfigMaps(oc.Namespace()).List(metav1.ListOptions{})
+					configMaps, err := oc.KubeClient().CoreV1().ConfigMaps(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					if len(configMaps.Items) > 0 {
 						return false, nil

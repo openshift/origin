@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -17,7 +18,7 @@ type PodConfig struct {
 }
 
 func getPodConfig(c kcoreclient.PodInterface, podName string) (conf *PodConfig, err error) {
-	pod, err := c.Get(podName, metav1.GetOptions{})
+	pod, err := c.Get(context.Background(), podName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +32,7 @@ func getPodConfig(c kcoreclient.PodInterface, podName string) (conf *PodConfig, 
 }
 
 func firstContainerName(c kcoreclient.PodInterface, podName string) (string, error) {
-	pod, err := c.Get(podName, metav1.GetOptions{})
+	pod, err := c.Get(context.Background(), podName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

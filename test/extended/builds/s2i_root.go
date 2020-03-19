@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"context"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -39,14 +41,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 		err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "nodejsfail-1", nil, nil, nil)
 		o.Expect(err).To(o.HaveOccurred())
 
-		build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
+		build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), "nodejsfail-1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseFailed))
 		o.Expect(build.Status.Reason).To(o.BeEquivalentTo("PullBuilderImageFailed" /*s2istatus.ReasonPullBuilderImageFailed*/))
 		o.Expect(build.Status.Message).To(o.BeEquivalentTo("Failed to pull builder image." /*s2istatus.ReasonMessagePullBuilderImageFailed*/))
 
 		podname := build.Annotations[buildv1.BuildPodNameAnnotation]
-		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), podname, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
@@ -88,7 +90,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 				},
 			},
 		}
-		role, err := oc.AdminKubeClient().RbacV1().Roles(oc.Namespace()).Create(role)
+		role, err := oc.AdminKubeClient().RbacV1().Roles(oc.Namespace()).Create(context.Background(), role, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		roleBinding := &rbacv1.RoleBinding{}
 		roleBinding.Namespace = oc.Namespace()
@@ -106,7 +108,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 				Namespace: oc.Namespace(),
 			},
 		}
-		roleBinding, err = oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(roleBinding)
+		roleBinding, err = oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("new-build").Args("docker.io/openshift/test-build-roots2i~https://github.com/sclorg/nodejs-ex", "--name", "nodejspass").Execute()
@@ -115,11 +117,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 		err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "nodejspass-1", nil, nil, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get("nodejspass-1", metav1.GetOptions{})
+		build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), "nodejspass-1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		podname := build.Annotations[buildv1.BuildPodNameAnnotation]
-		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), podname, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))

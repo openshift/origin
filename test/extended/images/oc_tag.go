@@ -1,6 +1,7 @@
 package images
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -18,6 +19,7 @@ import (
 var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("image-oc-tag")
+	ctx := context.Background()
 
 	g.It("should preserve image reference for external images", func() {
 		const (
@@ -36,7 +38,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// check that the created image stream references the external registry
-		is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get(isName, metav1.GetOptions{})
+		is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get(ctx, isName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(is.Status.Tags).To(o.HaveLen(1))
 		tag1 := is.Status.Tags[0]
@@ -53,7 +55,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// check that the new image stream references the still uses the external registry
-		is, err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get(isName2, metav1.GetOptions{})
+		is, err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get(ctx, isName2, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(is.Status.Tags).To(o.HaveLen(1))
 		tag2 := is.Status.Tags[0]
@@ -85,7 +87,7 @@ RUN touch /test-image
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// check that the created image stream references the integrated registry
-		is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get(isName, metav1.GetOptions{})
+		is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get(ctx, isName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(is.Status.Tags).To(o.HaveLen(1))
 		tag := is.Status.Tags[0]
@@ -107,7 +109,7 @@ RUN touch /test-image
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// check that the new image stream uses its own name in the image reference
-		is, err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get(isName2, metav1.GetOptions{})
+		is, err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get(ctx, isName2, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(is.Status.Tags).To(o.HaveLen(1))
 		tag = is.Status.Tags[0]
@@ -128,7 +130,7 @@ RUN touch /test-image
 
 		e2e.Logf("Creating a role that allows to work with imagestreams, but not imagestreamtags...")
 
-		_, err = oc.AdminAuthorizationClient().AuthorizationV1().Roles(oc.Namespace()).Create(&authorizationv1.Role{
+		_, err = oc.AdminAuthorizationClient().AuthorizationV1().Roles(oc.Namespace()).Create(ctx, &authorizationv1.Role{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "testrole",
 			},
@@ -139,7 +141,7 @@ RUN touch /test-image
 					Resources: []string{"imagestreams"},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("policy").Args("add-role-to-user", "testrole", "-z", "testsa", "--role-namespace="+oc.Namespace()).Execute()
@@ -159,7 +161,7 @@ RUN touch /test-image
 
 		e2e.Logf("Checking that the imagestream is updated...")
 
-		is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get("testis", metav1.GetOptions{})
+		is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get(ctx, "testis", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var tags []string

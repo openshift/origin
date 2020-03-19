@@ -1,9 +1,11 @@
 package image_ecosystem
 
 import (
+	"context"
 	"time"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	authorizationv1client "k8s.io/client-go/kubernetes/typed/authorization/v1"
@@ -28,7 +30,7 @@ func WaitForPolicyUpdate(c authorizationv1client.SelfSubjectAccessReviewsGetter,
 		},
 	}
 	err := wait.Poll(PolicyCachePollInterval, PolicyCachePollTimeout, func() (bool, error) {
-		response, err := c.SelfSubjectAccessReviews().Create(review)
+		response, err := c.SelfSubjectAccessReviews().Create(context.Background(), review, metav1.CreateOptions{})
 		if err != nil {
 			return false, err
 		}

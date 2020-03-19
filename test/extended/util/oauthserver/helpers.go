@@ -1,6 +1,7 @@
 package oauthserver
 
 import (
+	"context"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +41,7 @@ func GetUserForToken(config *restclient.Config, token, expectedUsername string) 
 		return nil, err
 	}
 
-	user, err := userClient.Users().Get("~", metav1.GetOptions{})
+	user, err := userClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
