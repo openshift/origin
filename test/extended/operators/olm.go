@@ -162,11 +162,10 @@ var _ = g.Describe("[Feature:Platform] an end user use OLM", func() {
 		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")
 		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
 		etcdSub             = filepath.Join(buildPruningBaseDir, "etcd-subscription.yaml")
-		etcdCluster         = filepath.Join(buildPruningBaseDir, "etcd-cluster.yaml")
 	)
 
 	files := []string{operatorGroup, etcdSub}
-	g.It("can subscribe to the etcd operator [Skipped:azure]", func() {
+	g.It("can subscribe to the etcd operator", func() {
 		g.By("Cluster-admin user subscribe the operator resource")
 		for _, v := range files {
 			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
@@ -188,28 +187,9 @@ var _ = g.Describe("[Feature:Platform] an end user use OLM", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Switch to common user to create the resources provided by the operator")
-		etcdClusterName := "example-etcd-cluster"
-		configFile, err := oc.Run("process").Args("-f", etcdCluster, "-p", fmt.Sprintf("NAME=%s", etcdClusterName), fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
+		output, err := oc.Run("get").Args("deployments", "-n", oc.Namespace()).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.Run("create").Args("-f", configFile).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
-			output, err := oc.Run("get").Args("-n", oc.Namespace(), "etcdCluster", etcdClusterName, "-o=jsonpath={.status}").Output()
-			if err != nil {
-				e2e.Failf("Failed to get etcdCluster, error:%v", err)
-				return false, err
-			}
-			if strings.Contains(output, "phase:Running") && strings.Contains(output, "currentVersion:3.2.13") && strings.Contains(output, "size:3") {
-				return true, nil
-			}
-			return false, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		output, err := oc.Run("get").Args("pods", "-n", oc.Namespace()).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(output).To(o.ContainSubstring(etcdClusterName))
+		o.Expect(output).To(o.ContainSubstring("etcd"))
 	})
 
 	// OCP-24829 - Report `Upgradeable` in OLM ClusterOperators status
