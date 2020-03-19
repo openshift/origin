@@ -86,18 +86,24 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 				// rely on cascade deletion when namespace is deleted
 
 				for _, pod := range updatedPods {
-					for i := 0; i < len(pod.Spec.Containers); i++ {
-						node := findNodeHostingPod(topoMgrNodes, pod)
-						e2e.Logf("pod %q running on %q", pod.Name, node.Name)
-
-						cpuSet, err := getContainerCPUSet(client, oc, node, pod, i)
+					for _, cnt := range pod.Spec.Containers {
+						out, err := getAllowedCpuListForContainer(oc, pod, &cnt)
 						e2e.ExpectNoError(err)
+						envOut := makeAllowedCpuListEnv(out)
+						e2e.Logf("pod %q container %q: %s", pod.Name, cnt.Name, envOut)
 
-						cpuSetNumaNodes, err := getCPUSetNumaNodes(client, oc, node, cpuSet)
+						numaNodes, err := getNumaNodeCount(oc, pod, &cnt)
 						e2e.ExpectNoError(err)
+						envInfo := testEnvInfo{
+							numaNodes: numaNodes,
+						}
+						numaRes, err := checkNUMAAlignment(oc.KubeFramework(), pod, &cnt, envOut, &envInfo)
+						e2e.ExpectNoError(err)
+						ok := numaRes.CheckAlignment()
 
-						o.Expect(allEqual(cpuSetNumaNodes)).To(o.BeTrue(), "NUMA misalignment for container %s in pod %s: %s", pod.Spec.Containers[i].Name, pod.Name, cpuSetNumaNodes)
+						o.Expect(ok).To(o.BeTrue(), "misaligned NUMA resources: %s", numaRes.String())
 					}
+
 				}
 
 			},
