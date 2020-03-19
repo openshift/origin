@@ -1,6 +1,8 @@
 package images
 
 import (
+	"context"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -18,18 +20,19 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("resolve-local-names")
 	one := int64(0)
+	ctx := context.Background()
 
 	g.It("should update standard Kube object image fields when local names are on", func() {
 		err := oc.Run("import-image").Args("busybox:latest", "--confirm").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("set", "image-lookup").Args("busybox").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("busybox:latest", metav1.GetOptions{})
+		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(ctx, "busybox:latest", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(tag.LookupPolicy.Local).To(o.BeTrue())
 
 		// pods should auto replace local references
-		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(&kapiv1.Pod{
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(ctx, &kapiv1.Pod{
 			ObjectMeta: metav1.ObjectMeta{Name: "resolve"},
 			Spec: kapiv1.PodSpec{
 				TerminationGracePeriodSeconds: &one,
@@ -39,7 +42,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					{Name: "resolve2", Image: "busybox:unknown", Command: []string{"/bin/true"}},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if pod.Spec.Containers[0].Image != tag.Image.DockerImageReference {
@@ -48,10 +51,10 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 
 		o.Expect(pod.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 		o.Expect(pod.Spec.Containers[1].Image).To(o.HaveSuffix("/" + oc.Namespace() + "/busybox:unknown"))
-		defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(pod.Name, nil) }()
+		defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(ctx, pod.Name, metav1.DeleteOptions{}) }()
 
 		// replica sets should auto replace local references
-		rs, err := oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Create(&appsv1.ReplicaSet{
+		rs, err := oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Create(ctx, &appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{Name: "resolve"},
 			Spec: appsv1.ReplicaSetSpec{
 				Selector: &metav1.LabelSelector{
@@ -69,20 +72,22 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(rs.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
-		defer func() { oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Delete(rs.Name, nil) }()
+		defer func() {
+			oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Delete(ctx, rs.Name, metav1.DeleteOptions{})
+		}()
 	})
 
 	g.It("should perform lookup when the object has the resolve-names annotation", func() {
 		err := oc.Run("import-image").Args("busybox:latest", "--confirm").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("busybox:latest", metav1.GetOptions{})
+		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(ctx, "busybox:latest", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("auto replacing local references on Pods")
-		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(&kapiv1.Pod{
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(ctx, &kapiv1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve",
 				Annotations: map[string]string{
@@ -97,7 +102,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					{Name: "resolve2", Image: "busybox:unknown", Command: []string{"/bin/true"}},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if pod.Spec.Containers[0].Image != tag.Image.DockerImageReference {
@@ -108,7 +113,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		o.Expect(pod.Spec.Containers[1].Image).To(o.HaveSuffix("/" + oc.Namespace() + "/busybox:unknown"))
 
 		g.By("auto replacing local references on ReplicaSets")
-		rs, err := oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Create(&appsv1.ReplicaSet{
+		rs, err := oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Create(ctx, &appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve",
 				Annotations: map[string]string{
@@ -129,12 +134,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(rs.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 
 		g.By("auto replacing local references on Deployments")
-		deployment, err := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Create(&appsv1.Deployment{
+		deployment, err := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx, &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve",
 				Annotations: map[string]string{
@@ -155,12 +160,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 
 		g.By("auto replacing local references on Deployments (in pod template)")
-		deployment, err = oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Create(&appsv1.Deployment{
+		deployment, err = oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx, &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve-template",
 			},
@@ -183,12 +188,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 
 		g.By("auto replacing local references on DaemonSets")
-		daemonset, err := oc.KubeClient().AppsV1().DaemonSets(oc.Namespace()).Create(&appsv1.DaemonSet{
+		daemonset, err := oc.KubeClient().AppsV1().DaemonSets(oc.Namespace()).Create(ctx, &appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve",
 				Annotations: map[string]string{
@@ -211,12 +216,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(daemonset.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 
 		g.By("auto replacing local references on DaemonSets (in pod template)")
-		daemonset, err = oc.KubeClient().AppsV1().DaemonSets(oc.Namespace()).Create(&appsv1.DaemonSet{
+		daemonset, err = oc.KubeClient().AppsV1().DaemonSets(oc.Namespace()).Create(ctx, &appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve-template",
 			},
@@ -239,12 +244,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(daemonset.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 
 		g.By("auto replacing local references on StatefulSets")
-		statefulset, err := oc.KubeClient().AppsV1().StatefulSets(oc.Namespace()).Create(&appsv1.StatefulSet{
+		statefulset, err := oc.KubeClient().AppsV1().StatefulSets(oc.Namespace()).Create(ctx, &appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve",
 				Annotations: map[string]string{
@@ -267,12 +272,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(statefulset.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 
 		g.By("auto replacing local references on StatefulSets (in pod template)")
-		statefulset, err = oc.KubeClient().AppsV1().StatefulSets(oc.Namespace()).Create(&appsv1.StatefulSet{
+		statefulset, err = oc.KubeClient().AppsV1().StatefulSets(oc.Namespace()).Create(ctx, &appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve-template",
 			},
@@ -295,12 +300,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(statefulset.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 
 		g.By("auto replacing local references on Jobs")
-		job, err := oc.KubeClient().BatchV1().Jobs(oc.Namespace()).Create(&kbatchv1.Job{
+		job, err := oc.KubeClient().BatchV1().Jobs(oc.Namespace()).Create(ctx, &kbatchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve",
 				Annotations: map[string]string{
@@ -321,12 +326,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(job.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 
 		g.By("auto replacing local references on Jobs (in pod template)")
-		job, err = oc.KubeClient().BatchV1().Jobs(oc.Namespace()).Create(&kbatchv1.Job{
+		job, err = oc.KubeClient().BatchV1().Jobs(oc.Namespace()).Create(ctx, &kbatchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve-template",
 			},
@@ -346,12 +351,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(job.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 
 		g.By("auto replacing local references on CronJobs")
-		cronjob, err := oc.KubeClient().BatchV1beta1().CronJobs(oc.Namespace()).Create(&kbatchv1beta1.CronJob{
+		cronjob, err := oc.KubeClient().BatchV1beta1().CronJobs(oc.Namespace()).Create(ctx, &kbatchv1beta1.CronJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve",
 				Annotations: map[string]string{
@@ -374,12 +379,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 
 		g.By("auto replacing local references on CronJobs (in pod template)")
-		cronjob, err = oc.KubeClient().BatchV1beta1().CronJobs(oc.Namespace()).Create(&kbatchv1beta1.CronJob{
+		cronjob, err = oc.KubeClient().BatchV1beta1().CronJobs(oc.Namespace()).Create(ctx, &kbatchv1beta1.CronJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve-template",
 			},
@@ -404,7 +409,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 	})
@@ -412,10 +417,10 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 	g.It("should perform lookup when the Deployment gets the resolve-names annotation later", func() {
 		err := oc.Run("import-image").Args("busybox:latest", "--confirm").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("busybox:latest", metav1.GetOptions{})
+		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(ctx, "busybox:latest", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		deployment, err := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Create(&appsv1.Deployment{
+		deployment, err := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx, &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve",
 			},
@@ -435,7 +440,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(o.Equal("busybox:latest"))
 
@@ -444,7 +449,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 			deployment.Annotations = map[string]string{}
 		}
 		deployment.Annotations["alpha.image.policy.openshift.io/resolve-names"] = "*"
-		deployment, err = oc.KubeClient().AppsV1().Deployments(deployment.Namespace).Patch(deployment.Name, types.StrategicMergePatchType, []byte(`{"metadata": {"annotations": {"alpha.image.policy.openshift.io/resolve-names": "*"}}}`))
+		deployment, err = oc.KubeClient().AppsV1().Deployments(deployment.Namespace).Patch(ctx, deployment.Name, types.StrategicMergePatchType, []byte(`{"metadata": {"annotations": {"alpha.image.policy.openshift.io/resolve-names": "*"}}}`), metav1.PatchOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(deployment.ObjectMeta.Annotations["alpha.image.policy.openshift.io/resolve-names"]).To(o.Equal("*"))
 		o.Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))

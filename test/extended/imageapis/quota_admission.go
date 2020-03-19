@@ -1,6 +1,7 @@
 package imageapis
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -81,7 +82,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota] Image resource quota
 		assertQuotaExceeded(err)
 
 		g.By("deleting first image stream")
-		err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Delete("first", nil)
+		err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Delete(context.Background(), "first", metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = exutil.WaitForResourceQuotaSync(
 			oc.KubeClient().CoreV1().ResourceQuotas(oc.Namespace()),
@@ -115,7 +116,7 @@ func createResourceQuota(oc *exutil.CLI, hard corev1.ResourceList) (*corev1.Reso
 	}
 
 	g.By(fmt.Sprintf("creating resource quota with a limit %v", hard))
-	rq, err := oc.AdminKubeClient().CoreV1().ResourceQuotas(oc.Namespace()).Create(rq)
+	rq, err := oc.AdminKubeClient().CoreV1().ResourceQuotas(oc.Namespace()).Create(context.Background(), rq, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -152,12 +153,12 @@ func assertQuotasEqual(a, b corev1.ResourceList) error {
 // bumpQuota modifies hard spec of quota object with the given value. It returns modified hard spec.
 func bumpQuota(oc *exutil.CLI, resourceName corev1.ResourceName, value int64) (corev1.ResourceList, error) {
 	g.By(fmt.Sprintf("bump the quota to %s=%d", resourceName, value))
-	rq, err := oc.AdminKubeClient().CoreV1().ResourceQuotas(oc.Namespace()).Get(quotaName, metav1.GetOptions{})
+	rq, err := oc.AdminKubeClient().CoreV1().ResourceQuotas(oc.Namespace()).Get(context.Background(), quotaName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	rq.Spec.Hard[resourceName] = *resource.NewQuantity(value, resource.DecimalSI)
-	_, err = oc.AdminKubeClient().CoreV1().ResourceQuotas(oc.Namespace()).Update(rq)
+	_, err = oc.AdminKubeClient().CoreV1().ResourceQuotas(oc.Namespace()).Update(context.Background(), rq, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +208,7 @@ func waitForResourceQuotaLimitSync(
 
 	expectedResourceNames := quota.ResourceNames(hardLimit)
 
-	list, err := client.List(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
+	list, err := client.List(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
 	if err != nil {
 		return err
 	}
@@ -220,7 +221,7 @@ func waitForResourceQuotaLimitSync(
 	}
 
 	rv := list.ResourceVersion
-	w, err := client.Watch(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String(), ResourceVersion: rv})
+	w, err := client.Watch(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String(), ResourceVersion: rv})
 	if err != nil {
 		return err
 	}
@@ -263,21 +264,21 @@ func isLimitSynced(received, expected corev1.ResourceList) bool {
 
 func createImageStreamMapping(oc *exutil.CLI, namespace, name, tag string) error {
 	e2e.Logf("Creating image stream mapping for %s/%s:%s...", namespace, name, tag)
-	_, err := oc.AdminImageClient().ImageV1().ImageStreams(namespace).Get(name, metav1.GetOptions{})
+	_, err := oc.AdminImageClient().ImageV1().ImageStreams(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if kerrors.IsNotFound(err) {
-		_, err = oc.AdminImageClient().ImageV1().ImageStreams(namespace).Create(&imagev1.ImageStream{
+		_, err = oc.AdminImageClient().ImageV1().ImageStreams(namespace).Create(context.Background(), &imagev1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: namespace,
 			},
-		})
+		}, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
 	} else if err != nil {
 		return err
 	}
-	_, err = oc.AdminImageClient().ImageV1().ImageStreamMappings(namespace).Create(&imagev1.ImageStreamMapping{
+	_, err = oc.AdminImageClient().ImageV1().ImageStreamMappings(namespace).Create(context.Background(), &imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -288,7 +289,7 @@ func createImageStreamMapping(oc *exutil.CLI, namespace, name, tag string) error
 			},
 		},
 		Tag: tag,
-	})
+	}, metav1.CreateOptions{})
 	return err
 }
 

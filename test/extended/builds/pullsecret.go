@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 
 	g "github.com/onsi/ginkgo"
@@ -50,7 +51,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using pull secrets in a b
 			g.Describe("pulling from an external authenticated registry", func() {
 				g.BeforeEach(func() {
 					g.By("copying the cluster pull secret to the namespace")
-					ps, err := oc.AsAdmin().AdminKubeClient().CoreV1().Secrets("openshift-config").Get("pull-secret", metav1.GetOptions{})
+					ps, err := oc.AsAdmin().AdminKubeClient().CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					localPullSecret := &corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
@@ -59,7 +60,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using pull secrets in a b
 						Data: ps.Data,
 						Type: ps.Type,
 					}
-					_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(localPullSecret)
+					_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), localPullSecret, metav1.CreateOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
 

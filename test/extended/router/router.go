@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -74,7 +75,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			g.By("waiting for the ingress rule to be converted to routes")
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig())
 			err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-				routes, err := client.RouteV1().Routes(ns).List(metav1.ListOptions{})
+				routes, err := client.RouteV1().Routes(ns).List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					return false, err
 				}

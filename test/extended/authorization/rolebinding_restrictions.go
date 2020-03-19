@@ -1,6 +1,7 @@
 package authorization
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -32,7 +33,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 			g.It(fmt.Sprintf("should succeed"), func() {
 				ns := oc.Namespace()
 				users := []string{"bob"}
-				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(generateAllowUserRolebindingRestriction(ns, users))
+				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(context.Background(), generateAllowUserRolebindingRestriction(ns, users), metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				roleBindingCreate(oc, false, false, ns, users[0], "rb1")
@@ -45,7 +46,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 				ns := oc.Namespace()
 				roleBindingCreate(oc, false, false, ns, users[0], "rb1")
 
-				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(generateAllowUserRolebindingRestriction(ns, users))
+				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(context.Background(), generateAllowUserRolebindingRestriction(ns, users), metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				roleBindingCreate(oc, false, false, ns, users[0], "rb2")
@@ -58,7 +59,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 				users := []string{"dave", "eve"}
 				roleBindingCreate(oc, false, false, ns, users[0], "rb1")
 
-				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(generateAllowUserRolebindingRestriction(ns, users[:len(users)-1]))
+				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(context.Background(), generateAllowUserRolebindingRestriction(ns, users[:len(users)-1]), metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				roleBindingCreate(oc, false, true, ns, users[1], "rb2")
@@ -71,7 +72,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 				users := []string{"frank", "george"}
 				roleBindingCreate(oc, false, false, ns, users[0], "rb1")
 
-				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(generateAllowUserRolebindingRestriction(ns, users[:len(users)-1]))
+				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(context.Background(), generateAllowUserRolebindingRestriction(ns, users[:len(users)-1]), metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				roleBindingCreate(oc, true, true, ns, users[1], "rb2")
@@ -82,7 +83,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 			g.It(fmt.Sprintf("should succeed"), func() {
 				ns := oc.Namespace()
 				users := []string{"harry", "system:non-existing"}
-				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(generateAllowUserRolebindingRestriction(ns, users))
+				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(context.Background(), generateAllowUserRolebindingRestriction(ns, users), metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				roleBindingCreate(oc, false, false, ns, users[0], "rb1")
@@ -99,7 +100,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 				// No restrictions, rolebinding should succeed
 				roleBindingCreate(oc, false, false, ns, users[0], "rb1")
 				// Subject bound, rolebinding restriction should succeed
-				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(generateAllowUserRolebindingRestriction(ns, users[:len(users)-1]))
+				_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(context.Background(), generateAllowUserRolebindingRestriction(ns, users[:len(users)-1]), metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// Duplicate should succeed
@@ -112,7 +113,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 				roleBindingCreate(oc, true, true, ns, users[1], "rb3")
 
 				// Create a rolebinding that also contains system:non-existing users should succeed
-				_, err = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(generateAllowUserRolebindingRestriction(ns, users2))
+				_, err = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindingRestrictions(ns).Create(context.Background(), generateAllowUserRolebindingRestriction(ns, users2), metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				roleBindingCreate(oc, false, false, ns, users2[0], "rb4")
@@ -179,9 +180,9 @@ func roleBindingCreate(oc *exutil.CLI, useRBAC, shouldErr bool, ns, user, rb str
 	var rbrErr error
 	switch {
 	case useRBAC:
-		_, rbrErr = oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(generateRbacUserRolebinding(ns, user, rb))
+		_, rbrErr = oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), generateRbacUserRolebinding(ns, user, rb), metav1.CreateOptions{})
 	default:
-		_, rbrErr = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(ns).Create(generateRolebinding(ns, user, rb))
+		_, rbrErr = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(ns).Create(context.Background(), generateRolebinding(ns, user, rb), metav1.CreateOptions{})
 	}
 	if !shouldErr {
 		o.Expect(rbrErr).NotTo(o.HaveOccurred())

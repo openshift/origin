@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -29,7 +30,7 @@ func NewE2EPrometheusRouterClient(oc *util.CLI) (prometheusv1.API, error) {
 
 	// wait for prometheus service to exist
 	err := wait.PollImmediate(time.Minute, time.Second, func() (bool, error) {
-		_, err := kubeClient.CoreV1().Services("openshift-monitoring").Get("prometheus-k8s", metav1.GetOptions{})
+		_, err := kubeClient.CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
 		return err == nil, nil
 	})
 	if err != nil {
@@ -39,7 +40,7 @@ func NewE2EPrometheusRouterClient(oc *util.CLI) (prometheusv1.API, error) {
 	// wait for the prometheus route to exist
 	var route *routev1.Route
 	err = wait.PollImmediate(time.Minute, time.Second, func() (bool, error) {
-		route, err = routeClient.RouteV1().Routes("openshift-monitoring").Get("prometheus-k8s", metav1.GetOptions{})
+		route, err = routeClient.RouteV1().Routes("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
 		return err == nil, nil
 	})
 	if err != nil {
@@ -48,7 +49,7 @@ func NewE2EPrometheusRouterClient(oc *util.CLI) (prometheusv1.API, error) {
 
 	// retrieve an openshift-monitoring service account secret
 	var secret *corev1.Secret
-	secrets, err := kubeClient.CoreV1().Secrets("openshift-monitoring").List(metav1.ListOptions{})
+	secrets, err := kubeClient.CoreV1().Secrets("openshift-monitoring").List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

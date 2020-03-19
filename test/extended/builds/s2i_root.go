@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"context"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -39,14 +41,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 		err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "nodejsfail-1", nil, nil, nil)
 		o.Expect(err).To(o.HaveOccurred())
 
-		build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
+		build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), "nodejsfail-1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseFailed))
 		o.Expect(build.Status.Reason).To(o.BeEquivalentTo("PullBuilderImageFailed" /*s2istatus.ReasonPullBuilderImageFailed*/))
 		o.Expect(build.Status.Message).To(o.BeEquivalentTo("Failed to pull builder image." /*s2istatus.ReasonMessagePullBuilderImageFailed*/))
 
 		podname := build.Annotations[buildv1.BuildPodNameAnnotation]
-		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), podname, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
@@ -68,11 +70,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 		defer After(oc)
 		g.By("adding builder account to privileged SCC")
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			scc, err := oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
+			scc, err := oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Get(context.Background(), "privileged", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			scc.Users = append(scc.Users, "system:serviceaccount:"+oc.Namespace()+":builder")
-			_, err = oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Update(scc)
+			_, err = oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Update(context.Background(), scc, metav1.UpdateOptions{})
 			return err
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -83,11 +85,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 		err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "nodejspass-1", nil, nil, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get("nodejspass-1", metav1.GetOptions{})
+		build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), "nodejspass-1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		podname := build.Annotations[buildv1.BuildPodNameAnnotation]
-		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), podname, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))

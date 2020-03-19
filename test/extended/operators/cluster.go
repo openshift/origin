@@ -1,6 +1,7 @@
 package operators
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -25,7 +26,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 		podsWithProblems := make(map[string]*corev1.Pod)
 		var lastPending map[string]*corev1.Pod
 		wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
-			allPods, err := c.CoreV1().Pods("").List(metav1.ListOptions{})
+			allPods, err := c.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			var pods []*corev1.Pod

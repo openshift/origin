@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -40,7 +41,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] imagechangetriggers", func() {
 
 			err = wait.Poll(time.Second, 30*time.Second, func() (done bool, err error) {
 				for _, build := range []string{"bc-docker-1", "bc-jenkins-1", "bc-source-1", "bc-custom-1"} {
-					_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(build, metav1.GetOptions{})
+					_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), build, metav1.GetOptions{})
 					if err == nil {
 						continue
 					}

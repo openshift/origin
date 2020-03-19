@@ -2,6 +2,7 @@ package dr
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -52,7 +53,7 @@ func runCommandAndRetry(command string) string {
 }
 
 func masterNodes(oc *exutil.CLI) []*corev1.Node {
-	masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(metav1.ListOptions{
+	masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: "node-role.kubernetes.io/master",
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -98,7 +99,7 @@ func waitForOperatorsToSettle(coc dynamic.NamespaceableResourceInterface) {
 	lastErr = nil
 	var lastCOs []objx.Map
 	wait.PollImmediate(30*time.Second, operatorWait, func() (bool, error) {
-		obj, err := coc.List(metav1.ListOptions{})
+		obj, err := coc.List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			lastErr = err
 			e2elog.Logf("Unable to check for cluster operators: %v", err)
@@ -181,17 +182,17 @@ func waitForOperatorsToSettle(coc dynamic.NamespaceableResourceInterface) {
 func restartSDNPods(oc *exutil.CLI) {
 	e2elog.Logf("Restarting SDN")
 
-	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-sdn").List(metav1.ListOptions{})
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-sdn").List(context.Background(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	for _, pod := range pods.Items {
 		e2elog.Logf("Deleting pod %s", pod.Name)
-		err := oc.AdminKubeClient().CoreV1().Pods("openshift-sdn").Delete(pod.Name, &metav1.DeleteOptions{})
+		err := oc.AdminKubeClient().CoreV1().Pods("openshift-sdn").Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
 	err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		sdnDaemonset, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-sdn").Get("sdn", metav1.GetOptions{})
+		sdnDaemonset, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-sdn").Get(context.Background(), "sdn", metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -203,17 +204,17 @@ func restartSDNPods(oc *exutil.CLI) {
 func restartOpenshiftAPIPods(oc *exutil.CLI) {
 	e2elog.Logf("Restarting Openshift API server")
 
-	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-apiserver").List(metav1.ListOptions{})
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-apiserver").List(context.Background(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	for _, pod := range pods.Items {
 		e2elog.Logf("Deleting pod %s", pod.Name)
-		err := oc.AdminKubeClient().CoreV1().Pods("openshift-apiserver").Delete(pod.Name, &metav1.DeleteOptions{})
+		err := oc.AdminKubeClient().CoreV1().Pods("openshift-apiserver").Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
 	err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		apiServerDS, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-apiserver").Get("apiserver", metav1.GetOptions{})
+		apiServerDS, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-apiserver").Get(context.Background(), "apiserver", metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -225,17 +226,17 @@ func restartOpenshiftAPIPods(oc *exutil.CLI) {
 func restartMCDPods(oc *exutil.CLI) {
 	e2elog.Logf("Restarting MCD pods")
 
-	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-machine-config-operator").List(metav1.ListOptions{})
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-machine-config-operator").List(context.Background(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	for _, pod := range pods.Items {
 		e2elog.Logf("Deleting pod %s", pod.Name)
-		err := oc.AdminKubeClient().CoreV1().Pods("openshift-machine-config-operator").Delete(pod.Name, &metav1.DeleteOptions{})
+		err := oc.AdminKubeClient().CoreV1().Pods("openshift-machine-config-operator").Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
 	err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		mcDS, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-machine-config-operator").Get("machine-config-daemon", metav1.GetOptions{})
+		mcDS, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-machine-config-operator").Get(context.Background(), "machine-config-daemon", metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}

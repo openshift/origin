@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -36,7 +37,7 @@ var _ = g.Describe("[sig-apps][Feature:Jobs]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("checking job status...")
-			jobs, err := oc.KubeClient().BatchV1().Jobs(oc.Namespace()).List(metav1.ListOptions{LabelSelector: exutil.ParseLabelsOrDie(labels).String()})
+			jobs, err := oc.KubeClient().BatchV1().Jobs(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: exutil.ParseLabelsOrDie(labels).String()})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(len(jobs.Items)).Should(o.Equal(1))

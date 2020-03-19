@@ -2,6 +2,7 @@ package images
 
 import (
 	"bytes"
+	"context"
 	cryptorand "crypto/rand"
 	"crypto/tls"
 	"fmt"
@@ -143,7 +144,7 @@ var (
 // image reference
 func GetImageLabels(c imagev1typedclient.ImageStreamImageInterface, imageRepoName, imageRef string) (map[string]string, error) {
 	_, imageID, err := imageutil.ParseImageStreamImageName(imageRef)
-	image, err := c.Get(imageutil.JoinImageStreamImage(imageRepoName, imageID), metav1.GetOptions{})
+	image, err := c.Get(context.Background(), imageutil.JoinImageStreamImage(imageRepoName, imageID), metav1.GetOptions{})
 
 	if err != nil {
 		return map[string]string{}, err
@@ -172,13 +173,13 @@ func BuildAndPushImageOfSizeWithBuilder(
 		istName += ":" + tag
 	}
 
-	bc, err := oc.BuildClient().BuildV1().BuildConfigs(namespace).Get(name, metav1.GetOptions{})
+	bc, err := oc.BuildClient().BuildV1().BuildConfigs(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err == nil {
 		if bc.Spec.CommonSpec.Output.To.Kind != "ImageStreamTag" {
 			return fmt.Errorf("Unexpected kind of buildspec's output (%s != %s)", bc.Spec.CommonSpec.Output.To.Kind, "ImageStreamTag")
 		}
 		bc.Spec.CommonSpec.Output.To.Name = istName
-		if _, err = oc.BuildClient().BuildV1().BuildConfigs(namespace).Update(bc); err != nil {
+		if _, err = oc.BuildClient().BuildV1().BuildConfigs(namespace).Update(context.Background(), bc, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	} else {
@@ -774,20 +775,21 @@ func (c *CleanUpContainer) AddImageStream(isName string) {
 
 // Run deletes all the marked objects.
 func (c *CleanUpContainer) Run() {
+	delOpts := metav1.DeleteOptions{}
 	for image := range c.imageNames {
-		err := c.OC.AsAdmin().ImageClient().ImageV1().Images().Delete(image, nil)
+		err := c.OC.AsAdmin().ImageClient().ImageV1().Images().Delete(context.Background(), image, delOpts)
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "clean up of image %q failed: %v\n", image, err)
 		}
 	}
 	for isName := range c.isNames {
-		err := c.OC.AsAdmin().ImageClient().ImageV1().ImageStreams(c.OC.Namespace()).Delete(isName, nil)
+		err := c.OC.AsAdmin().ImageClient().ImageV1().ImageStreams(c.OC.Namespace()).Delete(context.Background(), isName, delOpts)
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "clean up of image stream %q failed: %v\n", isName, err)
 		}
 	}
 	for isTag := range c.isTags {
-		err := c.OC.ImageClient().ImageV1().ImageStreamTags(c.OC.Namespace()).Delete(isTag, nil)
+		err := c.OC.ImageClient().ImageV1().ImageStreamTags(c.OC.Namespace()).Delete(context.Background(), isTag, delOpts)
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "clean up of image stream tag %q failed: %v\n", isTag, err)
 		}

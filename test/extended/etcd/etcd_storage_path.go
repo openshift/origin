@@ -237,12 +237,13 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	etcddata.CreateTestCRDs(tt, crdClient, false, etcddata.GetCustomResourceDefinitionData()...)
 	defer func() {
 		deleteCRD := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete
-		// this list deletes crds created from upstream kubernetes/test/integration/etcd/data.go
+		ctx := context.Background()
+		delOptions := metav1.DeleteOptions{}
 		if err := errors.NewAggregate([]error{
-			deleteCRD("foos.cr.bar.com", nil),
-			deleteCRD("pandas.awesome.bears.com", nil),
-			deleteCRD("pants.custom.fancy.com", nil),
-			deleteCRD("integers.random.numbers.com", nil),
+			deleteCRD(ctx, "foos.cr.bar.com", delOptions),
+			deleteCRD(ctx, "pandas.awesome.bears.com", delOptions),
+			deleteCRD(ctx, "pants.custom.fancy.com", delOptions),
+			deleteCRD(ctx, "integers.random.numbers.com", delOptions),
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -255,11 +256,11 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 	client := &allClient{dynamicClient: dynamic.NewForConfigOrDie(kubeConfig)}
 
-	if _, err := kubeClient.CoreV1().Namespaces().Create(&kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
+	if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("error creating test namespace: %#v", err)
 	}
 	defer func() {
-		if err := kubeClient.CoreV1().Namespaces().Delete(testNamespace, nil); err != nil {
+		if err := kubeClient.CoreV1().Namespaces().Delete(context.Background(), testNamespace, metav1.DeleteOptions{}); err != nil {
 			t.Fatalf("error deleting test namespace: %#v", err)
 		}
 	}()
@@ -451,7 +452,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 }
 
 func getCRDs(t g.GinkgoTInterface, crdClient *apiextensionsclientset.Clientset) map[schema.GroupVersionResource]empty {
-	crdList, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().List(metav1.ListOptions{})
+	crdList, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -592,7 +593,7 @@ func (c *allClient) create(stub, ns string, mapping *meta.RESTMapping, all *[]cl
 		return err
 	}
 
-	actual, err := resourceClient.Create(obj, metav1.CreateOptions{})
+	actual, err := resourceClient.Create(context.Background(), obj, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -607,7 +608,7 @@ func (c *allClient) cleanup(all *[]cleanupData) error {
 		obj := (*all)[i].obj
 		gvr := (*all)[i].resource
 
-		if err := c.dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Delete(obj.GetName(), nil); err != nil {
+		if err := c.dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Delete(context.Background(), obj.GetName(), metav1.DeleteOptions{}); err != nil {
 			return err
 		}
 	}

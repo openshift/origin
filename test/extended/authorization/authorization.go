@@ -1,6 +1,7 @@
 package authorization
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -84,7 +85,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 					{Resource: "imagestreams/secrets"}:     true,
 				}
 
-				readerRole, err := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles().Get("cluster-reader", metav1.GetOptions{})
+				readerRole, err := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles().Get(context.Background(), "cluster-reader", metav1.GetOptions{})
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
@@ -231,7 +232,7 @@ func (test resourceAccessReviewTest) run() {
 		// so that if you never have a success, we can call t.Errorf with a reasonable message
 		// exiting the poll with `failMessage=""` indicates success.
 		err = wait.Poll(PolicyCachePollInterval, PolicyCachePollTimeout, func() (bool, error) {
-			actualResponse, err := test.clientInterface.Create(test.review)
+			actualResponse, err := test.clientInterface.Create(context.Background(), test.review, metav1.CreateOptions{})
 			if len(test.err) > 0 {
 				if err == nil {
 					failMessage = fmt.Sprintf("%s: Expected error: %v", test.description, test.err)
@@ -302,7 +303,7 @@ func (test localResourceAccessReviewTest) run() {
 		// so that if you never have a success, we can call t.Errorf with a reasonable message
 		// exiting the poll with `failMessage=""` indicates success.
 		err = wait.Poll(PolicyCachePollInterval, PolicyCachePollTimeout, func() (bool, error) {
-			actualResponse, err := test.clientInterface.Create(test.review)
+			actualResponse, err := test.clientInterface.Create(context.Background(), test.review, metav1.CreateOptions{})
 			if len(test.err) > 0 {
 				if err == nil {
 					failMessage = fmt.Sprintf("%s: Expected error: %v", test.description, test.err)
@@ -803,9 +804,9 @@ func (test subjectAccessReviewTest) run(t g.GinkgoTInterface) {
 			var err error
 			var actualResponse *authorizationv1.SubjectAccessReviewResponse
 			if test.localReview != nil {
-				actualResponse, err = test.localInterface.Create(test.localReview)
+				actualResponse, err = test.localInterface.Create(context.Background(), test.localReview, metav1.CreateOptions{})
 			} else {
-				actualResponse, err = test.clusterInterface.Create(test.clusterReview)
+				actualResponse, err = test.clusterInterface.Create(context.Background(), test.clusterReview, metav1.CreateOptions{})
 			}
 			if len(test.err) > 0 {
 				if err == nil {
@@ -872,18 +873,18 @@ func (test subjectAccessReviewTest) run(t g.GinkgoTInterface) {
 				if test.localReview != nil {
 					if len(test.localReview.User) == 0 && (len(test.localReview.GroupsSlice) == 0) {
 						var tmp *kubeauthorizationv1.SelfSubjectAccessReview
-						if tmp, err = test.kubeAuthInterface.SelfSubjectAccessReviews().Create(toKubeSelfSAR(testNS, test.localReview)); err == nil {
+						if tmp, err = test.kubeAuthInterface.SelfSubjectAccessReviews().Create(context.Background(), toKubeSelfSAR(testNS, test.localReview), metav1.CreateOptions{}); err == nil {
 							actualResponse = tmp.Status
 						}
 					} else {
 						var tmp *kubeauthorizationv1.LocalSubjectAccessReview
-						if tmp, err = test.kubeAuthInterface.LocalSubjectAccessReviews(testNS).Create(toKubeLocalSAR(testNS, test.localReview)); err == nil {
+						if tmp, err = test.kubeAuthInterface.LocalSubjectAccessReviews(testNS).Create(context.Background(), toKubeLocalSAR(testNS, test.localReview), metav1.CreateOptions{}); err == nil {
 							actualResponse = tmp.Status
 						}
 					}
 				} else {
 					var tmp *kubeauthorizationv1.SubjectAccessReview
-					if tmp, err = test.kubeAuthInterface.SubjectAccessReviews().Create(toKubeClusterSAR(test.clusterReview)); err == nil {
+					if tmp, err = test.kubeAuthInterface.SubjectAccessReviews().Create(context.Background(), toKubeClusterSAR(test.clusterReview), metav1.CreateOptions{}); err == nil {
 						actualResponse = tmp.Status
 					}
 				}
@@ -991,7 +992,7 @@ func AddUserToRoleInProject(oc *exutil.CLI, clusterrolebinding, namespace, user 
 	roleBinding.Subjects = []corev1.ObjectReference{
 		{Kind: "User", Name: user},
 	}
-	actual, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(namespace).Create(roleBinding)
+	actual, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(namespace).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = oc.WaitForAccessAllowed(&kubeauthorizationv1.SelfSubjectAccessReview{
 		Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
@@ -1226,7 +1227,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 						expectUnsafe: true,
 					},
 				} {
-					errProxy := tc.client.Get().AbsPath(tc.path...).Do().Error()
+					errProxy := tc.client.Get().AbsPath(tc.path...).Do(context.Background()).Error()
 					if errProxy == nil || !kapierror.IsForbidden(errProxy) || tc.expectUnsafe != isUnsafeErr(errProxy) {
 						t.Errorf("%s: expected forbidden error on GET %s, got %#v (isForbidden=%v, expectUnsafe=%v, actualUnsafe=%v)",
 							tc.name, tc.path, errProxy, kapierror.IsForbidden(errProxy), tc.expectUnsafe, isUnsafeErr(errProxy))

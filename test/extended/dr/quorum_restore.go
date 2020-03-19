@@ -1,6 +1,7 @@
 package dr
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -25,6 +26,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	apps "k8s.io/kubernetes/test/e2e/upgrades/apps"
 
@@ -45,7 +47,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 	oc := exutil.NewCLIWithoutNamespace("disaster-recovery")
 
 	g.It("[Feature:EtcdRecovery] Cluster should restore itself after quorum loss", func() {
-		framework.SkipUnlessProviderIs("aws")
+		e2eskipper.SkipUnlessProviderIs("aws")
 
 		disruption.Run("Quorum Loss and Restore", "quorum_restore",
 			disruption.TestData{},
@@ -90,7 +92,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 
 				expectedNumberOfMasters := len(masters)
 				survivingMachineName := getMachineNameByNodeName(oc, survivingNodeName)
-				survivingMachine, err := ms.Get(survivingMachineName, metav1.GetOptions{})
+				survivingMachine, err := ms.Get(context.Background(), survivingMachineName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				// Set etcd connection string before destroying masters, as ssh bastion may become unavailable
 				etcdConnectionString := constructEtcdConnectionString([]string{survivingNodeName})
@@ -106,7 +108,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 					}
 
 					framework.Logf("Destroying %s", masterMachine)
-					err = ms.Delete(masterMachine, &metav1.DeleteOptions{})
+					err = ms.Delete(context.Background(), masterMachine, metav1.DeleteOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 				pollConfig := rest.CopyConfig(config)
@@ -118,7 +120,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 					framework.Logf("Wait for control plane to become unresponsive (may take several minutes)")
 					failures := 0
 					err = wait.Poll(5*time.Second, 30*time.Minute, func() (done bool, err error) {
-						_, err = pollClient.CoreV1().Nodes().List(metav1.ListOptions{})
+						_, err = pollClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 						if err != nil {
 							failures++
 						} else {
@@ -143,7 +145,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				framework.Logf("Wait for API server to come up")
 				time.Sleep(30 * time.Second)
 				err = wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
-					nodes, err := pollClient.CoreV1().Nodes().List(metav1.ListOptions{Limit: 2})
+					nodes, err := pollClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{Limit: 2})
 					if err != nil || nodes.Items == nil {
 						framework.Logf("return false - err %v nodes.Items %v", err, nodes.Items)
 						return false, nil
@@ -173,7 +175,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 						newMaster.SetCreationTimestamp(metav1.NewTime(time.Time{}))
 						// retry until the machine gets created
 						err := wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
-							_, err := ms.Create(newMaster, metav1.CreateOptions{})
+							_, err := ms.Create(context.Background(), newMaster, metav1.CreateOptions{})
 							if errors.IsAlreadyExists(err) {
 								framework.Logf("Waiting for old machine object %s to be deleted so we can create a new one", master)
 								return false, nil
@@ -188,7 +190,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 
 					framework.Logf("Waiting for machines to be created")
 					err = wait.Poll(30*time.Second, 10*time.Minute, func() (done bool, err error) {
-						mastersList, err := ms.List(metav1.ListOptions{
+						mastersList, err := ms.List(context.Background(), metav1.ListOptions{
 							LabelSelector: "machine.openshift.io/cluster-api-machine-role=master",
 						})
 						if err != nil || mastersList.Items == nil {
@@ -206,7 +208,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 								fmt.Println("Recovered from panic", r)
 							}
 						}()
-						nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
+						nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
 						if err != nil {
 							return false, err
 						}
@@ -228,7 +230,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 					masterMachines = append(masterMachines, masterMachine)
 				}
 
-				infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
+				infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(infra.Status.EtcdDiscoveryDomain).NotTo(o.BeEmpty())
 				domain := infra.Status.EtcdDiscoveryDomain
 				framework.Logf("Etcd recovery domain: %s", domain)
@@ -312,7 +314,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				scaleEtcdQuorum(pollClient, expectedNumberOfMasters)
 
 				framework.Logf("Remove etcd signer")
-				err = oc.AdminKubeClient().CoreV1().Pods("openshift-config").Delete("etcd-signer", &metav1.DeleteOptions{})
+				err = oc.AdminKubeClient().CoreV1().Pods("openshift-config").Delete(context.Background(), "etcd-signer", metav1.DeleteOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// Workaround for https://bugzilla.redhat.com/show_bug.cgi?id=1707006#
@@ -329,7 +331,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 })
 
 func scaleEtcdQuorum(client kubernetes.Interface, replicas int) error {
-	etcdQGScale, err := client.AppsV1().Deployments("openshift-machine-config-operator").GetScale("etcd-quorum-guard", metav1.GetOptions{})
+	etcdQGScale, err := client.AppsV1().Deployments("openshift-machine-config-operator").GetScale(context.Background(), "etcd-quorum-guard", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -338,12 +340,12 @@ func scaleEtcdQuorum(client kubernetes.Interface, replicas int) error {
 	}
 	framework.Logf("Scale etcd-quorum-guard to %d replicas", replicas)
 	etcdQGScale.Spec.Replicas = int32(replicas)
-	_, err = client.AppsV1().Deployments("openshift-machine-config-operator").UpdateScale("etcd-quorum-guard", etcdQGScale)
+	_, err = client.AppsV1().Deployments("openshift-machine-config-operator").UpdateScale(context.Background(), "etcd-quorum-guard", etcdQGScale, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
 
-	etcdQGScale, err = client.AppsV1().Deployments("openshift-machine-config-operator").GetScale("etcd-quorum-guard", metav1.GetOptions{})
+	etcdQGScale, err = client.AppsV1().Deployments("openshift-machine-config-operator").GetScale(context.Background(), "etcd-quorum-guard", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -375,7 +377,7 @@ func runPodSigner(oc *exutil.CLI, survivingNode *corev1.Node, imagePullSecretPat
 func getPullSecret(oc *exutil.CLI) string {
 	framework.Logf("Saving image pull secret")
 	//TODO: copy of test/extended/operators/images.go, move this to a common func
-	imagePullSecret, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("openshift-config").Get("pull-secret", metav1.GetOptions{})
+	imagePullSecret, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if err != nil {
 		framework.Failf("unable to get pull secret for cluster: %v", err)
@@ -480,7 +482,7 @@ func updateDNS(domain string, dnsUpdates map[string]string, provider string) err
 }
 
 func getMachineNameByNodeName(oc *exutil.CLI, name string) string {
-	masterNode, err := oc.AdminKubeClient().CoreV1().Nodes().Get(name, metav1.GetOptions{})
+	masterNode, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), name, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	annotations := masterNode.GetAnnotations()

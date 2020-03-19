@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -27,7 +28,7 @@ func WaitForDeploymentConfig(kc kubernetes.Interface, dcClient appsv1clienttyped
 
 	start := time.Now()
 	err := wait.Poll(time.Second, 15*time.Minute, func() (done bool, err error) {
-		dc, err = dcClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+		dc, err = dcClient.DeploymentConfigs(namespace).Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -102,7 +103,7 @@ func RemoveDeploymentConfigs(oc *CLI, dcs ...string) error {
 	errs := []error{}
 	for _, dc := range dcs {
 		e2e.Logf("Removing deployment config %s/%s", oc.Namespace(), dc)
-		if err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Delete(dc, &metav1.DeleteOptions{}); err != nil {
+		if err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Delete(context.Background(), dc, metav1.DeleteOptions{}); err != nil {
 			e2e.Logf("Error occurred removing deployment config: %v", err)
 			errs = append(errs, err)
 		}
@@ -135,12 +136,12 @@ func RemoveDeploymentConfigs(oc *CLI, dcs ...string) error {
 }
 
 func GetDeploymentConfigPods(oc *CLI, dcName string, version int64) (*corev1.PodList, error) {
-	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d",
+	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d",
 		appsv1.DeployerPodForDeploymentLabel, dcName, version)).String()})
 }
 
 func GetApplicationPods(oc *CLI, dcName string) (*corev1.PodList, error) {
-	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName)).String()})
+	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName)).String()})
 }
 
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes

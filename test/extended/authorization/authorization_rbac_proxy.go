@@ -1,6 +1,7 @@
 package authorization
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -95,7 +96,7 @@ func RunLegacyLocalRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClient
 		},
 	}
 
-	roleBindingCreated, err := clusterAdminRoleBindingsClient.Create(roleBindingToCreate)
+	roleBindingCreated, err := clusterAdminRoleBindingsClient.Create(context.Background(), roleBindingToCreate, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +106,7 @@ func RunLegacyLocalRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClient
 	}
 
 	// list rolebindings
-	roleBindingList, err := clusterAdminRoleBindingsClient.List(metav1.ListOptions{})
+	roleBindingList, err := clusterAdminRoleBindingsClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +147,7 @@ func RunLegacyLocalRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClient
 		t.Fatal(err)
 	}
 
-	roleBindingEdited, err := clusterAdminRoleBindingsClient.Patch(testBindingName, types.StrategicMergePatchType, roleBindingToEditBytes)
+	roleBindingEdited, err := clusterAdminRoleBindingsClient.Patch(context.Background(), testBindingName, types.StrategicMergePatchType, roleBindingToEditBytes, metav1.PatchOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +165,7 @@ func RunLegacyLocalRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClient
 	}
 
 	// get rolebinding by name
-	getRoleBinding, err := clusterAdminRoleBindingsClient.Get(testBindingName, metav1.GetOptions{})
+	getRoleBinding, err := clusterAdminRoleBindingsClient.Get(context.Background(), testBindingName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +173,7 @@ func RunLegacyLocalRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClient
 		t.Fatalf("expected rolebinding %s, got %s", testBindingName, getRoleBinding.Name)
 	}
 	// get rolebinding by name via RBAC endpoint
-	getRoleBindingRBAC, err := clusterAdminRBACRoleBindingsClient.Get(testBindingName, metav1.GetOptions{})
+	getRoleBindingRBAC, err := clusterAdminRBACRoleBindingsClient.Get(context.Background(), testBindingName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,20 +182,20 @@ func RunLegacyLocalRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClient
 	}
 
 	// delete rolebinding
-	err = clusterAdminRoleBindingsClient.Delete(testBindingName, nil)
+	err = clusterAdminRoleBindingsClient.Delete(context.Background(), testBindingName, metav1.DeleteOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// confirm deletion
-	_, err = clusterAdminRoleBindingsClient.Get(testBindingName, metav1.GetOptions{})
+	_, err = clusterAdminRoleBindingsClient.Get(context.Background(), testBindingName, metav1.GetOptions{})
 	if err == nil {
 		t.Fatal("expected error")
 	} else if !kapierror.IsNotFound(err) {
 		t.Fatal(err)
 	}
 	// confirm deletion via RBAC endpoint
-	_, err = clusterAdminRBACRoleBindingsClient.Get(testBindingName, metav1.GetOptions{})
+	_, err = clusterAdminRBACRoleBindingsClient.Get(context.Background(), testBindingName, metav1.GetOptions{})
 	if err == nil {
 		t.Fatal("expected error")
 	} else if !kapierror.IsNotFound(err) {
@@ -219,7 +220,7 @@ func RunLegacyLocalRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClient
 		},
 	}
 
-	localClusterRoleBindingCreated, err := clusterAdminRoleBindingsClient.Create(localClusterRoleBindingToCreate)
+	localClusterRoleBindingCreated, err := clusterAdminRoleBindingsClient.Create(context.Background(), localClusterRoleBindingToCreate, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +238,7 @@ func RunLegacyClusterRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClie
 	clusterAdminRBACClusterRoleBindingsClient := kubeClient.RbacV1().ClusterRoleBindings()
 
 	// list clusterrole bindings
-	clusterRoleBindingList, err := clusterAdminClusterRoleBindingsClient.List(metav1.ListOptions{})
+	clusterRoleBindingList, err := clusterAdminClusterRoleBindingsClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,12 +270,12 @@ func RunLegacyClusterRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClie
 		},
 	}
 
-	clusterRoleBindingCreated, err := clusterAdminClusterRoleBindingsClient.Create(clusterRoleBindingToCreate)
+	clusterRoleBindingCreated, err := clusterAdminClusterRoleBindingsClient.Create(context.Background(), clusterRoleBindingToCreate, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		clusterAdminClusterRoleBindingsClient.Delete(testBindingName, nil)
+		clusterAdminClusterRoleBindingsClient.Delete(context.Background(), testBindingName, metav1.DeleteOptions{})
 	}()
 
 	if clusterRoleBindingCreated.Name != clusterRoleBindingToCreate.Name {
@@ -306,7 +307,7 @@ func RunLegacyClusterRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClie
 		t.Fatal(err)
 	}
 
-	clusterRoleBindingEdited, err := clusterAdminClusterRoleBindingsClient.Patch(testBindingName, types.StrategicMergePatchType, clusterRoleBindingToEditBytes)
+	clusterRoleBindingEdited, err := clusterAdminClusterRoleBindingsClient.Patch(context.Background(), testBindingName, types.StrategicMergePatchType, clusterRoleBindingToEditBytes, metav1.PatchOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -324,7 +325,7 @@ func RunLegacyClusterRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClie
 	}
 
 	// get clusterrolebinding by name
-	getRoleBinding, err := clusterAdminClusterRoleBindingsClient.Get(testBindingName, metav1.GetOptions{})
+	getRoleBinding, err := clusterAdminClusterRoleBindingsClient.Get(context.Background(), testBindingName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,7 +333,7 @@ func RunLegacyClusterRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClie
 		t.Fatalf("expected clusterrolebinding %s, got %s", testBindingName, getRoleBinding.Name)
 	}
 	// get clusterrolebinding by name via RBAC endpoint
-	getRoleBindingRBAC, err := clusterAdminRBACClusterRoleBindingsClient.Get(testBindingName, metav1.GetOptions{})
+	getRoleBindingRBAC, err := clusterAdminRBACClusterRoleBindingsClient.Get(context.Background(), testBindingName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -341,20 +342,20 @@ func RunLegacyClusterRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClie
 	}
 
 	// delete clusterrolebinding
-	err = clusterAdminClusterRoleBindingsClient.Delete(testBindingName, nil)
+	err = clusterAdminClusterRoleBindingsClient.Delete(context.Background(), testBindingName, metav1.DeleteOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// confirm deletion
-	_, err = clusterAdminClusterRoleBindingsClient.Get(testBindingName, metav1.GetOptions{})
+	_, err = clusterAdminClusterRoleBindingsClient.Get(context.Background(), testBindingName, metav1.GetOptions{})
 	if err == nil {
 		t.Fatalf("expected error")
 	} else if !kapierror.IsNotFound(err) {
 		t.Fatal(err)
 	}
 	// confirm deletion via RBAC endpoint
-	_, err = clusterAdminRBACClusterRoleBindingsClient.Get(testBindingName, metav1.GetOptions{})
+	_, err = clusterAdminRBACClusterRoleBindingsClient.Get(context.Background(), testBindingName, metav1.GetOptions{})
 	if err == nil {
 		t.Fatalf("expected error")
 	} else if !kapierror.IsNotFound(err) {
@@ -370,7 +371,7 @@ func RunLegacyClusterRoleEndpoint(t g.GinkgoTInterface, authorizationClient auth
 	clusterAdminRBACClusterRoleClient := kubeClient.RbacV1().ClusterRoles()
 
 	// list clusterroles
-	clusterRoleList, err := clusterAdminClusterRoleClient.List(metav1.ListOptions{})
+	clusterRoleList, err := clusterAdminClusterRoleClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -396,12 +397,12 @@ func RunLegacyClusterRoleEndpoint(t g.GinkgoTInterface, authorizationClient auth
 		},
 	}
 
-	createdClusterRole, err := clusterAdminClusterRoleClient.Create(clusterRoleToCreate)
+	createdClusterRole, err := clusterAdminClusterRoleClient.Create(context.Background(), clusterRoleToCreate, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		clusterAdminClusterRoleClient.Delete(testRole, nil)
+		clusterAdminClusterRoleClient.Delete(context.Background(), testRole, metav1.DeleteOptions{})
 	}()
 
 	if createdClusterRole.Name != clusterRoleToCreate.Name {
@@ -429,7 +430,7 @@ func RunLegacyClusterRoleEndpoint(t g.GinkgoTInterface, authorizationClient auth
 		t.Fatal(err)
 	}
 
-	updatedClusterRole, err := clusterAdminClusterRoleClient.Patch(testRole, types.StrategicMergePatchType, clusterRoleUpdateBytes)
+	updatedClusterRole, err := clusterAdminClusterRoleClient.Patch(context.Background(), testRole, types.StrategicMergePatchType, clusterRoleUpdateBytes, metav1.PatchOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -443,7 +444,7 @@ func RunLegacyClusterRoleEndpoint(t g.GinkgoTInterface, authorizationClient auth
 	}
 
 	// get clusterrole
-	getRole, err := clusterAdminClusterRoleClient.Get(testRole, metav1.GetOptions{})
+	getRole, err := clusterAdminClusterRoleClient.Get(context.Background(), testRole, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -451,7 +452,7 @@ func RunLegacyClusterRoleEndpoint(t g.GinkgoTInterface, authorizationClient auth
 		t.Fatalf("expected %s role, got %s instead", testRole, getRole.Name)
 	}
 	// get clusterrole via RBAC
-	getRoleRBAC, err := clusterAdminRBACClusterRoleClient.Get(testRole, metav1.GetOptions{})
+	getRoleRBAC, err := clusterAdminRBACClusterRoleClient.Get(context.Background(), testRole, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -460,20 +461,20 @@ func RunLegacyClusterRoleEndpoint(t g.GinkgoTInterface, authorizationClient auth
 	}
 
 	// delete clusterrole
-	err = clusterAdminClusterRoleClient.Delete(testRole, nil)
+	err = clusterAdminClusterRoleClient.Delete(context.Background(), testRole, metav1.DeleteOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// confirm deletion
-	_, err = clusterAdminClusterRoleClient.Get(testRole, metav1.GetOptions{})
+	_, err = clusterAdminClusterRoleClient.Get(context.Background(), testRole, metav1.GetOptions{})
 	if err == nil {
 		t.Fatalf("expected error")
 	} else if !kapierror.IsNotFound(err) {
 		t.Fatal(err)
 	}
 	// confirm deletion via RBAC
-	_, err = clusterAdminRBACClusterRoleClient.Get(testRole, metav1.GetOptions{})
+	_, err = clusterAdminRBACClusterRoleClient.Get(context.Background(), testRole, metav1.GetOptions{})
 	if err == nil {
 		t.Fatalf("expected error")
 	} else if !kapierror.IsNotFound(err) {
@@ -503,7 +504,7 @@ func RunLegacyLocalRoleEndpoint(t g.GinkgoTInterface, authorizationClient author
 		},
 	}
 
-	createdRole, err := clusterAdminRoleClient.Create(roleToCreate)
+	createdRole, err := clusterAdminRoleClient.Create(context.Background(), roleToCreate, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -517,7 +518,7 @@ func RunLegacyLocalRoleEndpoint(t g.GinkgoTInterface, authorizationClient author
 	}
 
 	// list roles
-	roleList, err := clusterAdminRoleClient.List(metav1.ListOptions{})
+	roleList, err := clusterAdminRoleClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -551,7 +552,7 @@ func RunLegacyLocalRoleEndpoint(t g.GinkgoTInterface, authorizationClient author
 		t.Fatal(err)
 	}
 
-	updatedRole, err := clusterAdminRoleClient.Patch(testRole, types.StrategicMergePatchType, roleUpdateBytes)
+	updatedRole, err := clusterAdminRoleClient.Patch(context.Background(), testRole, types.StrategicMergePatchType, roleUpdateBytes, metav1.PatchOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -565,7 +566,7 @@ func RunLegacyLocalRoleEndpoint(t g.GinkgoTInterface, authorizationClient author
 	}
 
 	// get role
-	getRole, err := clusterAdminRoleClient.Get(testRole, metav1.GetOptions{})
+	getRole, err := clusterAdminRoleClient.Get(context.Background(), testRole, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -573,7 +574,7 @@ func RunLegacyLocalRoleEndpoint(t g.GinkgoTInterface, authorizationClient author
 		t.Fatalf("expected %s role, got %s instead", testRole, getRole.Name)
 	}
 	// get role via RBAC
-	getRoleRBAC, err := clusterAdminRBACRoleClient.Get(testRole, metav1.GetOptions{})
+	getRoleRBAC, err := clusterAdminRBACRoleClient.Get(context.Background(), testRole, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -582,20 +583,20 @@ func RunLegacyLocalRoleEndpoint(t g.GinkgoTInterface, authorizationClient author
 	}
 
 	// delete role
-	err = clusterAdminRoleClient.Delete(testRole, nil)
+	err = clusterAdminRoleClient.Delete(context.Background(), testRole, metav1.DeleteOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// confirm deletion
-	_, err = clusterAdminRoleClient.Get(testRole, metav1.GetOptions{})
+	_, err = clusterAdminRoleClient.Get(context.Background(), testRole, metav1.GetOptions{})
 	if err == nil {
 		t.Fatalf("expected error")
 	} else if !kapierror.IsNotFound(err) {
 		t.Fatal(err)
 	}
 	// confirm deletion via RBAC
-	_, err = clusterAdminRBACRoleClient.Get(testRole, metav1.GetOptions{})
+	_, err = clusterAdminRBACRoleClient.Get(context.Background(), testRole, metav1.GetOptions{})
 	if err == nil {
 		t.Fatalf("expected error")
 	} else if !kapierror.IsNotFound(err) {
@@ -616,7 +617,7 @@ func waitForClusterPolicyUpdate(c kauthorizationv1client.SelfSubjectAccessReview
 		},
 	}
 	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
-		response, err := c.SelfSubjectAccessReviews().Create(review)
+		response, err := c.SelfSubjectAccessReviews().Create(context.Background(), review, metav1.CreateOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -655,7 +656,7 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 	}
 
 	clusterRoleName := "test-cluster-role-" + userName
-	clusterRoleObj, err := clusterAdminAuthorizationClient.ClusterRoles().Create(&authorizationv1.ClusterRole{
+	clusterRoleObj, err := clusterAdminAuthorizationClient.ClusterRoles().Create(context.Background(), &authorizationv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: clusterRoleName},
 		Rules: []authorizationv1.PolicyRule{
 			{
@@ -664,25 +665,25 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 				Resources: []string{"clusterroles", "clusterrolebindings"},
 			},
 		},
-	})
+	}, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		clusterAdminAuthorizationClient.ClusterRoles().Delete(clusterRoleObj.Name, nil)
+		clusterAdminAuthorizationClient.ClusterRoles().Delete(context.Background(), clusterRoleObj.Name, metav1.DeleteOptions{})
 	}()
 
-	if _, err := clusterAdminAuthorizationClient.ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
+	if _, err := clusterAdminAuthorizationClient.ClusterRoleBindings().Create(context.Background(), &authorizationv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: clusterRoleName},
 		Subjects:   userSubjects,
 		RoleRef: corev1.ObjectReference{
 			Name: clusterRoleName,
 		},
-	}); err != nil {
+	}, metav1.CreateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		clusterAdminAuthorizationClient.ClusterRoleBindings().Delete(clusterRoleName, nil)
+		clusterAdminAuthorizationClient.ClusterRoleBindings().Delete(context.Background(), clusterRoleName, metav1.DeleteOptions{})
 	}()
 
 	for _, rule := range clusterRoleObj.Rules {
@@ -711,10 +712,10 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 			name:     "role create",
 			resource: "roles",
 			run: func() error {
-				_, err := userAuthorizationClient.Roles(namespace).Create(&authorizationv1.Role{
+				_, err := userAuthorizationClient.Roles(namespace).Create(context.Background(), &authorizationv1.Role{
 					ObjectMeta: metav1.ObjectMeta{Name: resourceName},
 					Rules:      escalatingRules,
-				})
+				}, metav1.CreateOptions{})
 				return err
 			},
 		},
@@ -722,16 +723,16 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 			name:     "role update",
 			resource: "roles",
 			run: func() error {
-				role, err := userAuthorizationClient.Roles(namespace).Create(&authorizationv1.Role{
+				role, err := userAuthorizationClient.Roles(namespace).Create(context.Background(), &authorizationv1.Role{
 					ObjectMeta: metav1.ObjectMeta{Name: resourceName},
 					Rules:      nonEscalatingRules,
-				})
+				}, metav1.CreateOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to create role: %v", err)
 				}
 
 				role.Rules = escalatingRules
-				_, err = userAuthorizationClient.Roles(namespace).Update(role)
+				_, err = userAuthorizationClient.Roles(namespace).Update(context.Background(), role, metav1.UpdateOptions{})
 				return err
 			},
 		},
@@ -739,13 +740,13 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 			name:     "role binding create",
 			resource: "rolebindings",
 			run: func() error {
-				_, err := userAuthorizationClient.RoleBindings(namespace).Create(&authorizationv1.RoleBinding{
+				_, err := userAuthorizationClient.RoleBindings(namespace).Create(context.Background(), &authorizationv1.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: resourceName},
 					Subjects:   userSubjects,
 					RoleRef: corev1.ObjectReference{
 						Name: "cluster-admin",
 					},
-				})
+				}, metav1.CreateOptions{})
 				return err
 			},
 		},
@@ -753,7 +754,7 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 			name:     "role binding update",
 			resource: "rolebindings",
 			run: func() error {
-				roleBinding, err := clusterAdminAuthorizationClient.RoleBindings(namespace).Create(&authorizationv1.RoleBinding{
+				roleBinding, err := clusterAdminAuthorizationClient.RoleBindings(namespace).Create(context.Background(), &authorizationv1.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: resourceName},
 					Subjects: []corev1.ObjectReference{
 						{
@@ -764,14 +765,14 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 					RoleRef: corev1.ObjectReference{
 						Name: "cluster-admin",
 					},
-				})
+				}, metav1.CreateOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to create role binding: %v", err)
 				}
 
 				roleBinding.Subjects = userSubjects
 				roleBinding.UserNames = nil // if set, this field will overwrite subjects
-				_, err = userAuthorizationClient.RoleBindings(namespace).Update(roleBinding)
+				_, err = userAuthorizationClient.RoleBindings(namespace).Update(context.Background(), roleBinding, metav1.UpdateOptions{})
 				return err
 			},
 		},
@@ -779,10 +780,10 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 			name:     "cluster role create",
 			resource: "clusterroles",
 			run: func() error {
-				_, err := userAuthorizationClient.ClusterRoles().Create(&authorizationv1.ClusterRole{
+				_, err := userAuthorizationClient.ClusterRoles().Create(context.Background(), &authorizationv1.ClusterRole{
 					ObjectMeta: metav1.ObjectMeta{Name: resourceName},
 					Rules:      escalatingRules,
-				})
+				}, metav1.CreateOptions{})
 				return err
 			},
 		},
@@ -790,16 +791,16 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 			name:     "cluster role update",
 			resource: "clusterroles",
 			run: func() error {
-				clusterRole, err := userAuthorizationClient.ClusterRoles().Create(&authorizationv1.ClusterRole{
+				clusterRole, err := userAuthorizationClient.ClusterRoles().Create(context.Background(), &authorizationv1.ClusterRole{
 					ObjectMeta: metav1.ObjectMeta{Name: resourceName},
 					Rules:      nonEscalatingRules,
-				})
+				}, metav1.CreateOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to create cluster role: %v", err)
 				}
 
 				clusterRole.Rules = escalatingRules
-				_, err = userAuthorizationClient.ClusterRoles().Update(clusterRole)
+				_, err = userAuthorizationClient.ClusterRoles().Update(context.Background(), clusterRole, metav1.UpdateOptions{})
 				return err
 			},
 		},
@@ -807,13 +808,13 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 			name:     "cluster role binding create",
 			resource: "clusterrolebindings",
 			run: func() error {
-				_, err := userAuthorizationClient.ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
+				_, err := userAuthorizationClient.ClusterRoleBindings().Create(context.Background(), &authorizationv1.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: resourceName},
 					Subjects:   userSubjects,
 					RoleRef: corev1.ObjectReference{
 						Name: "cluster-admin",
 					},
-				})
+				}, metav1.CreateOptions{})
 				return err
 			},
 		},
@@ -821,7 +822,7 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 			name:     "cluster role binding update",
 			resource: "clusterrolebindings",
 			run: func() error {
-				clusterRoleBinding, err := clusterAdminAuthorizationClient.ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
+				clusterRoleBinding, err := clusterAdminAuthorizationClient.ClusterRoleBindings().Create(context.Background(), &authorizationv1.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: resourceName},
 					Subjects: []corev1.ObjectReference{
 						{
@@ -832,26 +833,28 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 					RoleRef: corev1.ObjectReference{
 						Name: "cluster-admin",
 					},
-				})
+				}, metav1.CreateOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to create cluster role binding: %v", err)
 				}
 
 				clusterRoleBinding.Subjects = userSubjects
 				clusterRoleBinding.UserNames = nil // if set, this field will overwrite subjects
-				_, err = userAuthorizationClient.ClusterRoleBindings().Update(clusterRoleBinding)
+				_, err = userAuthorizationClient.ClusterRoleBindings().Update(context.Background(), clusterRoleBinding, metav1.UpdateOptions{})
 				return err
 			},
 		},
 	}
 	for _, tt := range tests {
 		g.By(tt.name, func() {
+			ctx := context.Background()
+			delOptions := metav1.DeleteOptions{}
 			// always clean up in between tests
 			defer func() {
-				_ = clusterAdminAuthorizationClient.ClusterRoles().Delete(resourceName, nil)
-				_ = clusterAdminAuthorizationClient.ClusterRoleBindings().Delete(resourceName, nil)
-				_ = clusterAdminAuthorizationClient.Roles(namespace).Delete(resourceName, nil)
-				_ = clusterAdminAuthorizationClient.RoleBindings(namespace).Delete(resourceName, nil)
+				_ = clusterAdminAuthorizationClient.ClusterRoles().Delete(ctx, resourceName, delOptions)
+				_ = clusterAdminAuthorizationClient.ClusterRoleBindings().Delete(ctx, resourceName, delOptions)
+				_ = clusterAdminAuthorizationClient.Roles(namespace).Delete(ctx, resourceName, delOptions)
+				_ = clusterAdminAuthorizationClient.RoleBindings(namespace).Delete(ctx, resourceName, delOptions)
 			}()
 
 			err := tt.run()

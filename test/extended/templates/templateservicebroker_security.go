@@ -14,7 +14,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
@@ -27,6 +27,7 @@ import (
 
 var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker security test", func() {
 	defer g.GinkgoRecover()
+	ctx := context.Background()
 
 	var (
 		cli                = exutil.NewCLI("templates")
@@ -46,14 +47,14 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 		var err error
 		brokercli, err = TSBClient(cli)
 		if kerrors.IsNotFound(err) {
-			e2e.Skipf("The template service broker is not installed: %v", err)
+			e2eskipper.Skipf("The template service broker is not installed: %v", err)
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		template, err = cli.TemplateClient().TemplateV1().Templates("openshift").Get("mysql-ephemeral", metav1.GetOptions{})
+		template, err = cli.TemplateClient().TemplateV1().Templates("openshift").Get(ctx, "mysql-ephemeral", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
+		clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(ctx, &authorizationv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "templateservicebroker-client",
 			},
@@ -66,7 +67,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 					Name: "system:unauthenticated",
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		viewuser = createUser(cli, "viewuser", "view")
@@ -79,15 +80,15 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 		deleteUser(cli, edituser)
 		deleteUser(cli, nopermsuser)
 
-		err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
+		err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(ctx, clusterrolebinding.Name, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(instanceID, nil)
+		cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(ctx, instanceID, metav1.DeleteOptions{})
 	})
 
 	catalog := func() {
 		g.By("returning a catalog")
-		catalog, err := brokercli.Catalog(context.Background())
+		catalog, err := brokercli.Catalog(ctx)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, service = range catalog.Services {
@@ -102,7 +103,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 
 	provision := func(username string) error {
 		g.By("provisioning a service")
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+		ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
 		defer cancel()
 
 		_, err := brokercli.Provision(ctx, &user.DefaultInfo{Name: username, Groups: []string{"system:authenticated"}}, instanceID, &api.ProvisionRequest{
@@ -114,7 +115,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			},
 		})
 		if err != nil {
-			templateInstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+			templateInstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(ctx, instanceID, metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "error getting TemplateInstance after failed provision: %v\n", err)
 			} else {
@@ -129,7 +130,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 
 	bind := func(username string) error {
 		g.By("binding to a service")
-		_, err := brokercli.Bind(context.Background(), &user.DefaultInfo{Name: username, Groups: []string{"system:authenticated"}}, instanceID, bindingID, &api.BindRequest{
+		_, err := brokercli.Bind(ctx, &user.DefaultInfo{Name: username, Groups: []string{"system:authenticated"}}, instanceID, bindingID, &api.BindRequest{
 			ServiceID: service.ID,
 			PlanID:    plan.ID,
 		})
@@ -138,12 +139,12 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 
 	unbind := func(username string) error {
 		g.By("unbinding from a service")
-		return brokercli.Unbind(context.Background(), &user.DefaultInfo{Name: username, Groups: []string{"system:authenticated"}}, instanceID, bindingID)
+		return brokercli.Unbind(ctx, &user.DefaultInfo{Name: username, Groups: []string{"system:authenticated"}}, instanceID, bindingID)
 	}
 
 	deprovision := func(username string) error {
 		g.By("deprovisioning a service")
-		return brokercli.Deprovision(context.Background(), &user.DefaultInfo{Name: username, Groups: []string{"system:authenticated"}}, instanceID)
+		return brokercli.Deprovision(ctx, &user.DefaultInfo{Name: username, Groups: []string{"system:authenticated"}}, instanceID)
 	}
 
 	g.Context("", func() {
@@ -171,7 +172,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 			g.By("having no permissions to the namespace, no BrokerTemplateInstance should be created")
-			_, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			_, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
@@ -182,7 +183,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 			g.By("having view permissions to the namespace, no BrokerTemplateInstance should be created")
-			_, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			_, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
@@ -190,7 +191,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			err = provision(edituser.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.HaveLen(0))
 
@@ -201,7 +202,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 			g.By("having no permissions to the namespace, the BrokerTemplateInstance should be unchanged")
-			brokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			brokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.HaveLen(0))
 
@@ -212,7 +213,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 			g.By("having view permissions to the namespace, the BrokerTemplateInstance should be unchanged")
-			brokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			brokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.HaveLen(0))
 
@@ -220,7 +221,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			err = bind(edituser.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			brokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			brokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.Equal([]string{bindingID}))
 
@@ -231,7 +232,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 			g.By("having no permissions to the namespace, the BrokerTemplateInstance should be unchanged")
-			newBrokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			newBrokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(newBrokerTemplateInstance).To(o.Equal(brokerTemplateInstance))
 
@@ -242,7 +243,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 			g.By("having view permissions to the namespace, the BrokerTemplateInstance should be unchanged")
-			newBrokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			newBrokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(newBrokerTemplateInstance).To(o.Equal(brokerTemplateInstance))
 
@@ -250,7 +251,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			err = unbind(edituser.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			brokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			brokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.BeEmpty())
 
@@ -261,7 +262,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 			g.By("having no permissions to the namespace, the BrokerTemplateInstance should be unchanged")
-			newBrokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			newBrokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(newBrokerTemplateInstance).To(o.Equal(brokerTemplateInstance))
 
@@ -272,7 +273,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 			g.By("having view permissions to the namespace, the BrokerTemplateInstance should be unchanged")
-			newBrokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			newBrokerTemplateInstance, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(newBrokerTemplateInstance).To(o.Equal(brokerTemplateInstance))
 
@@ -280,7 +281,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker securit
 			err = deprovision(edituser.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			_, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+			_, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(ctx, instanceID, metav1.GetOptions{})
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 		})

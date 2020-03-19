@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -24,7 +25,7 @@ var _ = g.Describe("[sig-auth][Feature:Authentication] ", func() {
 
 	g.Describe("TestFrontProxy", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
-			frontProxySecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-kube-apiserver").Get("aggregator-client", metav1.GetOptions{})
+			frontProxySecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-kube-apiserver").Get(context.Background(), "aggregator-client", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			frontProxyConfig := rest.AnonymousClientConfig(oc.AdminConfig())
@@ -36,7 +37,7 @@ var _ = g.Describe("[sig-auth][Feature:Authentication] ", func() {
 			restClient, err := rest.RESTClientFor(frontProxyConfig)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			content, err := restClient.Get().SetHeader("X-Remote-User", oc.Username()).SetHeader("X-Remote-Group", "system:authenticated").AbsPath("/apis/user.openshift.io/v1/users/~").DoRaw()
+			content, err := restClient.Get().SetHeader("X-Remote-User", oc.Username()).SetHeader("X-Remote-Group", "system:authenticated").AbsPath("/apis/user.openshift.io/v1/users/~").DoRaw(context.Background())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			user := &userv1.User{}

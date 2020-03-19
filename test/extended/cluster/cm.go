@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -8,7 +9,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	reale2e "k8s.io/kubernetes/test/e2e"
@@ -41,7 +42,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror 
 	g.It("it should read the node info", func() {
 		nodeinfo := map[string]map[string]int{}
 
-		nodes, err := c.CoreV1().Nodes().List(metav1.ListOptions{})
+		nodes, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		if err != nil || len(nodes.Items) == 0 {
 			e2e.Failf("Error listing nodes: %v\n", err)
 		}
@@ -66,7 +67,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror 
 			"kube-system": {}}
 
 		// Get all namespaces
-		nsList, err := c.CoreV1().Namespaces().List(metav1.ListOptions{})
+		nsList, err := c.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			e2e.Failf("Error listing namespaces: %v\n", err)
 		}
@@ -82,13 +83,13 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror 
 			e2e.Logf("Listing objects in namespace %v", ns.Name)
 
 			// Check for DeploymentConfigs
-			dcs, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(ns.Name).List(metav1.ListOptions{})
+			dcs, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(ns.Name).List(context.Background(), metav1.ListOptions{})
 			if err != nil {
 				e2e.Failf("Error listing DeploymentConfigs: %v\n", err)
 			}
 
 			for _, dc := range dcs.Items {
-				dc, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(ns.Name).Get(dc.Name, metav1.GetOptions{})
+				dc, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(ns.Name).Get(context.Background(), dc.Name, metav1.GetOptions{})
 				if err != nil {
 					e2e.Failf("Error DC not found: %v\n", err)
 				}
@@ -103,7 +104,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror 
 			}
 
 			// List pods in namespace
-			pods, err = c.CoreV1().Pods(ns.Name).List(metav1.ListOptions{})
+			pods, err = c.CoreV1().Pods(ns.Name).List(context.Background(), metav1.ListOptions{})
 			if err != nil {
 				e2e.Failf("Error listing pods: %v\n", err)
 			}
@@ -115,7 +116,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror 
 					// If the pod is part of a deployment we will take the template name instead
 					if value, ok := pod.Labels["deployment"]; ok {
 						// Get RC that matches pod label
-						rc, err := c.CoreV1().ReplicationControllers(ns.Name).Get(value, metav1.GetOptions{})
+						rc, err := c.CoreV1().ReplicationControllers(ns.Name).Get(context.Background(), value, metav1.GetOptions{})
 						if err != nil {
 							e2e.Failf("Error RC not found: %v\n", err)
 						}

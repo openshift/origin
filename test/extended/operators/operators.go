@@ -2,6 +2,7 @@ package operators
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -49,7 +51,7 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 		var lastErr error
 		var lastCV objx.Map
 		if err := wait.PollImmediate(3*time.Second, cvoWait, func() (bool, error) {
-			obj, err := cvc.Get("version", metav1.GetOptions{})
+			obj, err := cvc.Get(context.Background(), "version", metav1.GetOptions{})
 			if err != nil {
 				lastErr = err
 				e2e.Logf("Unable to check for cluster version: %v", err)
@@ -84,7 +86,7 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 		lastErr = nil
 		var lastCOs []objx.Map
 		wait.PollImmediate(time.Second, operatorWait, func() (bool, error) {
-			obj, err := coc.List(metav1.ListOptions{})
+			obj, err := coc.List(context.Background(), metav1.ListOptions{})
 			if err != nil {
 				lastErr = err
 				e2e.Logf("Unable to check for cluster operators: %v", err)
@@ -171,7 +173,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 
 	g.It("have operators on the cluster version", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
-			e2e.Skipf("Test is disabled to allow cluster components to have different versions")
+			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions")
 		}
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -184,9 +186,9 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 		skipUnlessCVO(coreclient.CoreV1().Namespaces())
 
 		// we need to get the list of versions
-		cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
+		cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		coList, err := c.ConfigV1().ClusterOperators().List(metav1.ListOptions{})
+		coList, err := c.ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(coList.Items).NotTo(o.BeEmpty())
 
@@ -204,12 +206,12 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 
 func skipUnlessCVO(c coreclient.NamespaceInterface) {
 	err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-		_, err := c.Get("openshift-cluster-version", metav1.GetOptions{})
+		_, err := c.Get(context.Background(), "openshift-cluster-version", metav1.GetOptions{})
 		if err == nil {
 			return true, nil
 		}
 		if errors.IsNotFound(err) {
-			e2e.Skipf("The cluster is not managed by a cluster-version operator")
+			e2eskipper.Skipf("The cluster is not managed by a cluster-version operator")
 		}
 		e2e.Logf("Unable to check for cluster version operator: %v", err)
 		return false, nil

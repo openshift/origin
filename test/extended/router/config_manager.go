@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -31,7 +32,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
-			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
+			if routes, _ := client.List(context.Background(), metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}
 			exutil.DumpPodLogsStartingWith("router-", oc)
@@ -55,13 +56,15 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			g.Skip("TODO: This test is flaking, fix it")
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+			}()
 
 			g.By(fmt.Sprintf("creating a router with haproxy config manager from a config file %q", configPath))
 
 			var routerIP string
 			err := wait.Poll(time.Second, timeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("router-haproxy-cfgmgr", metav1.GetOptions{})
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get(context.Background(), "router-haproxy-cfgmgr", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

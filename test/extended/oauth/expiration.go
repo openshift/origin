@@ -40,18 +40,18 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 
 		g.JustBeforeEach(func() {
 			var err error
-			oAuthClientResource, err = oc.AdminOAuthClient().OauthV1().OAuthClients().Create(&oauthv1.OAuthClient{
+			oAuthClientResource, err = oc.AdminOAuthClient().OauthV1().OAuthClients().Create(context.Background(), &oauthv1.OAuthClient{
 				ObjectMeta:               metav1.ObjectMeta{Name: fmt.Sprintf("%s-%05d", oc.Namespace(), accessTokenMaxAgeSeconds)},
 				RespondWithChallenges:    true,
 				RedirectURIs:             []string{"http://localhost"},
 				AccessTokenMaxAgeSeconds: &accessTokenMaxAgeSeconds,
 				GrantMethod:              oauthv1.GrantHandlerAuto,
-			})
+			}, metav1.CreateOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 		})
 
 		g.AfterEach(func() {
-			oc.AdminOAuthClient().OauthV1().OAuthClients().Delete(oAuthClientResource.Name, &metav1.DeleteOptions{})
+			oc.AdminOAuthClient().OauthV1().OAuthClients().Delete(context.Background(), oAuthClientResource.Name, metav1.DeleteOptions{})
 		})
 
 		g.Context("to generate tokens that do not expire", func() {
@@ -104,11 +104,11 @@ func testTokenFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequest
 	userConfig.BearerToken = token
 	userClient, err := userv1client.NewForConfig(&userConfig)
 	o.Expect(err).ToNot(o.HaveOccurred())
-	user, err := userClient.Users().Get("~", metav1.GetOptions{})
+	user, err := userClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(user.Name).To(o.Equal("testuser"))
 	// Make sure the token exists with the overridden time
-	tokenObj, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Get(token, metav1.GetOptions{})
+	tokenObj, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Get(context.Background(), token, metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(tokenObj.ExpiresIn).To(o.BeNumerically("==", expectedExpiresIn))
 }
@@ -148,7 +148,7 @@ func testCodeFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestT
 
 	// Make sure the code exists with the default time
 	oauthClientSet := oc.AdminOauthClient()
-	codeObj, err := oauthClientSet.OauthV1().OAuthAuthorizeTokens().Get(code, metav1.GetOptions{})
+	codeObj, err := oauthClientSet.OauthV1().OAuthAuthorizeTokens().Get(context.Background(), code, metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(codeObj.ExpiresIn).To(o.BeNumerically("==", 5*60))
 
@@ -165,12 +165,12 @@ func testCodeFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestT
 	userClient, err := userv1client.NewForConfig(&userConfig)
 	o.Expect(err).ToNot(o.HaveOccurred())
 
-	user, err := userClient.Users().Get("~", metav1.GetOptions{})
+	user, err := userClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(user.Name).To(o.Equal("testuser"))
 
 	// Make sure the token exists with the overridden time
-	tokenObj, err := oauthClientSet.OauthV1().OAuthAccessTokens().Get(token, metav1.GetOptions{})
+	tokenObj, err := oauthClientSet.OauthV1().OAuthAccessTokens().Get(context.Background(), token, metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(tokenObj.ExpiresIn).To(o.BeNumerically("==", expectedExpiresIn))
 }
