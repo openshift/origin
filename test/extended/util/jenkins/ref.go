@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
@@ -319,7 +320,7 @@ func (j *JenkinsRef) GetJobConsoleLogsAndMatchViaBuildResult(br *exutil.BuildRes
 			return "", fmt.Errorf("BuildResult oc should have been set up during BuildResult construction")
 		}
 		var err error // interestingly, removing this line and using := on the next got a compile error
-		br.Build, err = br.Oc.BuildClient().BuildV1().Builds(br.Oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+		br.Build, err = br.Oc.BuildClient().BuildV1().Builds(br.Oc.Namespace()).Get(context.Background(), br.BuildName, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -465,7 +466,7 @@ func ProcessLogURLAnnotations(oc *exutil.CLI, t *exutil.BuildResult) (*url.URL, 
 func DumpLogs(oc *exutil.CLI, t *exutil.BuildResult) (string, error) {
 	var err error
 	if t.Build == nil {
-		t.Build, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(t.BuildName, metav1.GetOptions{})
+		t.Build, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), t.BuildName, metav1.GetOptions{})
 		if err != nil {
 			return "", fmt.Errorf("cannot retrieve build %s: %v", t.BuildName, err)
 		}

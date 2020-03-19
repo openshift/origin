@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -667,7 +668,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 					br.AssertSuccess()
 				}
 
-				buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("successful-pipeline", metav1.GetOptions{})
+				buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "successful-pipeline", metav1.GetOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				}
@@ -676,7 +677,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 
 				g.By("waiting up to one minute for pruning to complete")
 				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "%v", err)
 						return false, err
@@ -708,14 +709,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 					br.AssertFailure()
 				}
 
-				buildConfig, err = oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("failed-pipeline", metav1.GetOptions{})
+				buildConfig, err = oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "failed-pipeline", metav1.GetOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				}
 
 				g.By("waiting up to one minute for pruning to complete")
 				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "%v", err)
 						return false, err

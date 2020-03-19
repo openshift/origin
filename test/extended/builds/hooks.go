@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,7 +101,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] testing build configurati
 				o.Expect(len(pods)).To(o.Equal(1))
 
 				g.By("getting the pod information")
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pods[0], metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verifying the postCommit hook did not modify the final image")
@@ -176,7 +177,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] testing build configurati
 				o.Expect(len(pods)).To(o.Equal(1))
 
 				g.By("getting the pod information")
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pods[0], metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verifying the postCommit hook did not modify the final image")

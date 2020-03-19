@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -28,7 +29,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
-			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
+			if routes, _ := client.List(context.Background(), metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}
 			exutil.DumpPodLogsStartingWithInNamespace("router", "openshift-ingress", oc.AsAdmin())
@@ -50,14 +51,16 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			routerURL := fmt.Sprintf("https://%s", ip)
 
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+			}()
 			g.By(fmt.Sprintf("deploying a service using a reencrypt route without a destinationCACertificate"))
 			err := oc.Run("create").Args("-f", configPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			var hostname string
 			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				route, err := oc.RouteClient().RouteV1().Routes(ns).Get("serving-cert", metav1.GetOptions{})
+				route, err := oc.RouteClient().RouteV1().Routes(ns).Get(context.Background(), "serving-cert", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

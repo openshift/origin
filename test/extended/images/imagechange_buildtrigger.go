@@ -1,6 +1,8 @@
 package images
 
 import (
+	"context"
+
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -90,7 +92,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t g.GinkgoTInterf
 	roleBinding.Subjects = []rbacv1.Subject{
 		{Kind: rbacv1.UserKind, Name: oc.Username()},
 	}
-	_, err := oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(roleBinding)
+	_, err := oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = oc.WaitForAccessAllowed(&kubeauthorizationv1.SelfSubjectAccessReview{
 		Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
@@ -121,7 +123,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 	roleBinding.Subjects = []rbacv1.Subject{
 		{Kind: rbacv1.UserKind, Name: oc.Username()},
 	}
-	_, err := oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(roleBinding)
+	_, err := oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = oc.WaitForAccessAllowed(&kubeauthorizationv1.SelfSubjectAccessReview{
 		Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
@@ -255,22 +257,22 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 		projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminClientConfig).ImageV1()
 
 		g.By("creating and starting a build")
-		created, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Create(config)
+		created, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Create(context.Background(), config, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		buildWatch, err := projectAdminBuildClient.Builds(oc.Namespace()).Watch(metav1.ListOptions{ResourceVersion: created.ResourceVersion})
+		buildWatch, err := projectAdminBuildClient.Builds(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{ResourceVersion: created.ResourceVersion})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer buildWatch.Stop()
 
-		buildConfigWatch, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Watch(metav1.ListOptions{ResourceVersion: created.ResourceVersion})
+		buildConfigWatch, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{ResourceVersion: created.ResourceVersion})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer buildConfigWatch.Stop()
 
 		g.By("creating an imagestream and images")
-		imageStream, err = projectAdminImageClient.ImageStreams(oc.Namespace()).Create(imageStream)
+		imageStream, err = projectAdminImageClient.ImageStreams(oc.Namespace()).Create(context.Background(), imageStream, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(imageStreamMapping)
+		_, err = projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), imageStreamMapping, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// wait for initial build event from the creation of the imagerepo with tag latest
@@ -304,7 +306,7 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 
 		// wait for build config to be updated
 		<-buildConfigWatch.ResultChan()
-		updatedConfig, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Get(config.Name, metav1.GetOptions{})
+		updatedConfig, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Get(context.Background(), config.Name, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// the first tag did not have an image id, so the last trigger field is the pull spec
@@ -313,7 +315,7 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 		o.Expect(lastTriggeredImageId).To(o.Equal(expectedLastTriggerTag))
 
 		g.By("triggering a new build by posting a new image")
-		_, err = projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(&imagev1.ImageStreamMapping{
+		_, err = projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), &imagev1.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: oc.Namespace(),
 				Name:      imageStream.Name,
@@ -325,7 +327,7 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 				},
 				DockerImageReference: registryHostname + "/openshift/test-image-trigger:ref-2-random",
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// throw away events from build1, we only care about the new build
@@ -371,7 +373,7 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 		o.Expect(newBuild.Labels["testlabel"]).To(o.Equal("testvalue"))
 
 		<-buildConfigWatch.ResultChan()
-		updatedConfig, err = projectAdminBuildClient.BuildConfigs(oc.Namespace()).Get(config.Name, metav1.GetOptions{})
+		updatedConfig, err = projectAdminBuildClient.BuildConfigs(oc.Namespace()).Get(context.Background(), config.Name, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		expectedLastTriggerTag = registryHostname + "/openshift/test-image-trigger:ref-2-random"
@@ -467,14 +469,14 @@ func TestMultipleImageChangeBuildTriggers(t g.GinkgoTInterface, oc *exutil.CLI) 
 	projectAdminBuildClient := buildv1client.NewForConfigOrDie(oc.UserConfig()).BuildV1()
 	projectAdminImageClient := imagev1client.NewForConfigOrDie(oc.UserConfig()).ImageV1()
 
-	created, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Create(config)
+	created, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Create(context.Background(), config, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	buildWatch, err := projectAdminBuildClient.Builds(oc.Namespace()).Watch(metav1.ListOptions{ResourceVersion: created.ResourceVersion})
+	buildWatch, err := projectAdminBuildClient.Builds(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{ResourceVersion: created.ResourceVersion})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	defer buildWatch.Stop()
 
-	buildConfigWatch, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Watch(metav1.ListOptions{ResourceVersion: created.ResourceVersion})
+	buildConfigWatch, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{ResourceVersion: created.ResourceVersion})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	defer buildConfigWatch.Stop()
 
@@ -486,10 +488,10 @@ func TestMultipleImageChangeBuildTriggers(t g.GinkgoTInterface, oc *exutil.CLI) 
 	for _, tc := range triggersToTest {
 		imageStream := mockImageStream(tc.name, tc.tag)
 		imageStreamMapping := mockStreamMapping(tc.name, tc.tag)
-		imageStream, err = projectAdminImageClient.ImageStreams(oc.Namespace()).Create(imageStream)
+		imageStream, err = projectAdminImageClient.ImageStreams(oc.Namespace()).Create(context.Background(), imageStream, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(imageStreamMapping)
+		_, err = projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), imageStreamMapping, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var newBuild *buildv1.Build
@@ -522,7 +524,7 @@ func TestMultipleImageChangeBuildTriggers(t g.GinkgoTInterface, oc *exutil.CLI) 
 
 		// wait for build config to be updated
 		<-buildConfigWatch.ResultChan()
-		updatedConfig, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Get(config.Name, metav1.GetOptions{})
+		updatedConfig, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Get(context.Background(), config.Name, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// the first tag did not have an image id, so the last trigger field is the pull spec

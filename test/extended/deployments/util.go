@@ -41,13 +41,13 @@ func updateConfigWithRetries(dn appstypedclient.DeploymentConfigsGetter, namespa
 	var config *appsv1.DeploymentConfig
 	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error
-		config, err = dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+		config, err = dn.DeploymentConfigs(namespace).Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
 		// Apply the update, then attempt to push it to the apiserver.
 		applyUpdate(config)
-		config, err = dn.DeploymentConfigs(namespace).Update(config)
+		config, err = dn.DeploymentConfigs(namespace).Update(context.Background(), config, metav1.UpdateOptions{})
 		return err
 	})
 	return config, resultErr
@@ -334,18 +334,19 @@ func deploymentImageTriggersResolved(expectTriggers int) func(dc *appsv1.Deploym
 }
 
 func deploymentInfo(oc *exutil.CLI, name string) (*appsv1.DeploymentConfig, []*corev1.ReplicationController, []corev1.Pod, error) {
-	dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+	ctx := context.Background()
+	dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	// get pods before RCs, so we see more RCs than pods.
-	pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{})
+	pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	rcs, err := oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()).List(metav1.ListOptions{
+	rcs, err := oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()).List(ctx, metav1.ListOptions{
 		LabelSelector: appsutil.ConfigSelector(name).String(),
 	})
 	if err != nil {
@@ -387,7 +388,7 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 	}
 	generation := dc.Generation
 	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {
-		config, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+		config, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -399,7 +400,7 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 // rollout and then wait till the deployer pod finish. Then scrubs the deployer logs and
 // return it.
 func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duration) (string, error) {
-	watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()).Watch(metav1.ListOptions{FieldSelector: fields.Everything().String()})
+	watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{FieldSelector: fields.Everything().String()})
 	if err != nil {
 		return "", err
 	}
@@ -452,7 +453,7 @@ func rCConditionFromMeta(condition func(metav1.Object) (bool, error)) func(rc *c
 }
 
 func waitForPodModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(pod *corev1.Pod) (bool, error)) (*corev1.Pod, error) {
-	watcher, err := oc.KubeClient().CoreV1().Pods(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
+	watcher, err := oc.KubeClient().CoreV1().Pods(namespace).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
 	if err != nil {
 		return nil, err
 	}
@@ -472,7 +473,7 @@ func waitForPodModification(oc *exutil.CLI, namespace string, name string, timeo
 }
 
 func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *corev1.ReplicationController) (bool, error)) (*corev1.ReplicationController, error) {
-	watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
+	watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +496,7 @@ func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeou
 }
 
 func waitForDCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *appsv1.DeploymentConfig) (bool, error)) (*appsv1.DeploymentConfig, error) {
-	watcher, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
+	watcher, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
 	if err != nil {
 		return nil, err
 	}
@@ -520,13 +521,13 @@ func createDeploymentConfig(oc *exutil.CLI, fixture string) (*appsv1.DeploymentC
 		return nil, err
 	}
 	dc := obj.(*appsv1.DeploymentConfig)
-	dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Create(dc)
+	dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Create(context.Background(), dc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
 	var pollErr error
 	err = wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(dc.Name, metav1.GetOptions{})
+		dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(context.Background(), dc.Name, metav1.GetOptions{})
 		if err != nil {
 			pollErr = err
 			return false, nil
@@ -610,7 +611,7 @@ func failureTrapForDetachedRCs(oc *exutil.CLI, dcName string, failed bool) {
 		e2e.Logf("failed to create requirement for DC %q", dcName)
 		return
 	}
-	dc, err := kclient.CoreV1().ReplicationControllers(oc.Namespace()).List(metav1.ListOptions{
+	dc, err := kclient.CoreV1().ReplicationControllers(oc.Namespace()).List(context.Background(), metav1.ListOptions{
 		LabelSelector: labels.NewSelector().Add(*requirement).String(),
 	})
 	if err != nil {
@@ -734,7 +735,7 @@ func (d *deployerPodInvariantChecker) UpdatePod(pod *corev1.Pod) {
 func (d *deployerPodInvariantChecker) doChecking() {
 	defer g.GinkgoRecover()
 
-	watcher, err := d.client.CoreV1().Pods(d.namespace).Watch(metav1.ListOptions{})
+	watcher, err := d.client.CoreV1().Pods(d.namespace).Watch(context.Background(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	defer d.wg.Done()
 	defer watcher.Stop()

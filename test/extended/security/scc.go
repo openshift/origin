@@ -1,6 +1,7 @@
 package security
 
 import (
+	"context"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
@@ -20,6 +21,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("scc", exutil.KubeConfigPath())
+	ctx := context.Background()
 
 	g.It("TestPodUpdateSCCEnforcement", func() {
 		t := g.GinkgoT()
@@ -36,17 +38,17 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		// to update the privileged pods either, even if he lies about its privileged nature
 		privilegedPod := getPrivilegedPod("unsafe")
 
-		if _, err := haroldKubeClient.CoreV1().Pods(projectName).Create(privilegedPod); !isForbiddenBySCC(err) {
+		if _, err := haroldKubeClient.CoreV1().Pods(projectName).Create(ctx, privilegedPod, metav1.CreateOptions{}); !isForbiddenBySCC(err) {
 			t.Fatalf("missing forbidden: %v", err)
 		}
 
-		actualPod, err := clusterAdminKubeClientset.CoreV1().Pods(projectName).Create(privilegedPod)
+		actualPod, err := clusterAdminKubeClientset.CoreV1().Pods(projectName).Create(ctx, privilegedPod, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		actualPod.Spec.Containers[0].Image = "something-nefarious"
-		if _, err := haroldKubeClient.CoreV1().Pods(projectName).Update(actualPod); !isForbiddenBySCC(err) {
+		if _, err := haroldKubeClient.CoreV1().Pods(projectName).Update(ctx, actualPod, metav1.UpdateOptions{}); !isForbiddenBySCC(err) {
 			t.Fatalf("missing forbidden: %v", err)
 		}
 
@@ -62,7 +64,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 			Name(actualPod.Name).
 			SubResource("exec").
 			Param("container", "first").
-			Do().
+			Do(ctx).
 			Into(result)
 		if !isForbiddenBySCCExecRestrictions(err) {
 			t.Fatalf("missing forbidden by SCCExecRestrictions: %v", err)
@@ -70,13 +72,15 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 		// try to lie about the privileged nature
 		actualPod.Spec.HostPID = false
-		if _, err := haroldKubeClient.CoreV1().Pods(projectName).Update(actualPod); err == nil {
+		if _, err := haroldKubeClient.CoreV1().Pods(projectName).Update(context.Background(), actualPod, metav1.UpdateOptions{}); err == nil {
 			t.Fatalf("missing error: %v", err)
 		}
 	})
 })
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
+	ctx := context.Background()
+
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("scc", exutil.KubeConfigPath())
 
@@ -95,10 +99,12 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 		// set a up cluster role that allows access to all SCCs
 		if _, err := clusterAdminKubeClientset.RbacV1().ClusterRoles().Create(
+			ctx,
 			&rbacv1.ClusterRole{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterRole},
 				Rules:      []rbacv1.PolicyRule{rule},
 			},
+			metav1.CreateOptions{},
 		); err != nil {
 			t.Fatal(err)
 		}
@@ -116,37 +122,39 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		user2Client := kubernetes.NewForConfigOrDie(user2Config)
 		user2SecurityClient := securityv1client.NewForConfigOrDie(user2Config)
 
+		createOpts := metav1.CreateOptions{}
+
 		// user1 cannot make a privileged pod
-		if _, err := user1Client.CoreV1().Pods(project1).Create(getPrivilegedPod("test1")); !isForbiddenBySCC(err) {
+		if _, err := user1Client.CoreV1().Pods(project1).Create(ctx, getPrivilegedPod("test1"), createOpts); !isForbiddenBySCC(err) {
 			t.Fatalf("missing forbidden for user1: %v", err)
 		}
 
 		// user2 cannot make a privileged pod
-		if _, err := user2Client.CoreV1().Pods(project2).Create(getPrivilegedPod("test2")); !isForbiddenBySCC(err) {
+		if _, err := user2Client.CoreV1().Pods(project2).Create(ctx, getPrivilegedPod("test2"), createOpts); !isForbiddenBySCC(err) {
 			t.Fatalf("missing forbidden for user2: %v", err)
 		}
 
 		// this should allow user1 to make a privileged pod in project1
 		rb := rbacv1helpers.NewRoleBindingForClusterRole(clusterRole, project1).Users(user1).BindingOrDie()
-		if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project1).Create(&rb); err != nil {
+		if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project1).Create(ctx, &rb, createOpts); err != nil {
 			t.Fatal(err)
 		}
 
 		// this should allow user1 to make pods in project2
 		rbEditUser1Project2 := rbacv1helpers.NewRoleBindingForClusterRole("edit", project2).Users(user1).BindingOrDie()
-		if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project2).Create(&rbEditUser1Project2); err != nil {
+		if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project2).Create(ctx, &rbEditUser1Project2, createOpts); err != nil {
 			t.Fatal(err)
 		}
 
 		// this should allow user2 to make pods in project1
 		rbEditUser2Project1 := rbacv1helpers.NewRoleBindingForClusterRole("edit", project1).Users(user2).BindingOrDie()
-		if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project1).Create(&rbEditUser2Project1); err != nil {
+		if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project1).Create(ctx, &rbEditUser2Project1, createOpts); err != nil {
 			t.Fatal(err)
 		}
 
 		// this should allow user2 to make a privileged pod in all projects
 		crb := rbacv1helpers.NewClusterBinding(clusterRole).Users(user2).BindingOrDie()
-		if _, err := clusterAdminKubeClientset.RbacV1().ClusterRoleBindings().Create(&crb); err != nil {
+		if _, err := clusterAdminKubeClientset.RbacV1().ClusterRoleBindings().Create(ctx, &crb, createOpts); err != nil {
 			t.Fatal(err)
 		}
 		oc.AddExplicitResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("clusterrolebindings"), "", crb.Name)
@@ -208,29 +216,29 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		}
 
 		// user1 can make a privileged pod in project1
-		if _, err := user1Client.CoreV1().Pods(project1).Create(getPrivilegedPod("test3")); err != nil {
+		if _, err := user1Client.CoreV1().Pods(project1).Create(ctx, getPrivilegedPod("test3"), createOpts); err != nil {
 			t.Fatalf("user1 failed to create pod in project1 via local binding: %v", err)
 		}
 
 		// user1 cannot make a privileged pod in project2
-		if _, err := user1Client.CoreV1().Pods(project2).Create(getPrivilegedPod("test4")); !isForbiddenBySCC(err) {
+		if _, err := user1Client.CoreV1().Pods(project2).Create(ctx, getPrivilegedPod("test4"), createOpts); !isForbiddenBySCC(err) {
 			t.Fatalf("missing forbidden for user1 in project2: %v", err)
 		}
 
 		// user2 can make a privileged pod in project1
-		if _, err := user2Client.CoreV1().Pods(project1).Create(getPrivilegedPod("test5")); err != nil {
+		if _, err := user2Client.CoreV1().Pods(project1).Create(ctx, getPrivilegedPod("test5"), createOpts); err != nil {
 			t.Fatalf("user2 failed to create pod in project1 via cluster binding: %v", err)
 		}
 
 		// user2 can make a privileged pod in project2
-		if _, err := user2Client.CoreV1().Pods(project2).Create(getPrivilegedPod("test6")); err != nil {
+		if _, err := user2Client.CoreV1().Pods(project2).Create(ctx, getPrivilegedPod("test6"), createOpts); err != nil {
 			t.Fatalf("user2 failed to create pod in project2 via cluster binding: %v", err)
 		}
 
 		// make sure PSP self subject review works since that is based by the same SCC logic but has different wiring
 
 		// user1 can make a privileged pod in project1
-		user1PSPReview, err := user1SecurityClient.PodSecurityPolicySelfSubjectReviews(project1).Create(runAsRootPSPSSR())
+		user1PSPReview, err := user1SecurityClient.PodSecurityPolicySelfSubjectReviews(project1).Create(ctx, runAsRootPSPSSR(), createOpts)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -239,7 +247,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		}
 
 		// user2 can make a privileged pod in project2
-		user2PSPReview, err := user2SecurityClient.PodSecurityPolicySelfSubjectReviews(project2).Create(runAsRootPSPSSR())
+		user2PSPReview, err := user2SecurityClient.PodSecurityPolicySelfSubjectReviews(project2).Create(ctx, runAsRootPSPSSR(), createOpts)
 		if err != nil {
 			t.Fatal(err)
 		}

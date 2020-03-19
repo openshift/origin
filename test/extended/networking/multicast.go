@@ -1,6 +1,7 @@
 package networking
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"time"
@@ -60,7 +61,7 @@ func makeNamespaceMulticastEnabled(oc *testexutil.CLI, ns *kapiv1.Namespace) {
 	var netns *networkapi.NetNamespace
 	var err error
 	err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-		netns, err = networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
+		netns, err = networkClient.NetNamespaces().Get(context.Background(), ns.Name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return false, nil
@@ -74,7 +75,7 @@ func makeNamespaceMulticastEnabled(oc *testexutil.CLI, ns *kapiv1.Namespace) {
 		netns.Annotations = make(map[string]string, 1)
 	}
 	netns.Annotations[networkapi.MulticastEnabledAnnotation] = "true"
-	_, err = networkClient.NetNamespaces().Update(netns)
+	_, err = networkClient.NetNamespaces().Update(context.Background(), netns, metav1.UpdateOptions{})
 	expectNoError(err)
 }
 
@@ -119,7 +120,7 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 		err := launchTestMulticastPod(f, nodes[i/2].Name, pod[i])
 		expectNoError(err)
 		var zero int64
-		defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(pod[i], &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+		defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.Background(), pod[i], metav1.DeleteOptions{GracePeriodSeconds: &zero})
 	}
 
 	for i := range pod {
@@ -175,7 +176,7 @@ func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) e
 			RestartPolicy: kapiv1.RestartPolicyNever,
 		},
 	}
-	_, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+	_, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.Background(), pod, metav1.CreateOptions{})
 	return err
 }
 

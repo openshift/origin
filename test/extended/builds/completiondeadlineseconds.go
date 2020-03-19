@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -49,7 +51,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should have deadli
 				o.Expect(br.Build.Status.Phase).Should(o.BeEquivalentTo(buildv1.BuildPhaseFailed)) // the build should have failed
 
 				g.By("verifying the build pod status")
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(GetBuildPodName(br.Build), metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), GetBuildPodName(br.Build), metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(pod.Status.Phase).Should(o.BeEquivalentTo(corev1.PodFailed))
 				o.Expect(pod.Status.Reason).Should(o.ContainSubstring("DeadlineExceeded"))
@@ -73,7 +75,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should have deadli
 				o.Expect(br.Build.Status.Phase).Should(o.BeEquivalentTo(buildv1.BuildPhaseFailed)) // the build should have failed
 
 				g.By("verifying the build pod status")
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(GetBuildPodName(br.Build), metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), GetBuildPodName(br.Build), metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(pod.Status.Phase).Should(o.BeEquivalentTo(corev1.PodFailed))
 				o.Expect(pod.Status.Reason).Should(o.ContainSubstring("DeadlineExceeded"))

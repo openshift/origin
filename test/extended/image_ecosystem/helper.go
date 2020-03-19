@@ -1,6 +1,7 @@
 package image_ecosystem
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -24,7 +25,7 @@ func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) e
 		return fmt.Errorf("Got %d pods for selector %v, expected 1", len(pods), selector)
 	}
 
-	pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+	pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pods[0], metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 
@@ -401,7 +402,7 @@ func verifyExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, g
 	r := regexp.MustCompile(pattern)
 	if !r.Match([]byte(result)) {
 		if crdClient != nil {
-			if crd, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(gvr.GroupResource().String(), metav1.GetOptions{}); err == nil {
+			if crd, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(), gvr.GroupResource().String(), metav1.GetOptions{}); err == nil {
 				e2e.Logf("CRD yaml is:\n%s\n", runtime.EncodeOrDie(apiextensionsscheme.Codecs.LegacyCodec(apiextensionsscheme.Scheme.PrioritizedVersionsAllGroups()...), crd))
 			}
 		}

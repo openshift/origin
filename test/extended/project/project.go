@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
+	ctx := context.Background()
 
 	g.Describe("TestProjectIsNamespace", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -39,14 +41,14 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			namespace := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{Name: "integration-test-" + oc.Namespace()},
 			}
-			namespaceResult, err := oc.AdminKubeClient().CoreV1().Namespaces().Create(namespace)
+			namespaceResult, err := oc.AdminKubeClient().CoreV1().Namespaces().Create(ctx, namespace, metav1.CreateOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			oc.AddResourceToDelete(corev1.SchemeGroupVersion.WithResource("namespaces"), namespaceResult)
 
 			// now try to get the project with the same name and ensure it is our namespace
-			project, err := oc.AdminProjectClient().ProjectV1().Projects().Get(namespaceResult.Name, metav1.GetOptions{})
+			project, err := oc.AdminProjectClient().ProjectV1().Projects().Get(ctx, namespaceResult.Name, metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -64,14 +66,14 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 					},
 				},
 			}
-			projectResult, err := oc.AdminProjectClient().ProjectV1().Projects().Create(project)
+			projectResult, err := oc.AdminProjectClient().ProjectV1().Projects().Create(ctx, project, metav1.CreateOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			oc.AddResourceToDelete(projectv1.GroupVersion.WithResource("projects"), projectResult)
 
 			// now get the namespace for that project
-			namespace, err = oc.AdminKubeClient().CoreV1().Namespaces().Get(projectResult.Name, metav1.GetOptions{})
+			namespace, err = oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, projectResult.Name, metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -89,6 +91,8 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 })
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
+	ctx := context.Background()
+
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 
@@ -97,7 +101,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			bobName := oc.CreateUser("bob-").Name
 			bobConfig := oc.GetClientConfigForUser(bobName)
 			bobProjectClient := projectv1client.NewForConfigOrDie(bobConfig)
-			w, err := bobProjectClient.Projects().Watch(metav1.ListOptions{})
+			w, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			ns01Name := oc.CreateProject()
@@ -111,7 +115,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			bobEditName := authorization.AddUserEditToProject(oc, ns02Name, bobName)
 			waitForAdd(ns02Name, w)
 
-			err = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(ns02Name).Delete(bobEditName, nil)
+			err = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(ns02Name).Delete(ctx, bobEditName, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			waitForDelete(ns02Name, w)
@@ -121,21 +125,21 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			authorization.AddUserAdminToProject(oc, ns03Name, bobName)
 			waitForAdd(ns03Name, w)
 
-			bobProjectClient.Projects().Delete(ns03Name, nil)
+			bobProjectClient.Projects().Delete(ctx, ns03Name, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// wait for the delete
 			waitForDelete(ns03Name, w)
 
 			// test the "start from beginning watch"
-			beginningWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{ResourceVersion: "0"})
+			beginningWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{ResourceVersion: "0"})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			waitForAdd(ns01Name, beginningWatch)
 
 			// Background: in HA we have no guarantee that watch caches are synchronized and this test already broke on Azure.
 			// Ref: https://bugzilla.redhat.com/show_bug.cgi?id=1744105
 			time.Sleep(5 * time.Second)
-			fromNowWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{})
+			fromNowWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			select {
 			case event := <-fromNowWatch.ResultChan():
@@ -148,6 +152,8 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 })
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
+	ctx := context.Background()
+
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 
@@ -158,7 +164,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			bobProjectClient := projectv1client.NewForConfigOrDie(bobConfig)
 
 			ns01Name := oc.CreateProject()
-			w, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
+			w, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{
 				FieldSelector: "metadata.name=" + ns01Name,
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -172,14 +178,14 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			// we are only watching ns-01, we should not receive events for other projects
 			waitForNoEvent(w, ns01Name)
 
-			bobProjectClient.Projects().Delete(ns03Name, nil)
+			bobProjectClient.Projects().Delete(ctx, ns03Name, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// we are only watching ns-01, we should not receive events for other projects
 			waitForNoEvent(w, ns01Name)
 
 			// test the "start from beginning watch"
-			beginningWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
+			beginningWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{
 				ResourceVersion: "0",
 				FieldSelector:   "metadata.name=" + ns01Name,
 			})
@@ -187,7 +193,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			// we should be seeing an "ADD" watch event being emitted, since we are specifically watching this project via a field selector
 			waitForAdd(ns01Name, beginningWatch)
 
-			fromNowWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
+			fromNowWatch, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{
 				FieldSelector: "metadata.name=" + ns01Name,
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -319,6 +325,8 @@ func waitForOnlyDelete(projectName string, w watch.Interface) {
 }
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
+	ctx := context.Background()
+
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 
@@ -361,15 +369,15 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			}
 			allBobClient := projectv1client.NewForConfigOrDie(allBobConfig)
 
-			oneTwoWatch, err := oneTwoBobClient.Projects().Watch(metav1.ListOptions{})
+			oneTwoWatch, err := oneTwoBobClient.Projects().Watch(ctx, metav1.ListOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			twoThreeWatch, err := twoThreeBobClient.Projects().Watch(metav1.ListOptions{})
+			twoThreeWatch, err := twoThreeBobClient.Projects().Watch(ctx, metav1.ListOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			allWatch, err := allBobClient.Projects().Watch(metav1.ListOptions{})
+			allWatch, err := allBobClient.Projects().Watch(ctx, metav1.ListOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -405,25 +413,27 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 				t.Error(err)
 			}
 
-			if err := fullBobClient.Projects().Delete(fourName, nil); err != nil {
+			delOptions := metav1.DeleteOptions{}
+
+			if err := fullBobClient.Projects().Delete(ctx, fourName, delOptions); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			waitForOnlyDelete(fourName, allWatch)
 
-			if err := fullBobClient.Projects().Delete(threeName, nil); err != nil {
+			if err := fullBobClient.Projects().Delete(ctx, threeName, delOptions); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			waitForOnlyDelete(threeName, allWatch)
 			waitForOnlyDelete(threeName, twoThreeWatch)
 
-			if err := fullBobClient.Projects().Delete(twoName, nil); err != nil {
+			if err := fullBobClient.Projects().Delete(ctx, twoName, delOptions); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			waitForOnlyDelete(twoName, allWatch)
 			waitForOnlyDelete(twoName, oneTwoWatch)
 			waitForOnlyDelete(twoName, twoThreeWatch)
 
-			if err := fullBobClient.Projects().Delete(oneName, nil); err != nil {
+			if err := fullBobClient.Projects().Delete(ctx, oneName, delOptions); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			waitForOnlyDelete(oneName, allWatch)
@@ -433,6 +443,8 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 })
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
+	ctx := context.Background()
+
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
 
@@ -458,17 +470,17 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			roleBinding.RoleRef.Name = "missing-role-" + oc.Namespace()
 
 			// mess up rolebindings in "foo"
-			_, err := clusterAdminRbacClient.RoleBindings(fooName).Create(roleBinding)
+			_, err := clusterAdminRbacClient.RoleBindings(fooName).Create(ctx, roleBinding, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			// mess up rolebindings in "bar"
-			_, err = clusterAdminRbacClient.RoleBindings(barName).Create(roleBinding)
+			_, err = clusterAdminRbacClient.RoleBindings(barName).Create(ctx, roleBinding, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			// mess up clusterrolebindings
 			clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			clusterRoleBinding.GenerateName = "missing-role-"
 			clusterRoleBinding.RoleRef.Kind = "ClusterRole"
 			clusterRoleBinding.RoleRef.Name = "missing-role-" + oc.Namespace()
-			actual, err := clusterAdminRbacClient.ClusterRoleBindings().Create(clusterRoleBinding)
+			actual, err := clusterAdminRbacClient.ClusterRoleBindings().Create(ctx, clusterRoleBinding, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			oc.AddResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("clusterrolebindings"), actual)
 
@@ -478,15 +490,15 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 				for i := 0; i < 10; i++ {
 					review := &authorizationv1.ResourceAccessReview{Action: authorizationv1.Action{Verb: "get", Resource: "pods"}}
 					review.Action.Namespace = fooName
-					if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
+					if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(ctx, review, metav1.CreateOptions{}); err != nil || resp.EvaluationError == "" {
 						return false, err
 					}
 					review.Action.Namespace = barName
-					if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
+					if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(ctx, review, metav1.CreateOptions{}); err != nil || resp.EvaluationError == "" {
 						return false, err
 					}
 					review.Action.Namespace = ""
-					if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
+					if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(ctx, review, metav1.CreateOptions{}); err != nil || resp.EvaluationError == "" {
 						return false, err
 					}
 				}
@@ -504,7 +516,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 
 			// Make sure cluster admin still sees all projects, we sometimes appear to race, so wait for a second for caches
 			time.Sleep(1 * time.Second)
-			projects, err := oc.AdminProjectClient().ProjectV1().Projects().List(metav1.ListOptions{})
+			projects, err := oc.AdminProjectClient().ProjectV1().Projects().List(ctx, metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			projectNames := sets.NewString()
@@ -522,7 +534,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 func hasExactlyTheseProjects(lister projectv1client.ProjectInterface, projects sets.String) error {
 	var lastErr error
 	if err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
-		list, err := lister.List(metav1.ListOptions{})
+		list, err := lister.List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -545,7 +557,7 @@ func hasExactlyTheseProjects(lister projectv1client.ProjectInterface, projects s
 
 func GetScopedClientForUser(oc *exutil.CLI, username string, scopes []string) (*rest.Config, error) {
 	// make sure the user exists
-	user, err := oc.AdminUserClient().UserV1().Users().Get(username, metav1.GetOptions{})
+	user, err := oc.AdminUserClient().UserV1().Users().Get(context.Background(), username, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +571,7 @@ func GetScopedClientForUser(oc *exutil.CLI, username string, scopes []string) (*
 		UserName:    user.Name,
 		UserUID:     string(user.UID),
 	}
-	if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(token); err != nil {
+	if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), token, metav1.CreateOptions{}); err != nil {
 		return nil, err
 	}
 	oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), token)

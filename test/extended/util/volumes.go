@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -9,14 +10,14 @@ import (
 )
 
 func DeletePVCsForDeployment(client clientset.Interface, oc *CLI, deploymentPrefix string) {
-	pvclist, err := client.CoreV1().PersistentVolumeClaims(oc.Namespace()).List(metav1.ListOptions{})
+	pvclist, err := client.CoreV1().PersistentVolumeClaims(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		e2e.Logf("pvc list error %#v\n", err)
 	}
 	for _, pvc := range pvclist.Items {
 		e2e.Logf("found pvc %s\n", pvc.Name)
 		if strings.HasPrefix(pvc.Name, deploymentPrefix) {
-			err = client.CoreV1().PersistentVolumeClaims(oc.Namespace()).Delete(pvc.Name, nil)
+			err = client.CoreV1().PersistentVolumeClaims(oc.Namespace()).Delete(context.Background(), pvc.Name, metav1.DeleteOptions{})
 			if err != nil {
 				e2e.Logf("pvc del error %#v\n", err)
 			} else {

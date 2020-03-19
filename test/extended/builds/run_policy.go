@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -63,7 +64,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				)
 				bcName := "sample-parallel-build"
 
-				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{
 					LabelSelector: BuildConfigSelector(bcName).String(),
 				})
 				defer buildWatch.Stop()
@@ -150,7 +151,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 					startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
 				}
 
-				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{
 					LabelSelector: BuildConfigSelector(bcName).String(),
 				})
 				defer buildWatch.Stop()
@@ -222,7 +223,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 
-				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{
 					LabelSelector: BuildConfigSelector(bcName).String(),
 				})
 				defer buildWatch.Stop()
@@ -271,7 +272,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 
-				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{
 					LabelSelector: BuildConfigSelector(bcName).String(),
 				})
 				defer buildWatch.Stop()
@@ -351,7 +352,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 
-				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{
 					LabelSelector: BuildConfigSelector(bcName).String(),
 				})
 				defer buildWatch.Stop()
@@ -410,7 +411,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 
 				bcName := "sample-serial-latest-only-build"
 				buildVerified := map[string]bool{}
-				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				buildWatch, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{
 					LabelSelector: BuildConfigSelector(bcName).String(),
 				})
 				defer buildWatch.Stop()
@@ -520,7 +521,7 @@ func IsTerminalPhase(phase buildv1.BuildPhase) bool {
 // Optionally you can specify a filter function to select only builds that
 // matches your criteria.
 func BuildConfigBuilds(c buildclientv1.BuildsGetter, namespace, name string, filterFunc buildFilter) ([]*buildv1.Build, error) {
-	result, err := c.Builds(namespace).List(metav1.ListOptions{LabelSelector: BuildConfigSelector(name).String()})
+	result, err := c.Builds(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector(name).String()})
 	if err != nil {
 		return nil, err
 	}

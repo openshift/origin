@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"net/url"
 	"strings"
 
@@ -47,7 +48,7 @@ func getUserPartOfNickname(clientCfg *restclient.Config) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	userInfo, err := userClient.Users().Get("~", metav1.GetOptions{})
+	userInfo, err := userClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		// if we're talking to kube (or likely talking to kube), take a best guess consistent with login
 		switch {

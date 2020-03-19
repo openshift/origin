@@ -2,6 +2,7 @@ package networking
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	"github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -34,7 +36,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 	f := framework.NewDefaultFramework("k8s-nettest")
 
 	ginkgo.It("for TCP and UDP on ports 9000-9999 is allowed", func() {
-		framework.SkipUnlessNodeCountIsAtLeast(2)
+		e2eskipper.SkipUnlessNodeCountIsAtLeast(2)
 		clientConfig := f.ClientConfig()
 
 		one := int64(0)
@@ -89,10 +91,10 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 			},
 		}
 		name := ds.Name
-		ds, err := f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Create(ds)
+		ds, err := f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Create(context.Background(), ds, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {
-			ds, err = f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Get(name, metav1.GetOptions{})
+			ds, err = f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Get(context.Background(), name, metav1.GetOptions{})
 			if err != nil {
 				framework.Logf("unable to retrieve daemonset: %v", err)
 				return false, nil
@@ -106,7 +108,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("daemonset ready: %#v", ds.Status)
 
-		pods, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).List(metav1.ListOptions{LabelSelector: labels.Set(ds.Spec.Selector.MatchLabels).String()})
+		pods, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).List(context.Background(), metav1.ListOptions{LabelSelector: labels.Set(ds.Spec.Selector.MatchLabels).String()})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).To(o.Equal(int(ds.Status.NumberAvailable)), fmt.Sprintf("%#v", pods.Items))
 

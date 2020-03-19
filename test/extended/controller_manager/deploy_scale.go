@@ -1,6 +1,7 @@
 package controller_manager
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -37,7 +38,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{}
 		config.Spec.Replicas = 1
 
-		dc, err := adminAppsClient.AppsV1().DeploymentConfigs(namespace).Create(config)
+		dc, err := adminAppsClient.AppsV1().DeploymentConfigs(namespace).Create(context.Background(), config, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 		}
@@ -47,7 +48,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			// Get scale subresource
 			scalePath := fmt.Sprintf("/apis/apps.openshift.io/v1/namespaces/%s/deploymentconfigs/%s/scale", dc.Namespace, dc.Name)
 			scale := &unstructured.Unstructured{}
-			if err := adminAppsClient.RESTClient().Get().AbsPath(scalePath).Do().Into(scale); err != nil {
+			if err := adminAppsClient.RESTClient().Get().AbsPath(scalePath).Do(context.Background()).Into(scale); err != nil {
 				t.Fatal(err)
 			}
 			// Ensure correct type
@@ -60,13 +61,13 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			}
 
 			// Ensure we can submit the same type back
-			if err := adminAppsClient.RESTClient().Put().AbsPath(scalePath).Body(scaleBytes).Do().Error(); err != nil {
+			if err := adminAppsClient.RESTClient().Put().AbsPath(scalePath).Body(scaleBytes).Do(context.Background()).Error(); err != nil {
 				t.Fatal(err)
 			}
 		}
 
 		condition := func() (bool, error) {
-			config, err := adminAppsClient.AppsV1().DeploymentConfigs(namespace).Get(dc.Name, metav1.GetOptions{})
+			config, err := adminAppsClient.AppsV1().DeploymentConfigs(namespace).Get(context.Background(), dc.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, nil
 			}
@@ -90,7 +91,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			t.Fatal(err)
 		}
 
-		scale, err := scaleClient.Scales(namespace).Get(apps.Resource("deploymentconfigs"), config.Name)
+		scale, err := scaleClient.Scales(namespace).Get(context.Background(), apps.Resource("deploymentconfigs"), config.Name, metav1.GetOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't get DeploymentConfig scale: %v", err)
 		}
@@ -100,7 +101,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 
 		scaleUpdate := scale.DeepCopy()
 		scaleUpdate.Spec.Replicas = 3
-		updatedScale, err := scaleClient.Scales(namespace).Update(apps.Resource("deploymentconfigs"), scaleUpdate)
+		updatedScale, err := scaleClient.Scales(namespace).Update(context.Background(), apps.Resource("deploymentconfigs"), scaleUpdate, metav1.UpdateOptions{})
 		if err != nil {
 			// If this complains about "Scale" not being registered in "v1", check the kind overrides in the API registration in SubresourceGroupVersionKind
 			t.Fatalf("Couldn't update DeploymentConfig scale to %#v: %v", scaleUpdate, err)
@@ -109,7 +110,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			t.Fatalf("Expected scale.spec.replicas=3, got %#v", scale)
 		}
 
-		persistedScale, err := scaleClient.Scales(namespace).Get(apps.Resource("deploymentconfigs"), config.Name)
+		persistedScale, err := scaleClient.Scales(namespace).Get(context.Background(), apps.Resource("deploymentconfigs"), config.Name, metav1.GetOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't get DeploymentConfig scale: %v", err)
 		}

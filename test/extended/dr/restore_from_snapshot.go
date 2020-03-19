@@ -1,6 +1,7 @@
 package dr
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -105,7 +106,7 @@ func setMachineConfig(rollbackFileName string, oc *exutil.CLI, mcps dynamic.Name
 
 func getRollbackContentsInMachineConfig(oc *exutil.CLI, mcs dynamic.NamespaceableResourceInterface, mcName string) string {
 	e2e.Logf("Reading contents of rollback MachineConfig")
-	pool, err := mcs.Get(mcName, metav1.GetOptions{})
+	pool, err := mcs.Get(context.Background(), mcName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	files, found, err := unstructured.NestedSlice(pool.Object, "spec", "config", "storage", "files")
@@ -124,7 +125,7 @@ func getRollbackContentsInMachineConfig(oc *exutil.CLI, mcs dynamic.Namespaceabl
 func waitForAPIServer(oc *exutil.CLI) {
 	e2e.Logf("Waiting for API server to restore")
 	err := wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		_, err = oc.AdminKubeClient().CoreV1().Nodes().List(metav1.ListOptions{})
+		_, err = oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}

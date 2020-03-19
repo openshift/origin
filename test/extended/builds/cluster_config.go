@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -57,7 +58,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			g.By("check that the OCM enters Progressing==" + string(progressing))
 			var err error
 			err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
-				ocm, err := oc.AdminOperatorClient().OperatorV1().OpenShiftControllerManagers().Get("cluster", metav1.GetOptions{})
+				ocm, err := oc.AdminOperatorClient().OperatorV1().OpenShiftControllerManagers().Get(context.Background(), "cluster", metav1.GetOptions{})
 				if err != nil {
 					g.By("intermediate error accessing ocm: " + err.Error())
 					return false, nil
@@ -75,7 +76,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			g.By(fmt.Sprintf("check the build pod %s is unschedulable", name))
 			var err error
 			err = wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(name, metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), name, metav1.GetOptions{})
 				if err != nil {
 					g.By("intermediate error access pod: " + err.Error())
 					return false, nil
@@ -205,11 +206,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 		g.Context("build config no ocm rollout", func() {
 			g.AfterEach(func() {
 				g.By("reset build cluster configuration")
-				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				buildConfig.Spec.BuildDefaults = configv1.BuildDefaults{}
 				buildConfig.Spec.BuildOverrides = configv1.BuildOverrides{}
-				_, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
+				_, err = oc.AdminConfigClient().ConfigV1().Builds().Update(context.Background(), buildConfig, metav1.UpdateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
@@ -220,7 +221,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				g.By("waiting 10s for build controller to detect proxy cfg chg")
 				time.Sleep(10 * time.Second)
 				g.By("verify build.config is set")
-				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildConfig.Spec.BuildDefaults.DefaultProxy).NotTo(o.BeNil())
 				g.By("starting build verbose-s2i-build and waiting for failure")
@@ -232,7 +233,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildLog).To(o.ContainSubstring("proxyconnect tcp: dial tcp: lookup invalid.proxy.redhat.com"))
 				g.By("checking pod as well")
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(br.BuildName+"-build", metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), br.BuildName+"-build", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				checkPodProxyEnvs(pod.Spec.Containers, buildConfig.Spec.BuildDefaults.DefaultProxy)
 				checkPodProxyEnvs(pod.Spec.InitContainers, buildConfig.Spec.BuildDefaults.DefaultProxy)
@@ -245,7 +246,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				g.By("waiting 10s for build controller to detect proxy cfg chg")
 				time.Sleep(10 * time.Second)
 				g.By("verify build.config is set")
-				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildConfig.Spec.BuildDefaults.DefaultProxy).NotTo(o.BeNil())
 				g.By("starting build simple-s2i-build and waiting for failure")
@@ -257,7 +258,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildLog).To(o.ContainSubstring("Could not resolve proxy: invalid.proxy.redhat.com"))
 				g.By("checking pod as well")
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(br.BuildName+"-build", metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), br.BuildName+"-build", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				checkPodProxyEnvs(pod.Spec.Containers, buildConfig.Spec.BuildDefaults.DefaultProxy)
 				checkPodProxyEnvs(pod.Spec.InitContainers, buildConfig.Spec.BuildDefaults.DefaultProxy)
@@ -266,19 +267,19 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			// this replaces coverage from the TestBuildDefaultGitHTTPProxy and TestBuildDefaultGitHTTPSProxy integration test
 			g.It("Apply git proxy configuration to build pod", func() {
 				g.By("apply proxy cluster configuration")
-				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				buildConfig.Spec.BuildDefaults.GitProxy = &configv1.ProxySpec{
 					HTTPProxy:  "http://invalid.proxy.redhat.com:3288",
 					HTTPSProxy: "https://invalid.proxy.redhat.com:3288",
 					NoProxy:    "image-registry.openshift-image-registry.svc:5000",
 				}
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(context.Background(), buildConfig, metav1.UpdateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By("waiting 10s for build controller to detect proxy cfg chg")
 				time.Sleep(10 * time.Second)
 				g.By("verify build.config is set")
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildConfig.Spec.BuildDefaults.GitProxy).NotTo(o.BeNil())
 
@@ -293,7 +294,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				g.By("checking build stored in pod as well")
 				// note, only the build stored in the Pod's "BUILD" env var has the updated proxy settings; they do not
 				// get propagated to the associated build stored in etcd
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(br.BuildName+"-build", metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), br.BuildName+"-build", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				build := getBuildFromPod(pod)
 				o.Expect(build.Spec.Source.Git).NotTo(o.BeNil())
@@ -307,11 +308,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 
 			g.AfterEach(func() {
 				g.By("reset build cluster configuration")
-				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				buildConfig.Spec.BuildDefaults = configv1.BuildDefaults{}
 				buildConfig.Spec.BuildOverrides = configv1.BuildOverrides{}
-				_, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
+				_, err = oc.AdminConfigClient().ConfigV1().Builds().Update(context.Background(), buildConfig, metav1.UpdateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
@@ -320,7 +321,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			// this replaces coverage from the TestBuildDefaultEnvironment integration test
 			g.It("Apply env configuration to build pod", func() {
 				g.By("apply env cluster configuration")
-				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				buildConfig.Spec.BuildDefaults.Env = []v1.EnvVar{
 					{
@@ -332,12 +333,12 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 						Value: "VALUE2",
 					},
 				}
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(context.Background(), buildConfig, metav1.UpdateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
 				g.By("verify build.config is set")
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildConfig.Spec.BuildDefaults.Env).NotTo(o.BeNil())
 				o.Expect(len(buildConfig.Spec.BuildDefaults.Env)).To(o.Equal(2))
@@ -351,7 +352,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(err).NotTo(o.HaveOccurred())
 				br.AssertSuccess()
 				g.By("checking build obj env field")
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(br.BuildName+"-build", metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), br.BuildName+"-build", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				build := getBuildFromPod(pod)
 				o.Expect(build.Spec.Strategy.SourceStrategy).NotTo(o.BeNil())
@@ -373,7 +374,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			// this replaces coverage from the TestBuildDefaultLabels integration test
 			g.It("Apply default image label configuration to build pod", func() {
 				g.By("apply label cluster configuration")
-				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				buildConfig.Spec.BuildDefaults.ImageLabels = []configv1.ImageLabel{
 					{
@@ -385,12 +386,12 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 						Value: "VALUE2",
 					},
 				}
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(context.Background(), buildConfig, metav1.UpdateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
 				g.By("verify build.config is set")
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildConfig.Spec.BuildDefaults.ImageLabels).NotTo(o.BeNil())
 				o.Expect(len(buildConfig.Spec.BuildDefaults.ImageLabels)).To(o.Equal(2))
@@ -406,7 +407,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				g.By("checking build stored in pod as well")
 				// note, only the build stored in the Pod's "BUILD" env var has the updated proxy settings; they do not
 				// get propagated to the associated build stored in etcd
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(br.BuildName+"-build", metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), br.BuildName+"-build", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				build := getBuildFromPod(pod)
 				o.Expect(build.Spec.Output.ImageLabels).NotTo(o.BeNil())
@@ -427,7 +428,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			// this replaces coverage from the TestBuildOverrideLabels integration test
 			g.It("Apply override image label configuration to build pod", func() {
 				g.By("apply label cluster configuration")
-				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				buildConfig.Spec.BuildOverrides.ImageLabels = []configv1.ImageLabel{
 					{
@@ -439,12 +440,12 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 						Value: "VALUE2",
 					},
 				}
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(context.Background(), buildConfig, metav1.UpdateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
 				g.By("verify build.config is set")
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildConfig.Spec.BuildOverrides.ImageLabels).NotTo(o.BeNil())
 				o.Expect(len(buildConfig.Spec.BuildOverrides.ImageLabels)).To(o.Equal(2))
@@ -461,7 +462,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				g.By("checking build stored in pod as well")
 				// note, only the build stored in the Pod's "BUILD" env var has the updated proxy settings; they do not
 				// get propagated to the associated build stored in etcd
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(br.BuildName+"-build", metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), br.BuildName+"-build", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				build := getBuildFromPod(pod)
 				o.Expect(build.Spec.Output.ImageLabels).NotTo(o.BeNil())
@@ -482,17 +483,17 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			// this replaces coverage from the TestBuildDefaultNodeSelectors integration test
 			g.It("Apply node selector configuration to build pod", func() {
 				g.By("apply node selector cluster configuration")
-				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				selectors := map[string]string{"KEY": "VALUE", v1.LabelOSStable: "linux"}
 				buildConfig.Spec.BuildOverrides.NodeSelector = selectors
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(context.Background(), buildConfig, metav1.UpdateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
 				g.By("verify build.config is set")
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildConfig.Spec.BuildOverrides.NodeSelector).NotTo(o.BeNil())
 				o.Expect(len(buildConfig.Spec.BuildOverrides.NodeSelector)).To(o.Equal(2))
@@ -501,7 +502,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				br, err := exutil.StartBuildAndWait(oc, "simple-s2i-build")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By("checking build pod node selector")
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(br.BuildName+"-build", metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), br.BuildName+"-build", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(pod.Spec.NodeSelector).NotTo(o.BeNil())
 				val, ok := pod.Spec.NodeSelector["KEY"]
@@ -516,7 +517,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			// this replaces coverage from the TestBuildOverrideTolerations integration test
 			g.It("Apply toleration override configuration to build pod", func() {
 				g.By("apply toleration cluster configuration")
-				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				tolerations := []v1.Toleration{
 					{
@@ -534,13 +535,13 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				}
 
 				buildConfig.Spec.BuildOverrides.Tolerations = tolerations
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(buildConfig)
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Update(context.Background(), buildConfig, metav1.UpdateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				checkOCMProgressing(operatorv1.ConditionTrue)
 				checkOCMProgressing(operatorv1.ConditionFalse)
 				g.By("verify build.config is set")
-				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get("cluster", metav1.GetOptions{})
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildConfig.Spec.BuildOverrides.Tolerations).NotTo(o.BeNil())
 				o.Expect(len(buildConfig.Spec.BuildOverrides.Tolerations)).To(o.Equal(2))
@@ -550,7 +551,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(err).NotTo(o.HaveOccurred())
 				br.AssertSuccess()
 				g.By("checking build pod tolerations")
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(br.BuildName+"-build", metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), br.BuildName+"-build", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(pod.Spec.Tolerations).NotTo(o.BeNil())
 				foundOne := false

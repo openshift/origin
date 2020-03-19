@@ -201,14 +201,14 @@ func validateDNSResults(f *e2e.Framework, pod *kapiv1.Pod, fileNames sets.String
 	defer func() {
 		By("deleting the pod")
 		defer GinkgoRecover()
-		podClient.Delete(pod.Name, metav1.NewDeleteOptions(0))
+		podClient.Delete(context.Background(), pod.Name, *metav1.NewDeleteOptions(0))
 	}()
-	updated, err := podClient.Create(pod)
+	updated, err := podClient.Create(context.Background(), pod, metav1.CreateOptions{})
 	if err != nil {
 		e2e.Failf("Failed to create %s pod: %v", pod.Name, err)
 	}
 
-	w, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
+	w, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
 	if err != nil {
 		e2e.Failf("Failed: %v", err)
 	}
@@ -219,7 +219,7 @@ func validateDNSResults(f *e2e.Framework, pod *kapiv1.Pod, fileNames sets.String
 	}
 
 	By("retrieving the pod logs")
-	r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream()
+	r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
 	if err != nil {
 		e2e.Failf("Failed to get pod logs %s: %v", pod.Name, err)
 	}
@@ -299,23 +299,25 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
 
 	It("should answer endpoint and wildcard queries for the cluster", func() {
-		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(createServiceSpec("headless", true, "", nil)); err != nil {
+		ctx := context.Background()
+		createOpts := metav1.CreateOptions{}
+		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(ctx, createServiceSpec("headless", true, "", nil), createOpts); err != nil {
 			e2e.Failf("unable to create headless service: %v", err)
 		}
-		if _, err := f.ClientSet.CoreV1().Endpoints(f.Namespace.Name).Create(createEndpointSpec("headless")); err != nil {
+		if _, err := f.ClientSet.CoreV1().Endpoints(f.Namespace.Name).Create(ctx, createEndpointSpec("headless"), createOpts); err != nil {
 			e2e.Failf("unable to create clusterip endpoints: %v", err)
 		}
-		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(createServiceSpec("clusterip", false, "", nil)); err != nil {
+		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(ctx, createServiceSpec("clusterip", false, "", nil), createOpts); err != nil {
 			e2e.Failf("unable to create clusterip service: %v", err)
 		}
-		if _, err := f.ClientSet.CoreV1().Endpoints(f.Namespace.Name).Create(createEndpointSpec("clusterip")); err != nil {
+		if _, err := f.ClientSet.CoreV1().Endpoints(f.Namespace.Name).Create(ctx, createEndpointSpec("clusterip"), createOpts); err != nil {
 			e2e.Failf("unable to create clusterip endpoints: %v", err)
 		}
-		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(createServiceSpec("externalname", true, "www.google.com", nil)); err != nil {
+		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(ctx, createServiceSpec("externalname", true, "www.google.com", nil), createOpts); err != nil {
 			e2e.Failf("unable to create externalName service: %v", err)
 		}
 
-		ep, err := f.ClientSet.CoreV1().Endpoints("default").Get("kubernetes", metav1.GetOptions{})
+		ep, err := f.ClientSet.CoreV1().Endpoints("default").Get(ctx, "kubernetes", metav1.GetOptions{})
 		if err != nil {
 			e2e.Failf("unable to find endpoints for kubernetes.default: %v", err)
 		}

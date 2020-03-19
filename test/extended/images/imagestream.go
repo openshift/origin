@@ -1,6 +1,7 @@
 package images
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -43,8 +44,9 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 	clusterAdminImageClient := oc.AdminImageClient().ImageV1()
 	g.By("creating an imagestream and imagestream mappings")
 	stream := mockImageStream()
+	ctx := context.Background()
 
-	expected, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(stream)
+	expected, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(ctx, stream, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(expected.Name).NotTo(o.BeEmpty())
 
@@ -59,11 +61,11 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			DockerImageReference: "some/other/name",
 		},
 	}
-	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping)
+	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(ctx, mapping, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// verify we can tag a second time with the same data, and nothing changes
-	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping)
+	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(ctx, mapping, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("creating an image directly")
@@ -78,12 +80,12 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	}
-	if _, err := clusterAdminImageClient.Images().Create(image); err == nil {
+	if _, err := clusterAdminImageClient.Images().Create(ctx, image, metav1.CreateOptions{}); err == nil {
 		t.Fatalf("unexpected non-error")
 	}
-	defer clusterAdminImageClient.Images().Delete(image.Name, nil)
+	defer clusterAdminImageClient.Images().Delete(ctx, image.Name, metav1.DeleteOptions{})
 	image.DockerImageReference = "some/other/name" // can reuse references across multiple images
-	actual, err := clusterAdminImageClient.Images().Create(image)
+	actual, err := clusterAdminImageClient.Images().Create(ctx, image, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if actual == nil || actual.Name != image.Name {
 		t.Fatalf("unexpected object: %#v", actual)
@@ -97,28 +99,28 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 		Image:      *image,
 	}
 	mapping.Image.DockerImageReference = "different"
-	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping)
+	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(ctx, mapping, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
-	image, err = clusterAdminImageClient.Images().Get(image.Name, metav1.GetOptions{})
+	image, err = clusterAdminImageClient.Images().Get(ctx, image.Name, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(image.DockerImageReference).To(o.Equal("some/other/name"))
 
 	// ensure the correct tags are set
 	g.By("verifying imagestream tags are correct")
-	updated, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(stream.Name, metav1.GetOptions{})
+	updated, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(ctx, stream.Name, metav1.GetOptions{})
 
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if updated.Spec.Tags != nil && len(updated.Spec.Tags) > 0 {
 		t.Fatalf("unexpected object: %#v", updated.Spec.Tags)
 	}
 
-	fromTag, err := clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":newer", metav1.GetOptions{})
+	fromTag, err := clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(ctx, stream.Name+":newer", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if fromTag.Name != "test:newer" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Fatalf("unexpected object: %#v", fromTag)
 	}
 
-	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":newest", metav1.GetOptions{})
+	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(ctx, stream.Name+":newest", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if fromTag.Name != "test:newest" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "different" {
 		t.Fatalf("unexpected object: %#v", fromTag)
@@ -131,32 +133,32 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 		Tag:        "anothertag",
 		Image:      *image,
 	}
-	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping)
+	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(ctx, mapping, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	// ensure the correct tags are set
-	updated, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(stream.Name, metav1.GetOptions{})
+	updated, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(ctx, stream.Name, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if updated.Spec.Tags != nil && len(updated.Spec.Tags) > 0 {
 		t.Fatalf("unexpected object: %#v", updated.Spec.Tags)
 	}
 
 	// expect not found error for non-existent imagestream tag
-	_, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":doesnotexist", metav1.GetOptions{})
+	_, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(ctx, stream.Name+":doesnotexist", metav1.GetOptions{})
 	o.Expect(err).To(o.HaveOccurred())
 	o.Expect(errors.IsNotFound(err)).To(o.BeTrue())
 
-	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":newer", metav1.GetOptions{})
+	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(ctx, stream.Name+":newer", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if fromTag.Name != "test:newer" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Fatalf("unexpected object: %#v", fromTag)
 	}
 
-	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":newest", metav1.GetOptions{})
+	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(ctx, stream.Name+":newest", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if fromTag.Name != "test:newest" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "different" {
 		t.Fatalf("unexpected object: %#v", fromTag)
 	}
-	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":anothertag", metav1.GetOptions{})
+	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(ctx, stream.Name+":anothertag", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if fromTag.Name != "test:anothertag" || fromTag.Image.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Fatalf("unexpected object: %#v", fromTag)
@@ -164,7 +166,7 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 
 	// try an update with an incorrect resource version - needs to have conflict error
 	g.By("updating imagestreamtag expecting conflict")
-	_, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Update(&imagev1.ImageStreamTag{
+	_, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Update(ctx, &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion + "0"},
 		Tag: &imagev1.TagReference{
 			From: &corev1.ObjectReference{
@@ -172,12 +174,12 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 				Name: "newest",
 			},
 		},
-	})
+	}, metav1.UpdateOptions{})
 	o.Expect(errors.IsConflict(err)).To(o.BeTrue())
 
 	// update and create a new tag
 	g.By("adding a new tag to an existing imagestream via update")
-	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Update(&imagev1.ImageStreamTag{
+	fromTag, err = clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Update(ctx, &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion},
 		Tag: &imagev1.TagReference{
 			From: &corev1.ObjectReference{
@@ -185,7 +187,7 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 				Name: "newest",
 			},
 		},
-	})
+	}, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if fromTag.Name != "test:brandnew" || fromTag.Image.UID == "" || fromTag.Tag.From.Name != "newest" {
@@ -194,10 +196,11 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 }
 
 func TestImageStreamWithoutDockerImageConfig(t g.GinkgoTInterface, oc *exutil.CLI) {
+	ctx := context.Background()
 	clusterAdminImageClient := oc.AdminImageClient().ImageV1()
 	stream := mockImageStream()
 
-	expected, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(stream)
+	expected, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(ctx, stream, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if expected.Name == "" {
 		t.Fatalf("Unexpected empty image Name %v", expected)
@@ -235,20 +238,20 @@ func TestImageStreamWithoutDockerImageConfig(t g.GinkgoTInterface, oc *exutil.CL
 		Tag:   "newer",
 		Image: image,
 	}
-	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping)
+	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(ctx, mapping, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	img, err := clusterAdminImageClient.Images().Get(image.Name, metav1.GetOptions{})
+	img, err := clusterAdminImageClient.Images().Get(ctx, image.Name, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(img.Name).To(o.Equal(image.Name))
 	o.Expect(img.DockerImageConfig).NotTo(o.BeEmpty())
 
-	ist, err := clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(stream.Name+":newer", metav1.GetOptions{})
+	ist, err := clusterAdminImageClient.ImageStreamTags(oc.Namespace()).Get(ctx, stream.Name+":newer", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(ist.Image.Name).To(o.Equal(image.Name))
 	o.Expect(ist.Image.DockerImageConfig).To(o.BeEmpty())
 
-	isi, err := clusterAdminImageClient.ImageStreamImages(oc.Namespace()).Get(imageutil.JoinImageStreamImage(stream.Name, BaseImageWith1LayerDigest), metav1.GetOptions{})
+	isi, err := clusterAdminImageClient.ImageStreamImages(oc.Namespace()).Get(ctx, imageutil.JoinImageStreamImage(stream.Name, BaseImageWith1LayerDigest), metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(isi.Image.Name).To(o.Equal(image.Name))
 	o.Expect(isi.Image.DockerImageConfig).To(o.BeEmpty())
@@ -258,7 +261,7 @@ func TestImageStreamTagLifecycleHook(t g.GinkgoTInterface, oc *exutil.CLI) {
 	clusterAdminImageClient := oc.AdminImageClient().ImageV1()
 
 	stream := mockImageStream()
-	_, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(stream)
+	_, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(context.Background(), stream, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	imageClientset := oc.AdminImageClient()
@@ -293,7 +296,7 @@ func TestImageStreamTagLifecycleHook(t g.GinkgoTInterface, oc *exutil.CLI) {
 		"test", "test",
 	)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	stream, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(stream.Name, metav1.GetOptions{})
+	stream, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(context.Background(), stream.Name, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	tag, ok := imageutil.SpecHasTag(stream, "test")
 	o.Expect(ok).To(o.BeTrue())
@@ -359,7 +362,7 @@ func TestImageStreamTagLifecycleHook(t g.GinkgoTInterface, oc *exutil.CLI) {
 		"test", "test",
 	)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	stream, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get("test2", metav1.GetOptions{})
+	stream, err = clusterAdminImageClient.ImageStreams(oc.Namespace()).Get(context.Background(), "test2", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(ok).To(o.BeTrue())
 	o.Expect(tag.From).NotTo(o.BeNil())

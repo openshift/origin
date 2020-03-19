@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +15,7 @@ func RemoveDeploymentConfigs(oc *CLI, dcs ...string) error {
 	errs := []error{}
 	for _, dc := range dcs {
 		e2e.Logf("Removing deployment config %s/%s", oc.Namespace(), dc)
-		if err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Delete(dc, &metav1.DeleteOptions{}); err != nil {
+		if err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Delete(context.Background(), dc, metav1.DeleteOptions{}); err != nil {
 			e2e.Logf("Error occurred removing deployment config: %v", err)
 			errs = append(errs, err)
 		}
