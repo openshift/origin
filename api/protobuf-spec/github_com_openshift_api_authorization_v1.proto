@@ -40,7 +40,7 @@ message Action {
   // Path is the path of a non resource URL
   optional string path = 8;
 
-  // IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)
+  // IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)
   optional bool isNonResourceURL = 9;
 
   // Content is the actual content of the request for create and update
@@ -72,12 +72,14 @@ message ClusterRoleBinding {
   // This field should only be specified when supporting legacy clients and servers.
   // See Subjects for further details.
   // +k8s:conversion-gen=false
+  // +optional
   optional OptionalNames userNames = 2;
 
   // GroupNames holds all the groups directly bound to the role.
   // This field should only be specified when supporting legacy clients and servers.
   // See Subjects for further details.
   // +k8s:conversion-gen=false
+  // +optional
   optional OptionalNames groupNames = 3;
 
   // Subjects hold object references to authorize with this rule.
@@ -278,12 +280,14 @@ message RoleBinding {
   // This field should only be specified when supporting legacy clients and servers.
   // See Subjects for further details.
   // +k8s:conversion-gen=false
+  // +optional
   optional OptionalNames userNames = 2;
 
   // GroupNames holds all the groups directly bound to the role.
   // This field should only be specified when supporting legacy clients and servers.
   // See Subjects for further details.
   // +k8s:conversion-gen=false
+  // +optional
   optional OptionalNames groupNames = 3;
 
   // Subjects hold object references to authorize with this rule.

@@ -28544,7 +28544,7 @@
      },
      "isNonResourceURL": {
       "type": "boolean",
-      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)"
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)"
      },
      "content": {
       "type": "string",
@@ -28607,7 +28607,7 @@
      },
      "isNonResourceURL": {
       "type": "boolean",
-      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)"
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)"
      },
      "content": {
       "type": "string",
@@ -29506,7 +29506,7 @@
      },
      "isNonResourceURL": {
       "type": "boolean",
-      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)"
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)"
      },
      "content": {
       "type": "string",
@@ -30182,7 +30182,7 @@
      },
      "isNonResourceURL": {
       "type": "boolean",
-      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)"
+      "description": "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)"
      },
      "content": {
       "type": "string",

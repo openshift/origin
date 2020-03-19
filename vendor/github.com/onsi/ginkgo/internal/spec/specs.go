@@ -97,7 +97,7 @@ func (e *Specs) applyRegExpFocusAndSkip(description string, focusString string, 
 	}
 	var skipFilter *regexp.Regexp
 	if skipString != "" {
-		skipFilter = regexp.MustCompile(focusString)
+		skipFilter = regexp.MustCompile(skipString)
 	}
 
 	for i, spec := range e.specs {

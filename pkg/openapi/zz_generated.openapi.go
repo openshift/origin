@@ -2172,7 +2172,7 @@ func schema_openshift_api_authorization_v1_Action(ref common.ReferenceCallback) 
 					},
 					"isNonResourceURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -2320,7 +2320,7 @@ func schema_openshift_api_authorization_v1_ClusterRoleBinding(ref common.Referen
 						},
 					},
 				},
-				Required: []string{"userNames", "groupNames", "subjects", "roleRef"},
+				Required: []string{"subjects", "roleRef"},
 			},
 		},
 		Dependencies: []string{
@@ -2564,7 +2564,7 @@ func schema_openshift_api_authorization_v1_LocalResourceAccessReview(ref common.
 					},
 					"isNonResourceURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -2655,7 +2655,7 @@ func schema_openshift_api_authorization_v1_LocalSubjectAccessReview(ref common.R
 					},
 					"isNonResourceURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -2984,7 +2984,7 @@ func schema_openshift_api_authorization_v1_ResourceAccessReview(ref common.Refer
 					},
 					"isNonResourceURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -3196,7 +3196,7 @@ func schema_openshift_api_authorization_v1_RoleBinding(ref common.ReferenceCallb
 						},
 					},
 				},
-				Required: []string{"userNames", "groupNames", "subjects", "roleRef"},
+				Required: []string{"subjects", "roleRef"},
 			},
 		},
 		Dependencies: []string{
@@ -3632,7 +3632,7 @@ func schema_openshift_api_authorization_v1_SubjectAccessReview(ref common.Refere
 					},
 					"isNonResourceURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)",
+							Description: "IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -4139,7 +4139,7 @@ func schema_openshift_api_build_v1_BuildConfig(ref common.ReferenceCallback) com
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -4300,7 +4300,7 @@ func schema_openshift_api_build_v1_BuildConfigSpec(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"triggers", "strategy", "nodeSelector"},
+				Required: []string{"triggers", "strategy"},
 			},
 		},
 		Dependencies: []string{
@@ -4869,7 +4869,7 @@ func schema_openshift_api_build_v1_BuildSpec(ref common.ReferenceCallback) commo
 						},
 					},
 				},
-				Required: []string{"strategy", "nodeSelector", "triggeredBy"},
+				Required: []string{"strategy", "triggeredBy"},
 			},
 		},
 		Dependencies: []string{
@@ -5238,7 +5238,7 @@ func schema_openshift_api_build_v1_CommonSpec(ref common.ReferenceCallback) comm
 						},
 					},
 				},
-				Required: []string{"strategy", "nodeSelector"},
+				Required: []string{"strategy"},
 			},
 		},
 		Dependencies: []string{
@@ -7324,7 +7324,6 @@ func schema_openshift_api_image_v1_ImageStream(ref common.ReferenceCallback) com
 						},
 					},
 				},
-				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -10465,7 +10464,6 @@ func schema_openshift_api_quota_v1_ClusterResourceQuotaSelector(ref common.Refer
 						},
 					},
 				},
-				Required: []string{"labels", "annotations"},
 			},
 		},
 		Dependencies: []string{
@@ -10526,7 +10524,7 @@ func schema_openshift_api_quota_v1_ClusterResourceQuotaStatus(ref common.Referen
 						},
 					},
 				},
-				Required: []string{"total", "namespaces"},
+				Required: []string{"total"},
 			},
 		},
 		Dependencies: []string{
@@ -10601,7 +10599,7 @@ func schema_openshift_api_route_v1_Route(ref common.ReferenceCallback) common.Op
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -10841,7 +10839,7 @@ func schema_openshift_api_route_v1_RouteSpec(ref common.ReferenceCallback) commo
 						},
 					},
 				},
-				Required: []string{"host", "to"},
+				Required: []string{"to"},
 			},
 		},
 		Dependencies: []string{
@@ -10905,7 +10903,7 @@ func schema_openshift_api_route_v1_RouteTargetReference(ref common.ReferenceCall
 						},
 					},
 				},
-				Required: []string{"kind", "name", "weight"},
+				Required: []string{"kind", "name"},
 			},
 		},
 		Dependencies: []string{},
@@ -12641,7 +12639,7 @@ func schema_openshift_api_template_v1_TemplateInstance(ref common.ReferenceCallb
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -12853,7 +12851,7 @@ func schema_openshift_api_template_v1_TemplateInstanceSpec(ref common.ReferenceC
 						},
 					},
 				},
-				Required: []string{"template", "requester"},
+				Required: []string{"template"},
 			},
 		},
 		Dependencies: []string{

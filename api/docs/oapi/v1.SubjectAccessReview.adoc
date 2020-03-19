@@ -23,7 +23,7 @@ Expand or mouse-over a field for more information about it.
 </summary><div style="margin-left:13px;">  <span title="(string) Raw is the underlying serialization of this object.">Raw</span>:
 </div></details><details><summary><span title="(array) GroupsSlice is optional. Groups is the list of groups to which the User belongs.">groups</span>:
 </summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
-</div></details><div style="margin-left:13px;"><span title="(boolean) IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)">isNonResourceURL</span>:
+</div></details><div style="margin-left:13px;"><span title="(boolean) IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hierarchy)">isNonResourceURL</span>:
 </div><div style="margin-left:13px;"><span title="(string) Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">kind</span>:
 </div><div style="margin-left:13px;"><span title="(string) Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces">namespace</span>:
 </div><div style="margin-left:13px;"><span title="(string) Path is the path of a non resource URL">path</span>:

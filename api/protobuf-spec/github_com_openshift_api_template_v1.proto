@@ -141,6 +141,7 @@ message TemplateInstance {
   optional TemplateInstanceSpec spec = 2;
 
   // status describes the current state of this TemplateInstance.
+  // +optional
   optional TemplateInstanceStatus status = 3;
 }
 
@@ -208,10 +209,12 @@ message TemplateInstanceSpec {
 
   // secret is a reference to a Secret object containing the necessary
   // template parameters.
+  // +optional
   optional k8s.io.api.core.v1.LocalObjectReference secret = 2;
 
   // requester holds the identity of the agent requesting the template
   // instantiation.
+  // +optional
   optional TemplateInstanceRequester requester = 3;
 }
 
