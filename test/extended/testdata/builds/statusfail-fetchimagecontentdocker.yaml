@@ -1,0 +1,22 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-fetchimagecontentdocker
+spec:
+  source:
+    images:
+      - from:
+          kind: DockerImage
+          name: dummy.io/dont/exist:latest
+        paths:
+          - destinationDir: injected/opt/app-root/test-links
+            sourcePath: /opt/app-root/test-links/.
+          - destinationDir: injected/opt/rh/rh-ruby-25/root/usr/bin
+            sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
+
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
