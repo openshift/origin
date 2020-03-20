@@ -143,7 +143,7 @@ func Dggsvd3Test(t *testing.T, impl Dggsvd3er) {
 
 		zeroR, d1, d2 := constructGSVDresults(n, p, m, k, l, a, b, alpha, beta)
 
-		// Check U^T*A*Q = D1*[ 0 R ].
+		// Check Uᵀ*A*Q = D1*[ 0 R ].
 		uTmp := nanGeneral(m, n, n)
 		blas64.Gemm(blas.Trans, blas.NoTrans, 1, u, aCopy, 0, uTmp)
 		uAns := nanGeneral(m, n, n)
@@ -153,11 +153,11 @@ func Dggsvd3Test(t *testing.T, impl Dggsvd3er) {
 		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, d1, zeroR, 0, d10r)
 
 		if !equalApproxGeneral(uAns, d10r, 1e-14) {
-			t.Errorf("test %d: U^T*A*Q != D1*[ 0 R ]\nU^T*A*Q:\n%+v\nD1*[ 0 R ]:\n%+v",
+			t.Errorf("test %d: Uᵀ*A*Q != D1*[ 0 R ]\nUᵀ*A*Q:\n%+v\nD1*[ 0 R ]:\n%+v",
 				cas, uAns, d10r)
 		}
 
-		// Check V^T*B*Q = D2*[ 0 R ].
+		// Check Vᵀ*B*Q = D2*[ 0 R ].
 		vTmp := nanGeneral(p, n, n)
 		blas64.Gemm(blas.Trans, blas.NoTrans, 1, v, bCopy, 0, vTmp)
 		vAns := nanGeneral(p, n, n)
@@ -167,7 +167,7 @@ func Dggsvd3Test(t *testing.T, impl Dggsvd3er) {
 		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, d2, zeroR, 0, d20r)
 
 		if !equalApproxGeneral(vAns, d20r, 1e-13) {
-			t.Errorf("test %d: V^T*B*Q != D2*[ 0 R ]\nV^T*B*Q:\n%+v\nD2*[ 0 R ]:\n%+v",
+			t.Errorf("test %d: Vᵀ*B*Q != D2*[ 0 R ]\nVᵀ*B*Q:\n%+v\nD2*[ 0 R ]:\n%+v",
 				cas, vAns, d20r)
 		}
 	}

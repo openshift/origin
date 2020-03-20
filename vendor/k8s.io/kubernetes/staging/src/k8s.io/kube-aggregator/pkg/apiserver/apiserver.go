@@ -31,6 +31,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/server/egressselector"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/client-go/pkg/version"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
@@ -141,6 +142,10 @@ type APIAggregator struct {
 
 	// openAPIAggregationController downloads and merges OpenAPI specs.
 	openAPIAggregationController *openapicontroller.AggregationController
+
+	// egressSelector selects the proper egress dialer to communicate with the custom apiserver
+	// overwrites proxyTransport dialer if not nil
+	egressSelector *egressselector.EgressSelector
 }
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
@@ -241,6 +246,7 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		c.ExtraConfig.ProxyTransport,
 		(func() ([]byte, []byte))(s.proxyCurrentCertKeyContent),
 		s.serviceResolver,
+		c.GenericConfig.EgressSelector,
 	)
 	if err != nil {
 		return nil, err
@@ -252,7 +258,13 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		return nil
 	})
 	s.GenericAPIServer.AddPostStartHookOrDie("apiservice-registration-controller", func(context genericapiserver.PostStartHookContext) error {
-		go apiserviceRegistrationController.Run(context.StopCh)
+		handlerSyncedCh := make(chan struct{})
+		go apiserviceRegistrationController.Run(context.StopCh, handlerSyncedCh)
+		select {
+		case <-context.StopCh:
+		case <-handlerSyncedCh:
+		}
+
 		return nil
 	})
 	s.GenericAPIServer.AddPostStartHookOrDie("apiservice-status-available-controller", func(context genericapiserver.PostStartHookContext) error {

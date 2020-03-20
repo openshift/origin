@@ -1,6 +1,7 @@
 package genericoperatorclient
 
 import (
+	"context"
 	"time"
 
 	"github.com/imdario/mergo"
@@ -59,7 +60,7 @@ func (c dynamicStaticPodOperatorClient) GetStaticPodOperatorState() (*operatorv1
 }
 
 func (c dynamicStaticPodOperatorClient) GetStaticPodOperatorStateWithQuorum() (*operatorv1.StaticPodOperatorSpec, *operatorv1.StaticPodOperatorStatus, string, error) {
-	instance, err := c.client.Get("cluster", metav1.GetOptions{})
+	instance, err := c.client.Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -89,7 +90,7 @@ func (c dynamicStaticPodOperatorClient) UpdateStaticPodOperatorSpec(resourceVers
 		return nil, "", err
 	}
 
-	ret, err := c.client.Update(copy, metav1.UpdateOptions{})
+	ret, err := c.client.Update(context.TODO(), copy, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, "", err
 	}
@@ -114,7 +115,7 @@ func (c dynamicStaticPodOperatorClient) UpdateStaticPodOperatorStatus(resourceVe
 		return nil, err
 	}
 
-	ret, err := c.client.UpdateStatus(copy, metav1.UpdateOptions{})
+	ret, err := c.client.UpdateStatus(context.TODO(), copy, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}

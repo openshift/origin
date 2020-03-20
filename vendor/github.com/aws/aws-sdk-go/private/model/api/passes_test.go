@@ -121,10 +121,10 @@ func TestUniqueInputAndOutputs(t *testing.T) {
 					},
 					OutputRef: ShapeRef{
 						API:       a,
-						ShapeName: op.input,
+						ShapeName: op.output,
 						Shape: &Shape{
 							API:       a,
-							ShapeName: op.input,
+							ShapeName: op.output,
 						},
 					},
 				}
@@ -146,11 +146,13 @@ func TestUniqueInputAndOutputs(t *testing.T) {
 			a.applyShapeNameAliases()
 			a.createInputOutputShapes()
 			for k, v := range expected {
-				if a.Operations[k].InputRef.Shape.ShapeName != v[0] {
-					t.Errorf("Error %s case: Expected %q, but received %q", k, v[0], a.Operations[k].InputRef.Shape.ShapeName)
+				if e, ac := v[0], a.Operations[k].InputRef.Shape.ShapeName; e != ac {
+					t.Errorf("Error %s case: Expected %q, but received %q",
+						k, e, ac)
 				}
-				if a.Operations[k].OutputRef.Shape.ShapeName != v[1] {
-					t.Errorf("Error %s case: Expected %q, but received %q", k, v[1], a.Operations[k].OutputRef.Shape.ShapeName)
+				if e, ac := v[1], a.Operations[k].OutputRef.Shape.ShapeName; e != ac {
+					t.Errorf("Error %s case: Expected %q, but received %q",
+						k, e, ac)
 				}
 			}
 		})
@@ -228,140 +230,44 @@ func TestCollidingFields(t *testing.T) {
 	}
 }
 
-func TestSupressHTTP2EventStreams(t *testing.T) {
-	const baseModel = `
-{
-  "version":"2.0",
-  "metadata":{
-    "apiVersion":"0000-00-00",
-    "endpointPrefix":"rpcservice",
-    "jsonVersion":"1.1",
-    "protocol":"json",
-    "protocolSettings":{"h2":"{h2Option}"},
-    "serviceAbbreviation":"RPCService",
-    "serviceFullName":"RPC Service",
-    "serviceId":"RPCService",
-    "signatureVersion":"v4",
-    "targetPrefix":"RPCService_00000000",
-    "uid":"RPCService-0000-00-00"
-  },
-  "operations":{
-    "BarOp":{
-      "name":"BarOp",
-      "http":{
-        "method":"POST",
-        "requestUri":"/"
-      },
-      "input":{"shape": "BarOpRequest"},
-      "output":{"shape":"BarOpResponse"}
-    },
-    "EventStreamOp":{
-      "name":"EventStreamOp",
-      "http":{
-        "method":"POST",
-        "requestUri":"/"
-      },
-      "input":{"shape": "EventStreamOpRequest"},
-      "output":{"shape":"EventStreamOpResponse"}
-    },
-    "FooOp":{
-      "name":"FooOp",
-      "http":{
-        "method":"POST",
-        "requestUri":"/"
-      },
-      "input":{"shape": "FooOpRequest"},
-      "output":{"shape":"FooOpResponse"}
-    }
-  },
-  "shapes":{
-    "BarOpRequest":{
-      "type":"structure",
-      "members":{}
-    },
-    "BarOpResponse":{
-      "type":"structure",
-      "members":{}
-    },
-    "EventStreamOpRequest":{
-      "type":"structure",
-      "members":{
-      }
-    },
-    "EventStreamOpResponse":{
-      "type":"structure",
-      "members":{
-        "EventStream":{"shape":"EventStream"}
-      }
-    },
-    "FooOpRequest":{
-      "type":"structure",
-      "members":{}
-    },
-    "FooOpResponse":{
-      "type":"structure",
-      "members":{}
-    },
-    "EventStream":{
-      "type":"structure",
-      "members":{
-        "Empty":{"shape":"EmptyEvent"}
-	  },
-      "eventstream":true
-    },
-    "EmptyEvent": {
-      "type":"structure",
-      "members":{},
-      "event": true
-    }
-  }
-}
-`
-
+func TestCollidingFields_MaintainOriginalName(t *testing.T) {
 	cases := map[string]struct {
-		Model        string
-		ExpectOps    []string
-		ExpectShapes []string
+		MemberRefs map[string]*ShapeRef
+		Expect     map[string]*ShapeRef
 	}{
-		"control": {
-			Model:     strings.Replace(baseModel, "{h2Option}", "", -1),
-			ExpectOps: []string{"BarOp", "EventStreamOp", "FooOp"},
-			ExpectShapes: []string{
-				"BarOpInput", "BarOpOutput", "EmptyEvent",
-				"EventStreamOpEventStream", "EventStreamOpInput",
-				"EventStreamOpOutput", "FooOpInput", "FooOpOutput",
+		"NoLocationName": {
+			MemberRefs: map[string]*ShapeRef{
+				"String": {},
+			},
+			Expect: map[string]*ShapeRef{
+				"String_": {LocationName: "String"},
 			},
 		},
-		"HTTP/2 with EventStreams": {
-			Model:     strings.Replace(baseModel, "{h2Option}", "eventstream", 1),
-			ExpectOps: []string{"BarOp", "FooOp"},
-			ExpectShapes: []string{
-				"BarOpInput", "BarOpOutput", "FooOpInput", "FooOpOutput",
+		"ExitingLocationName": {
+			MemberRefs: map[string]*ShapeRef{
+				"String": {LocationName: "OtherName"},
 			},
-		},
-		"HTTP/2 with optional": {
-			Model:     strings.Replace(baseModel, "{h2Option}", "optional", 1),
-			ExpectOps: []string{"BarOp", "EventStreamOp", "FooOp"},
-			ExpectShapes: []string{
-				"BarOpInput", "BarOpOutput", "EmptyEvent",
-				"EventStreamOpEventStream", "EventStreamOpInput",
-				"EventStreamOpOutput", "FooOpInput", "FooOpOutput",
+			Expect: map[string]*ShapeRef{
+				"String_": {LocationName: "OtherName"},
 			},
 		},
 	}
 
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			var a API
-			a.AttachString(c.Model)
-			a.APIGoCode()
-
-			if e, a := c.ExpectOps, a.OperationNames(); !reflect.DeepEqual(e, a) {
-				t.Errorf("expect %v ops, got %v", e, a)
+	for k, c := range cases {
+		t.Run(k, func(t *testing.T) {
+			a := &API{
+				Shapes: map[string]*Shape{
+					"shapename": {
+						ShapeName:  k,
+						MemberRefs: c.MemberRefs,
+					},
+				},
 			}
 
-			if e, a := c.ExpectShapes, a.ShapeNames(); !reflect.DeepEqual(e, a) {
-				t.Errorf("expect %v shapes, got %v", e, a)
+			a.renameCollidingFields()
+
+			if e, a := c.Expect, a.Shapes["shapename"].MemberRefs; !reflect.DeepEqual(e, a) {
+				t.Errorf("expect %v, got %v", e, a)
 			}
 		})
 	}
@@ -695,6 +601,153 @@ func TestCreateInputOutputShapes(t *testing.T) {
 
 			if e, a := c.ExpectShapes, a.ShapeNames(); !reflect.DeepEqual(e, a) {
 				t.Errorf("expect %v shapes, got %v", e, a)
+			}
+		})
+	}
+}
+
+func TestValidateShapeNameMethod(t *testing.T) {
+	cases := map[string]struct {
+		inputShapeName    string
+		shapeType         string
+		expectedShapeName string
+		expectedError     string
+	}{
+		"empty case": {
+			inputShapeName:    "",
+			shapeType:         "structure",
+			expectedShapeName: "",
+			expectedError:     "invalid shape name found",
+		},
+		"No rename": {
+			inputShapeName:    "Sample123Shape",
+			shapeType:         "structure",
+			expectedShapeName: "Sample123Shape",
+		},
+		"starts with underscores": {
+			inputShapeName:    "__Sample123Shape",
+			shapeType:         "structure",
+			expectedShapeName: "Sample123Shape",
+		},
+		"Contains underscores": {
+			inputShapeName:    "__sample_123_shape__",
+			shapeType:         "structure",
+			expectedShapeName: "Sample123Shape",
+		},
+		"Starts with numeric character": {
+			inputShapeName:    "123__sampleShape",
+			shapeType:         "structure",
+			expectedShapeName: "",
+			expectedError:     "invalid shape name found",
+		},
+		"Starts with non alphabetic or non underscore character": {
+			inputShapeName:    "&&SampleShape",
+			shapeType:         "structure",
+			expectedShapeName: "",
+			expectedError:     "invalid shape name found",
+		},
+		"Contains non Alphanumeric or non underscore character": {
+			inputShapeName:    "Sample&__Shape",
+			shapeType:         "structure",
+			expectedShapeName: "",
+			expectedError:     "invalid shape name found",
+		},
+		"Renamed Shape already exists": {
+			inputShapeName:    "__sample_shape",
+			shapeType:         "structure",
+			expectedShapeName: "",
+			expectedError:     "rename would result in shape name collision",
+		},
+		"empty case for enums shape type": {
+			inputShapeName:    "",
+			shapeType:         "string",
+			expectedShapeName: "",
+			expectedError:     "invalid shape name found",
+		},
+		"No rename for enums shape type": {
+			inputShapeName:    "Sample123Shape",
+			shapeType:         "string",
+			expectedShapeName: "Sample123Shape",
+		},
+		"starts with underscores for enums shape type": {
+			inputShapeName:    "__Sample123Shape",
+			shapeType:         "string",
+			expectedShapeName: "Sample123Shape",
+		},
+		"Contains underscores for enums shape type": {
+			inputShapeName:    "__sample_123_shape__",
+			shapeType:         "string",
+			expectedShapeName: "Sample123Shape",
+		},
+		"Starts with numeric character for enums shape type": {
+			inputShapeName:    "123__sampleShape",
+			shapeType:         "string",
+			expectedShapeName: "",
+			expectedError:     "invalid shape name found",
+		},
+		"Starts with non alphabetic or non underscore character for enums shape type": {
+			inputShapeName:    "&&SampleShape",
+			shapeType:         "string",
+			expectedShapeName: "",
+			expectedError:     "invalid shape name found",
+		},
+		"Contains non Alphanumeric or non underscore character for enums shape type": {
+			inputShapeName:    "Sample&__Shape",
+			shapeType:         "string",
+			expectedShapeName: "",
+			expectedError:     "invalid shape name found",
+		},
+		"Renamed Shape already exists for enums shape type": {
+			inputShapeName:    "__sample_shape",
+			shapeType:         "string",
+			expectedShapeName: "",
+			expectedError:     "rename would result in shape name collision",
+		},
+	}
+
+	for name, c := range cases {
+		operation := "FooOperation"
+		t.Run(name, func(t *testing.T) {
+			a := &API{
+				Operations: map[string]*Operation{},
+				Shapes:     map[string]*Shape{},
+			}
+			// add another shape with name SampleShape to check for collision
+			a.Shapes["SampleShape"] = &Shape{ShapeName: "SampleShape"}
+			o := &Operation{
+				Name:         operation,
+				ExportedName: operation,
+				InputRef: ShapeRef{
+					API:       a,
+					ShapeName: c.inputShapeName,
+					Shape: &Shape{
+						API:       a,
+						ShapeName: c.inputShapeName,
+						Type:      c.shapeType,
+						Enum:      []string{"x"},
+					},
+				},
+			}
+			o.InputRef.Shape.refs = append(o.InputRef.Shape.refs, &o.InputRef)
+			a.Operations[o.Name] = o
+			a.Shapes[c.inputShapeName] = o.InputRef.Shape
+
+			err := a.validateShapeNames()
+			if err != nil || c.expectedError != "" {
+				if err == nil {
+					t.Fatalf("Received no error, expected error with log: \n \t %v ", c.expectedError)
+				}
+				if c.expectedError == "" {
+					t.Fatalf("Expected no error, got %v", err.Error())
+				}
+				if e, a := err.Error(), c.expectedError; !strings.Contains(e, a) {
+					t.Fatalf("Expected to receive error containing %v, got %v", e, a)
+				}
+				return
+			}
+
+			if e, a := c.expectedShapeName, o.InputRef.Shape.ShapeName; e != a {
+				t.Fatalf("Expected shape name to be %v, got %v", e, a)
 			}
 		})
 	}

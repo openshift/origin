@@ -17,6 +17,7 @@ limitations under the License.
 package storage
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -38,10 +39,9 @@ const devicePath = "/mnt/volume1"
 // formatted and mounted like a nil/Filesystem PV after a downgrade to a version
 // where the BlockVolume feature is disabled
 type VolumeModeDowngradeTest struct {
-	pvSource *v1.PersistentVolumeSource
-	pv       *v1.PersistentVolume
-	pvc      *v1.PersistentVolumeClaim
-	pod      *v1.Pod
+	pv  *v1.PersistentVolume
+	pvc *v1.PersistentVolumeClaim
+	pod *v1.Pod
 }
 
 // Name returns the tracking name of the test.
@@ -88,10 +88,10 @@ func (t *VolumeModeDowngradeTest) Setup(f *framework.Framework) {
 	err = e2epv.WaitForPersistentVolumeClaimPhase(v1.ClaimBound, cs, ns, t.pvc.Name, framework.Poll, framework.ClaimProvisionTimeout)
 	framework.ExpectNoError(err)
 
-	t.pvc, err = cs.CoreV1().PersistentVolumeClaims(t.pvc.Namespace).Get(t.pvc.Name, metav1.GetOptions{})
+	t.pvc, err = cs.CoreV1().PersistentVolumeClaims(t.pvc.Namespace).Get(context.TODO(), t.pvc.Name, metav1.GetOptions{})
 	framework.ExpectNoError(err)
 
-	t.pv, err = cs.CoreV1().PersistentVolumes().Get(t.pvc.Spec.VolumeName, metav1.GetOptions{})
+	t.pv, err = cs.CoreV1().PersistentVolumes().Get(context.TODO(), t.pvc.Spec.VolumeName, metav1.GetOptions{})
 	framework.ExpectNoError(err)
 
 	ginkgo.By("Consuming the PVC before downgrade")
@@ -121,7 +121,7 @@ func (t *VolumeModeDowngradeTest) Teardown(f *framework.Framework) {
 	framework.ExpectNoError(e2epod.DeletePodWithWait(f.ClientSet, t.pod))
 
 	ginkgo.By("Deleting the PVC")
-	framework.ExpectNoError(f.ClientSet.CoreV1().PersistentVolumeClaims(t.pvc.Namespace).Delete(t.pvc.Name, nil))
+	framework.ExpectNoError(f.ClientSet.CoreV1().PersistentVolumeClaims(t.pvc.Namespace).Delete(context.TODO(), t.pvc.Name, metav1.DeleteOptions{}))
 
 	ginkgo.By("Waiting for the PV to be deleted")
 	framework.ExpectNoError(framework.WaitForPersistentVolumeDeleted(f.ClientSet, t.pv.Name, 5*time.Second, 20*time.Minute))

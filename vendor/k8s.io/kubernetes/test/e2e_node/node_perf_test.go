@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e_node
+package e2enode
 
 import (
 	"fmt"
@@ -80,7 +80,7 @@ var _ = SIGDescribe("Node Performance Testing [Serial] [Slow] [Flaky]", func() {
 		delOpts := metav1.DeleteOptions{
 			GracePeriodSeconds: &gp,
 		}
-		f.PodClient().DeleteSync(pod.Name, &delOpts, framework.DefaultPodDeletionTimeout)
+		f.PodClient().DeleteSync(pod.Name, delOpts, framework.DefaultPodDeletionTimeout)
 		ginkgo.By("running the post test exec from the workload")
 		err := wl.PostTestExec()
 		framework.ExpectNoError(err)

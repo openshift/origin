@@ -17,6 +17,7 @@ limitations under the License.
 package storage
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
@@ -33,6 +34,7 @@ import (
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 	"k8s.io/kubernetes/test/e2e/framework/volume"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
@@ -88,8 +90,8 @@ var _ = utils.SIGDescribe("NFSPersistentVolumes[Disruptive][Flaky]", func() {
 
 	ginkgo.BeforeEach(func() {
 		// To protect the NFS volume pod from the kubelet restart, we isolate it on its own node.
-		framework.SkipUnlessNodeCountIsAtLeast(minNodes)
-		framework.SkipIfProviderIs("local")
+		e2eskipper.SkipUnlessNodeCountIsAtLeast(minNodes)
+		e2eskipper.SkipIfProviderIs("local")
 
 		c = f.ClientSet
 		ns = f.Namespace.Name
@@ -146,11 +148,11 @@ var _ = utils.SIGDescribe("NFSPersistentVolumes[Disruptive][Flaky]", func() {
 		)
 
 		ginkgo.BeforeEach(func() {
-			framework.SkipUnlessProviderIs("gce")
-			framework.SkipUnlessSSHKeyPresent()
+			e2eskipper.SkipUnlessProviderIs("gce")
+			e2eskipper.SkipUnlessSSHKeyPresent()
 
 			ginkgo.By("Initializing first PD with PVPVC binding")
-			pvSource1, diskName1 = volume.CreateGCEVolume()
+			pvSource1, diskName1 = createGCEVolume()
 			framework.ExpectNoError(err)
 			pvConfig1 = e2epv.PersistentVolumeConfig{
 				NamePrefix: "gce-",
@@ -163,7 +165,7 @@ var _ = utils.SIGDescribe("NFSPersistentVolumes[Disruptive][Flaky]", func() {
 			framework.ExpectNoError(e2epv.WaitOnPVandPVC(c, ns, pv1, pvc1))
 
 			ginkgo.By("Initializing second PD with PVPVC binding")
-			pvSource2, diskName2 = volume.CreateGCEVolume()
+			pvSource2, diskName2 = createGCEVolume()
 			framework.ExpectNoError(err)
 			pvConfig2 = e2epv.PersistentVolumeConfig{
 				NamePrefix: "gce-",
@@ -204,7 +206,7 @@ var _ = utils.SIGDescribe("NFSPersistentVolumes[Disruptive][Flaky]", func() {
 		})
 
 		ginkgo.It("should delete a bound PVC from a clientPod, restart the kube-control-manager, and ensure the kube-controller-manager does not crash", func() {
-			framework.SkipUnlessSSHKeyPresent()
+			e2eskipper.SkipUnlessSSHKeyPresent()
 
 			ginkgo.By("Deleting PVC for volume 2")
 			err = e2epv.DeletePersistentVolumeClaim(c, pvc2.Name, ns)
@@ -274,6 +276,19 @@ var _ = utils.SIGDescribe("NFSPersistentVolumes[Disruptive][Flaky]", func() {
 	})
 })
 
+// createGCEVolume creates PersistentVolumeSource for GCEVolume.
+func createGCEVolume() (*v1.PersistentVolumeSource, string) {
+	diskName, err := e2epv.CreatePDWithRetry()
+	framework.ExpectNoError(err)
+	return &v1.PersistentVolumeSource{
+		GCEPersistentDisk: &v1.GCEPersistentDiskVolumeSource{
+			PDName:   diskName,
+			FSType:   "ext3",
+			ReadOnly: false,
+		},
+	}, diskName
+}
+
 // initTestCase initializes spec resources (pv, pvc, and pod) and returns pointers to be consumed
 // by the test.
 func initTestCase(f *framework.Framework, c clientset.Interface, pvConfig e2epv.PersistentVolumeConfig, pvcConfig e2epv.PersistentVolumeClaimConfig, ns, nodeName string) (*v1.Pod, *v1.PersistentVolume, *v1.PersistentVolumeClaim) {
@@ -288,7 +303,7 @@ func initTestCase(f *framework.Framework, c clientset.Interface, pvConfig e2epv.
 	pod := e2epod.MakePod(ns, nil, []*v1.PersistentVolumeClaim{pvc}, true, "")
 	pod.Spec.NodeName = nodeName
 	framework.Logf("Creating NFS client pod.")
-	pod, err = c.CoreV1().Pods(ns).Create(pod)
+	pod, err = c.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
 	framework.Logf("NFS client Pod %q created on Node %q", pod.Name, nodeName)
 	framework.ExpectNoError(err)
 	defer func() {
@@ -299,11 +314,11 @@ func initTestCase(f *framework.Framework, c clientset.Interface, pvConfig e2epv.
 	err = e2epod.WaitForPodRunningInNamespace(c, pod)
 	framework.ExpectNoError(err, fmt.Sprintf("Pod %q timed out waiting for phase: Running", pod.Name))
 	// Return created api objects
-	pod, err = c.CoreV1().Pods(ns).Get(pod.Name, metav1.GetOptions{})
+	pod, err = c.CoreV1().Pods(ns).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 	framework.ExpectNoError(err)
-	pvc, err = c.CoreV1().PersistentVolumeClaims(ns).Get(pvc.Name, metav1.GetOptions{})
+	pvc, err = c.CoreV1().PersistentVolumeClaims(ns).Get(context.TODO(), pvc.Name, metav1.GetOptions{})
 	framework.ExpectNoError(err)
-	pv, err = c.CoreV1().PersistentVolumes().Get(pv.Name, metav1.GetOptions{})
+	pv, err = c.CoreV1().PersistentVolumes().Get(context.TODO(), pv.Name, metav1.GetOptions{})
 	framework.ExpectNoError(err)
 	return pod, pv, pvc
 }

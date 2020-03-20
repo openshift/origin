@@ -64,6 +64,10 @@ type TranslateAPI interface {
 	DeleteTerminologyWithContext(aws.Context, *translate.DeleteTerminologyInput, ...request.Option) (*translate.DeleteTerminologyOutput, error)
 	DeleteTerminologyRequest(*translate.DeleteTerminologyInput) (*request.Request, *translate.DeleteTerminologyOutput)
 
+	DescribeTextTranslationJob(*translate.DescribeTextTranslationJobInput) (*translate.DescribeTextTranslationJobOutput, error)
+	DescribeTextTranslationJobWithContext(aws.Context, *translate.DescribeTextTranslationJobInput, ...request.Option) (*translate.DescribeTextTranslationJobOutput, error)
+	DescribeTextTranslationJobRequest(*translate.DescribeTextTranslationJobInput) (*request.Request, *translate.DescribeTextTranslationJobOutput)
+
 	GetTerminology(*translate.GetTerminologyInput) (*translate.GetTerminologyOutput, error)
 	GetTerminologyWithContext(aws.Context, *translate.GetTerminologyInput, ...request.Option) (*translate.GetTerminologyOutput, error)
 	GetTerminologyRequest(*translate.GetTerminologyInput) (*request.Request, *translate.GetTerminologyOutput)
@@ -75,6 +79,24 @@ type TranslateAPI interface {
 	ListTerminologies(*translate.ListTerminologiesInput) (*translate.ListTerminologiesOutput, error)
 	ListTerminologiesWithContext(aws.Context, *translate.ListTerminologiesInput, ...request.Option) (*translate.ListTerminologiesOutput, error)
 	ListTerminologiesRequest(*translate.ListTerminologiesInput) (*request.Request, *translate.ListTerminologiesOutput)
+
+	ListTerminologiesPages(*translate.ListTerminologiesInput, func(*translate.ListTerminologiesOutput, bool) bool) error
+	ListTerminologiesPagesWithContext(aws.Context, *translate.ListTerminologiesInput, func(*translate.ListTerminologiesOutput, bool) bool, ...request.Option) error
+
+	ListTextTranslationJobs(*translate.ListTextTranslationJobsInput) (*translate.ListTextTranslationJobsOutput, error)
+	ListTextTranslationJobsWithContext(aws.Context, *translate.ListTextTranslationJobsInput, ...request.Option) (*translate.ListTextTranslationJobsOutput, error)
+	ListTextTranslationJobsRequest(*translate.ListTextTranslationJobsInput) (*request.Request, *translate.ListTextTranslationJobsOutput)
+
+	ListTextTranslationJobsPages(*translate.ListTextTranslationJobsInput, func(*translate.ListTextTranslationJobsOutput, bool) bool) error
+	ListTextTranslationJobsPagesWithContext(aws.Context, *translate.ListTextTranslationJobsInput, func(*translate.ListTextTranslationJobsOutput, bool) bool, ...request.Option) error
+
+	StartTextTranslationJob(*translate.StartTextTranslationJobInput) (*translate.StartTextTranslationJobOutput, error)
+	StartTextTranslationJobWithContext(aws.Context, *translate.StartTextTranslationJobInput, ...request.Option) (*translate.StartTextTranslationJobOutput, error)
+	StartTextTranslationJobRequest(*translate.StartTextTranslationJobInput) (*request.Request, *translate.StartTextTranslationJobOutput)
+
+	StopTextTranslationJob(*translate.StopTextTranslationJobInput) (*translate.StopTextTranslationJobOutput, error)
+	StopTextTranslationJobWithContext(aws.Context, *translate.StopTextTranslationJobInput, ...request.Option) (*translate.StopTextTranslationJobOutput, error)
+	StopTextTranslationJobRequest(*translate.StopTextTranslationJobInput) (*request.Request, *translate.StopTextTranslationJobOutput)
 
 	Text(*translate.TextInput) (*translate.TextOutput, error)
 	TextWithContext(aws.Context, *translate.TextInput, ...request.Option) (*translate.TextOutput, error)

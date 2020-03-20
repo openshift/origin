@@ -7,10 +7,10 @@ package distmv
 import (
 	"math"
 
-	"gonum.org/v1/gonum/bound"
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/mathext"
+	"gonum.org/v1/gonum/spatial/r1"
 	"gonum.org/v1/gonum/stat"
 )
 
@@ -32,7 +32,7 @@ type Bhattacharyya struct{}
 //
 // For Normal distributions, the Bhattacharyya distance is
 //  Σ = (Σ_l + Σ_r)/2
-//  D_B = (1/8)*(μ_l - μ_r)^T*Σ^-1*(μ_l - μ_r) + (1/2)*ln(det(Σ)/(det(Σ_l)*det(Σ_r))^(1/2))
+//  D_B = (1/8)*(μ_l - μ_r)ᵀ*Σ^-1*(μ_l - μ_r) + (1/2)*ln(det(Σ)/(det(Σ_l)*det(Σ_r))^(1/2))
 func (Bhattacharyya) DistNormal(l, r *Normal) float64 {
 	dim := l.Dim()
 	if dim != r.Dim() {
@@ -76,7 +76,7 @@ func (Bhattacharyya) DistUniform(l, r *Uniform) float64 {
 
 // unifLogVolOverlap computes the log of the volume of the hyper-rectangle where
 // both uniform distributions have positive probability.
-func unifLogVolOverlap(b1, b2 []bound.Bound) float64 {
+func unifLogVolOverlap(b1, b2 []r1.Interval) float64 {
 	var logVolOverlap float64
 	for dim, v1 := range b1 {
 		v2 := b2[dim]
@@ -179,7 +179,7 @@ func (KullbackLeibler) DistDirichlet(l, r *Dirichlet) float64 {
 // The dimensions of the input distributions must match or DistNormal will panic.
 //
 // For two normal distributions, the KL divergence is computed as
-//   D_KL(l || r) = 0.5*[ln(|Σ_r|) - ln(|Σ_l|) + (μ_l - μ_r)^T*Σ_r^-1*(μ_l - μ_r) + tr(Σ_r^-1*Σ_l)-d]
+//   D_KL(l || r) = 0.5*[ln(|Σ_r|) - ln(|Σ_l|) + (μ_l - μ_r)ᵀ*Σ_r^-1*(μ_l - μ_r) + tr(Σ_r^-1*Σ_l)-d]
 func (KullbackLeibler) DistNormal(l, r *Normal) float64 {
 	dim := l.Dim()
 	if dim != r.Dim() {
@@ -191,7 +191,7 @@ func (KullbackLeibler) DistNormal(l, r *Normal) float64 {
 
 	// TODO(btracey): Optimize where there is a SolveCholeskySym
 	// TODO(btracey): There may be a more efficient way to just compute the trace
-	// Compute tr(Σ_r^-1*Σ_l) using the fact that Σ_l = U^T * U
+	// Compute tr(Σ_r^-1*Σ_l) using the fact that Σ_l = Uᵀ * U
 	var u mat.TriDense
 	l.chol.UTo(&u)
 	var m mat.Dense

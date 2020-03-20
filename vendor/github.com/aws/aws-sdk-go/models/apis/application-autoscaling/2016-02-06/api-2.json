@@ -2,7 +2,7 @@
   "version":"2.0",
   "metadata":{
     "apiVersion":"2016-02-06",
-    "endpointPrefix":"autoscaling",
+    "endpointPrefix":"application-autoscaling",
     "jsonVersion":"1.1",
     "protocol":"json",
     "serviceFullName":"Application Auto Scaling",
@@ -240,7 +240,8 @@
       "required":[
         "ServiceNamespace",
         "ScheduledActionName",
-        "ResourceId"
+        "ResourceId",
+        "ScalableDimension"
       ],
       "members":{
         "ServiceNamespace":{"shape":"ServiceNamespace"},
@@ -428,7 +429,10 @@
         "EC2SpotFleetRequestAverageNetworkOut",
         "SageMakerVariantInvocationsPerInstance",
         "ECSServiceAverageCPUUtilization",
-        "ECSServiceAverageMemoryUtilization"
+        "ECSServiceAverageMemoryUtilization",
+        "AppStreamAverageCapacityUtilization",
+        "ComprehendInferenceUtilization",
+        "LambdaProvisionedConcurrencyUtilization"
       ]
     },
     "MetricUnit":{"type":"string"},
@@ -492,7 +496,8 @@
       "required":[
         "ServiceNamespace",
         "ScheduledActionName",
-        "ResourceId"
+        "ResourceId",
+        "ScalableDimension"
       ],
       "members":{
         "ServiceNamespace":{"shape":"ServiceNamespace"},
@@ -523,7 +528,8 @@
         "ScalableDimension":{"shape":"ScalableDimension"},
         "MinCapacity":{"shape":"ResourceCapacity"},
         "MaxCapacity":{"shape":"ResourceCapacity"},
-        "RoleARN":{"shape":"ResourceIdMaxLen1600"}
+        "RoleARN":{"shape":"ResourceIdMaxLen1600"},
+        "SuspendedState":{"shape":"SuspendedState"}
       }
     },
     "RegisterScalableTargetResponse":{
@@ -564,7 +570,9 @@
         "dynamodb:index:WriteCapacityUnits",
         "rds:cluster:ReadReplicaCount",
         "sagemaker:variant:DesiredInstanceCount",
-        "custom-resource:ResourceType:Property"
+        "custom-resource:ResourceType:Property",
+        "comprehend:document-classifier-endpoint:DesiredInferenceUnits",
+        "lambda:function:ProvisionedConcurrency"
       ]
     },
     "ScalableTarget":{
@@ -585,7 +593,8 @@
         "MinCapacity":{"shape":"ResourceCapacity"},
         "MaxCapacity":{"shape":"ResourceCapacity"},
         "RoleARN":{"shape":"ResourceIdMaxLen1600"},
-        "CreationTime":{"shape":"TimestampType"}
+        "CreationTime":{"shape":"TimestampType"},
+        "SuspendedState":{"shape":"SuspendedState"}
       }
     },
     "ScalableTargetAction":{
@@ -669,6 +678,7 @@
         "CreationTime":{"shape":"TimestampType"}
       }
     },
+    "ScalingSuspended":{"type":"boolean"},
     "ScheduledAction":{
       "type":"structure",
       "required":[
@@ -712,7 +722,9 @@
         "dynamodb",
         "rds",
         "sagemaker",
-        "custom-resource"
+        "custom-resource",
+        "comprehend",
+        "lambda"
       ]
     },
     "StepAdjustment":{
@@ -736,6 +748,14 @@
         "MinAdjustmentMagnitude":{"shape":"MinAdjustmentMagnitude"},
         "Cooldown":{"shape":"Cooldown"},
         "MetricAggregationType":{"shape":"MetricAggregationType"}
+      }
+    },
+    "SuspendedState":{
+      "type":"structure",
+      "members":{
+        "DynamicScalingInSuspended":{"shape":"ScalingSuspended"},
+        "DynamicScalingOutSuspended":{"shape":"ScalingSuspended"},
+        "ScheduledScalingSuspended":{"shape":"ScalingSuspended"}
       }
     },
     "TargetTrackingScalingPolicyConfiguration":{

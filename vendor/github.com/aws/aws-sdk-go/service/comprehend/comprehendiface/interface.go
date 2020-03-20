@@ -80,9 +80,17 @@ type ComprehendAPI interface {
 	BatchDetectSyntaxWithContext(aws.Context, *comprehend.BatchDetectSyntaxInput, ...request.Option) (*comprehend.BatchDetectSyntaxOutput, error)
 	BatchDetectSyntaxRequest(*comprehend.BatchDetectSyntaxInput) (*request.Request, *comprehend.BatchDetectSyntaxOutput)
 
+	ClassifyDocument(*comprehend.ClassifyDocumentInput) (*comprehend.ClassifyDocumentOutput, error)
+	ClassifyDocumentWithContext(aws.Context, *comprehend.ClassifyDocumentInput, ...request.Option) (*comprehend.ClassifyDocumentOutput, error)
+	ClassifyDocumentRequest(*comprehend.ClassifyDocumentInput) (*request.Request, *comprehend.ClassifyDocumentOutput)
+
 	CreateDocumentClassifier(*comprehend.CreateDocumentClassifierInput) (*comprehend.CreateDocumentClassifierOutput, error)
 	CreateDocumentClassifierWithContext(aws.Context, *comprehend.CreateDocumentClassifierInput, ...request.Option) (*comprehend.CreateDocumentClassifierOutput, error)
 	CreateDocumentClassifierRequest(*comprehend.CreateDocumentClassifierInput) (*request.Request, *comprehend.CreateDocumentClassifierOutput)
+
+	CreateEndpoint(*comprehend.CreateEndpointInput) (*comprehend.CreateEndpointOutput, error)
+	CreateEndpointWithContext(aws.Context, *comprehend.CreateEndpointInput, ...request.Option) (*comprehend.CreateEndpointOutput, error)
+	CreateEndpointRequest(*comprehend.CreateEndpointInput) (*request.Request, *comprehend.CreateEndpointOutput)
 
 	CreateEntityRecognizer(*comprehend.CreateEntityRecognizerInput) (*comprehend.CreateEntityRecognizerOutput, error)
 	CreateEntityRecognizerWithContext(aws.Context, *comprehend.CreateEntityRecognizerInput, ...request.Option) (*comprehend.CreateEntityRecognizerOutput, error)
@@ -91,6 +99,10 @@ type ComprehendAPI interface {
 	DeleteDocumentClassifier(*comprehend.DeleteDocumentClassifierInput) (*comprehend.DeleteDocumentClassifierOutput, error)
 	DeleteDocumentClassifierWithContext(aws.Context, *comprehend.DeleteDocumentClassifierInput, ...request.Option) (*comprehend.DeleteDocumentClassifierOutput, error)
 	DeleteDocumentClassifierRequest(*comprehend.DeleteDocumentClassifierInput) (*request.Request, *comprehend.DeleteDocumentClassifierOutput)
+
+	DeleteEndpoint(*comprehend.DeleteEndpointInput) (*comprehend.DeleteEndpointOutput, error)
+	DeleteEndpointWithContext(aws.Context, *comprehend.DeleteEndpointInput, ...request.Option) (*comprehend.DeleteEndpointOutput, error)
+	DeleteEndpointRequest(*comprehend.DeleteEndpointInput) (*request.Request, *comprehend.DeleteEndpointOutput)
 
 	DeleteEntityRecognizer(*comprehend.DeleteEntityRecognizerInput) (*comprehend.DeleteEntityRecognizerOutput, error)
 	DeleteEntityRecognizerWithContext(aws.Context, *comprehend.DeleteEntityRecognizerInput, ...request.Option) (*comprehend.DeleteEntityRecognizerOutput, error)
@@ -107,6 +119,10 @@ type ComprehendAPI interface {
 	DescribeDominantLanguageDetectionJob(*comprehend.DescribeDominantLanguageDetectionJobInput) (*comprehend.DescribeDominantLanguageDetectionJobOutput, error)
 	DescribeDominantLanguageDetectionJobWithContext(aws.Context, *comprehend.DescribeDominantLanguageDetectionJobInput, ...request.Option) (*comprehend.DescribeDominantLanguageDetectionJobOutput, error)
 	DescribeDominantLanguageDetectionJobRequest(*comprehend.DescribeDominantLanguageDetectionJobInput) (*request.Request, *comprehend.DescribeDominantLanguageDetectionJobOutput)
+
+	DescribeEndpoint(*comprehend.DescribeEndpointInput) (*comprehend.DescribeEndpointOutput, error)
+	DescribeEndpointWithContext(aws.Context, *comprehend.DescribeEndpointInput, ...request.Option) (*comprehend.DescribeEndpointOutput, error)
+	DescribeEndpointRequest(*comprehend.DescribeEndpointInput) (*request.Request, *comprehend.DescribeEndpointOutput)
 
 	DescribeEntitiesDetectionJob(*comprehend.DescribeEntitiesDetectionJobInput) (*comprehend.DescribeEntitiesDetectionJobOutput, error)
 	DescribeEntitiesDetectionJobWithContext(aws.Context, *comprehend.DescribeEntitiesDetectionJobInput, ...request.Option) (*comprehend.DescribeEntitiesDetectionJobOutput, error)
@@ -152,9 +168,15 @@ type ComprehendAPI interface {
 	ListDocumentClassificationJobsWithContext(aws.Context, *comprehend.ListDocumentClassificationJobsInput, ...request.Option) (*comprehend.ListDocumentClassificationJobsOutput, error)
 	ListDocumentClassificationJobsRequest(*comprehend.ListDocumentClassificationJobsInput) (*request.Request, *comprehend.ListDocumentClassificationJobsOutput)
 
+	ListDocumentClassificationJobsPages(*comprehend.ListDocumentClassificationJobsInput, func(*comprehend.ListDocumentClassificationJobsOutput, bool) bool) error
+	ListDocumentClassificationJobsPagesWithContext(aws.Context, *comprehend.ListDocumentClassificationJobsInput, func(*comprehend.ListDocumentClassificationJobsOutput, bool) bool, ...request.Option) error
+
 	ListDocumentClassifiers(*comprehend.ListDocumentClassifiersInput) (*comprehend.ListDocumentClassifiersOutput, error)
 	ListDocumentClassifiersWithContext(aws.Context, *comprehend.ListDocumentClassifiersInput, ...request.Option) (*comprehend.ListDocumentClassifiersOutput, error)
 	ListDocumentClassifiersRequest(*comprehend.ListDocumentClassifiersInput) (*request.Request, *comprehend.ListDocumentClassifiersOutput)
+
+	ListDocumentClassifiersPages(*comprehend.ListDocumentClassifiersInput, func(*comprehend.ListDocumentClassifiersOutput, bool) bool) error
+	ListDocumentClassifiersPagesWithContext(aws.Context, *comprehend.ListDocumentClassifiersInput, func(*comprehend.ListDocumentClassifiersOutput, bool) bool, ...request.Option) error
 
 	ListDominantLanguageDetectionJobs(*comprehend.ListDominantLanguageDetectionJobsInput) (*comprehend.ListDominantLanguageDetectionJobsOutput, error)
 	ListDominantLanguageDetectionJobsWithContext(aws.Context, *comprehend.ListDominantLanguageDetectionJobsInput, ...request.Option) (*comprehend.ListDominantLanguageDetectionJobsOutput, error)
@@ -162,6 +184,10 @@ type ComprehendAPI interface {
 
 	ListDominantLanguageDetectionJobsPages(*comprehend.ListDominantLanguageDetectionJobsInput, func(*comprehend.ListDominantLanguageDetectionJobsOutput, bool) bool) error
 	ListDominantLanguageDetectionJobsPagesWithContext(aws.Context, *comprehend.ListDominantLanguageDetectionJobsInput, func(*comprehend.ListDominantLanguageDetectionJobsOutput, bool) bool, ...request.Option) error
+
+	ListEndpoints(*comprehend.ListEndpointsInput) (*comprehend.ListEndpointsOutput, error)
+	ListEndpointsWithContext(aws.Context, *comprehend.ListEndpointsInput, ...request.Option) (*comprehend.ListEndpointsOutput, error)
+	ListEndpointsRequest(*comprehend.ListEndpointsInput) (*request.Request, *comprehend.ListEndpointsOutput)
 
 	ListEntitiesDetectionJobs(*comprehend.ListEntitiesDetectionJobsInput) (*comprehend.ListEntitiesDetectionJobsOutput, error)
 	ListEntitiesDetectionJobsWithContext(aws.Context, *comprehend.ListEntitiesDetectionJobsInput, ...request.Option) (*comprehend.ListEntitiesDetectionJobsOutput, error)
@@ -173,6 +199,9 @@ type ComprehendAPI interface {
 	ListEntityRecognizers(*comprehend.ListEntityRecognizersInput) (*comprehend.ListEntityRecognizersOutput, error)
 	ListEntityRecognizersWithContext(aws.Context, *comprehend.ListEntityRecognizersInput, ...request.Option) (*comprehend.ListEntityRecognizersOutput, error)
 	ListEntityRecognizersRequest(*comprehend.ListEntityRecognizersInput) (*request.Request, *comprehend.ListEntityRecognizersOutput)
+
+	ListEntityRecognizersPages(*comprehend.ListEntityRecognizersInput, func(*comprehend.ListEntityRecognizersOutput, bool) bool) error
+	ListEntityRecognizersPagesWithContext(aws.Context, *comprehend.ListEntityRecognizersInput, func(*comprehend.ListEntityRecognizersOutput, bool) bool, ...request.Option) error
 
 	ListKeyPhrasesDetectionJobs(*comprehend.ListKeyPhrasesDetectionJobsInput) (*comprehend.ListKeyPhrasesDetectionJobsOutput, error)
 	ListKeyPhrasesDetectionJobsWithContext(aws.Context, *comprehend.ListKeyPhrasesDetectionJobsInput, ...request.Option) (*comprehend.ListKeyPhrasesDetectionJobsOutput, error)
@@ -187,6 +216,10 @@ type ComprehendAPI interface {
 
 	ListSentimentDetectionJobsPages(*comprehend.ListSentimentDetectionJobsInput, func(*comprehend.ListSentimentDetectionJobsOutput, bool) bool) error
 	ListSentimentDetectionJobsPagesWithContext(aws.Context, *comprehend.ListSentimentDetectionJobsInput, func(*comprehend.ListSentimentDetectionJobsOutput, bool) bool, ...request.Option) error
+
+	ListTagsForResource(*comprehend.ListTagsForResourceInput) (*comprehend.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *comprehend.ListTagsForResourceInput, ...request.Option) (*comprehend.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*comprehend.ListTagsForResourceInput) (*request.Request, *comprehend.ListTagsForResourceOutput)
 
 	ListTopicsDetectionJobs(*comprehend.ListTopicsDetectionJobsInput) (*comprehend.ListTopicsDetectionJobsOutput, error)
 	ListTopicsDetectionJobsWithContext(aws.Context, *comprehend.ListTopicsDetectionJobsInput, ...request.Option) (*comprehend.ListTopicsDetectionJobsOutput, error)
@@ -242,6 +275,18 @@ type ComprehendAPI interface {
 	StopTrainingEntityRecognizer(*comprehend.StopTrainingEntityRecognizerInput) (*comprehend.StopTrainingEntityRecognizerOutput, error)
 	StopTrainingEntityRecognizerWithContext(aws.Context, *comprehend.StopTrainingEntityRecognizerInput, ...request.Option) (*comprehend.StopTrainingEntityRecognizerOutput, error)
 	StopTrainingEntityRecognizerRequest(*comprehend.StopTrainingEntityRecognizerInput) (*request.Request, *comprehend.StopTrainingEntityRecognizerOutput)
+
+	TagResource(*comprehend.TagResourceInput) (*comprehend.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *comprehend.TagResourceInput, ...request.Option) (*comprehend.TagResourceOutput, error)
+	TagResourceRequest(*comprehend.TagResourceInput) (*request.Request, *comprehend.TagResourceOutput)
+
+	UntagResource(*comprehend.UntagResourceInput) (*comprehend.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *comprehend.UntagResourceInput, ...request.Option) (*comprehend.UntagResourceOutput, error)
+	UntagResourceRequest(*comprehend.UntagResourceInput) (*request.Request, *comprehend.UntagResourceOutput)
+
+	UpdateEndpoint(*comprehend.UpdateEndpointInput) (*comprehend.UpdateEndpointOutput, error)
+	UpdateEndpointWithContext(aws.Context, *comprehend.UpdateEndpointInput, ...request.Option) (*comprehend.UpdateEndpointOutput, error)
+	UpdateEndpointRequest(*comprehend.UpdateEndpointInput) (*request.Request, *comprehend.UpdateEndpointOutput)
 }
 
 var _ ComprehendAPI = (*comprehend.Comprehend)(nil)

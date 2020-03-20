@@ -3,7 +3,11 @@
 package v1
 
 import (
+	"context"
+
 	v1 "github.com/openshift/api/project/v1"
+	scheme "github.com/openshift/client-go/project/clientset/versioned/scheme"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -15,7 +19,7 @@ type ProjectRequestsGetter interface {
 
 // ProjectRequestInterface has methods to work with ProjectRequest resources.
 type ProjectRequestInterface interface {
-	Create(*v1.ProjectRequest) (*v1.Project, error)
+	Create(ctx context.Context, projectRequest *v1.ProjectRequest, opts metav1.CreateOptions) (*v1.Project, error)
 
 	ProjectRequestExpansion
 }
@@ -33,12 +37,13 @@ func newProjectRequests(c *ProjectV1Client) *projectRequests {
 }
 
 // Create takes the representation of a projectRequest and creates it.  Returns the server's representation of the project, and an error, if there is any.
-func (c *projectRequests) Create(projectRequest *v1.ProjectRequest) (result *v1.Project, err error) {
+func (c *projectRequests) Create(ctx context.Context, projectRequest *v1.ProjectRequest, opts metav1.CreateOptions) (result *v1.Project, err error) {
 	result = &v1.Project{}
 	err = c.client.Post().
 		Resource("projectrequests").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(projectRequest).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

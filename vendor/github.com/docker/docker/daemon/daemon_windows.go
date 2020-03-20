@@ -40,6 +40,11 @@ const (
 	windowsMaxCPUPercent = 100
 )
 
+// Windows doesn't really have rlimits.
+func adjustParallelLimit(n int, limit int) int {
+	return limit
+}
+
 // Windows has no concept of an execution state directory. So use config.Root here.
 func getPluginExecRoot(root string) string {
 	return filepath.Join(root, "plugins")
@@ -53,7 +58,7 @@ func parseSecurityOpt(container *container.Container, config *containertypes.Hos
 	return nil
 }
 
-func setupInitLayer(idMappings *idtools.IDMappings) func(containerfs.ContainerFS) error {
+func setupInitLayer(idMapping *idtools.IdentityMapping) func(containerfs.ContainerFS) error {
 	return nil
 }
 
@@ -75,8 +80,8 @@ func (daemon *Daemon) adaptContainerSettings(hostConfig *containertypes.HostConf
 	return nil
 }
 
-func verifyContainerResources(resources *containertypes.Resources, isHyperv bool) ([]string, error) {
-	warnings := []string{}
+// verifyPlatformContainerResources performs platform-specific validation of the container's resource-configuration
+func verifyPlatformContainerResources(resources *containertypes.Resources, isHyperv bool) (warnings []string, err error) {
 	fixMemorySwappiness(resources)
 	if !isHyperv {
 		// The processor resource controls are mutually exclusive on
@@ -85,18 +90,15 @@ func verifyContainerResources(resources *containertypes.Resources, isHyperv bool
 		if resources.CPUCount > 0 {
 			if resources.CPUShares > 0 {
 				warnings = append(warnings, "Conflicting options: CPU count takes priority over CPU shares on Windows Server Containers. CPU shares discarded")
-				logrus.Warn("Conflicting options: CPU count takes priority over CPU shares on Windows Server Containers. CPU shares discarded")
 				resources.CPUShares = 0
 			}
 			if resources.CPUPercent > 0 {
 				warnings = append(warnings, "Conflicting options: CPU count takes priority over CPU percent on Windows Server Containers. CPU percent discarded")
-				logrus.Warn("Conflicting options: CPU count takes priority over CPU percent on Windows Server Containers. CPU percent discarded")
 				resources.CPUPercent = 0
 			}
 		} else if resources.CPUShares > 0 {
 			if resources.CPUPercent > 0 {
 				warnings = append(warnings, "Conflicting options: CPU shares takes priority over CPU percent on Windows Server Containers. CPU percent discarded")
-				logrus.Warn("Conflicting options: CPU shares takes priority over CPU percent on Windows Server Containers. CPU percent discarded")
 				resources.CPUPercent = 0
 			}
 		}
@@ -131,7 +133,6 @@ func verifyContainerResources(resources *containertypes.Resources, isHyperv bool
 			resources.NanoCPUs = ((resources.NanoCPUs + 1e9/2) / 1e9) * 1e9
 			warningString := fmt.Sprintf("Your current OS version does not support Hyper-V containers with NanoCPUs greater than 1000000000 but not divisible by 1000000000. NanoCPUs rounded to %d", resources.NanoCPUs)
 			warnings = append(warnings, warningString)
-			logrus.Warn(warningString)
 		}
 	}
 
@@ -180,7 +181,7 @@ func verifyContainerResources(resources *containertypes.Resources, isHyperv bool
 	if resources.OomKillDisable != nil && *resources.OomKillDisable {
 		return warnings, fmt.Errorf("invalid option: Windows does not support OomKillDisable")
 	}
-	if resources.PidsLimit != 0 {
+	if resources.PidsLimit != nil && *resources.PidsLimit != 0 {
 		return warnings, fmt.Errorf("invalid option: Windows does not support PidsLimit")
 	}
 	if len(resources.Ulimits) != 0 {
@@ -191,17 +192,22 @@ func verifyContainerResources(resources *containertypes.Resources, isHyperv bool
 
 // verifyPlatformContainerSettings performs platform-specific validation of the
 // hostconfig and config structures.
-func verifyPlatformContainerSettings(daemon *Daemon, hostConfig *containertypes.HostConfig, config *containertypes.Config, update bool) ([]string, error) {
-	warnings := []string{}
-
+func verifyPlatformContainerSettings(daemon *Daemon, hostConfig *containertypes.HostConfig, update bool) (warnings []string, err error) {
+	if hostConfig == nil {
+		return nil, nil
+	}
+	osv := system.GetOSVersion()
 	hyperv := daemon.runAsHyperVContainer(hostConfig)
-	if !hyperv && system.IsWindowsClient() && !system.IsIoTCore() {
-		// @engine maintainers. This block should not be removed. It partially enforces licensing
-		// restrictions on Windows. Ping @jhowardmsft if there are concerns or PRs to change this.
-		return warnings, fmt.Errorf("Windows client operating systems only support Hyper-V containers")
+
+	// On RS5, we allow (but don't strictly support) process isolation on Client SKUs.
+	// Prior to RS5, we don't allow process isolation on Client SKUs.
+	// @engine maintainers. This block should not be removed. It partially enforces licensing
+	// restrictions on Windows. Ping @jhowardmsft if there are concerns or PRs to change this.
+	if !hyperv && system.IsWindowsClient() && osv.Build < 17763 {
+		return warnings, fmt.Errorf("Windows client operating systems earlier than version 1809 can only run Hyper-V containers")
 	}
 
-	w, err := verifyContainerResources(&hostConfig.Resources, hyperv)
+	w, err := verifyPlatformContainerResources(&hostConfig.Resources, hyperv)
 	warnings = append(warnings, w...)
 	return warnings, err
 }
@@ -323,7 +329,8 @@ func (daemon *Daemon) initNetworkController(config *config.Config, activeSandbox
 	// discover and add HNS networks to windows
 	// network that exist are removed and added again
 	for _, v := range hnsresponse {
-		if strings.ToLower(v.Type) == "private" {
+		networkTypeNorm := strings.ToLower(v.Type)
+		if networkTypeNorm == "private" || networkTypeNorm == "internal" {
 			continue // workaround for HNS reporting unsupported networks
 		}
 		var n libnetwork.Network
@@ -339,8 +346,10 @@ func (daemon *Daemon) initNetworkController(config *config.Config, activeSandbox
 		controller.WalkNetworks(s)
 
 		drvOptions := make(map[string]string)
-
+		nid := ""
 		if n != nil {
+			nid = n.ID()
+
 			// global networks should not be deleted by local HNS
 			if n.Info().Scope() == datastore.GlobalScope {
 				continue
@@ -385,7 +394,7 @@ func (daemon *Daemon) initNetworkController(config *config.Config, activeSandbox
 		}
 
 		v6Conf := []*libnetwork.IpamConf{}
-		_, err := controller.NewNetwork(strings.ToLower(v.Type), name, "",
+		_, err := controller.NewNetwork(strings.ToLower(v.Type), name, nid,
 			libnetwork.NetworkOptionGeneric(options.Generic{
 				netlabel.GenericData: netOption,
 			}),
@@ -465,11 +474,11 @@ func (daemon *Daemon) cleanupMounts() error {
 	return nil
 }
 
-func setupRemappedRoot(config *config.Config) (*idtools.IDMappings, error) {
-	return &idtools.IDMappings{}, nil
+func setupRemappedRoot(config *config.Config) (*idtools.IdentityMapping, error) {
+	return &idtools.IdentityMapping{}, nil
 }
 
-func setupDaemonRoot(config *config.Config, rootDir string, rootIDs idtools.IDPair) error {
+func setupDaemonRoot(config *config.Config, rootDir string, rootIdentity idtools.Identity) error {
 	config.Root = rootDir
 	// Create the root directory if it doesn't exists
 	if err := system.MkdirAllWithACL(config.Root, 0, system.SddlAdministratorsLocalSystem); err != nil {
@@ -493,6 +502,7 @@ func (daemon *Daemon) runAsHyperVContainer(hostConfig *containertypes.HostConfig
 // conditionalMountOnStart is a platform specific helper function during the
 // container start to call mount.
 func (daemon *Daemon) conditionalMountOnStart(container *container.Container) error {
+
 	// Bail out now for Linux containers. We cannot mount the containers filesystem on the
 	// host as it is a non-Windows filesystem.
 	if system.LCOWSupported() && container.OS != "windows" {
@@ -510,6 +520,7 @@ func (daemon *Daemon) conditionalMountOnStart(container *container.Container) er
 // conditionalUnmountOnCleanup is a platform specific helper function called
 // during the cleanup of a container to unmount.
 func (daemon *Daemon) conditionalUnmountOnCleanup(container *container.Container) error {
+
 	// Bail out now for Linux containers
 	if system.LCOWSupported() && container.OS != "windows" {
 		return nil
@@ -591,9 +602,12 @@ func (daemon *Daemon) stats(c *container.Container) (*types.StatsJSON, error) {
 // daemon to run in. This is only applicable on Windows
 func (daemon *Daemon) setDefaultIsolation() error {
 	daemon.defaultIsolation = containertypes.Isolation("process")
-	// On client SKUs, default to Hyper-V. Note that IoT reports as a client SKU
-	// but it should not be treated as such.
-	if system.IsWindowsClient() && !system.IsIoTCore() {
+	osv := system.GetOSVersion()
+
+	// On client SKUs, default to Hyper-V. @engine maintainers. This
+	// should not be removed. Ping @jhowardmsft is there are PRs to
+	// to change this.
+	if system.IsWindowsClient() {
 		daemon.defaultIsolation = containertypes.Isolation("hyperv")
 	}
 	for _, option := range daemon.configStore.ExecOptions {
@@ -612,10 +626,11 @@ func (daemon *Daemon) setDefaultIsolation() error {
 				daemon.defaultIsolation = containertypes.Isolation("hyperv")
 			}
 			if containertypes.Isolation(val).IsProcess() {
-				if system.IsWindowsClient() && !system.IsIoTCore() {
+				if system.IsWindowsClient() && osv.Build < 17763 {
+					// On RS5, we allow (but don't strictly support) process isolation on Client SKUs.
 					// @engine maintainers. This block should not be removed. It partially enforces licensing
 					// restrictions on Windows. Ping @jhowardmsft if there are concerns or PRs to change this.
-					return fmt.Errorf("Windows client operating systems only support Hyper-V containers")
+					return fmt.Errorf("Windows client operating systems earlier than version 1809 can only run Hyper-V containers")
 				}
 				daemon.defaultIsolation = containertypes.Isolation("process")
 			}
@@ -652,4 +667,7 @@ func (daemon *Daemon) loadRuntimes() error {
 
 func (daemon *Daemon) initRuntimes(_ map[string]types.Runtime) error {
 	return nil
+}
+
+func setupResolvConf(config *config.Config) {
 }

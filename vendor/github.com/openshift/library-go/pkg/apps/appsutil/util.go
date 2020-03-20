@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -44,11 +44,11 @@ func WaitForRunningDeployerPod(podClient corev1client.PodsGetter, rc *corev1.Rep
 	lw := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			options.FieldSelector = fieldSelector
-			return podClient.Pods(rc.Namespace).List(options)
+			return podClient.Pods(rc.Namespace).List(context.TODO(), options)
 		},
 		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			options.FieldSelector = fieldSelector
-			return podClient.Pods(rc.Namespace).Watch(options)
+			return podClient.Pods(rc.Namespace).Watch(context.TODO(), options)
 		},
 	}
 

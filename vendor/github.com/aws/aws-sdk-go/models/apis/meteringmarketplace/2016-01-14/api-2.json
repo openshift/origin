@@ -46,7 +46,8 @@
         {"shape":"InvalidEndpointRegionException"},
         {"shape":"TimestampOutOfBoundsException"},
         {"shape":"DuplicateRequestException"},
-        {"shape":"ThrottlingException"}
+        {"shape":"ThrottlingException"},
+        {"shape":"CustomerNotEntitledException"}
       ]
     },
     "RegisterUsage":{
@@ -200,9 +201,7 @@
       "required":[
         "ProductCode",
         "Timestamp",
-        "UsageDimension",
-        "UsageQuantity",
-        "DryRun"
+        "UsageDimension"
       ],
       "members":{
         "ProductCode":{"shape":"ProductCode"},
@@ -294,7 +293,7 @@
     },
     "UsageQuantity":{
       "type":"integer",
-      "max":1000000,
+      "max":2147483647,
       "min":0
     },
     "UsageRecord":{
@@ -302,8 +301,7 @@
       "required":[
         "Timestamp",
         "CustomerIdentifier",
-        "Dimension",
-        "Quantity"
+        "Dimension"
       ],
       "members":{
         "Timestamp":{"shape":"Timestamp"},

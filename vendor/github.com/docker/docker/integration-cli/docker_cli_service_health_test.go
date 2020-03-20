@@ -12,7 +12,7 @@ import (
 	"github.com/docker/docker/integration-cli/cli"
 	"github.com/docker/docker/integration-cli/cli/build"
 	"github.com/go-check/check"
-	"github.com/gotestyourself/gotestyourself/icmd"
+	"gotest.tools/icmd"
 )
 
 // start a service, and then make its task unhealthy during running
@@ -34,7 +34,7 @@ func (s *DockerSwarmSuite) TestServiceHealthRun(c *check.C) {
 
 	serviceName := "healthServiceRun"
 	out, err := d.Cmd("service", "create", "--no-resolve-image", "--detach=true", "--name", serviceName, imageName, "top")
-	c.Assert(err, checker.IsNil, check.Commentf(out))
+	c.Assert(err, checker.IsNil, check.Commentf("%s", out))
 	id := strings.TrimSpace(out)
 
 	var tasks []swarm.Task
@@ -95,7 +95,7 @@ func (s *DockerSwarmSuite) TestServiceHealthStart(c *check.C) {
 
 	serviceName := "healthServiceStart"
 	out, err := d.Cmd("service", "create", "--no-resolve-image", "--detach=true", "--name", serviceName, imageName, "top")
-	c.Assert(err, checker.IsNil, check.Commentf(out))
+	c.Assert(err, checker.IsNil, check.Commentf("%s", out))
 	id := strings.TrimSpace(out)
 
 	var tasks []swarm.Task

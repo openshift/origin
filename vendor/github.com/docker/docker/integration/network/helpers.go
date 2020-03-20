@@ -1,15 +1,18 @@
+// +build !windows
+
 package network
 
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/parsers/kernel"
-	"github.com/gotestyourself/gotestyourself/assert/cmp"
-	"github.com/gotestyourself/gotestyourself/icmd"
+	"gotest.tools/assert/cmp"
+	"gotest.tools/icmd"
 )
 
 // CreateMasterDummy creates a dummy network interface
@@ -82,4 +85,10 @@ func CheckKernelMajorVersionGreaterOrEqualThen(kernelVersion int, majorVersion i
 		return false
 	}
 	return true
+}
+
+// IsUserNamespace returns whether the user namespace remapping is enabled
+func IsUserNamespace() bool {
+	root := os.Getenv("DOCKER_REMAP_ROOT")
+	return root != ""
 }

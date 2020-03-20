@@ -169,6 +169,9 @@ func TestResolveEndpointForPartition(t *testing.T) {
 	enum := testPartitions.Partitions()[0]
 
 	expected, err := testPartitions.EndpointFor("service1", "us-east-1")
+	if err != nil {
+		t.Fatalf("unexpected error, %v", err)
+	}
 
 	actual, err := enum.EndpointFor("service1", "us-east-1")
 	if err != nil {
@@ -327,8 +330,11 @@ func TestPartitionForRegion(t *testing.T) {
 	if !ok {
 		t.Fatalf("expect partition to be found")
 	}
+	if e, a := expect.DNSSuffix(), actual.DNSSuffix(); e != a {
+		t.Errorf("expect %s partition DNSSuffix, got %s", e, a)
+	}
 	if e, a := expect.ID(), actual.ID(); e != a {
-		t.Errorf("expect %s partition, got %s", e, a)
+		t.Errorf("expect %s partition ID, got %s", e, a)
 	}
 }
 

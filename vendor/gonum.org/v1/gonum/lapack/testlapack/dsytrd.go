@@ -145,7 +145,7 @@ func DsytrdTest(t *testing.T, impl Dsytrder) {
 					}
 				}
 
-				// Compute Q^T * A * Q.
+				// Compute Qᵀ * A * Q.
 				tmp := zeros(n, n, n)
 				blas64.Gemm(blas.Trans, blas.NoTrans, 1, q, aCopy, 0, tmp)
 				got := zeros(n, n, n)
@@ -153,7 +153,7 @@ func DsytrdTest(t *testing.T, impl Dsytrder) {
 
 				// Compare with T.
 				if !equalApproxGeneral(got, tMat, tol) {
-					t.Errorf("%v: Q^T*A*Q != T", prefix)
+					t.Errorf("%v: Qᵀ*A*Q != T", prefix)
 				}
 			}
 		}

@@ -20,10 +20,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
-	"sigs.k8s.io/structured-merge-diff/typed"
+	"sigs.k8s.io/structured-merge-diff/v3/typed"
 	"sigs.k8s.io/yaml"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -33,9 +32,7 @@ import (
 )
 
 var fakeSchema = prototesting.Fake{
-	Path: filepath.Join(
-		strings.Repeat(".."+string(filepath.Separator), 9),
-		"api", "openapi-spec", "swagger.json"),
+	Path: filepath.Join("testdata", "swagger.json"),
 }
 
 func TestTypeConverter(t *testing.T) {

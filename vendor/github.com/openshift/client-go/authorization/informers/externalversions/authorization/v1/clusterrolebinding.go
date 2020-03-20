@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
@@ -44,13 +45,13 @@ func NewFilteredClusterRoleBindingInformer(client versioned.Interface, resyncPer
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AuthorizationV1().ClusterRoleBindings().List(options)
+				return client.AuthorizationV1().ClusterRoleBindings().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AuthorizationV1().ClusterRoleBindings().Watch(options)
+				return client.AuthorizationV1().ClusterRoleBindings().Watch(context.TODO(), options)
 			},
 		},
 		&authorizationv1.ClusterRoleBinding{},

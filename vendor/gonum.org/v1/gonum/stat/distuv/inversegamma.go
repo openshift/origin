@@ -97,7 +97,7 @@ func (g InverseGamma) Quantile(p float64) float64 {
 // Rand panics if either alpha or beta is <= 0.
 func (g InverseGamma) Rand() float64 {
 	// TODO(btracey): See if there is a more direct way to sample.
-	return 1 / Gamma{Alpha: g.Alpha, Beta: g.Beta, Src: g.Src}.Rand()
+	return 1 / Gamma(g).Rand()
 }
 
 // Survival returns the survival function (complementary CDF) at x.

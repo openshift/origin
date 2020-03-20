@@ -28,10 +28,10 @@ func TestDlagsy(t *testing.T) {
 			// Allocate an n×n symmetric matrix A and fill it with NaNs.
 			a := nanSlice(n * lda)
 			work := make([]float64, 2*n)
-			// Compute A = U * D * U^T where U is a random orthogonal matrix.
+			// Compute A = U * D * Uᵀ where U is a random orthogonal matrix.
 			Dlagsy(n, 0, d, a, lda, rnd, work)
 			// A should be the identity matrix because
-			//  A = U * D * U^T = U * I * U^T = U * U^T = I.
+			//  A = U * D * Uᵀ = U * I * Uᵀ = U * Uᵀ = I.
 			dist := distFromIdentity(n, a, lda)
 			if dist > tol {
 				t.Errorf("Case n=%v,lda=%v: |A-I|=%v is too large", n, lda, dist)

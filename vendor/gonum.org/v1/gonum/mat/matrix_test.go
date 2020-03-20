@@ -562,6 +562,47 @@ func TestTrace(t *testing.T) {
 	testOneInputFunc(t, "Trace", f, denseComparison, sameAnswerFloat, isAnyType, isSquare)
 }
 
+func TestTracer(t *testing.T) {
+	for _, test := range []struct {
+		a    Tracer
+		want float64
+	}{
+		{
+			a:    NewDense(3, 3, []float64{1, 2, 3, 4, 5, 6, 7, 8, 9}),
+			want: 15,
+		},
+		{
+			a:    NewSymDense(4, []float64{1, 2, 3, 4, 0, 5, 6, 7, 0, 0, 8, 9, 0, 0, 0, 10}),
+			want: 24,
+		},
+		{
+			a:    NewBandDense(6, 6, 1, 2, []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 0, 19, 20, 0, 0}),
+			want: 65,
+		},
+		{
+			a:    NewDiagDense(6, []float64{1, 2, 3, 4, 5, 6}),
+			want: 21,
+		},
+		{
+			a:    NewSymBandDense(6, 2, []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15, 0, 0}),
+			want: 50,
+		},
+		{
+			a:    NewTriBandDense(6, 2, Upper, []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15, 0, 0}),
+			want: 50,
+		},
+		{
+			a:    NewTriBandDense(6, 2, Lower, []float64{0, 0, 1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}),
+			want: 46,
+		},
+	} {
+		got := test.a.Trace()
+		if got != test.want {
+			t.Errorf("Trace mismatch. Want %v, got %v", test.want, got)
+		}
+	}
+}
+
 func TestDoer(t *testing.T) {
 	type MatrixDoer interface {
 		Matrix

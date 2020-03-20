@@ -176,7 +176,10 @@ resources:
 	}
 
 	// Secrets should be un-enveloped on direct reads from Kube API Server.
-	s, err := test.restClient.CoreV1().Secrets(testNamespace).Get(testSecret, metav1.GetOptions{})
+	s, err := test.restClient.CoreV1().Secrets(testNamespace).Get(context.TODO(), testSecret, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("failed to get Secret from %s, err: %v", testNamespace, err)
+	}
 	if secretVal != string(s.Data[secretKey]) {
 		t.Fatalf("expected %s from KubeAPI, but got %s", secretVal, string(s.Data[secretKey]))
 	}
@@ -290,7 +293,7 @@ func getHealthz(checkName string, clientConfig *rest.Config) (int, error) {
 		return 0, fmt.Errorf("failed to create a client: %v", err)
 	}
 
-	result := client.CoreV1().RESTClient().Get().AbsPath(fmt.Sprintf("/healthz/%v", checkName)).Do()
+	result := client.CoreV1().RESTClient().Get().AbsPath(fmt.Sprintf("/healthz/%v", checkName)).Do(context.TODO())
 	status := 0
 	result.StatusCode(&status)
 	return status, nil

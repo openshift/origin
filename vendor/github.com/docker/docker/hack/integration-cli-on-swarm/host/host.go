@@ -50,7 +50,7 @@ func xmain() (int, error) {
 	if *randSeed == int64(0) {
 		*randSeed = time.Now().UnixNano()
 	}
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return 1, err
 	}
@@ -100,7 +100,7 @@ func xmain() (int, error) {
 	}
 	logrus.Infof("Deploying stack %s from %s", defaultStackName, compose)
 	defer func() {
-		logrus.Infof("NOTE: You may want to inspect or clean up following resources:")
+		logrus.Info("NOTE: You may want to inspect or clean up following resources:")
 		logrus.Infof(" - Stack: %s", defaultStackName)
 		logrus.Infof(" - Volume: %s", defaultVolumeName)
 		logrus.Infof(" - Compose file: %s", compose)
@@ -170,7 +170,7 @@ func waitForMasterUp(cli *client.Client, stackName string) (string, error) {
 		return "", err
 	}
 	if len(masters) == 0 {
-		return "", fmt.Errorf("master not running in stack %s?", stackName)
+		return "", fmt.Errorf("master not running in stack %s", stackName)
 	}
 	return masters[0].ID, nil
 }

@@ -69,25 +69,25 @@ func (c *WorkDocs) AbortDocumentVersionUploadRequest(input *AbortDocumentVersion
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation AbortDocumentVersionUpload for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/AbortDocumentVersionUpload
@@ -165,22 +165,22 @@ func (c *WorkDocs) ActivateUserRequest(input *ActivateUserInput) (req *request.R
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation ActivateUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/ActivateUser
@@ -259,19 +259,19 @@ func (c *WorkDocs) AddResourcePermissionsRequest(input *AddResourcePermissionsIn
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation AddResourcePermissions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/AddResourcePermissions
@@ -349,32 +349,32 @@ func (c *WorkDocs) CreateCommentRequest(input *CreateCommentInput) (req *request
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation CreateComment for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeDocumentLockedForCommentsException "DocumentLockedForCommentsException"
+//   * DocumentLockedForCommentsException
 //   This exception is thrown when the document is locked for comments and user
 //   tries to create or delete a comment on that document.
 //
-//   * ErrCodeInvalidCommentOperationException "InvalidCommentOperationException"
+//   * InvalidCommentOperationException
 //   The requested operation is not allowed on the specified comment object.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/CreateComment
@@ -454,29 +454,29 @@ func (c *WorkDocs) CreateCustomMetadataRequest(input *CreateCustomMetadataInput)
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation CreateCustomMetadata for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeCustomMetadataLimitExceededException "CustomMetadataLimitExceededException"
+//   * CustomMetadataLimitExceededException
 //   The limit has been reached on the number of custom properties for the specified
 //   resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/CreateCustomMetadata
@@ -554,35 +554,35 @@ func (c *WorkDocs) CreateFolderRequest(input *CreateFolderInput) (req *request.R
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation CreateFolder for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExistsException"
+//   * EntityAlreadyExistsException
 //   The resource already exists.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeConflictingOperationException "ConflictingOperationException"
+//   * ConflictingOperationException
 //   Another operation is in progress on the resource that conflicts with the
 //   current operation.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The maximum of 100,000 folders under the parent folder has been exceeded.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/CreateFolder
@@ -661,25 +661,25 @@ func (c *WorkDocs) CreateLabelsRequest(input *CreateLabelsInput) (req *request.R
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation CreateLabels for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeTooManyLabelsException "TooManyLabelsException"
+//   * TooManyLabelsException
 //   The limit has been reached on the number of labels for the specified resource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/CreateLabels
@@ -751,7 +751,7 @@ func (c *WorkDocs) CreateNotificationSubscriptionRequest(input *CreateNotificati
 // Configure Amazon WorkDocs to use Amazon SNS notifications. The endpoint receives
 // a confirmation message, and must confirm the subscription.
 //
-// For more information, see Subscribe to Notifications (http://docs.aws.amazon.com/workdocs/latest/developerguide/subscribe-notifications.html)
+// For more information, see Subscribe to Notifications (https://docs.aws.amazon.com/workdocs/latest/developerguide/subscribe-notifications.html)
 // in the Amazon WorkDocs Developer Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -761,15 +761,15 @@ func (c *WorkDocs) CreateNotificationSubscriptionRequest(input *CreateNotificati
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation CreateNotificationSubscription for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+// Returned Error Types:
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeTooManySubscriptionsException "TooManySubscriptionsException"
+//   * TooManySubscriptionsException
 //   You've reached the limit on the number of subscriptions for the WorkDocs
 //   instance.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/CreateNotificationSubscription
@@ -848,22 +848,22 @@ func (c *WorkDocs) CreateUserRequest(input *CreateUserInput) (req *request.Reque
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation CreateUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExistsException"
+// Returned Error Types:
+//   * EntityAlreadyExistsException
 //   The resource already exists.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/CreateUser
@@ -943,22 +943,22 @@ func (c *WorkDocs) DeactivateUserRequest(input *DeactivateUserInput) (req *reque
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DeactivateUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DeactivateUser
@@ -1037,28 +1037,28 @@ func (c *WorkDocs) DeleteCommentRequest(input *DeleteCommentInput) (req *request
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DeleteComment for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeDocumentLockedForCommentsException "DocumentLockedForCommentsException"
+//   * DocumentLockedForCommentsException
 //   This exception is thrown when the document is locked for comments and user
 //   tries to create or delete a comment on that document.
 //
@@ -1138,25 +1138,25 @@ func (c *WorkDocs) DeleteCustomMetadataRequest(input *DeleteCustomMetadataInput)
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DeleteCustomMetadata for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DeleteCustomMetadata
@@ -1235,32 +1235,32 @@ func (c *WorkDocs) DeleteDocumentRequest(input *DeleteDocumentInput) (req *reque
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DeleteDocument for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeConflictingOperationException "ConflictingOperationException"
+//   * ConflictingOperationException
 //   Another operation is in progress on the resource that conflicts with the
 //   current operation.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   The resource hierarchy is changing.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DeleteDocument
@@ -1339,32 +1339,32 @@ func (c *WorkDocs) DeleteFolderRequest(input *DeleteFolderInput) (req *request.R
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DeleteFolder for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeConflictingOperationException "ConflictingOperationException"
+//   * ConflictingOperationException
 //   Another operation is in progress on the resource that conflicts with the
 //   current operation.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   The resource hierarchy is changing.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DeleteFolder
@@ -1443,29 +1443,29 @@ func (c *WorkDocs) DeleteFolderContentsRequest(input *DeleteFolderContentsInput)
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DeleteFolderContents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeConflictingOperationException "ConflictingOperationException"
+//   * ConflictingOperationException
 //   Another operation is in progress on the resource that conflicts with the
 //   current operation.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DeleteFolderContents
@@ -1544,22 +1544,22 @@ func (c *WorkDocs) DeleteLabelsRequest(input *DeleteLabelsInput) (req *request.R
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DeleteLabels for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DeleteLabels
@@ -1638,17 +1638,17 @@ func (c *WorkDocs) DeleteNotificationSubscriptionRequest(input *DeleteNotificati
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DeleteNotificationSubscription for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+// Returned Error Types:
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DeleteNotificationSubscription
@@ -1727,22 +1727,22 @@ func (c *WorkDocs) DeleteUserRequest(input *DeleteUserInput) (req *request.Reque
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DeleteUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DeleteUser
@@ -1820,22 +1820,22 @@ func (c *WorkDocs) DescribeActivitiesRequest(input *DescribeActivitiesInput) (re
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DescribeActivities for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+//   * InvalidArgumentException
 //   The pagination marker or limit fields are not valid.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DescribeActivities
@@ -1913,25 +1913,25 @@ func (c *WorkDocs) DescribeCommentsRequest(input *DescribeCommentsInput) (req *r
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DescribeComments for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DescribeComments
@@ -2017,28 +2017,28 @@ func (c *WorkDocs) DescribeDocumentVersionsRequest(input *DescribeDocumentVersio
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DescribeDocumentVersions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+//   * InvalidArgumentException
 //   The pagination marker or limit fields are not valid.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DescribeDocumentVersions
@@ -2074,7 +2074,7 @@ func (c *WorkDocs) DescribeDocumentVersionsWithContext(ctx aws.Context, input *D
 //    // Example iterating over at most 3 pages of a DescribeDocumentVersions operation.
 //    pageNum := 0
 //    err := client.DescribeDocumentVersionsPages(params,
-//        func(page *DescribeDocumentVersionsOutput, lastPage bool) bool {
+//        func(page *workdocs.DescribeDocumentVersionsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2106,10 +2106,12 @@ func (c *WorkDocs) DescribeDocumentVersionsPagesWithContext(ctx aws.Context, inp
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeDocumentVersionsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeDocumentVersionsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2178,25 +2180,25 @@ func (c *WorkDocs) DescribeFolderContentsRequest(input *DescribeFolderContentsIn
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DescribeFolderContents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+//   * InvalidArgumentException
 //   The pagination marker or limit fields are not valid.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DescribeFolderContents
@@ -2232,7 +2234,7 @@ func (c *WorkDocs) DescribeFolderContentsWithContext(ctx aws.Context, input *Des
 //    // Example iterating over at most 3 pages of a DescribeFolderContents operation.
 //    pageNum := 0
 //    err := client.DescribeFolderContentsPages(params,
-//        func(page *DescribeFolderContentsOutput, lastPage bool) bool {
+//        func(page *workdocs.DescribeFolderContentsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2264,10 +2266,12 @@ func (c *WorkDocs) DescribeFolderContentsPagesWithContext(ctx aws.Context, input
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeFolderContentsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeFolderContentsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2325,19 +2329,19 @@ func (c *WorkDocs) DescribeGroupsRequest(input *DescribeGroupsInput) (req *reque
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DescribeGroups for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DescribeGroups
@@ -2415,14 +2419,14 @@ func (c *WorkDocs) DescribeNotificationSubscriptionsRequest(input *DescribeNotif
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DescribeNotificationSubscriptions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+// Returned Error Types:
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DescribeNotificationSubscriptions
@@ -2500,19 +2504,19 @@ func (c *WorkDocs) DescribeResourcePermissionsRequest(input *DescribeResourcePer
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DescribeResourcePermissions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DescribeResourcePermissions
@@ -2588,7 +2592,7 @@ func (c *WorkDocs) DescribeRootFoldersRequest(input *DescribeRootFoldersInput) (
 //
 // This action requires an authentication token. To get an authentication token,
 // register an application with Amazon WorkDocs. For more information, see Authentication
-// and Access Control for User Applications (http://docs.aws.amazon.com/workdocs/latest/developerguide/wd-auth-user.html)
+// and Access Control for User Applications (https://docs.aws.amazon.com/workdocs/latest/developerguide/wd-auth-user.html)
 // in the Amazon WorkDocs Developer Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2598,22 +2602,22 @@ func (c *WorkDocs) DescribeRootFoldersRequest(input *DescribeRootFoldersInput) (
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DescribeRootFolders for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+//   * InvalidArgumentException
 //   The pagination marker or limit fields are not valid.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/DescribeRootFolders
@@ -2702,28 +2706,28 @@ func (c *WorkDocs) DescribeUsersRequest(input *DescribeUsersInput) (req *request
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation DescribeUsers for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+//   * InvalidArgumentException
 //   The pagination marker or limit fields are not valid.
 //
-//   * ErrCodeRequestedEntityTooLargeException "RequestedEntityTooLargeException"
+//   * RequestedEntityTooLargeException
 //   The response is too large to return. The request must include a filter to
 //   reduce the size of the response.
 //
@@ -2760,7 +2764,7 @@ func (c *WorkDocs) DescribeUsersWithContext(ctx aws.Context, input *DescribeUser
 //    // Example iterating over at most 3 pages of a DescribeUsers operation.
 //    pageNum := 0
 //    err := client.DescribeUsersPages(params,
-//        func(page *DescribeUsersOutput, lastPage bool) bool {
+//        func(page *workdocs.DescribeUsersOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2792,10 +2796,12 @@ func (c *WorkDocs) DescribeUsersPagesWithContext(ctx aws.Context, input *Describ
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeUsersOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeUsersOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2853,22 +2859,22 @@ func (c *WorkDocs) GetCurrentUserRequest(input *GetCurrentUserInput) (req *reque
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation GetCurrentUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/GetCurrentUser
@@ -2946,28 +2952,28 @@ func (c *WorkDocs) GetDocumentRequest(input *GetDocumentInput) (req *request.Req
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation GetDocument for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+//   * InvalidArgumentException
 //   The pagination marker or limit fields are not valid.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeInvalidPasswordException "InvalidPasswordException"
+//   * InvalidPasswordException
 //   The password is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/GetDocument
@@ -3051,22 +3057,22 @@ func (c *WorkDocs) GetDocumentPathRequest(input *GetDocumentPathInput) (req *req
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation GetDocumentPath for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/GetDocumentPath
@@ -3144,28 +3150,28 @@ func (c *WorkDocs) GetDocumentVersionRequest(input *GetDocumentVersionInput) (re
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation GetDocumentVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeInvalidPasswordException "InvalidPasswordException"
+//   * InvalidPasswordException
 //   The password is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/GetDocumentVersion
@@ -3243,28 +3249,28 @@ func (c *WorkDocs) GetFolderRequest(input *GetFolderInput) (req *request.Request
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation GetFolder for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+//   * InvalidArgumentException
 //   The pagination marker or limit fields are not valid.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/GetFolder
@@ -3348,22 +3354,22 @@ func (c *WorkDocs) GetFolderPathRequest(input *GetFolderPathInput) (req *request
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation GetFolderPath for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/GetFolderPath
@@ -3442,22 +3448,22 @@ func (c *WorkDocs) GetResourcesRequest(input *GetResourcesInput) (req *request.R
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation GetResources for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+// Returned Error Types:
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+//   * InvalidArgumentException
 //   The pagination marker or limit fields are not valid.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/GetResources
@@ -3542,41 +3548,41 @@ func (c *WorkDocs) InitiateDocumentVersionUploadRequest(input *InitiateDocumentV
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation InitiateDocumentVersionUpload for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExistsException"
+//   * EntityAlreadyExistsException
 //   The resource already exists.
 //
-//   * ErrCodeStorageLimitExceededException "StorageLimitExceededException"
+//   * StorageLimitExceededException
 //   The storage limit has been exceeded.
 //
-//   * ErrCodeStorageLimitWillExceedException "StorageLimitWillExceedException"
+//   * StorageLimitWillExceedException
 //   The storage limit will be exceeded.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeDraftUploadOutOfSyncException "DraftUploadOutOfSyncException"
+//   * DraftUploadOutOfSyncException
 //   This exception is thrown when a valid checkout ID is not presented on document
 //   version upload calls for a document that has been checked out from Web client.
 //
-//   * ErrCodeResourceAlreadyCheckedOutException "ResourceAlreadyCheckedOutException"
+//   * ResourceAlreadyCheckedOutException
 //   The resource is already checked out.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/InitiateDocumentVersionUpload
@@ -3655,19 +3661,19 @@ func (c *WorkDocs) RemoveAllResourcePermissionsRequest(input *RemoveAllResourceP
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation RemoveAllResourcePermissions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/RemoveAllResourcePermissions
@@ -3746,19 +3752,19 @@ func (c *WorkDocs) RemoveResourcePermissionRequest(input *RemoveResourcePermissi
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation RemoveResourcePermission for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/RemoveResourcePermission
@@ -3838,38 +3844,38 @@ func (c *WorkDocs) UpdateDocumentRequest(input *UpdateDocumentInput) (req *reque
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation UpdateDocument for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExistsException"
+//   * EntityAlreadyExistsException
 //   The resource already exists.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The maximum of 100,000 folders under the parent folder has been exceeded.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeConflictingOperationException "ConflictingOperationException"
+//   * ConflictingOperationException
 //   Another operation is in progress on the resource that conflicts with the
 //   current operation.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   The resource hierarchy is changing.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/UpdateDocument
@@ -3952,31 +3958,31 @@ func (c *WorkDocs) UpdateDocumentVersionRequest(input *UpdateDocumentVersionInpu
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation UpdateDocumentVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   The resource hierarchy is changing.
 //
-//   * ErrCodeInvalidOperationException "InvalidOperationException"
+//   * InvalidOperationException
 //   The operation is invalid.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/UpdateDocumentVersion
@@ -4056,38 +4062,38 @@ func (c *WorkDocs) UpdateFolderRequest(input *UpdateFolderInput) (req *request.R
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation UpdateFolder for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExistsException"
+//   * EntityAlreadyExistsException
 //   The resource already exists.
 //
-//   * ErrCodeProhibitedStateException "ProhibitedStateException"
+//   * ProhibitedStateException
 //   The specified document version is not in the INITIALIZED state.
 //
-//   * ErrCodeConflictingOperationException "ConflictingOperationException"
+//   * ConflictingOperationException
 //   Another operation is in progress on the resource that conflicts with the
 //   current operation.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   The resource hierarchy is changing.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The maximum of 100,000 folders under the parent folder has been exceeded.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/UpdateFolder
@@ -4166,31 +4172,31 @@ func (c *WorkDocs) UpdateUserRequest(input *UpdateUserInput) (req *request.Reque
 // See the AWS API reference guide for Amazon WorkDocs's
 // API operation UpdateUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeEntityNotExistsException "EntityNotExistsException"
+// Returned Error Types:
+//   * EntityNotExistsException
 //   The resource does not exist.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   The operation is not permitted.
 //
-//   * ErrCodeUnauthorizedResourceAccessException "UnauthorizedResourceAccessException"
+//   * UnauthorizedResourceAccessException
 //   The caller does not have access to perform the action on the resource.
 //
-//   * ErrCodeIllegalUserStateException "IllegalUserStateException"
+//   * IllegalUserStateException
 //   The user is undergoing transfer of ownership.
 //
-//   * ErrCodeFailedDependencyException "FailedDependencyException"
+//   * FailedDependencyException
 //   The AWS Directory Service cannot reach an on-premises instance. Or a dependency
 //   under the control of the organization is failing, such as a connected Active
 //   Directory.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   One or more of the dependencies is unavailable.
 //
-//   * ErrCodeDeactivatingLastSystemUserException "DeactivatingLastSystemUserException"
+//   * DeactivatingLastSystemUserException
 //   The last user in the organization is being deactivated.
 //
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+//   * InvalidArgumentException
 //   The pagination marker or limit fields are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/workdocs-2016-05-01/UpdateUser
@@ -4751,6 +4757,119 @@ func (s *CommentMetadata) SetRecipientId(v string) *CommentMetadata {
 	return s
 }
 
+// The resource hierarchy is changing.
+type ConcurrentModificationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ConcurrentModificationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConcurrentModificationException) GoString() string {
+	return s.String()
+}
+
+func newErrorConcurrentModificationException(v protocol.ResponseMetadata) error {
+	return &ConcurrentModificationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ConcurrentModificationException) Code() string {
+	return "ConcurrentModificationException"
+}
+
+// Message returns the exception's message.
+func (s ConcurrentModificationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ConcurrentModificationException) OrigErr() error {
+	return nil
+}
+
+func (s ConcurrentModificationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ConcurrentModificationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ConcurrentModificationException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Another operation is in progress on the resource that conflicts with the
+// current operation.
+type ConflictingOperationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ConflictingOperationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConflictingOperationException) GoString() string {
+	return s.String()
+}
+
+func newErrorConflictingOperationException(v protocol.ResponseMetadata) error {
+	return &ConflictingOperationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ConflictingOperationException) Code() string {
+	return "ConflictingOperationException"
+}
+
+// Message returns the exception's message.
+func (s ConflictingOperationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ConflictingOperationException) OrigErr() error {
+	return nil
+}
+
+func (s ConflictingOperationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ConflictingOperationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ConflictingOperationException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type CreateCommentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5180,7 +5299,7 @@ type CreateNotificationSubscriptionInput struct {
 	_ struct{} `type:"structure"`
 
 	// The endpoint to receive the notifications. If the protocol is HTTPS, the
-	// endpoint is a URL that begins with "https://".
+	// endpoint is a URL that begins with https.
 	//
 	// Endpoint is a required field
 	Endpoint *string `min:"1" type:"string" required:"true"`
@@ -5460,6 +5579,63 @@ func (s *CreateUserOutput) SetUser(v *User) *CreateUserOutput {
 	return s
 }
 
+// The limit has been reached on the number of custom properties for the specified
+// resource.
+type CustomMetadataLimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s CustomMetadataLimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CustomMetadataLimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorCustomMetadataLimitExceededException(v protocol.ResponseMetadata) error {
+	return &CustomMetadataLimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s CustomMetadataLimitExceededException) Code() string {
+	return "CustomMetadataLimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s CustomMetadataLimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s CustomMetadataLimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s CustomMetadataLimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s CustomMetadataLimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s CustomMetadataLimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type DeactivateUserInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5526,6 +5702,57 @@ func (s DeactivateUserOutput) String() string {
 // GoString returns the string representation
 func (s DeactivateUserOutput) GoString() string {
 	return s.String()
+}
+
+// The last user in the organization is being deactivated.
+type DeactivatingLastSystemUserException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s DeactivatingLastSystemUserException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeactivatingLastSystemUserException) GoString() string {
+	return s.String()
+}
+
+func newErrorDeactivatingLastSystemUserException(v protocol.ResponseMetadata) error {
+	return &DeactivatingLastSystemUserException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DeactivatingLastSystemUserException) Code() string {
+	return "DeactivatingLastSystemUserException"
+}
+
+// Message returns the exception's message.
+func (s DeactivatingLastSystemUserException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DeactivatingLastSystemUserException) OrigErr() error {
+	return nil
+}
+
+func (s DeactivatingLastSystemUserException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DeactivatingLastSystemUserException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DeactivatingLastSystemUserException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type DeleteCommentInput struct {
@@ -7392,6 +7619,63 @@ func (s *DescribeUsersOutput) SetUsers(v []*User) *DescribeUsersOutput {
 	return s
 }
 
+// This exception is thrown when the document is locked for comments and user
+// tries to create or delete a comment on that document.
+type DocumentLockedForCommentsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s DocumentLockedForCommentsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DocumentLockedForCommentsException) GoString() string {
+	return s.String()
+}
+
+func newErrorDocumentLockedForCommentsException(v protocol.ResponseMetadata) error {
+	return &DocumentLockedForCommentsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DocumentLockedForCommentsException) Code() string {
+	return "DocumentLockedForCommentsException"
+}
+
+// Message returns the exception's message.
+func (s DocumentLockedForCommentsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DocumentLockedForCommentsException) OrigErr() error {
+	return nil
+}
+
+func (s DocumentLockedForCommentsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DocumentLockedForCommentsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DocumentLockedForCommentsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Describes the document.
 type DocumentMetadata struct {
 	_ struct{} `type:"structure"`
@@ -7609,6 +7893,235 @@ func (s *DocumentVersionMetadata) SetStatus(v string) *DocumentVersionMetadata {
 func (s *DocumentVersionMetadata) SetThumbnail(v map[string]*string) *DocumentVersionMetadata {
 	s.Thumbnail = v
 	return s
+}
+
+// This exception is thrown when a valid checkout ID is not presented on document
+// version upload calls for a document that has been checked out from Web client.
+type DraftUploadOutOfSyncException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s DraftUploadOutOfSyncException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DraftUploadOutOfSyncException) GoString() string {
+	return s.String()
+}
+
+func newErrorDraftUploadOutOfSyncException(v protocol.ResponseMetadata) error {
+	return &DraftUploadOutOfSyncException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DraftUploadOutOfSyncException) Code() string {
+	return "DraftUploadOutOfSyncException"
+}
+
+// Message returns the exception's message.
+func (s DraftUploadOutOfSyncException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DraftUploadOutOfSyncException) OrigErr() error {
+	return nil
+}
+
+func (s DraftUploadOutOfSyncException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DraftUploadOutOfSyncException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DraftUploadOutOfSyncException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The resource already exists.
+type EntityAlreadyExistsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s EntityAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EntityAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorEntityAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &EntityAlreadyExistsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s EntityAlreadyExistsException) Code() string {
+	return "EntityAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s EntityAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s EntityAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s EntityAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s EntityAlreadyExistsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s EntityAlreadyExistsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The resource does not exist.
+type EntityNotExistsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	EntityIds []*string `type:"list"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s EntityNotExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EntityNotExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorEntityNotExistsException(v protocol.ResponseMetadata) error {
+	return &EntityNotExistsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s EntityNotExistsException) Code() string {
+	return "EntityNotExistsException"
+}
+
+// Message returns the exception's message.
+func (s EntityNotExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s EntityNotExistsException) OrigErr() error {
+	return nil
+}
+
+func (s EntityNotExistsException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s EntityNotExistsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s EntityNotExistsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The AWS Directory Service cannot reach an on-premises instance. Or a dependency
+// under the control of the organization is failing, such as a connected Active
+// Directory.
+type FailedDependencyException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s FailedDependencyException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FailedDependencyException) GoString() string {
+	return s.String()
+}
+
+func newErrorFailedDependencyException(v protocol.ResponseMetadata) error {
+	return &FailedDependencyException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s FailedDependencyException) Code() string {
+	return "FailedDependencyException"
+}
+
+// Message returns the exception's message.
+func (s FailedDependencyException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s FailedDependencyException) OrigErr() error {
+	return nil
+}
+
+func (s FailedDependencyException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s FailedDependencyException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s FailedDependencyException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // Describes a folder.
@@ -8492,6 +9005,62 @@ func (s *GroupMetadata) SetName(v string) *GroupMetadata {
 	return s
 }
 
+// The user is undergoing transfer of ownership.
+type IllegalUserStateException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s IllegalUserStateException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IllegalUserStateException) GoString() string {
+	return s.String()
+}
+
+func newErrorIllegalUserStateException(v protocol.ResponseMetadata) error {
+	return &IllegalUserStateException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s IllegalUserStateException) Code() string {
+	return "IllegalUserStateException"
+}
+
+// Message returns the exception's message.
+func (s IllegalUserStateException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s IllegalUserStateException) OrigErr() error {
+	return nil
+}
+
+func (s IllegalUserStateException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s IllegalUserStateException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s IllegalUserStateException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type InitiateDocumentVersionUploadInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8641,6 +9210,286 @@ func (s *InitiateDocumentVersionUploadOutput) SetUploadMetadata(v *UploadMetadat
 	return s
 }
 
+// The pagination marker or limit fields are not valid.
+type InvalidArgumentException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidArgumentException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidArgumentException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidArgumentException(v protocol.ResponseMetadata) error {
+	return &InvalidArgumentException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidArgumentException) Code() string {
+	return "InvalidArgumentException"
+}
+
+// Message returns the exception's message.
+func (s InvalidArgumentException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidArgumentException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidArgumentException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidArgumentException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidArgumentException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The requested operation is not allowed on the specified comment object.
+type InvalidCommentOperationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidCommentOperationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidCommentOperationException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidCommentOperationException(v protocol.ResponseMetadata) error {
+	return &InvalidCommentOperationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidCommentOperationException) Code() string {
+	return "InvalidCommentOperationException"
+}
+
+// Message returns the exception's message.
+func (s InvalidCommentOperationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidCommentOperationException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidCommentOperationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidCommentOperationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidCommentOperationException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The operation is invalid.
+type InvalidOperationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidOperationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidOperationException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidOperationException(v protocol.ResponseMetadata) error {
+	return &InvalidOperationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidOperationException) Code() string {
+	return "InvalidOperationException"
+}
+
+// Message returns the exception's message.
+func (s InvalidOperationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidOperationException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidOperationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidOperationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidOperationException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The password is invalid.
+type InvalidPasswordException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidPasswordException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidPasswordException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidPasswordException(v protocol.ResponseMetadata) error {
+	return &InvalidPasswordException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidPasswordException) Code() string {
+	return "InvalidPasswordException"
+}
+
+// Message returns the exception's message.
+func (s InvalidPasswordException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidPasswordException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidPasswordException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidPasswordException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidPasswordException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The maximum of 100,000 folders under the parent folder has been exceeded.
+type LimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Set of options which defines notification preferences of given action.
 type NotificationOptions struct {
 	_ struct{} `type:"structure"`
@@ -8780,6 +9629,62 @@ func (s *Principal) SetRoles(v []*PermissionInfo) *Principal {
 func (s *Principal) SetType(v string) *Principal {
 	s.Type = &v
 	return s
+}
+
+// The specified document version is not in the INITIALIZED state.
+type ProhibitedStateException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ProhibitedStateException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProhibitedStateException) GoString() string {
+	return s.String()
+}
+
+func newErrorProhibitedStateException(v protocol.ResponseMetadata) error {
+	return &ProhibitedStateException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ProhibitedStateException) Code() string {
+	return "ProhibitedStateException"
+}
+
+// Message returns the exception's message.
+func (s ProhibitedStateException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ProhibitedStateException) OrigErr() error {
+	return nil
+}
+
+func (s ProhibitedStateException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ProhibitedStateException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ProhibitedStateException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type RemoveAllResourcePermissionsInput struct {
@@ -8944,6 +9849,119 @@ func (s RemoveResourcePermissionOutput) GoString() string {
 	return s.String()
 }
 
+// The response is too large to return. The request must include a filter to
+// reduce the size of the response.
+type RequestedEntityTooLargeException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s RequestedEntityTooLargeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RequestedEntityTooLargeException) GoString() string {
+	return s.String()
+}
+
+func newErrorRequestedEntityTooLargeException(v protocol.ResponseMetadata) error {
+	return &RequestedEntityTooLargeException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s RequestedEntityTooLargeException) Code() string {
+	return "RequestedEntityTooLargeException"
+}
+
+// Message returns the exception's message.
+func (s RequestedEntityTooLargeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s RequestedEntityTooLargeException) OrigErr() error {
+	return nil
+}
+
+func (s RequestedEntityTooLargeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s RequestedEntityTooLargeException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s RequestedEntityTooLargeException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The resource is already checked out.
+type ResourceAlreadyCheckedOutException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceAlreadyCheckedOutException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceAlreadyCheckedOutException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceAlreadyCheckedOutException(v protocol.ResponseMetadata) error {
+	return &ResourceAlreadyCheckedOutException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceAlreadyCheckedOutException) Code() string {
+	return "ResourceAlreadyCheckedOutException"
+}
+
+// Message returns the exception's message.
+func (s ResourceAlreadyCheckedOutException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceAlreadyCheckedOutException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceAlreadyCheckedOutException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceAlreadyCheckedOutException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceAlreadyCheckedOutException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Describes the metadata of a resource.
 type ResourceMetadata struct {
 	_ struct{} `type:"structure"`
@@ -9078,6 +10096,62 @@ func (s *ResourcePathComponent) SetId(v string) *ResourcePathComponent {
 func (s *ResourcePathComponent) SetName(v string) *ResourcePathComponent {
 	s.Name = &v
 	return s
+}
+
+// One or more of the dependencies is unavailable.
+type ServiceUnavailableException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ServiceUnavailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ServiceUnavailableException) GoString() string {
+	return s.String()
+}
+
+func newErrorServiceUnavailableException(v protocol.ResponseMetadata) error {
+	return &ServiceUnavailableException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ServiceUnavailableException) Code() string {
+	return "ServiceUnavailableException"
+}
+
+// Message returns the exception's message.
+func (s ServiceUnavailableException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ServiceUnavailableException) OrigErr() error {
+	return nil
+}
+
+func (s ServiceUnavailableException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ServiceUnavailableException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ServiceUnavailableException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // Describes the recipient type and ID, if available.
@@ -9219,6 +10293,118 @@ func (s *ShareResult) SetStatusMessage(v string) *ShareResult {
 	return s
 }
 
+// The storage limit has been exceeded.
+type StorageLimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s StorageLimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StorageLimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorStorageLimitExceededException(v protocol.ResponseMetadata) error {
+	return &StorageLimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s StorageLimitExceededException) Code() string {
+	return "StorageLimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s StorageLimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s StorageLimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s StorageLimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s StorageLimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s StorageLimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The storage limit will be exceeded.
+type StorageLimitWillExceedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s StorageLimitWillExceedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StorageLimitWillExceedException) GoString() string {
+	return s.String()
+}
+
+func newErrorStorageLimitWillExceedException(v protocol.ResponseMetadata) error {
+	return &StorageLimitWillExceedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s StorageLimitWillExceedException) Code() string {
+	return "StorageLimitWillExceedException"
+}
+
+// Message returns the exception's message.
+func (s StorageLimitWillExceedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s StorageLimitWillExceedException) OrigErr() error {
+	return nil
+}
+
+func (s StorageLimitWillExceedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s StorageLimitWillExceedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s StorageLimitWillExceedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Describes the storage for a user.
 type StorageRuleType struct {
 	_ struct{} `type:"structure"`
@@ -9292,6 +10478,226 @@ func (s *Subscription) SetProtocol(v string) *Subscription {
 func (s *Subscription) SetSubscriptionId(v string) *Subscription {
 	s.SubscriptionId = &v
 	return s
+}
+
+// The limit has been reached on the number of labels for the specified resource.
+type TooManyLabelsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s TooManyLabelsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TooManyLabelsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTooManyLabelsException(v protocol.ResponseMetadata) error {
+	return &TooManyLabelsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TooManyLabelsException) Code() string {
+	return "TooManyLabelsException"
+}
+
+// Message returns the exception's message.
+func (s TooManyLabelsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TooManyLabelsException) OrigErr() error {
+	return nil
+}
+
+func (s TooManyLabelsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TooManyLabelsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TooManyLabelsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// You've reached the limit on the number of subscriptions for the WorkDocs
+// instance.
+type TooManySubscriptionsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s TooManySubscriptionsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TooManySubscriptionsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTooManySubscriptionsException(v protocol.ResponseMetadata) error {
+	return &TooManySubscriptionsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TooManySubscriptionsException) Code() string {
+	return "TooManySubscriptionsException"
+}
+
+// Message returns the exception's message.
+func (s TooManySubscriptionsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TooManySubscriptionsException) OrigErr() error {
+	return nil
+}
+
+func (s TooManySubscriptionsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TooManySubscriptionsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TooManySubscriptionsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The operation is not permitted.
+type UnauthorizedOperationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s UnauthorizedOperationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnauthorizedOperationException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnauthorizedOperationException(v protocol.ResponseMetadata) error {
+	return &UnauthorizedOperationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnauthorizedOperationException) Code() string {
+	return "UnauthorizedOperationException"
+}
+
+// Message returns the exception's message.
+func (s UnauthorizedOperationException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnauthorizedOperationException) OrigErr() error {
+	return nil
+}
+
+func (s UnauthorizedOperationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnauthorizedOperationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnauthorizedOperationException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The caller does not have access to perform the action on the resource.
+type UnauthorizedResourceAccessException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnauthorizedResourceAccessException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnauthorizedResourceAccessException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnauthorizedResourceAccessException(v protocol.ResponseMetadata) error {
+	return &UnauthorizedResourceAccessException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnauthorizedResourceAccessException) Code() string {
+	return "UnauthorizedResourceAccessException"
+}
+
+// Message returns the exception's message.
+func (s UnauthorizedResourceAccessException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnauthorizedResourceAccessException) OrigErr() error {
+	return nil
+}
+
+func (s UnauthorizedResourceAccessException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnauthorizedResourceAccessException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnauthorizedResourceAccessException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type UpdateDocumentInput struct {

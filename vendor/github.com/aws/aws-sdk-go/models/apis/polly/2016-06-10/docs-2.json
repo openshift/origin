@@ -2,15 +2,15 @@
   "version": "2.0",
   "service": "<p>Amazon Polly is a web service that makes it easy to synthesize speech from text.</p> <p>The Amazon Polly service provides API operations for synthesizing high-quality speech from plain text and Speech Synthesis Markup Language (SSML), along with managing pronunciations lexicons that enable you to get the best results for your application domain.</p>",
   "operations": {
-    "DeleteLexicon": "<p>Deletes the specified pronunciation lexicon stored in an AWS Region. A lexicon which has been deleted is not available for speech synthesis, nor is it possible to retrieve it using either the <code>GetLexicon</code> or <code>ListLexicon</code> APIs.</p> <p>For more information, see <a href=\"http://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html\">Managing Lexicons</a>.</p>",
+    "DeleteLexicon": "<p>Deletes the specified pronunciation lexicon stored in an AWS Region. A lexicon which has been deleted is not available for speech synthesis, nor is it possible to retrieve it using either the <code>GetLexicon</code> or <code>ListLexicon</code> APIs.</p> <p>For more information, see <a href=\"https://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html\">Managing Lexicons</a>.</p>",
     "DescribeVoices": "<p>Returns the list of voices that are available for use when requesting speech synthesis. Each voice speaks a specified language, is either male or female, and is identified by an ID, which is the ASCII version of the voice name. </p> <p>When synthesizing speech ( <code>SynthesizeSpeech</code> ), you provide the voice ID for the voice you want from the list of voices returned by <code>DescribeVoices</code>.</p> <p>For example, you want your news reader application to read news in a specific language, but giving a user the option to choose the voice. Using the <code>DescribeVoices</code> operation you can provide the user with a list of available voices to select from.</p> <p> You can optionally specify a language code to filter the available voices. For example, if you specify <code>en-US</code>, the operation returns a list of all available US English voices. </p> <p>This operation requires permissions to perform the <code>polly:DescribeVoices</code> action.</p>",
-    "GetLexicon": "<p>Returns the content of the specified pronunciation lexicon stored in an AWS Region. For more information, see <a href=\"http://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html\">Managing Lexicons</a>.</p>",
+    "GetLexicon": "<p>Returns the content of the specified pronunciation lexicon stored in an AWS Region. For more information, see <a href=\"https://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html\">Managing Lexicons</a>.</p>",
     "GetSpeechSynthesisTask": "<p>Retrieves a specific SpeechSynthesisTask object based on its TaskID. This object contains information about the given speech synthesis task, including the status of the task, and a link to the S3 bucket containing the output of the task.</p>",
-    "ListLexicons": "<p>Returns a list of pronunciation lexicons stored in an AWS Region. For more information, see <a href=\"http://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html\">Managing Lexicons</a>.</p>",
+    "ListLexicons": "<p>Returns a list of pronunciation lexicons stored in an AWS Region. For more information, see <a href=\"https://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html\">Managing Lexicons</a>.</p>",
     "ListSpeechSynthesisTasks": "<p>Returns a list of SpeechSynthesisTask objects ordered by their creation date. This operation can filter the tasks by their status, for example, allowing users to list only tasks that are completed.</p>",
-    "PutLexicon": "<p>Stores a pronunciation lexicon in an AWS Region. If a lexicon with the same name already exists in the region, it is overwritten by the new lexicon. Lexicon operations have eventual consistency, therefore, it might take some time before the lexicon is available to the SynthesizeSpeech operation.</p> <p>For more information, see <a href=\"http://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html\">Managing Lexicons</a>.</p>",
+    "PutLexicon": "<p>Stores a pronunciation lexicon in an AWS Region. If a lexicon with the same name already exists in the region, it is overwritten by the new lexicon. Lexicon operations have eventual consistency, therefore, it might take some time before the lexicon is available to the SynthesizeSpeech operation.</p> <p>For more information, see <a href=\"https://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html\">Managing Lexicons</a>.</p>",
     "StartSpeechSynthesisTask": "<p>Allows the creation of an asynchronous synthesis task, by starting a new <code>SpeechSynthesisTask</code>. This operation requires all the standard information needed for speech synthesis, plus the name of an Amazon S3 bucket for the service to store the output of the synthesis task and two optional parameters (OutputS3KeyPrefix and SnsTopicArn). Once the synthesis task is created, this operation will return a SpeechSynthesisTask object, which will include an identifier of this task as well as the current status.</p>",
-    "SynthesizeSpeech": "<p>Synthesizes UTF-8 input, plain text or SSML, to a stream of bytes. SSML input must be valid, well-formed SSML. Some alphabets might not be available with all the voices (for example, Cyrillic might not be read at all by English voices) unless phoneme mapping is used. For more information, see <a href=\"http://docs.aws.amazon.com/polly/latest/dg/how-text-to-speech-works.html\">How it Works</a>.</p>"
+    "SynthesizeSpeech": "<p>Synthesizes UTF-8 input, plain text or SSML, to a stream of bytes. SSML input must be valid, well-formed SSML. Some alphabets might not be available with all the voices (for example, Cyrillic might not be read at all by English voices) unless phoneme mapping is used. For more information, see <a href=\"https://docs.aws.amazon.com/polly/latest/dg/how-text-to-speech-works.html\">How it Works</a>.</p>"
   },
   "shapes": {
     "Alphabet": {
@@ -57,9 +57,31 @@
       "refs": {
       }
     },
+    "Engine": {
+      "base": null,
+      "refs": {
+        "DescribeVoicesInput$Engine": "<p>Specifies the engine (<code>standard</code> or <code>neural</code>) used by Amazon Polly when processing input text for speech synthesis. </p>",
+        "EngineList$member": null,
+        "StartSpeechSynthesisTaskInput$Engine": "<p>Specifies the engine (<code>standard</code> or <code>neural</code>) for Amazon Polly to use when processing input text for speech synthesis. Using a voice that is not supported for the engine selected will result in an error.</p>",
+        "SynthesisTask$Engine": "<p>Specifies the engine (<code>standard</code> or <code>neural</code>) for Amazon Polly to use when processing input text for speech synthesis. Using a voice that is not supported for the engine selected will result in an error.</p>",
+        "SynthesizeSpeechInput$Engine": "<p>Specifies the engine (<code>standard</code> or <code>neural</code>) for Amazon Polly to use when processing input text for speech synthesis. Using a voice that is not supported for the engine selected will result in an error.</p>"
+      }
+    },
+    "EngineList": {
+      "base": null,
+      "refs": {
+        "Voice$SupportedEngines": "<p>Specifies which engines (<code>standard</code> or <code>neural</code>) that are supported by a given voice.</p>"
+      }
+    },
+    "EngineNotSupportedException": {
+      "base": "<p>This engine is not compatible with the voice that you have designated. Choose a new voice that is compatible with the engine or change the engine and restart the operation.</p>",
+      "refs": {
+      }
+    },
     "ErrorMessage": {
       "base": null,
       "refs": {
+        "EngineNotSupportedException$message": null,
         "InvalidLexiconException$message": null,
         "InvalidNextTokenException$message": null,
         "InvalidS3BucketException$message": null,
@@ -208,7 +230,7 @@
       }
     },
     "LexiconAttributes": {
-      "base": "<p>Contains metadata describing the lexicon such as the number of lexemes, language code, and so on. For more information, see <a href=\"http://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html\">Managing Lexicons</a>.</p>",
+      "base": "<p>Contains metadata describing the lexicon such as the number of lexemes, language code, and so on. For more information, see <a href=\"https://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html\">Managing Lexicons</a>.</p>",
       "refs": {
         "GetLexiconOutput$LexiconAttributes": "<p>Metadata of the lexicon, including phonetic alphabetic used, language code, lexicon ARN, number of lexemes defined in the lexicon, and size of lexicon in bytes.</p>",
         "LexiconDescription$Attributes": "<p>Provides lexicon metadata.</p>"
@@ -249,7 +271,7 @@
       "refs": {
         "StartSpeechSynthesisTaskInput$LexiconNames": "<p>List of one or more pronunciation lexicon names you want the service to apply during synthesis. Lexicons are applied only if the language of the lexicon is the same as the language of the voice. </p>",
         "SynthesisTask$LexiconNames": "<p>List of one or more pronunciation lexicon names you want the service to apply during synthesis. Lexicons are applied only if the language of the lexicon is the same as the language of the voice. </p>",
-        "SynthesizeSpeechInput$LexiconNames": "<p>List of one or more pronunciation lexicon names you want the service to apply during synthesis. Lexicons are applied only if the language of the lexicon is the same as the language of the voice. For information about storing lexicons, see <a href=\"http://docs.aws.amazon.com/polly/latest/dg/API_PutLexicon.html\">PutLexicon</a>.</p>"
+        "SynthesizeSpeechInput$LexiconNames": "<p>List of one or more pronunciation lexicon names you want the service to apply during synthesis. Lexicons are applied only if the language of the lexicon is the same as the language of the voice. For information about storing lexicons, see <a href=\"https://docs.aws.amazon.com/polly/latest/dg/API_PutLexicon.html\">PutLexicon</a>.</p>"
       }
     },
     "LexiconNotFoundException": {
@@ -360,9 +382,9 @@
     "SampleRate": {
       "base": null,
       "refs": {
-        "StartSpeechSynthesisTaskInput$SampleRate": "<p>The audio frequency specified in Hz.</p> <p>The valid values for mp3 and ogg_vorbis are \"8000\", \"16000\", and \"22050\". The default value is \"22050\".</p> <p>Valid values for pcm are \"8000\" and \"16000\" The default value is \"16000\". </p>",
-        "SynthesisTask$SampleRate": "<p>The audio frequency specified in Hz.</p> <p>The valid values for mp3 and ogg_vorbis are \"8000\", \"16000\", and \"22050\". The default value is \"22050\".</p> <p>Valid values for pcm are \"8000\" and \"16000\" The default value is \"16000\". </p>",
-        "SynthesizeSpeechInput$SampleRate": "<p> The audio frequency specified in Hz. </p> <p>The valid values for <code>mp3</code> and <code>ogg_vorbis</code> are \"8000\", \"16000\", and \"22050\". The default value is \"22050\". </p> <p> Valid values for <code>pcm</code> are \"8000\" and \"16000\" The default value is \"16000\". </p>"
+        "StartSpeechSynthesisTaskInput$SampleRate": "<p>The audio frequency specified in Hz.</p> <p>The valid values for mp3 and ogg_vorbis are \"8000\", \"16000\", \"22050\", and \"24000\". The default value for standard voices is \"22050\". The default value for neural voices is \"24000\".</p> <p>Valid values for pcm are \"8000\" and \"16000\" The default value is \"16000\". </p>",
+        "SynthesisTask$SampleRate": "<p>The audio frequency specified in Hz.</p> <p>The valid values for mp3 and ogg_vorbis are \"8000\", \"16000\", \"22050\", and \"24000\". The default value for standard voices is \"22050\". The default value for neural voices is \"24000\".</p> <p>Valid values for pcm are \"8000\" and \"16000\" The default value is \"16000\". </p>",
+        "SynthesizeSpeechInput$SampleRate": "<p>The audio frequency specified in Hz.</p> <p>The valid values for mp3 and ogg_vorbis are \"8000\", \"16000\", \"22050\", and \"24000\". The default value for standard voices is \"22050\". The default value for neural voices is \"24000\".</p> <p>Valid values for pcm are \"8000\" and \"16000\" The default value is \"16000\". </p>"
       }
     },
     "ServiceFailureException": {
@@ -478,7 +500,7 @@
       "refs": {
         "StartSpeechSynthesisTaskInput$TextType": "<p>Specifies whether the input text is plain text or SSML. The default value is plain text. </p>",
         "SynthesisTask$TextType": "<p>Specifies whether the input text is plain text or SSML. The default value is plain text. </p>",
-        "SynthesizeSpeechInput$TextType": "<p> Specifies whether the input text is plain text or SSML. The default value is plain text. For more information, see <a href=\"http://docs.aws.amazon.com/polly/latest/dg/ssml.html\">Using SSML</a>.</p>"
+        "SynthesizeSpeechInput$TextType": "<p> Specifies whether the input text is plain text or SSML. The default value is plain text. For more information, see <a href=\"https://docs.aws.amazon.com/polly/latest/dg/ssml.html\">Using SSML</a>.</p>"
       }
     },
     "UnsupportedPlsAlphabetException": {
@@ -487,7 +509,7 @@
       }
     },
     "UnsupportedPlsLanguageException": {
-      "base": "<p>The language specified in the lexicon is unsupported. For a list of supported languages, see <a href=\"http://docs.aws.amazon.com/polly/latest/dg/API_LexiconAttributes.html\">Lexicon Attributes</a>.</p>",
+      "base": "<p>The language specified in the lexicon is unsupported. For a list of supported languages, see <a href=\"https://docs.aws.amazon.com/polly/latest/dg/API_LexiconAttributes.html\">Lexicon Attributes</a>.</p>",
       "refs": {
       }
     },
@@ -502,7 +524,7 @@
       "refs": {
         "StartSpeechSynthesisTaskInput$VoiceId": "<p>Voice ID to use for the synthesis. </p>",
         "SynthesisTask$VoiceId": "<p>Voice ID to use for the synthesis. </p>",
-        "SynthesizeSpeechInput$VoiceId": "<p> Voice ID to use for the synthesis. You can get a list of available voice IDs by calling the <a href=\"http://docs.aws.amazon.com/polly/latest/dg/API_DescribeVoices.html\">DescribeVoices</a> operation. </p>",
+        "SynthesizeSpeechInput$VoiceId": "<p> Voice ID to use for the synthesis. You can get a list of available voice IDs by calling the <a href=\"https://docs.aws.amazon.com/polly/latest/dg/API_DescribeVoices.html\">DescribeVoices</a> operation. </p>",
         "Voice$Id": "<p>Amazon Polly assigned voice ID. This is the ID that you specify when calling the <code>SynthesizeSpeech</code> operation.</p>"
       }
     },

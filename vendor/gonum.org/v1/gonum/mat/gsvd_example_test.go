@@ -23,22 +23,24 @@ func ExampleGSVD() {
 	if !ok {
 		log.Fatal("GSVD factorization failed")
 	}
-
-	u := gsvd.UTo(nil)
-	v := gsvd.VTo(nil)
+	var u, v mat.Dense
+	gsvd.UTo(&u)
+	gsvd.VTo(&v)
 
 	s1 := gsvd.ValuesA(nil)
 	s2 := gsvd.ValuesB(nil)
 
 	fmt.Printf("Africa\n\ts1 = %.4f\n\n\tU = %.4f\n\n",
-		s1, mat.Formatted(u, mat.Prefix("\t    "), mat.Excerpt(2)))
+		s1, mat.Formatted(&u, mat.Prefix("\t    "), mat.Excerpt(2)))
 	fmt.Printf("Latin America/Caribbean\n\ts2 = %.4f\n\n\tV = %.4f\n",
-		s2, mat.Formatted(v, mat.Prefix("\t    "), mat.Excerpt(2)))
+		s2, mat.Formatted(&v, mat.Prefix("\t    "), mat.Excerpt(2)))
 
-	var q mat.Dense
-	q.Mul(gsvd.ZeroRTo(nil), gsvd.QTo(nil))
-	fmt.Printf("\nCommon basis vectors\n\n\tQ^T = %.4f\n",
-		mat.Formatted(q.T(), mat.Prefix("\t      ")))
+	var q, zR mat.Dense
+	gsvd.QTo(&q)
+	gsvd.ZeroRTo(&zR)
+	q.Mul(&zR, &q)
+	fmt.Printf("\nCommon basis vectors\n\n\tQᵀ = %.4f\n",
+		mat.Formatted(q.T(), mat.Prefix("\t     ")))
 
 	// Calculate the antisymmetric angular distances for each eigenvariable.
 	fmt.Println("\nSignificance:")
@@ -74,9 +76,9 @@ func ExampleGSVD() {
 	//
 	// Common basis vectors
 	//
-	// 	Q^T = ⎡ -8172.4084   -4524.2933    4813.9616⎤
-	// 	      ⎢ 22581.8020   12397.1070  -16364.8933⎥
-	// 	      ⎣ -8910.8462  -10902.1488   15762.8719⎦
+	// 	Qᵀ = ⎡ -8172.4084   -4524.2933    4813.9616⎤
+	// 	     ⎢ 22581.8020   12397.1070  -16364.8933⎥
+	// 	     ⎣ -8910.8462  -10902.1488   15762.8719⎦
 	//
 	// Significance:
 	// 	eigenvar_0: +0.7807

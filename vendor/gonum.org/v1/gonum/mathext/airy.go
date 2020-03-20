@@ -17,7 +17,7 @@ func AiryAi(z complex128) complex128 {
 	// documentation for the exact behavior.
 	id := 0
 	kode := 1
-	air, aii, _ := amos.Zairy(real(z), imag(z), id, kode)
+	air, aii, _, _ := amos.Zairy(real(z), imag(z), id, kode)
 	return complex(air, aii)
 }
 
@@ -32,6 +32,6 @@ func AiryAiDeriv(z complex128) complex128 {
 	// documentation for the exact behavior.
 	id := 1
 	kode := 1
-	air, aii, _ := amos.Zairy(real(z), imag(z), id, kode)
+	air, aii, _, _ := amos.Zairy(real(z), imag(z), id, kode)
 	return complex(air, aii)
 }

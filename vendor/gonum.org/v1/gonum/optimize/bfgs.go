@@ -64,7 +64,6 @@ func (b *BFGS) Init(dim, tasks int) int {
 func (b *BFGS) Run(operation chan<- Task, result <-chan Task, tasks []Task) {
 	b.status, b.err = localOptimizer{}.run(b, b.GradStopThreshold, operation, result, tasks)
 	close(operation)
-	return
 }
 
 func (b *BFGS) initLocal(loc *Location) (Operation, error) {
@@ -157,10 +156,10 @@ func (b *BFGS) NextDirection(loc *Location, dir []float64) (stepSize float64) {
 		// Update the inverse Hessian according to the formula
 		//
 		//  B_{k+1}^-1 = B_k^-1
-		//             + (s_k^T y_k + y_k^T B_k^-1 y_k) / (s_k^T y_k)^2 * (s_k s_k^T)
-		//             - (B_k^-1 y_k s_k^T + s_k y_k^T B_k^-1) / (s_k^T y_k).
+		//             + (s_kᵀ y_k + y_kᵀ B_k^-1 y_k) / (s_kᵀ y_k)^2 * (s_k s_kᵀ)
+		//             - (B_k^-1 y_k s_kᵀ + s_k y_kᵀ B_k^-1) / (s_kᵀ y_k).
 		//
-		// Note that y_k^T B_k^-1 y_k is a scalar, and that the third term is a
+		// Note that y_kᵀ B_k^-1 y_k is a scalar, and that the third term is a
 		// rank-two update where B_k^-1 y_k is one vector and s_k is the other.
 		yBy := mat.Inner(&b.y, b.invHess, &b.y)
 		b.tmp.MulVec(b.invHess, &b.y)

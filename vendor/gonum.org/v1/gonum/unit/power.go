@@ -16,29 +16,7 @@ import (
 // Power represents a power in Watts.
 type Power float64
 
-const (
-	Yottawatt Power = 1e24
-	Zettawatt Power = 1e21
-	Exawatt   Power = 1e18
-	Petawatt  Power = 1e15
-	Terawatt  Power = 1e12
-	Gigawatt  Power = 1e9
-	Megawatt  Power = 1e6
-	Kilowatt  Power = 1e3
-	Hectowatt Power = 1e2
-	Decawatt  Power = 1e1
-	Watt      Power = 1.0
-	Deciwatt  Power = 1e-1
-	Centiwatt Power = 1e-2
-	Milliwatt Power = 1e-3
-	Microwatt Power = 1e-6
-	Nanowatt  Power = 1e-9
-	Picowatt  Power = 1e-12
-	Femtowatt Power = 1e-15
-	Attowatt  Power = 1e-18
-	Zeptowatt Power = 1e-21
-	Yoctowatt Power = 1e-24
-)
+const Watt Power = 1
 
 // Unit converts the Power to a *Unit
 func (pw Power) Unit() *Unit {

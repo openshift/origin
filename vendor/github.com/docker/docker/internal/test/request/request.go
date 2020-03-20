@@ -20,8 +20,8 @@ import (
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/go-connections/sockets"
 	"github.com/docker/go-connections/tlsconfig"
-	"github.com/gotestyourself/gotestyourself/assert"
 	"github.com/pkg/errors"
+	"gotest.tools/assert"
 )
 
 // NewAPIClient returns a docker API client configured from environment variables
@@ -75,6 +75,11 @@ func Delete(endpoint string, modifiers ...func(*Options)) (*http.Response, io.Re
 // Get creates and execute a GET request on the specified host and endpoint, with the specified request modifiers
 func Get(endpoint string, modifiers ...func(*Options)) (*http.Response, io.ReadCloser, error) {
 	return Do(endpoint, modifiers...)
+}
+
+// Head creates and execute a HEAD request on the specified host and endpoint, with the specified request modifiers
+func Head(endpoint string, modifiers ...func(*Options)) (*http.Response, io.ReadCloser, error) {
+	return Do(endpoint, append(modifiers, Method(http.MethodHead))...)
 }
 
 // Do creates and execute a request on the specified endpoint, with the specified request modifiers

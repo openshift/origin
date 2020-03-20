@@ -6,9 +6,11 @@ package packet
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/rsa"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"math/big"
 	"testing"
 )
@@ -77,6 +79,73 @@ func TestDecryptingEncryptedKey(t *testing.T) {
 		if keyHex != expectedKeyHex {
 			t.Errorf("#%d: bad key, got %s want %s", i, keyHex, expectedKeyHex)
 		}
+	}
+}
+
+type rsaDecrypter struct {
+	rsaPrivateKey *rsa.PrivateKey
+	decryptCount  int
+}
+
+func (r *rsaDecrypter) Public() crypto.PublicKey {
+	return &r.rsaPrivateKey.PublicKey
+}
+
+func (r *rsaDecrypter) Decrypt(rand io.Reader, msg []byte, opts crypto.DecrypterOpts) (plaintext []byte, err error) {
+	r.decryptCount++
+	return r.rsaPrivateKey.Decrypt(rand, msg, opts)
+}
+
+func TestRSADecrypter(t *testing.T) {
+	const encryptedKeyHex = "c18c032a67d68660df41c70104005789d0de26b6a50c985a02a13131ca829c413a35d0e6fa8d6842599252162808ac7439c72151c8c6183e76923fe3299301414d0c25a2f06a2257db3839e7df0ec964773f6e4c4ac7ff3b48c444237166dd46ba8ff443a5410dc670cb486672fdbe7c9dfafb75b4fea83af3a204fe2a7dfa86bd20122b4f3d2646cbeecb8f7be8"
+
+	const expectedKeyHex = "d930363f7e0308c333b9618617ea728963d8df993665ae7be1092d4926fd864b"
+
+	p, err := Read(readerFromHex(encryptedKeyHex))
+	if err != nil {
+		t.Errorf("error from Read: %s", err)
+		return
+	}
+	ek, ok := p.(*EncryptedKey)
+	if !ok {
+		t.Errorf("didn't parse an EncryptedKey, got %#v", p)
+		return
+	}
+
+	if ek.KeyId != 0x2a67d68660df41c7 || ek.Algo != PubKeyAlgoRSA {
+		t.Errorf("unexpected EncryptedKey contents: %#v", ek)
+		return
+	}
+
+	customDecrypter := &rsaDecrypter{
+		rsaPrivateKey: encryptedKeyRSAPriv,
+	}
+
+	customKeyPriv := &PrivateKey{
+		PublicKey: PublicKey{
+			PubKeyAlgo: PubKeyAlgoRSA,
+		},
+		PrivateKey: customDecrypter,
+	}
+
+	err = ek.Decrypt(customKeyPriv, nil)
+	if err != nil {
+		t.Errorf("error from Decrypt: %s", err)
+		return
+	}
+
+	if ek.CipherFunc != CipherAES256 {
+		t.Errorf("unexpected EncryptedKey contents: %#v", ek)
+		return
+	}
+
+	keyHex := fmt.Sprintf("%x", ek.Key)
+	if keyHex != expectedKeyHex {
+		t.Errorf("bad key, got %s want %s", keyHex, expectedKeyHex)
+	}
+
+	if customDecrypter.decryptCount != 1 {
+		t.Errorf("Expected customDecrypter.Decrypt() to be called 1 time, but was called %d times", customDecrypter.decryptCount)
 	}
 }
 

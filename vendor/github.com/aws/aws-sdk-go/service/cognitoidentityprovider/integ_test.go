@@ -29,7 +29,9 @@ func TestInteg_00_ListUserPools(t *testing.T) {
 	params := &cognitoidentityprovider.ListUserPoolsInput{
 		MaxResults: aws.Int64(10),
 	}
-	_, err := svc.ListUserPoolsWithContext(ctx, params)
+	_, err := svc.ListUserPoolsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -43,7 +45,9 @@ func TestInteg_01_DescribeUserPool(t *testing.T) {
 	params := &cognitoidentityprovider.DescribeUserPoolInput{
 		UserPoolId: aws.String("us-east-1:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
 	}
-	_, err := svc.DescribeUserPoolWithContext(ctx, params)
+	_, err := svc.DescribeUserPoolWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

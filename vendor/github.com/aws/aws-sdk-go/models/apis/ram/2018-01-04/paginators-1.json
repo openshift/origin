@@ -20,6 +20,11 @@
       "output_token": "nextToken",
       "limit_key": "maxResults"
     },
+    "ListPendingInvitationResources": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults"
+    },
     "ListPrincipals": {
       "input_token": "nextToken",
       "output_token": "nextToken",

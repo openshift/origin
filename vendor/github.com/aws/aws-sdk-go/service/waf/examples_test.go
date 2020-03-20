@@ -90,6 +90,12 @@ func ExampleWAF_CreateRule_shared00() {
 				fmt.Println(waf.ErrCodeInvalidParameterException, aerr.Error())
 			case waf.ErrCodeLimitsExceededException:
 				fmt.Println(waf.ErrCodeLimitsExceededException, aerr.Error())
+			case waf.ErrCodeTagOperationException:
+				fmt.Println(waf.ErrCodeTagOperationException, aerr.Error())
+			case waf.ErrCodeTagOperationInternalErrorException:
+				fmt.Println(waf.ErrCodeTagOperationInternalErrorException, aerr.Error())
+			case waf.ErrCodeBadRequestException:
+				fmt.Println(waf.ErrCodeBadRequestException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -214,6 +220,12 @@ func ExampleWAF_CreateWebACL_shared00() {
 				fmt.Println(waf.ErrCodeInvalidParameterException, aerr.Error())
 			case waf.ErrCodeLimitsExceededException:
 				fmt.Println(waf.ErrCodeLimitsExceededException, aerr.Error())
+			case waf.ErrCodeTagOperationException:
+				fmt.Println(waf.ErrCodeTagOperationException, aerr.Error())
+			case waf.ErrCodeTagOperationInternalErrorException:
+				fmt.Println(waf.ErrCodeTagOperationInternalErrorException, aerr.Error())
+			case waf.ErrCodeBadRequestException:
+				fmt.Println(waf.ErrCodeBadRequestException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -310,7 +322,7 @@ func ExampleWAF_DeleteByteMatchSet_shared00() {
 
 // To delete an IP set
 //
-// The following example deletes an IP match set  with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
+// The following example deletes an IP match set with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
 func ExampleWAF_DeleteIPSet_shared00() {
 	svc := waf.New(session.New())
 	input := &waf.DeleteIPSetInput{
@@ -374,6 +386,10 @@ func ExampleWAF_DeleteRule_shared00() {
 				fmt.Println(waf.ErrCodeReferencedItemException, aerr.Error())
 			case waf.ErrCodeNonEmptyEntityException:
 				fmt.Println(waf.ErrCodeNonEmptyEntityException, aerr.Error())
+			case waf.ErrCodeTagOperationException:
+				fmt.Println(waf.ErrCodeTagOperationException, aerr.Error())
+			case waf.ErrCodeTagOperationInternalErrorException:
+				fmt.Println(waf.ErrCodeTagOperationInternalErrorException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -390,7 +406,7 @@ func ExampleWAF_DeleteRule_shared00() {
 
 // To delete a size constraint set
 //
-// The following example deletes a size constraint set  with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
+// The following example deletes a size constraint set with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
 func ExampleWAF_DeleteSizeConstraintSet_shared00() {
 	svc := waf.New(session.New())
 	input := &waf.DeleteSizeConstraintSetInput{
@@ -430,7 +446,7 @@ func ExampleWAF_DeleteSizeConstraintSet_shared00() {
 
 // To delete a SQL injection match set
 //
-// The following example deletes a SQL injection match set  with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
+// The following example deletes a SQL injection match set with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
 func ExampleWAF_DeleteSqlInjectionMatchSet_shared00() {
 	svc := waf.New(session.New())
 	input := &waf.DeleteSqlInjectionMatchSetInput{
@@ -494,6 +510,10 @@ func ExampleWAF_DeleteWebACL_shared00() {
 				fmt.Println(waf.ErrCodeReferencedItemException, aerr.Error())
 			case waf.ErrCodeNonEmptyEntityException:
 				fmt.Println(waf.ErrCodeNonEmptyEntityException, aerr.Error())
+			case waf.ErrCodeTagOperationException:
+				fmt.Println(waf.ErrCodeTagOperationException, aerr.Error())
+			case waf.ErrCodeTagOperationInternalErrorException:
+				fmt.Println(waf.ErrCodeTagOperationInternalErrorException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -717,8 +737,8 @@ func ExampleWAF_GetSampledRequests_shared00() {
 		MaxItems: aws.Int64(100),
 		RuleId:   aws.String("WAFRule-1-Example"),
 		TimeWindow: &waf.TimeWindow{
-			EndTime:   parseTime("2006-01-02T15:04:05Z", "2016-09-27T15:50Z"),
-			StartTime: parseTime("2006-01-02T15:04:05Z", "2016-09-27T15:50Z"),
+			EndTime:   parseTime("2006-01-02T15:04:05.999999999Z", "2016-09-27T15:50Z"),
+			StartTime: parseTime("2006-01-02T15:04:05.999999999Z", "2016-09-27T15:50Z"),
 		},
 		WebAclId: aws.String("createwebacl-1472061481310"),
 	}

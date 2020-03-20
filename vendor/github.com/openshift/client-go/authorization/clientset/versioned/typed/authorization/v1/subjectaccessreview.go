@@ -3,7 +3,11 @@
 package v1
 
 import (
+	"context"
+
 	v1 "github.com/openshift/api/authorization/v1"
+	scheme "github.com/openshift/client-go/authorization/clientset/versioned/scheme"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -15,7 +19,7 @@ type SubjectAccessReviewsGetter interface {
 
 // SubjectAccessReviewInterface has methods to work with SubjectAccessReview resources.
 type SubjectAccessReviewInterface interface {
-	Create(*v1.SubjectAccessReview) (*v1.SubjectAccessReviewResponse, error)
+	Create(ctx context.Context, subjectAccessReview *v1.SubjectAccessReview, opts metav1.CreateOptions) (*v1.SubjectAccessReviewResponse, error)
 
 	SubjectAccessReviewExpansion
 }
@@ -33,12 +37,13 @@ func newSubjectAccessReviews(c *AuthorizationV1Client) *subjectAccessReviews {
 }
 
 // Create takes the representation of a subjectAccessReview and creates it.  Returns the server's representation of the subjectAccessReviewResponse, and an error, if there is any.
-func (c *subjectAccessReviews) Create(subjectAccessReview *v1.SubjectAccessReview) (result *v1.SubjectAccessReviewResponse, err error) {
+func (c *subjectAccessReviews) Create(ctx context.Context, subjectAccessReview *v1.SubjectAccessReview, opts metav1.CreateOptions) (result *v1.SubjectAccessReviewResponse, err error) {
 	result = &v1.SubjectAccessReviewResponse{}
 	err = c.client.Post().
 		Resource("subjectaccessreviews").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(subjectAccessReview).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

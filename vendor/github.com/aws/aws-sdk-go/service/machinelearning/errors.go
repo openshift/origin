@@ -2,6 +2,10 @@
 
 package machinelearning
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeIdempotentParameterMismatchException for service response error code
@@ -52,3 +56,14 @@ const (
 	// "TagLimitExceededException".
 	ErrCodeTagLimitExceededException = "TagLimitExceededException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"IdempotentParameterMismatchException": newErrorIdempotentParameterMismatchException,
+	"InternalServerException":              newErrorInternalServerException,
+	"InvalidInputException":                newErrorInvalidInputException,
+	"InvalidTagException":                  newErrorInvalidTagException,
+	"LimitExceededException":               newErrorLimitExceededException,
+	"PredictorNotMountedException":         newErrorPredictorNotMountedException,
+	"ResourceNotFoundException":            newErrorResourceNotFoundException,
+	"TagLimitExceededException":            newErrorTagLimitExceededException,
+}

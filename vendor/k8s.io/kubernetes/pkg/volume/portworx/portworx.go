@@ -328,7 +328,7 @@ func (b *portworxVolumeMounter) SetUpAt(dir string, mounterArgs volume.MounterAr
 		return err
 	}
 	if !b.readOnly {
-		volume.SetVolumeOwnership(b, mounterArgs.FsGroup)
+		volume.SetVolumeOwnership(b, mounterArgs.FsGroup, mounterArgs.FSGroupChangePolicy)
 	}
 	klog.Infof("Portworx Volume %s setup at %s", b.volumeID, dir)
 	return nil
@@ -383,8 +383,7 @@ func (d *portworxVolumeDeleter) Delete() error {
 
 type portworxVolumeProvisioner struct {
 	*portworxVolume
-	options   volume.VolumeOptions
-	namespace string
+	options volume.VolumeOptions
 }
 
 var _ volume.Provisioner = &portworxVolumeProvisioner{}

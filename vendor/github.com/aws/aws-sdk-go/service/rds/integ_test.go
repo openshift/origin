@@ -27,7 +27,9 @@ func TestInteg_00_DescribeDBEngineVersions(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := rds.New(sess)
 	params := &rds.DescribeDBEngineVersionsInput{}
-	_, err := svc.DescribeDBEngineVersionsWithContext(ctx, params)
+	_, err := svc.DescribeDBEngineVersionsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeDBInstances(t *testing.T) {
 	params := &rds.DescribeDBInstancesInput{
 		DBInstanceIdentifier: aws.String("fake-id"),
 	}
-	_, err := svc.DescribeDBInstancesWithContext(ctx, params)
+	_, err := svc.DescribeDBInstancesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

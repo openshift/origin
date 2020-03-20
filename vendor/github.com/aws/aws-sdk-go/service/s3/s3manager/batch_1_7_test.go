@@ -87,6 +87,7 @@ func TestBatchDeleteContext(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 		count++
 	}))
+	defer server.Close()
 
 	svc := &mockS3Client{S3: buildS3SvcClient(server.URL)}
 	for i, c := range cases {

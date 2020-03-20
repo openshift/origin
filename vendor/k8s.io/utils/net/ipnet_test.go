@@ -100,7 +100,7 @@ func TestIPNetSetDeleteMultiples(t *testing.T) {
 	}
 }
 
-func TestNewIPSet(t *testing.T) {
+func TestNewIPNetSet(t *testing.T) {
 	s, err := ParseIPNets("1.0.0.0/8", "2.0.0.0/8", "3.0.0.0/8")
 	if err != nil {
 		t.Errorf("error parsing IPNets: %v", err)
@@ -151,5 +151,164 @@ func TestIPNetSetList(t *testing.T) {
 	sort.Strings(l)
 	if !reflect.DeepEqual(l, []string{"1.0.0.0/8", "2.0.0.0/8", "3.0.0.0/8"}) {
 		t.Errorf("List gave unexpected result: %#v", l)
+	}
+}
+
+func TestIPSet(t *testing.T) {
+	s := IPSet{}
+	s2 := IPSet{}
+
+	a := net.ParseIP("1.0.0.0")
+	b := net.ParseIP("2.0.0.0")
+	c := net.ParseIP("3.0.0.0")
+	d := net.ParseIP("4.0.0.0")
+
+	s.Insert(a, b)
+	if len(s) != 2 {
+		t.Errorf("Expected len=2: %d", len(s))
+	}
+	if !s.Has(a) {
+		t.Errorf("Missing contents: %#v", s)
+	}
+
+	s.Insert(c)
+	if s.Has(d) {
+		t.Errorf("Unexpected contents: %#v", s)
+	}
+
+	s.Delete(a)
+	if s.Has(a) {
+		t.Errorf("Unexpected contents: %#v", s)
+	}
+	s.Insert(a)
+	if s.HasAll(a, b, d) {
+		t.Errorf("Unexpected contents: %#v", s)
+	}
+	if !s.HasAll(a, b) {
+		t.Errorf("Missing contents: %#v", s)
+	}
+	s2.Insert(a, b, d)
+	if s.IsSuperset(s2) {
+		t.Errorf("Unexpected contents: %#v", s)
+	}
+	s2.Delete(d)
+	if !s.IsSuperset(s2) {
+		t.Errorf("Missing contents: %#v", s)
+	}
+}
+
+func TestIPSetDeleteMultiples(t *testing.T) {
+	s := IPSet{}
+	a := net.ParseIP("1.0.0.0")
+	b := net.ParseIP("2.0.0.0")
+	c := net.ParseIP("3.0.0.0")
+
+	s.Insert(a, b, c)
+	if len(s) != 3 {
+		t.Errorf("Expected len=3: %d", len(s))
+	}
+
+	s.Delete(a, c)
+	if len(s) != 1 {
+		t.Errorf("Expected len=1: %d", len(s))
+	}
+	if s.Has(a) {
+		t.Errorf("Unexpected contents: %#v", s)
+	}
+	if s.Has(c) {
+		t.Errorf("Unexpected contents: %#v", s)
+	}
+	if !s.Has(b) {
+		t.Errorf("Missing contents: %#v", s)
+	}
+}
+
+func TestParseIPSet(t *testing.T) {
+	s, err := ParseIPSet("1.0.0.0", "2.0.0.0", "3.0.0.0", "::ffff:4.0.0.0")
+	if err != nil {
+		t.Errorf("error parsing IPSet: %v", err)
+	}
+	if len(s) != 4 {
+		t.Errorf("Expected len=3: %d", len(s))
+	}
+	a := net.ParseIP("1.0.0.0")
+	b := net.ParseIP("2.0.0.0")
+	c := net.ParseIP("3.0.0.0")
+	d := net.ParseIP("::ffff:4.0.0.0")
+	e := net.ParseIP("4.0.0.0")
+
+	if !s.Has(a) || !s.Has(b) || !s.Has(c) || !s.Has(d) || !s.Has(e) {
+		t.Errorf("Unexpected contents: %#v", s)
+	}
+}
+
+func TestIPSetDifference(t *testing.T) {
+	l, err := ParseIPSet("1.0.0.0", "2.0.0.0", "3.0.0.0")
+	if err != nil {
+		t.Errorf("error parsing IPSet: %v", err)
+	}
+	r, err := ParseIPSet("1.0.0.0", "2.0.0.0", "4.0.0.0", "5.0.0.0")
+	if err != nil {
+		t.Errorf("error parsing IPSet: %v", err)
+	}
+	c := l.Difference(r)
+	d := r.Difference(l)
+	if len(c) != 1 {
+		t.Errorf("Expected len=1: %d", len(c))
+	}
+	if !c.Has(net.ParseIP("3.0.0.0")) {
+		t.Errorf("Unexpected contents: %#v", c)
+	}
+	if len(d) != 2 {
+		t.Errorf("Expected len=2: %d", len(d))
+	}
+	if !d.Has(net.ParseIP("4.0.0.0")) || !d.Has(net.ParseIP("5.0.0.0")) {
+		t.Errorf("Unexpected contents: %#v", d)
+	}
+}
+
+func TestIPSetList(t *testing.T) {
+	// NOTE: IPv4-in-IPv6 addresses are represented as IPv4 in its string value
+	s, err := ParseIPSet("3.0.0.0", "1.0.0.0", "2.0.0.0", "::ffff:1.2.3.4")
+	if err != nil {
+		t.Errorf("error parsing IPSet: %v", err)
+	}
+
+	l := s.StringSlice()
+	sort.Strings(l)
+	if !reflect.DeepEqual(l, []string{"1.0.0.0", "1.2.3.4", "2.0.0.0", "3.0.0.0"}) {
+		t.Errorf("List gave unexpected result: %#v", l)
+	}
+}
+
+func TestIPSetEqual(t *testing.T) {
+	// IPv4-in-IPv6 addresses are equal to their IPv4 equivalents
+	set1, err := ParseIPSet("1.0.0.0", "2.0.0.0", "3.0.0.0", "::ffff:4.0.0.0")
+	if err != nil {
+		t.Errorf("error parsing IPSet: %v", err)
+	}
+
+	set2, err := ParseIPSet("1.0.0.0", "2.0.0.0", "3.0.0.0", "4.0.0.0")
+	if err != nil {
+		t.Errorf("error parsing IPSet: %v", err)
+	}
+
+	if !set1.Equal(set2) {
+		t.Errorf("sets %v and %v are not equal", set1, set2)
+	}
+
+	// order shouldn't matter
+	set1, err = ParseIPSet("1.0.0.0", "2.0.0.0", "3.0.0.0")
+	if err != nil {
+		t.Errorf("error parsing IPSet: %v", err)
+	}
+
+	set2, err = ParseIPSet("3.0.0.0", "1.0.0.0", "2.0.0.0")
+	if err != nil {
+		t.Errorf("error parsing IPSet: %v", err)
+	}
+
+	if !set1.Equal(set2) {
+		t.Errorf("sets %v and %v are not equal", set1, set2)
 	}
 }

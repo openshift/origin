@@ -72,6 +72,12 @@
       "output_token": "Marker",
       "result_key": "HsmConfigurations"
     },
+    "DescribeNodeConfigurationOptions": {
+      "input_token": "Marker",
+      "limit_key": "MaxRecords",
+      "output_token": "Marker",
+      "result_key": "NodeConfigurationOptionList"
+    },
     "DescribeOrderableClusterOptions": {
       "input_token": "Marker",
       "limit_key": "MaxRecords",
@@ -89,6 +95,12 @@
       "limit_key": "MaxRecords",
       "output_token": "Marker",
       "result_key": "ReservedNodes"
+    },
+    "DescribeScheduledActions": {
+      "input_token": "Marker",
+      "limit_key": "MaxRecords",
+      "output_token": "Marker",
+      "result_key": "ScheduledActions"
     }
   }
 }

@@ -1330,7 +1330,7 @@ func (nb NameBuilder) BeginsWith(prefix string) ConditionBuilder {
 //
 //     // condition represents the boolean condition of whether the item
 //     // attribute "InviteList" has the value "Ben"
-//     condition := expression.Contains(expression.Name("InviteList"), expression.Value("Ben"))
+//     condition := expression.Contains(expression.Name("InviteList"), "Ben")
 //
 //     // Used in another Condition Expression
 //     anotherCondition := expression.Not(condition)
@@ -1339,7 +1339,7 @@ func (nb NameBuilder) BeginsWith(prefix string) ConditionBuilder {
 //
 // Expression Equivalent:
 //
-//     expression.Contains(expression.Name("InviteList"), expression.Value("Ben"))
+//     expression.Contains(expression.Name("InviteList"), "Ben")
 //     // Let :ben be an ExpressionAttributeValue representing the value "Ben"
 //     "contains (InviteList, :ben)"
 func Contains(nameBuilder NameBuilder, substr string) ConditionBuilder {
@@ -1361,7 +1361,7 @@ func Contains(nameBuilder NameBuilder, substr string) ConditionBuilder {
 //
 //     // condition represents the boolean condition of whether the item
 //     // attribute "InviteList" has the value "Ben"
-//     condition := expression.Name("InviteList").Contains(expression.Value("Ben"))
+//     condition := expression.Name("InviteList").Contains("Ben")
 //
 //     // Used in another Condition Expression
 //     anotherCondition := expression.Not(condition)
@@ -1370,7 +1370,7 @@ func Contains(nameBuilder NameBuilder, substr string) ConditionBuilder {
 //
 // Expression Equivalent:
 //
-//     expression.Name("InviteList").Contains(expression.Value("Ben"))
+//     expression.Name("InviteList").Contains("Ben")
 //     // Let :ben be an ExpressionAttributeValue representing the value "Ben"
 //     "contains (InviteList, :ben)"
 func (nb NameBuilder) Contains(substr string) ConditionBuilder {

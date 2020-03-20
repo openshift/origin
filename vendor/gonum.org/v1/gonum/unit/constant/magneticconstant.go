@@ -13,8 +13,8 @@ import (
 )
 
 // MagneticConstant is the magnetic constant (μ₀), the magnetic permeability in a classical vacuum.
-// The dimensions of MagneticConstant are A^2 s^4 kg^-1 m^-3. The constant is exact.
-const MagneticConstant = magneticConstantUnits(1.2566370614692394e-06)
+// The dimensions of MagneticConstant are A^2 s^4 kg^-1 m^-3. The standard uncertainty of the constant is 1.9e-16 A^2 s^4 kg^-1 m^-3.
+const MagneticConstant = magneticConstantUnits(1.2566370621238374e-06)
 
 type magneticConstantUnits float64
 

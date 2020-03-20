@@ -6,11 +6,42 @@
     "jsonVersion":"1.1",
     "protocol":"json",
     "serviceFullName":"AWS Resource Groups Tagging API",
+    "serviceId":"Resource Groups Tagging API",
     "signatureVersion":"v4",
     "targetPrefix":"ResourceGroupsTaggingAPI_20170126",
     "uid":"resourcegroupstaggingapi-2017-01-26"
   },
   "operations":{
+    "DescribeReportCreation":{
+      "name":"DescribeReportCreation",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeReportCreationInput"},
+      "output":{"shape":"DescribeReportCreationOutput"},
+      "errors":[
+        {"shape":"ConstraintViolationException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"ThrottledException"}
+      ]
+    },
+    "GetComplianceSummary":{
+      "name":"GetComplianceSummary",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetComplianceSummaryInput"},
+      "output":{"shape":"GetComplianceSummaryOutput"},
+      "errors":[
+        {"shape":"ConstraintViolationException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"ThrottledException"}
+      ]
+    },
     "GetResources":{
       "name":"GetResources",
       "http":{
@@ -56,6 +87,22 @@
         {"shape":"PaginationTokenExpiredException"}
       ]
     },
+    "StartReportCreation":{
+      "name":"StartReportCreation",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartReportCreationInput"},
+      "output":{"shape":"StartReportCreationOutput"},
+      "errors":[
+        {"shape":"ConcurrentModificationException"},
+        {"shape":"ConstraintViolationException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"ThrottledException"}
+      ]
+    },
     "TagResources":{
       "name":"TagResources",
       "http":{
@@ -89,7 +136,44 @@
     "AmazonResourceType":{
       "type":"string",
       "max":256,
-      "min":0
+      "min":0,
+      "pattern":"[\\s\\S]*"
+    },
+    "ComplianceDetails":{
+      "type":"structure",
+      "members":{
+        "NoncompliantKeys":{"shape":"TagKeyList"},
+        "KeysWithNoncompliantValues":{"shape":"TagKeyList"},
+        "ComplianceStatus":{"shape":"ComplianceStatus"}
+      }
+    },
+    "ComplianceStatus":{"type":"boolean"},
+    "ConcurrentModificationException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ExceptionMessage"}
+      },
+      "exception":true
+    },
+    "ConstraintViolationException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ExceptionMessage"}
+      },
+      "exception":true
+    },
+    "DescribeReportCreationInput":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DescribeReportCreationOutput":{
+      "type":"structure",
+      "members":{
+        "Status":{"shape":"Status"},
+        "S3Location":{"shape":"S3Location"},
+        "ErrorMessage":{"shape":"ErrorMessage"}
+      }
     },
     "ErrorCode":{
       "type":"string",
@@ -104,6 +188,7 @@
       "max":2048,
       "min":0
     },
+    "ExcludeCompliantResources":{"type":"boolean"},
     "FailedResourcesMap":{
       "type":"map",
       "key":{"shape":"ResourceARN"},
@@ -117,6 +202,25 @@
         "ErrorMessage":{"shape":"ErrorMessage"}
       }
     },
+    "GetComplianceSummaryInput":{
+      "type":"structure",
+      "members":{
+        "TargetIdFilters":{"shape":"TargetIdFilterList"},
+        "RegionFilters":{"shape":"RegionFilterList"},
+        "ResourceTypeFilters":{"shape":"ResourceTypeFilterList"},
+        "TagKeyFilters":{"shape":"TagKeyFilterList"},
+        "GroupBy":{"shape":"GroupBy"},
+        "MaxResults":{"shape":"MaxResultsGetComplianceSummary"},
+        "PaginationToken":{"shape":"PaginationToken"}
+      }
+    },
+    "GetComplianceSummaryOutput":{
+      "type":"structure",
+      "members":{
+        "SummaryList":{"shape":"SummaryList"},
+        "PaginationToken":{"shape":"PaginationToken"}
+      }
+    },
     "GetResourcesInput":{
       "type":"structure",
       "members":{
@@ -124,7 +228,9 @@
         "TagFilters":{"shape":"TagFilterList"},
         "ResourcesPerPage":{"shape":"ResourcesPerPage"},
         "TagsPerPage":{"shape":"TagsPerPage"},
-        "ResourceTypeFilters":{"shape":"ResourceTypeFilterList"}
+        "ResourceTypeFilters":{"shape":"ResourceTypeFilterList"},
+        "IncludeComplianceDetails":{"shape":"IncludeComplianceDetails"},
+        "ExcludeCompliantResources":{"shape":"ExcludeCompliantResources"}
       }
     },
     "GetResourcesOutput":{
@@ -162,6 +268,19 @@
         "TagValues":{"shape":"TagValuesOutputList"}
       }
     },
+    "GroupBy":{
+      "type":"list",
+      "member":{"shape":"GroupByAttribute"}
+    },
+    "GroupByAttribute":{
+      "type":"string",
+      "enum":[
+        "TARGET_ID",
+        "REGION",
+        "RESOURCE_TYPE"
+      ]
+    },
+    "IncludeComplianceDetails":{"type":"boolean"},
     "InternalServiceException":{
       "type":"structure",
       "members":{
@@ -177,10 +296,18 @@
       },
       "exception":true
     },
+    "LastUpdated":{"type":"string"},
+    "MaxResultsGetComplianceSummary":{
+      "type":"integer",
+      "max":1000,
+      "min":1
+    },
+    "NonCompliantResources":{"type":"long"},
     "PaginationToken":{
       "type":"string",
       "max":2048,
-      "min":0
+      "min":0,
+      "pattern":"[\\s\\S]*"
     },
     "PaginationTokenExpiredException":{
       "type":"structure",
@@ -189,10 +316,23 @@
       },
       "exception":true
     },
+    "Region":{
+      "type":"string",
+      "max":256,
+      "min":1,
+      "pattern":"[\\s\\S]*"
+    },
+    "RegionFilterList":{
+      "type":"list",
+      "member":{"shape":"Region"},
+      "max":100,
+      "min":1
+    },
     "ResourceARN":{
       "type":"string",
-      "max":1600,
-      "min":1
+      "max":1011,
+      "min":1,
+      "pattern":"[\\s\\S]*"
     },
     "ResourceARNList":{
       "type":"list",
@@ -204,7 +344,8 @@
       "type":"structure",
       "members":{
         "ResourceARN":{"shape":"ResourceARN"},
-        "Tags":{"shape":"TagList"}
+        "Tags":{"shape":"TagList"},
+        "ComplianceDetails":{"shape":"ComplianceDetails"}
       }
     },
     "ResourceTagMappingList":{
@@ -216,7 +357,42 @@
       "member":{"shape":"AmazonResourceType"}
     },
     "ResourcesPerPage":{"type":"integer"},
+    "S3Bucket":{
+      "type":"string",
+      "max":63,
+      "min":3,
+      "pattern":"[\\s\\S]*"
+    },
+    "S3Location":{"type":"string"},
+    "StartReportCreationInput":{
+      "type":"structure",
+      "required":["S3Bucket"],
+      "members":{
+        "S3Bucket":{"shape":"S3Bucket"}
+      }
+    },
+    "StartReportCreationOutput":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "Status":{"type":"string"},
     "StatusCode":{"type":"integer"},
+    "Summary":{
+      "type":"structure",
+      "members":{
+        "LastUpdated":{"shape":"LastUpdated"},
+        "TargetId":{"shape":"TargetId"},
+        "TargetIdType":{"shape":"TargetIdType"},
+        "Region":{"shape":"Region"},
+        "ResourceType":{"shape":"AmazonResourceType"},
+        "NonCompliantResources":{"shape":"NonCompliantResources"}
+      }
+    },
+    "SummaryList":{
+      "type":"list",
+      "member":{"shape":"Summary"}
+    },
     "Tag":{
       "type":"structure",
       "required":[
@@ -244,6 +420,13 @@
     "TagKey":{
       "type":"string",
       "max":128,
+      "min":1,
+      "pattern":"[\\s\\S]*"
+    },
+    "TagKeyFilterList":{
+      "type":"list",
+      "member":{"shape":"TagKey"},
+      "max":50,
       "min":1
     },
     "TagKeyList":{
@@ -287,7 +470,8 @@
     "TagValue":{
       "type":"string",
       "max":256,
-      "min":0
+      "min":0,
+      "pattern":"[\\s\\S]*"
     },
     "TagValueList":{
       "type":"list",
@@ -300,6 +484,26 @@
       "member":{"shape":"TagValue"}
     },
     "TagsPerPage":{"type":"integer"},
+    "TargetId":{
+      "type":"string",
+      "max":68,
+      "min":6,
+      "pattern":"[\\s\\S]*"
+    },
+    "TargetIdFilterList":{
+      "type":"list",
+      "member":{"shape":"TargetId"},
+      "max":100,
+      "min":1
+    },
+    "TargetIdType":{
+      "type":"string",
+      "enum":[
+        "ACCOUNT",
+        "OU",
+        "ROOT"
+      ]
+    },
     "ThrottledException":{
       "type":"structure",
       "members":{

@@ -77,12 +77,12 @@ type listContext struct {
 
 	// beforeFilter is a filter to ignore containers that appear before the one given
 	beforeFilter *container.Snapshot
-	// sinceFilter is a filter to stop the filtering when the iterator arrive to the given container
+	// sinceFilter is a filter to stop the filtering when the iterator arrives to the given container
 	sinceFilter *container.Snapshot
 
-	// taskFilter tells if we should filter based on wether a container is part of a task
+	// taskFilter tells if we should filter based on whether a container is part of a task
 	taskFilter bool
-	// isTask tells us if the we should filter container that are a task (true) or not (false)
+	// isTask tells us if we should filter container that is a task (true) or not (false)
 	isTask bool
 
 	// publish is a list of published ports to filter with
@@ -146,7 +146,8 @@ func (daemon *Daemon) filterByNameIDMatches(view container.View, ctx *listContex
 				continue
 			}
 			for _, eachName := range idNames {
-				if ctx.filters.Match("name", eachName) {
+				// match both on container name with, and without slash-prefix
+				if ctx.filters.Match("name", eachName) || ctx.filters.Match("name", strings.TrimPrefix(eachName, "/")) {
 					matches[id] = true
 				}
 			}
@@ -429,7 +430,7 @@ func includeContainerInList(container *container.Snapshot, ctx *listContext) ite
 	}
 
 	// Do not include container if the name doesn't match
-	if !ctx.filters.Match("name", container.Name) {
+	if !ctx.filters.Match("name", container.Name) && !ctx.filters.Match("name", strings.TrimPrefix(container.Name, "/")) {
 		return excludeContainer
 	}
 

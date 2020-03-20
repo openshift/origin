@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	imagev1 "github.com/openshift/api/image/v1"
@@ -45,13 +46,13 @@ func NewFilteredImageStreamInformer(client versioned.Interface, namespace string
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ImageV1().ImageStreams(namespace).List(options)
+				return client.ImageV1().ImageStreams(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ImageV1().ImageStreams(namespace).Watch(options)
+				return client.ImageV1().ImageStreams(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&imagev1.ImageStream{},

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -249,7 +250,7 @@ func (c *migrationController) migrateKeysIfNeededAndRevisionStable() (migratingR
 			continue
 		}
 		if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-			s, err := c.secretClient.Secrets(oldWriteKey.Namespace).Get(oldWriteKey.Name, metav1.GetOptions{})
+			s, err := c.secretClient.Secrets(oldWriteKey.Namespace).Get(context.TODO(), oldWriteKey.Name, metav1.GetOptions{})
 			if err != nil {
 				return fmt.Errorf("failed to get key secret %s/%s: %v", oldWriteKey.Namespace, oldWriteKey.Name, err)
 			}

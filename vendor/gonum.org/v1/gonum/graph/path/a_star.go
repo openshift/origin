@@ -9,6 +9,7 @@ import (
 
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/internal/set"
+	"gonum.org/v1/gonum/graph/traverse"
 )
 
 // AStar finds the A*-shortest path from s to t in g using the heuristic h. The path and
@@ -23,9 +24,11 @@ import (
 // If h is nil, AStar will use the g.HeuristicCost method if g implements HeuristicCoster,
 // falling back to NullHeuristic otherwise. If the graph does not implement Weighted,
 // UniformCost is used. AStar will panic if g has an A*-reachable negative edge weight.
-func AStar(s, t graph.Node, g graph.Graph, h Heuristic) (path Shortest, expanded int) {
-	if g.Node(s.ID()) == nil || g.Node(t.ID()) == nil {
-		return Shortest{from: s}, 0
+func AStar(s, t graph.Node, g traverse.Graph, h Heuristic) (path Shortest, expanded int) {
+	if g, ok := g.(graph.Graph); ok {
+		if g.Node(s.ID()) == nil || g.Node(t.ID()) == nil {
+			return Shortest{from: s}, 0
+		}
 	}
 	var weight Weighting
 	if wg, ok := g.(Weighted); ok {
@@ -41,7 +44,7 @@ func AStar(s, t graph.Node, g graph.Graph, h Heuristic) (path Shortest, expanded
 		}
 	}
 
-	path = newShortestFrom(s, graph.NodesOf(g.Nodes()))
+	path = newShortestFrom(s, []graph.Node{s, t})
 	tid := t.ID()
 
 	visited := make(set.Int64s)
@@ -64,14 +67,17 @@ func AStar(s, t graph.Node, g graph.Graph, h Heuristic) (path Shortest, expanded
 			if visited.Has(vid) {
 				continue
 			}
-			j := path.indexOf[vid]
+			j, ok := path.indexOf[vid]
+			if !ok {
+				j = path.add(v)
+			}
 
 			w, ok := weight(u.node.ID(), vid)
 			if !ok {
-				panic("A*: unexpected invalid weight")
+				panic("path: A* unexpected invalid weight")
 			}
 			if w < 0 {
-				panic("A*: negative edge weight")
+				panic("path: A* negative edge weight")
 			}
 			g := u.gscore + w
 			if n, ok := open.node(vid); !ok {

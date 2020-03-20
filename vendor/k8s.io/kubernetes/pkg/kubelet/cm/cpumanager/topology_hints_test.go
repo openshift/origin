@@ -23,6 +23,7 @@ import (
 
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/state"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
@@ -31,13 +32,13 @@ import (
 )
 
 func TestGetTopologyHints(t *testing.T) {
-	testPod1 := makePod("2", "2")
+	testPod1 := makePod("fakePod", "fakeContainer", "2", "2")
 	testContainer1 := &testPod1.Spec.Containers[0]
-	testPod2 := makePod("5", "5")
+	testPod2 := makePod("fakePod", "fakeContainer", "5", "5")
 	testContainer2 := &testPod2.Spec.Containers[0]
-	testPod3 := makePod("7", "7")
+	testPod3 := makePod("fakePod", "fakeContainer", "7", "7")
 	testContainer3 := &testPod3.Spec.Containers[0]
-	testPod4 := makePod("11", "11")
+	testPod4 := makePod("fakePod", "fakeContainer", "11", "11")
 	testContainer4 := &testPod4.Spec.Containers[0]
 
 	firstSocketMask, _ := bitmask.NewBitMask(0)
@@ -156,7 +157,9 @@ func TestGetTopologyHints(t *testing.T) {
 			pod:       *testPod1,
 			container: *testContainer1,
 			assignments: state.ContainerCPUAssignments{
-				"": cpuset.NewCPUSet(0, 6),
+				string(testPod1.UID): map[string]cpuset.CPUSet{
+					testContainer1.Name: cpuset.NewCPUSet(0, 6),
+				},
 			},
 			defaultCPUSet: cpuset.NewCPUSet(),
 			expectedHints: []topologymanager.TopologyHint{
@@ -175,7 +178,9 @@ func TestGetTopologyHints(t *testing.T) {
 			pod:       *testPod1,
 			container: *testContainer1,
 			assignments: state.ContainerCPUAssignments{
-				"": cpuset.NewCPUSet(3, 9),
+				string(testPod1.UID): map[string]cpuset.CPUSet{
+					testContainer1.Name: cpuset.NewCPUSet(3, 9),
+				},
 			},
 			defaultCPUSet: cpuset.NewCPUSet(),
 			expectedHints: []topologymanager.TopologyHint{
@@ -194,7 +199,9 @@ func TestGetTopologyHints(t *testing.T) {
 			pod:       *testPod4,
 			container: *testContainer4,
 			assignments: state.ContainerCPUAssignments{
-				"": cpuset.NewCPUSet(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+				string(testPod4.UID): map[string]cpuset.CPUSet{
+					testContainer4.Name: cpuset.NewCPUSet(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+				},
 			},
 			defaultCPUSet: cpuset.NewCPUSet(),
 			expectedHints: []topologymanager.TopologyHint{
@@ -209,7 +216,9 @@ func TestGetTopologyHints(t *testing.T) {
 			pod:       *testPod1,
 			container: *testContainer1,
 			assignments: state.ContainerCPUAssignments{
-				"": cpuset.NewCPUSet(0, 6, 3, 9),
+				string(testPod1.UID): map[string]cpuset.CPUSet{
+					testContainer1.Name: cpuset.NewCPUSet(0, 6, 3, 9),
+				},
 			},
 			defaultCPUSet: cpuset.NewCPUSet(),
 			expectedHints: []topologymanager.TopologyHint{},
@@ -219,7 +228,9 @@ func TestGetTopologyHints(t *testing.T) {
 			pod:       *testPod4,
 			container: *testContainer4,
 			assignments: state.ContainerCPUAssignments{
-				"": cpuset.NewCPUSet(0, 6, 3, 9),
+				string(testPod4.UID): map[string]cpuset.CPUSet{
+					testContainer4.Name: cpuset.NewCPUSet(0, 6, 3, 9),
+				},
 			},
 			defaultCPUSet: cpuset.NewCPUSet(),
 			expectedHints: []topologymanager.TopologyHint{},
@@ -227,6 +238,18 @@ func TestGetTopologyHints(t *testing.T) {
 	}
 	for _, tc := range tcases {
 		topology, _ := topology.Discover(&machineInfo, numaNodeInfo)
+
+		var activePods []*v1.Pod
+		for p := range tc.assignments {
+			pod := v1.Pod{}
+			pod.UID = types.UID(p)
+			for c := range tc.assignments[p] {
+				container := v1.Container{}
+				container.Name = c
+				pod.Spec.Containers = append(pod.Spec.Containers, container)
+			}
+			activePods = append(activePods, &pod)
+		}
 
 		m := manager{
 			policy: &staticPolicy{
@@ -237,12 +260,12 @@ func TestGetTopologyHints(t *testing.T) {
 				defaultCPUSet: tc.defaultCPUSet,
 			},
 			topology:          topology,
-			activePods:        func() []*v1.Pod { return nil },
+			activePods:        func() []*v1.Pod { return activePods },
 			podStatusProvider: mockPodStatusProvider{},
 			sourcesReady:      &sourcesReadyStub{},
 		}
 
-		hints := m.GetTopologyHints(tc.pod, tc.container)[string(v1.ResourceCPU)]
+		hints := m.GetTopologyHints(&tc.pod, &tc.container)[string(v1.ResourceCPU)]
 		if len(tc.expectedHints) == 0 && len(hints) == 0 {
 			continue
 		}

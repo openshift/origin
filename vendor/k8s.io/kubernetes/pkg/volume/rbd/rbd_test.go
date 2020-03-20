@@ -102,7 +102,7 @@ func TestCanSupport(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, volumetest.NewFakeVolumeHost(tmpDir, nil, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, volumetest.NewFakeVolumeHost(t, tmpDir, nil, nil))
 
 	plug, err := plugMgr.FindPluginByName("kubernetes.io/rbd")
 	if err != nil {
@@ -140,7 +140,7 @@ type fakeDiskManager struct {
 	rbdDevices    map[string]bool
 }
 
-func NewFakeDiskManager() *fakeDiskManager {
+func newFakeDiskManager() *fakeDiskManager {
 	return &fakeDiskManager{
 		rbdImageLocks: make(map[string]bool),
 		rbdMapIndex:   0,
@@ -247,7 +247,7 @@ func checkMounterLog(t *testing.T, fakeMounter *mount.FakeMounter, expected int,
 }
 
 func doTestPlugin(t *testing.T, c *testcase) {
-	fakeVolumeHost := volumetest.NewFakeVolumeHost(c.root, nil, nil)
+	fakeVolumeHost := volumetest.NewFakeVolumeHost(t, c.root, nil, nil)
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, fakeVolumeHost)
 	plug, err := plugMgr.FindPluginByName("kubernetes.io/rbd")
@@ -256,7 +256,7 @@ func doTestPlugin(t *testing.T, c *testcase) {
 	}
 	fakeMounter := fakeVolumeHost.GetMounter(plug.GetPluginName()).(*mount.FakeMounter)
 	fakeNodeName := types.NodeName("localhost")
-	fdm := NewFakeDiskManager()
+	fdm := newFakeDiskManager()
 
 	// attacher
 	attacher, err := plug.(*rbdPlugin).newAttacherInternal(fdm)
@@ -385,7 +385,6 @@ func TestPlugin(t *testing.T) {
 					RBDPool:      "pool1",
 					RBDImage:     "image1",
 					FSType:       "ext4",
-					ReadOnly:     true,
 				},
 			},
 		}),
@@ -477,7 +476,7 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 	client := fake.NewSimpleClientset(pv, claim)
 
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, volumetest.NewFakeVolumeHost(tmpDir, client, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, volumetest.NewFakeVolumeHost(t, tmpDir, client, nil))
 	plug, _ := plugMgr.FindPluginByName(rbdPluginName)
 
 	// readOnly bool is supplied by persistent-claim volume source when its mounter creates other volumes
@@ -533,14 +532,14 @@ func TestGetDeviceMountPath(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	fakeVolumeHost := volumetest.NewFakeVolumeHost(tmpDir, nil, nil)
+	fakeVolumeHost := volumetest.NewFakeVolumeHost(t, tmpDir, nil, nil)
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, fakeVolumeHost)
 	plug, err := plugMgr.FindPluginByName("kubernetes.io/rbd")
 	if err != nil {
 		t.Errorf("Can't find the plugin by name")
 	}
-	fdm := NewFakeDiskManager()
+	fdm := newFakeDiskManager()
 
 	// attacher
 	attacher, err := plug.(*rbdPlugin).newAttacherInternal(fdm)
@@ -600,7 +599,7 @@ func TestConstructVolumeSpec(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	fakeVolumeHost := volumetest.NewFakeVolumeHost(tmpDir, nil, nil)
+	fakeVolumeHost := volumetest.NewFakeVolumeHost(t, tmpDir, nil, nil)
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, fakeVolumeHost)
 	plug, err := plugMgr.FindPluginByName("kubernetes.io/rbd")
@@ -660,7 +659,7 @@ func TestGetAccessModes(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, volumetest.NewFakeVolumeHost(tmpDir, nil, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, volumetest.NewFakeVolumeHost(t, tmpDir, nil, nil))
 
 	plug, err := plugMgr.FindPersistentPluginByName("kubernetes.io/rbd")
 	if err != nil {
@@ -677,7 +676,7 @@ func TestGetAccessModes(t *testing.T) {
 func TestRequiresRemount(t *testing.T) {
 	tmpDir, _ := utiltesting.MkTmpdir("rbd_test")
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, volumetest.NewFakeVolumeHost(tmpDir, nil, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(), nil /* prober */, volumetest.NewFakeVolumeHost(t, tmpDir, nil, nil))
 	plug, _ := plugMgr.FindPluginByName("kubernetes.io/rbd")
 	has := plug.RequiresRemount()
 	if has {

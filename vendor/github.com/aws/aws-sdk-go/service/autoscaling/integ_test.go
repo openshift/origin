@@ -27,7 +27,9 @@ func TestInteg_00_DescribeScalingProcessTypes(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := autoscaling.New(sess)
 	params := &autoscaling.DescribeScalingProcessTypesInput{}
-	_, err := svc.DescribeScalingProcessTypesWithContext(ctx, params)
+	_, err := svc.DescribeScalingProcessTypesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -43,7 +45,9 @@ func TestInteg_01_CreateLaunchConfiguration(t *testing.T) {
 		InstanceType:            aws.String("m1.small"),
 		LaunchConfigurationName: aws.String("hello, world"),
 	}
-	_, err := svc.CreateLaunchConfigurationWithContext(ctx, params)
+	_, err := svc.CreateLaunchConfigurationWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

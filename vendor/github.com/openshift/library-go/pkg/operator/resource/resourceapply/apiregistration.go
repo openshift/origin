@@ -1,6 +1,8 @@
 package resourceapply
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,9 +16,9 @@ import (
 
 // ApplyAPIService merges objectmeta and requires apiservice coordinates.  It does not touch CA bundles, which should be managed via service CA controller.
 func ApplyAPIService(client apiregistrationv1client.APIServicesGetter, recorder events.Recorder, required *apiregistrationv1.APIService) (*apiregistrationv1.APIService, bool, error) {
-	existing, err := client.APIServices().Get(required.Name, metav1.GetOptions{})
+	existing, err := client.APIServices().Get(context.TODO(), required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.APIServices().Create(required)
+		actual, err := client.APIServices().Create(context.TODO(), required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -41,7 +43,7 @@ func ApplyAPIService(client apiregistrationv1client.APIServicesGetter, recorder 
 	if klog.V(4) {
 		klog.Infof("APIService %q changes: %s", existing.Name, JSONPatchNoError(existing, existingCopy))
 	}
-	actual, err := client.APIServices().Update(existingCopy)
+	actual, err := client.APIServices().Update(context.TODO(), existingCopy, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }

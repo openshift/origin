@@ -19,7 +19,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Widget_Color int32
 
@@ -620,19 +620,19 @@ type isMsgWithOneof_Union interface {
 }
 
 type MsgWithOneof_Title struct {
-	Title string `protobuf:"bytes,1,opt,name=title,oneof"`
+	Title string `protobuf:"bytes,1,opt,name=title,oneof" json:"title,omitempty"`
 }
 type MsgWithOneof_Salary struct {
-	Salary int64 `protobuf:"varint,2,opt,name=salary,oneof"`
+	Salary int64 `protobuf:"varint,2,opt,name=salary,oneof" json:"salary,omitempty"`
 }
 type MsgWithOneof_Country struct {
-	Country string `protobuf:"bytes,3,opt,name=Country,oneof"`
+	Country string `protobuf:"bytes,3,opt,name=Country,oneof" json:"Country,omitempty"`
 }
 type MsgWithOneof_HomeAddress struct {
-	HomeAddress string `protobuf:"bytes,4,opt,name=home_address,json=homeAddress,oneof"`
+	HomeAddress string `protobuf:"bytes,4,opt,name=home_address,json=homeAddress,oneof" json:"home_address,omitempty"`
 }
 type MsgWithOneof_MsgWithRequired struct {
-	MsgWithRequired *MsgWithRequired `protobuf:"bytes,5,opt,name=msg_with_required,json=msgWithRequired,oneof"`
+	MsgWithRequired *MsgWithRequired `protobuf:"bytes,5,opt,name=msg_with_required,json=msgWithRequired,oneof" json:"msg_with_required,omitempty"`
 }
 
 func (*MsgWithOneof_Title) isMsgWithOneof_Union()           {}
@@ -683,118 +683,15 @@ func (m *MsgWithOneof) GetMsgWithRequired() *MsgWithRequired {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*MsgWithOneof) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _MsgWithOneof_OneofMarshaler, _MsgWithOneof_OneofUnmarshaler, _MsgWithOneof_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*MsgWithOneof) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*MsgWithOneof_Title)(nil),
 		(*MsgWithOneof_Salary)(nil),
 		(*MsgWithOneof_Country)(nil),
 		(*MsgWithOneof_HomeAddress)(nil),
 		(*MsgWithOneof_MsgWithRequired)(nil),
 	}
-}
-
-func _MsgWithOneof_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*MsgWithOneof)
-	// union
-	switch x := m.Union.(type) {
-	case *MsgWithOneof_Title:
-		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
-		_ = b.EncodeStringBytes(x.Title)
-	case *MsgWithOneof_Salary:
-		_ = b.EncodeVarint(2<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(uint64(x.Salary))
-	case *MsgWithOneof_Country:
-		_ = b.EncodeVarint(3<<3 | proto.WireBytes)
-		_ = b.EncodeStringBytes(x.Country)
-	case *MsgWithOneof_HomeAddress:
-		_ = b.EncodeVarint(4<<3 | proto.WireBytes)
-		_ = b.EncodeStringBytes(x.HomeAddress)
-	case *MsgWithOneof_MsgWithRequired:
-		_ = b.EncodeVarint(5<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.MsgWithRequired); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("MsgWithOneof.Union has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _MsgWithOneof_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*MsgWithOneof)
-	switch tag {
-	case 1: // union.title
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Union = &MsgWithOneof_Title{x}
-		return true, err
-	case 2: // union.salary
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Union = &MsgWithOneof_Salary{int64(x)}
-		return true, err
-	case 3: // union.Country
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Union = &MsgWithOneof_Country{x}
-		return true, err
-	case 4: // union.home_address
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Union = &MsgWithOneof_HomeAddress{x}
-		return true, err
-	case 5: // union.msg_with_required
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(MsgWithRequired)
-		err := b.DecodeMessage(msg)
-		m.Union = &MsgWithOneof_MsgWithRequired{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _MsgWithOneof_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*MsgWithOneof)
-	// union
-	switch x := m.Union.(type) {
-	case *MsgWithOneof_Title:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Title)))
-		n += len(x.Title)
-	case *MsgWithOneof_Salary:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.Salary))
-	case *MsgWithOneof_Country:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Country)))
-		n += len(x.Country)
-	case *MsgWithOneof_HomeAddress:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.HomeAddress)))
-		n += len(x.HomeAddress)
-	case *MsgWithOneof_MsgWithRequired:
-		s := proto.Size(x.MsgWithRequired)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type Real struct {

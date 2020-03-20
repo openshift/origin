@@ -3,6 +3,7 @@
 package translate
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -66,17 +67,17 @@ func (c *Translate) DeleteTerminologyRequest(input *DeleteTerminologyInput) (req
 // See the AWS API reference guide for Amazon Translate's
 // API operation DeleteTerminology for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The resource you are looking for has not been found. Review the resource
 //   you're looking for and see if a different resource will accomplish your needs
-//   before retrying the revised request. .
+//   before retrying the revised request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   You have made too many requests within a short period of time. Wait for a
 //   short time and then try your request again.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An internal server error occurred. Retry your request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/DeleteTerminology
@@ -96,6 +97,96 @@ func (c *Translate) DeleteTerminology(input *DeleteTerminologyInput) (*DeleteTer
 // for more information on using Contexts.
 func (c *Translate) DeleteTerminologyWithContext(ctx aws.Context, input *DeleteTerminologyInput, opts ...request.Option) (*DeleteTerminologyOutput, error) {
 	req, out := c.DeleteTerminologyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeTextTranslationJob = "DescribeTextTranslationJob"
+
+// DescribeTextTranslationJobRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeTextTranslationJob operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeTextTranslationJob for more information on using the DescribeTextTranslationJob
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeTextTranslationJobRequest method.
+//    req, resp := client.DescribeTextTranslationJobRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/DescribeTextTranslationJob
+func (c *Translate) DescribeTextTranslationJobRequest(input *DescribeTextTranslationJobInput) (req *request.Request, output *DescribeTextTranslationJobOutput) {
+	op := &request.Operation{
+		Name:       opDescribeTextTranslationJob,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeTextTranslationJobInput{}
+	}
+
+	output = &DescribeTextTranslationJobOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeTextTranslationJob API operation for Amazon Translate.
+//
+// Gets the properties associated with an asycnhronous batch translation job
+// including name, ID, status, source and target languages, input/output S3
+// buckets, and so on.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Translate's
+// API operation DescribeTextTranslationJob for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceNotFoundException
+//   The resource you are looking for has not been found. Review the resource
+//   you're looking for and see if a different resource will accomplish your needs
+//   before retrying the revised request.
+//
+//   * TooManyRequestsException
+//   You have made too many requests within a short period of time. Wait for a
+//   short time and then try your request again.
+//
+//   * InternalServerException
+//   An internal server error occurred. Retry your request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/DescribeTextTranslationJob
+func (c *Translate) DescribeTextTranslationJob(input *DescribeTextTranslationJobInput) (*DescribeTextTranslationJobOutput, error) {
+	req, out := c.DescribeTextTranslationJobRequest(input)
+	return out, req.Send()
+}
+
+// DescribeTextTranslationJobWithContext is the same as DescribeTextTranslationJob with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeTextTranslationJob for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Translate) DescribeTextTranslationJobWithContext(ctx aws.Context, input *DescribeTextTranslationJobInput, opts ...request.Option) (*DescribeTextTranslationJobOutput, error) {
+	req, out := c.DescribeTextTranslationJobRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -154,21 +245,21 @@ func (c *Translate) GetTerminologyRequest(input *GetTerminologyInput) (req *requ
 // See the AWS API reference guide for Amazon Translate's
 // API operation GetTerminology for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The resource you are looking for has not been found. Review the resource
 //   you're looking for and see if a different resource will accomplish your needs
-//   before retrying the revised request. .
+//   before retrying the revised request.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of the parameter is invalid. Review the value of the parameter
 //   you are using to correct it, and then retry your operation.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   You have made too many requests within a short period of time. Wait for a
 //   short time and then try your request again.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An internal server error occurred. Retry your request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/GetTerminology
@@ -255,20 +346,20 @@ func (c *Translate) ImportTerminologyRequest(input *ImportTerminologyInput) (req
 // See the AWS API reference guide for Amazon Translate's
 // API operation ImportTerminology for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+// Returned Error Types:
+//   * InvalidParameterValueException
 //   The value of the parameter is invalid. Review the value of the parameter
 //   you are using to correct it, and then retry your operation.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The specified limit has been exceeded. Review your request and retry it with
 //   a quantity below the stated limit.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   You have made too many requests within a short period of time. Wait for a
 //   short time and then try your request again.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An internal server error occurred. Retry your request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/ImportTerminology
@@ -324,6 +415,12 @@ func (c *Translate) ListTerminologiesRequest(input *ListTerminologiesInput) (req
 		Name:       opListTerminologies,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -346,16 +443,16 @@ func (c *Translate) ListTerminologiesRequest(input *ListTerminologiesInput) (req
 // See the AWS API reference guide for Amazon Translate's
 // API operation ListTerminologies for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+// Returned Error Types:
+//   * InvalidParameterValueException
 //   The value of the parameter is invalid. Review the value of the parameter
 //   you are using to correct it, and then retry your operation.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   You have made too many requests within a short period of time. Wait for a
 //   short time and then try your request again.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An internal server error occurred. Retry your request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/ListTerminologies
@@ -375,6 +472,408 @@ func (c *Translate) ListTerminologies(input *ListTerminologiesInput) (*ListTermi
 // for more information on using Contexts.
 func (c *Translate) ListTerminologiesWithContext(ctx aws.Context, input *ListTerminologiesInput, opts ...request.Option) (*ListTerminologiesOutput, error) {
 	req, out := c.ListTerminologiesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListTerminologiesPages iterates over the pages of a ListTerminologies operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListTerminologies method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListTerminologies operation.
+//    pageNum := 0
+//    err := client.ListTerminologiesPages(params,
+//        func(page *translate.ListTerminologiesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Translate) ListTerminologiesPages(input *ListTerminologiesInput, fn func(*ListTerminologiesOutput, bool) bool) error {
+	return c.ListTerminologiesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListTerminologiesPagesWithContext same as ListTerminologiesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Translate) ListTerminologiesPagesWithContext(ctx aws.Context, input *ListTerminologiesInput, fn func(*ListTerminologiesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListTerminologiesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListTerminologiesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListTerminologiesOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opListTextTranslationJobs = "ListTextTranslationJobs"
+
+// ListTextTranslationJobsRequest generates a "aws/request.Request" representing the
+// client's request for the ListTextTranslationJobs operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListTextTranslationJobs for more information on using the ListTextTranslationJobs
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListTextTranslationJobsRequest method.
+//    req, resp := client.ListTextTranslationJobsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/ListTextTranslationJobs
+func (c *Translate) ListTextTranslationJobsRequest(input *ListTextTranslationJobsInput) (req *request.Request, output *ListTextTranslationJobsOutput) {
+	op := &request.Operation{
+		Name:       opListTextTranslationJobs,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListTextTranslationJobsInput{}
+	}
+
+	output = &ListTextTranslationJobsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTextTranslationJobs API operation for Amazon Translate.
+//
+// Gets a list of the batch translation jobs that you have submitted.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Translate's
+// API operation ListTextTranslationJobs for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request that you made is invalid. Check your request to determine why
+//   it's invalid and then retry the request.
+//
+//   * TooManyRequestsException
+//   You have made too many requests within a short period of time. Wait for a
+//   short time and then try your request again.
+//
+//   * InvalidFilterException
+//   The filter specified for the operation is invalid. Specify a different filter.
+//
+//   * InternalServerException
+//   An internal server error occurred. Retry your request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/ListTextTranslationJobs
+func (c *Translate) ListTextTranslationJobs(input *ListTextTranslationJobsInput) (*ListTextTranslationJobsOutput, error) {
+	req, out := c.ListTextTranslationJobsRequest(input)
+	return out, req.Send()
+}
+
+// ListTextTranslationJobsWithContext is the same as ListTextTranslationJobs with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTextTranslationJobs for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Translate) ListTextTranslationJobsWithContext(ctx aws.Context, input *ListTextTranslationJobsInput, opts ...request.Option) (*ListTextTranslationJobsOutput, error) {
+	req, out := c.ListTextTranslationJobsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListTextTranslationJobsPages iterates over the pages of a ListTextTranslationJobs operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListTextTranslationJobs method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListTextTranslationJobs operation.
+//    pageNum := 0
+//    err := client.ListTextTranslationJobsPages(params,
+//        func(page *translate.ListTextTranslationJobsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Translate) ListTextTranslationJobsPages(input *ListTextTranslationJobsInput, fn func(*ListTextTranslationJobsOutput, bool) bool) error {
+	return c.ListTextTranslationJobsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListTextTranslationJobsPagesWithContext same as ListTextTranslationJobsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Translate) ListTextTranslationJobsPagesWithContext(ctx aws.Context, input *ListTextTranslationJobsInput, fn func(*ListTextTranslationJobsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListTextTranslationJobsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListTextTranslationJobsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListTextTranslationJobsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opStartTextTranslationJob = "StartTextTranslationJob"
+
+// StartTextTranslationJobRequest generates a "aws/request.Request" representing the
+// client's request for the StartTextTranslationJob operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartTextTranslationJob for more information on using the StartTextTranslationJob
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartTextTranslationJobRequest method.
+//    req, resp := client.StartTextTranslationJobRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/StartTextTranslationJob
+func (c *Translate) StartTextTranslationJobRequest(input *StartTextTranslationJobInput) (req *request.Request, output *StartTextTranslationJobOutput) {
+	op := &request.Operation{
+		Name:       opStartTextTranslationJob,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartTextTranslationJobInput{}
+	}
+
+	output = &StartTextTranslationJobOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartTextTranslationJob API operation for Amazon Translate.
+//
+// Starts an asynchronous batch translation job. Batch translation jobs can
+// be used to translate large volumes of text across multiple documents at once.
+// For more information, see async.
+//
+// Batch translation jobs can be described with the DescribeTextTranslationJob
+// operation, listed with the ListTextTranslationJobs operation, and stopped
+// with the StopTextTranslationJob operation.
+//
+// Amazon Translate does not support batch translation of multiple source languages
+// at once.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Translate's
+// API operation StartTextTranslationJob for usage and error information.
+//
+// Returned Error Types:
+//   * TooManyRequestsException
+//   You have made too many requests within a short period of time. Wait for a
+//   short time and then try your request again.
+//
+//   * UnsupportedLanguagePairException
+//   Amazon Translate does not support translation from the language of the source
+//   text into the requested target language. For more information, see how-to-error-msg.
+//
+//   * InvalidRequestException
+//   The request that you made is invalid. Check your request to determine why
+//   it's invalid and then retry the request.
+//
+//   * ResourceNotFoundException
+//   The resource you are looking for has not been found. Review the resource
+//   you're looking for and see if a different resource will accomplish your needs
+//   before retrying the revised request.
+//
+//   * InternalServerException
+//   An internal server error occurred. Retry your request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/StartTextTranslationJob
+func (c *Translate) StartTextTranslationJob(input *StartTextTranslationJobInput) (*StartTextTranslationJobOutput, error) {
+	req, out := c.StartTextTranslationJobRequest(input)
+	return out, req.Send()
+}
+
+// StartTextTranslationJobWithContext is the same as StartTextTranslationJob with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartTextTranslationJob for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Translate) StartTextTranslationJobWithContext(ctx aws.Context, input *StartTextTranslationJobInput, opts ...request.Option) (*StartTextTranslationJobOutput, error) {
+	req, out := c.StartTextTranslationJobRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStopTextTranslationJob = "StopTextTranslationJob"
+
+// StopTextTranslationJobRequest generates a "aws/request.Request" representing the
+// client's request for the StopTextTranslationJob operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StopTextTranslationJob for more information on using the StopTextTranslationJob
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StopTextTranslationJobRequest method.
+//    req, resp := client.StopTextTranslationJobRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/StopTextTranslationJob
+func (c *Translate) StopTextTranslationJobRequest(input *StopTextTranslationJobInput) (req *request.Request, output *StopTextTranslationJobOutput) {
+	op := &request.Operation{
+		Name:       opStopTextTranslationJob,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StopTextTranslationJobInput{}
+	}
+
+	output = &StopTextTranslationJobOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StopTextTranslationJob API operation for Amazon Translate.
+//
+// Stops an asynchronous batch translation job that is in progress.
+//
+// If the job's state is IN_PROGRESS, the job will be marked for termination
+// and put into the STOP_REQUESTED state. If the job completes before it can
+// be stopped, it is put into the COMPLETED state. Otherwise, the job is put
+// into the STOPPED state.
+//
+// Asynchronous batch translation jobs are started with the StartTextTranslationJob
+// operation. You can use the DescribeTextTranslationJob or ListTextTranslationJobs
+// operations to get a batch translation job's JobId.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Translate's
+// API operation StopTextTranslationJob for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceNotFoundException
+//   The resource you are looking for has not been found. Review the resource
+//   you're looking for and see if a different resource will accomplish your needs
+//   before retrying the revised request.
+//
+//   * TooManyRequestsException
+//   You have made too many requests within a short period of time. Wait for a
+//   short time and then try your request again.
+//
+//   * InternalServerException
+//   An internal server error occurred. Retry your request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/translate-2017-07-01/StopTextTranslationJob
+func (c *Translate) StopTextTranslationJob(input *StopTextTranslationJobInput) (*StopTextTranslationJobOutput, error) {
+	req, out := c.StopTextTranslationJobRequest(input)
+	return out, req.Send()
+}
+
+// StopTextTranslationJobWithContext is the same as StopTextTranslationJob with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StopTextTranslationJob for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Translate) StopTextTranslationJobWithContext(ctx aws.Context, input *StopTextTranslationJobInput, opts ...request.Option) (*StopTextTranslationJobOutput, error) {
+	req, out := c.StopTextTranslationJobRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -424,56 +923,8 @@ func (c *Translate) TextRequest(input *TextInput) (req *request.Request, output 
 
 // Text API operation for Amazon Translate.
 //
-// Translates input text from the source language to the target language. It
-// is not necessary to use English (en) as either the source or the target language
-// but not all language combinations are supported by Amazon Translate. For
-// more information, see Supported Language Pairs (http://docs.aws.amazon.com/translate/latest/dg/pairs.html).
-//
-//    * Arabic (ar)
-//
-//    * Chinese (Simplified) (zh)
-//
-//    * Chinese (Traditional) (zh-TW)
-//
-//    * Czech (cs)
-//
-//    * Danish (da)
-//
-//    * Dutch (nl)
-//
-//    * English (en)
-//
-//    * Finnish (fi)
-//
-//    * French (fr)
-//
-//    * German (de)
-//
-//    * Hebrew (he)
-//
-//    * Indonesian (id)
-//
-//    * Italian (it)
-//
-//    * Japanese (ja)
-//
-//    * Korean (ko)
-//
-//    * Polish (pl)
-//
-//    * Portuguese (pt)
-//
-//    * Russian (ru)
-//
-//    * Spanish (es)
-//
-//    * Swedish (sv)
-//
-//    * Turkish (tr)
-//
-// To have Amazon Translate determine the source language of your text, you
-// can specify auto in the SourceLanguageCode field. If you specify auto, Amazon
-// Translate will call Amazon Comprehend to determine the source language.
+// Translates input text from the source language to the target language. For
+// a list of available languages and language codes, see what-is-languages.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -482,39 +933,39 @@ func (c *Translate) TextRequest(input *TextInput) (req *request.Request, output 
 // See the AWS API reference guide for Amazon Translate's
 // API operation Text for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request that you made is invalid. Check your request to determine why
 //   it's invalid and then retry the request.
 //
-//   * ErrCodeTextSizeLimitExceededException "TextSizeLimitExceededException"
+//   * TextSizeLimitExceededException
 //   The size of the text you submitted exceeds the size limit. Reduce the size
 //   of the text or use a smaller document and then retry your request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   You have made too many requests within a short period of time. Wait for a
 //   short time and then try your request again.
 //
-//   * ErrCodeUnsupportedLanguagePairException "UnsupportedLanguagePairException"
+//   * UnsupportedLanguagePairException
 //   Amazon Translate does not support translation from the language of the source
 //   text into the requested target language. For more information, see how-to-error-msg.
 //
-//   * ErrCodeDetectedLanguageLowConfidenceException "DetectedLanguageLowConfidenceException"
+//   * DetectedLanguageLowConfidenceException
 //   The confidence that Amazon Comprehend accurately detected the source language
 //   is low. If a low confidence level is acceptable for your application, you
 //   can use the language in the exception to call Amazon Translate again. For
 //   more information, see the DetectDominantLanguage (https://docs.aws.amazon.com/comprehend/latest/dg/API_DetectDominantLanguage.html)
 //   operation in the Amazon Comprehend Developer Guide.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The resource you are looking for has not been found. Review the resource
 //   you're looking for and see if a different resource will accomplish your needs
-//   before retrying the revised request. .
+//   before retrying the revised request.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An internal server error occurred. Retry your request.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The Amazon Translate service is temporarily unavailable. Please wait a bit
 //   and then retry your request.
 //
@@ -633,6 +1084,135 @@ func (s DeleteTerminologyOutput) String() string {
 // GoString returns the string representation
 func (s DeleteTerminologyOutput) GoString() string {
 	return s.String()
+}
+
+type DescribeTextTranslationJobInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier that Amazon Translate generated for the job. The StartTextTranslationJob
+	// operation returns this identifier in its response.
+	//
+	// JobId is a required field
+	JobId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeTextTranslationJobInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeTextTranslationJobInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeTextTranslationJobInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeTextTranslationJobInput"}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobId sets the JobId field's value.
+func (s *DescribeTextTranslationJobInput) SetJobId(v string) *DescribeTextTranslationJobInput {
+	s.JobId = &v
+	return s
+}
+
+type DescribeTextTranslationJobOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object that contains the properties associated with an asynchronous batch
+	// translation job.
+	TextTranslationJobProperties *TextTranslationJobProperties `type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribeTextTranslationJobOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeTextTranslationJobOutput) GoString() string {
+	return s.String()
+}
+
+// SetTextTranslationJobProperties sets the TextTranslationJobProperties field's value.
+func (s *DescribeTextTranslationJobOutput) SetTextTranslationJobProperties(v *TextTranslationJobProperties) *DescribeTextTranslationJobOutput {
+	s.TextTranslationJobProperties = v
+	return s
+}
+
+// The confidence that Amazon Comprehend accurately detected the source language
+// is low. If a low confidence level is acceptable for your application, you
+// can use the language in the exception to call Amazon Translate again. For
+// more information, see the DetectDominantLanguage (https://docs.aws.amazon.com/comprehend/latest/dg/API_DetectDominantLanguage.html)
+// operation in the Amazon Comprehend Developer Guide.
+type DetectedLanguageLowConfidenceException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The language code of the auto-detected language from Amazon Comprehend.
+	DetectedLanguageCode *string `min:"2" type:"string"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s DetectedLanguageLowConfidenceException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetectedLanguageLowConfidenceException) GoString() string {
+	return s.String()
+}
+
+func newErrorDetectedLanguageLowConfidenceException(v protocol.ResponseMetadata) error {
+	return &DetectedLanguageLowConfidenceException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DetectedLanguageLowConfidenceException) Code() string {
+	return "DetectedLanguageLowConfidenceException"
+}
+
+// Message returns the exception's message.
+func (s DetectedLanguageLowConfidenceException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DetectedLanguageLowConfidenceException) OrigErr() error {
+	return nil
+}
+
+func (s DetectedLanguageLowConfidenceException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DetectedLanguageLowConfidenceException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DetectedLanguageLowConfidenceException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // The encryption key used to encrypt the custom terminologies used by Amazon
@@ -904,6 +1484,388 @@ func (s *ImportTerminologyOutput) SetTerminologyProperties(v *TerminologyPropert
 	return s
 }
 
+// The input configuration properties for requesting a batch translation job.
+type InputDataConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The multipurpose internet mail extension (MIME) type of the input files.
+	// Valid values are text/plain for plaintext files and text/html for HTML files.
+	//
+	// ContentType is a required field
+	ContentType *string `type:"string" required:"true"`
+
+	// The URI of the AWS S3 folder that contains the input file. The folder must
+	// be in the same Region as the API endpoint you are calling.
+	//
+	// S3Uri is a required field
+	S3Uri *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s InputDataConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InputDataConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InputDataConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InputDataConfig"}
+	if s.ContentType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContentType"))
+	}
+	if s.S3Uri == nil {
+		invalidParams.Add(request.NewErrParamRequired("S3Uri"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *InputDataConfig) SetContentType(v string) *InputDataConfig {
+	s.ContentType = &v
+	return s
+}
+
+// SetS3Uri sets the S3Uri field's value.
+func (s *InputDataConfig) SetS3Uri(v string) *InputDataConfig {
+	s.S3Uri = &v
+	return s
+}
+
+// An internal server error occurred. Retry your request.
+type InternalServerException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalServerException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalServerException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServerException(v protocol.ResponseMetadata) error {
+	return &InternalServerException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalServerException) Code() string {
+	return "InternalServerException"
+}
+
+// Message returns the exception's message.
+func (s InternalServerException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalServerException) OrigErr() error {
+	return nil
+}
+
+func (s InternalServerException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalServerException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalServerException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The filter specified for the operation is invalid. Specify a different filter.
+type InvalidFilterException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidFilterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidFilterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidFilterException(v protocol.ResponseMetadata) error {
+	return &InvalidFilterException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidFilterException) Code() string {
+	return "InvalidFilterException"
+}
+
+// Message returns the exception's message.
+func (s InvalidFilterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidFilterException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidFilterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidFilterException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidFilterException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The value of the parameter is invalid. Review the value of the parameter
+// you are using to correct it, and then retry your operation.
+type InvalidParameterValueException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterValueException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterValueException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterValueException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterValueException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidParameterValueException) Code() string {
+	return "InvalidParameterValueException"
+}
+
+// Message returns the exception's message.
+func (s InvalidParameterValueException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidParameterValueException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidParameterValueException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidParameterValueException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidParameterValueException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The request that you made is invalid. Check your request to determine why
+// it's invalid and then retry the request.
+type InvalidRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidRequestException(v protocol.ResponseMetadata) error {
+	return &InvalidRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidRequestException) Code() string {
+	return "InvalidRequestException"
+}
+
+// Message returns the exception's message.
+func (s InvalidRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidRequestException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidRequestException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The number of documents successfully and unsuccessfully processed during
+// a translation job.
+type JobDetails struct {
+	_ struct{} `type:"structure"`
+
+	// The number of documents that could not be processed during a translation
+	// job.
+	DocumentsWithErrorsCount *int64 `type:"integer"`
+
+	// The number of documents used as input in a translation job.
+	InputDocumentsCount *int64 `type:"integer"`
+
+	// The number of documents successfully processed during a translation job.
+	TranslatedDocumentsCount *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s JobDetails) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s JobDetails) GoString() string {
+	return s.String()
+}
+
+// SetDocumentsWithErrorsCount sets the DocumentsWithErrorsCount field's value.
+func (s *JobDetails) SetDocumentsWithErrorsCount(v int64) *JobDetails {
+	s.DocumentsWithErrorsCount = &v
+	return s
+}
+
+// SetInputDocumentsCount sets the InputDocumentsCount field's value.
+func (s *JobDetails) SetInputDocumentsCount(v int64) *JobDetails {
+	s.InputDocumentsCount = &v
+	return s
+}
+
+// SetTranslatedDocumentsCount sets the TranslatedDocumentsCount field's value.
+func (s *JobDetails) SetTranslatedDocumentsCount(v int64) *JobDetails {
+	s.TranslatedDocumentsCount = &v
+	return s
+}
+
+// The specified limit has been exceeded. Review your request and retry it with
+// a quantity below the stated limit.
+type LimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type ListTerminologiesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -983,6 +1945,539 @@ func (s *ListTerminologiesOutput) SetTerminologyPropertiesList(v []*TerminologyP
 	return s
 }
 
+type ListTextTranslationJobsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The parameters that specify which batch translation jobs to retrieve. Filters
+	// include job name, job status, and submission time. You can only set one filter
+	// at a time.
+	Filter *TextTranslationJobFilter `type:"structure"`
+
+	// The maximum number of results to return in each page. The default value is
+	// 100.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// The token to request the next page of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListTextTranslationJobsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTextTranslationJobsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTextTranslationJobsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTextTranslationJobsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.Filter != nil {
+		if err := s.Filter.Validate(); err != nil {
+			invalidParams.AddNested("Filter", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilter sets the Filter field's value.
+func (s *ListTextTranslationJobsInput) SetFilter(v *TextTranslationJobFilter) *ListTextTranslationJobsInput {
+	s.Filter = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListTextTranslationJobsInput) SetMaxResults(v int64) *ListTextTranslationJobsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListTextTranslationJobsInput) SetNextToken(v string) *ListTextTranslationJobsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListTextTranslationJobsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token to use to retreive the next page of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `type:"string"`
+
+	// A list containing the properties of each job that is returned.
+	TextTranslationJobPropertiesList []*TextTranslationJobProperties `type:"list"`
+}
+
+// String returns the string representation
+func (s ListTextTranslationJobsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTextTranslationJobsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListTextTranslationJobsOutput) SetNextToken(v string) *ListTextTranslationJobsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTextTranslationJobPropertiesList sets the TextTranslationJobPropertiesList field's value.
+func (s *ListTextTranslationJobsOutput) SetTextTranslationJobPropertiesList(v []*TextTranslationJobProperties) *ListTextTranslationJobsOutput {
+	s.TextTranslationJobPropertiesList = v
+	return s
+}
+
+// The output configuration properties for a batch translation job.
+type OutputDataConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The URI of the S3 folder that contains a translation job's output file. The
+	// folder must be in the same Region as the API endpoint that you are calling.
+	//
+	// S3Uri is a required field
+	S3Uri *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s OutputDataConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OutputDataConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OutputDataConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OutputDataConfig"}
+	if s.S3Uri == nil {
+		invalidParams.Add(request.NewErrParamRequired("S3Uri"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetS3Uri sets the S3Uri field's value.
+func (s *OutputDataConfig) SetS3Uri(v string) *OutputDataConfig {
+	s.S3Uri = &v
+	return s
+}
+
+// The resource you are looking for has not been found. Review the resource
+// you're looking for and see if a different resource will accomplish your needs
+// before retrying the revised request.
+type ResourceNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The Amazon Translate service is temporarily unavailable. Please wait a bit
+// and then retry your request.
+type ServiceUnavailableException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ServiceUnavailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ServiceUnavailableException) GoString() string {
+	return s.String()
+}
+
+func newErrorServiceUnavailableException(v protocol.ResponseMetadata) error {
+	return &ServiceUnavailableException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ServiceUnavailableException) Code() string {
+	return "ServiceUnavailableException"
+}
+
+// Message returns the exception's message.
+func (s ServiceUnavailableException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ServiceUnavailableException) OrigErr() error {
+	return nil
+}
+
+func (s ServiceUnavailableException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ServiceUnavailableException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ServiceUnavailableException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+type StartTextTranslationJobInput struct {
+	_ struct{} `type:"structure"`
+
+	// The client token of the EC2 instance calling the request. This token is auto-generated
+	// when using the Amazon Translate SDK. Otherwise, use the DescribeInstances
+	// (docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html)
+	// EC2 operation to retreive an instance's client token. For more information,
+	// see Client Tokens (docs.aws.amazon.com/AWSEC2/latest/APIReference/Run_Instance_Idempotency.html#client-tokens)
+	// in the EC2 User Guide.
+	ClientToken *string `min:"1" type:"string" idempotencyToken:"true"`
+
+	// The Amazon Resource Name (ARN) of an AWS Identity Access and Management (IAM)
+	// role that grants Amazon Translate read access to your input data. For more
+	// nformation, see identity-and-access-management.
+	//
+	// DataAccessRoleArn is a required field
+	DataAccessRoleArn *string `min:"20" type:"string" required:"true"`
+
+	// Specifies the format and S3 location of the input documents for the translation
+	// job.
+	//
+	// InputDataConfig is a required field
+	InputDataConfig *InputDataConfig `type:"structure" required:"true"`
+
+	// The name of the batch translation job to be performed.
+	JobName *string `min:"1" type:"string"`
+
+	// Specifies the S3 folder to which your job output will be saved.
+	//
+	// OutputDataConfig is a required field
+	OutputDataConfig *OutputDataConfig `type:"structure" required:"true"`
+
+	// The language code of the input language. For a list of language codes, see
+	// what-is-languages.
+	//
+	// Amazon Translate does not automatically detect a source language during batch
+	// translation jobs.
+	//
+	// SourceLanguageCode is a required field
+	SourceLanguageCode *string `min:"2" type:"string" required:"true"`
+
+	// The language code of the output language.
+	//
+	// TargetLanguageCodes is a required field
+	TargetLanguageCodes []*string `min:"1" type:"list" required:"true"`
+
+	// The name of the terminology to use in the batch translation job. For a list
+	// of available terminologies, use the ListTerminologies operation.
+	TerminologyNames []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s StartTextTranslationJobInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartTextTranslationJobInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartTextTranslationJobInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartTextTranslationJobInput"}
+	if s.ClientToken != nil && len(*s.ClientToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientToken", 1))
+	}
+	if s.DataAccessRoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("DataAccessRoleArn"))
+	}
+	if s.DataAccessRoleArn != nil && len(*s.DataAccessRoleArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("DataAccessRoleArn", 20))
+	}
+	if s.InputDataConfig == nil {
+		invalidParams.Add(request.NewErrParamRequired("InputDataConfig"))
+	}
+	if s.JobName != nil && len(*s.JobName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobName", 1))
+	}
+	if s.OutputDataConfig == nil {
+		invalidParams.Add(request.NewErrParamRequired("OutputDataConfig"))
+	}
+	if s.SourceLanguageCode == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceLanguageCode"))
+	}
+	if s.SourceLanguageCode != nil && len(*s.SourceLanguageCode) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("SourceLanguageCode", 2))
+	}
+	if s.TargetLanguageCodes == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetLanguageCodes"))
+	}
+	if s.TargetLanguageCodes != nil && len(s.TargetLanguageCodes) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TargetLanguageCodes", 1))
+	}
+	if s.InputDataConfig != nil {
+		if err := s.InputDataConfig.Validate(); err != nil {
+			invalidParams.AddNested("InputDataConfig", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.OutputDataConfig != nil {
+		if err := s.OutputDataConfig.Validate(); err != nil {
+			invalidParams.AddNested("OutputDataConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *StartTextTranslationJobInput) SetClientToken(v string) *StartTextTranslationJobInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetDataAccessRoleArn sets the DataAccessRoleArn field's value.
+func (s *StartTextTranslationJobInput) SetDataAccessRoleArn(v string) *StartTextTranslationJobInput {
+	s.DataAccessRoleArn = &v
+	return s
+}
+
+// SetInputDataConfig sets the InputDataConfig field's value.
+func (s *StartTextTranslationJobInput) SetInputDataConfig(v *InputDataConfig) *StartTextTranslationJobInput {
+	s.InputDataConfig = v
+	return s
+}
+
+// SetJobName sets the JobName field's value.
+func (s *StartTextTranslationJobInput) SetJobName(v string) *StartTextTranslationJobInput {
+	s.JobName = &v
+	return s
+}
+
+// SetOutputDataConfig sets the OutputDataConfig field's value.
+func (s *StartTextTranslationJobInput) SetOutputDataConfig(v *OutputDataConfig) *StartTextTranslationJobInput {
+	s.OutputDataConfig = v
+	return s
+}
+
+// SetSourceLanguageCode sets the SourceLanguageCode field's value.
+func (s *StartTextTranslationJobInput) SetSourceLanguageCode(v string) *StartTextTranslationJobInput {
+	s.SourceLanguageCode = &v
+	return s
+}
+
+// SetTargetLanguageCodes sets the TargetLanguageCodes field's value.
+func (s *StartTextTranslationJobInput) SetTargetLanguageCodes(v []*string) *StartTextTranslationJobInput {
+	s.TargetLanguageCodes = v
+	return s
+}
+
+// SetTerminologyNames sets the TerminologyNames field's value.
+func (s *StartTextTranslationJobInput) SetTerminologyNames(v []*string) *StartTextTranslationJobInput {
+	s.TerminologyNames = v
+	return s
+}
+
+type StartTextTranslationJobOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier generated for the job. To get the status of a job, use this
+	// ID with the DescribeTextTranslationJob operation.
+	JobId *string `min:"1" type:"string"`
+
+	// The status of the job. Possible values include:
+	//
+	//    * SUBMITTED - The job has been received and is queued for processing.
+	//
+	//    * IN_PROGRESS - Amazon Translate is processing the job.
+	//
+	//    * COMPLETED - The job was successfully completed and the output is available.
+	//
+	//    * COMPLETED_WITH_ERRORS - The job was completed with errors. The errors
+	//    can be analyzed in the job's output.
+	//
+	//    * FAILED - The job did not complete. To get details, use the DescribeTextTranslationJob
+	//    operation.
+	//
+	//    * STOP_REQUESTED - The user who started the job has requested that it
+	//    be stopped.
+	//
+	//    * STOPPED - The job has been stopped.
+	JobStatus *string `type:"string" enum:"JobStatus"`
+}
+
+// String returns the string representation
+func (s StartTextTranslationJobOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartTextTranslationJobOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StartTextTranslationJobOutput) SetJobId(v string) *StartTextTranslationJobOutput {
+	s.JobId = &v
+	return s
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *StartTextTranslationJobOutput) SetJobStatus(v string) *StartTextTranslationJobOutput {
+	s.JobStatus = &v
+	return s
+}
+
+type StopTextTranslationJobInput struct {
+	_ struct{} `type:"structure"`
+
+	// The job ID of the job to be stopped.
+	//
+	// JobId is a required field
+	JobId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StopTextTranslationJobInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopTextTranslationJobInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StopTextTranslationJobInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StopTextTranslationJobInput"}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StopTextTranslationJobInput) SetJobId(v string) *StopTextTranslationJobInput {
+	s.JobId = &v
+	return s
+}
+
+type StopTextTranslationJobOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The job ID of the stopped batch translation job.
+	JobId *string `min:"1" type:"string"`
+
+	// The status of the designated job. Upon successful completion, the job's status
+	// will be STOPPED.
+	JobStatus *string `type:"string" enum:"JobStatus"`
+}
+
+// String returns the string representation
+func (s StopTextTranslationJobOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopTextTranslationJobOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StopTextTranslationJobOutput) SetJobId(v string) *StopTextTranslationJobOutput {
+	s.JobId = &v
+	return s
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *StopTextTranslationJobOutput) SetJobStatus(v string) *StopTextTranslationJobOutput {
+	s.JobStatus = &v
+	return s
+}
+
 // The term being translated by the custom terminology.
 type Term struct {
 	_ struct{} `type:"structure"`
@@ -1020,7 +2515,9 @@ func (s *Term) SetTargetText(v string) *Term {
 type TerminologyData struct {
 	_ struct{} `type:"structure"`
 
-	// The file containing the custom terminology data.
+	// The file containing the custom terminology data. Your version of the AWS
+	// SDK performs a Base64-encoding on this field before sending a request to
+	// the AWS service. Users of the SDK should not perform Base64-encoding themselves.
 	//
 	// File is automatically base64 encoded/decoded by the SDK.
 	//
@@ -1219,11 +2716,13 @@ type TextInput struct {
 	_ struct{} `type:"structure"`
 
 	// The language code for the language of the source text. The language must
-	// be a language supported by Amazon Translate.
+	// be a language supported by Amazon Translate. For a list of language codes,
+	// see what-is-languages.
 	//
 	// To have Amazon Translate determine the source language of your text, you
 	// can specify auto in the SourceLanguageCode field. If you specify auto, Amazon
-	// Translate will call Amazon Comprehend to determine the source language.
+	// Translate will call Amazon Comprehend (https://docs.aws.amazon.com/comprehend/latest/dg/comprehend-general.html)
+	// to determine the source language.
 	//
 	// SourceLanguageCode is a required field
 	SourceLanguageCode *string `min:"2" type:"string" required:"true"`
@@ -1234,8 +2733,9 @@ type TextInput struct {
 	// TargetLanguageCode is a required field
 	TargetLanguageCode *string `min:"2" type:"string" required:"true"`
 
-	// The TerminologyNames list that is taken as input to the TranslateText request.
-	// This has a minimum length of 0 and a maximum length of 1.
+	// The name of the terminology list file to be used in the TranslateText request.
+	// You can use 1 terminology list at most in a TranslateText request. Terminology
+	// lists can contain a maximum of 256 terms.
 	TerminologyNames []*string `type:"list"`
 
 	// The text to translate. The text string can be a maximum of 5,000 bytes long.
@@ -1324,7 +2824,7 @@ type TextOutput struct {
 	// TargetLanguageCode is a required field
 	TargetLanguageCode *string `min:"2" type:"string" required:"true"`
 
-	// The the translated text. The maximum length of this text is 5kb.
+	// The translated text.
 	//
 	// TranslatedText is a required field
 	TranslatedText *string `type:"string" required:"true"`
@@ -1364,9 +2864,418 @@ func (s *TextOutput) SetTranslatedText(v string) *TextOutput {
 	return s
 }
 
+// The size of the text you submitted exceeds the size limit. Reduce the size
+// of the text or use a smaller document and then retry your request.
+type TextSizeLimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s TextSizeLimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TextSizeLimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorTextSizeLimitExceededException(v protocol.ResponseMetadata) error {
+	return &TextSizeLimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TextSizeLimitExceededException) Code() string {
+	return "TextSizeLimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s TextSizeLimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TextSizeLimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s TextSizeLimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TextSizeLimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TextSizeLimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Provides information for filtering a list of translation jobs. For more information,
+// see ListTextTranslationJobs.
+type TextTranslationJobFilter struct {
+	_ struct{} `type:"structure"`
+
+	// Filters the list of jobs by name.
+	JobName *string `min:"1" type:"string"`
+
+	// Filters the list of jobs based by job status.
+	JobStatus *string `type:"string" enum:"JobStatus"`
+
+	// Filters the list of jobs based on the time that the job was submitted for
+	// processing and returns only the jobs submitted after the specified time.
+	// Jobs are returned in descending order, newest to oldest.
+	SubmittedAfterTime *time.Time `type:"timestamp"`
+
+	// Filters the list of jobs based on the time that the job was submitted for
+	// processing and returns only the jobs submitted before the specified time.
+	// Jobs are returned in ascending order, oldest to newest.
+	SubmittedBeforeTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation
+func (s TextTranslationJobFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TextTranslationJobFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TextTranslationJobFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TextTranslationJobFilter"}
+	if s.JobName != nil && len(*s.JobName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobName sets the JobName field's value.
+func (s *TextTranslationJobFilter) SetJobName(v string) *TextTranslationJobFilter {
+	s.JobName = &v
+	return s
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *TextTranslationJobFilter) SetJobStatus(v string) *TextTranslationJobFilter {
+	s.JobStatus = &v
+	return s
+}
+
+// SetSubmittedAfterTime sets the SubmittedAfterTime field's value.
+func (s *TextTranslationJobFilter) SetSubmittedAfterTime(v time.Time) *TextTranslationJobFilter {
+	s.SubmittedAfterTime = &v
+	return s
+}
+
+// SetSubmittedBeforeTime sets the SubmittedBeforeTime field's value.
+func (s *TextTranslationJobFilter) SetSubmittedBeforeTime(v time.Time) *TextTranslationJobFilter {
+	s.SubmittedBeforeTime = &v
+	return s
+}
+
+// Provides information about a translation job.
+type TextTranslationJobProperties struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of an AWS Identity Access and Management (IAM)
+	// role that granted Amazon Translate read access to the job's input data.
+	DataAccessRoleArn *string `min:"20" type:"string"`
+
+	// The time at which the translation job ended.
+	EndTime *time.Time `type:"timestamp"`
+
+	// The input configuration properties that were specified when the job was requested.
+	InputDataConfig *InputDataConfig `type:"structure"`
+
+	// The number of documents successfully and unsuccessfully processed during
+	// the translation job.
+	JobDetails *JobDetails `type:"structure"`
+
+	// The ID of the translation job.
+	JobId *string `min:"1" type:"string"`
+
+	// The user-defined name of the translation job.
+	JobName *string `min:"1" type:"string"`
+
+	// The status of the translation job.
+	JobStatus *string `type:"string" enum:"JobStatus"`
+
+	// An explanation of any errors that may have occured during the translation
+	// job.
+	Message *string `type:"string"`
+
+	// The output configuration properties that were specified when the job was
+	// requested.
+	OutputDataConfig *OutputDataConfig `type:"structure"`
+
+	// The language code of the language of the source text. The language must be
+	// a language supported by Amazon Translate.
+	SourceLanguageCode *string `min:"2" type:"string"`
+
+	// The time at which the translation job was submitted.
+	SubmittedTime *time.Time `type:"timestamp"`
+
+	// The language code of the language of the target text. The language must be
+	// a language supported by Amazon Translate.
+	TargetLanguageCodes []*string `min:"1" type:"list"`
+
+	// A list containing the names of the terminologies applied to a translation
+	// job. Only one terminology can be applied per StartTextTranslationJob request
+	// at this time.
+	TerminologyNames []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s TextTranslationJobProperties) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TextTranslationJobProperties) GoString() string {
+	return s.String()
+}
+
+// SetDataAccessRoleArn sets the DataAccessRoleArn field's value.
+func (s *TextTranslationJobProperties) SetDataAccessRoleArn(v string) *TextTranslationJobProperties {
+	s.DataAccessRoleArn = &v
+	return s
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *TextTranslationJobProperties) SetEndTime(v time.Time) *TextTranslationJobProperties {
+	s.EndTime = &v
+	return s
+}
+
+// SetInputDataConfig sets the InputDataConfig field's value.
+func (s *TextTranslationJobProperties) SetInputDataConfig(v *InputDataConfig) *TextTranslationJobProperties {
+	s.InputDataConfig = v
+	return s
+}
+
+// SetJobDetails sets the JobDetails field's value.
+func (s *TextTranslationJobProperties) SetJobDetails(v *JobDetails) *TextTranslationJobProperties {
+	s.JobDetails = v
+	return s
+}
+
+// SetJobId sets the JobId field's value.
+func (s *TextTranslationJobProperties) SetJobId(v string) *TextTranslationJobProperties {
+	s.JobId = &v
+	return s
+}
+
+// SetJobName sets the JobName field's value.
+func (s *TextTranslationJobProperties) SetJobName(v string) *TextTranslationJobProperties {
+	s.JobName = &v
+	return s
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *TextTranslationJobProperties) SetJobStatus(v string) *TextTranslationJobProperties {
+	s.JobStatus = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *TextTranslationJobProperties) SetMessage(v string) *TextTranslationJobProperties {
+	s.Message = &v
+	return s
+}
+
+// SetOutputDataConfig sets the OutputDataConfig field's value.
+func (s *TextTranslationJobProperties) SetOutputDataConfig(v *OutputDataConfig) *TextTranslationJobProperties {
+	s.OutputDataConfig = v
+	return s
+}
+
+// SetSourceLanguageCode sets the SourceLanguageCode field's value.
+func (s *TextTranslationJobProperties) SetSourceLanguageCode(v string) *TextTranslationJobProperties {
+	s.SourceLanguageCode = &v
+	return s
+}
+
+// SetSubmittedTime sets the SubmittedTime field's value.
+func (s *TextTranslationJobProperties) SetSubmittedTime(v time.Time) *TextTranslationJobProperties {
+	s.SubmittedTime = &v
+	return s
+}
+
+// SetTargetLanguageCodes sets the TargetLanguageCodes field's value.
+func (s *TextTranslationJobProperties) SetTargetLanguageCodes(v []*string) *TextTranslationJobProperties {
+	s.TargetLanguageCodes = v
+	return s
+}
+
+// SetTerminologyNames sets the TerminologyNames field's value.
+func (s *TextTranslationJobProperties) SetTerminologyNames(v []*string) *TextTranslationJobProperties {
+	s.TerminologyNames = v
+	return s
+}
+
+// You have made too many requests within a short period of time. Wait for a
+// short time and then try your request again.
+type TooManyRequestsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s TooManyRequestsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TooManyRequestsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTooManyRequestsException(v protocol.ResponseMetadata) error {
+	return &TooManyRequestsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TooManyRequestsException) Code() string {
+	return "TooManyRequestsException"
+}
+
+// Message returns the exception's message.
+func (s TooManyRequestsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TooManyRequestsException) OrigErr() error {
+	return nil
+}
+
+func (s TooManyRequestsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TooManyRequestsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TooManyRequestsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Amazon Translate does not support translation from the language of the source
+// text into the requested target language. For more information, see how-to-error-msg.
+type UnsupportedLanguagePairException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+
+	// The language code for the language of the input text.
+	SourceLanguageCode *string `min:"2" type:"string"`
+
+	// The language code for the language of the translated text.
+	TargetLanguageCode *string `min:"2" type:"string"`
+}
+
+// String returns the string representation
+func (s UnsupportedLanguagePairException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnsupportedLanguagePairException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnsupportedLanguagePairException(v protocol.ResponseMetadata) error {
+	return &UnsupportedLanguagePairException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnsupportedLanguagePairException) Code() string {
+	return "UnsupportedLanguagePairException"
+}
+
+// Message returns the exception's message.
+func (s UnsupportedLanguagePairException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnsupportedLanguagePairException) OrigErr() error {
+	return nil
+}
+
+func (s UnsupportedLanguagePairException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnsupportedLanguagePairException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnsupportedLanguagePairException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 const (
 	// EncryptionKeyTypeKms is a EncryptionKeyType enum value
 	EncryptionKeyTypeKms = "KMS"
+)
+
+const (
+	// JobStatusSubmitted is a JobStatus enum value
+	JobStatusSubmitted = "SUBMITTED"
+
+	// JobStatusInProgress is a JobStatus enum value
+	JobStatusInProgress = "IN_PROGRESS"
+
+	// JobStatusCompleted is a JobStatus enum value
+	JobStatusCompleted = "COMPLETED"
+
+	// JobStatusCompletedWithError is a JobStatus enum value
+	JobStatusCompletedWithError = "COMPLETED_WITH_ERROR"
+
+	// JobStatusFailed is a JobStatus enum value
+	JobStatusFailed = "FAILED"
+
+	// JobStatusStopRequested is a JobStatus enum value
+	JobStatusStopRequested = "STOP_REQUESTED"
+
+	// JobStatusStopped is a JobStatus enum value
+	JobStatusStopped = "STOPPED"
 )
 
 const (

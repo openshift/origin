@@ -31,8 +31,8 @@ var orderedLinesTests = []struct {
 
 func TestOrderedLinesIterate(t *testing.T) {
 	for _, test := range orderedLinesTests {
+		it := iterator.NewOrderedLines(test.lines)
 		for i := 0; i < 2; i++ {
-			it := iterator.NewOrderedLines(test.lines)
 			if it.Len() != len(test.lines) {
 				t.Errorf("unexpected iterator length for round %d: got:%d want:%d", i, it.Len(), len(test.lines))
 			}
@@ -51,8 +51,8 @@ func TestOrderedLinesIterate(t *testing.T) {
 
 func TestOrderedLinesSlice(t *testing.T) {
 	for _, test := range orderedLinesTests {
+		it := iterator.NewOrderedLines(test.lines)
 		for i := 0; i < 2; i++ {
-			it := iterator.NewOrderedLines(test.lines)
 			got := it.LineSlice()
 			want := test.lines
 			if !reflect.DeepEqual(got, want) {
@@ -85,8 +85,8 @@ var orderedWeightedLinesTests = []struct {
 
 func TestOrderedWeightedLinesIterate(t *testing.T) {
 	for _, test := range orderedWeightedLinesTests {
+		it := iterator.NewOrderedWeightedLines(test.lines)
 		for i := 0; i < 2; i++ {
-			it := iterator.NewOrderedWeightedLines(test.lines)
 			if it.Len() != len(test.lines) {
 				t.Errorf("unexpected iterator length for round %d: got:%d want:%d", i, it.Len(), len(test.lines))
 			}
@@ -105,8 +105,8 @@ func TestOrderedWeightedLinesIterate(t *testing.T) {
 
 func TestOrderedWeightedLinesSlice(t *testing.T) {
 	for _, test := range orderedWeightedLinesTests {
+		it := iterator.NewOrderedWeightedLines(test.lines)
 		for i := 0; i < 2; i++ {
-			it := iterator.NewOrderedWeightedLines(test.lines)
 			got := it.WeightedLineSlice()
 			want := test.lines
 			if !reflect.DeepEqual(got, want) {

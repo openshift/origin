@@ -97,6 +97,10 @@ type SignerAPI interface {
 	ListSigningProfilesPages(*signer.ListSigningProfilesInput, func(*signer.ListSigningProfilesOutput, bool) bool) error
 	ListSigningProfilesPagesWithContext(aws.Context, *signer.ListSigningProfilesInput, func(*signer.ListSigningProfilesOutput, bool) bool, ...request.Option) error
 
+	ListTagsForResource(*signer.ListTagsForResourceInput) (*signer.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *signer.ListTagsForResourceInput, ...request.Option) (*signer.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*signer.ListTagsForResourceInput) (*request.Request, *signer.ListTagsForResourceOutput)
+
 	PutSigningProfile(*signer.PutSigningProfileInput) (*signer.PutSigningProfileOutput, error)
 	PutSigningProfileWithContext(aws.Context, *signer.PutSigningProfileInput, ...request.Option) (*signer.PutSigningProfileOutput, error)
 	PutSigningProfileRequest(*signer.PutSigningProfileInput) (*request.Request, *signer.PutSigningProfileOutput)
@@ -104,6 +108,14 @@ type SignerAPI interface {
 	StartSigningJob(*signer.StartSigningJobInput) (*signer.StartSigningJobOutput, error)
 	StartSigningJobWithContext(aws.Context, *signer.StartSigningJobInput, ...request.Option) (*signer.StartSigningJobOutput, error)
 	StartSigningJobRequest(*signer.StartSigningJobInput) (*request.Request, *signer.StartSigningJobOutput)
+
+	TagResource(*signer.TagResourceInput) (*signer.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *signer.TagResourceInput, ...request.Option) (*signer.TagResourceOutput, error)
+	TagResourceRequest(*signer.TagResourceInput) (*request.Request, *signer.TagResourceOutput)
+
+	UntagResource(*signer.UntagResourceInput) (*signer.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *signer.UntagResourceInput, ...request.Option) (*signer.UntagResourceOutput, error)
+	UntagResourceRequest(*signer.UntagResourceInput) (*request.Request, *signer.UntagResourceOutput)
 
 	WaitUntilSuccessfulSigningJob(*signer.DescribeSigningJobInput) error
 	WaitUntilSuccessfulSigningJobWithContext(aws.Context, *signer.DescribeSigningJobInput, ...request.WaiterOption) error

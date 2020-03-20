@@ -27,7 +27,9 @@ func TestInteg_00_DescribeAgents(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := applicationdiscoveryservice.New(sess)
 	params := &applicationdiscoveryservice.DescribeAgentsInput{}
-	_, err := svc.DescribeAgentsWithContext(ctx, params)
+	_, err := svc.DescribeAgentsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

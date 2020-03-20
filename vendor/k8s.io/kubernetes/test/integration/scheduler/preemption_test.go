@@ -37,6 +37,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/klog"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
 	"k8s.io/kubernetes/pkg/scheduler"
@@ -44,18 +45,15 @@ import (
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
 	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 	"k8s.io/kubernetes/plugin/pkg/admission/priority"
-	testutils "k8s.io/kubernetes/test/utils"
-
-	_ "k8s.io/kubernetes/pkg/scheduler/algorithmprovider"
-
-	"k8s.io/klog"
+	testutils "k8s.io/kubernetes/test/integration/util"
+	utils "k8s.io/kubernetes/test/utils"
 )
 
 var lowPriority, mediumPriority, highPriority = int32(100), int32(200), int32(300)
 
 func waitForNominatedNodeNameWithTimeout(cs clientset.Interface, pod *v1.Pod, timeout time.Duration) error {
 	if err := wait.Poll(100*time.Millisecond, timeout, func() (bool, error) {
-		pod, err := cs.CoreV1().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{})
+		pod, err := cs.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -125,33 +123,35 @@ func TestPreemption(t *testing.T) {
 	// Initialize scheduler with a filter plugin.
 	var filter tokenFilter
 	registry := make(framework.Registry)
-	registry.Register(filterPluginName, func(_ *runtime.Unknown, fh framework.FrameworkHandle) (framework.Plugin, error) {
+	err := registry.Register(filterPluginName, func(_ *runtime.Unknown, fh framework.FrameworkHandle) (framework.Plugin, error) {
 		return &filter, nil
 	})
-	plugins := &schedulerconfig.Plugins{
-		Filter: &schedulerconfig.PluginSet{
-			Enabled: []schedulerconfig.Plugin{
-				{
-					Name: filterPluginName,
+	if err != nil {
+		t.Fatalf("Error registering a filter: %v", err)
+	}
+	prof := schedulerconfig.KubeSchedulerProfile{
+		SchedulerName: v1.DefaultSchedulerName,
+		Plugins: &schedulerconfig.Plugins{
+			Filter: &schedulerconfig.PluginSet{
+				Enabled: []schedulerconfig.Plugin{
+					{Name: filterPluginName},
 				},
 			},
-		},
-		PreFilter: &schedulerconfig.PluginSet{
-			Enabled: []schedulerconfig.Plugin{
-				{
-					Name: filterPluginName,
+			PreFilter: &schedulerconfig.PluginSet{
+				Enabled: []schedulerconfig.Plugin{
+					{Name: filterPluginName},
 				},
 			},
 		},
 	}
-	context := initTestSchedulerWithOptions(t,
-		initTestMaster(t, "preemptiom", nil),
+	testCtx := testutils.InitTestSchedulerWithOptions(t,
+		testutils.InitTestMaster(t, "preemptiom", nil),
 		false, nil, time.Second,
-		scheduler.WithFrameworkPlugins(plugins),
+		scheduler.WithProfiles(prof),
 		scheduler.WithFrameworkOutOfTreeRegistry(registry))
 
-	defer cleanupTest(t, context)
-	cs := context.clientSet
+	defer testutils.CleanupTest(t, testCtx)
+	cs := testCtx.ClientSet
 
 	defaultPodRes := &v1.ResourceRequirements{Requests: v1.ResourceList{
 		v1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
@@ -171,9 +171,9 @@ func TestPreemption(t *testing.T) {
 			description: "basic pod preemption",
 			initTokens:  maxTokens,
 			existingPods: []*v1.Pod{
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "victim-pod",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 						v1.ResourceCPU:    *resource.NewMilliQuantity(400, resource.DecimalSI),
@@ -183,7 +183,7 @@ func TestPreemption(t *testing.T) {
 			},
 			pod: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(300, resource.DecimalSI),
@@ -196,9 +196,9 @@ func TestPreemption(t *testing.T) {
 			description: "basic pod preemption with filter",
 			initTokens:  1,
 			existingPods: []*v1.Pod{
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "victim-pod",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 						v1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
@@ -208,7 +208,7 @@ func TestPreemption(t *testing.T) {
 			},
 			pod: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
@@ -223,9 +223,9 @@ func TestPreemption(t *testing.T) {
 			initTokens:   1,
 			unresolvable: true,
 			existingPods: []*v1.Pod{
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "victim-pod",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 						v1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
@@ -235,7 +235,7 @@ func TestPreemption(t *testing.T) {
 			},
 			pod: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
@@ -249,13 +249,13 @@ func TestPreemption(t *testing.T) {
 			initTokens:  maxTokens,
 			existingPods: []*v1.Pod{
 				initPausePod(cs, &pausePodConfig{
-					Name: "pod-0", Namespace: context.ns.Name,
+					Name: "pod-0", Namespace: testCtx.NS.Name,
 					Priority:  &mediumPriority,
 					Labels:    map[string]string{"pod": "p0"},
 					Resources: defaultPodRes,
 				}),
 				initPausePod(cs, &pausePodConfig{
-					Name: "pod-1", Namespace: context.ns.Name,
+					Name: "pod-1", Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Labels:    map[string]string{"pod": "p1"},
 					Resources: defaultPodRes,
@@ -282,7 +282,7 @@ func TestPreemption(t *testing.T) {
 			// A higher priority pod with anti-affinity.
 			pod: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Labels:    map[string]string{"pod": "preemptor"},
 				Resources: defaultPodRes,
@@ -313,13 +313,13 @@ func TestPreemption(t *testing.T) {
 			initTokens:  maxTokens,
 			existingPods: []*v1.Pod{
 				initPausePod(cs, &pausePodConfig{
-					Name: "pod-0", Namespace: context.ns.Name,
+					Name: "pod-0", Namespace: testCtx.NS.Name,
 					Priority:  &mediumPriority,
 					Labels:    map[string]string{"pod": "p0"},
 					Resources: defaultPodRes,
 				}),
 				initPausePod(cs, &pausePodConfig{
-					Name: "pod-1", Namespace: context.ns.Name,
+					Name: "pod-1", Namespace: testCtx.NS.Name,
 					Priority:  &highPriority,
 					Labels:    map[string]string{"pod": "p1"},
 					Resources: defaultPodRes,
@@ -346,7 +346,7 @@ func TestPreemption(t *testing.T) {
 			// A higher priority pod with anti-affinity.
 			pod: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Labels:    map[string]string{"pod": "preemptor"},
 				Resources: defaultPodRes,
@@ -379,19 +379,20 @@ func TestPreemption(t *testing.T) {
 		v1.ResourceCPU:    *resource.NewMilliQuantity(500, resource.DecimalSI),
 		v1.ResourceMemory: *resource.NewQuantity(500, resource.DecimalSI),
 	}
-	node, err := createNode(context.clientSet, "node1", nodeRes)
+	node, err := createNode(testCtx.ClientSet, "node1", nodeRes)
 	if err != nil {
 		t.Fatalf("Error creating nodes: %v", err)
 	}
 	nodeLabels := map[string]string{"node": node.Name}
-	if err = testutils.AddLabelsToNode(context.clientSet, node.Name, nodeLabels); err != nil {
+	if err = utils.AddLabelsToNode(testCtx.ClientSet, node.Name, nodeLabels); err != nil {
 		t.Fatalf("Cannot add labels to node: %v", err)
 	}
-	if err = waitForNodeLabels(context.clientSet, node.Name, nodeLabels); err != nil {
+	if err = waitForNodeLabels(testCtx.ClientSet, node.Name, nodeLabels); err != nil {
 		t.Fatalf("Adding labels to node didn't succeed: %v", err)
 	}
 
 	for _, test := range tests {
+		t.Logf("================ Running test: %v\n", test.description)
 		filter.Tokens = test.initTokens
 		filter.Unresolvable = test.unresolvable
 		pods := make([]*v1.Pod, len(test.existingPods))
@@ -428,16 +429,16 @@ func TestPreemption(t *testing.T) {
 
 		// Cleanup
 		pods = append(pods, preemptor)
-		cleanupPods(cs, t, pods)
+		testutils.CleanupPods(cs, t, pods)
 	}
 }
 
 // TestDisablePreemption tests disable pod preemption of scheduler works as expected.
 func TestDisablePreemption(t *testing.T) {
 	// Initialize scheduler, and disable preemption.
-	context := initTestDisablePreemption(t, "disable-preemption")
-	defer cleanupTest(t, context)
-	cs := context.clientSet
+	testCtx := initTestDisablePreemption(t, "disable-preemption")
+	defer testutils.CleanupTest(t, testCtx)
+	cs := testCtx.ClientSet
 
 	tests := []struct {
 		description  string
@@ -447,9 +448,9 @@ func TestDisablePreemption(t *testing.T) {
 		{
 			description: "pod preemption will not happen",
 			existingPods: []*v1.Pod{
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "victim-pod",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 						v1.ResourceCPU:    *resource.NewMilliQuantity(400, resource.DecimalSI),
@@ -459,7 +460,7 @@ func TestDisablePreemption(t *testing.T) {
 			},
 			pod: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(300, resource.DecimalSI),
@@ -475,7 +476,7 @@ func TestDisablePreemption(t *testing.T) {
 		v1.ResourceCPU:    *resource.NewMilliQuantity(500, resource.DecimalSI),
 		v1.ResourceMemory: *resource.NewQuantity(500, resource.DecimalSI),
 	}
-	_, err := createNode(context.clientSet, "node1", nodeRes)
+	_, err := createNode(testCtx.ClientSet, "node1", nodeRes)
 	if err != nil {
 		t.Fatalf("Error creating nodes: %v", err)
 	}
@@ -508,27 +509,27 @@ func TestDisablePreemption(t *testing.T) {
 
 		// Cleanup
 		pods = append(pods, preemptor)
-		cleanupPods(cs, t, pods)
+		testutils.CleanupPods(cs, t, pods)
 	}
 }
 
 // This test verifies that system critical priorities are created automatically and resolved properly.
 func TestPodPriorityResolution(t *testing.T) {
 	admission := priority.NewPlugin()
-	context := initTestScheduler(t, initTestMaster(t, "preemption", admission), true, nil)
-	defer cleanupTest(t, context)
-	cs := context.clientSet
+	testCtx := testutils.InitTestScheduler(t, testutils.InitTestMaster(t, "preemption", admission), true, nil)
+	defer testutils.CleanupTest(t, testCtx)
+	cs := testCtx.ClientSet
 
 	// Build clientset and informers for controllers.
 	externalClientset := kubernetes.NewForConfigOrDie(&restclient.Config{
 		QPS:           -1,
-		Host:          context.httpServer.URL,
+		Host:          testCtx.HTTPServer.URL,
 		ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Group: "", Version: "v1"}}})
 	externalInformers := informers.NewSharedInformerFactory(externalClientset, time.Second)
 	admission.SetExternalKubeClientSet(externalClientset)
 	admission.SetExternalKubeInformerFactory(externalInformers)
-	externalInformers.Start(context.ctx.Done())
-	externalInformers.WaitForCacheSync(context.ctx.Done())
+	externalInformers.Start(testCtx.Ctx.Done())
+	externalInformers.WaitForCacheSync(testCtx.Ctx.Done())
 
 	tests := []struct {
 		Name             string
@@ -576,13 +577,14 @@ func TestPodPriorityResolution(t *testing.T) {
 		v1.ResourceCPU:    *resource.NewMilliQuantity(500, resource.DecimalSI),
 		v1.ResourceMemory: *resource.NewQuantity(500, resource.DecimalSI),
 	}
-	_, err := createNode(context.clientSet, "node1", nodeRes)
+	_, err := createNode(testCtx.ClientSet, "node1", nodeRes)
 	if err != nil {
 		t.Fatalf("Error creating nodes: %v", err)
 	}
 
 	pods := make([]*v1.Pod, 0, len(tests))
 	for _, test := range tests {
+		t.Logf("================ Running test: %v\n", test.Name)
 		t.Run(test.Name, func(t *testing.T) {
 			pod, err := runPausePod(cs, test.Pod)
 			if err != nil {
@@ -604,18 +606,18 @@ func TestPodPriorityResolution(t *testing.T) {
 			}
 		})
 	}
-	cleanupPods(cs, t, pods)
-	cleanupNodes(cs, t)
+	testutils.CleanupPods(cs, t, pods)
+	testutils.CleanupNodes(cs, t)
 }
 
-func mkPriorityPodWithGrace(tc *testContext, name string, priority int32, grace int64) *v1.Pod {
+func mkPriorityPodWithGrace(tc *testutils.TestContext, name string, priority int32, grace int64) *v1.Pod {
 	defaultPodRes := &v1.ResourceRequirements{Requests: v1.ResourceList{
 		v1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
 		v1.ResourceMemory: *resource.NewQuantity(100, resource.DecimalSI)},
 	}
-	pod := initPausePod(tc.clientSet, &pausePodConfig{
+	pod := initPausePod(tc.ClientSet, &pausePodConfig{
 		Name:      name,
-		Namespace: tc.ns.Name,
+		Namespace: tc.NS.Name,
 		Priority:  &priority,
 		Labels:    map[string]string{"pod": name},
 		Resources: defaultPodRes,
@@ -631,9 +633,9 @@ func mkPriorityPodWithGrace(tc *testContext, name string, priority int32, grace 
 // after preemption and while the higher priority pods is not scheduled yet.
 func TestPreemptionStarvation(t *testing.T) {
 	// Initialize scheduler.
-	context := initTest(t, "preemption")
-	defer cleanupTest(t, context)
-	cs := context.clientSet
+	testCtx := initTest(t, "preemption")
+	defer testutils.CleanupTest(t, testCtx)
+	cs := testCtx.ClientSet
 
 	tests := []struct {
 		description        string
@@ -650,7 +652,7 @@ func TestPreemptionStarvation(t *testing.T) {
 			numExpectedPending: 5,
 			preemptor: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(300, resource.DecimalSI),
@@ -666,7 +668,7 @@ func TestPreemptionStarvation(t *testing.T) {
 		v1.ResourceCPU:    *resource.NewMilliQuantity(500, resource.DecimalSI),
 		v1.ResourceMemory: *resource.NewQuantity(500, resource.DecimalSI),
 	}
-	_, err := createNode(context.clientSet, "node1", nodeRes)
+	_, err := createNode(testCtx.ClientSet, "node1", nodeRes)
 	if err != nil {
 		t.Fatalf("Error creating nodes: %v", err)
 	}
@@ -677,20 +679,20 @@ func TestPreemptionStarvation(t *testing.T) {
 		runningPods := make([]*v1.Pod, numRunningPods)
 		// Create and run existingPods.
 		for i := 0; i < numRunningPods; i++ {
-			runningPods[i], err = createPausePod(cs, mkPriorityPodWithGrace(context, fmt.Sprintf("rpod-%v", i), mediumPriority, 0))
+			runningPods[i], err = createPausePod(cs, mkPriorityPodWithGrace(testCtx, fmt.Sprintf("rpod-%v", i), mediumPriority, 0))
 			if err != nil {
 				t.Fatalf("Test [%v]: Error creating pause pod: %v", test.description, err)
 			}
 		}
 		// make sure that runningPods are all scheduled.
 		for _, p := range runningPods {
-			if err := waitForPodToSchedule(cs, p); err != nil {
+			if err := testutils.WaitForPodToSchedule(cs, p); err != nil {
 				t.Fatalf("Pod %v/%v didn't get scheduled: %v", p.Namespace, p.Name, err)
 			}
 		}
 		// Create pending pods.
 		for i := 0; i < test.numExpectedPending; i++ {
-			pendingPods[i], err = createPausePod(cs, mkPriorityPodWithGrace(context, fmt.Sprintf("ppod-%v", i), mediumPriority, 0))
+			pendingPods[i], err = createPausePod(cs, mkPriorityPodWithGrace(testCtx, fmt.Sprintf("ppod-%v", i), mediumPriority, 0))
 			if err != nil {
 				t.Fatalf("Test [%v]: Error creating pending pod: %v", test.description, err)
 			}
@@ -712,7 +714,7 @@ func TestPreemptionStarvation(t *testing.T) {
 			t.Errorf("Test [%v]: NominatedNodeName annotation was not set for pod %v/%v: %v", test.description, preemptor.Namespace, preemptor.Name, err)
 		}
 		// Make sure that preemptor is scheduled after preemptions.
-		if err := waitForPodToScheduleWithTimeout(cs, preemptor, 60*time.Second); err != nil {
+		if err := testutils.WaitForPodToScheduleWithTimeout(cs, preemptor, 60*time.Second); err != nil {
 			t.Errorf("Preemptor pod %v didn't get scheduled: %v", preemptor.Name, err)
 		}
 		// Cleanup
@@ -720,7 +722,7 @@ func TestPreemptionStarvation(t *testing.T) {
 		allPods := pendingPods
 		allPods = append(allPods, runningPods...)
 		allPods = append(allPods, preemptor)
-		cleanupPods(cs, t, allPods)
+		testutils.CleanupPods(cs, t, allPods)
 	}
 }
 
@@ -728,9 +730,9 @@ func TestPreemptionStarvation(t *testing.T) {
 // race with the preemption process.
 func TestPreemptionRaces(t *testing.T) {
 	// Initialize scheduler.
-	context := initTest(t, "preemption-race")
-	defer cleanupTest(t, context)
-	cs := context.clientSet
+	testCtx := initTest(t, "preemption-race")
+	defer testutils.CleanupTest(t, testCtx)
+	cs := testCtx.ClientSet
 
 	tests := []struct {
 		description       string
@@ -749,7 +751,7 @@ func TestPreemptionRaces(t *testing.T) {
 			numRepetitions:    10,
 			preemptor: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(4900, resource.DecimalSI),
@@ -765,7 +767,7 @@ func TestPreemptionRaces(t *testing.T) {
 		v1.ResourceCPU:    *resource.NewMilliQuantity(5000, resource.DecimalSI),
 		v1.ResourceMemory: *resource.NewQuantity(5000, resource.DecimalSI),
 	}
-	_, err := createNode(context.clientSet, "node1", nodeRes)
+	_, err := createNode(testCtx.ClientSet, "node1", nodeRes)
 	if err != nil {
 		t.Fatalf("Error creating nodes: %v", err)
 	}
@@ -779,14 +781,14 @@ func TestPreemptionRaces(t *testing.T) {
 			additionalPods := make([]*v1.Pod, test.numAdditionalPods)
 			// Create and run existingPods.
 			for i := 0; i < test.numInitialPods; i++ {
-				initialPods[i], err = createPausePod(cs, mkPriorityPodWithGrace(context, fmt.Sprintf("rpod-%v", i), mediumPriority, 0))
+				initialPods[i], err = createPausePod(cs, mkPriorityPodWithGrace(testCtx, fmt.Sprintf("rpod-%v", i), mediumPriority, 0))
 				if err != nil {
 					t.Fatalf("Test [%v]: Error creating pause pod: %v", test.description, err)
 				}
 			}
 			// make sure that initial Pods are all scheduled.
 			for _, p := range initialPods {
-				if err := waitForPodToSchedule(cs, p); err != nil {
+				if err := testutils.WaitForPodToSchedule(cs, p); err != nil {
 					t.Fatalf("Pod %v/%v didn't get scheduled: %v", p.Namespace, p.Name, err)
 				}
 			}
@@ -799,7 +801,7 @@ func TestPreemptionRaces(t *testing.T) {
 
 			klog.Info("Creating additional pods...")
 			for i := 0; i < test.numAdditionalPods; i++ {
-				additionalPods[i], err = createPausePod(cs, mkPriorityPodWithGrace(context, fmt.Sprintf("ppod-%v", i), mediumPriority, 0))
+				additionalPods[i], err = createPausePod(cs, mkPriorityPodWithGrace(testCtx, fmt.Sprintf("ppod-%v", i), mediumPriority, 0))
 				if err != nil {
 					t.Fatalf("Test [%v]: Error creating pending pod: %v", test.description, err)
 				}
@@ -809,13 +811,13 @@ func TestPreemptionRaces(t *testing.T) {
 				t.Errorf("Test [%v]: NominatedNodeName annotation was not set for pod %v/%v: %v", test.description, preemptor.Namespace, preemptor.Name, err)
 			}
 			// Make sure that preemptor is scheduled after preemptions.
-			if err := waitForPodToScheduleWithTimeout(cs, preemptor, 60*time.Second); err != nil {
+			if err := testutils.WaitForPodToScheduleWithTimeout(cs, preemptor, 60*time.Second); err != nil {
 				t.Errorf("Preemptor pod %v didn't get scheduled: %v", preemptor.Name, err)
 			}
 
 			klog.Info("Check unschedulable pods still exists and were never scheduled...")
 			for _, p := range additionalPods {
-				pod, err := cs.CoreV1().Pods(p.Namespace).Get(p.Name, metav1.GetOptions{})
+				pod, err := cs.CoreV1().Pods(p.Namespace).Get(context.TODO(), p.Name, metav1.GetOptions{})
 				if err != nil {
 					t.Errorf("Error in getting Pod %v/%v info: %v", p.Namespace, p.Name, err)
 				}
@@ -832,7 +834,7 @@ func TestPreemptionRaces(t *testing.T) {
 			allPods := additionalPods
 			allPods = append(allPods, initialPods...)
 			allPods = append(allPods, preemptor)
-			cleanupPods(cs, t, allPods)
+			testutils.CleanupPods(cs, t, allPods)
 		}
 	}
 }
@@ -849,12 +851,12 @@ func TestPreemptionRaces(t *testing.T) {
 //    node name of the medium priority pod is cleared.
 func TestNominatedNodeCleanUp(t *testing.T) {
 	// Initialize scheduler.
-	context := initTest(t, "preemption")
-	defer cleanupTest(t, context)
+	testCtx := initTest(t, "preemption")
+	defer testutils.CleanupTest(t, testCtx)
 
-	cs := context.clientSet
+	cs := testCtx.ClientSet
 
-	defer cleanupPodsInNamespace(cs, t, context.ns.Name)
+	defer cleanupPodsInNamespace(cs, t, testCtx.NS.Name)
 
 	// Create a node with some resources and a label.
 	nodeRes := &v1.ResourceList{
@@ -862,7 +864,7 @@ func TestNominatedNodeCleanUp(t *testing.T) {
 		v1.ResourceCPU:    *resource.NewMilliQuantity(500, resource.DecimalSI),
 		v1.ResourceMemory: *resource.NewQuantity(500, resource.DecimalSI),
 	}
-	_, err := createNode(context.clientSet, "node1", nodeRes)
+	_, err := createNode(testCtx.ClientSet, "node1", nodeRes)
 	if err != nil {
 		t.Fatalf("Error creating nodes: %v", err)
 	}
@@ -870,21 +872,21 @@ func TestNominatedNodeCleanUp(t *testing.T) {
 	// Step 1. Create a few low priority pods.
 	lowPriPods := make([]*v1.Pod, 4)
 	for i := 0; i < len(lowPriPods); i++ {
-		lowPriPods[i], err = createPausePod(cs, mkPriorityPodWithGrace(context, fmt.Sprintf("lpod-%v", i), lowPriority, 60))
+		lowPriPods[i], err = createPausePod(cs, mkPriorityPodWithGrace(testCtx, fmt.Sprintf("lpod-%v", i), lowPriority, 60))
 		if err != nil {
 			t.Fatalf("Error creating pause pod: %v", err)
 		}
 	}
 	// make sure that the pods are all scheduled.
 	for _, p := range lowPriPods {
-		if err := waitForPodToSchedule(cs, p); err != nil {
+		if err := testutils.WaitForPodToSchedule(cs, p); err != nil {
 			t.Fatalf("Pod %v/%v didn't get scheduled: %v", p.Namespace, p.Name, err)
 		}
 	}
 	// Step 2. Create a medium priority pod.
 	podConf := initPausePod(cs, &pausePodConfig{
 		Name:      "medium-priority",
-		Namespace: context.ns.Name,
+		Namespace: testCtx.NS.Name,
 		Priority:  &mediumPriority,
 		Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 			v1.ResourceCPU:    *resource.NewMilliQuantity(400, resource.DecimalSI),
@@ -902,7 +904,7 @@ func TestNominatedNodeCleanUp(t *testing.T) {
 	// Step 4. Create a high priority pod.
 	podConf = initPausePod(cs, &pausePodConfig{
 		Name:      "high-priority",
-		Namespace: context.ns.Name,
+		Namespace: testCtx.NS.Name,
 		Priority:  &highPriority,
 		Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 			v1.ResourceCPU:    *resource.NewMilliQuantity(300, resource.DecimalSI),
@@ -919,7 +921,7 @@ func TestNominatedNodeCleanUp(t *testing.T) {
 	}
 	// And the nominated node name of the medium priority pod is cleared.
 	if err := wait.Poll(100*time.Millisecond, wait.ForeverTestTimeout, func() (bool, error) {
-		pod, err := cs.CoreV1().Pods(medPriPod.Namespace).Get(medPriPod.Name, metav1.GetOptions{})
+		pod, err := cs.CoreV1().Pods(medPriPod.Namespace).Get(context.TODO(), medPriPod.Name, metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("Error getting the medium priority pod info: %v", err)
 		}
@@ -961,11 +963,11 @@ func addPodConditionReady(pod *v1.Pod) {
 // TestPDBInPreemption tests PodDisruptionBudget support in preemption.
 func TestPDBInPreemption(t *testing.T) {
 	// Initialize scheduler.
-	context := initTest(t, "preemption-pdb")
-	defer cleanupTest(t, context)
-	cs := context.clientSet
+	testCtx := initTest(t, "preemption-pdb")
+	defer testutils.CleanupTest(t, testCtx)
+	cs := testCtx.ClientSet
 
-	initDisruptionController(t, context)
+	initDisruptionController(t, testCtx)
 
 	defaultPodRes := &v1.ResourceRequirements{Requests: v1.ResourceList{
 		v1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
@@ -995,34 +997,34 @@ func TestPDBInPreemption(t *testing.T) {
 			description: "A non-PDB violating pod is preempted despite its higher priority",
 			nodes:       []*nodeConfig{{name: "node-1", res: defaultNodeRes}},
 			pdbs: []*policy.PodDisruptionBudget{
-				mkMinAvailablePDB("pdb-1", context.ns.Name, types.UID("pdb-1-uid"), 2, map[string]string{"foo": "bar"}),
+				mkMinAvailablePDB("pdb-1", testCtx.NS.Name, types.UID("pdb-1-uid"), 2, map[string]string{"foo": "bar"}),
 			},
 			pdbPodNum: []int32{2},
 			existingPods: []*v1.Pod{
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "low-pod1",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: defaultPodRes,
 					Labels:    map[string]string{"foo": "bar"},
 				}),
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "low-pod2",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: defaultPodRes,
 					Labels:    map[string]string{"foo": "bar"},
 				}),
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "mid-pod3",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &mediumPriority,
 					Resources: defaultPodRes,
 				}),
 			},
 			pod: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(300, resource.DecimalSI),
@@ -1038,21 +1040,21 @@ func TestPDBInPreemption(t *testing.T) {
 				{name: "node-2", res: defaultNodeRes},
 			},
 			pdbs: []*policy.PodDisruptionBudget{
-				mkMinAvailablePDB("pdb-1", context.ns.Name, types.UID("pdb-1-uid"), 2, map[string]string{"foo": "bar"}),
+				mkMinAvailablePDB("pdb-1", testCtx.NS.Name, types.UID("pdb-1-uid"), 2, map[string]string{"foo": "bar"}),
 			},
 			pdbPodNum: []int32{1},
 			existingPods: []*v1.Pod{
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "low-pod1",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: defaultPodRes,
 					NodeName:  "node-1",
 					Labels:    map[string]string{"foo": "bar"},
 				}),
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "mid-pod2",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &mediumPriority,
 					NodeName:  "node-2",
 					Resources: defaultPodRes,
@@ -1060,7 +1062,7 @@ func TestPDBInPreemption(t *testing.T) {
 			},
 			pod: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(500, resource.DecimalSI),
@@ -1077,61 +1079,61 @@ func TestPDBInPreemption(t *testing.T) {
 				{name: "node-3", res: defaultNodeRes},
 			},
 			pdbs: []*policy.PodDisruptionBudget{
-				mkMinAvailablePDB("pdb-1", context.ns.Name, types.UID("pdb-1-uid"), 2, map[string]string{"foo1": "bar"}),
-				mkMinAvailablePDB("pdb-2", context.ns.Name, types.UID("pdb-2-uid"), 2, map[string]string{"foo2": "bar"}),
+				mkMinAvailablePDB("pdb-1", testCtx.NS.Name, types.UID("pdb-1-uid"), 2, map[string]string{"foo1": "bar"}),
+				mkMinAvailablePDB("pdb-2", testCtx.NS.Name, types.UID("pdb-2-uid"), 2, map[string]string{"foo2": "bar"}),
 			},
 			pdbPodNum: []int32{1, 5},
 			existingPods: []*v1.Pod{
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "low-pod1",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: defaultPodRes,
 					NodeName:  "node-1",
 					Labels:    map[string]string{"foo1": "bar"},
 				}),
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "mid-pod1",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &mediumPriority,
 					Resources: defaultPodRes,
 					NodeName:  "node-1",
 				}),
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "low-pod2",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: defaultPodRes,
 					NodeName:  "node-2",
 					Labels:    map[string]string{"foo2": "bar"},
 				}),
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "mid-pod2",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &mediumPriority,
 					Resources: defaultPodRes,
 					NodeName:  "node-2",
 					Labels:    map[string]string{"foo2": "bar"},
 				}),
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "low-pod4",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: defaultPodRes,
 					NodeName:  "node-3",
 					Labels:    map[string]string{"foo2": "bar"},
 				}),
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "low-pod5",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: defaultPodRes,
 					NodeName:  "node-3",
 					Labels:    map[string]string{"foo2": "bar"},
 				}),
-				initPausePod(context.clientSet, &pausePodConfig{
+				initPausePod(testCtx.ClientSet, &pausePodConfig{
 					Name:      "low-pod6",
-					Namespace: context.ns.Name,
+					Namespace: testCtx.NS.Name,
 					Priority:  &lowPriority,
 					Resources: defaultPodRes,
 					NodeName:  "node-3",
@@ -1140,7 +1142,7 @@ func TestPDBInPreemption(t *testing.T) {
 			},
 			pod: initPausePod(cs, &pausePodConfig{
 				Name:      "preemptor-pod",
-				Namespace: context.ns.Name,
+				Namespace: testCtx.NS.Name,
 				Priority:  &highPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(500, resource.DecimalSI),
@@ -1170,24 +1172,24 @@ func TestPDBInPreemption(t *testing.T) {
 			}
 			// Add pod condition ready so that PDB is updated.
 			addPodConditionReady(p)
-			if _, err := context.clientSet.CoreV1().Pods(context.ns.Name).UpdateStatus(p); err != nil {
+			if _, err := testCtx.ClientSet.CoreV1().Pods(testCtx.NS.Name).UpdateStatus(context.TODO(), p, metav1.UpdateOptions{}); err != nil {
 				t.Fatal(err)
 			}
 		}
 		// Wait for Pods to be stable in scheduler cache.
-		if err := waitCachedPodsStable(context, test.existingPods); err != nil {
+		if err := waitCachedPodsStable(testCtx, test.existingPods); err != nil {
 			t.Fatalf("Not all pods are stable in the cache: %v", err)
 		}
 
 		// Create PDBs.
 		for _, pdb := range test.pdbs {
-			_, err := context.clientSet.PolicyV1beta1().PodDisruptionBudgets(context.ns.Name).Create(pdb)
+			_, err := testCtx.ClientSet.PolicyV1beta1().PodDisruptionBudgets(testCtx.NS.Name).Create(context.TODO(), pdb, metav1.CreateOptions{})
 			if err != nil {
 				t.Fatalf("Failed to create PDB: %v", err)
 			}
 		}
 		// Wait for PDBs to become stable.
-		if err := waitForPDBsStable(context, test.pdbs, test.pdbPodNum); err != nil {
+		if err := waitForPDBsStable(testCtx, test.pdbs, test.pdbPodNum); err != nil {
 			t.Fatalf("Not all pdbs are stable in the cache: %v", err)
 		}
 
@@ -1217,8 +1219,8 @@ func TestPDBInPreemption(t *testing.T) {
 
 		// Cleanup
 		pods = append(pods, preemptor)
-		cleanupPods(cs, t, pods)
-		cs.PolicyV1beta1().PodDisruptionBudgets(context.ns.Name).DeleteCollection(nil, metav1.ListOptions{})
-		cs.CoreV1().Nodes().DeleteCollection(nil, metav1.ListOptions{})
+		testutils.CleanupPods(cs, t, pods)
+		cs.PolicyV1beta1().PodDisruptionBudgets(testCtx.NS.Name).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{})
+		cs.CoreV1().Nodes().DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{})
 	}
 }

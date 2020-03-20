@@ -37,9 +37,9 @@ func DgesvdTest(t *testing.T, impl Dgesvder, tol float64) {
 //  - the zero matrix if mtype == 1,
 //  - the identity matrix if mtype == 2,
 //  - a random matrix with a given condition number and singular values if mtype == 3, 4, or 5.
-// It first computes the full SVD  A = U*Sigma*V^T  and checks that
-//  - U has orthonormal columns, and V^T has orthonormal rows,
-//  - U*Sigma*V^T multiply back to A,
+// It first computes the full SVD  A = U*Sigma*Vᵀ  and checks that
+//  - U has orthonormal columns, and Vᵀ has orthonormal rows,
+//  - U*Sigma*Vᵀ multiply back to A,
 //  - the singular values are non-negative and sorted in decreasing order.
 // Then all combinations of partial SVD results are computed and checked whether
 // they match the full SVD result.

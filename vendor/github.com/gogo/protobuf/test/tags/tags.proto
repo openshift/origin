@@ -37,6 +37,9 @@ option (gogoproto.populate_all) = true;
 message Outside {
 	optional Inside Inside = 1 [(gogoproto.embed) = true, (gogoproto.jsontag) = ""];
 	optional string Field2 = 2 [(gogoproto.jsontag) = "MyField2", (gogoproto.moretags) = "xml:\",comment\""];
+	oneof filed {
+		string Field3 = 3 [(gogoproto.jsontag) = "MyField3", (gogoproto.moretags) = "xml:\",comment\""];
+	}
 }
 
 message Inside {

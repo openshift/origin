@@ -32,9 +32,6 @@ import (
 	"k8s.io/kubernetes/cmd/kube-scheduler/app"
 	kubeschedulerconfig "k8s.io/kubernetes/cmd/kube-scheduler/app/config"
 	"k8s.io/kubernetes/cmd/kube-scheduler/app/options"
-
-	// import DefaultProvider
-	_ "k8s.io/kubernetes/pkg/scheduler/algorithmprovider/defaults"
 )
 
 // TearDownFunc is to be called to tear down a test server.
@@ -138,7 +135,7 @@ func StartTestServer(t Logger, customFlags []string) (result TestServer, err err
 		default:
 		}
 
-		result := client.CoreV1().RESTClient().Get().AbsPath("/healthz").Do()
+		result := client.CoreV1().RESTClient().Get().AbsPath("/healthz").Do(context.TODO())
 		status := 0
 		result.StatusCode(&status)
 		if status == 200 {

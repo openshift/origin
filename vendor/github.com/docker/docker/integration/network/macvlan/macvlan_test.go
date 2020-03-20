@@ -1,3 +1,5 @@
+// +build !windows
+
 package macvlan
 
 import (
@@ -6,20 +8,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/integration/internal/container"
 	net "github.com/docker/docker/integration/internal/network"
 	n "github.com/docker/docker/integration/network"
 	"github.com/docker/docker/internal/test/daemon"
-	"github.com/gotestyourself/gotestyourself/assert"
-	"github.com/gotestyourself/gotestyourself/skip"
+	"gotest.tools/assert"
+	"gotest.tools/skip"
 )
 
 func TestDockerNetworkMacvlanPersistance(t *testing.T) {
 	// verify the driver automatically provisions the 802.1q link (dm-dummy0.60)
-	skip.If(t, testEnv.DaemonInfo.OSType != "linux")
-	skip.If(t, testEnv.IsRemoteDaemon())
+	skip.If(t, testEnv.IsRemoteDaemon)
 	skip.If(t, !macvlanKernelSupport(), "Kernel doesn't support macvlan")
 
 	d := daemon.New(t)
@@ -30,21 +30,19 @@ func TestDockerNetworkMacvlanPersistance(t *testing.T) {
 	n.CreateMasterDummy(t, master)
 	defer n.DeleteInterface(t, master)
 
-	client, err := d.NewClient()
-	assert.NilError(t, err)
+	c := d.NewClientT(t)
 
 	netName := "dm-persist"
-	net.CreateNoError(t, context.Background(), client, netName,
+	net.CreateNoError(t, context.Background(), c, netName,
 		net.WithMacvlan("dm-dummy0.60"),
 	)
-	assert.Check(t, n.IsNetworkAvailable(client, netName))
+	assert.Check(t, n.IsNetworkAvailable(c, netName))
 	d.Restart(t)
-	assert.Check(t, n.IsNetworkAvailable(client, netName))
+	assert.Check(t, n.IsNetworkAvailable(c, netName))
 }
 
 func TestDockerNetworkMacvlan(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType != "linux")
-	skip.If(t, testEnv.IsRemoteDaemon())
+	skip.If(t, testEnv.IsRemoteDaemon)
 	skip.If(t, !macvlanKernelSupport(), "Kernel doesn't support macvlan")
 
 	for _, tc := range []struct {
@@ -70,11 +68,9 @@ func TestDockerNetworkMacvlan(t *testing.T) {
 	} {
 		d := daemon.New(t)
 		d.StartWithBusybox(t)
+		c := d.NewClientT(t)
 
-		client, err := d.NewClient()
-		assert.NilError(t, err)
-
-		t.Run(tc.name, tc.test(client))
+		t.Run(tc.name, tc.test(c))
 
 		d.Stop(t)
 		// FIXME(vdemeester) clean network
@@ -138,17 +134,17 @@ func testMacvlanSubinterface(client client.APIClient) func(*testing.T) {
 func testMacvlanNilParent(client client.APIClient) func(*testing.T) {
 	return func(t *testing.T) {
 		// macvlan bridge mode - dummy parent interface is provisioned dynamically
-		_, err := client.NetworkCreate(context.Background(), "dm-nil-parent", types.NetworkCreate{
-			Driver: "macvlan",
-		})
-		assert.NilError(t, err)
-		assert.Check(t, n.IsNetworkAvailable(client, "dm-nil-parent"))
+		netName := "dm-nil-parent"
+		net.CreateNoError(t, context.Background(), client, netName,
+			net.WithMacvlan(""),
+		)
+		assert.Check(t, n.IsNetworkAvailable(client, netName))
 
 		ctx := context.Background()
-		id1 := container.Run(t, ctx, client, container.WithNetworkMode("dm-nil-parent"))
-		id2 := container.Run(t, ctx, client, container.WithNetworkMode("dm-nil-parent"))
+		id1 := container.Run(t, ctx, client, container.WithNetworkMode(netName))
+		id2 := container.Run(t, ctx, client, container.WithNetworkMode(netName))
 
-		_, err = container.Exec(ctx, client, id2, []string{"ping", "-c", "1", id1})
+		_, err := container.Exec(ctx, client, id2, []string{"ping", "-c", "1", id1})
 		assert.Check(t, err == nil)
 	}
 }
@@ -156,20 +152,20 @@ func testMacvlanNilParent(client client.APIClient) func(*testing.T) {
 func testMacvlanInternalMode(client client.APIClient) func(*testing.T) {
 	return func(t *testing.T) {
 		// macvlan bridge mode - dummy parent interface is provisioned dynamically
-		_, err := client.NetworkCreate(context.Background(), "dm-internal", types.NetworkCreate{
-			Driver:   "macvlan",
-			Internal: true,
-		})
-		assert.NilError(t, err)
-		assert.Check(t, n.IsNetworkAvailable(client, "dm-internal"))
+		netName := "dm-internal"
+		net.CreateNoError(t, context.Background(), client, netName,
+			net.WithMacvlan(""),
+			net.WithInternal(),
+		)
+		assert.Check(t, n.IsNetworkAvailable(client, netName))
 
 		ctx := context.Background()
-		id1 := container.Run(t, ctx, client, container.WithNetworkMode("dm-internal"))
-		id2 := container.Run(t, ctx, client, container.WithNetworkMode("dm-internal"))
+		id1 := container.Run(t, ctx, client, container.WithNetworkMode(netName))
+		id2 := container.Run(t, ctx, client, container.WithNetworkMode(netName))
 
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
-		_, err = container.Exec(timeoutCtx, client, id1, []string{"ping", "-c", "1", "-w", "1", "8.8.8.8"})
+		_, err := container.Exec(timeoutCtx, client, id1, []string{"ping", "-c", "1", "-w", "1", "8.8.8.8"})
 		// FIXME(vdemeester) check the time of error ?
 		assert.Check(t, err != nil)
 		assert.Check(t, timeoutCtx.Err() == context.DeadlineExceeded)

@@ -3,6 +3,8 @@
 package v1
 
 import (
+	"context"
+
 	imagev1 "github.com/openshift/api/image/v1"
 	scheme "github.com/openshift/client-go/image/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +19,7 @@ type ImageStreamImagesGetter interface {
 
 // ImageStreamImageInterface has methods to work with ImageStreamImage resources.
 type ImageStreamImageInterface interface {
-	Get(name string, options v1.GetOptions) (*imagev1.ImageStreamImage, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*imagev1.ImageStreamImage, error)
 	ImageStreamImageExpansion
 }
 
@@ -36,14 +38,14 @@ func newImageStreamImages(c *ImageV1Client, namespace string) *imageStreamImages
 }
 
 // Get takes name of the imageStreamImage, and returns the corresponding imageStreamImage object, and an error if there is any.
-func (c *imageStreamImages) Get(name string, options v1.GetOptions) (result *imagev1.ImageStreamImage, err error) {
+func (c *imageStreamImages) Get(ctx context.Context, name string, options v1.GetOptions) (result *imagev1.ImageStreamImage, err error) {
 	result = &imagev1.ImageStreamImage{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreamimages").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

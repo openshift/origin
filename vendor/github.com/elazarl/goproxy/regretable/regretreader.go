@@ -24,7 +24,7 @@ var defaultBufferSize = 500
 // Same as RegretableReader, but allows closing the underlying reader
 type RegretableReaderCloser struct {
 	RegretableReader
-	c      io.Closer
+	c io.Closer
 }
 
 // Closes the underlying readCloser, you cannot regret after closing the stream
@@ -69,7 +69,7 @@ func (rb *RegretableReader) Forget() {
 
 // initialize a RegretableReader with underlying reader r, whose buffer is size bytes long
 func NewRegretableReaderSize(r io.Reader, size int) *RegretableReader {
-	return &RegretableReader{reader: r, buf: make([]byte, size) }
+	return &RegretableReader{reader: r, buf: make([]byte, size)}
 }
 
 // initialize a RegretableReader with underlying reader r
@@ -89,7 +89,7 @@ func (rb *RegretableReader) Read(p []byte) (n int, err error) {
 	}
 	n, err = rb.reader.Read(p)
 	bn := copy(rb.buf[rb.w:], p[:n])
-	rb.w, rb.r = rb.w + bn, rb.w + n
+	rb.w, rb.r = rb.w+bn, rb.w+n
 	if bn < n {
 		rb.overflow = true
 	}

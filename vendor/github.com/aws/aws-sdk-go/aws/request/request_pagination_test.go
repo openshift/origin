@@ -72,9 +72,7 @@ func TestPaginationQueryPage(t *testing.T) {
 	}
 	err := db.QueryPages(params, func(p *dynamodb.QueryOutput, last bool) bool {
 		numPages++
-		for _, item := range p.Items {
-			pages = append(pages, item)
-		}
+		pages = append(pages, p.Items...)
 		if last {
 			if gotToEnd {
 				t.Errorf("last=true happened twice")

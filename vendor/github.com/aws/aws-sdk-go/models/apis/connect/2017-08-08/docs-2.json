@@ -1,68 +1,83 @@
 {
   "version": "2.0",
-  "service": "<p>The Amazon Connect API Reference provides descriptions, syntax, and usage examples for each of the Amazon Connect actions, data types, parameters, and errors. Amazon Connect is a cloud-based contact center solution that makes it easy to set up and manage a customer contact center and provide reliable customer engagement at any scale.</p> <p>Throttling limits for the Amazon Connect API operations:</p> <p>For the <code>GetMetricData</code> and <code>GetCurrentMetricData</code> operations, a RateLimit of 5 per second, and a BurstLimit of 8 per second.</p> <p>For all other operations, a RateLimit of 2 per second, and a BurstLimit of 5 per second.</p> <p>You can request an increase to the throttling limits by submitting a <a href=\"https://console.aws.amazon.com/support/home#/case/create?issueType=service-limit-increase\">Amazon Connect service limits increase form</a>. You must be signed in to your AWS account to access the form.</p>",
+  "service": "<p>Amazon Connect is a cloud-based contact center solution that makes it easy to set up and manage a customer contact center and provide reliable customer engagement at any scale.</p> <p>Amazon Connect provides rich metrics and real-time reporting that allow you to optimize contact routing. You can also resolve customer issues more efficiently by putting customers in touch with the right agents.</p> <p>There are limits to the number of Amazon Connect resources that you can create and limits to the number of requests that you can make per second. For more information, see <a href=\"https://docs.aws.amazon.com/connect/latest/adminguide/amazon-connect-service-limits.html\">Amazon Connect Service Limits</a> in the <i>Amazon Connect Administrator Guide</i>.</p>",
   "operations": {
-    "CreateUser": "<p>Creates a new user account in your Amazon Connect instance.</p>",
-    "DeleteUser": "<p>Deletes a user account from Amazon Connect.</p>",
-    "DescribeUser": "<p>Returns a <code>User</code> object that contains information about the user account specified by the <code>UserId</code>.</p>",
-    "DescribeUserHierarchyGroup": "<p>Returns a <code>HierarchyGroup</code> object that includes information about a hierarchy group in your instance.</p>",
-    "DescribeUserHierarchyStructure": "<p>Returns a <code>HiearchyGroupStructure</code> object, which contains data about the levels in the agent hierarchy.</p>",
-    "GetContactAttributes": "<p>Retrieves the contact attributes associated with a contact.</p>",
-    "GetCurrentMetricData": "<p>The <code>GetCurrentMetricData</code> operation retrieves current metric data from your Amazon Connect instance.</p> <p>If you are using an IAM account, it must have permission to the <code>connect:GetCurrentMetricData</code> action.</p>",
+    "CreateUser": "<p>Creates a user account for the specified Amazon Connect instance.</p>",
+    "DeleteUser": "<p>Deletes a user account from the specified Amazon Connect instance.</p>",
+    "DescribeUser": "<p>Describes the specified user account. You can find the instance ID in the console (it’s the final part of the ARN). The console does not display the user IDs. Instead, list the users and note the IDs provided in the output.</p>",
+    "DescribeUserHierarchyGroup": "<p>Describes the specified hierarchy group.</p>",
+    "DescribeUserHierarchyStructure": "<p>Describes the hierarchy structure of the specified Amazon Connect instance.</p>",
+    "GetContactAttributes": "<p>Retrieves the contact attributes for the specified contact.</p>",
+    "GetCurrentMetricData": "<p>Gets the real-time metric data from the specified Amazon Connect instance.</p> <p>For more information, see <a href=\"https://docs.aws.amazon.com/connect/latest/adminguide/real-time-metrics-reports.html\">Real-time Metrics Reports</a> in the <i>Amazon Connect Administrator Guide</i>.</p>",
     "GetFederationToken": "<p>Retrieves a token for federation.</p>",
-    "GetMetricData": "<p>The <code>GetMetricData</code> operation retrieves historical metrics data from your Amazon Connect instance.</p> <p>If you are using an IAM account, it must have permission to the <code>connect:GetMetricData</code> action.</p>",
-    "ListRoutingProfiles": "<p>Returns an array of <code>RoutingProfileSummary</code> objects that includes information about the routing profiles in your instance.</p>",
-    "ListSecurityProfiles": "<p>Returns an array of SecurityProfileSummary objects that contain information about the security profiles in your instance, including the ARN, Id, and Name of the security profile.</p>",
-    "ListUserHierarchyGroups": "<p>Returns a <code>UserHierarchyGroupSummaryList</code>, which is an array of <code>HierarchyGroupSummary</code> objects that contain information about the hierarchy groups in your instance.</p>",
-    "ListUsers": "<p>Returns a <code>UserSummaryList</code>, which is an array of <code>UserSummary</code> objects.</p>",
-    "StartOutboundVoiceContact": "<p>The <code>StartOutboundVoiceContact</code> operation initiates a contact flow to place an outbound call to a customer.</p> <p>If you are using an IAM account, it must have permission to the <code>connect:StartOutboundVoiceContact</code> action.</p> <p>There is a 60 second dialing timeout for this operation. If the call is not connected after 60 seconds, the call fails.</p>",
-    "StopContact": "<p>Ends the contact initiated by the <code>StartOutboundVoiceContact</code> operation.</p> <p>If you are using an IAM account, it must have permission to the <code>connect:StopContact</code> action.</p>",
-    "UpdateContactAttributes": "<p>The <code>UpdateContactAttributes</code> operation lets you programmatically create new, or update existing, contact attributes associated with a contact. You can use the operation to add or update attributes for both ongoing and completed contacts. For example, you can update the customer's name or the reason the customer called while the call is active, or add notes about steps that the agent took during the call that are displayed to the next agent that takes the call. You can also use the <code>UpdateContactAttributes</code> operation to update attributes for a contact using data from your CRM application and save the data with the contact in Amazon Connect. You could also flag calls for additional analysis, such as legal review or identifying abusive callers.</p> <p>Contact attributes are available in Amazon Connect for 24 months, and are then deleted.</p> <p> <i>Important:</i> </p> <p>You cannot use the operation to update attributes for contacts that occurred prior to the release of the API, September 12, 2018. You can update attributes only for contacts that started after the release of the API. If you attempt to update attributes for a contact that occurred prior to the release of the API, a 400 error is returned. This applies also to queued callbacks that were initiated prior to the release of the API but are still active in your instance.</p>",
-    "UpdateUserHierarchy": "<p>Assigns the specified hierarchy group to the user.</p>",
-    "UpdateUserIdentityInfo": "<p>Updates the identity information for the specified user in a <code>UserIdentityInfo</code> object, including email, first name, and last name.</p>",
-    "UpdateUserPhoneConfig": "<p>Updates the phone configuration settings in the <code>UserPhoneConfig</code> object for the specified user.</p>",
-    "UpdateUserRoutingProfile": "<p>Assigns the specified routing profile to a user.</p>",
-    "UpdateUserSecurityProfiles": "<p>Updates the security profiles assigned to the user.</p>"
+    "GetMetricData": "<p>Gets historical metric data from the specified Amazon Connect instance.</p> <p>For more information, see <a href=\"https://docs.aws.amazon.com/connect/latest/adminguide/historical-metrics.html\">Historical Metrics Reports</a> in the <i>Amazon Connect Administrator Guide</i>.</p>",
+    "ListContactFlows": "<p>Provides information about the contact flows for the specified Amazon Connect instance.</p>",
+    "ListHoursOfOperations": "<p>Provides information about the hours of operation for the specified Amazon Connect instance.</p>",
+    "ListPhoneNumbers": "<p>Provides information about the phone numbers for the specified Amazon Connect instance.</p>",
+    "ListQueues": "<p>Provides information about the queues for the specified Amazon Connect instance.</p>",
+    "ListRoutingProfiles": "<p>Provides summary information about the routing profiles for the specified Amazon Connect instance.</p>",
+    "ListSecurityProfiles": "<p>Provides summary information about the security profiles for the specified Amazon Connect instance.</p>",
+    "ListTagsForResource": "<p>Lists the tags for the specified resource.</p>",
+    "ListUserHierarchyGroups": "<p>Provides summary information about the hierarchy groups for the specified Amazon Connect instance.</p>",
+    "ListUsers": "<p>Provides summary information about the users for the specified Amazon Connect instance.</p>",
+    "StartChatContact": "<p>Initiates a contact flow to start a new chat for the customer. Response of this API provides a token required to obtain credentials from the <a href=\"https://docs.aws.amazon.com/connect-participant/latest/APIReference/API_CreateParticipantConnection.html\">CreateParticipantConnection</a> API in the Amazon Connect Participant Service.</p> <p>When a new chat contact is successfully created, clients need to subscribe to the participant’s connection for the created chat within 5 minutes. This is achieved by invoking <a href=\"https://docs.aws.amazon.com/connect-participant/latest/APIReference/API_CreateParticipantConnection.html\">CreateParticipantConnection</a> with WEBSOCKET and CONNECTION_CREDENTIALS. </p>",
+    "StartOutboundVoiceContact": "<p>Initiates a contact flow to place an outbound call to a customer.</p> <p>There is a 60 second dialing timeout for this operation. If the call is not connected after 60 seconds, it fails.</p>",
+    "StopContact": "<p>Ends the specified contact.</p>",
+    "TagResource": "<p>Adds the specified tags to the specified resource.</p> <p>The supported resource type is users.</p>",
+    "UntagResource": "<p>Removes the specified tags from the specified resource.</p>",
+    "UpdateContactAttributes": "<p>Creates or updates the contact attributes associated with the specified contact.</p> <p>You can add or update attributes for both ongoing and completed contacts. For example, you can update the customer's name or the reason the customer called while the call is active, or add notes about steps that the agent took during the call that are displayed to the next agent that takes the call. You can also update attributes for a contact using data from your CRM application and save the data with the contact in Amazon Connect. You could also flag calls for additional analysis, such as legal review or identifying abusive callers.</p> <p>Contact attributes are available in Amazon Connect for 24 months, and are then deleted.</p> <p> <b>Important:</b> You cannot use the operation to update attributes for contacts that occurred prior to the release of the API, September 12, 2018. You can update attributes only for contacts that started after the release of the API. If you attempt to update attributes for a contact that occurred prior to the release of the API, a 400 error is returned. This applies also to queued callbacks that were initiated prior to the release of the API but are still active in your instance.</p>",
+    "UpdateUserHierarchy": "<p>Assigns the specified hierarchy group to the specified user.</p>",
+    "UpdateUserIdentityInfo": "<p>Updates the identity information for the specified user.</p>",
+    "UpdateUserPhoneConfig": "<p>Updates the phone configuration settings for the specified user.</p>",
+    "UpdateUserRoutingProfile": "<p>Assigns the specified routing profile to the specified user.</p>",
+    "UpdateUserSecurityProfiles": "<p>Assigns the specified security profiles to the specified user.</p>"
   },
   "shapes": {
     "ARN": {
       "base": null,
       "refs": {
-        "CreateUserResponse$UserArn": "<p>The Amazon Resource Name (ARN) of the user account created.</p>",
-        "HierarchyGroup$Arn": "<p>The Amazon Resource Name (ARN) for the hierarchy group.</p>",
-        "HierarchyGroupSummary$Arn": "<p>The ARN for the hierarchy group.</p>",
-        "HierarchyLevel$Arn": "<p>The ARN for the hierarchy group level.</p>",
-        "QueueReference$Arn": "<p>The Amazon Resource Name (ARN) of queue.</p>",
-        "RoutingProfileSummary$Arn": "<p>The ARN of the routing profile.</p>",
-        "SecurityProfileSummary$Arn": "<p>The ARN of the security profile.</p>",
-        "User$Arn": "<p>The ARN of the user account.</p>",
-        "UserSummary$Arn": "<p>The ARN for the user account.</p>"
+        "ContactFlowSummary$Arn": "<p>The Amazon Resource Name (ARN) of the contact flow.</p>",
+        "CreateUserResponse$UserArn": "<p>The Amazon Resource Name (ARN) of the user account.</p>",
+        "HierarchyGroup$Arn": "<p>The Amazon Resource Name (ARN) of the hierarchy group.</p>",
+        "HierarchyGroupSummary$Arn": "<p>The Amazon Resource Name (ARN) of the hierarchy group.</p>",
+        "HierarchyLevel$Arn": "<p>The Amazon Resource Name (ARN) of the hierarchy level.</p>",
+        "HoursOfOperationSummary$Arn": "<p>The Amazon Resource Name (ARN) of the hours of operation.</p>",
+        "ListTagsForResourceRequest$resourceArn": "<p>The Amazon Resource Name (ARN) of the resource.</p>",
+        "PhoneNumberSummary$Arn": "<p>The Amazon Resource Name (ARN) of the phone number.</p>",
+        "QueueReference$Arn": "<p>The Amazon Resource Name (ARN) of the queue.</p>",
+        "QueueSummary$Arn": "<p>The Amazon Resource Name (ARN) of the queue.</p>",
+        "RoutingProfileSummary$Arn": "<p>The Amazon Resource Name (ARN) of the routing profile.</p>",
+        "SecurityProfileSummary$Arn": "<p>The Amazon Resource Name (ARN) of the security profile.</p>",
+        "TagResourceRequest$resourceArn": "<p>The Amazon Resource Name (ARN) of the resource.</p>",
+        "UntagResourceRequest$resourceArn": "<p>The Amazon Resource Name (ARN) of the resource.</p>",
+        "User$Arn": "<p>The Amazon Resource Name (ARN) of the user account.</p>",
+        "UserSummary$Arn": "<p>The Amazon Resource Name (ARN) of the user account.</p>"
       }
     },
     "AfterContactWorkTimeLimit": {
       "base": null,
       "refs": {
-        "UserPhoneConfig$AfterContactWorkTimeLimit": "<p>The After Call Work (ACW) timeout setting, in seconds, for the user.</p>"
+        "UserPhoneConfig$AfterContactWorkTimeLimit": "<p>The After Call Work (ACW) timeout setting, in seconds.</p>"
       }
     },
     "AgentFirstName": {
       "base": null,
       "refs": {
-        "UserIdentityInfo$FirstName": "<p>The first name used in the user account. This is required if you are using Amazon Connect or SAML for identity management.</p>"
+        "UserIdentityInfo$FirstName": "<p>The first name. This is required if you are using Amazon Connect or SAML for identity management.</p>"
       }
     },
     "AgentLastName": {
       "base": null,
       "refs": {
-        "UserIdentityInfo$LastName": "<p>The last name used in the user account. This is required if you are using Amazon Connect or SAML for identity management.</p>"
+        "UserIdentityInfo$LastName": "<p>The last name. This is required if you are using Amazon Connect or SAML for identity management.</p>"
       }
     },
     "AgentUsername": {
       "base": null,
       "refs": {
-        "CreateUserRequest$Username": "<p>The user name in Amazon Connect for the account to create. If you are using SAML for identity management in your Amazon Connect, the value for <code>Username</code> can include up to 64 characters from [a-zA-Z0-9_-.\\@]+.</p>",
+        "CreateUserRequest$Username": "<p>The user name for the account. For instances not using SAML for identity management, the user name can include up to 20 characters. If you are using SAML for identity management, the user name can include up to 64 characters from [a-zA-Z0-9_-.\\@]+.</p>",
         "User$Username": "<p>The user name assigned to the user account.</p>",
-        "UserSummary$Username": "<p>The Amazon Connect user name for the user account.</p>"
+        "UserSummary$Username": "<p>The Amazon Connect user name of the user account.</p>"
       }
     },
     "AttributeName": {
@@ -80,55 +95,109 @@
     "Attributes": {
       "base": null,
       "refs": {
-        "GetContactAttributesResponse$Attributes": "<p>The attributes to update.</p>",
-        "StartOutboundVoiceContactRequest$Attributes": "<p>Specify a custom key-value pair using an attribute map. The attributes are standard Amazon Connect attributes, and can be accessed in contact flows just like any other contact attributes.</p> <p>There can be up to 32,768 UTF-8 bytes across all key-value pairs per contact. Attribute keys can include only alphanumeric, dash, and underscore characters.</p> <p>For example, if you want play a greeting when the customer answers the call, you can pass the customer name in attributes similar to the following:</p>",
-        "UpdateContactAttributesRequest$Attributes": "<p>Specify a custom key-value pair using an attribute map. The attributes are standard Amazon Connect attributes, and can be accessed in contact flows just like any other contact attributes.</p> <p>There can be up to 32,768 UTF-8 bytes across all key-value pairs per contact. Attribute keys can include only alphanumeric, dash, and underscore characters.</p>"
+        "GetContactAttributesResponse$Attributes": "<p>Information about the attributes.</p>",
+        "StartChatContactRequest$Attributes": "<p>A custom key-value pair using an attribute map. The attributes are standard Amazon Connect attributes, and can be accessed in contact flows just like any other contact attributes. </p> <p>There can be up to 32,768 UTF-8 bytes across all key-value pairs per contact. Attribute keys can include only alphanumeric, dash, and underscore characters.</p>",
+        "StartOutboundVoiceContactRequest$Attributes": "<p>A custom key-value pair using an attribute map. The attributes are standard Amazon Connect attributes, and can be accessed in contact flows just like any other contact attributes.</p> <p>There can be up to 32,768 UTF-8 bytes across all key-value pairs per contact. Attribute keys can include only alphanumeric, dash, and underscore characters.</p>",
+        "UpdateContactAttributesRequest$Attributes": "<p>The Amazon Connect attributes. These attributes can be accessed in contact flows just like any other contact attributes.</p> <p>You can have up to 32,768 UTF-8 bytes across all attributes for a contact. Attribute keys can include only alphanumeric, dash, and underscore characters.</p>"
       }
     },
     "AutoAccept": {
       "base": null,
       "refs": {
-        "UserPhoneConfig$AutoAccept": "<p>The Auto accept setting for the user, Yes or No.</p>"
+        "UserPhoneConfig$AutoAccept": "<p>The Auto accept setting.</p>"
       }
     },
     "Channel": {
       "base": null,
       "refs": {
         "Channels$member": null,
-        "Dimensions$Channel": "<p>The channel used for grouping and filters. Only VOICE is supported.</p>"
+        "Dimensions$Channel": "<p>The channel used for grouping and filters.</p>"
       }
     },
     "Channels": {
       "base": null,
       "refs": {
-        "Filters$Channels": "<p>The Channel to use as a filter for the metrics returned. Only VOICE is supported.</p>"
+        "Filters$Channels": "<p>The channel to use to filter the metrics.</p>"
+      }
+    },
+    "ChatContent": {
+      "base": null,
+      "refs": {
+        "ChatMessage$Content": "<p>The content of the chat message.</p>"
+      }
+    },
+    "ChatContentType": {
+      "base": null,
+      "refs": {
+        "ChatMessage$ContentType": "<p>The type of the content. Supported types are text/plain.</p>"
+      }
+    },
+    "ChatMessage": {
+      "base": "<p>A chat message.</p>",
+      "refs": {
+        "StartChatContactRequest$InitialMessage": "<p>The initial message to be sent to the newly created chat.</p>"
       }
     },
     "ClientToken": {
       "base": null,
       "refs": {
+        "StartChatContactRequest$ClientToken": "<p>A unique, case-sensitive identifier that you provide to ensure the idempotency of the request.</p>",
         "StartOutboundVoiceContactRequest$ClientToken": "<p>A unique, case-sensitive identifier that you provide to ensure the idempotency of the request. The token is valid for 7 days after creation. If a contact is already started, the contact ID is returned. If the contact is disconnected, a new contact is started.</p>"
       }
     },
     "Comparison": {
       "base": null,
       "refs": {
-        "Threshold$Comparison": "<p>The Threshold to use to compare service level metrics to. Only \"Less than\" (LT) comparisons are supported.</p>"
+        "Threshold$Comparison": "<p>The type of comparison. Only \"less than\" (LT) comparisons are supported.</p>"
       }
     },
     "ContactFlowId": {
       "base": null,
       "refs": {
-        "StartOutboundVoiceContactRequest$ContactFlowId": "<p>The identifier for the contact flow to connect the outbound call to.</p> <p>To find the <code>ContactFlowId</code>, open the contact flow you want to use in the Amazon Connect contact flow editor. The ID for the contact flow is displayed in the address bar as part of the URL. For example, the contact flow ID is the set of characters at the end of the URL, after 'contact-flow/' such as <code>78ea8fd5-2659-4f2b-b528-699760ccfc1b</code>.</p>"
+        "ContactFlowSummary$Id": "<p>The identifier of the contact flow.</p>",
+        "StartChatContactRequest$ContactFlowId": "<p>The identifier of the contact flow for the chat.</p>",
+        "StartOutboundVoiceContactRequest$ContactFlowId": "<p>The identifier of the contact flow for the outbound call.</p>"
+      }
+    },
+    "ContactFlowName": {
+      "base": null,
+      "refs": {
+        "ContactFlowSummary$Name": "<p>The name of the contact flow.</p>"
+      }
+    },
+    "ContactFlowSummary": {
+      "base": "<p>Contains summary information about a contact flow.</p>",
+      "refs": {
+        "ContactFlowSummaryList$member": null
+      }
+    },
+    "ContactFlowSummaryList": {
+      "base": null,
+      "refs": {
+        "ListContactFlowsResponse$ContactFlowSummaryList": "<p>Information about the contact flows.</p>"
+      }
+    },
+    "ContactFlowType": {
+      "base": null,
+      "refs": {
+        "ContactFlowSummary$ContactFlowType": "<p>The type of contact flow.</p>",
+        "ContactFlowTypes$member": null
+      }
+    },
+    "ContactFlowTypes": {
+      "base": null,
+      "refs": {
+        "ListContactFlowsRequest$ContactFlowTypes": "<p>The type of contact flow.</p>"
       }
     },
     "ContactId": {
       "base": null,
       "refs": {
-        "GetContactAttributesRequest$InitialContactId": "<p>The ID for the initial contact in Amazon Connect associated with the attributes to update.</p>",
-        "StartOutboundVoiceContactResponse$ContactId": "<p>The unique identifier of this contact within your Amazon Connect instance.</p>",
-        "StopContactRequest$ContactId": "<p>The unique identifier of the contact to end.</p>",
-        "UpdateContactAttributesRequest$InitialContactId": "<p>The unique identifier of the contact for which to update attributes. This is the identifier for the contact associated with the first interaction with the contact center.</p>"
+        "GetContactAttributesRequest$InitialContactId": "<p>The identifier of the initial contact.</p>",
+        "StartChatContactResponse$ContactId": "<p>The identifier of this contact within the Amazon Connect instance. </p>",
+        "StartOutboundVoiceContactResponse$ContactId": "<p>The identifier of this contact within the Amazon Connect instance.</p>",
+        "StopContactRequest$ContactId": "<p>The ID of the contact.</p>",
+        "UpdateContactAttributesRequest$InitialContactId": "<p>The identifier of the contact. This is the identifier of the contact associated with the first interaction with the contact center.</p>"
       }
     },
     "ContactNotFoundException": {
@@ -147,20 +216,20 @@
       }
     },
     "Credentials": {
-      "base": "<p>The credentials to use for federation.</p>",
+      "base": "<p>Contains credentials to use for federation.</p>",
       "refs": {
         "GetFederationTokenResponse$Credentials": "<p>The credentials to use for federation.</p>"
       }
     },
     "CurrentMetric": {
-      "base": "<p>A <code>CurrentMetric</code> object that contains the Name and Unit for the metric.</p>",
+      "base": "<p>Contains information about a real-time metric.</p>",
       "refs": {
-        "CurrentMetricData$Metric": "<p>The metric in a <code>CurrentMetricData</code> object.</p>",
+        "CurrentMetricData$Metric": "<p>Information about the metric.</p>",
         "CurrentMetrics$member": null
       }
     },
     "CurrentMetricData": {
-      "base": "<p>A <code>CurrentMetricData</code> object.</p>",
+      "base": "<p>Contains the data for a real-time metric.</p>",
       "refs": {
         "CurrentMetricDataCollections$member": null
       }
@@ -168,17 +237,17 @@
     "CurrentMetricDataCollections": {
       "base": null,
       "refs": {
-        "CurrentMetricResult$Collections": "<p>The <code>Collections</code> for the <code>CurrentMetricResult</code> object.</p>"
+        "CurrentMetricResult$Collections": "<p>The set of metrics.</p>"
       }
     },
     "CurrentMetricName": {
-      "base": "<p>A list of current metric names.</p>",
+      "base": "<p>The current metric names.</p>",
       "refs": {
         "CurrentMetric$Name": "<p>The name of the metric.</p>"
       }
     },
     "CurrentMetricResult": {
-      "base": "<p>A <code>CurrentMetricResult</code> object.</p>",
+      "base": "<p>Contains information about a set of real-time metrics.</p>",
       "refs": {
         "CurrentMetricResults$member": null
       }
@@ -186,13 +255,13 @@
     "CurrentMetricResults": {
       "base": null,
       "refs": {
-        "GetCurrentMetricDataResponse$MetricResults": "<p>A list of <code>CurrentMetricResult</code> objects organized by <code>Dimensions</code> combining with <code>CurrentMetricDataCollections</code>.</p> <p> <code>Dimensions</code> is the resourceId specified in the <code>Filters</code> of the request. </p> <p> <code>Collections</code> is a list of <code>CurrentMetricData</code> objects with corresponding values to the <code>CurrentMetrics</code> specified in the request.</p> <p>If no <code>Grouping</code> is specified in the request, <code>Collections</code> is a summary for the <code>CurrentMetric</code> returned.</p>"
+        "GetCurrentMetricDataResponse$MetricResults": "<p>Information about the real-time metrics.</p>"
       }
     },
     "CurrentMetrics": {
       "base": null,
       "refs": {
-        "GetCurrentMetricDataRequest$CurrentMetrics": "<p>A list of <code>CurrentMetric</code> objects for the metrics to retrieve. Each <code>CurrentMetric</code> includes a name of a metric to retrieve and the unit to use for it. You must list each metric to retrieve data for in the request.</p> <p>The following metrics are available:</p> <dl> <dt>AGENTS_AVAILABLE</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_ONLINE</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_ON_CALL</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_STAFFED</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_AFTER_CONTACT_WORK</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_NON_PRODUCTIVE</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_ERROR</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>CONTACTS_IN_QUEUE</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>OLDEST_CONTACT_AGE</dt> <dd> <p>Unit: SECONDS</p> </dd> <dt>CONTACTS_SCHEDULED</dt> <dd> <p>Unit: COUNT</p> </dd> </dl>"
+        "GetCurrentMetricDataRequest$CurrentMetrics": "<p>The metrics to retrieve. Specify the name and unit for each metric. The following metrics are available:</p> <dl> <dt>AGENTS_AFTER_CONTACT_WORK</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_AVAILABLE</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_ERROR</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_NON_PRODUCTIVE</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_ON_CALL</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_ON_CONTACT</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_ONLINE</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>AGENTS_STAFFED</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>CONTACTS_IN_QUEUE</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>CONTACTS_SCHEDULED</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>OLDEST_CONTACT_AGE</dt> <dd> <p>Unit: SECONDS</p> </dd> <dt>SLOTS_ACTIVE</dt> <dd> <p>Unit: COUNT</p> </dd> <dt>SLOTS_AVAILABLE</dt> <dd> <p>Unit: COUNT</p> </dd> </dl>"
       }
     },
     "DeleteUserRequest": {
@@ -236,35 +305,41 @@
       }
     },
     "Dimensions": {
-      "base": "<p>A <code>Dimensions</code> object that includes the Channel and Queue for the metric.</p>",
+      "base": "<p>Contains information about the dimensions for a set of metrics.</p>",
       "refs": {
-        "CurrentMetricResult$Dimensions": "<p>The <code>Dimensions</code> for the <code>CurrentMetricResult</code> object.</p>",
-        "HistoricalMetricResult$Dimensions": "<p>The <code>Dimensions</code> for the metrics.</p>"
+        "CurrentMetricResult$Dimensions": "<p>The dimensions for the metrics.</p>",
+        "HistoricalMetricResult$Dimensions": "<p>The dimension for the metrics.</p>"
       }
     },
     "DirectoryUserId": {
       "base": null,
       "refs": {
-        "CreateUserRequest$DirectoryUserId": "<p>The unique identifier for the user account in the directory service directory used for identity management. If Amazon Connect is unable to access the existing directory, you can use the <code>DirectoryUserId</code> to authenticate users. If you include the parameter, it is assumed that Amazon Connect cannot access the directory. If the parameter is not included, the <code>UserIdentityInfo</code> is used to authenticate users from your existing directory.</p> <p>This parameter is required if you are using an existing directory for identity management in Amazon Connect when Amazon Connect cannot access your directory to authenticate users. If you are using SAML for identity management and include this parameter, an <code>InvalidRequestException</code> is returned.</p>",
-        "User$DirectoryUserId": "<p>The directory Id for the user account in the existing directory used for identity management.</p>"
+        "CreateUserRequest$DirectoryUserId": "<p>The identifier of the user account in the directory used for identity management. If Amazon Connect cannot access the directory, you can specify this identifier to authenticate users. If you include the identifier, we assume that Amazon Connect cannot access the directory. Otherwise, the identity information is used to authenticate users from your directory.</p> <p>This parameter is required if you are using an existing directory for identity management in Amazon Connect when Amazon Connect cannot access your directory to authenticate users. If you are using SAML for identity management and include this parameter, an error is returned.</p>",
+        "User$DirectoryUserId": "<p>The identifier of the user account in the directory used for identity management.</p>"
+      }
+    },
+    "DisplayName": {
+      "base": null,
+      "refs": {
+        "ParticipantDetails$DisplayName": "<p>Display name of the participant.</p>"
       }
     },
     "DuplicateResourceException": {
-      "base": "<p>A resource with that name already exists.</p>",
+      "base": "<p>A resource with the specified name already exists.</p>",
       "refs": {
       }
     },
     "Email": {
       "base": null,
       "refs": {
-        "UserIdentityInfo$Email": "<p>The email address added to the user account. If you are using SAML for identity management and include this parameter, an <code>InvalidRequestException</code> is returned.</p>"
+        "UserIdentityInfo$Email": "<p>The email address. If you are using SAML for identity management and include this parameter, an error is returned.</p>"
       }
     },
     "Filters": {
-      "base": "<p>The filter, either channel or queues, to apply to the metric results retrieved.</p>",
+      "base": "<p>Contains the filter to apply when retrieving metrics.</p>",
       "refs": {
-        "GetCurrentMetricDataRequest$Filters": "<p>A <code>Filters</code> object that contains a list of queue IDs or queue ARNs, up to 100, or list of Channels to use to filter the metrics returned in the response. Metric data is retrieved only for the resources associated with the queue IDs, ARNs, or Channels included in the filter. You can include both IDs and ARNs in the same request. To retrieve metrics for all queues, add the queue ID or ARN for each queue in your instance. Only VOICE is supported for Channels.</p> <p>To find the ARN for a queue, open the queue you want to use in the Amazon Connect Queue editor. The ARN for the queue is displayed in the address bar as part of the URL. For example, the queue ARN is the set of characters at the end of the URL, after 'id=' such as <code>arn:aws:connect:us-east-1:270923740243:instance/78fb859d-1b7d-44b1-8aa3-12f0835c5855/queue/1d1a4575-9618-40ab-bbeb-81e45795fe61</code>. The queue ID is also included in the URL, and is the string after 'queue/'.</p>",
-        "GetMetricDataRequest$Filters": "<p>A <code>Filters</code> object that contains a list of queue IDs or queue ARNs, up to 100, or a list of Channels to use to filter the metrics returned in the response. Metric data is retrieved only for the resources associated with the IDs, ARNs, or Channels included in the filter. You can use both IDs and ARNs together in a request. Only VOICE is supported for Channel.</p> <p>To find the ARN for a queue, open the queue you want to use in the Amazon Connect Queue editor. The ARN for the queue is displayed in the address bar as part of the URL. For example, the queue ARN is the set of characters at the end of the URL, after 'id=' such as <code>arn:aws:connect:us-east-1:270923740243:instance/78fb859d-1b7d-44b1-8aa3-12f0835c5855/queue/1d1a4575-9618-40ab-bbeb-81e45795fe61</code>. The queue ID is also included in the URL, and is the string after 'queue/'.</p>"
+        "GetCurrentMetricDataRequest$Filters": "<p>The queues, up to 100, or channels, to use to filter the metrics returned. Metric data is retrieved only for the resources associated with the queues or channels included in the filter. You can include both queue IDs and queue ARNs in the same request. The only supported channel is <code>VOICE</code>.</p>",
+        "GetMetricDataRequest$Filters": "<p>The queues, up to 100, or channels, to use to filter the metrics returned. Metric data is retrieved only for the resources associated with the queues or channels included in the filter. You can include both queue IDs and queue ARNs in the same request. The only supported channel is <code>VOICE</code>.</p>"
       }
     },
     "GetContactAttributesRequest": {
@@ -316,95 +391,95 @@
     "Groupings": {
       "base": null,
       "refs": {
-        "GetCurrentMetricDataRequest$Groupings": "<p>The grouping applied to the metrics returned. For example, when grouped by QUEUE, the metrics returned apply to each queue rather than aggregated for all queues. If you group by CHANNEL, you should include a Channels filter. The only supported channel is VOICE.</p> <p>If no <code>Grouping</code> is included in the request, a summary of <code>CurrentMetrics</code> is returned.</p>",
-        "GetMetricDataRequest$Groupings": "<p>The grouping applied to the metrics returned. For example, when results are grouped by queueId, the metrics returned are grouped by queue. The values returned apply to the metrics for each queue rather than aggregated for all queues.</p> <p>The current version supports grouping by Queue</p> <p>If no <code>Grouping</code> is included in the request, a summary of <code>HistoricalMetrics</code> for all queues is returned.</p>"
+        "GetCurrentMetricDataRequest$Groupings": "<p>The grouping applied to the metrics returned. For example, when grouped by <code>QUEUE</code>, the metrics returned apply to each queue rather than aggregated for all queues. If you group by <code>CHANNEL</code>, you should include a Channels filter. The only supported channel is <code>VOICE</code>.</p> <p>If no <code>Grouping</code> is included in the request, a summary of metrics is returned.</p>",
+        "GetMetricDataRequest$Groupings": "<p>The grouping applied to the metrics returned. For example, when results are grouped by queue, the metrics returned are grouped by queue. The values returned apply to the metrics for each queue rather than aggregated for all queues.</p> <p>The only supported grouping is <code>QUEUE</code>.</p> <p>If no grouping is specified, a summary of metrics for all queues is returned.</p>"
       }
     },
     "HierarchyGroup": {
-      "base": "<p>A <code>HierarchyGroup</code> object that contains information about a hierarchy group in your Amazon Connect instance.</p>",
+      "base": "<p>Contains information about a hierarchy group.</p>",
       "refs": {
-        "DescribeUserHierarchyGroupResponse$HierarchyGroup": "<p>Returns a <code>HierarchyGroup</code> object.</p>"
+        "DescribeUserHierarchyGroupResponse$HierarchyGroup": "<p>Information about the hierarchy group.</p>"
       }
     },
     "HierarchyGroupId": {
       "base": null,
       "refs": {
-        "CreateUserRequest$HierarchyGroupId": "<p>The unique identifier for the hierarchy group to assign to the user created.</p>",
-        "DescribeUserHierarchyGroupRequest$HierarchyGroupId": "<p>The identifier for the hierarchy group to return.</p>",
-        "HierarchyGroup$Id": "<p>The identifier for the hierarchy group.</p>",
+        "CreateUserRequest$HierarchyGroupId": "<p>The identifier of the hierarchy group for the user.</p>",
+        "DescribeUserHierarchyGroupRequest$HierarchyGroupId": "<p>The identifier of the hierarchy group.</p>",
+        "HierarchyGroup$Id": "<p>The identifier of the hierarchy group.</p>",
         "HierarchyGroupSummary$Id": "<p>The identifier of the hierarchy group.</p>",
-        "UpdateUserHierarchyRequest$HierarchyGroupId": "<p>The identifier for the hierarchy group to assign to the user.</p>",
-        "User$HierarchyGroupId": "<p>The identifier for the hierarchy group assigned to the user.</p>"
+        "UpdateUserHierarchyRequest$HierarchyGroupId": "<p>The identifier of the hierarchy group.</p>",
+        "User$HierarchyGroupId": "<p>The identifier of the hierarchy group for the user.</p>"
       }
     },
     "HierarchyGroupName": {
       "base": null,
       "refs": {
-        "HierarchyGroup$Name": "<p>The name of the hierarchy group in your instance.</p>",
+        "HierarchyGroup$Name": "<p>The name of the hierarchy group.</p>",
         "HierarchyGroupSummary$Name": "<p>The name of the hierarchy group.</p>"
       }
     },
     "HierarchyGroupSummary": {
-      "base": "<p>A <code>HierarchyGroupSummary</code> object that contains information about the hierarchy group, including ARN, Id, and Name.</p>",
+      "base": "<p>Contains summary information about a hierarchy group.</p>",
       "refs": {
         "HierarchyGroupSummaryList$member": null,
-        "HierarchyPath$LevelOne": "<p>A <code>HierarchyGroupSummary</code> object that contains information about the level of the hierarchy group, including ARN, Id, and Name.</p>",
-        "HierarchyPath$LevelTwo": "<p>A <code>HierarchyGroupSummary</code> object that contains information about the level of the hierarchy group, including ARN, Id, and Name.</p>",
-        "HierarchyPath$LevelThree": "<p>A <code>HierarchyGroupSummary</code> object that contains information about the level of the hierarchy group, including ARN, Id, and Name.</p>",
-        "HierarchyPath$LevelFour": "<p>A <code>HierarchyGroupSummary</code> object that contains information about the level of the hierarchy group, including ARN, Id, and Name.</p>",
-        "HierarchyPath$LevelFive": "<p>A <code>HierarchyGroupSummary</code> object that contains information about the level of the hierarchy group, including ARN, Id, and Name.</p>"
+        "HierarchyPath$LevelOne": "<p>Information about level one.</p>",
+        "HierarchyPath$LevelTwo": "<p>Information about level two.</p>",
+        "HierarchyPath$LevelThree": "<p>Information about level three.</p>",
+        "HierarchyPath$LevelFour": "<p>Information about level four.</p>",
+        "HierarchyPath$LevelFive": "<p>Information about level five.</p>"
       }
     },
     "HierarchyGroupSummaryList": {
       "base": null,
       "refs": {
-        "ListUserHierarchyGroupsResponse$UserHierarchyGroupSummaryList": "<p>An array of <code>HierarchyGroupSummary</code> objects.</p>"
+        "ListUserHierarchyGroupsResponse$UserHierarchyGroupSummaryList": "<p>Information about the hierarchy groups.</p>"
       }
     },
     "HierarchyLevel": {
-      "base": "<p>A <code>HierarchyLevel</code> object that contains information about the levels in a hierarchy group, including ARN, Id, and Name.</p>",
+      "base": "<p>Contains information about a hierarchy level.</p>",
       "refs": {
-        "HierarchyStructure$LevelOne": "<p>A <code>HierarchyLevel</code> object that contains information about the hierarchy group level.</p>",
-        "HierarchyStructure$LevelTwo": "<p>A <code>HierarchyLevel</code> object that contains information about the hierarchy group level.</p>",
-        "HierarchyStructure$LevelThree": "<p>A <code>HierarchyLevel</code> object that contains information about the hierarchy group level.</p>",
-        "HierarchyStructure$LevelFour": "<p>A <code>HierarchyLevel</code> object that contains information about the hierarchy group level.</p>",
-        "HierarchyStructure$LevelFive": "<p>A <code>HierarchyLevel</code> object that contains information about the hierarchy group level.</p>"
+        "HierarchyStructure$LevelOne": "<p>Information about level one.</p>",
+        "HierarchyStructure$LevelTwo": "<p>Information about level two.</p>",
+        "HierarchyStructure$LevelThree": "<p>Information about level three.</p>",
+        "HierarchyStructure$LevelFour": "<p>Information about level four.</p>",
+        "HierarchyStructure$LevelFive": "<p>Information about level five.</p>"
       }
     },
     "HierarchyLevelId": {
       "base": null,
       "refs": {
-        "HierarchyGroup$LevelId": "<p>The identifier for the level in the hierarchy group.</p>",
-        "HierarchyLevel$Id": "<p>The identifier for the hierarchy group level.</p>"
+        "HierarchyGroup$LevelId": "<p>The identifier of the level in the hierarchy group.</p>",
+        "HierarchyLevel$Id": "<p>The identifier of the hierarchy level.</p>"
       }
     },
     "HierarchyLevelName": {
       "base": null,
       "refs": {
-        "HierarchyLevel$Name": "<p>The name of the hierarchy group level.</p>"
+        "HierarchyLevel$Name": "<p>The name of the hierarchy level.</p>"
       }
     },
     "HierarchyPath": {
-      "base": "<p>A <code>HierarchyPath</code> object that contains information about the levels of the hierarchy group.</p>",
+      "base": "<p>Contains information about the levels of a hierarchy group.</p>",
       "refs": {
-        "HierarchyGroup$HierarchyPath": "<p>A <code>HierarchyPath</code> object that contains information about the levels in the hierarchy group.</p>"
+        "HierarchyGroup$HierarchyPath": "<p>Information about the levels in the hierarchy group.</p>"
       }
     },
     "HierarchyStructure": {
-      "base": "<p>A <code>HierarchyStructure</code> object that contains information about the hierarchy group structure.</p>",
+      "base": "<p>Contains information about a hierarchy structure.</p>",
       "refs": {
-        "DescribeUserHierarchyStructureResponse$HierarchyStructure": "<p>A <code>HierarchyStructure</code> object.</p>"
+        "DescribeUserHierarchyStructureResponse$HierarchyStructure": "<p>Information about the hierarchy structure.</p>"
       }
     },
     "HistoricalMetric": {
-      "base": "<p>A <code>HistoricalMetric</code> object that contains the Name, Unit, Statistic, and Threshold for the metric.</p>",
+      "base": "<p>Contains information about a historical metric.</p>",
       "refs": {
-        "HistoricalMetricData$Metric": "<p>A <code>HistoricalMetric</code> object.</p>",
+        "HistoricalMetricData$Metric": "<p>Information about the metric.</p>",
         "HistoricalMetrics$member": null
       }
     },
     "HistoricalMetricData": {
-      "base": "<p>A <code>HistoricalMetricData</code> object than contains a <code>Metric</code> and a <code>Value</code>.</p>",
+      "base": "<p>Contains the data for a historical metric.</p>",
       "refs": {
         "HistoricalMetricDataCollections$member": null
       }
@@ -412,17 +487,17 @@
     "HistoricalMetricDataCollections": {
       "base": null,
       "refs": {
-        "HistoricalMetricResult$Collections": "<p>A list of <code>HistoricalMetricData</code> objects.</p>"
+        "HistoricalMetricResult$Collections": "<p>The set of metrics.</p>"
       }
     },
     "HistoricalMetricName": {
-      "base": "<p>A list of historical metric names.</p>",
+      "base": "<p>The historical metric names.</p>",
       "refs": {
-        "HistoricalMetric$Name": "<p>The name of the historical metric.</p>"
+        "HistoricalMetric$Name": "<p>The name of the metric.</p>"
       }
     },
     "HistoricalMetricResult": {
-      "base": "<p>The metrics data returned from a <code>GetMetricData</code> operation.</p>",
+      "base": "<p>Contains information about the historical metrics retrieved.</p>",
       "refs": {
         "HistoricalMetricResults$member": null
       }
@@ -430,39 +505,68 @@
     "HistoricalMetricResults": {
       "base": null,
       "refs": {
-        "GetMetricDataResponse$MetricResults": "<p>A list of <code>HistoricalMetricResult</code> objects, organized by <code>Dimensions</code>, which is the ID of the resource specified in the <code>Filters</code> used for the request. The metrics are combined with the metrics included in <code>Collections</code>, which is a list of <code>HisotricalMetricData</code> objects.</p> <p>If no <code>Grouping</code> is specified in the request, <code>Collections</code> includes summary data for the <code>HistoricalMetrics</code>.</p>"
+        "GetMetricDataResponse$MetricResults": "<p>Information about the historical metrics.</p> <p>If no grouping is specified, a summary of metric data is returned.</p>"
       }
     },
     "HistoricalMetrics": {
       "base": null,
       "refs": {
-        "GetMetricDataRequest$HistoricalMetrics": "<p>A list of <code>HistoricalMetric</code> objects that contain the metrics to retrieve with the request.</p> <p>A <code>HistoricalMetric</code> object contains: <code>HistoricalMetricName</code>, <code>Statistic</code>, <code>Threshold</code>, and <code>Unit</code>.</p> <p>You must list each metric to retrieve data for in the request. For each historical metric you include in the request, you must include a <code>Unit</code> and a <code>Statistic</code>. </p> <p>The following historical metrics are available:</p> <dl> <dt>CONTACTS_QUEUED</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_HANDLED</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_ABANDONED</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_CONSULTED</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_AGENT_HUNG_UP_FIRST</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_HANDLED_INCOMING</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_HANDLED_OUTBOUND</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_HOLD_ABANDONS</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_TRANSFERRED_IN</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_TRANSFERRED_OUT</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_TRANSFERRED_IN_FROM_QUEUE</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_TRANSFERRED_OUT_FROM_QUEUE</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CALLBACK_CONTACTS_HANDLED</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CALLBACK_CONTACTS_HANDLED</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>API_CONTACTS_HANDLED</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>CONTACTS_MISSED</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>OCCUPANCY</dt> <dd> <p>Unit: PERCENT</p> <p>Statistics: AVG</p> </dd> <dt>HANDLE_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistics: AVG</p> </dd> <dt>AFTER_CONTACT_WORK_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistics: AVG</p> </dd> <dt>QUEUED_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistics: MAX</p> </dd> <dt>ABANDON_TIME</dt> <dd> <p>Unit: COUNT</p> <p>Statistics: SUM</p> </dd> <dt>QUEUE_ANSWER_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistics: AVG</p> </dd> <dt>HOLD_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistics: AVG</p> </dd> <dt>INTERACTION_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistics: AVG</p> </dd> <dt>INTERACTION_AND_HOLD_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistics: AVG</p> </dd> <dt>SERVICE_LEVEL</dt> <dd> <p>Unit: PERCENT</p> <p>Statistics: AVG</p> <p>Threshold: Only \"Less than\" comparisons are supported, with the following service level thresholds: 15, 20, 25, 30, 45, 60, 90, 120, 180, 240, 300, 600</p> </dd> </dl>"
+        "GetMetricDataRequest$HistoricalMetrics": "<p>The metrics to retrieve. Specify the name, unit, and statistic for each metric. The following historical metrics are available:</p> <dl> <dt>ABANDON_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistic: AVG</p> </dd> <dt>AFTER_CONTACT_WORK_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistic: AVG</p> </dd> <dt>API_CONTACTS_HANDLED</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CALLBACK_CONTACTS_HANDLED</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_ABANDONED</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_AGENT_HUNG_UP_FIRST</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_CONSULTED</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_HANDLED</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_HANDLED_INCOMING</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_HANDLED_OUTBOUND</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_HOLD_ABANDONS</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_MISSED</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_QUEUED</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_TRANSFERRED_IN</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_TRANSFERRED_IN_FROM_QUEUE</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_TRANSFERRED_OUT</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>CONTACTS_TRANSFERRED_OUT_FROM_QUEUE</dt> <dd> <p>Unit: COUNT</p> <p>Statistic: SUM</p> </dd> <dt>HANDLE_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistic: AVG</p> </dd> <dt>HOLD_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistic: AVG</p> </dd> <dt>INTERACTION_AND_HOLD_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistic: AVG</p> </dd> <dt>INTERACTION_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistic: AVG</p> </dd> <dt>OCCUPANCY</dt> <dd> <p>Unit: PERCENT</p> <p>Statistic: AVG</p> </dd> <dt>QUEUE_ANSWER_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistic: AVG</p> </dd> <dt>QUEUED_TIME</dt> <dd> <p>Unit: SECONDS</p> <p>Statistic: MAX</p> </dd> <dt>SERVICE_LEVEL</dt> <dd> <p>Unit: PERCENT</p> <p>Statistic: AVG</p> <p>Threshold: Only \"Less than\" comparisons are supported, with the following service level thresholds: 15, 20, 25, 30, 45, 60, 90, 120, 180, 240, 300, 600</p> </dd> </dl>"
+      }
+    },
+    "HoursOfOperationId": {
+      "base": null,
+      "refs": {
+        "HoursOfOperationSummary$Id": "<p>The identifier of the hours of operation.</p>"
+      }
+    },
+    "HoursOfOperationName": {
+      "base": null,
+      "refs": {
+        "HoursOfOperationSummary$Name": "<p>The name of the hours of operation.</p>"
+      }
+    },
+    "HoursOfOperationSummary": {
+      "base": "<p>Contains summary information about hours of operation for a contact center.</p>",
+      "refs": {
+        "HoursOfOperationSummaryList$member": null
+      }
+    },
+    "HoursOfOperationSummaryList": {
+      "base": null,
+      "refs": {
+        "ListHoursOfOperationsResponse$HoursOfOperationSummaryList": "<p>Information about the hours of operation.</p>"
       }
     },
     "InstanceId": {
       "base": null,
       "refs": {
-        "CreateUserRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "DeleteUserRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "DescribeUserHierarchyGroupRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "DescribeUserHierarchyStructureRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "DescribeUserRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "GetContactAttributesRequest$InstanceId": "<p>The instance ID for the instance from which to retrieve contact attributes.</p>",
-        "GetCurrentMetricDataRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "GetFederationTokenRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "GetMetricDataRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "ListRoutingProfilesRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "ListSecurityProfilesRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "ListUserHierarchyGroupsRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "ListUsersRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "StartOutboundVoiceContactRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "StopContactRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "UpdateContactAttributesRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "UpdateUserHierarchyRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "UpdateUserIdentityInfoRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "UpdateUserPhoneConfigRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "UpdateUserRoutingProfileRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>",
-        "UpdateUserSecurityProfilesRequest$InstanceId": "<p>The identifier for your Amazon Connect instance. To find the ID of your instance, open the AWS console and select Amazon Connect. Select the alias of the instance in the Instance alias column. The instance ID is displayed in the Overview section of your instance settings. For example, the instance ID is the set of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.</p>"
+        "CreateUserRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "DeleteUserRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "DescribeUserHierarchyGroupRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "DescribeUserHierarchyStructureRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "DescribeUserRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "GetContactAttributesRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "GetCurrentMetricDataRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "GetFederationTokenRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "GetMetricDataRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "ListContactFlowsRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "ListHoursOfOperationsRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "ListPhoneNumbersRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "ListQueuesRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "ListRoutingProfilesRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "ListSecurityProfilesRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "ListUserHierarchyGroupsRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "ListUsersRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "StartChatContactRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "StartOutboundVoiceContactRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "StopContactRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "UpdateContactAttributesRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "UpdateUserHierarchyRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "UpdateUserIdentityInfoRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "UpdateUserPhoneConfigRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "UpdateUserRoutingProfileRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>",
+        "UpdateUserSecurityProfilesRequest$InstanceId": "<p>The identifier of the Amazon Connect instance.</p>"
       }
     },
     "InternalServiceException": {
@@ -471,7 +575,7 @@
       }
     },
     "InvalidParameterException": {
-      "base": "<p>One or more of the parameters provided to the operation are not valid.</p>",
+      "base": "<p>One or more of the specified parameters are not valid.</p>",
       "refs": {
       }
     },
@@ -481,7 +585,47 @@
       }
     },
     "LimitExceededException": {
-      "base": "<p>The allowed limit for the resource has been reached.</p>",
+      "base": "<p>The allowed limit for the resource has been exceeded.</p>",
+      "refs": {
+      }
+    },
+    "ListContactFlowsRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "ListContactFlowsResponse": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "ListHoursOfOperationsRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "ListHoursOfOperationsResponse": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "ListPhoneNumbersRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "ListPhoneNumbersResponse": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "ListQueuesRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "ListQueuesResponse": {
+      "base": null,
       "refs": {
       }
     },
@@ -501,6 +645,16 @@
       }
     },
     "ListSecurityProfilesResponse": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "ListTagsForResourceRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "ListTagsForResourceResponse": {
       "base": null,
       "refs": {
       }
@@ -528,17 +682,21 @@
     "MaxResult100": {
       "base": null,
       "refs": {
-        "GetCurrentMetricDataRequest$MaxResults": "<p> <code>MaxResults</code> indicates the maximum number of results to return per page in the response, between 1 and 100.</p>",
-        "GetMetricDataRequest$MaxResults": "<p>Indicates the maximum number of results to return per page in the response, between 1-100.</p>"
+        "GetCurrentMetricDataRequest$MaxResults": "<p>The maximimum number of results to return per page.</p>",
+        "GetMetricDataRequest$MaxResults": "<p>The maximimum number of results to return per page.</p>"
       }
     },
     "MaxResult1000": {
       "base": null,
       "refs": {
-        "ListRoutingProfilesRequest$MaxResults": "<p>The maximum number of routing profiles to return in the response.</p>",
-        "ListSecurityProfilesRequest$MaxResults": "<p>The maximum number of security profiles to return.</p>",
-        "ListUserHierarchyGroupsRequest$MaxResults": "<p>The maximum number of hierarchy groups to return.</p>",
-        "ListUsersRequest$MaxResults": "<p>The maximum number of results to return in the response.</p>"
+        "ListContactFlowsRequest$MaxResults": "<p>The maximimum number of results to return per page.</p>",
+        "ListHoursOfOperationsRequest$MaxResults": "<p>The maximimum number of results to return per page.</p>",
+        "ListPhoneNumbersRequest$MaxResults": "<p>The maximimum number of results to return per page.</p>",
+        "ListQueuesRequest$MaxResults": "<p>The maximimum number of results to return per page.</p>",
+        "ListRoutingProfilesRequest$MaxResults": "<p>The maximimum number of results to return per page.</p>",
+        "ListSecurityProfilesRequest$MaxResults": "<p>The maximimum number of results to return per page.</p>",
+        "ListUserHierarchyGroupsRequest$MaxResults": "<p>The maximimum number of results to return per page.</p>",
+        "ListUsersRequest$MaxResults": "<p>The maximimum number of results to return per page.</p>"
       }
     },
     "Message": {
@@ -560,18 +718,26 @@
     "NextToken": {
       "base": null,
       "refs": {
-        "GetCurrentMetricDataRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p> <p>The token expires after 5 minutes from the time it is created. Subsequent requests that use the <a href=\"\">NextToken</a> must use the same request parameters as the request that generated the token.</p>",
-        "GetCurrentMetricDataResponse$NextToken": "<p>A string returned in the response. Use the value returned in the response as the value of the NextToken in a subsequent request to retrieve the next set of results.</p> <p>The token expires after 5 minutes from the time it is created. Subsequent requests that use the NextToken must use the same request parameters as the request that generated the token. </p>",
+        "GetCurrentMetricDataRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p> <p>The token expires after 5 minutes from the time it is created. Subsequent requests that use the token must use the same request parameters as the request that generated the token.</p>",
+        "GetCurrentMetricDataResponse$NextToken": "<p>If there are additional results, this is the token for the next set of results.</p> <p>The token expires after 5 minutes from the time it is created. Subsequent requests that use the token must use the same request parameters as the request that generated the token.</p>",
         "GetMetricDataRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p>",
-        "GetMetricDataResponse$NextToken": "<p>A string returned in the response. Use the value returned in the response as the value of the NextToken in a subsequent request to retrieve the next set of results.</p> <p>The token expires after 5 minutes from the time it is created. Subsequent requests that use the NextToken must use the same request parameters as the request that generated the token. </p>",
+        "GetMetricDataResponse$NextToken": "<p>If there are additional results, this is the token for the next set of results.</p> <p>The token expires after 5 minutes from the time it is created. Subsequent requests that use the token must use the same request parameters as the request that generated the token.</p>",
+        "ListContactFlowsRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p>",
+        "ListContactFlowsResponse$NextToken": "<p>If there are additional results, this is the token for the next set of results.</p>",
+        "ListHoursOfOperationsRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p>",
+        "ListHoursOfOperationsResponse$NextToken": "<p>If there are additional results, this is the token for the next set of results.</p>",
+        "ListPhoneNumbersRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p>",
+        "ListPhoneNumbersResponse$NextToken": "<p>If there are additional results, this is the token for the next set of results.</p>",
+        "ListQueuesRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p>",
+        "ListQueuesResponse$NextToken": "<p>If there are additional results, this is the token for the next set of results.</p>",
         "ListRoutingProfilesRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p>",
-        "ListRoutingProfilesResponse$NextToken": "<p>A string returned in the response. Use the value returned in the response as the value of the NextToken in a subsequent request to retrieve the next set of results.</p>",
+        "ListRoutingProfilesResponse$NextToken": "<p>If there are additional results, this is the token for the next set of results.</p>",
         "ListSecurityProfilesRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p>",
-        "ListSecurityProfilesResponse$NextToken": "<p>A string returned in the response. Use the value returned in the response as the value of the NextToken in a subsequent request to retrieve the next set of results.</p>",
+        "ListSecurityProfilesResponse$NextToken": "<p>If there are additional results, this is the token for the next set of results.</p>",
         "ListUserHierarchyGroupsRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p>",
-        "ListUserHierarchyGroupsResponse$NextToken": "<p>A string returned in the response. Use the value returned in the response as the value of the NextToken in a subsequent request to retrieve the next set of results.</p>",
+        "ListUserHierarchyGroupsResponse$NextToken": "<p>If there are additional results, this is the token for the next set of results.</p>",
         "ListUsersRequest$NextToken": "<p>The token for the next set of results. Use the value returned in the previous response in the next request to retrieve the next set of results.</p>",
-        "ListUsersResponse$NextToken": "<p>A string returned in the response. Use the value returned in the response as the value of the NextToken in a subsequent request to retrieve the next set of results.</p>"
+        "ListUsersResponse$NextToken": "<p>If there are additional results, this is the token for the next set of results.</p>"
       }
     },
     "OutboundContactNotPermittedException": {
@@ -579,44 +745,139 @@
       "refs": {
       }
     },
+    "ParticipantDetails": {
+      "base": "<p>The customer's details.</p>",
+      "refs": {
+        "StartChatContactRequest$ParticipantDetails": "<p>Information identifying the participant.</p>"
+      }
+    },
+    "ParticipantId": {
+      "base": null,
+      "refs": {
+        "StartChatContactResponse$ParticipantId": "<p>The identifier for a chat participant. The participantId for a chat participant is the same throughout the chat lifecycle.</p>"
+      }
+    },
+    "ParticipantToken": {
+      "base": null,
+      "refs": {
+        "StartChatContactResponse$ParticipantToken": "<p>The token used by the chat participant to call <a href=\"https://docs.aws.amazon.com/connect-participant/latest/APIReference/API_CreateParticipantConnection.html\">CreateParticipantConnection</a>. The participant token is valid for the lifetime of a chat participant.</p>"
+      }
+    },
     "Password": {
       "base": null,
       "refs": {
-        "CreateUserRequest$Password": "<p>The password for the user account to create. This is required if you are using Amazon Connect for identity management. If you are using SAML for identity management and include this parameter, an <code>InvalidRequestException</code> is returned.</p>"
+        "CreateUserRequest$Password": "<p>The password for the user account. A password is required if you are using Amazon Connect for identity management. Otherwise, it is an error to include a password.</p>"
       }
     },
     "PhoneNumber": {
       "base": null,
       "refs": {
-        "StartOutboundVoiceContactRequest$DestinationPhoneNumber": "<p>The phone number of the customer in E.164 format.</p>",
-        "StartOutboundVoiceContactRequest$SourcePhoneNumber": "<p>The phone number, in E.164 format, associated with your Amazon Connect instance to use for the outbound call.</p>",
+        "PhoneNumberSummary$PhoneNumber": "<p>The phone number.</p>",
+        "StartOutboundVoiceContactRequest$DestinationPhoneNumber": "<p>The phone number of the customer, in E.164 format.</p>",
+        "StartOutboundVoiceContactRequest$SourcePhoneNumber": "<p>The phone number associated with the Amazon Connect instance, in E.164 format. If you do not specify a source phone number, you must specify a queue.</p>",
         "UserPhoneConfig$DeskPhoneNumber": "<p>The phone number for the user's desk phone.</p>"
+      }
+    },
+    "PhoneNumberCountryCode": {
+      "base": null,
+      "refs": {
+        "PhoneNumberCountryCodes$member": null,
+        "PhoneNumberSummary$PhoneNumberCountryCode": "<p>The ISO country code.</p>"
+      }
+    },
+    "PhoneNumberCountryCodes": {
+      "base": null,
+      "refs": {
+        "ListPhoneNumbersRequest$PhoneNumberCountryCodes": "<p>The ISO country code.</p>"
+      }
+    },
+    "PhoneNumberId": {
+      "base": null,
+      "refs": {
+        "PhoneNumberSummary$Id": "<p>The identifier of the phone number.</p>"
+      }
+    },
+    "PhoneNumberSummary": {
+      "base": "<p>Contains summary information about a phone number for a contact center.</p>",
+      "refs": {
+        "PhoneNumberSummaryList$member": null
+      }
+    },
+    "PhoneNumberSummaryList": {
+      "base": null,
+      "refs": {
+        "ListPhoneNumbersResponse$PhoneNumberSummaryList": "<p>Information about the phone numbers.</p>"
+      }
+    },
+    "PhoneNumberType": {
+      "base": null,
+      "refs": {
+        "PhoneNumberSummary$PhoneNumberType": "<p>The type of phone number.</p>",
+        "PhoneNumberTypes$member": null
+      }
+    },
+    "PhoneNumberTypes": {
+      "base": null,
+      "refs": {
+        "ListPhoneNumbersRequest$PhoneNumberTypes": "<p>The type of phone number.</p>"
       }
     },
     "PhoneType": {
       "base": null,
       "refs": {
-        "UserPhoneConfig$PhoneType": "<p>The phone type selected for the user, either Soft phone or Desk phone.</p>"
+        "UserPhoneConfig$PhoneType": "<p>The phone type.</p>"
       }
     },
     "QueueId": {
       "base": null,
       "refs": {
-        "QueueReference$Id": "<p>The ID of the queue associated with the metrics returned.</p>",
+        "QueueReference$Id": "<p>The identifier of the queue.</p>",
+        "QueueSummary$Id": "<p>The identifier of the queue.</p>",
         "Queues$member": null,
-        "StartOutboundVoiceContactRequest$QueueId": "<p>The queue to add the call to. If you specify a queue, the phone displayed for caller ID is the phone number specified in the queue. If you do not specify a queue, the queue used will be the queue defined in the contact flow.</p> <p>To find the <code>QueueId</code>, open the queue you want to use in the Amazon Connect Queue editor. The ID for the queue is displayed in the address bar as part of the URL. For example, the queue ID is the set of characters at the end of the URL, after 'queue/' such as <code>queue/aeg40574-2d01-51c3-73d6-bf8624d2168c</code>.</p>"
+        "StartOutboundVoiceContactRequest$QueueId": "<p>The queue for the call. If you specify a queue, the phone displayed for caller ID is the phone number specified in the queue. If you do not specify a queue, the queue defined in the contact flow is used. If you do not specify a queue, you must specify a source phone number.</p>"
+      }
+    },
+    "QueueName": {
+      "base": null,
+      "refs": {
+        "QueueSummary$Name": "<p>The name of the queue.</p>"
       }
     },
     "QueueReference": {
-      "base": "<p>A QueueReference object that contains the the QueueId and ARN for the queue resource for which metrics are returned.</p>",
+      "base": "<p>Contains information about a queue resource for which metrics are returned.</p>",
       "refs": {
-        "Dimensions$Queue": "<p>A <code>QueueReference</code> object used as one part of dimension for the metrics results.</p>"
+        "Dimensions$Queue": "<p>Information about the queue for which metrics are returned.</p>"
+      }
+    },
+    "QueueSummary": {
+      "base": "<p>Contains summary information about a queue.</p>",
+      "refs": {
+        "QueueSummaryList$member": null
+      }
+    },
+    "QueueSummaryList": {
+      "base": null,
+      "refs": {
+        "ListQueuesResponse$QueueSummaryList": "<p>Information about the queues.</p>"
+      }
+    },
+    "QueueType": {
+      "base": null,
+      "refs": {
+        "QueueSummary$QueueType": "<p>The type of queue.</p>",
+        "QueueTypes$member": null
+      }
+    },
+    "QueueTypes": {
+      "base": null,
+      "refs": {
+        "ListQueuesRequest$QueueTypes": "<p>The type of queue.</p>"
       }
     },
     "Queues": {
       "base": null,
       "refs": {
-        "Filters$Queues": "<p>A list of up to 100 queue IDs or queue ARNs to use to filter the metrics retrieved. You can include both IDs and ARNs in a request.</p>"
+        "Filters$Queues": "<p>The queues to use to filter the metrics. You can specify up to 100 queues per request.</p>"
       }
     },
     "ResourceNotFoundException": {
@@ -627,10 +888,10 @@
     "RoutingProfileId": {
       "base": null,
       "refs": {
-        "CreateUserRequest$RoutingProfileId": "<p>The unique identifier for the routing profile to assign to the user created.</p>",
+        "CreateUserRequest$RoutingProfileId": "<p>The identifier of the routing profile for the user.</p>",
         "RoutingProfileSummary$Id": "<p>The identifier of the routing profile.</p>",
-        "UpdateUserRoutingProfileRequest$RoutingProfileId": "<p>The identifier of the routing profile to assign to the user.</p>",
-        "User$RoutingProfileId": "<p>The identifier of the routing profile assigned to the user.</p>"
+        "UpdateUserRoutingProfileRequest$RoutingProfileId": "<p>The identifier of the routing profile for the user.</p>",
+        "User$RoutingProfileId": "<p>The identifier of the routing profile for the user.</p>"
       }
     },
     "RoutingProfileName": {
@@ -640,7 +901,7 @@
       }
     },
     "RoutingProfileSummary": {
-      "base": "<p>A <code>RoutingProfileSummary</code> object that contains information about a routing profile, including ARN, Id, and Name.</p>",
+      "base": "<p>Contains summary information about a routing profile.</p>",
       "refs": {
         "RoutingProfileSummaryList$member": null
       }
@@ -648,7 +909,7 @@
     "RoutingProfileSummaryList": {
       "base": null,
       "refs": {
-        "ListRoutingProfilesResponse$RoutingProfileSummaryList": "<p>An array of <code>RoutingProfileSummary</code> objects that include the ARN, Id, and Name of the routing profile.</p>"
+        "ListRoutingProfilesResponse$RoutingProfileSummaryList": "<p>Information about the routing profiles.</p>"
       }
     },
     "SecurityProfileId": {
@@ -661,9 +922,9 @@
     "SecurityProfileIds": {
       "base": null,
       "refs": {
-        "CreateUserRequest$SecurityProfileIds": "<p>The unique identifier of the security profile to assign to the user created.</p>",
-        "UpdateUserSecurityProfilesRequest$SecurityProfileIds": "<p>The identifiers for the security profiles to assign to the user.</p>",
-        "User$SecurityProfileIds": "<p>The identifier(s) for the security profile assigned to the user.</p>"
+        "CreateUserRequest$SecurityProfileIds": "<p>The identifier of the security profile for the user.</p>",
+        "UpdateUserSecurityProfilesRequest$SecurityProfileIds": "<p>The identifiers of the security profiles for the user.</p>",
+        "User$SecurityProfileIds": "<p>The identifiers of the security profiles for the user.</p>"
       }
     },
     "SecurityProfileName": {
@@ -673,7 +934,7 @@
       }
     },
     "SecurityProfileSummary": {
-      "base": "<p>A <code>SecurityProfileSummary</code> object that contains information about a security profile, including ARN, Id, Name.</p>",
+      "base": "<p>Contains information about a security profile.</p>",
       "refs": {
         "SecurityProfileSummaryList$member": null
       }
@@ -681,14 +942,24 @@
     "SecurityProfileSummaryList": {
       "base": null,
       "refs": {
-        "ListSecurityProfilesResponse$SecurityProfileSummaryList": "<p>An array of <code>SecurityProfileSummary</code> objects.</p>"
+        "ListSecurityProfilesResponse$SecurityProfileSummaryList": "<p>Information about the security profiles.</p>"
       }
     },
     "SecurityToken": {
       "base": null,
       "refs": {
-        "Credentials$AccessToken": "<p>An access token generated for a federated user to access Amazon Connect</p>",
+        "Credentials$AccessToken": "<p>An access token generated for a federated user to access Amazon Connect.</p>",
         "Credentials$RefreshToken": "<p>Renews a token generated for a user to access the Amazon Connect instance.</p>"
+      }
+    },
+    "StartChatContactRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "StartChatContactResponse": {
+      "base": null,
+      "refs": {
       }
     },
     "StartOutboundVoiceContactRequest": {
@@ -717,8 +988,41 @@
       "refs": {
       }
     },
+    "TagKey": {
+      "base": null,
+      "refs": {
+        "TagKeyList$member": null,
+        "TagMap$key": null
+      }
+    },
+    "TagKeyList": {
+      "base": null,
+      "refs": {
+        "UntagResourceRequest$tagKeys": "<p>The tag keys.</p>"
+      }
+    },
+    "TagMap": {
+      "base": null,
+      "refs": {
+        "CreateUserRequest$Tags": "<p>One or more tags.</p>",
+        "ListTagsForResourceResponse$tags": "<p>Information about the tags.</p>",
+        "TagResourceRequest$tags": "<p>One or more tags. For example, { \"tags\": {\"key1\":\"value1\", \"key2\":\"value2\"} }.</p>",
+        "User$Tags": "<p>The tags.</p>"
+      }
+    },
+    "TagResourceRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "TagValue": {
+      "base": null,
+      "refs": {
+        "TagMap$value": null
+      }
+    },
     "Threshold": {
-      "base": "<p>A <code>Threshold</code> object that includes a comparison and <code>ThresholdValue</code> to compare to. Used with service level metrics.</p>",
+      "base": "<p>Contains information about the threshold for service level metrics.</p>",
       "refs": {
         "HistoricalMetric$Threshold": "<p>The threshold for the metric, used with service level metrics.</p>"
       }
@@ -726,7 +1030,7 @@
     "ThresholdValue": {
       "base": null,
       "refs": {
-        "Threshold$ThresholdValue": "<p>The value of the threshold to compare the metric to. Only \"Less than\" (LT) comparisons are supported.</p>"
+        "Threshold$ThresholdValue": "<p>The threshold value to compare.</p>"
       }
     },
     "ThrottlingException": {
@@ -739,6 +1043,11 @@
       "refs": {
         "CurrentMetric$Unit": "<p>The unit for the metric.</p>",
         "HistoricalMetric$Unit": "<p>The unit for the metric.</p>"
+      }
+    },
+    "UntagResourceRequest": {
+      "base": null,
+      "refs": {
       }
     },
     "UpdateContactAttributesRequest": {
@@ -777,32 +1086,32 @@
       }
     },
     "User": {
-      "base": "<p>A <code>User</code> object that contains information about a user account in your Amazon Connect instance, including configuration settings.</p>",
+      "base": "<p>Contains information about a user account for a Amazon Connect instance.</p>",
       "refs": {
-        "DescribeUserResponse$User": "<p>A <code>User</code> object that contains information about the user account and configuration settings.</p>"
+        "DescribeUserResponse$User": "<p>Information about the user account and configuration settings.</p>"
       }
     },
     "UserId": {
       "base": null,
       "refs": {
-        "CreateUserResponse$UserId": "<p>The unique identifier for the user account in Amazon Connect</p>",
-        "DeleteUserRequest$UserId": "<p>The unique identifier of the user to delete.</p>",
-        "DescribeUserRequest$UserId": "<p>Unique identifier for the user account to return.</p>",
-        "UpdateUserHierarchyRequest$UserId": "<p>The identifier of the user account to assign the hierarchy group to.</p>",
-        "UpdateUserIdentityInfoRequest$UserId": "<p>The identifier for the user account to update identity information for.</p>",
-        "UpdateUserPhoneConfigRequest$UserId": "<p>The identifier for the user account to change phone settings for.</p>",
-        "UpdateUserRoutingProfileRequest$UserId": "<p>The identifier for the user account to assign the routing profile to.</p>",
-        "UpdateUserSecurityProfilesRequest$UserId": "<p>The identifier of the user account to assign the security profiles.</p>",
+        "CreateUserResponse$UserId": "<p>The identifier of the user account.</p>",
+        "DeleteUserRequest$UserId": "<p>The identifier of the user.</p>",
+        "DescribeUserRequest$UserId": "<p>The identifier of the user account.</p>",
+        "UpdateUserHierarchyRequest$UserId": "<p>The identifier of the user account.</p>",
+        "UpdateUserIdentityInfoRequest$UserId": "<p>The identifier of the user account.</p>",
+        "UpdateUserPhoneConfigRequest$UserId": "<p>The identifier of the user account.</p>",
+        "UpdateUserRoutingProfileRequest$UserId": "<p>The identifier of the user account.</p>",
+        "UpdateUserSecurityProfilesRequest$UserId": "<p>The identifier of the user account.</p>",
         "User$Id": "<p>The identifier of the user account.</p>",
-        "UserSummary$Id": "<p>The identifier for the user account.</p>"
+        "UserSummary$Id": "<p>The identifier of the user account.</p>"
       }
     },
     "UserIdentityInfo": {
-      "base": "<p>A <code>UserIdentityInfo</code> object that contains information about the user's identity, including email address, first name, and last name.</p>",
+      "base": "<p>Contains information about the identity of a user.</p>",
       "refs": {
-        "CreateUserRequest$IdentityInfo": "<p>Information about the user, including email address, first name, and last name.</p>",
-        "UpdateUserIdentityInfoRequest$IdentityInfo": "<p>A <code>UserIdentityInfo</code> object.</p>",
-        "User$IdentityInfo": "<p>A <code>UserIdentityInfo</code> object.</p>"
+        "CreateUserRequest$IdentityInfo": "<p>The information about the identity of the user.</p>",
+        "UpdateUserIdentityInfoRequest$IdentityInfo": "<p>The identity information for the user.</p>",
+        "User$IdentityInfo": "<p>Information about the user identity.</p>"
       }
     },
     "UserNotFoundException": {
@@ -811,15 +1120,15 @@
       }
     },
     "UserPhoneConfig": {
-      "base": "<p>A <code>UserPhoneConfig</code> object that contains information about the user phone configuration settings.</p>",
+      "base": "<p>Contains information about the phone configuration settings for a user.</p>",
       "refs": {
-        "CreateUserRequest$PhoneConfig": "<p>Specifies the phone settings for the user, including <code>AfterContactWorkTimeLimit</code>, <code>AutoAccept</code>, <code>DeskPhoneNumber</code>, and <code>PhoneType</code>.</p>",
-        "UpdateUserPhoneConfigRequest$PhoneConfig": "<p>A <code>UserPhoneConfig</code> object that contains settings for <code>AfterContactWorkTimeLimit</code>, <code>AutoAccept</code>, <code>DeskPhoneNumber</code>, and <code>PhoneType</code> to assign to the user.</p>",
-        "User$PhoneConfig": "<p>A <code>UserPhoneConfig</code> object.</p>"
+        "CreateUserRequest$PhoneConfig": "<p>The phone settings for the user.</p>",
+        "UpdateUserPhoneConfigRequest$PhoneConfig": "<p>Information about phone configuration settings for the user.</p>",
+        "User$PhoneConfig": "<p>Information about the phone configuration for the user.</p>"
       }
     },
     "UserSummary": {
-      "base": "<p>A <code>UserSummary</code> object that contains Information about a user, including ARN, Id, and user name.</p>",
+      "base": "<p>Contains summary information about a user.</p>",
       "refs": {
         "UserSummaryList$member": null
       }
@@ -827,24 +1136,24 @@
     "UserSummaryList": {
       "base": null,
       "refs": {
-        "ListUsersResponse$UserSummaryList": "<p>An array of <code>UserSummary</code> objects that contain information about the users in your instance.</p>"
+        "ListUsersResponse$UserSummaryList": "<p>Information about the users.</p>"
       }
     },
     "Value": {
       "base": null,
       "refs": {
-        "CurrentMetricData$Value": "<p>The value of the metric in the CurrentMetricData object.</p>",
-        "HistoricalMetricData$Value": "<p>The <code>Value</code> of the metric.</p>"
+        "CurrentMetricData$Value": "<p>The value of the metric.</p>",
+        "HistoricalMetricData$Value": "<p>The value of the metric.</p>"
       }
     },
     "timestamp": {
       "base": null,
       "refs": {
-        "Credentials$AccessTokenExpiration": "<p>A token generated with an expiration time for the session a user is logged in to Amazon Connect</p>",
+        "Credentials$AccessTokenExpiration": "<p>A token generated with an expiration time for the session a user is logged in to Amazon Connect.</p>",
         "Credentials$RefreshTokenExpiration": "<p>Renews the expiration timer for a generated token.</p>",
-        "GetCurrentMetricDataResponse$DataSnapshotTime": "<p>The time at which <code>CurrentMetricData</code> was retrieved and cached for pagination.</p>",
-        "GetMetricDataRequest$StartTime": "<p>The timestamp, in UNIX Epoch time format, at which to start the reporting interval for the retrieval of historical metrics data. The time must be specified using a multiple of 5 minutes, such as 10:05, 10:10, 10:15.</p> <p> <code>StartTime</code> cannot be earlier than 24 hours before the time of the request. Historical metrics are available in Amazon Connect only for 24 hours.</p>",
-        "GetMetricDataRequest$EndTime": "<p>The timestamp, in UNIX Epoch time format, at which to end the reporting interval for the retrieval of historical metrics data. The time must be specified using an interval of 5 minutes, such as 11:00, 11:05, 11:10, and must be later than the <code>StartTime</code> timestamp.</p> <p>The time range between <code>StartTime</code> and <code>EndTime</code> must be less than 24 hours.</p>"
+        "GetCurrentMetricDataResponse$DataSnapshotTime": "<p>The time at which the metrics were retrieved and cached for pagination.</p>",
+        "GetMetricDataRequest$StartTime": "<p>The timestamp, in UNIX Epoch time format, at which to start the reporting interval for the retrieval of historical metrics data. The time must be specified using a multiple of 5 minutes, such as 10:05, 10:10, 10:15.</p> <p>The start time cannot be earlier than 24 hours before the time of the request. Historical metrics are available only for 24 hours.</p>",
+        "GetMetricDataRequest$EndTime": "<p>The timestamp, in UNIX Epoch time format, at which to end the reporting interval for the retrieval of historical metrics data. The time must be specified using an interval of 5 minutes, such as 11:00, 11:05, 11:10, and must be later than the start time timestamp.</p> <p>The time range between the start and end time must be less than 24 hours.</p>"
       }
     }
   }

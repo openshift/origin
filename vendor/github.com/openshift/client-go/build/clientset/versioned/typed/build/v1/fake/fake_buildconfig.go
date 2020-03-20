@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	buildv1 "github.com/openshift/api/build/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -23,7 +25,7 @@ var buildconfigsResource = schema.GroupVersionResource{Group: "build.openshift.i
 var buildconfigsKind = schema.GroupVersionKind{Group: "build.openshift.io", Version: "v1", Kind: "BuildConfig"}
 
 // Get takes name of the buildConfig, and returns the corresponding buildConfig object, and an error if there is any.
-func (c *FakeBuildConfigs) Get(name string, options v1.GetOptions) (result *buildv1.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Get(ctx context.Context, name string, options v1.GetOptions) (result *buildv1.BuildConfig, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(buildconfigsResource, c.ns, name), &buildv1.BuildConfig{})
 
@@ -34,7 +36,7 @@ func (c *FakeBuildConfigs) Get(name string, options v1.GetOptions) (result *buil
 }
 
 // List takes label and field selectors, and returns the list of BuildConfigs that match those selectors.
-func (c *FakeBuildConfigs) List(opts v1.ListOptions) (result *buildv1.BuildConfigList, err error) {
+func (c *FakeBuildConfigs) List(ctx context.Context, opts v1.ListOptions) (result *buildv1.BuildConfigList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(buildconfigsResource, buildconfigsKind, c.ns, opts), &buildv1.BuildConfigList{})
 
@@ -56,14 +58,14 @@ func (c *FakeBuildConfigs) List(opts v1.ListOptions) (result *buildv1.BuildConfi
 }
 
 // Watch returns a watch.Interface that watches the requested buildConfigs.
-func (c *FakeBuildConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeBuildConfigs) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(buildconfigsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a buildConfig and creates it.  Returns the server's representation of the buildConfig, and an error, if there is any.
-func (c *FakeBuildConfigs) Create(buildConfig *buildv1.BuildConfig) (result *buildv1.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Create(ctx context.Context, buildConfig *buildv1.BuildConfig, opts v1.CreateOptions) (result *buildv1.BuildConfig, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(buildconfigsResource, c.ns, buildConfig), &buildv1.BuildConfig{})
 
@@ -74,7 +76,7 @@ func (c *FakeBuildConfigs) Create(buildConfig *buildv1.BuildConfig) (result *bui
 }
 
 // Update takes the representation of a buildConfig and updates it. Returns the server's representation of the buildConfig, and an error, if there is any.
-func (c *FakeBuildConfigs) Update(buildConfig *buildv1.BuildConfig) (result *buildv1.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Update(ctx context.Context, buildConfig *buildv1.BuildConfig, opts v1.UpdateOptions) (result *buildv1.BuildConfig, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(buildconfigsResource, c.ns, buildConfig), &buildv1.BuildConfig{})
 
@@ -86,7 +88,7 @@ func (c *FakeBuildConfigs) Update(buildConfig *buildv1.BuildConfig) (result *bui
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeBuildConfigs) UpdateStatus(buildConfig *buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
+func (c *FakeBuildConfigs) UpdateStatus(ctx context.Context, buildConfig *buildv1.BuildConfig, opts v1.UpdateOptions) (*buildv1.BuildConfig, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(buildconfigsResource, "status", c.ns, buildConfig), &buildv1.BuildConfig{})
 
@@ -97,7 +99,7 @@ func (c *FakeBuildConfigs) UpdateStatus(buildConfig *buildv1.BuildConfig) (*buil
 }
 
 // Delete takes name of the buildConfig and deletes it. Returns an error if one occurs.
-func (c *FakeBuildConfigs) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeBuildConfigs) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(buildconfigsResource, c.ns, name), &buildv1.BuildConfig{})
 
@@ -105,15 +107,15 @@ func (c *FakeBuildConfigs) Delete(name string, options *v1.DeleteOptions) error 
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeBuildConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(buildconfigsResource, c.ns, listOptions)
+func (c *FakeBuildConfigs) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(buildconfigsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &buildv1.BuildConfigList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched buildConfig.
-func (c *FakeBuildConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *buildv1.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *buildv1.BuildConfig, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(buildconfigsResource, c.ns, name, pt, data, subresources...), &buildv1.BuildConfig{})
 
@@ -124,7 +126,7 @@ func (c *FakeBuildConfigs) Patch(name string, pt types.PatchType, data []byte, s
 }
 
 // Instantiate takes the representation of a buildRequest and creates it.  Returns the server's representation of the build, and an error, if there is any.
-func (c *FakeBuildConfigs) Instantiate(buildConfigName string, buildRequest *buildv1.BuildRequest) (result *buildv1.Build, err error) {
+func (c *FakeBuildConfigs) Instantiate(ctx context.Context, buildConfigName string, buildRequest *buildv1.BuildRequest, opts v1.CreateOptions) (result *buildv1.Build, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateSubresourceAction(buildconfigsResource, buildConfigName, "instantiate", c.ns, buildRequest), &buildv1.Build{})
 

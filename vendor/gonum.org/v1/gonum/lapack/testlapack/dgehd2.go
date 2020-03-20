@@ -163,7 +163,7 @@ func testDgehd2(t *testing.T, impl Dgehd2er, n, extra int, rnd *rand.Rand) {
 		}
 	}
 
-	// Construct Q^T * AOrig * Q and check that it is
+	// Construct Qᵀ * AOrig * Q and check that it is
 	// equal to A from Dgehd2.
 	aq := blas64.General{
 		Rows:   n,
@@ -184,13 +184,13 @@ func testDgehd2(t *testing.T, impl Dgehd2er, n, extra int, rnd *rand.Rand) {
 			qaqij := qaq.Data[i*qaq.Stride+j]
 			if j < i-1 {
 				if math.Abs(qaqij) > 1e-14 {
-					t.Errorf("%v: Q^T*A*Q is not upper Hessenberg, [%v,%v]=%v", prefix, i, j, qaqij)
+					t.Errorf("%v: Qᵀ*A*Q is not upper Hessenberg, [%v,%v]=%v", prefix, i, j, qaqij)
 				}
 				continue
 			}
 			diff := qaqij - a.Data[i*a.Stride+j]
 			if math.Abs(diff) > 1e-14 {
-				t.Errorf("%v: Q^T*AOrig*Q and A are not equal, diff at [%v,%v]=%v", prefix, i, j, diff)
+				t.Errorf("%v: Qᵀ*AOrig*Q and A are not equal, diff at [%v,%v]=%v", prefix, i, j, diff)
 			}
 		}
 	}

@@ -3,6 +3,8 @@
 package iotdataplane
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -64,29 +66,29 @@ func (c *IoTDataPlane) DeleteThingShadowRequest(input *DeleteThingShadowInput) (
 // See the AWS API reference guide for AWS IoT Data Plane's
 // API operation DeleteThingShadow for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource does not exist.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The rate exceeds the limit.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   You are not authorized to perform this operation.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   An unexpected error has occurred.
 //
-//   * ErrCodeMethodNotAllowedException "MethodNotAllowedException"
+//   * MethodNotAllowedException
 //   The specified combination of HTTP verb and URI is not supported.
 //
-//   * ErrCodeUnsupportedDocumentEncodingException "UnsupportedDocumentEncodingException"
+//   * UnsupportedDocumentEncodingException
 //   The document encoding is not supported.
 //
 func (c *IoTDataPlane) DeleteThingShadow(input *DeleteThingShadowInput) (*DeleteThingShadowOutput, error) {
@@ -164,29 +166,29 @@ func (c *IoTDataPlane) GetThingShadowRequest(input *GetThingShadowInput) (req *r
 // See the AWS API reference guide for AWS IoT Data Plane's
 // API operation GetThingShadow for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource does not exist.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The rate exceeds the limit.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   You are not authorized to perform this operation.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   An unexpected error has occurred.
 //
-//   * ErrCodeMethodNotAllowedException "MethodNotAllowedException"
+//   * MethodNotAllowedException
 //   The specified combination of HTTP verb and URI is not supported.
 //
-//   * ErrCodeUnsupportedDocumentEncodingException "UnsupportedDocumentEncodingException"
+//   * UnsupportedDocumentEncodingException
 //   The document encoding is not supported.
 //
 func (c *IoTDataPlane) GetThingShadow(input *GetThingShadowInput) (*GetThingShadowOutput, error) {
@@ -265,17 +267,17 @@ func (c *IoTDataPlane) PublishRequest(input *PublishInput) (req *request.Request
 // See the AWS API reference guide for AWS IoT Data Plane's
 // API operation Publish for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalFailureException "InternalFailureException"
+// Returned Error Types:
+//   * InternalFailureException
 //   An unexpected error has occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   You are not authorized to perform this operation.
 //
-//   * ErrCodeMethodNotAllowedException "MethodNotAllowedException"
+//   * MethodNotAllowedException
 //   The specified combination of HTTP verb and URI is not supported.
 //
 func (c *IoTDataPlane) Publish(input *PublishInput) (*PublishOutput, error) {
@@ -353,32 +355,32 @@ func (c *IoTDataPlane) UpdateThingShadowRequest(input *UpdateThingShadowInput) (
 // See the AWS API reference guide for AWS IoT Data Plane's
 // API operation UpdateThingShadow for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeConflictException "ConflictException"
+// Returned Error Types:
+//   * ConflictException
 //   The specified version does not match the version of the document.
 //
-//   * ErrCodeRequestEntityTooLargeException "RequestEntityTooLargeException"
+//   * RequestEntityTooLargeException
 //   The payload exceeds the maximum size allowed.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The rate exceeds the limit.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   You are not authorized to perform this operation.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   An unexpected error has occurred.
 //
-//   * ErrCodeMethodNotAllowedException "MethodNotAllowedException"
+//   * MethodNotAllowedException
 //   The specified combination of HTTP verb and URI is not supported.
 //
-//   * ErrCodeUnsupportedDocumentEncodingException "UnsupportedDocumentEncodingException"
+//   * UnsupportedDocumentEncodingException
 //   The document encoding is not supported.
 //
 func (c *IoTDataPlane) UpdateThingShadow(input *UpdateThingShadowInput) (*UpdateThingShadowOutput, error) {
@@ -400,6 +402,63 @@ func (c *IoTDataPlane) UpdateThingShadowWithContext(ctx aws.Context, input *Upda
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+// The specified version does not match the version of the document.
+type ConflictException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message for the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ConflictException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConflictException) GoString() string {
+	return s.String()
+}
+
+func newErrorConflictException(v protocol.ResponseMetadata) error {
+	return &ConflictException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ConflictException) Code() string {
+	return "ConflictException"
+}
+
+// Message returns the exception's message.
+func (s ConflictException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ConflictException) OrigErr() error {
+	return nil
+}
+
+func (s ConflictException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ConflictException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ConflictException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // The input for the DeleteThingShadow operation.
@@ -536,6 +595,177 @@ func (s *GetThingShadowOutput) SetPayload(v []byte) *GetThingShadowOutput {
 	return s
 }
 
+// An unexpected error has occurred.
+type InternalFailureException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message for the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalFailureException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalFailureException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalFailureException(v protocol.ResponseMetadata) error {
+	return &InternalFailureException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalFailureException) Code() string {
+	return "InternalFailureException"
+}
+
+// Message returns the exception's message.
+func (s InternalFailureException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalFailureException) OrigErr() error {
+	return nil
+}
+
+func (s InternalFailureException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalFailureException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalFailureException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The request is not valid.
+type InvalidRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message for the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidRequestException(v protocol.ResponseMetadata) error {
+	return &InvalidRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidRequestException) Code() string {
+	return "InvalidRequestException"
+}
+
+// Message returns the exception's message.
+func (s InvalidRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidRequestException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidRequestException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified combination of HTTP verb and URI is not supported.
+type MethodNotAllowedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message for the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s MethodNotAllowedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MethodNotAllowedException) GoString() string {
+	return s.String()
+}
+
+func newErrorMethodNotAllowedException(v protocol.ResponseMetadata) error {
+	return &MethodNotAllowedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s MethodNotAllowedException) Code() string {
+	return "MethodNotAllowedException"
+}
+
+// Message returns the exception's message.
+func (s MethodNotAllowedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s MethodNotAllowedException) OrigErr() error {
+	return nil
+}
+
+func (s MethodNotAllowedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s MethodNotAllowedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s MethodNotAllowedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // The input for the Publish operation.
 type PublishInput struct {
 	_ struct{} `type:"structure" payload:"Payload"`
@@ -608,6 +838,348 @@ func (s PublishOutput) String() string {
 // GoString returns the string representation
 func (s PublishOutput) GoString() string {
 	return s.String()
+}
+
+// The payload exceeds the maximum size allowed.
+type RequestEntityTooLargeException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message for the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s RequestEntityTooLargeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RequestEntityTooLargeException) GoString() string {
+	return s.String()
+}
+
+func newErrorRequestEntityTooLargeException(v protocol.ResponseMetadata) error {
+	return &RequestEntityTooLargeException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s RequestEntityTooLargeException) Code() string {
+	return "RequestEntityTooLargeException"
+}
+
+// Message returns the exception's message.
+func (s RequestEntityTooLargeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s RequestEntityTooLargeException) OrigErr() error {
+	return nil
+}
+
+func (s RequestEntityTooLargeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s RequestEntityTooLargeException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s RequestEntityTooLargeException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified resource does not exist.
+type ResourceNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message for the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The service is temporarily unavailable.
+type ServiceUnavailableException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message for the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ServiceUnavailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ServiceUnavailableException) GoString() string {
+	return s.String()
+}
+
+func newErrorServiceUnavailableException(v protocol.ResponseMetadata) error {
+	return &ServiceUnavailableException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ServiceUnavailableException) Code() string {
+	return "ServiceUnavailableException"
+}
+
+// Message returns the exception's message.
+func (s ServiceUnavailableException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ServiceUnavailableException) OrigErr() error {
+	return nil
+}
+
+func (s ServiceUnavailableException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ServiceUnavailableException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ServiceUnavailableException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The rate exceeds the limit.
+type ThrottlingException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message for the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ThrottlingException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ThrottlingException) GoString() string {
+	return s.String()
+}
+
+func newErrorThrottlingException(v protocol.ResponseMetadata) error {
+	return &ThrottlingException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ThrottlingException) Code() string {
+	return "ThrottlingException"
+}
+
+// Message returns the exception's message.
+func (s ThrottlingException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ThrottlingException) OrigErr() error {
+	return nil
+}
+
+func (s ThrottlingException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ThrottlingException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ThrottlingException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// You are not authorized to perform this operation.
+type UnauthorizedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message for the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnauthorizedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnauthorizedException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnauthorizedException(v protocol.ResponseMetadata) error {
+	return &UnauthorizedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnauthorizedException) Code() string {
+	return "UnauthorizedException"
+}
+
+// Message returns the exception's message.
+func (s UnauthorizedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnauthorizedException) OrigErr() error {
+	return nil
+}
+
+func (s UnauthorizedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnauthorizedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnauthorizedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The document encoding is not supported.
+type UnsupportedDocumentEncodingException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message for the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnsupportedDocumentEncodingException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnsupportedDocumentEncodingException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnsupportedDocumentEncodingException(v protocol.ResponseMetadata) error {
+	return &UnsupportedDocumentEncodingException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnsupportedDocumentEncodingException) Code() string {
+	return "UnsupportedDocumentEncodingException"
+}
+
+// Message returns the exception's message.
+func (s UnsupportedDocumentEncodingException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnsupportedDocumentEncodingException) OrigErr() error {
+	return nil
+}
+
+func (s UnsupportedDocumentEncodingException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnsupportedDocumentEncodingException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnsupportedDocumentEncodingException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // The input for the UpdateThingShadow operation.

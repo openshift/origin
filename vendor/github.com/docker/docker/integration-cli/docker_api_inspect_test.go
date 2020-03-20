@@ -10,8 +10,8 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/go-check/check"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 )
 
 func (s *DockerSuite) TestInspectAPIContainerResponse(c *check.C) {
@@ -107,7 +107,7 @@ func (s *DockerSuite) TestInspectAPIContainerVolumeDriver(c *check.C) {
 
 func (s *DockerSuite) TestInspectAPIImageResponse(c *check.C) {
 	dockerCmd(c, "tag", "busybox:latest", "busybox:mytag")
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 

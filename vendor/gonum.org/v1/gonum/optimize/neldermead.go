@@ -105,7 +105,6 @@ func (n *NelderMead) Init(dim, tasks int) int {
 func (n *NelderMead) Run(operation chan<- Task, result <-chan Task, tasks []Task) {
 	n.status, n.err = localOptimizer{}.run(n, math.NaN(), operation, result, tasks)
 	close(operation)
-	return
 }
 
 func (n *NelderMead) initLocal(loc *Location) (Operation, error) {

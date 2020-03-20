@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"crypto/rsa"
 	"encoding/binary"
-	"github.com/elazarl/goproxy"
 	"io"
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/elazarl/goproxy"
 )
 
 type RandSeedReader struct {
@@ -82,11 +83,11 @@ func TestCounterEncStreamHistogram(t *testing.T) {
 	nout := 100 * 1000
 	out := make([]byte, nout)
 	io.ReadFull(&c, out)
-	refhist := make([]int, 256)
+	refhist := make([]int, 512)
 	for i := 0; i < nout; i++ {
 		refhist[rand.Intn(256)]++
 	}
-	hist := make([]int, 256)
+	hist := make([]int, 512)
 	for _, b := range out {
 		hist[int(b)]++
 	}

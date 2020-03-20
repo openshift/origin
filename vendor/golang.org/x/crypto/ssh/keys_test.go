@@ -13,6 +13,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -178,44 +179,45 @@ func TestParseECPrivateKey(t *testing.T) {
 	}
 }
 
-// See Issue https://github.com/golang/go/issues/6650.
-func TestParseEncryptedPrivateKeysFails(t *testing.T) {
-	const wantSubstring = "encrypted"
-	for i, tt := range testdata.PEMEncryptedKeys {
-		_, err := ParsePrivateKey(tt.PEMBytes)
-		if err == nil {
-			t.Errorf("#%d key %s: ParsePrivateKey successfully parsed, expected an error", i, tt.Name)
-			continue
-		}
-
-		if !strings.Contains(err.Error(), wantSubstring) {
-			t.Errorf("#%d key %s: got error %q, want substring %q", i, tt.Name, err, wantSubstring)
-		}
-	}
-}
-
-// Parse encrypted private keys with passphrase
 func TestParseEncryptedPrivateKeysWithPassphrase(t *testing.T) {
 	data := []byte("sign me")
 	for _, tt := range testdata.PEMEncryptedKeys {
-		s, err := ParsePrivateKeyWithPassphrase(tt.PEMBytes, []byte(tt.EncryptionKey))
-		if err != nil {
-			t.Fatalf("ParsePrivateKeyWithPassphrase returned error: %s", err)
-			continue
-		}
-		sig, err := s.Sign(rand.Reader, data)
-		if err != nil {
-			t.Fatalf("dsa.Sign: %v", err)
-		}
-		if err := s.PublicKey().Verify(data, sig); err != nil {
-			t.Errorf("Verify failed: %v", err)
-		}
-	}
+		t.Run(tt.Name, func(t *testing.T) {
+			_, err := ParsePrivateKeyWithPassphrase(tt.PEMBytes, []byte("incorrect"))
+			if err != x509.IncorrectPasswordError {
+				t.Errorf("got %v want IncorrectPasswordError", err)
+			}
 
-	tt := testdata.PEMEncryptedKeys[0]
-	_, err := ParsePrivateKeyWithPassphrase(tt.PEMBytes, []byte("incorrect"))
-	if err != x509.IncorrectPasswordError {
-		t.Fatalf("got %v want IncorrectPasswordError", err)
+			s, err := ParsePrivateKeyWithPassphrase(tt.PEMBytes, []byte(tt.EncryptionKey))
+			if err != nil {
+				t.Fatalf("ParsePrivateKeyWithPassphrase returned error: %s", err)
+			}
+
+			sig, err := s.Sign(rand.Reader, data)
+			if err != nil {
+				t.Fatalf("Signer.Sign: %v", err)
+			}
+			if err := s.PublicKey().Verify(data, sig); err != nil {
+				t.Errorf("Verify failed: %v", err)
+			}
+
+			_, err = ParsePrivateKey(tt.PEMBytes)
+			if err == nil {
+				t.Fatalf("ParsePrivateKey succeeded, expected an error")
+			}
+
+			if err, ok := err.(*PassphraseMissingError); !ok {
+				t.Errorf("got error %q, want PassphraseMissingError", err)
+			} else if tt.IncludesPublicKey {
+				if err.PublicKey == nil {
+					t.Fatalf("expected PassphraseMissingError.PublicKey not to be nil")
+				}
+				got, want := err.PublicKey.Marshal(), s.PublicKey().Marshal()
+				if !bytes.Equal(got, want) {
+					t.Errorf("error field %q doesn't match signer public key %q", got, want)
+				}
+			}
+		})
 	}
 }
 
@@ -569,6 +571,48 @@ func TestInvalidKeys(t *testing.T) {
 			// This test is just to ensure that the function
 			// doesn't panic so the return value is ignored.
 			ParseRawPrivateKey(buf.Bytes())
+		}
+	}
+}
+
+func TestSKKeys(t *testing.T) {
+	for _, d := range testdata.SKData {
+		pk, _, _, _, err := ParseAuthorizedKey(d.PubKey)
+		if err != nil {
+			t.Fatalf("parseAuthorizedKey returned error: %v", err)
+		}
+
+		sigBuf := make([]byte, hex.DecodedLen(len(d.HexSignature)))
+		if _, err := hex.Decode(sigBuf, d.HexSignature); err != nil {
+			t.Fatalf("hex.Decode() failed: %v", err)
+		}
+
+		dataBuf := make([]byte, hex.DecodedLen(len(d.HexData)))
+		if _, err := hex.Decode(dataBuf, d.HexData); err != nil {
+			t.Fatalf("hex.Decode() failed: %v", err)
+		}
+
+		sig, _, ok := parseSignature(sigBuf)
+		if !ok {
+			t.Fatalf("parseSignature(%v) failed", sigBuf)
+		}
+
+		// Test that good data and signature pass verification
+		if err := pk.Verify(dataBuf, sig); err != nil {
+			t.Errorf("%s: PublicKey.Verify(%v, %v) failed: %v", d.Name, dataBuf, sig, err)
+		}
+
+		// Invalid data being passed in
+		invalidData := []byte("INVALID DATA")
+		if err := pk.Verify(invalidData, sig); err == nil {
+			t.Errorf("%s with invalid data: PublicKey.Verify(%v, %v) passed unexpectedly", d.Name, invalidData, sig)
+		}
+
+		// Change byte in blob to corrup signature
+		sig.Blob[5] = byte('A')
+		// Corrupted data being passed in
+		if err := pk.Verify(dataBuf, sig); err == nil {
+			t.Errorf("%s with corrupted signature: PublicKey.Verify(%v, %v) passed unexpectedly", d.Name, dataBuf, sig)
 		}
 	}
 }

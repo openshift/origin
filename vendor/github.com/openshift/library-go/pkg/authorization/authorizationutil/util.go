@@ -1,10 +1,12 @@
 package authorizationutil
 
 import (
+	"context"
 	"errors"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
@@ -36,7 +38,7 @@ func Authorize(sarClient authorizationclient.SubjectAccessReviewInterface, user 
 		},
 	})
 
-	resp, err := sarClient.Create(sar)
+	resp, err := sarClient.Create(context.TODO(), sar, metav1.CreateOptions{})
 	if err == nil && resp != nil && resp.Status.Allowed {
 		return nil
 	}

@@ -1,6 +1,7 @@
 package deployer
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -95,7 +96,7 @@ func (d *RevisionLabelPodDeployer) DeployedEncryptionConfigSecret() (secret *cor
 	}
 
 	// do a live list so we never get confused about what revision we are on
-	apiServerPods, err := d.podClient.List(metav1.ListOptions{LabelSelector: "apiserver=true"})
+	apiServerPods, err := d.podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: "apiserver=true"})
 	if err != nil {
 		return nil, false, err
 	}
@@ -108,7 +109,7 @@ func (d *RevisionLabelPodDeployer) DeployedEncryptionConfigSecret() (secret *cor
 		return nil, false, nil
 	}
 
-	s, err := d.secretClient.Get(encryptionconfig.EncryptionConfSecretName+"-"+revision, metav1.GetOptions{})
+	s, err := d.secretClient.Get(context.TODO(), encryptionconfig.EncryptionConfSecretName+"-"+revision, metav1.GetOptions{})
 	if err != nil {
 		// if encryption is not enabled at this revision or the secret was deleted, we should not error
 		if errors.IsNotFound(err) {

@@ -96,13 +96,22 @@ type TransferAPI interface {
 	ListServersWithContext(aws.Context, *transfer.ListServersInput, ...request.Option) (*transfer.ListServersOutput, error)
 	ListServersRequest(*transfer.ListServersInput) (*request.Request, *transfer.ListServersOutput)
 
+	ListServersPages(*transfer.ListServersInput, func(*transfer.ListServersOutput, bool) bool) error
+	ListServersPagesWithContext(aws.Context, *transfer.ListServersInput, func(*transfer.ListServersOutput, bool) bool, ...request.Option) error
+
 	ListTagsForResource(*transfer.ListTagsForResourceInput) (*transfer.ListTagsForResourceOutput, error)
 	ListTagsForResourceWithContext(aws.Context, *transfer.ListTagsForResourceInput, ...request.Option) (*transfer.ListTagsForResourceOutput, error)
 	ListTagsForResourceRequest(*transfer.ListTagsForResourceInput) (*request.Request, *transfer.ListTagsForResourceOutput)
 
+	ListTagsForResourcePages(*transfer.ListTagsForResourceInput, func(*transfer.ListTagsForResourceOutput, bool) bool) error
+	ListTagsForResourcePagesWithContext(aws.Context, *transfer.ListTagsForResourceInput, func(*transfer.ListTagsForResourceOutput, bool) bool, ...request.Option) error
+
 	ListUsers(*transfer.ListUsersInput) (*transfer.ListUsersOutput, error)
 	ListUsersWithContext(aws.Context, *transfer.ListUsersInput, ...request.Option) (*transfer.ListUsersOutput, error)
 	ListUsersRequest(*transfer.ListUsersInput) (*request.Request, *transfer.ListUsersOutput)
+
+	ListUsersPages(*transfer.ListUsersInput, func(*transfer.ListUsersOutput, bool) bool) error
+	ListUsersPagesWithContext(aws.Context, *transfer.ListUsersInput, func(*transfer.ListUsersOutput, bool) bool, ...request.Option) error
 
 	StartServer(*transfer.StartServerInput) (*transfer.StartServerOutput, error)
 	StartServerWithContext(aws.Context, *transfer.StartServerInput, ...request.Option) (*transfer.StartServerOutput, error)

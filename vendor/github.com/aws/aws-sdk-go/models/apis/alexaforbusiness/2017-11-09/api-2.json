@@ -38,6 +38,20 @@
         {"shape":"LimitExceededException"}
       ]
     },
+    "AssociateDeviceWithNetworkProfile":{
+      "name":"AssociateDeviceWithNetworkProfile",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"AssociateDeviceWithNetworkProfileRequest"},
+      "output":{"shape":"AssociateDeviceWithNetworkProfileResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"ConcurrentModificationException"},
+        {"shape":"DeviceNotRegisteredException"}
+      ]
+    },
     "AssociateDeviceWithRoom":{
       "name":"AssociateDeviceWithRoom",
       "http":{
@@ -87,7 +101,8 @@
       "input":{"shape":"AssociateSkillWithUsersRequest"},
       "output":{"shape":"AssociateSkillWithUsersResponse"},
       "errors":[
-        {"shape":"ConcurrentModificationException"}
+        {"shape":"ConcurrentModificationException"},
+        {"shape":"NotFoundException"}
       ]
     },
     "CreateAddressBook":{
@@ -138,6 +153,35 @@
       "errors":[
         {"shape":"AlreadyExistsException"},
         {"shape":"LimitExceededException"}
+      ]
+    },
+    "CreateGatewayGroup":{
+      "name":"CreateGatewayGroup",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateGatewayGroupRequest"},
+      "output":{"shape":"CreateGatewayGroupResponse"},
+      "errors":[
+        {"shape":"AlreadyExistsException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
+    "CreateNetworkProfile":{
+      "name":"CreateNetworkProfile",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateNetworkProfileRequest"},
+      "output":{"shape":"CreateNetworkProfileResponse"},
+      "errors":[
+        {"shape":"AlreadyExistsException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ConcurrentModificationException"},
+        {"shape":"InvalidCertificateAuthorityException"},
+        {"shape":"InvalidServiceLinkedRoleStateException"}
       ]
     },
     "CreateProfile":{
@@ -258,6 +302,46 @@
         {"shape":"NotFoundException"},
         {"shape":"ConcurrentModificationException"},
         {"shape":"InvalidCertificateAuthorityException"}
+      ]
+    },
+    "DeleteDeviceUsageData":{
+      "name":"DeleteDeviceUsageData",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteDeviceUsageDataRequest"},
+      "output":{"shape":"DeleteDeviceUsageDataResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"DeviceNotRegisteredException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
+    "DeleteGatewayGroup":{
+      "name":"DeleteGatewayGroup",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteGatewayGroupRequest"},
+      "output":{"shape":"DeleteGatewayGroupResponse"},
+      "errors":[
+        {"shape":"ResourceAssociatedException"}
+      ]
+    },
+    "DeleteNetworkProfile":{
+      "name":"DeleteNetworkProfile",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteNetworkProfileRequest"},
+      "output":{"shape":"DeleteNetworkProfileResponse"},
+      "errors":[
+        {"shape":"ResourceInUseException"},
+        {"shape":"ConcurrentModificationException"},
+        {"shape":"NotFoundException"}
       ]
     },
     "DeleteProfile":{
@@ -381,7 +465,8 @@
       "input":{"shape":"DisassociateSkillFromUsersRequest"},
       "output":{"shape":"DisassociateSkillFromUsersResponse"},
       "errors":[
-        {"shape":"ConcurrentModificationException"}
+        {"shape":"ConcurrentModificationException"},
+        {"shape":"NotFoundException"}
       ]
     },
     "DisassociateSkillGroupFromRoom":{
@@ -468,6 +553,55 @@
         {"shape":"NotFoundException"}
       ]
     },
+    "GetGateway":{
+      "name":"GetGateway",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetGatewayRequest"},
+      "output":{"shape":"GetGatewayResponse"},
+      "errors":[
+        {"shape":"NotFoundException"}
+      ]
+    },
+    "GetGatewayGroup":{
+      "name":"GetGatewayGroup",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetGatewayGroupRequest"},
+      "output":{"shape":"GetGatewayGroupResponse"},
+      "errors":[
+        {"shape":"NotFoundException"}
+      ]
+    },
+    "GetInvitationConfiguration":{
+      "name":"GetInvitationConfiguration",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetInvitationConfigurationRequest"},
+      "output":{"shape":"GetInvitationConfigurationResponse"},
+      "errors":[
+        {"shape":"NotFoundException"}
+      ]
+    },
+    "GetNetworkProfile":{
+      "name":"GetNetworkProfile",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetNetworkProfileRequest"},
+      "output":{"shape":"GetNetworkProfileResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"InvalidSecretsManagerResourceException"}
+      ]
+    },
     "GetProfile":{
       "name":"GetProfile",
       "http":{
@@ -546,6 +680,24 @@
         {"shape":"NotFoundException"}
       ]
     },
+    "ListGatewayGroups":{
+      "name":"ListGatewayGroups",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListGatewayGroupsRequest"},
+      "output":{"shape":"ListGatewayGroupsResponse"}
+    },
+    "ListGateways":{
+      "name":"ListGateways",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListGatewaysRequest"},
+      "output":{"shape":"ListGatewaysResponse"}
+    },
     "ListSkills":{
       "name":"ListSkills",
       "http":{
@@ -607,6 +759,19 @@
       "output":{"shape":"PutConferencePreferenceResponse"},
       "errors":[
         {"shape":"NotFoundException"}
+      ]
+    },
+    "PutInvitationConfiguration":{
+      "name":"PutInvitationConfiguration",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutInvitationConfigurationRequest"},
+      "output":{"shape":"PutInvitationConfigurationResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"ConcurrentModificationException"}
       ]
     },
     "PutRoomSkillParameter":{
@@ -713,6 +878,15 @@
       "input":{"shape":"SearchDevicesRequest"},
       "output":{"shape":"SearchDevicesResponse"}
     },
+    "SearchNetworkProfiles":{
+      "name":"SearchNetworkProfiles",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"SearchNetworkProfilesRequest"},
+      "output":{"shape":"SearchNetworkProfilesResponse"}
+    },
     "SearchProfiles":{
       "name":"SearchProfiles",
       "http":{
@@ -748,6 +922,19 @@
       },
       "input":{"shape":"SearchUsersRequest"},
       "output":{"shape":"SearchUsersResponse"}
+    },
+    "SendAnnouncement":{
+      "name":"SendAnnouncement",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"SendAnnouncementRequest"},
+      "output":{"shape":"SendAnnouncementResponse"},
+      "errors":[
+        {"shape":"LimitExceededException"},
+        {"shape":"AlreadyExistsException"}
+      ]
     },
     "SendInvitation":{
       "name":"SendInvitation",
@@ -877,6 +1064,48 @@
         {"shape":"DeviceNotRegisteredException"}
       ]
     },
+    "UpdateGateway":{
+      "name":"UpdateGateway",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateGatewayRequest"},
+      "output":{"shape":"UpdateGatewayResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"NameInUseException"}
+      ]
+    },
+    "UpdateGatewayGroup":{
+      "name":"UpdateGatewayGroup",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateGatewayGroupRequest"},
+      "output":{"shape":"UpdateGatewayGroupResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"NameInUseException"}
+      ]
+    },
+    "UpdateNetworkProfile":{
+      "name":"UpdateNetworkProfile",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateNetworkProfileRequest"},
+      "output":{"shape":"UpdateNetworkProfileResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"NameInUseException"},
+        {"shape":"ConcurrentModificationException"},
+        {"shape":"InvalidCertificateAuthorityException"},
+        {"shape":"InvalidSecretsManagerResourceException"}
+      ]
+    },
     "UpdateProfile":{
       "name":"UpdateProfile",
       "http":{
@@ -1003,6 +1232,22 @@
       "members":{
       }
     },
+    "AssociateDeviceWithNetworkProfileRequest":{
+      "type":"structure",
+      "required":[
+        "DeviceArn",
+        "NetworkProfileArn"
+      ],
+      "members":{
+        "DeviceArn":{"shape":"Arn"},
+        "NetworkProfileArn":{"shape":"Arn"}
+      }
+    },
+    "AssociateDeviceWithNetworkProfileResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "AssociateDeviceWithRoomRequest":{
       "type":"structure",
       "members":{
@@ -1044,7 +1289,6 @@
       "type":"structure",
       "required":["SkillId"],
       "members":{
-        "OrganizationArn":{"shape":"Arn"},
         "SkillId":{"shape":"SkillId"}
       }
     },
@@ -1052,6 +1296,28 @@
       "type":"structure",
       "members":{
       }
+    },
+    "Audio":{
+      "type":"structure",
+      "required":[
+        "Locale",
+        "Location"
+      ],
+      "members":{
+        "Locale":{"shape":"Locale"},
+        "Location":{"shape":"AudioLocation"}
+      }
+    },
+    "AudioList":{
+      "type":"list",
+      "member":{"shape":"Audio"},
+      "max":1
+    },
+    "AudioLocation":{
+      "type":"string",
+      "max":1200,
+      "min":0,
+      "pattern":"https://([A-Za-z0-9_.-]+)?(s3-[A-Za-z0-9-]+|s3\\.([A-Za-z0-9-])+|s3|s3.dualstack\\.([A-Za-z0-9-])+)+.amazonaws.com/.*"
     },
     "AuthorizationResult":{
       "type":"map",
@@ -1071,7 +1337,7 @@
         "Status":{"shape":"BusinessReportStatus"},
         "FailureCode":{"shape":"BusinessReportFailureCode"},
         "S3Location":{"shape":"BusinessReportS3Location"},
-        "DeliveryTime":{"shape":"Timestamp"},
+        "DeliveryTime":{"shape":"BusinessReportDeliveryTime"},
         "DownloadUrl":{"shape":"BusinessReportDownloadUrl"}
       }
     },
@@ -1081,6 +1347,7 @@
         "Interval":{"shape":"BusinessReportInterval"}
       }
     },
+    "BusinessReportDeliveryTime":{"type":"timestamp"},
     "BusinessReportDownloadUrl":{"type":"string"},
     "BusinessReportFailureCode":{
       "type":"string",
@@ -1101,7 +1368,8 @@
       "type":"string",
       "enum":[
         "ONE_DAY",
-        "ONE_WEEK"
+        "ONE_WEEK",
+        "THIRTY_DAYS"
       ]
     },
     "BusinessReportRecurrence":{
@@ -1165,6 +1433,7 @@
       "member":{"shape":"Category"}
     },
     "CategoryName":{"type":"string"},
+    "CertificateTime":{"type":"timestamp"},
     "ClientId":{
       "type":"string",
       "pattern":"^\\S+{1,256}$"
@@ -1246,7 +1515,9 @@
         "DisplayName":{"shape":"ContactName"},
         "FirstName":{"shape":"ContactName"},
         "LastName":{"shape":"ContactName"},
-        "PhoneNumber":{"shape":"E164PhoneNumber"}
+        "PhoneNumber":{"shape":"RawPhoneNumber"},
+        "PhoneNumbers":{"shape":"PhoneNumberList"},
+        "SipAddresses":{"shape":"SipAddressList"}
       }
     },
     "ContactData":{
@@ -1256,7 +1527,9 @@
         "DisplayName":{"shape":"ContactName"},
         "FirstName":{"shape":"ContactName"},
         "LastName":{"shape":"ContactName"},
-        "PhoneNumber":{"shape":"E164PhoneNumber"}
+        "PhoneNumber":{"shape":"RawPhoneNumber"},
+        "PhoneNumbers":{"shape":"PhoneNumberList"},
+        "SipAddresses":{"shape":"SipAddressList"}
       }
     },
     "ContactDataList":{
@@ -1268,6 +1541,14 @@
       "max":100,
       "min":1,
       "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
+    "Content":{
+      "type":"structure",
+      "members":{
+        "TextList":{"shape":"TextList"},
+        "SsmlList":{"shape":"SsmlList"},
+        "AudioList":{"shape":"AudioList"}
+      }
     },
     "CountryCode":{
       "type":"string",
@@ -1348,7 +1629,9 @@
         "DisplayName":{"shape":"ContactName"},
         "FirstName":{"shape":"ContactName"},
         "LastName":{"shape":"ContactName"},
-        "PhoneNumber":{"shape":"E164PhoneNumber"},
+        "PhoneNumber":{"shape":"RawPhoneNumber"},
+        "PhoneNumbers":{"shape":"PhoneNumberList"},
+        "SipAddresses":{"shape":"SipAddressList"},
         "ClientRequestToken":{
           "shape":"ClientRequestToken",
           "idempotencyToken":true
@@ -1359,6 +1642,90 @@
       "type":"structure",
       "members":{
         "ContactArn":{"shape":"Arn"}
+      }
+    },
+    "CreateEndOfMeetingReminder":{
+      "type":"structure",
+      "required":[
+        "ReminderAtMinutes",
+        "ReminderType",
+        "Enabled"
+      ],
+      "members":{
+        "ReminderAtMinutes":{"shape":"EndOfMeetingReminderMinutesList"},
+        "ReminderType":{"shape":"EndOfMeetingReminderType"},
+        "Enabled":{"shape":"Boolean"}
+      }
+    },
+    "CreateGatewayGroupRequest":{
+      "type":"structure",
+      "required":[
+        "Name",
+        "ClientRequestToken"
+      ],
+      "members":{
+        "Name":{"shape":"GatewayGroupName"},
+        "Description":{"shape":"GatewayGroupDescription"},
+        "ClientRequestToken":{
+          "shape":"ClientRequestToken",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "CreateGatewayGroupResponse":{
+      "type":"structure",
+      "members":{
+        "GatewayGroupArn":{"shape":"Arn"}
+      }
+    },
+    "CreateInstantBooking":{
+      "type":"structure",
+      "required":[
+        "DurationInMinutes",
+        "Enabled"
+      ],
+      "members":{
+        "DurationInMinutes":{"shape":"Minutes"},
+        "Enabled":{"shape":"Boolean"}
+      }
+    },
+    "CreateMeetingRoomConfiguration":{
+      "type":"structure",
+      "members":{
+        "RoomUtilizationMetricsEnabled":{"shape":"Boolean"},
+        "EndOfMeetingReminder":{"shape":"CreateEndOfMeetingReminder"},
+        "InstantBooking":{"shape":"CreateInstantBooking"},
+        "RequireCheckIn":{"shape":"CreateRequireCheckIn"}
+      }
+    },
+    "CreateNetworkProfileRequest":{
+      "type":"structure",
+      "required":[
+        "NetworkProfileName",
+        "Ssid",
+        "SecurityType",
+        "ClientRequestToken"
+      ],
+      "members":{
+        "NetworkProfileName":{"shape":"NetworkProfileName"},
+        "Description":{"shape":"NetworkProfileDescription"},
+        "Ssid":{"shape":"NetworkSsid"},
+        "SecurityType":{"shape":"NetworkSecurityType"},
+        "EapMethod":{"shape":"NetworkEapMethod"},
+        "CurrentPassword":{"shape":"CurrentWiFiPassword"},
+        "NextPassword":{"shape":"NextWiFiPassword"},
+        "CertificateAuthorityArn":{"shape":"Arn"},
+        "TrustAnchors":{"shape":"TrustAnchorList"},
+        "ClientRequestToken":{
+          "shape":"ClientRequestToken",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "CreateNetworkProfileResponse":{
+      "type":"structure",
+      "members":{
+        "NetworkProfileArn":{"shape":"Arn"}
       }
     },
     "CreateProfileRequest":{
@@ -1378,19 +1745,32 @@
         "DistanceUnit":{"shape":"DistanceUnit"},
         "TemperatureUnit":{"shape":"TemperatureUnit"},
         "WakeWord":{"shape":"WakeWord"},
+        "Locale":{"shape":"DeviceLocale"},
         "ClientRequestToken":{
           "shape":"ClientRequestToken",
           "idempotencyToken":true
         },
         "SetupModeDisabled":{"shape":"Boolean"},
         "MaxVolumeLimit":{"shape":"MaxVolumeLimit"},
-        "PSTNEnabled":{"shape":"Boolean"}
+        "PSTNEnabled":{"shape":"Boolean"},
+        "MeetingRoomConfiguration":{"shape":"CreateMeetingRoomConfiguration"}
       }
     },
     "CreateProfileResponse":{
       "type":"structure",
       "members":{
         "ProfileArn":{"shape":"Arn"}
+      }
+    },
+    "CreateRequireCheckIn":{
+      "type":"structure",
+      "required":[
+        "ReleaseAfterMinutes",
+        "Enabled"
+      ],
+      "members":{
+        "ReleaseAfterMinutes":{"shape":"Minutes"},
+        "Enabled":{"shape":"Boolean"}
       }
     },
     "CreateRoomRequest":{
@@ -1452,6 +1832,13 @@
       "members":{
         "UserArn":{"shape":"Arn"}
       }
+    },
+    "CurrentWiFiPassword":{
+      "type":"string",
+      "max":128,
+      "min":5,
+      "pattern":"[\\x00-\\x7F]*",
+      "sensitive":true
     },
     "CustomerS3BucketName":{
       "type":"string",
@@ -1517,6 +1904,46 @@
       }
     },
     "DeleteDeviceResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DeleteDeviceUsageDataRequest":{
+      "type":"structure",
+      "required":[
+        "DeviceArn",
+        "DeviceUsageType"
+      ],
+      "members":{
+        "DeviceArn":{"shape":"Arn"},
+        "DeviceUsageType":{"shape":"DeviceUsageType"}
+      }
+    },
+    "DeleteDeviceUsageDataResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DeleteGatewayGroupRequest":{
+      "type":"structure",
+      "required":["GatewayGroupArn"],
+      "members":{
+        "GatewayGroupArn":{"shape":"Arn"}
+      }
+    },
+    "DeleteGatewayGroupResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DeleteNetworkProfileRequest":{
+      "type":"structure",
+      "required":["NetworkProfileArn"],
+      "members":{
+        "NetworkProfileArn":{"shape":"Arn"}
+      }
+    },
+    "DeleteNetworkProfileResponse":{
       "type":"structure",
       "members":{
       }
@@ -1618,7 +2045,8 @@
         "MacAddress":{"shape":"MacAddress"},
         "RoomArn":{"shape":"Arn"},
         "DeviceStatus":{"shape":"DeviceStatus"},
-        "DeviceStatusInfo":{"shape":"DeviceStatusInfo"}
+        "DeviceStatusInfo":{"shape":"DeviceStatusInfo"},
+        "NetworkProfileInfo":{"shape":"DeviceNetworkProfileInfo"}
       }
     },
     "DeviceData":{
@@ -1631,6 +2059,8 @@
         "SoftwareVersion":{"shape":"SoftwareVersion"},
         "MacAddress":{"shape":"MacAddress"},
         "DeviceStatus":{"shape":"DeviceStatus"},
+        "NetworkProfileArn":{"shape":"Arn"},
+        "NetworkProfileName":{"shape":"NetworkProfileName"},
         "RoomArn":{"shape":"Arn"},
         "RoomName":{"shape":"RoomName"},
         "DeviceStatusInfo":{"shape":"DeviceStatusInfo"}
@@ -1645,13 +2075,14 @@
       "members":{
         "Type":{"shape":"DeviceEventType"},
         "Value":{"shape":"DeviceEventValue"},
-        "Timestamp":{"shape":"Timestamp"}
+        "Timestamp":{"shape":"DeviceEventTime"}
       }
     },
     "DeviceEventList":{
       "type":"list",
       "member":{"shape":"DeviceEvent"}
     },
+    "DeviceEventTime":{"type":"timestamp"},
     "DeviceEventType":{
       "type":"string",
       "enum":[
@@ -1660,11 +2091,24 @@
       ]
     },
     "DeviceEventValue":{"type":"string"},
+    "DeviceLocale":{
+      "type":"string",
+      "max":256,
+      "min":1
+    },
     "DeviceName":{
       "type":"string",
       "max":100,
       "min":2,
       "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
+    "DeviceNetworkProfileInfo":{
+      "type":"structure",
+      "members":{
+        "NetworkProfileArn":{"shape":"Arn"},
+        "CertificateArn":{"shape":"Arn"},
+        "CertificateExpirationTime":{"shape":"CertificateTime"}
+      }
     },
     "DeviceNotRegisteredException":{
       "type":"structure",
@@ -1687,12 +2131,14 @@
         "READY",
         "PENDING",
         "WAS_OFFLINE",
-        "DEREGISTERED"
+        "DEREGISTERED",
+        "FAILED"
       ]
     },
     "DeviceStatusDetail":{
       "type":"structure",
       "members":{
+        "Feature":{"shape":"Feature"},
         "Code":{"shape":"DeviceStatusDetailCode"}
       }
     },
@@ -1700,7 +2146,20 @@
       "type":"string",
       "enum":[
         "DEVICE_SOFTWARE_UPDATE_NEEDED",
-        "DEVICE_WAS_OFFLINE"
+        "DEVICE_WAS_OFFLINE",
+        "CREDENTIALS_ACCESS_FAILURE",
+        "TLS_VERSION_MISMATCH",
+        "ASSOCIATION_REJECTION",
+        "AUTHENTICATION_FAILURE",
+        "DHCP_FAILURE",
+        "INTERNET_UNAVAILABLE",
+        "DNS_FAILURE",
+        "UNKNOWN_FAILURE",
+        "CERTIFICATE_ISSUING_LIMIT_EXCEEDED",
+        "INVALID_CERTIFICATE_AUTHORITY",
+        "NETWORK_PROFILE_NOT_FOUND",
+        "INVALID_PASSWORD_STATE",
+        "PASSWORD_NOT_FOUND"
       ]
     },
     "DeviceStatusDetails":{
@@ -1717,6 +2176,10 @@
     "DeviceType":{
       "type":"string",
       "pattern":"[a-zA-Z0-9]{1,200}"
+    },
+    "DeviceUsageType":{
+      "type":"string",
+      "enum":["VOICE"]
     },
     "DisassociateContactFromAddressBookRequest":{
       "type":"structure",
@@ -1762,7 +2225,6 @@
       "type":"structure",
       "required":["SkillId"],
       "members":{
-        "OrganizationArn":{"shape":"Arn"},
         "SkillId":{"shape":"SkillId"}
       }
     },
@@ -1790,16 +2252,11 @@
         "IMPERIAL"
       ]
     },
-    "E164PhoneNumber":{
-      "type":"string",
-      "pattern":"^\\+\\d{8,}$",
-      "sensitive":true
-    },
     "Email":{
       "type":"string",
       "max":128,
       "min":1,
-      "pattern":"([0-9a-zA-Z]([+-.\\w]*[0-9a-zA-Z])*@([0-9a-zA-Z][-\\w]*[0-9a-zA-Z]\\.)+[a-zA-Z]{2,9})"
+      "pattern":"([0-9a-zA-Z]([+-.\\w]*[0-9a-zA-Z])*@([0-9a-zA-Z]([-\\w]*[0-9a-zA-Z]+)*\\.)+[a-zA-Z]{2,9})"
     },
     "EnablementType":{
       "type":"string",
@@ -1813,6 +2270,29 @@
       "enum":[
         "ENABLED",
         "PENDING"
+      ]
+    },
+    "EndOfMeetingReminder":{
+      "type":"structure",
+      "members":{
+        "ReminderAtMinutes":{"shape":"EndOfMeetingReminderMinutesList"},
+        "ReminderType":{"shape":"EndOfMeetingReminderType"},
+        "Enabled":{"shape":"Boolean"}
+      }
+    },
+    "EndOfMeetingReminderMinutesList":{
+      "type":"list",
+      "member":{"shape":"Minutes"},
+      "max":1,
+      "min":1
+    },
+    "EndOfMeetingReminderType":{
+      "type":"string",
+      "enum":[
+        "ANNOUNCEMENT_TIME_CHECK",
+        "ANNOUNCEMENT_VARIABLE_TIME_LEFT",
+        "CHIME",
+        "KNOCK"
       ]
     },
     "EndUserLicenseAgreement":{"type":"string"},
@@ -1845,6 +2325,8 @@
         "NOTIFICATIONS",
         "LISTS",
         "SKILLS",
+        "NETWORK_PROFILE",
+        "SETTINGS",
         "ALL"
       ]
     },
@@ -1881,7 +2363,7 @@
     "FilterValueList":{
       "type":"list",
       "member":{"shape":"FilterValue"},
-      "max":5
+      "max":50
     },
     "ForgetSmartHomeAppliancesRequest":{
       "type":"structure",
@@ -1894,6 +2376,78 @@
       "type":"structure",
       "members":{
       }
+    },
+    "Gateway":{
+      "type":"structure",
+      "members":{
+        "Arn":{"shape":"Arn"},
+        "Name":{"shape":"GatewayName"},
+        "Description":{"shape":"GatewayDescription"},
+        "GatewayGroupArn":{"shape":"Arn"},
+        "SoftwareVersion":{"shape":"GatewayVersion"}
+      }
+    },
+    "GatewayDescription":{
+      "type":"string",
+      "max":200,
+      "min":0,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
+    "GatewayGroup":{
+      "type":"structure",
+      "members":{
+        "Arn":{"shape":"Arn"},
+        "Name":{"shape":"GatewayGroupName"},
+        "Description":{"shape":"GatewayGroupDescription"}
+      }
+    },
+    "GatewayGroupDescription":{
+      "type":"string",
+      "max":200,
+      "min":0
+    },
+    "GatewayGroupName":{
+      "type":"string",
+      "max":100,
+      "min":1,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
+    "GatewayGroupSummaries":{
+      "type":"list",
+      "member":{"shape":"GatewayGroupSummary"}
+    },
+    "GatewayGroupSummary":{
+      "type":"structure",
+      "members":{
+        "Arn":{"shape":"Arn"},
+        "Name":{"shape":"GatewayGroupName"},
+        "Description":{"shape":"GatewayGroupDescription"}
+      }
+    },
+    "GatewayName":{
+      "type":"string",
+      "max":253,
+      "min":1,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
+    "GatewaySummaries":{
+      "type":"list",
+      "member":{"shape":"GatewaySummary"}
+    },
+    "GatewaySummary":{
+      "type":"structure",
+      "members":{
+        "Arn":{"shape":"Arn"},
+        "Name":{"shape":"GatewayName"},
+        "Description":{"shape":"GatewayDescription"},
+        "GatewayGroupArn":{"shape":"Arn"},
+        "SoftwareVersion":{"shape":"GatewayVersion"}
+      }
+    },
+    "GatewayVersion":{
+      "type":"string",
+      "max":50,
+      "min":1
     },
     "GenericKeyword":{"type":"string"},
     "GenericKeywords":{
@@ -1962,6 +2516,58 @@
         "Device":{"shape":"Device"}
       }
     },
+    "GetGatewayGroupRequest":{
+      "type":"structure",
+      "required":["GatewayGroupArn"],
+      "members":{
+        "GatewayGroupArn":{"shape":"Arn"}
+      }
+    },
+    "GetGatewayGroupResponse":{
+      "type":"structure",
+      "members":{
+        "GatewayGroup":{"shape":"GatewayGroup"}
+      }
+    },
+    "GetGatewayRequest":{
+      "type":"structure",
+      "required":["GatewayArn"],
+      "members":{
+        "GatewayArn":{"shape":"Arn"}
+      }
+    },
+    "GetGatewayResponse":{
+      "type":"structure",
+      "members":{
+        "Gateway":{"shape":"Gateway"}
+      }
+    },
+    "GetInvitationConfigurationRequest":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "GetInvitationConfigurationResponse":{
+      "type":"structure",
+      "members":{
+        "OrganizationName":{"shape":"OrganizationName"},
+        "ContactEmail":{"shape":"Email"},
+        "PrivateSkillIds":{"shape":"ShortSkillIdList"}
+      }
+    },
+    "GetNetworkProfileRequest":{
+      "type":"structure",
+      "required":["NetworkProfileArn"],
+      "members":{
+        "NetworkProfileArn":{"shape":"Arn"}
+      }
+    },
+    "GetNetworkProfileResponse":{
+      "type":"structure",
+      "members":{
+        "NetworkProfile":{"shape":"NetworkProfile"}
+      }
+    },
     "GetProfileRequest":{
       "type":"structure",
       "members":{
@@ -2028,6 +2634,13 @@
       }
     },
     "IconUrl":{"type":"string"},
+    "InstantBooking":{
+      "type":"structure",
+      "members":{
+        "DurationInMinutes":{"shape":"Minutes"},
+        "Enabled":{"shape":"Boolean"}
+      }
+    },
     "InvalidCertificateAuthorityException":{
       "type":"structure",
       "members":{
@@ -2036,6 +2649,20 @@
       "exception":true
     },
     "InvalidDeviceException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
+    },
+    "InvalidSecretsManagerResourceException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
+    },
+    "InvalidServiceLinkedRoleStateException":{
       "type":"structure",
       "members":{
         "Message":{"shape":"ErrorMessage"}
@@ -2103,6 +2730,35 @@
       "type":"structure",
       "members":{
         "DeviceEvents":{"shape":"DeviceEventList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListGatewayGroupsRequest":{
+      "type":"structure",
+      "members":{
+        "NextToken":{"shape":"NextToken"},
+        "MaxResults":{"shape":"MaxResults"}
+      }
+    },
+    "ListGatewayGroupsResponse":{
+      "type":"structure",
+      "members":{
+        "GatewayGroups":{"shape":"GatewayGroupSummaries"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListGatewaysRequest":{
+      "type":"structure",
+      "members":{
+        "GatewayGroupArn":{"shape":"Arn"},
+        "NextToken":{"shape":"NextToken"},
+        "MaxResults":{"shape":"MaxResults"}
+      }
+    },
+    "ListGatewaysResponse":{
+      "type":"structure",
+      "members":{
+        "Gateways":{"shape":"GatewaySummaries"},
         "NextToken":{"shape":"NextToken"}
       }
     },
@@ -2185,6 +2841,10 @@
         "NextToken":{"shape":"NextToken"}
       }
     },
+    "Locale":{
+      "type":"string",
+      "enum":["en-US"]
+    },
     "MacAddress":{"type":"string"},
     "MaxResults":{
       "type":"integer",
@@ -2192,6 +2852,15 @@
       "min":1
     },
     "MaxVolumeLimit":{"type":"integer"},
+    "MeetingRoomConfiguration":{
+      "type":"structure",
+      "members":{
+        "RoomUtilizationMetricsEnabled":{"shape":"Boolean"},
+        "EndOfMeetingReminder":{"shape":"EndOfMeetingReminder"},
+        "InstantBooking":{"shape":"InstantBooking"},
+        "RequireCheckIn":{"shape":"RequireCheckIn"}
+      }
+    },
     "MeetingSetting":{
       "type":"structure",
       "required":["RequirePin"],
@@ -2199,6 +2868,7 @@
         "RequirePin":{"shape":"RequirePin"}
       }
     },
+    "Minutes":{"type":"integer"},
     "NameInUseException":{
       "type":"structure",
       "members":{
@@ -2206,14 +2876,84 @@
       },
       "exception":true
     },
+    "NetworkEapMethod":{
+      "type":"string",
+      "enum":["EAP_TLS"]
+    },
+    "NetworkProfile":{
+      "type":"structure",
+      "members":{
+        "NetworkProfileArn":{"shape":"Arn"},
+        "NetworkProfileName":{"shape":"NetworkProfileName"},
+        "Description":{"shape":"NetworkProfileDescription"},
+        "Ssid":{"shape":"NetworkSsid"},
+        "SecurityType":{"shape":"NetworkSecurityType"},
+        "EapMethod":{"shape":"NetworkEapMethod"},
+        "CurrentPassword":{"shape":"CurrentWiFiPassword"},
+        "NextPassword":{"shape":"NextWiFiPassword"},
+        "CertificateAuthorityArn":{"shape":"Arn"},
+        "TrustAnchors":{"shape":"TrustAnchorList"}
+      }
+    },
+    "NetworkProfileData":{
+      "type":"structure",
+      "members":{
+        "NetworkProfileArn":{"shape":"Arn"},
+        "NetworkProfileName":{"shape":"NetworkProfileName"},
+        "Description":{"shape":"NetworkProfileDescription"},
+        "Ssid":{"shape":"NetworkSsid"},
+        "SecurityType":{"shape":"NetworkSecurityType"},
+        "EapMethod":{"shape":"NetworkEapMethod"},
+        "CertificateAuthorityArn":{"shape":"Arn"}
+      }
+    },
+    "NetworkProfileDataList":{
+      "type":"list",
+      "member":{"shape":"NetworkProfileData"}
+    },
+    "NetworkProfileDescription":{
+      "type":"string",
+      "max":200,
+      "min":0,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
+    "NetworkProfileName":{
+      "type":"string",
+      "max":100,
+      "min":1,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
+    "NetworkSecurityType":{
+      "type":"string",
+      "enum":[
+        "OPEN",
+        "WEP",
+        "WPA_PSK",
+        "WPA2_PSK",
+        "WPA2_ENTERPRISE"
+      ]
+    },
+    "NetworkSsid":{
+      "type":"string",
+      "max":32,
+      "min":1,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
     "NewInThisVersionBulletPoints":{
       "type":"list",
       "member":{"shape":"BulletPoint"}
     },
     "NextToken":{
       "type":"string",
-      "max":1000,
+      "max":1100,
       "min":1
+    },
+    "NextWiFiPassword":{
+      "type":"string",
+      "max":128,
+      "min":0,
+      "pattern":"(^$)|([\\x00-\\x7F]{5,})",
+      "sensitive":true
     },
     "NotFoundException":{
       "type":"structure",
@@ -2231,6 +2971,12 @@
       "type":"string",
       "max":2,
       "min":1
+    },
+    "OrganizationName":{
+      "type":"string",
+      "max":100,
+      "min":1,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
     },
     "OutboundPhoneNumber":{
       "type":"string",
@@ -2251,6 +2997,32 @@
         "OneClickPinDelay":{"shape":"OneClickPinDelay"}
       }
     },
+    "PhoneNumber":{
+      "type":"structure",
+      "required":[
+        "Number",
+        "Type"
+      ],
+      "members":{
+        "Number":{"shape":"RawPhoneNumber"},
+        "Type":{"shape":"PhoneNumberType"}
+      }
+    },
+    "PhoneNumberList":{
+      "type":"list",
+      "member":{"shape":"PhoneNumber"},
+      "max":3,
+      "min":0
+    },
+    "PhoneNumberType":{
+      "type":"string",
+      "enum":[
+        "MOBILE",
+        "WORK",
+        "HOME"
+      ],
+      "sensitive":true
+    },
     "PrivacyPolicy":{"type":"string"},
     "ProductDescription":{"type":"string"},
     "ProductId":{
@@ -2268,10 +3040,12 @@
         "DistanceUnit":{"shape":"DistanceUnit"},
         "TemperatureUnit":{"shape":"TemperatureUnit"},
         "WakeWord":{"shape":"WakeWord"},
+        "Locale":{"shape":"DeviceLocale"},
         "SetupModeDisabled":{"shape":"Boolean"},
         "MaxVolumeLimit":{"shape":"MaxVolumeLimit"},
         "PSTNEnabled":{"shape":"Boolean"},
-        "AddressBookArn":{"shape":"Arn"}
+        "AddressBookArn":{"shape":"Arn"},
+        "MeetingRoomConfiguration":{"shape":"MeetingRoomConfiguration"}
       }
     },
     "ProfileData":{
@@ -2284,7 +3058,8 @@
         "Timezone":{"shape":"Timezone"},
         "DistanceUnit":{"shape":"DistanceUnit"},
         "TemperatureUnit":{"shape":"TemperatureUnit"},
-        "WakeWord":{"shape":"WakeWord"}
+        "WakeWord":{"shape":"WakeWord"},
+        "Locale":{"shape":"DeviceLocale"}
       }
     },
     "ProfileDataList":{
@@ -2310,6 +3085,20 @@
       }
     },
     "PutConferencePreferenceResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "PutInvitationConfigurationRequest":{
+      "type":"structure",
+      "required":["OrganizationName"],
+      "members":{
+        "OrganizationName":{"shape":"OrganizationName"},
+        "ContactEmail":{"shape":"Email"},
+        "PrivateSkillIds":{"shape":"ShortSkillIdList"}
+      }
+    },
+    "PutInvitationConfigurationResponse":{
       "type":"structure",
       "members":{
       }
@@ -2348,6 +3137,13 @@
       "members":{
       }
     },
+    "RawPhoneNumber":{
+      "type":"string",
+      "max":50,
+      "min":0,
+      "pattern":"^[\\+0-9\\#\\,\\(][\\+0-9\\-\\.\\/\\(\\)\\,\\#\\s]+$",
+      "sensitive":true
+    },
     "RegisterAVSDeviceRequest":{
       "type":"structure",
       "required":[
@@ -2384,6 +3180,13 @@
       }
     },
     "ReleaseDate":{"type":"string"},
+    "RequireCheckIn":{
+      "type":"structure",
+      "members":{
+        "ReleaseAfterMinutes":{"shape":"Minutes"},
+        "Enabled":{"shape":"Boolean"}
+      }
+    },
     "RequirePin":{
       "type":"string",
       "enum":[
@@ -2410,6 +3213,13 @@
         "RoomName":{"shape":"RoomName"},
         "RoomSkillParameters":{"shape":"RoomSkillParameters"}
       }
+    },
+    "ResourceAssociatedException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
     },
     "ResourceInUseException":{
       "type":"structure",
@@ -2561,6 +3371,23 @@
         "TotalCount":{"shape":"TotalCount"}
       }
     },
+    "SearchNetworkProfilesRequest":{
+      "type":"structure",
+      "members":{
+        "NextToken":{"shape":"NextToken"},
+        "MaxResults":{"shape":"MaxResults"},
+        "Filters":{"shape":"FilterList"},
+        "SortCriteria":{"shape":"SortList"}
+      }
+    },
+    "SearchNetworkProfilesResponse":{
+      "type":"structure",
+      "members":{
+        "NetworkProfiles":{"shape":"NetworkProfileDataList"},
+        "NextToken":{"shape":"NextToken"},
+        "TotalCount":{"shape":"TotalCount"}
+      }
+    },
     "SearchProfilesRequest":{
       "type":"structure",
       "members":{
@@ -2629,6 +3456,29 @@
         "TotalCount":{"shape":"TotalCount"}
       }
     },
+    "SendAnnouncementRequest":{
+      "type":"structure",
+      "required":[
+        "RoomFilters",
+        "Content",
+        "ClientRequestToken"
+      ],
+      "members":{
+        "RoomFilters":{"shape":"FilterList"},
+        "Content":{"shape":"Content"},
+        "TimeToLiveInSeconds":{"shape":"TimeToLiveInSeconds"},
+        "ClientRequestToken":{
+          "shape":"ClientRequestToken",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "SendAnnouncementResponse":{
+      "type":"structure",
+      "members":{
+        "AnnouncementArn":{"shape":"Arn"}
+      }
+    },
     "SendInvitationRequest":{
       "type":"structure",
       "members":{
@@ -2641,6 +3491,41 @@
       }
     },
     "ShortDescription":{"type":"string"},
+    "ShortSkillIdList":{
+      "type":"list",
+      "member":{"shape":"SkillId"},
+      "max":3,
+      "min":0
+    },
+    "SipAddress":{
+      "type":"structure",
+      "required":[
+        "Uri",
+        "Type"
+      ],
+      "members":{
+        "Uri":{"shape":"SipUri"},
+        "Type":{"shape":"SipType"}
+      }
+    },
+    "SipAddressList":{
+      "type":"list",
+      "member":{"shape":"SipAddress"},
+      "max":1,
+      "min":0
+    },
+    "SipType":{
+      "type":"string",
+      "enum":["WORK"],
+      "sensitive":true
+    },
+    "SipUri":{
+      "type":"string",
+      "max":256,
+      "min":1,
+      "pattern":"^sip[s]?:([^@:]+)\\@([^@]+)$",
+      "sensitive":true
+    },
     "SkillDetails":{
       "type":"structure",
       "members":{
@@ -2804,6 +3689,28 @@
         "DESC"
       ]
     },
+    "Ssml":{
+      "type":"structure",
+      "required":[
+        "Locale",
+        "Value"
+      ],
+      "members":{
+        "Locale":{"shape":"Locale"},
+        "Value":{"shape":"SsmlValue"}
+      }
+    },
+    "SsmlList":{
+      "type":"list",
+      "member":{"shape":"Ssml"},
+      "max":1
+    },
+    "SsmlValue":{
+      "type":"string",
+      "max":4096,
+      "min":0,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
     "StartDeviceSyncRequest":{
       "type":"structure",
       "required":["Features"],
@@ -2884,13 +3791,49 @@
         "CELSIUS"
       ]
     },
-    "Timestamp":{"type":"timestamp"},
+    "Text":{
+      "type":"structure",
+      "required":[
+        "Locale",
+        "Value"
+      ],
+      "members":{
+        "Locale":{"shape":"Locale"},
+        "Value":{"shape":"TextValue"}
+      }
+    },
+    "TextList":{
+      "type":"list",
+      "member":{"shape":"Text"},
+      "max":1
+    },
+    "TextValue":{
+      "type":"string",
+      "max":4096,
+      "min":0,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
+    "TimeToLiveInSeconds":{
+      "type":"integer",
+      "max":3600,
+      "min":1
+    },
     "Timezone":{
       "type":"string",
       "max":100,
       "min":1
     },
     "TotalCount":{"type":"integer"},
+    "TrustAnchor":{
+      "type":"string",
+      "pattern":"-{5}BEGIN CERTIFICATE-{5}\\u000D?\\u000A([A-Za-z0-9/+]{64}\\u000D?\\u000A)*[A-Za-z0-9/+]{1,64}={0,2}\\u000D?\\u000A-{5}END CERTIFICATE-{5}(\\u000D?\\u000A)?"
+    },
+    "TrustAnchorList":{
+      "type":"list",
+      "member":{"shape":"TrustAnchor"},
+      "max":5,
+      "min":1
+    },
     "UnauthorizedException":{
       "type":"structure",
       "members":{
@@ -2973,7 +3916,9 @@
         "DisplayName":{"shape":"ContactName"},
         "FirstName":{"shape":"ContactName"},
         "LastName":{"shape":"ContactName"},
-        "PhoneNumber":{"shape":"E164PhoneNumber"}
+        "PhoneNumber":{"shape":"RawPhoneNumber"},
+        "PhoneNumbers":{"shape":"PhoneNumberList"},
+        "SipAddresses":{"shape":"SipAddressList"}
       }
     },
     "UpdateContactResponse":{
@@ -2993,6 +3938,77 @@
       "members":{
       }
     },
+    "UpdateEndOfMeetingReminder":{
+      "type":"structure",
+      "members":{
+        "ReminderAtMinutes":{"shape":"EndOfMeetingReminderMinutesList"},
+        "ReminderType":{"shape":"EndOfMeetingReminderType"},
+        "Enabled":{"shape":"Boolean"}
+      }
+    },
+    "UpdateGatewayGroupRequest":{
+      "type":"structure",
+      "required":["GatewayGroupArn"],
+      "members":{
+        "GatewayGroupArn":{"shape":"Arn"},
+        "Name":{"shape":"GatewayGroupName"},
+        "Description":{"shape":"GatewayGroupDescription"}
+      }
+    },
+    "UpdateGatewayGroupResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "UpdateGatewayRequest":{
+      "type":"structure",
+      "required":["GatewayArn"],
+      "members":{
+        "GatewayArn":{"shape":"Arn"},
+        "Name":{"shape":"GatewayName"},
+        "Description":{"shape":"GatewayDescription"},
+        "SoftwareVersion":{"shape":"GatewayVersion"}
+      }
+    },
+    "UpdateGatewayResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "UpdateInstantBooking":{
+      "type":"structure",
+      "members":{
+        "DurationInMinutes":{"shape":"Minutes"},
+        "Enabled":{"shape":"Boolean"}
+      }
+    },
+    "UpdateMeetingRoomConfiguration":{
+      "type":"structure",
+      "members":{
+        "RoomUtilizationMetricsEnabled":{"shape":"Boolean"},
+        "EndOfMeetingReminder":{"shape":"UpdateEndOfMeetingReminder"},
+        "InstantBooking":{"shape":"UpdateInstantBooking"},
+        "RequireCheckIn":{"shape":"UpdateRequireCheckIn"}
+      }
+    },
+    "UpdateNetworkProfileRequest":{
+      "type":"structure",
+      "required":["NetworkProfileArn"],
+      "members":{
+        "NetworkProfileArn":{"shape":"Arn"},
+        "NetworkProfileName":{"shape":"NetworkProfileName"},
+        "Description":{"shape":"NetworkProfileDescription"},
+        "CurrentPassword":{"shape":"CurrentWiFiPassword"},
+        "NextPassword":{"shape":"NextWiFiPassword"},
+        "CertificateAuthorityArn":{"shape":"Arn"},
+        "TrustAnchors":{"shape":"TrustAnchorList"}
+      }
+    },
+    "UpdateNetworkProfileResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "UpdateProfileRequest":{
       "type":"structure",
       "members":{
@@ -3004,14 +4020,23 @@
         "DistanceUnit":{"shape":"DistanceUnit"},
         "TemperatureUnit":{"shape":"TemperatureUnit"},
         "WakeWord":{"shape":"WakeWord"},
+        "Locale":{"shape":"DeviceLocale"},
         "SetupModeDisabled":{"shape":"Boolean"},
         "MaxVolumeLimit":{"shape":"MaxVolumeLimit"},
-        "PSTNEnabled":{"shape":"Boolean"}
+        "PSTNEnabled":{"shape":"Boolean"},
+        "MeetingRoomConfiguration":{"shape":"UpdateMeetingRoomConfiguration"}
       }
     },
     "UpdateProfileResponse":{
       "type":"structure",
       "members":{
+      }
+    },
+    "UpdateRequireCheckIn":{
+      "type":"structure",
+      "members":{
+        "ReleaseAfterMinutes":{"shape":"Minutes"},
+        "Enabled":{"shape":"Boolean"}
       }
     },
     "UpdateRoomRequest":{

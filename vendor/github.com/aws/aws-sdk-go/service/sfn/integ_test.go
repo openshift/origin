@@ -27,7 +27,9 @@ func TestInteg_00_ListActivities(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := sfn.New(sess)
 	params := &sfn.ListActivitiesInput{}
-	_, err := svc.ListActivitiesWithContext(ctx, params)
+	_, err := svc.ListActivitiesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

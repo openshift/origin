@@ -66,26 +66,26 @@ func (c *CodeStar) AssociateTeamMemberRequest(input *AssociateTeamMemberInput) (
 // See the AWS API reference guide for AWS CodeStar's
 // API operation AssociateTeamMember for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLimitExceededException "LimitExceededException"
+// Returned Error Types:
+//   * LimitExceededException
 //   A resource limit has been exceeded.
 //
-//   * ErrCodeProjectNotFoundException "ProjectNotFoundException"
+//   * ProjectNotFoundException
 //   The specified AWS CodeStar project was not found.
 //
-//   * ErrCodeTeamMemberAlreadyAssociatedException "TeamMemberAlreadyAssociatedException"
+//   * TeamMemberAlreadyAssociatedException
 //   The team member is already associated with a role in this project.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
-//   * ErrCodeInvalidServiceRoleException "InvalidServiceRoleException"
+//   * InvalidServiceRoleException
 //   The service role is not valid.
 //
-//   * ErrCodeProjectConfigurationException "ProjectConfigurationException"
+//   * ProjectConfigurationException
 //   Project configuration information is required but not specified.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   Another modification is being made. That modification must complete before
 //   you can make your change.
 //
@@ -167,30 +167,30 @@ func (c *CodeStar) CreateProjectRequest(input *CreateProjectInput) (req *request
 // See the AWS API reference guide for AWS CodeStar's
 // API operation CreateProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProjectAlreadyExistsException "ProjectAlreadyExistsException"
+// Returned Error Types:
+//   * ProjectAlreadyExistsException
 //   An AWS CodeStar project with the same ID already exists in this region for
 //   the AWS account. AWS CodeStar project IDs must be unique within a region
 //   for the AWS account.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   A resource limit has been exceeded.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
-//   * ErrCodeProjectCreationFailedException "ProjectCreationFailedException"
+//   * ProjectCreationFailedException
 //   The project creation request was valid, but a nonspecific exception or error
 //   occurred during project creation. The project could not be created in AWS
 //   CodeStar.
 //
-//   * ErrCodeInvalidServiceRoleException "InvalidServiceRoleException"
+//   * InvalidServiceRoleException
 //   The service role is not valid.
 //
-//   * ErrCodeProjectConfigurationException "ProjectConfigurationException"
+//   * ProjectConfigurationException
 //   Project configuration information is required but not specified.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   Another modification is being made. That modification must complete before
 //   you can make your change.
 //
@@ -273,13 +273,13 @@ func (c *CodeStar) CreateUserProfileRequest(input *CreateUserProfileInput) (req 
 // See the AWS API reference guide for AWS CodeStar's
 // API operation CreateUserProfile for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUserProfileAlreadyExistsException "UserProfileAlreadyExistsException"
+// Returned Error Types:
+//   * UserProfileAlreadyExistsException
 //   A user profile with that name already exists in this region for the AWS account.
 //   AWS CodeStar user profile names must be unique within a region for the AWS
 //   account.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/CreateUserProfile
@@ -359,15 +359,15 @@ func (c *CodeStar) DeleteProjectRequest(input *DeleteProjectInput) (req *request
 // See the AWS API reference guide for AWS CodeStar's
 // API operation DeleteProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+// Returned Error Types:
+//   * ConcurrentModificationException
 //   Another modification is being made. That modification must complete before
 //   you can make your change.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
-//   * ErrCodeInvalidServiceRoleException "InvalidServiceRoleException"
+//   * InvalidServiceRoleException
 //   The service role is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/DeleteProject
@@ -448,8 +448,8 @@ func (c *CodeStar) DeleteUserProfileRequest(input *DeleteUserProfileInput) (req 
 // See the AWS API reference guide for AWS CodeStar's
 // API operation DeleteUserProfile for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeValidationException "ValidationException"
+// Returned Error Types:
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/DeleteUserProfile
@@ -527,20 +527,20 @@ func (c *CodeStar) DescribeProjectRequest(input *DescribeProjectInput) (req *req
 // See the AWS API reference guide for AWS CodeStar's
 // API operation DescribeProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProjectNotFoundException "ProjectNotFoundException"
+// Returned Error Types:
+//   * ProjectNotFoundException
 //   The specified AWS CodeStar project was not found.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
-//   * ErrCodeInvalidServiceRoleException "InvalidServiceRoleException"
+//   * InvalidServiceRoleException
 //   The service role is not valid.
 //
-//   * ErrCodeProjectConfigurationException "ProjectConfigurationException"
+//   * ProjectConfigurationException
 //   Project configuration information is required but not specified.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   Another modification is being made. That modification must complete before
 //   you can make your change.
 //
@@ -619,11 +619,11 @@ func (c *CodeStar) DescribeUserProfileRequest(input *DescribeUserProfileInput) (
 // See the AWS API reference guide for AWS CodeStar's
 // API operation DescribeUserProfile for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUserProfileNotFoundException "UserProfileNotFoundException"
+// Returned Error Types:
+//   * UserProfileNotFoundException
 //   The user profile was not found.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/DescribeUserProfile
@@ -705,17 +705,17 @@ func (c *CodeStar) DisassociateTeamMemberRequest(input *DisassociateTeamMemberIn
 // See the AWS API reference guide for AWS CodeStar's
 // API operation DisassociateTeamMember for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProjectNotFoundException "ProjectNotFoundException"
+// Returned Error Types:
+//   * ProjectNotFoundException
 //   The specified AWS CodeStar project was not found.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
-//   * ErrCodeInvalidServiceRoleException "InvalidServiceRoleException"
+//   * InvalidServiceRoleException
 //   The service role is not valid.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   Another modification is being made. That modification must complete before
 //   you can make your change.
 //
@@ -794,11 +794,11 @@ func (c *CodeStar) ListProjectsRequest(input *ListProjectsInput) (req *request.R
 // See the AWS API reference guide for AWS CodeStar's
 // API operation ListProjects for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+// Returned Error Types:
+//   * InvalidNextTokenException
 //   The next token is not valid.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/ListProjects
@@ -876,14 +876,14 @@ func (c *CodeStar) ListResourcesRequest(input *ListResourcesInput) (req *request
 // See the AWS API reference guide for AWS CodeStar's
 // API operation ListResources for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProjectNotFoundException "ProjectNotFoundException"
+// Returned Error Types:
+//   * ProjectNotFoundException
 //   The specified AWS CodeStar project was not found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   The next token is not valid.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/ListResources
@@ -961,14 +961,14 @@ func (c *CodeStar) ListTagsForProjectRequest(input *ListTagsForProjectInput) (re
 // See the AWS API reference guide for AWS CodeStar's
 // API operation ListTagsForProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProjectNotFoundException "ProjectNotFoundException"
+// Returned Error Types:
+//   * ProjectNotFoundException
 //   The specified AWS CodeStar project was not found.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   The next token is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/ListTagsForProject
@@ -1046,14 +1046,14 @@ func (c *CodeStar) ListTeamMembersRequest(input *ListTeamMembersInput) (req *req
 // See the AWS API reference guide for AWS CodeStar's
 // API operation ListTeamMembers for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProjectNotFoundException "ProjectNotFoundException"
+// Returned Error Types:
+//   * ProjectNotFoundException
 //   The specified AWS CodeStar project was not found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   The next token is not valid.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/ListTeamMembers
@@ -1131,11 +1131,11 @@ func (c *CodeStar) ListUserProfilesRequest(input *ListUserProfilesInput) (req *r
 // See the AWS API reference guide for AWS CodeStar's
 // API operation ListUserProfiles for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+// Returned Error Types:
+//   * InvalidNextTokenException
 //   The next token is not valid.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/ListUserProfiles
@@ -1213,17 +1213,17 @@ func (c *CodeStar) TagProjectRequest(input *TagProjectInput) (req *request.Reque
 // See the AWS API reference guide for AWS CodeStar's
 // API operation TagProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProjectNotFoundException "ProjectNotFoundException"
+// Returned Error Types:
+//   * ProjectNotFoundException
 //   The specified AWS CodeStar project was not found.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   A resource limit has been exceeded.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   Another modification is being made. That modification must complete before
 //   you can make your change.
 //
@@ -1303,17 +1303,17 @@ func (c *CodeStar) UntagProjectRequest(input *UntagProjectInput) (req *request.R
 // See the AWS API reference guide for AWS CodeStar's
 // API operation UntagProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProjectNotFoundException "ProjectNotFoundException"
+// Returned Error Types:
+//   * ProjectNotFoundException
 //   The specified AWS CodeStar project was not found.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   A resource limit has been exceeded.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   Another modification is being made. That modification must complete before
 //   you can make your change.
 //
@@ -1393,11 +1393,11 @@ func (c *CodeStar) UpdateProjectRequest(input *UpdateProjectInput) (req *request
 // See the AWS API reference guide for AWS CodeStar's
 // API operation UpdateProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeProjectNotFoundException "ProjectNotFoundException"
+// Returned Error Types:
+//   * ProjectNotFoundException
 //   The specified AWS CodeStar project was not found.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/UpdateProject
@@ -1477,27 +1477,27 @@ func (c *CodeStar) UpdateTeamMemberRequest(input *UpdateTeamMemberInput) (req *r
 // See the AWS API reference guide for AWS CodeStar's
 // API operation UpdateTeamMember for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLimitExceededException "LimitExceededException"
+// Returned Error Types:
+//   * LimitExceededException
 //   A resource limit has been exceeded.
 //
-//   * ErrCodeProjectNotFoundException "ProjectNotFoundException"
+//   * ProjectNotFoundException
 //   The specified AWS CodeStar project was not found.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
-//   * ErrCodeInvalidServiceRoleException "InvalidServiceRoleException"
+//   * InvalidServiceRoleException
 //   The service role is not valid.
 //
-//   * ErrCodeProjectConfigurationException "ProjectConfigurationException"
+//   * ProjectConfigurationException
 //   Project configuration information is required but not specified.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   Another modification is being made. That modification must complete before
 //   you can make your change.
 //
-//   * ErrCodeTeamMemberNotFoundException "TeamMemberNotFoundException"
+//   * TeamMemberNotFoundException
 //   The specified team member was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/UpdateTeamMember
@@ -1577,11 +1577,11 @@ func (c *CodeStar) UpdateUserProfileRequest(input *UpdateUserProfileInput) (req 
 // See the AWS API reference guide for AWS CodeStar's
 // API operation UpdateUserProfile for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUserProfileNotFoundException "UserProfileNotFoundException"
+// Returned Error Types:
+//   * UserProfileNotFoundException
 //   The user profile was not found.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   The specified input is either not valid, or it could not be validated.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codestar-2017-04-19/UpdateUserProfile
@@ -1943,6 +1943,58 @@ func (s *CodeSource) Validate() error {
 func (s *CodeSource) SetS3(v *S3Location) *CodeSource {
 	s.S3 = v
 	return s
+}
+
+// Another modification is being made. That modification must complete before
+// you can make your change.
+type ConcurrentModificationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s ConcurrentModificationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConcurrentModificationException) GoString() string {
+	return s.String()
+}
+
+func newErrorConcurrentModificationException(v protocol.ResponseMetadata) error {
+	return &ConcurrentModificationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ConcurrentModificationException) Code() string {
+	return "ConcurrentModificationException"
+}
+
+// Message returns the exception's message.
+func (s ConcurrentModificationException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ConcurrentModificationException) OrigErr() error {
+	return nil
+}
+
+func (s ConcurrentModificationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ConcurrentModificationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ConcurrentModificationException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type CreateProjectInput struct {
@@ -2925,6 +2977,159 @@ func (s *GitHubCodeDestination) SetType(v string) *GitHubCodeDestination {
 	return s
 }
 
+// The next token is not valid.
+type InvalidNextTokenException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s InvalidNextTokenException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidNextTokenException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidNextTokenException(v protocol.ResponseMetadata) error {
+	return &InvalidNextTokenException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidNextTokenException) Code() string {
+	return "InvalidNextTokenException"
+}
+
+// Message returns the exception's message.
+func (s InvalidNextTokenException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidNextTokenException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidNextTokenException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidNextTokenException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidNextTokenException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The service role is not valid.
+type InvalidServiceRoleException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s InvalidServiceRoleException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidServiceRoleException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidServiceRoleException(v protocol.ResponseMetadata) error {
+	return &InvalidServiceRoleException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidServiceRoleException) Code() string {
+	return "InvalidServiceRoleException"
+}
+
+// Message returns the exception's message.
+func (s InvalidServiceRoleException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidServiceRoleException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidServiceRoleException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidServiceRoleException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidServiceRoleException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// A resource limit has been exceeded.
+type LimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s LimitExceededException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type ListProjectsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3390,6 +3595,214 @@ func (s *ListUserProfilesOutput) SetUserProfiles(v []*UserProfileSummary) *ListU
 	return s
 }
 
+// An AWS CodeStar project with the same ID already exists in this region for
+// the AWS account. AWS CodeStar project IDs must be unique within a region
+// for the AWS account.
+type ProjectAlreadyExistsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s ProjectAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProjectAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorProjectAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &ProjectAlreadyExistsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ProjectAlreadyExistsException) Code() string {
+	return "ProjectAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s ProjectAlreadyExistsException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ProjectAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s ProjectAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ProjectAlreadyExistsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ProjectAlreadyExistsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Project configuration information is required but not specified.
+type ProjectConfigurationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s ProjectConfigurationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProjectConfigurationException) GoString() string {
+	return s.String()
+}
+
+func newErrorProjectConfigurationException(v protocol.ResponseMetadata) error {
+	return &ProjectConfigurationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ProjectConfigurationException) Code() string {
+	return "ProjectConfigurationException"
+}
+
+// Message returns the exception's message.
+func (s ProjectConfigurationException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ProjectConfigurationException) OrigErr() error {
+	return nil
+}
+
+func (s ProjectConfigurationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ProjectConfigurationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ProjectConfigurationException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The project creation request was valid, but a nonspecific exception or error
+// occurred during project creation. The project could not be created in AWS
+// CodeStar.
+type ProjectCreationFailedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s ProjectCreationFailedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProjectCreationFailedException) GoString() string {
+	return s.String()
+}
+
+func newErrorProjectCreationFailedException(v protocol.ResponseMetadata) error {
+	return &ProjectCreationFailedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ProjectCreationFailedException) Code() string {
+	return "ProjectCreationFailedException"
+}
+
+// Message returns the exception's message.
+func (s ProjectCreationFailedException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ProjectCreationFailedException) OrigErr() error {
+	return nil
+}
+
+func (s ProjectCreationFailedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ProjectCreationFailedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ProjectCreationFailedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified AWS CodeStar project was not found.
+type ProjectNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s ProjectNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProjectNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorProjectNotFoundException(v protocol.ResponseMetadata) error {
+	return &ProjectNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ProjectNotFoundException) Code() string {
+	return "ProjectNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ProjectNotFoundException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ProjectNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ProjectNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ProjectNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ProjectNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // An indication of whether a project creation or deletion is failed or successful.
 type ProjectStatus struct {
 	_ struct{} `type:"structure"`
@@ -3658,6 +4071,108 @@ func (s *TeamMember) SetRemoteAccessAllowed(v bool) *TeamMember {
 func (s *TeamMember) SetUserArn(v string) *TeamMember {
 	s.UserArn = &v
 	return s
+}
+
+// The team member is already associated with a role in this project.
+type TeamMemberAlreadyAssociatedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s TeamMemberAlreadyAssociatedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TeamMemberAlreadyAssociatedException) GoString() string {
+	return s.String()
+}
+
+func newErrorTeamMemberAlreadyAssociatedException(v protocol.ResponseMetadata) error {
+	return &TeamMemberAlreadyAssociatedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TeamMemberAlreadyAssociatedException) Code() string {
+	return "TeamMemberAlreadyAssociatedException"
+}
+
+// Message returns the exception's message.
+func (s TeamMemberAlreadyAssociatedException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TeamMemberAlreadyAssociatedException) OrigErr() error {
+	return nil
+}
+
+func (s TeamMemberAlreadyAssociatedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TeamMemberAlreadyAssociatedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TeamMemberAlreadyAssociatedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified team member was not found.
+type TeamMemberNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s TeamMemberNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TeamMemberNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorTeamMemberNotFoundException(v protocol.ResponseMetadata) error {
+	return &TeamMemberNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TeamMemberNotFoundException) Code() string {
+	return "TeamMemberNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s TeamMemberNotFoundException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TeamMemberNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s TeamMemberNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TeamMemberNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TeamMemberNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // The toolchain template file provided with the project request. AWS CodeStar
@@ -4198,6 +4713,110 @@ func (s *UpdateUserProfileOutput) SetUserArn(v string) *UpdateUserProfileOutput 
 	return s
 }
 
+// A user profile with that name already exists in this region for the AWS account.
+// AWS CodeStar user profile names must be unique within a region for the AWS
+// account.
+type UserProfileAlreadyExistsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s UserProfileAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UserProfileAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorUserProfileAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &UserProfileAlreadyExistsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UserProfileAlreadyExistsException) Code() string {
+	return "UserProfileAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s UserProfileAlreadyExistsException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UserProfileAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s UserProfileAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UserProfileAlreadyExistsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UserProfileAlreadyExistsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The user profile was not found.
+type UserProfileNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s UserProfileNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UserProfileNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorUserProfileNotFoundException(v protocol.ResponseMetadata) error {
+	return &UserProfileNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UserProfileNotFoundException) Code() string {
+	return "UserProfileNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s UserProfileNotFoundException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UserProfileNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s UserProfileNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UserProfileNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UserProfileNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Information about a user's profile in AWS CodeStar.
 type UserProfileSummary struct {
 	_ struct{} `type:"structure"`
@@ -4257,4 +4876,55 @@ func (s *UserProfileSummary) SetSshPublicKey(v string) *UserProfileSummary {
 func (s *UserProfileSummary) SetUserArn(v string) *UserProfileSummary {
 	s.UserArn = &v
 	return s
+}
+
+// The specified input is either not valid, or it could not be validated.
+type ValidationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s ValidationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ValidationException) GoString() string {
+	return s.String()
+}
+
+func newErrorValidationException(v protocol.ResponseMetadata) error {
+	return &ValidationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ValidationException) Code() string {
+	return "ValidationException"
+}
+
+// Message returns the exception's message.
+func (s ValidationException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ValidationException) OrigErr() error {
+	return nil
+}
+
+func (s ValidationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ValidationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ValidationException) RequestID() string {
+	return s.respMetadata.RequestID
 }

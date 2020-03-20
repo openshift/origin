@@ -4,9 +4,9 @@
   "operations": {
     "DeleteObject": "<p>Deletes an object at the specified path.</p>",
     "DescribeObject": "<p>Gets the headers for an object at the specified path.</p>",
-    "GetObject": "<p>Downloads the object at the specified path.</p>",
+    "GetObject": "<p>Downloads the object at the specified path. If the object’s upload availability is set to <code>streaming</code>, AWS Elemental MediaStore downloads the object even if it’s still uploading the object.</p>",
     "ListItems": "<p>Provides a list of metadata entries about folders and objects in the specified folder.</p>",
-    "PutObject": "<p>Uploads an object to the specified path. Object sizes are limited to 25 MB.</p>"
+    "PutObject": "<p>Uploads an object to the specified path. Object sizes are limited to 25 MB for standard upload availability and 10 MB for streaming upload availability.</p>"
   },
   "shapes": {
     "ContainerNotFoundException": {
@@ -177,7 +177,7 @@
     "RangePattern": {
       "base": null,
       "refs": {
-        "GetObjectRequest$Range": "<p>The range bytes of an object to retrieve. For more information about the <code>Range</code> header, go to <a href=\"http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35\">http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35</a>.</p>"
+        "GetObjectRequest$Range": "<p>The range bytes of an object to retrieve. For more information about the <code>Range</code> header, see <a href=\"http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35\">http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35</a>. AWS Elemental MediaStore ignores this header for partially uploaded objects that have streaming upload availability.</p>"
       }
     },
     "RequestedRangeNotSatisfiableException": {
@@ -212,6 +212,12 @@
         "DescribeObjectResponse$LastModified": "<p>The date and time that the object was last modified.</p>",
         "GetObjectResponse$LastModified": "<p>The date and time that the object was last modified.</p>",
         "Item$LastModified": "<p>The date and time that the item was last modified.</p>"
+      }
+    },
+    "UploadAvailability": {
+      "base": null,
+      "refs": {
+        "PutObjectRequest$UploadAvailability": "<p>Indicates the availability of an object while it is still uploading. If the value is set to <code>streaming</code>, the object is available for downloading after some initial buffering but before the object is uploaded completely. If the value is set to <code>standard</code>, the object is available for downloading only when it is uploaded completely. The default value for this header is <code>standard</code>.</p> <p>To use this header, you must also set the HTTP <code>Transfer-Encoding</code> header to <code>chunked</code>.</p>"
       }
     },
     "statusCode": {

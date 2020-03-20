@@ -124,6 +124,8 @@ func TestPutObjectMetadataWithUnicode(t *testing.T) {
 			t.Errorf("expected %s, but received %s", e, a)
 		}
 	}))
+	defer server.Close()
+
 	svc := s3.New(unit.Session, &aws.Config{
 		Endpoint:   aws.String(server.URL),
 		DisableSSL: aws.Bool(true),
@@ -149,6 +151,8 @@ func TestGetObjectMetadataWithUnicode(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(metaKeyPrefix+utf8KeySuffix, utf8Value)
 	}))
+	defer server.Close()
+
 	svc := s3.New(unit.Session, &aws.Config{
 		Endpoint:   aws.String(server.URL),
 		DisableSSL: aws.Bool(true),

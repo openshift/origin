@@ -1,9 +1,6 @@
-// +build go1.5
-
 package request_test
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -14,16 +11,16 @@ import (
 
 func TestRequestCancelRetry(t *testing.T) {
 	c := make(chan struct{})
-
 	reqNum := 0
-	s := mock.NewMockClient(aws.NewConfig().WithMaxRetries(10))
+	s := mock.NewMockClient(&aws.Config{
+		MaxRetries: aws.Int(1),
+	})
 	s.Handlers.Validate.Clear()
 	s.Handlers.Unmarshal.Clear()
 	s.Handlers.UnmarshalMeta.Clear()
 	s.Handlers.UnmarshalError.Clear()
 	s.Handlers.Send.PushFront(func(r *request.Request) {
 		reqNum++
-		r.Error = errors.New("net/http: request canceled")
 	})
 	out := &testData{}
 	r := s.NewRequest(&request.Operation{Name: "Operation"}, nil, out)

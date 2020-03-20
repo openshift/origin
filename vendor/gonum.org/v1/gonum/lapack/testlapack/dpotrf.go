@@ -55,7 +55,7 @@ func DpotrfTest(t *testing.T, impl Dpotrfer) {
 			Dlatm1(d, 4, 10000, false, 1, rnd)
 
 			// Construct a positive definite matrix A as
-			//  A = U * D * U^T
+			//  A = U * D * Uᵀ
 			// where U is a random orthogonal matrix.
 			lda := test.lda
 			if lda == 0 {
@@ -93,10 +93,10 @@ func DpotrfTest(t *testing.T, impl Dpotrfer) {
 			ans := make([]float64, len(a))
 			switch uplo {
 			case blas.Upper:
-				// Multiply U^T * U.
+				// Multiply Uᵀ * U.
 				bi.Dsyrk(uplo, blas.Trans, n, n, 1, a, lda, 0, ans, lda)
 			case blas.Lower:
-				// Multiply L * L^T.
+				// Multiply L * Lᵀ.
 				bi.Dsyrk(uplo, blas.NoTrans, n, n, 1, a, lda, 0, ans, lda)
 			}
 

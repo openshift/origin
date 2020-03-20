@@ -37,6 +37,7 @@
     "CustomAttributesHeader":{
       "type":"string",
       "max":1024,
+      "pattern":"\\p{ASCII}*",
       "sensitive":true
     },
     "EndpointName":{
@@ -46,7 +47,8 @@
     },
     "Header":{
       "type":"string",
-      "max":1024
+      "max":1024,
+      "pattern":"\\p{ASCII}*"
     },
     "InternalFailure":{
       "type":"structure",
@@ -85,6 +87,11 @@
           "shape":"CustomAttributesHeader",
           "location":"header",
           "locationName":"X-Amzn-SageMaker-Custom-Attributes"
+        },
+        "TargetModel":{
+          "shape":"TargetModelHeader",
+          "location":"header",
+          "locationName":"X-Amzn-SageMaker-Target-Model"
         }
       },
       "payload":"Body"
@@ -139,6 +146,12 @@
       "synthetic":true
     },
     "StatusCode":{"type":"integer"},
+    "TargetModelHeader":{
+      "type":"string",
+      "max":1024,
+      "min":1,
+      "pattern":"\\A\\S[\\p{Print}]*\\z"
+    },
     "ValidationError":{
       "type":"structure",
       "members":{

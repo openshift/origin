@@ -122,7 +122,7 @@ func DgelsTest(t *testing.T, impl Dgelser) {
 				Data:   make([]float64, szAta*szAta),
 			}
 
-			// Compute A^T * A if notrans and A * A^T otherwise.
+			// Compute Aᵀ * A if notrans and A * Aᵀ otherwise.
 			if trans == blas.NoTrans {
 				blas64.Gemm(blas.Trans, blas.NoTrans, 1, aMat, aMat, 0, aTA)
 			} else {
@@ -169,7 +169,7 @@ func DgelsTest(t *testing.T, impl Dgelser) {
 				}
 			}
 
-			// Compute A^T B if Trans or A * B otherwise
+			// Compute Aᵀ B if Trans or A * B otherwise
 			if trans == blas.NoTrans {
 				blas64.Gemm(blas.Trans, blas.NoTrans, 1, aMat, B, 0, ans2)
 			} else {

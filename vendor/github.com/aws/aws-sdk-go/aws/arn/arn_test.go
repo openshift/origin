@@ -88,3 +88,44 @@ func TestParseARN(t *testing.T) {
 		})
 	}
 }
+
+func TestIsARN(t *testing.T) {
+
+	cases := map[string]struct {
+		In     string
+		Expect bool
+		// Params
+	}{
+		"valid ARN slash resource": {
+			In:     "arn:aws:service:us-west-2:123456789012:restype/resvalue",
+			Expect: true,
+		},
+		"valid ARN colon resource": {
+			In:     "arn:aws:service:us-west-2:123456789012:restype:resvalue",
+			Expect: true,
+		},
+		"valid ARN resource": {
+			In:     "arn:aws:service:us-west-2:123456789012:*",
+			Expect: true,
+		},
+		"empty sections": {
+			In:     "arn:::::",
+			Expect: true,
+		},
+		"invalid ARN": {
+			In: "some random string",
+		},
+		"invalid ARN missing resource": {
+			In: "arn:aws:service:us-west-2:123456789012",
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			actual := IsARN(c.In)
+			if e, a := c.Expect, actual; e != a {
+				t.Errorf("expect %s valid %v, got %v", c.In, e, a)
+			}
+		})
+	}
+}

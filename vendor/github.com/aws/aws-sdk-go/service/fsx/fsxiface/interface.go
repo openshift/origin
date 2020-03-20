@@ -26,7 +26,7 @@ import (
 //    // myFunc uses an SDK service client to make a request to
 //    // Amazon FSx.
 //    func myFunc(svc fsxiface.FSxAPI) bool {
-//        // Make svc.CreateBackup request
+//        // Make svc.CancelDataRepositoryTask request
 //    }
 //
 //    func main() {
@@ -42,7 +42,7 @@ import (
 //    type mockFSxClient struct {
 //        fsxiface.FSxAPI
 //    }
-//    func (m *mockFSxClient) CreateBackup(input *fsx.CreateBackupInput) (*fsx.CreateBackupOutput, error) {
+//    func (m *mockFSxClient) CancelDataRepositoryTask(input *fsx.CancelDataRepositoryTaskInput) (*fsx.CancelDataRepositoryTaskOutput, error) {
 //        // mock response/functionality
 //    }
 //
@@ -60,9 +60,17 @@ import (
 // and waiters. Its suggested to use the pattern above for testing, or using
 // tooling to generate mocks to satisfy the interfaces.
 type FSxAPI interface {
+	CancelDataRepositoryTask(*fsx.CancelDataRepositoryTaskInput) (*fsx.CancelDataRepositoryTaskOutput, error)
+	CancelDataRepositoryTaskWithContext(aws.Context, *fsx.CancelDataRepositoryTaskInput, ...request.Option) (*fsx.CancelDataRepositoryTaskOutput, error)
+	CancelDataRepositoryTaskRequest(*fsx.CancelDataRepositoryTaskInput) (*request.Request, *fsx.CancelDataRepositoryTaskOutput)
+
 	CreateBackup(*fsx.CreateBackupInput) (*fsx.CreateBackupOutput, error)
 	CreateBackupWithContext(aws.Context, *fsx.CreateBackupInput, ...request.Option) (*fsx.CreateBackupOutput, error)
 	CreateBackupRequest(*fsx.CreateBackupInput) (*request.Request, *fsx.CreateBackupOutput)
+
+	CreateDataRepositoryTask(*fsx.CreateDataRepositoryTaskInput) (*fsx.CreateDataRepositoryTaskOutput, error)
+	CreateDataRepositoryTaskWithContext(aws.Context, *fsx.CreateDataRepositoryTaskInput, ...request.Option) (*fsx.CreateDataRepositoryTaskOutput, error)
+	CreateDataRepositoryTaskRequest(*fsx.CreateDataRepositoryTaskInput) (*request.Request, *fsx.CreateDataRepositoryTaskOutput)
 
 	CreateFileSystem(*fsx.CreateFileSystemInput) (*fsx.CreateFileSystemOutput, error)
 	CreateFileSystemWithContext(aws.Context, *fsx.CreateFileSystemInput, ...request.Option) (*fsx.CreateFileSystemOutput, error)
@@ -86,6 +94,13 @@ type FSxAPI interface {
 
 	DescribeBackupsPages(*fsx.DescribeBackupsInput, func(*fsx.DescribeBackupsOutput, bool) bool) error
 	DescribeBackupsPagesWithContext(aws.Context, *fsx.DescribeBackupsInput, func(*fsx.DescribeBackupsOutput, bool) bool, ...request.Option) error
+
+	DescribeDataRepositoryTasks(*fsx.DescribeDataRepositoryTasksInput) (*fsx.DescribeDataRepositoryTasksOutput, error)
+	DescribeDataRepositoryTasksWithContext(aws.Context, *fsx.DescribeDataRepositoryTasksInput, ...request.Option) (*fsx.DescribeDataRepositoryTasksOutput, error)
+	DescribeDataRepositoryTasksRequest(*fsx.DescribeDataRepositoryTasksInput) (*request.Request, *fsx.DescribeDataRepositoryTasksOutput)
+
+	DescribeDataRepositoryTasksPages(*fsx.DescribeDataRepositoryTasksInput, func(*fsx.DescribeDataRepositoryTasksOutput, bool) bool) error
+	DescribeDataRepositoryTasksPagesWithContext(aws.Context, *fsx.DescribeDataRepositoryTasksInput, func(*fsx.DescribeDataRepositoryTasksOutput, bool) bool, ...request.Option) error
 
 	DescribeFileSystems(*fsx.DescribeFileSystemsInput) (*fsx.DescribeFileSystemsOutput, error)
 	DescribeFileSystemsWithContext(aws.Context, *fsx.DescribeFileSystemsInput, ...request.Option) (*fsx.DescribeFileSystemsOutput, error)

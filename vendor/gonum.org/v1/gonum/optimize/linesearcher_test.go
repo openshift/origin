@@ -41,7 +41,7 @@ func TestBacktracking(t *testing.T) {
 
 type funcGrader interface {
 	Func([]float64) float64
-	Grad([]float64, []float64) []float64
+	Grad([]float64, []float64)
 }
 
 type linesearcherTest struct {

@@ -7,11 +7,13 @@
 package source
 
 import (
+	"context"
 	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
 	"reflect"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -90,6 +92,9 @@ func (r *renamer) checkInPackageBlock(from types.Object) {
 	}
 
 	pkg := r.packages[from.Pkg()]
+	if pkg == nil {
+		return
+	}
 
 	// Check that in the package block, "init" is a function, and never referenced.
 	if r.to == "init" {
@@ -112,7 +117,7 @@ func (r *renamer) checkInPackageBlock(from types.Object) {
 	}
 
 	// Check for conflicts between package block and all file blocks.
-	for _, f := range pkg.GetSyntax() {
+	for _, f := range pkg.GetSyntax(r.ctx) {
 		fileScope := pkg.GetTypesInfo().Scopes[f]
 		b, prev := fileScope.LookupParent(r.to, token.NoPos)
 		if b == fileScope {
@@ -188,7 +193,7 @@ func (r *renamer) checkInLexicalScope(from types.Object, pkg Package) {
 			// Check for super-block conflict.
 			// The name r.to is defined in a superblock.
 			// Is that name referenced from within this block?
-			forEachLexicalRef(pkg, to, func(id *ast.Ident, block *types.Scope) bool {
+			forEachLexicalRef(r.ctx, pkg, to, func(id *ast.Ident, block *types.Scope) bool {
 				_, obj := lexicalLookup(block, from.Name(), id.Pos())
 				if obj == from {
 					// super-block conflict
@@ -203,11 +208,10 @@ func (r *renamer) checkInLexicalScope(from types.Object, pkg Package) {
 			})
 		}
 	}
-
 	// Check for sub-block conflict.
 	// Is there an intervening definition of r.to between
 	// the block defining 'from' and some reference to it?
-	forEachLexicalRef(pkg, from, func(id *ast.Ident, block *types.Scope) bool {
+	forEachLexicalRef(r.ctx, pkg, from, func(id *ast.Ident, block *types.Scope) bool {
 		// Find the block that defines the found reference.
 		// It may be an ancestor.
 		fromBlock, _ := lexicalLookup(block, from.Name(), id.Pos())
@@ -276,7 +280,7 @@ func deeper(x, y *types.Scope) bool {
 // pkg that is a reference to obj in lexical scope.  block is the
 // lexical block enclosing the reference.  If fn returns false the
 // iteration is terminated and findLexicalRefs returns false.
-func forEachLexicalRef(pkg Package, obj types.Object, fn func(id *ast.Ident, block *types.Scope) bool) bool {
+func forEachLexicalRef(ctx context.Context, pkg Package, obj types.Object, fn func(id *ast.Ident, block *types.Scope) bool) bool {
 	ok := true
 	var stack []ast.Node
 
@@ -327,7 +331,7 @@ func forEachLexicalRef(pkg Package, obj types.Object, fn func(id *ast.Ident, blo
 		return true
 	}
 
-	for _, f := range pkg.GetSyntax() {
+	for _, f := range pkg.GetSyntax(ctx) {
 		ast.Inspect(f, visit)
 		if len(stack) != 0 {
 			panic(stack)
@@ -379,7 +383,10 @@ func (r *renamer) checkStructField(from *types.Var) {
 	// go/types offers no easy way to get from a field (or interface
 	// method) to its declaring struct (or interface), so we must
 	// ascend the AST.
-	pkg, path, _ := pathEnclosingInterval(r.fset, r.packages[from.Pkg()], from.Pos(), from.Pos())
+	pkg, path, _ := pathEnclosingInterval(r.ctx, r.fset, r.packages[from.Pkg()], from.Pos(), from.Pos())
+	if pkg == nil || path == nil {
+		return
+	}
 	// path matches this pattern:
 	// [Ident SelectorExpr? StarExpr? Field FieldList StructType ParenExpr* ... File]
 
@@ -788,7 +795,20 @@ func (r *renamer) satisfy() map[satisfy.Constraint]bool {
 		// Compute on demand: it's expensive.
 		var f satisfy.Finder
 		for _, pkg := range r.packages {
-			f.Find(pkg.GetTypesInfo(), pkg.GetSyntax())
+			// From satisfy.Finder documentation:
+			//
+			// The package must be free of type errors, and
+			// info.{Defs,Uses,Selections,Types} must have been populated by the
+			// type-checker.
+			//
+			// Only proceed if all packages have no errors.
+			if errs := pkg.GetErrors(); len(errs) > 0 {
+				r.errorf(token.NoPos, // we don't have a position for this error.
+					"renaming %q to %q not possible because %q has errors",
+					r.from, r.to, pkg.PkgPath())
+				return nil
+			}
+			f.Find(pkg.GetTypesInfo(), pkg.GetSyntax(r.ctx))
 		}
 		r.satisfyConstraints = f.Result
 	}
@@ -819,22 +839,26 @@ func someUse(info *types.Info, obj types.Object) *ast.Ident {
 //
 // The zero value is returned if not found.
 //
-func pathEnclosingInterval(fset *token.FileSet, pkg Package, start, end token.Pos) (resPkg Package, path []ast.Node, exact bool) {
+func pathEnclosingInterval(ctx context.Context, fset *token.FileSet, pkg Package, start, end token.Pos) (resPkg Package, path []ast.Node, exact bool) {
 	var pkgs = []Package{pkg}
-	for _, f := range pkg.GetSyntax() {
+	for _, f := range pkg.GetSyntax(ctx) {
 		for _, imp := range f.Imports {
 			if imp == nil {
 				continue
 			}
-			impPkg := pkg.GetImport(imp.Path.Value)
-			if impPkg == nil {
+			importPath, err := strconv.Unquote(imp.Path.Value)
+			if err != nil {
 				continue
 			}
-			pkgs = append(pkgs, impPkg)
+			importPkg, err := pkg.GetImport(ctx, importPath)
+			if err != nil {
+				return nil, nil, false
+			}
+			pkgs = append(pkgs, importPkg)
 		}
 	}
 	for _, p := range pkgs {
-		for _, f := range p.GetSyntax() {
+		for _, f := range p.GetSyntax(ctx) {
 			if f.Pos() == token.NoPos {
 				// This can happen if the parser saw
 				// too many errors and bailed out.

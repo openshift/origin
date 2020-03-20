@@ -16,10 +16,10 @@ import (
 	"k8s.io/utils/integer"
 
 	"github.com/openshift/library-go/pkg/config/helpers"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration"
 	v1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration/v1"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration/validation"
-	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
 func Register(plugins *admission.Plugins) {

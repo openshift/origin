@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -52,6 +53,8 @@ func TestEncryptionIntegration(tt *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
+	ctx := context.Background()
+
 	component := strings.ToLower(library.GenerateNameForTest(tt, ""))
 
 	kubeConfig, err := library.NewClientConfigForTest()
@@ -67,13 +70,13 @@ func TestEncryptionIntegration(tt *testing.T) {
 	// create ExtensionTest operator CRD
 	var operatorCRD apiextensionsv1beta1.CustomResourceDefinition
 	require.NoError(t, yaml.Unmarshal([]byte(encryptionTestOperatorCRD), &operatorCRD))
-	crd, err := apiextensionsClient.CustomResourceDefinitions().Create(&operatorCRD)
+	crd, err := apiextensionsClient.CustomResourceDefinitions().Create(ctx, &operatorCRD, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		t.Logf("CRD %s already existing, ignoring error", operatorCRD.Name)
 	} else {
 		require.NoError(t, err)
 	}
-	defer apiextensionsClient.CustomResourceDefinitions().Delete(crd.Name, &metav1.DeleteOptions{})
+	defer apiextensionsClient.CustomResourceDefinitions().Delete(ctx, crd.Name, metav1.DeleteOptions{})
 
 	// create operator client and create instance with ManagementState="Managed"
 	operatorGVR := schema.GroupVersionResource{Group: operatorCRD.Spec.Group, Version: "v1", Resource: operatorCRD.Spec.Names.Plural}
@@ -82,7 +85,7 @@ func TestEncryptionIntegration(tt *testing.T) {
 	dynamicClient, err := dynamic.NewForConfig(kubeConfig)
 	require.NoError(t, err)
 	err = wait.PollImmediate(time.Second, wait.ForeverTestTimeout, func() (bool, error) {
-		_, err := dynamicClient.Resource(operatorGVR).Create(&unstructured.Unstructured{
+		_, err := dynamicClient.Resource(operatorGVR).Create(ctx, &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"apiVersion": "operator.openshift.io/v1",
 				"kind":       "EncryptionTest",
@@ -199,7 +202,7 @@ func TestEncryptionIntegration(tt *testing.T) {
 	waitForMigration := func(key string) {
 		t.Helper()
 		err := wait.PollImmediate(time.Millisecond*100, wait.ForeverTestTimeout, func() (bool, error) {
-			s, err := kubeClient.CoreV1().Secrets("openshift-config-managed").Get(fmt.Sprintf("encryption-key-%s-%s", component, key), metav1.GetOptions{})
+			s, err := kubeClient.CoreV1().Secrets("openshift-config-managed").Get(ctx, fmt.Sprintf("encryption-key-%s-%s", component, key), metav1.GetOptions{})
 			require.NoError(t, err)
 
 			ks, err := secrets.ToKeyState(s)
@@ -213,7 +216,7 @@ func TestEncryptionIntegration(tt *testing.T) {
 	waitForConditionStatus("Encrypted", operatorv1.ConditionFalse)
 
 	t.Logf("Enable encryption, mode aescbc")
-	_, err = fakeApiServerClient.Patch("cluster", types.MergePatchType, []byte(`{"spec":{"encryption":{"type":"aescbc"}}}`))
+	_, err = fakeApiServerClient.Patch(ctx, "cluster", types.MergePatchType, []byte(`{"spec":{"encryption":{"type":"aescbc"}}}`), metav1.PatchOptions{})
 	require.NoError(t, err)
 
 	t.Logf("Waiting for key to show up")
@@ -221,7 +224,7 @@ func TestEncryptionIntegration(tt *testing.T) {
 	waitForKeys := func(n int) {
 		t.Helper()
 		err := wait.PollImmediate(time.Second, wait.ForeverTestTimeout, func() (bool, error) {
-			l, err := kubeClient.CoreV1().Secrets("openshift-config-managed").List(metav1.ListOptions{LabelSelector: keySecretsLabel})
+			l, err := kubeClient.CoreV1().Secrets("openshift-config-managed").List(ctx, metav1.ListOptions{LabelSelector: keySecretsLabel})
 			if err != nil {
 				return false, err
 			}
@@ -242,7 +245,7 @@ func TestEncryptionIntegration(tt *testing.T) {
 	requireConditionStatus("Encrypted", operatorv1.ConditionTrue)
 
 	t.Logf("Switch to identity")
-	_, err = fakeApiServerClient.Patch("cluster", types.MergePatchType, []byte(`{"spec":{"encryption":{"type":"identity"}}}`))
+	_, err = fakeApiServerClient.Patch(ctx, "cluster", types.MergePatchType, []byte(`{"spec":{"encryption":{"type":"identity"}}}`), metav1.PatchOptions{})
 	require.NoError(t, err)
 	waitForKeys(2)
 	waitForConfigs(
@@ -252,14 +255,14 @@ func TestEncryptionIntegration(tt *testing.T) {
 	requireConditionStatus("Encrypted", operatorv1.ConditionFalse)
 
 	t.Logf("Switch to empty mode")
-	_, err = fakeApiServerClient.Patch("cluster", types.MergePatchType, []byte(`{"spec":{"encryption":{"type":""}}}`))
+	_, err = fakeApiServerClient.Patch(ctx, "cluster", types.MergePatchType, []byte(`{"spec":{"encryption":{"type":""}}}`), metav1.PatchOptions{})
 	require.NoError(t, err)
 	time.Sleep(5 * time.Second) // give controller time to create keys (it shouldn't)
 	waitForKeys(2)
 	requireConditionStatus("Encrypted", operatorv1.ConditionFalse)
 
 	t.Logf("Switch to aescbc again")
-	_, err = fakeApiServerClient.Patch("cluster", types.MergePatchType, []byte(`{"spec":{"encryption":{"type":"aescbc"}}}`))
+	_, err = fakeApiServerClient.Patch(ctx, "cluster", types.MergePatchType, []byte(`{"spec":{"encryption":{"type":"aescbc"}}}`), metav1.PatchOptions{})
 	require.NoError(t, err)
 	waitForKeys(3)
 	waitForConfigs(
@@ -301,7 +304,7 @@ func TestEncryptionIntegration(tt *testing.T) {
 	)
 
 	t.Logf("Expire the last key")
-	_, err = kubeClient.CoreV1().Secrets("openshift-config-managed").Patch(fmt.Sprintf("encryption-key-%s-5", component), types.MergePatchType, []byte(`{"metadata":{"annotations":{"encryption.apiserver.operator.openshift.io/migrated-timestamp":"2010-10-17T14:14:52+02:00"}}}`))
+	_, err = kubeClient.CoreV1().Secrets("openshift-config-managed").Patch(ctx, fmt.Sprintf("encryption-key-%s-5", component), types.MergePatchType, []byte(`{"metadata":{"annotations":{"encryption.apiserver.operator.openshift.io/migrated-timestamp":"2010-10-17T14:14:52+02:00"}}}`), metav1.PatchOptions{})
 	require.NoError(t, err)
 	waitForKeys(6)
 	waitForConfigs(
@@ -312,12 +315,12 @@ func TestEncryptionIntegration(tt *testing.T) {
 	waitForConditionStatus("Encrypted", operatorv1.ConditionTrue)
 
 	t.Logf("Delete the last key")
-	_, err = kubeClient.CoreV1().Secrets("openshift-config-managed").Patch(fmt.Sprintf("encryption-key-%s-6", component), types.JSONPatchType, []byte(`[{"op":"remove","path":"/metadata/finalizers"}]`))
+	_, err = kubeClient.CoreV1().Secrets("openshift-config-managed").Patch(ctx, fmt.Sprintf("encryption-key-%s-6", component), types.JSONPatchType, []byte(`[{"op":"remove","path":"/metadata/finalizers"}]`), metav1.PatchOptions{})
 	require.NoError(t, err)
-	err = kubeClient.CoreV1().Secrets("openshift-config-managed").Delete(fmt.Sprintf("encryption-key-%s-6", component), nil)
+	err = kubeClient.CoreV1().Secrets("openshift-config-managed").Delete(ctx, fmt.Sprintf("encryption-key-%s-6", component), metav1.DeleteOptions{})
 	require.NoError(t, err)
 	err = wait.PollImmediate(time.Second, wait.ForeverTestTimeout, func() (bool, error) {
-		_, err := kubeClient.CoreV1().Secrets("openshift-config-managed").Get(fmt.Sprintf("encryption-key-%s-7", component), metav1.GetOptions{})
+		_, err := kubeClient.CoreV1().Secrets("openshift-config-managed").Get(ctx, fmt.Sprintf("encryption-key-%s-7", component), metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			return false, nil
 		}
@@ -340,9 +343,9 @@ func TestEncryptionIntegration(tt *testing.T) {
 	waitForConditionStatus("Encrypted", operatorv1.ConditionTrue)
 
 	t.Logf("Delete the openshift-config-managed config")
-	_, err = kubeClient.CoreV1().Secrets("openshift-config-managed").Patch(fmt.Sprintf("encryption-config-%s", component), types.JSONPatchType, []byte(`[{"op":"remove","path":"/metadata/finalizers"}]`))
+	_, err = kubeClient.CoreV1().Secrets("openshift-config-managed").Patch(ctx, fmt.Sprintf("encryption-config-%s", component), types.JSONPatchType, []byte(`[{"op":"remove","path":"/metadata/finalizers"}]`), metav1.PatchOptions{})
 	require.NoError(t, err)
-	err = kubeClient.CoreV1().Secrets("openshift-config-managed").Delete(fmt.Sprintf("encryption-config-%s", component), nil)
+	err = kubeClient.CoreV1().Secrets("openshift-config-managed").Delete(ctx, fmt.Sprintf("encryption-config-%s", component), metav1.DeleteOptions{})
 	require.NoError(t, err)
 	waitForConfigs(
 		// one migrated read-key (7) and one more backed key (5), and everything in between (6)
@@ -507,8 +510,8 @@ type secretInterceptor struct {
 	secretName string
 }
 
-func (c *secretInterceptor) Create(s *corev1.Secret) (*corev1.Secret, error) {
-	s, err := c.SecretInterface.Create(s)
+func (c *secretInterceptor) Create(ctx context.Context, s *corev1.Secret, opts metav1.CreateOptions) (*corev1.Secret, error) {
+	s, err := c.SecretInterface.Create(ctx, s, opts)
 	if err != nil {
 		return s, err
 	}
@@ -521,8 +524,8 @@ func (c *secretInterceptor) Create(s *corev1.Secret) (*corev1.Secret, error) {
 	return s, nil
 }
 
-func (c *secretInterceptor) Update(s *corev1.Secret) (*corev1.Secret, error) {
-	s, err := c.SecretInterface.Update(s)
+func (c *secretInterceptor) Update(ctx context.Context, s *corev1.Secret, opts metav1.UpdateOptions) (*corev1.Secret, error) {
+	s, err := c.SecretInterface.Update(ctx, s, opts)
 	if err != nil {
 		return s, err
 	}
@@ -535,8 +538,8 @@ func (c *secretInterceptor) Update(s *corev1.Secret) (*corev1.Secret, error) {
 	return s, nil
 }
 
-func (c *secretInterceptor) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *corev1.Secret, err error) {
-	s, err := c.SecretInterface.Patch(name, pt, data, subresources...)
+func (c *secretInterceptor) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *corev1.Secret, err error) {
+	s, err := c.SecretInterface.Patch(ctx, name, pt, data, opts, subresources...)
 	if err != nil {
 		return s, err
 	}

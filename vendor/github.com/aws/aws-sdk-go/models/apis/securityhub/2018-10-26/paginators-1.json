@@ -1,5 +1,15 @@
 {
   "pagination": {
+    "DescribeActionTargets": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults"
+    },
+    "DescribeProducts": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults"
+    },
     "GetFindings": {
       "input_token": "NextToken",
       "output_token": "NextToken",

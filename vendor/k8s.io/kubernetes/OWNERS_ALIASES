@@ -121,18 +121,31 @@ aliases:
     - justaugustus # SIG Chair
     - tpepper # SIG Chair / Patch Release Team
   release-engineering-reviewers:
-    - aleksandra-malinowska # Patch Release Team
     - calebamiles # SIG Chair
+    - cpanato # Branch Manager
     - feiskyer # Patch Release Team
     - hoegaarden # Patch Release Team
     - justaugustus # SIG Chair
+    - saschagrunert # Branch Manager
     - tpepper # SIG Chair / Patch Release Team
+  build-image-approvers:
+    - BenTheElder
+    - cblecker
+    - dims
+    - justaugustus
+    - listx
+  build-image-reviewers:
+    - BenTheElder
+    - cblecker
+    - dims
+    - justaugustus
+    - listx
 
   sig-storage-reviewers:
     - saad-ali
-    - childsb
 
   sig-scheduling-maintainers:
+    - alculquicondor
     - bsalamat
     - k82cn
     - wojtek-t
@@ -150,6 +163,8 @@ aliases:
     - draveness
     - hex108
     - alculquicondor
+    - liu-cong
+    - damemi
 
   sig-cli-maintainers:
     - adohe
@@ -216,7 +231,14 @@ aliases:
     - yujuhong
     - krmayankk
     - mattjmcnaughton
+    - matthyx
+
+  sig-network-driver-approvers:
+    - dcbw
+    - freehan
+
   sig-network-approvers:
+    - andrewsykim
     - bowei
     - caseydavenport
     - danwinship
@@ -227,19 +249,20 @@ aliases:
     - nicksardo
     - thockin
   sig-network-reviewers:
+    - andrewsykim
+    - aojea
     - bowei
     - caseydavenport
+    - cmluciano
     - danwinship
     - dcbw
     - freehan
     - johnbelamaric
+    - m1093782566
     - mrhohn
     - nicksardo
-    - thockin
     - rramkumar1
-    - cmluciano
-    - m1093782566
-    - andrewsykim
+    - thockin
   sig-apps-approvers:
     - kow3ns
     - janetkuo
@@ -266,6 +289,7 @@ aliases:
   sig-instrumentation-approvers:
     - piosz
     - brancz
+    - serathius
   sig-instrumentation-reviewers:
     - kawych
     - s-urbaniak
@@ -447,12 +471,12 @@ aliases:
     - sttts
     - soltysh
   feature-approvers:
+    - andrewsykim     # Cloud Provider
     - bgrant0607      # Architecture
     - brancz          # Instrumentation
-    - bsalamat        # Scheduling
+    - ahg-g           # Scheduling
     - calebamiles     # Release
     - caseydavenport  # Network
-    - childsb         # Storage
     - countspongebob  # Scalability
     - csbell          # Multicluster
     - dcbw            # Network

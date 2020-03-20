@@ -45,7 +45,7 @@ func init() {
 func AssertEncryptionConfig(t testing.TB, clientSet ClientSet, encryptionConfigSecretName string, namespace string, targetGRs []schema.GroupResource) {
 	t.Helper()
 	t.Logf("Checking if %q in %q has desired GRs %v", encryptionConfigSecretName, namespace, targetGRs)
-	encryptionCofnigSecret, err := clientSet.Kube.CoreV1().Secrets(namespace).Get(encryptionConfigSecretName, metav1.GetOptions{})
+	encryptionCofnigSecret, err := clientSet.Kube.CoreV1().Secrets(namespace).Get(context.TODO(), encryptionConfigSecretName, metav1.GetOptions{})
 	require.NoError(t, err)
 	encodedEncryptionConfig, foundEncryptionConfig := encryptionCofnigSecret.Data["encryption-config"]
 	if !foundEncryptionConfig {

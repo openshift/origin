@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
 )
 
 const opAddTags = "AddTags"
@@ -64,19 +65,19 @@ func (c *MachineLearning) AddTagsRequest(input *AddTagsInput) (req *request.Requ
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation AddTags for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInvalidTagException "InvalidTagException"
+//   * InvalidTagException
 //
-//   * ErrCodeTagLimitExceededException "TagLimitExceededException"
+//   * TagLimitExceededException
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
@@ -164,15 +165,15 @@ func (c *MachineLearning) CreateBatchPredictionRequest(input *CreateBatchPredict
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation CreateBatchPrediction for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
-//   * ErrCodeIdempotentParameterMismatchException "IdempotentParameterMismatchException"
+//   * IdempotentParameterMismatchException
 //   A second request to use or change an object was not allowed. This can result
 //   from retrying a request using a parameter that was not present in the original
 //   request.
@@ -240,7 +241,7 @@ func (c *MachineLearning) CreateDataSourceFromRDSRequest(input *CreateDataSource
 
 // CreateDataSourceFromRDS API operation for Amazon Machine Learning.
 //
-// Creates a DataSource object from an  Amazon Relational Database Service (http://aws.amazon.com/rds/)
+// Creates a DataSource object from an Amazon Relational Database Service (http://aws.amazon.com/rds/)
 // (Amazon RDS). A DataSource references data that can be used to perform CreateMLModel,
 // CreateEvaluation, or CreateBatchPrediction operations.
 //
@@ -262,15 +263,15 @@ func (c *MachineLearning) CreateDataSourceFromRDSRequest(input *CreateDataSource
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation CreateDataSourceFromRDS for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
-//   * ErrCodeIdempotentParameterMismatchException "IdempotentParameterMismatchException"
+//   * IdempotentParameterMismatchException
 //   A second request to use or change an object was not allowed. This can result
 //   from retrying a request using a parameter that was not present in the original
 //   request.
@@ -379,15 +380,15 @@ func (c *MachineLearning) CreateDataSourceFromRedshiftRequest(input *CreateDataS
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation CreateDataSourceFromRedshift for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
-//   * ErrCodeIdempotentParameterMismatchException "IdempotentParameterMismatchException"
+//   * IdempotentParameterMismatchException
 //   A second request to use or change an object was not allowed. This can result
 //   from retrying a request using a parameter that was not present in the original
 //   request.
@@ -491,15 +492,15 @@ func (c *MachineLearning) CreateDataSourceFromS3Request(input *CreateDataSourceF
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation CreateDataSourceFromS3 for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
-//   * ErrCodeIdempotentParameterMismatchException "IdempotentParameterMismatchException"
+//   * IdempotentParameterMismatchException
 //   A second request to use or change an object was not allowed. This can result
 //   from retrying a request using a parameter that was not present in the original
 //   request.
@@ -591,15 +592,15 @@ func (c *MachineLearning) CreateEvaluationRequest(input *CreateEvaluationInput) 
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation CreateEvaluation for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
-//   * ErrCodeIdempotentParameterMismatchException "IdempotentParameterMismatchException"
+//   * IdempotentParameterMismatchException
 //   A second request to use or change an object was not allowed. This can result
 //   from retrying a request using a parameter that was not present in the original
 //   request.
@@ -692,15 +693,15 @@ func (c *MachineLearning) CreateMLModelRequest(input *CreateMLModelInput) (req *
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation CreateMLModel for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
-//   * ErrCodeIdempotentParameterMismatchException "IdempotentParameterMismatchException"
+//   * IdempotentParameterMismatchException
 //   A second request to use or change an object was not allowed. This can result
 //   from retrying a request using a parameter that was not present in the original
 //   request.
@@ -779,15 +780,15 @@ func (c *MachineLearning) CreateRealtimeEndpointRequest(input *CreateRealtimeEnd
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation CreateRealtimeEndpoint for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) CreateRealtimeEndpoint(input *CreateRealtimeEndpointInput) (*CreateRealtimeEndpointOutput, error) {
@@ -867,15 +868,15 @@ func (c *MachineLearning) DeleteBatchPredictionRequest(input *DeleteBatchPredict
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DeleteBatchPrediction for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DeleteBatchPrediction(input *DeleteBatchPredictionInput) (*DeleteBatchPredictionOutput, error) {
@@ -955,15 +956,15 @@ func (c *MachineLearning) DeleteDataSourceRequest(input *DeleteDataSourceInput) 
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DeleteDataSource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DeleteDataSource(input *DeleteDataSourceInput) (*DeleteDataSourceOutput, error) {
@@ -1033,8 +1034,8 @@ func (c *MachineLearning) DeleteEvaluationRequest(input *DeleteEvaluationInput) 
 //
 // After invoking the DeleteEvaluation operation, you can use the GetEvaluation
 // operation to verify that the status of the Evaluation changed to DELETED.
-//
-// CautionThe results of the DeleteEvaluation operation are irreversible.
+//  Caution
+// The results of the DeleteEvaluation operation are irreversible.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1043,15 +1044,15 @@ func (c *MachineLearning) DeleteEvaluationRequest(input *DeleteEvaluationInput) 
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DeleteEvaluation for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DeleteEvaluation(input *DeleteEvaluationInput) (*DeleteEvaluationOutput, error) {
@@ -1131,15 +1132,15 @@ func (c *MachineLearning) DeleteMLModelRequest(input *DeleteMLModelInput) (req *
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DeleteMLModel for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DeleteMLModel(input *DeleteMLModelInput) (*DeleteMLModelOutput, error) {
@@ -1214,15 +1215,15 @@ func (c *MachineLearning) DeleteRealtimeEndpointRequest(input *DeleteRealtimeEnd
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DeleteRealtimeEndpoint for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DeleteRealtimeEndpoint(input *DeleteRealtimeEndpointInput) (*DeleteRealtimeEndpointOutput, error) {
@@ -1300,17 +1301,17 @@ func (c *MachineLearning) DeleteTagsRequest(input *DeleteTagsInput) (req *reques
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DeleteTags for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInvalidTagException "InvalidTagException"
+//   * InvalidTagException
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DeleteTags(input *DeleteTagsInput) (*DeleteTagsOutput, error) {
@@ -1392,12 +1393,12 @@ func (c *MachineLearning) DescribeBatchPredictionsRequest(input *DescribeBatchPr
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DescribeBatchPredictions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DescribeBatchPredictions(input *DescribeBatchPredictionsInput) (*DescribeBatchPredictionsOutput, error) {
@@ -1432,7 +1433,7 @@ func (c *MachineLearning) DescribeBatchPredictionsWithContext(ctx aws.Context, i
 //    // Example iterating over at most 3 pages of a DescribeBatchPredictions operation.
 //    pageNum := 0
 //    err := client.DescribeBatchPredictionsPages(params,
-//        func(page *DescribeBatchPredictionsOutput, lastPage bool) bool {
+//        func(page *machinelearning.DescribeBatchPredictionsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1464,10 +1465,12 @@ func (c *MachineLearning) DescribeBatchPredictionsPagesWithContext(ctx aws.Conte
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeBatchPredictionsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeBatchPredictionsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1528,12 +1531,12 @@ func (c *MachineLearning) DescribeDataSourcesRequest(input *DescribeDataSourcesI
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DescribeDataSources for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DescribeDataSources(input *DescribeDataSourcesInput) (*DescribeDataSourcesOutput, error) {
@@ -1568,7 +1571,7 @@ func (c *MachineLearning) DescribeDataSourcesWithContext(ctx aws.Context, input 
 //    // Example iterating over at most 3 pages of a DescribeDataSources operation.
 //    pageNum := 0
 //    err := client.DescribeDataSourcesPages(params,
-//        func(page *DescribeDataSourcesOutput, lastPage bool) bool {
+//        func(page *machinelearning.DescribeDataSourcesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1600,10 +1603,12 @@ func (c *MachineLearning) DescribeDataSourcesPagesWithContext(ctx aws.Context, i
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeDataSourcesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeDataSourcesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1665,12 +1670,12 @@ func (c *MachineLearning) DescribeEvaluationsRequest(input *DescribeEvaluationsI
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DescribeEvaluations for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DescribeEvaluations(input *DescribeEvaluationsInput) (*DescribeEvaluationsOutput, error) {
@@ -1705,7 +1710,7 @@ func (c *MachineLearning) DescribeEvaluationsWithContext(ctx aws.Context, input 
 //    // Example iterating over at most 3 pages of a DescribeEvaluations operation.
 //    pageNum := 0
 //    err := client.DescribeEvaluationsPages(params,
-//        func(page *DescribeEvaluationsOutput, lastPage bool) bool {
+//        func(page *machinelearning.DescribeEvaluationsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1737,10 +1742,12 @@ func (c *MachineLearning) DescribeEvaluationsPagesWithContext(ctx aws.Context, i
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeEvaluationsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeEvaluationsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1801,12 +1808,12 @@ func (c *MachineLearning) DescribeMLModelsRequest(input *DescribeMLModelsInput) 
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DescribeMLModels for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DescribeMLModels(input *DescribeMLModelsInput) (*DescribeMLModelsOutput, error) {
@@ -1841,7 +1848,7 @@ func (c *MachineLearning) DescribeMLModelsWithContext(ctx aws.Context, input *De
 //    // Example iterating over at most 3 pages of a DescribeMLModels operation.
 //    pageNum := 0
 //    err := client.DescribeMLModelsPages(params,
-//        func(page *DescribeMLModelsOutput, lastPage bool) bool {
+//        func(page *machinelearning.DescribeMLModelsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1873,10 +1880,12 @@ func (c *MachineLearning) DescribeMLModelsPagesWithContext(ctx aws.Context, inpu
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeMLModelsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeMLModelsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1931,15 +1940,15 @@ func (c *MachineLearning) DescribeTagsRequest(input *DescribeTagsInput) (req *re
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation DescribeTags for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) DescribeTags(input *DescribeTagsInput) (*DescribeTagsOutput, error) {
@@ -2015,15 +2024,15 @@ func (c *MachineLearning) GetBatchPredictionRequest(input *GetBatchPredictionInp
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation GetBatchPrediction for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) GetBatchPrediction(input *GetBatchPredictionInput) (*GetBatchPredictionOutput, error) {
@@ -2103,15 +2112,15 @@ func (c *MachineLearning) GetDataSourceRequest(input *GetDataSourceInput) (req *
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation GetDataSource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) GetDataSource(input *GetDataSourceInput) (*GetDataSourceOutput, error) {
@@ -2187,15 +2196,15 @@ func (c *MachineLearning) GetEvaluationRequest(input *GetEvaluationInput) (req *
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation GetEvaluation for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) GetEvaluation(input *GetEvaluationInput) (*GetEvaluationOutput, error) {
@@ -2273,15 +2282,15 @@ func (c *MachineLearning) GetMLModelRequest(input *GetMLModelInput) (req *reques
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation GetMLModel for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) GetMLModel(input *GetMLModelInput) (*GetMLModelOutput, error) {
@@ -2348,8 +2357,8 @@ func (c *MachineLearning) PredictRequest(input *PredictInput) (req *request.Requ
 // Predict API operation for Amazon Machine Learning.
 //
 // Generates a prediction for the observation using the specified ML Model.
-//
-// NoteNot all response parameters will be populated. Whether a response parameter
+//  Note
+// Not all response parameters will be populated. Whether a response parameter
 // is populated depends on the type of model requested.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2359,22 +2368,22 @@ func (c *MachineLearning) PredictRequest(input *PredictInput) (req *request.Requ
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation Predict for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The subscriber exceeded the maximum number of operations. This exception
 //   can occur when listing objects such as DataSource.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
-//   * ErrCodePredictorNotMountedException "PredictorNotMountedException"
+//   * PredictorNotMountedException
 //   The exception is thrown when a predict request is made to an unmounted MLModel.
 //
 func (c *MachineLearning) Predict(input *PredictInput) (*PredictOutput, error) {
@@ -2452,15 +2461,15 @@ func (c *MachineLearning) UpdateBatchPredictionRequest(input *UpdateBatchPredict
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation UpdateBatchPrediction for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) UpdateBatchPrediction(input *UpdateBatchPredictionInput) (*UpdateBatchPredictionOutput, error) {
@@ -2538,15 +2547,15 @@ func (c *MachineLearning) UpdateDataSourceRequest(input *UpdateDataSourceInput) 
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation UpdateDataSource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) UpdateDataSource(input *UpdateDataSourceInput) (*UpdateDataSourceOutput, error) {
@@ -2624,15 +2633,15 @@ func (c *MachineLearning) UpdateEvaluationRequest(input *UpdateEvaluationInput) 
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation UpdateEvaluation for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) UpdateEvaluation(input *UpdateEvaluationInput) (*UpdateEvaluationOutput, error) {
@@ -2710,15 +2719,15 @@ func (c *MachineLearning) UpdateMLModelRequest(input *UpdateMLModelInput) (req *
 // See the AWS API reference guide for Amazon Machine Learning's
 // API operation UpdateMLModel for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInputException "InvalidInputException"
+// Returned Error Types:
+//   * InvalidInputException
 //   An error on the client occurred. Typically, the cause is an invalid input
 //   value.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   A specified resource cannot be located.
 //
-//   * ErrCodeInternalServerException "InternalServerException"
+//   * InternalServerException
 //   An error on the server occurred when trying to process a request.
 //
 func (c *MachineLearning) UpdateMLModel(input *UpdateMLModelInput) (*UpdateMLModelOutput, error) {
@@ -2919,10 +2928,14 @@ type BatchPrediction struct {
 	//
 	//    * PENDING - Amazon Machine Learning (Amazon ML) submitted a request to
 	//    generate predictions for a batch of observations.
+	//
 	//    * INPROGRESS - The process is underway.
+	//
 	//    * FAILED - The request to perform a batch prediction did not run to completion.
 	//    It is not usable.
+	//
 	//    * COMPLETED - The batch prediction process completed successfully.
+	//
 	//    * DELETED - The BatchPrediction is marked as deleted. It is not usable.
 	Status *string `type:"string" enum:"EntityStatus"`
 
@@ -3191,6 +3204,46 @@ type CreateDataSourceFromRDSInput struct {
 
 	// The data specification of an Amazon RDS DataSource:
 	//
+	//    * DatabaseInformation -
+	//    * DatabaseName - The name of the Amazon RDS database.
+	//
+	//    * InstanceIdentifier - A unique identifier for the Amazon RDS database
+	//    instance.
+	//
+	//    * DatabaseCredentials - AWS Identity and Access Management (IAM) credentials
+	//    that are used to connect to the Amazon RDS database.
+	//
+	//    * ResourceRole - A role (DataPipelineDefaultResourceRole) assumed by an
+	//    EC2 instance to carry out the copy task from Amazon RDS to Amazon Simple
+	//    Storage Service (Amazon S3). For more information, see Role templates
+	//    (http://docs.aws.amazon.com/datapipeline/latest/DeveloperGuide/dp-iam-roles.html)
+	//    for data pipelines.
+	//
+	//    * ServiceRole - A role (DataPipelineDefaultRole) assumed by the AWS Data
+	//    Pipeline service to monitor the progress of the copy task from Amazon
+	//    RDS to Amazon S3. For more information, see Role templates (http://docs.aws.amazon.com/datapipeline/latest/DeveloperGuide/dp-iam-roles.html)
+	//    for data pipelines.
+	//
+	//    * SecurityInfo - The security information to use to access an RDS DB instance.
+	//    You need to set up appropriate ingress rules for the security entity IDs
+	//    provided to allow access to the Amazon RDS instance. Specify a [SubnetId,
+	//    SecurityGroupIds] pair for a VPC-based RDS DB instance.
+	//
+	//    * SelectSqlQuery - A query that is used to retrieve the observation data
+	//    for the Datasource.
+	//
+	//    * S3StagingLocation - The Amazon S3 location for staging Amazon RDS data.
+	//    The data retrieved from Amazon RDS using SelectSqlQuery is stored in this
+	//    location.
+	//
+	//    * DataSchemaUri - The Amazon S3 location of the DataSchema.
+	//
+	//    * DataSchema - A JSON string representing the schema. This is not required
+	//    if DataSchemaUri is specified.
+	//
+	//    * DataRearrangement - A JSON string that represents the splitting and
+	//    rearrangement requirements for the Datasource. Sample - "{\"splitting\":{\"percentBegin\":10,\"percentEnd\":60}}"
+	//
 	// RDSData is a required field
 	RDSData *RDSDataSpec `type:"structure" required:"true"`
 
@@ -3279,7 +3332,7 @@ func (s *CreateDataSourceFromRDSInput) SetRoleARN(v string) *CreateDataSourceFro
 // updates by using the GetBatchPrediction operation and checking the Status
 // parameter. You can inspect the Message when Status shows up as FAILED. You
 // can also check the progress of the copy operation by going to the DataPipeline
-// console and looking up the pipeline using the pipelineId  from the describe
+// console and looking up the pipeline using the pipelineId from the describe
 // call.
 type CreateDataSourceFromRDSOutput struct {
 	_ struct{} `type:"structure"`
@@ -3324,9 +3377,10 @@ type CreateDataSourceFromRedshiftInput struct {
 
 	// The data specification of an Amazon Redshift DataSource:
 	//
-	//    * DatabaseInformation - DatabaseName - The name of the Amazon Redshift
-	//    database.
-	//  ClusterIdentifier - The unique ID for the Amazon Redshift cluster.
+	//    * DatabaseInformation -
+	//    * DatabaseName - The name of the Amazon Redshift database.
+	//
+	//    * ClusterIdentifier - The unique ID for the Amazon Redshift cluster.
 	//
 	//    * DatabaseCredentials - The AWS Identity and Access Management (IAM) credentials
 	//    that are used to connect to the Amazon Redshift database.
@@ -3344,9 +3398,7 @@ type CreateDataSourceFromRedshiftInput struct {
 	//    if DataSchemaUri is specified.
 	//
 	//    * DataRearrangement - A JSON string that represents the splitting and
-	//    rearrangement requirements for the DataSource.
-	//
-	//  Sample -  "{\"splitting\":{\"percentBegin\":10,\"percentEnd\":60}}"
+	//    rearrangement requirements for the DataSource. Sample - "{\"splitting\":{\"percentBegin\":10,\"percentEnd\":60}}"
 	//
 	// DataSpec is a required field
 	DataSpec *RedshiftDataSpec `type:"structure" required:"true"`
@@ -3354,11 +3406,11 @@ type CreateDataSourceFromRedshiftInput struct {
 	// A fully specified role Amazon Resource Name (ARN). Amazon ML assumes the
 	// role on behalf of the user to create the following:
 	//
-	// A security group to allow Amazon ML to execute the SelectSqlQuery query on
-	// an Amazon Redshift cluster
+	//    * A security group to allow Amazon ML to execute the SelectSqlQuery query
+	//    on an Amazon Redshift cluster
 	//
-	// An Amazon S3 bucket policy to grant Amazon ML read/write permissions on the
-	// S3StagingLocation
+	//    * An Amazon S3 bucket policy to grant Amazon ML read/write permissions
+	//    on the S3StagingLocation
 	//
 	// RoleARN is a required field
 	RoleARN *string `min:"1" type:"string" required:"true"`
@@ -3491,9 +3543,7 @@ type CreateDataSourceFromS3Input struct {
 	//    if DataSchemaUri is specified.
 	//
 	//    * DataRearrangement - A JSON string that represents the splitting and
-	//    rearrangement requirements for the Datasource.
-	//
-	//  Sample -  "{\"splitting\":{\"percentBegin\":10,\"percentEnd\":60}}"
+	//    rearrangement requirements for the Datasource. Sample - "{\"splitting\":{\"percentBegin\":10,\"percentEnd\":60}}"
 	//
 	// DataSpec is a required field
 	DataSpec *S3DataSpec `type:"structure" required:"true"`
@@ -3720,6 +3770,7 @@ type CreateMLModelInput struct {
 	//    * Choose REGRESSION if the MLModel will be used to predict a numeric value.
 	//
 	//    * Choose BINARY if the MLModel result has two possible values.
+	//
 	//    * Choose MULTICLASS if the MLModel result has a limited number of values.
 	//
 	// For more information, see the Amazon Machine Learning Developer Guide (http://docs.aws.amazon.com/machine-learning/latest/dg).
@@ -3734,8 +3785,7 @@ type CreateMLModelInput struct {
 	//
 	//    * sgd.maxMLModelSizeInBytes - The maximum allowed size of the model. Depending
 	//    on the input data, the size of the model might affect its performance.
-	//
-	//  The value is an integer that ranges from 100000 to 2147483648. The default
+	//    The value is an integer that ranges from 100000 to 2147483648. The default
 	//    value is 33554432.
 	//
 	//    * sgd.maxPasses - The number of times that the training process traverses
@@ -3751,20 +3801,17 @@ type CreateMLModelInput struct {
 	//    It controls overfitting the data by penalizing large coefficients. This
 	//    tends to drive coefficients to zero, resulting in a sparse feature set.
 	//    If you use this parameter, start by specifying a small value, such as
-	//    1.0E-08.
-	//
-	// The value is a double that ranges from 0 to MAX_DOUBLE. The default is to
-	//    not use L1 normalization. This parameter can't be used when L2 is specified.
-	//    Use this parameter sparingly.
+	//    1.0E-08. The value is a double that ranges from 0 to MAX_DOUBLE. The default
+	//    is to not use L1 normalization. This parameter can't be used when L2 is
+	//    specified. Use this parameter sparingly.
 	//
 	//    * sgd.l2RegularizationAmount - The coefficient regularization L2 norm.
 	//    It controls overfitting the data by penalizing large coefficients. This
 	//    tends to drive coefficients to small, nonzero values. If you use this
-	//    parameter, start by specifying a small value, such as 1.0E-08.
-	//
-	// The value is a double that ranges from 0 to MAX_DOUBLE. The default is to
-	//    not use L2 normalization. This parameter can't be used when L1 is specified.
-	//    Use this parameter sparingly.
+	//    parameter, start by specifying a small value, such as 1.0E-08. The value
+	//    is a double that ranges from 0 to MAX_DOUBLE. The default is to not use
+	//    L2 normalization. This parameter can't be used when L1 is specified. Use
+	//    this parameter sparingly.
 	Parameters map[string]*string `type:"map"`
 
 	// The data recipe for creating the MLModel. You must specify either the recipe
@@ -4041,10 +4088,14 @@ type DataSource struct {
 	//
 	//    * PENDING - Amazon Machine Learning (Amazon ML) submitted a request to
 	//    create a DataSource.
+	//
 	//    * INPROGRESS - The creation process is underway.
+	//
 	//    * FAILED - The request to create a DataSource did not run to completion.
 	//    It is not usable.
+	//
 	//    * COMPLETED - The creation process completed successfully.
+	//
 	//    * DELETED - The DataSource is marked as deleted. It is not usable.
 	Status *string `type:"string" enum:"EntityStatus"`
 }
@@ -4631,15 +4682,20 @@ type DescribeBatchPredictionsInput struct {
 	//
 	//    * CreatedAt - Sets the search criteria to the BatchPrediction creation
 	//    date.
+	//
 	//    * Status - Sets the search criteria to the BatchPrediction status.
-	//    * Name - Sets the search criteria to the contents of the BatchPredictionName.
+	//
+	//    * Name - Sets the search criteria to the contents of the BatchPrediction
+	//    Name.
 	//
 	//    * IAMUser - Sets the search criteria to the user account that invoked
 	//    the BatchPrediction creation.
+	//
 	//    * MLModelId - Sets the search criteria to the MLModel used in the BatchPrediction.
 	//
 	//    * DataSourceId - Sets the search criteria to the DataSource used in the
 	//    BatchPrediction.
+	//
 	//    * DataURI - Sets the search criteria to the data file(s) used in the BatchPrediction.
 	//    The URL can identify either a file or an Amazon Simple Storage Solution
 	//    (Amazon S3) bucket or directory.
@@ -4676,7 +4732,7 @@ type DescribeBatchPredictionsInput struct {
 
 	// A string that is found at the beginning of a variable, such as Name or Id.
 	//
-	// For example, a Batch Prediction operation could have the Name2014-09-09-HolidayGiftMailer.
+	// For example, a Batch Prediction operation could have the Name 2014-09-09-HolidayGiftMailer.
 	// To search for this BatchPrediction, select Name for the FilterVariable and
 	// any of the following strings for the Prefix:
 	//
@@ -4691,7 +4747,9 @@ type DescribeBatchPredictionsInput struct {
 	// of MLModels.
 	//
 	//    * asc - Arranges the list in ascending order (A-Z, 0-9).
+	//
 	//    * dsc - Arranges the list in descending order (Z-A, 9-0).
+	//
 	// Results are sorted by FilterVariable.
 	SortOrder *string `type:"string" enum:"SortOrder"`
 }
@@ -4830,11 +4888,15 @@ type DescribeDataSourcesInput struct {
 	// Use one of the following variables to filter a list of DataSource:
 	//
 	//    * CreatedAt - Sets the search criteria to DataSource creation dates.
+	//
 	//    * Status - Sets the search criteria to DataSource statuses.
-	//    * Name - Sets the search criteria to the contents of DataSourceName.
+	//
+	//    * Name - Sets the search criteria to the contents of DataSource Name.
+	//
 	//    * DataUri - Sets the search criteria to the URI of data files used to
 	//    create the DataSource. The URI can identify either a file or an Amazon
 	//    Simple Storage Service (Amazon S3) bucket or directory.
+	//
 	//    * IAMUser - Sets the search criteria to the user account that invoked
 	//    the DataSource creation.
 	FilterVariable *string `type:"string" enum:"DataSourceFilterVariable"`
@@ -4867,7 +4929,7 @@ type DescribeDataSourcesInput struct {
 
 	// A string that is found at the beginning of a variable, such as Name or Id.
 	//
-	// For example, a DataSource could have the Name2014-09-09-HolidayGiftMailer.
+	// For example, a DataSource could have the Name 2014-09-09-HolidayGiftMailer.
 	// To search for this DataSource, select Name for the FilterVariable and any
 	// of the following strings for the Prefix:
 	//
@@ -4882,7 +4944,9 @@ type DescribeDataSourcesInput struct {
 	// of DataSource.
 	//
 	//    * asc - Arranges the list in ascending order (A-Z, 0-9).
+	//
 	//    * dsc - Arranges the list in descending order (Z-A, 9-0).
+	//
 	// Results are sorted by FilterVariable.
 	SortOrder *string `type:"string" enum:"SortOrder"`
 }
@@ -5023,9 +5087,12 @@ type DescribeEvaluationsInput struct {
 	//    * CreatedAt - Sets the search criteria to the Evaluation creation date.
 	//
 	//    * Status - Sets the search criteria to the Evaluation status.
-	//    * Name - Sets the search criteria to the contents of EvaluationName.
+	//
+	//    * Name - Sets the search criteria to the contents of Evaluation Name.
+	//
 	//    * IAMUser - Sets the search criteria to the user account that invoked
 	//    an Evaluation.
+	//
 	//    * MLModelId - Sets the search criteria to the MLModel that was evaluated.
 	//
 	//    * DataSourceId - Sets the search criteria to the DataSource used in Evaluation.
@@ -5063,7 +5130,7 @@ type DescribeEvaluationsInput struct {
 
 	// A string that is found at the beginning of a variable, such as Name or Id.
 	//
-	// For example, an Evaluation could have the Name2014-09-09-HolidayGiftMailer.
+	// For example, an Evaluation could have the Name 2014-09-09-HolidayGiftMailer.
 	// To search for this Evaluation, select Name for the FilterVariable and any
 	// of the following strings for the Prefix:
 	//
@@ -5078,7 +5145,9 @@ type DescribeEvaluationsInput struct {
 	// of Evaluation.
 	//
 	//    * asc - Arranges the list in ascending order (A-Z, 0-9).
+	//
 	//    * dsc - Arranges the list in descending order (Z-A, 9-0).
+	//
 	// Results are sorted by FilterVariable.
 	SortOrder *string `type:"string" enum:"SortOrder"`
 }
@@ -5217,18 +5286,26 @@ type DescribeMLModelsInput struct {
 	// Use one of the following variables to filter a list of MLModel:
 	//
 	//    * CreatedAt - Sets the search criteria to MLModel creation date.
+	//
 	//    * Status - Sets the search criteria to MLModel status.
-	//    * Name - Sets the search criteria to the contents of MLModelName.
+	//
+	//    * Name - Sets the search criteria to the contents of MLModel Name.
+	//
 	//    * IAMUser - Sets the search criteria to the user account that invoked
 	//    the MLModel creation.
+	//
 	//    * TrainingDataSourceId - Sets the search criteria to the DataSource used
 	//    to train one or more MLModel.
+	//
 	//    * RealtimeEndpointStatus - Sets the search criteria to the MLModel real-time
 	//    endpoint status.
+	//
 	//    * MLModelType - Sets the search criteria to MLModel type: binary, regression,
 	//    or multi-class.
+	//
 	//    * Algorithm - Sets the search criteria to the algorithm that the MLModel
 	//    uses.
+	//
 	//    * TrainingDataURI - Sets the search criteria to the data file(s) used
 	//    in training a MLModel. The URL can identify either a file or an Amazon
 	//    Simple Storage Service (Amazon S3) bucket or directory.
@@ -5263,7 +5340,7 @@ type DescribeMLModelsInput struct {
 
 	// A string that is found at the beginning of a variable, such as Name or Id.
 	//
-	// For example, an MLModel could have the Name2014-09-09-HolidayGiftMailer.
+	// For example, an MLModel could have the Name 2014-09-09-HolidayGiftMailer.
 	// To search for this MLModel, select Name for the FilterVariable and any of
 	// the following strings for the Prefix:
 	//
@@ -5278,7 +5355,9 @@ type DescribeMLModelsInput struct {
 	// of MLModel.
 	//
 	//    * asc - Arranges the list in ascending order (A-Z, 0-9).
+	//
 	//    * dsc - Arranges the list in descending order (Z-A, 9-0).
+	//
 	// Results are sorted by FilterVariable.
 	SortOrder *string `type:"string" enum:"SortOrder"`
 }
@@ -5575,10 +5654,14 @@ type Evaluation struct {
 	//
 	//    * PENDING - Amazon Machine Learning (Amazon ML) submitted a request to
 	//    evaluate an MLModel.
+	//
 	//    * INPROGRESS - The evaluation is underway.
+	//
 	//    * FAILED - The request to evaluate an MLModel did not run to completion.
 	//    It is not usable.
+	//
 	//    * COMPLETED - The evaluation process completed successfully.
+	//
 	//    * DELETED - The Evaluation is marked as deleted. It is not usable.
 	Status *string `type:"string" enum:"EntityStatus"`
 }
@@ -5788,10 +5871,14 @@ type GetBatchPredictionOutput struct {
 	//
 	//    * PENDING - Amazon Machine Learning (Amazon ML) submitted a request to
 	//    generate batch predictions.
+	//
 	//    * INPROGRESS - The batch predictions are in progress.
+	//
 	//    * FAILED - The request to perform a batch prediction did not run to completion.
 	//    It is not usable.
+	//
 	//    * COMPLETED - The batch prediction process completed successfully.
+	//
 	//    * DELETED - The BatchPrediction is marked as deleted. It is not usable.
 	Status *string `type:"string" enum:"EntityStatus"`
 
@@ -6005,8 +6092,8 @@ type GetDataSourceOutput struct {
 	DataSourceId *string `min:"1" type:"string"`
 
 	// The schema used by all of the data files of this DataSource.
-	//
-	// NoteThis parameter is provided as part of the verbose format.
+	//  Note
+	// This parameter is provided as part of the verbose format.
 	DataSourceSchema *string `type:"string"`
 
 	// The epoch time when Amazon Machine Learning marked the DataSource as COMPLETED
@@ -6049,10 +6136,14 @@ type GetDataSourceOutput struct {
 	// values:
 	//
 	//    * PENDING - Amazon ML submitted a request to create a DataSource.
+	//
 	//    * INPROGRESS - The creation process is underway.
+	//
 	//    * FAILED - The request to create a DataSource did not run to completion.
 	//    It is not usable.
+	//
 	//    * COMPLETED - The creation process completed successfully.
+	//
 	//    * DELETED - The DataSource is marked as deleted. It is not usable.
 	Status *string `type:"string" enum:"EntityStatus"`
 }
@@ -6305,10 +6396,14 @@ type GetEvaluationOutput struct {
 	//
 	//    * PENDING - Amazon Machine Language (Amazon ML) submitted a request to
 	//    evaluate an MLModel.
+	//
 	//    * INPROGRESS - The evaluation is underway.
+	//
 	//    * FAILED - The request to evaluate an MLModel did not run to completion.
 	//    It is not usable.
+	//
 	//    * COMPLETED - The evaluation process completed successfully.
+	//
 	//    * DELETED - The Evaluation is marked as deleted. It is not usable.
 	Status *string `type:"string" enum:"EntityStatus"`
 }
@@ -6511,8 +6606,10 @@ type GetMLModelOutput struct {
 	//
 	//    * REGRESSION -- Produces a numeric result. For example, "What price should
 	//    a house be listed at?"
+	//
 	//    * BINARY -- Produces one of two possible results. For example, "Is this
 	//    an e-commerce website?"
+	//
 	//    * MULTICLASS -- Produces one of several possible results. For example,
 	//    "Is this a HIGH, LOW or MEDIUM risk trade?"
 	MLModelType *string `type:"string" enum:"MLModelType"`
@@ -6526,16 +6623,16 @@ type GetMLModelOutput struct {
 	// The recipe to use when training the MLModel. The Recipe provides detailed
 	// information about the observation data to use during training, and manipulations
 	// to perform on the observation data during training.
-	//
-	// NoteThis parameter is provided as part of the verbose format.
+	//  Note
+	// This parameter is provided as part of the verbose format.
 	Recipe *string `type:"string"`
 
 	// The schema used by all of the data files referenced by the DataSource.
-	//
-	// NoteThis parameter is provided as part of the verbose format.
+	//  Note
+	// This parameter is provided as part of the verbose format.
 	Schema *string `type:"string"`
 
-	// The scoring threshold is used in binary classification MLModelmodels. It
+	// The scoring threshold is used in binary classification MLModel models. It
 	// marks the boundary between a positive prediction and a negative prediction.
 	//
 	// Output values greater than or equal to the threshold receive a positive result
@@ -6559,10 +6656,13 @@ type GetMLModelOutput struct {
 	//
 	//    * PENDING - Amazon Machine Learning (Amazon ML) submitted a request to
 	//    describe a MLModel.
+	//
 	//    * INPROGRESS - The request is processing.
+	//
 	//    * FAILED - The request did not run to completion. The ML model isn't usable.
 	//
 	//    * COMPLETED - The request completed successfully.
+	//
 	//    * DELETED - The MLModel is marked as deleted. It isn't usable.
 	Status *string `type:"string" enum:"EntityStatus"`
 
@@ -6576,8 +6676,7 @@ type GetMLModelOutput struct {
 	//
 	//    * sgd.maxMLModelSizeInBytes - The maximum allowed size of the model. Depending
 	//    on the input data, the size of the model might affect its performance.
-	//
-	//  The value is an integer that ranges from 100000 to 2147483648. The default
+	//    The value is an integer that ranges from 100000 to 2147483648. The default
 	//    value is 33554432.
 	//
 	//    * sgd.maxPasses - The number of times that the training process traverses
@@ -6593,20 +6692,17 @@ type GetMLModelOutput struct {
 	//    It controls overfitting the data by penalizing large coefficients. This
 	//    tends to drive coefficients to zero, resulting in a sparse feature set.
 	//    If you use this parameter, start by specifying a small value, such as
-	//    1.0E-08.
-	//
-	// The value is a double that ranges from 0 to MAX_DOUBLE. The default is to
-	//    not use L1 normalization. This parameter can't be used when L2 is specified.
-	//    Use this parameter sparingly.
+	//    1.0E-08. The value is a double that ranges from 0 to MAX_DOUBLE. The default
+	//    is to not use L1 normalization. This parameter can't be used when L2 is
+	//    specified. Use this parameter sparingly.
 	//
 	//    * sgd.l2RegularizationAmount - The coefficient regularization L2 norm.
 	//    It controls overfitting the data by penalizing large coefficients. This
 	//    tends to drive coefficients to small, nonzero values. If you use this
-	//    parameter, start by specifying a small value, such as 1.0E-08.
-	//
-	// The value is a double that ranges from 0 to MAX_DOUBLE. The default is to
-	//    not use L2 normalization. This parameter can't be used when L1 is specified.
-	//    Use this parameter sparingly.
+	//    parameter, start by specifying a small value, such as 1.0E-08. The value
+	//    is a double that ranges from 0 to MAX_DOUBLE. The default is to not use
+	//    L2 normalization. This parameter can't be used when L1 is specified. Use
+	//    this parameter sparingly.
 	TrainingParameters map[string]*string `type:"map"`
 }
 
@@ -6746,6 +6842,297 @@ func (s *GetMLModelOutput) SetTrainingParameters(v map[string]*string) *GetMLMod
 	return s
 }
 
+// A second request to use or change an object was not allowed. This can result
+// from retrying a request using a parameter that was not present in the original
+// request.
+type IdempotentParameterMismatchException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Code_ *int64 `locationName:"code" type:"integer"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s IdempotentParameterMismatchException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IdempotentParameterMismatchException) GoString() string {
+	return s.String()
+}
+
+func newErrorIdempotentParameterMismatchException(v protocol.ResponseMetadata) error {
+	return &IdempotentParameterMismatchException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s IdempotentParameterMismatchException) Code() string {
+	return "IdempotentParameterMismatchException"
+}
+
+// Message returns the exception's message.
+func (s IdempotentParameterMismatchException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s IdempotentParameterMismatchException) OrigErr() error {
+	return nil
+}
+
+func (s IdempotentParameterMismatchException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s IdempotentParameterMismatchException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s IdempotentParameterMismatchException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// An error on the server occurred when trying to process a request.
+type InternalServerException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Code_ *int64 `locationName:"code" type:"integer"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalServerException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalServerException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServerException(v protocol.ResponseMetadata) error {
+	return &InternalServerException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalServerException) Code() string {
+	return "InternalServerException"
+}
+
+// Message returns the exception's message.
+func (s InternalServerException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalServerException) OrigErr() error {
+	return nil
+}
+
+func (s InternalServerException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalServerException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalServerException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// An error on the client occurred. Typically, the cause is an invalid input
+// value.
+type InvalidInputException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Code_ *int64 `locationName:"code" type:"integer"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidInputException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidInputException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidInputException(v protocol.ResponseMetadata) error {
+	return &InvalidInputException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidInputException) Code() string {
+	return "InvalidInputException"
+}
+
+// Message returns the exception's message.
+func (s InvalidInputException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidInputException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidInputException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidInputException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidInputException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+type InvalidTagException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidTagException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidTagException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidTagException(v protocol.ResponseMetadata) error {
+	return &InvalidTagException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidTagException) Code() string {
+	return "InvalidTagException"
+}
+
+// Message returns the exception's message.
+func (s InvalidTagException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidTagException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidTagException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidTagException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidTagException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The subscriber exceeded the maximum number of operations. This exception
+// can occur when listing objects such as DataSource.
+type LimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Code_ *int64 `locationName:"code" type:"integer"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Represents the output of a GetMLModel operation.
 //
 // The content consists of the detailed metadata and the current status of the
@@ -6791,8 +7178,10 @@ type MLModel struct {
 	//
 	//    * REGRESSION - Produces a numeric result. For example, "What price should
 	//    a house be listed at?"
+	//
 	//    * BINARY - Produces one of two possible results. For example, "Is this
 	//    a child-friendly web site?".
+	//
 	//    * MULTICLASS - Produces one of several possible results. For example,
 	//    "Is this a HIGH-, LOW-, or MEDIUM-risk trade?".
 	MLModelType *string `type:"string" enum:"MLModelType"`
@@ -6820,10 +7209,14 @@ type MLModel struct {
 	//
 	//    * PENDING - Amazon Machine Learning (Amazon ML) submitted a request to
 	//    create an MLModel.
+	//
 	//    * INPROGRESS - The creation process is underway.
+	//
 	//    * FAILED - The request to create an MLModel didn't run to completion.
 	//    The model isn't usable.
+	//
 	//    * COMPLETED - The creation process completed successfully.
+	//
 	//    * DELETED - The MLModel is marked as deleted. It isn't usable.
 	Status *string `type:"string" enum:"EntityStatus"`
 
@@ -6837,8 +7230,7 @@ type MLModel struct {
 	//
 	//    * sgd.maxMLModelSizeInBytes - The maximum allowed size of the model. Depending
 	//    on the input data, the size of the model might affect its performance.
-	//
-	//  The value is an integer that ranges from 100000 to 2147483648. The default
+	//    The value is an integer that ranges from 100000 to 2147483648. The default
 	//    value is 33554432.
 	//
 	//    * sgd.maxPasses - The number of times that the training process traverses
@@ -6854,18 +7246,15 @@ type MLModel struct {
 	//    which controls overfitting the data by penalizing large coefficients.
 	//    This parameter tends to drive coefficients to zero, resulting in sparse
 	//    feature set. If you use this parameter, start by specifying a small value,
-	//    such as 1.0E-08.
-	//
-	// The value is a double that ranges from 0 to MAX_DOUBLE. The default is to
-	//    not use L1 normalization. This parameter can't be used when L2 is specified.
-	//    Use this parameter sparingly.
+	//    such as 1.0E-08. The value is a double that ranges from 0 to MAX_DOUBLE.
+	//    The default is to not use L1 normalization. This parameter can't be used
+	//    when L2 is specified. Use this parameter sparingly.
 	//
 	//    * sgd.l2RegularizationAmount - The coefficient regularization L2 norm,
 	//    which controls overfitting the data by penalizing large coefficients.
 	//    This tends to drive coefficients to small, nonzero values. If you use
-	//    this parameter, start by specifying a small value, such as 1.0E-08.
-	//
-	// The value is a double that ranges from 0 to MAX_DOUBLE. The default is to
+	//    this parameter, start by specifying a small value, such as 1.0E-08. The
+	//    value is a double that ranges from 0 to MAX_DOUBLE. The default is to
 	//    not use L2 normalization. This parameter can't be used when L1 is specified.
 	//    Use this parameter sparingly.
 	TrainingParameters map[string]*string `type:"map"`
@@ -7105,15 +7494,14 @@ type PredictOutput struct {
 	// The output from a Predict operation:
 	//
 	//    * Details - Contains the following attributes: DetailsAttributes.PREDICTIVE_MODEL_TYPE
-	//    - REGRESSION | BINARY | MULTICLASSDetailsAttributes.ALGORITHM - SGD
+	//    - REGRESSION | BINARY | MULTICLASS DetailsAttributes.ALGORITHM - SGD
 	//
-	//    * PredictedLabel - Present for either a BINARY or MULTICLASSMLModel request.
-	//
+	//    * PredictedLabel - Present for either a BINARY or MULTICLASS MLModel request.
 	//
 	//    * PredictedScores - Contains the raw classification score corresponding
 	//    to each label.
 	//
-	//    * PredictedValue - Present for a REGRESSIONMLModel request.
+	//    * PredictedValue - Present for a REGRESSION MLModel request.
 	Prediction *Prediction `type:"structure"`
 }
 
@@ -7136,28 +7524,31 @@ func (s *PredictOutput) SetPrediction(v *Prediction) *PredictOutput {
 // The output from a Predict operation:
 //
 //    * Details - Contains the following attributes: DetailsAttributes.PREDICTIVE_MODEL_TYPE
-//    - REGRESSION | BINARY | MULTICLASSDetailsAttributes.ALGORITHM - SGD
+//    - REGRESSION | BINARY | MULTICLASS DetailsAttributes.ALGORITHM - SGD
 //
-//    * PredictedLabel - Present for either a BINARY or MULTICLASSMLModel request.
-//
+//    * PredictedLabel - Present for either a BINARY or MULTICLASS MLModel request.
 //
 //    * PredictedScores - Contains the raw classification score corresponding
 //    to each label.
 //
-//    * PredictedValue - Present for a REGRESSIONMLModel request.
+//    * PredictedValue - Present for a REGRESSION MLModel request.
 type Prediction struct {
 	_ struct{} `type:"structure"`
 
 	// Provides any additional details regarding the prediction.
 	Details map[string]*string `locationName:"details" type:"map"`
 
-	// The prediction label for either a BINARY or MULTICLASSMLModel.
+	// The prediction label for either a BINARY or MULTICLASS MLModel.
 	PredictedLabel *string `locationName:"predictedLabel" min:"1" type:"string"`
 
 	// Provides the raw classification score corresponding to each label.
 	PredictedScores map[string]*float64 `locationName:"predictedScores" type:"map"`
 
-	// The prediction value for REGRESSIONMLModel
+	// The prediction value for
+	//    REGRESSION
+	//
+	//    MLModel
+	// .
 	PredictedValue *float64 `locationName:"predictedValue" type:"float"`
 }
 
@@ -7195,6 +7586,62 @@ func (s *Prediction) SetPredictedValue(v float64) *Prediction {
 	return s
 }
 
+// The exception is thrown when a predict request is made to an unmounted MLModel.
+type PredictorNotMountedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s PredictorNotMountedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PredictorNotMountedException) GoString() string {
+	return s.String()
+}
+
+func newErrorPredictorNotMountedException(v protocol.ResponseMetadata) error {
+	return &PredictorNotMountedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s PredictorNotMountedException) Code() string {
+	return "PredictorNotMountedException"
+}
+
+// Message returns the exception's message.
+func (s PredictorNotMountedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s PredictorNotMountedException) OrigErr() error {
+	return nil
+}
+
+func (s PredictorNotMountedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s PredictorNotMountedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s PredictorNotMountedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // The data specification of an Amazon Relational Database Service (Amazon RDS)
 // DataSource.
 type RDSDataSpec struct {
@@ -7207,56 +7654,36 @@ type RDSDataSpec struct {
 	// There are multiple parameters that control what data is used to create a
 	// datasource:
 	//
-	//    * percentBegin
+	//    * percentBegin Use percentBegin to indicate the beginning of the range
+	//    of the data used to create the Datasource. If you do not include percentBegin
+	//    and percentEnd, Amazon ML includes all of the data when creating the datasource.
 	//
-	// Use percentBegin to indicate the beginning of the range of the data used
-	//    to create the Datasource. If you do not include percentBegin and percentEnd,
-	//    Amazon ML includes all of the data when creating the datasource.
+	//    * percentEnd Use percentEnd to indicate the end of the range of the data
+	//    used to create the Datasource. If you do not include percentBegin and
+	//    percentEnd, Amazon ML includes all of the data when creating the datasource.
 	//
-	//    * percentEnd
+	//    * complement The complement parameter instructs Amazon ML to use the data
+	//    that is not included in the range of percentBegin to percentEnd to create
+	//    a datasource. The complement parameter is useful if you need to create
+	//    complementary datasources for training and evaluation. To create a complementary
+	//    datasource, use the same values for percentBegin and percentEnd, along
+	//    with the complement parameter. For example, the following two datasources
+	//    do not share any data, and can be used to train and evaluate a model.
+	//    The first datasource has 25 percent of the data, and the second one has
+	//    75 percent of the data. Datasource for evaluation: {"splitting":{"percentBegin":0,
+	//    "percentEnd":25}} Datasource for training: {"splitting":{"percentBegin":0,
+	//    "percentEnd":25, "complement":"true"}}
 	//
-	// Use percentEnd to indicate the end of the range of the data used to create
-	//    the Datasource. If you do not include percentBegin and percentEnd, Amazon
-	//    ML includes all of the data when creating the datasource.
-	//
-	//    * complement
-	//
-	// The complement parameter instructs Amazon ML to use the data that is not
-	//    included in the range of percentBegin to percentEnd to create a datasource.
-	//    The complement parameter is useful if you need to create complementary
-	//    datasources for training and evaluation. To create a complementary datasource,
-	//    use the same values for percentBegin and percentEnd, along with the complement
-	//    parameter.
-	//
-	// For example, the following two datasources do not share any data, and can
-	//    be used to train and evaluate a model. The first datasource has 25 percent
-	//    of the data, and the second one has 75 percent of the data.
-	//
-	// Datasource for evaluation: {"splitting":{"percentBegin":0, "percentEnd":25}}
-	//
-	// Datasource for training: {"splitting":{"percentBegin":0, "percentEnd":25,
-	//    "complement":"true"}}
-	//
-	//    * strategy
-	//
-	// To change how Amazon ML splits the data for a datasource, use the strategy
-	//    parameter.
-	//
-	// The default value for the strategy parameter is sequential, meaning that
-	//    Amazon ML takes all of the data records between the percentBegin and percentEnd
-	//    parameters for the datasource, in the order that the records appear in
-	//    the input data.
-	//
-	// The following two DataRearrangement lines are examples of sequentially ordered
-	//    training and evaluation datasources:
-	//
-	// Datasource for evaluation: {"splitting":{"percentBegin":70, "percentEnd":100,
-	//    "strategy":"sequential"}}
-	//
-	// Datasource for training: {"splitting":{"percentBegin":70, "percentEnd":100,
-	//    "strategy":"sequential", "complement":"true"}}
-	//
-	// To randomly split the input data into the proportions indicated by the percentBegin
+	//    * strategy To change how Amazon ML splits the data for a datasource, use
+	//    the strategy parameter. The default value for the strategy parameter is
+	//    sequential, meaning that Amazon ML takes all of the data records between
+	//    the percentBegin and percentEnd parameters for the datasource, in the
+	//    order that the records appear in the input data. The following two DataRearrangement
+	//    lines are examples of sequentially ordered training and evaluation datasources:
+	//    Datasource for evaluation: {"splitting":{"percentBegin":70, "percentEnd":100,
+	//    "strategy":"sequential"}} Datasource for training: {"splitting":{"percentBegin":70,
+	//    "percentEnd":100, "strategy":"sequential", "complement":"true"}} To randomly
+	//    split the input data into the proportions indicated by the percentBegin
 	//    and percentEnd parameters, set the strategy parameter to random and provide
 	//    a string that is used as the seed value for the random data splitting
 	//    (for example, you can use the S3 path to your data as the random seed
@@ -7269,15 +7696,11 @@ type RDSDataSpec struct {
 	//    ensures that variables in the training and evaluation data are distributed
 	//    similarly. It is useful in the cases where the input data may have an
 	//    implicit sort order, which would otherwise result in training and evaluation
-	//    datasources containing non-similar data records.
-	//
-	// The following two DataRearrangement lines are examples of non-sequentially
-	//    ordered training and evaluation datasources:
-	//
-	// Datasource for evaluation: {"splitting":{"percentBegin":70, "percentEnd":100,
-	//    "strategy":"random", "randomSeed"="s3://my_s3_path/bucket/file.csv"}}
-	//
-	// Datasource for training: {"splitting":{"percentBegin":70, "percentEnd":100,
+	//    datasources containing non-similar data records. The following two DataRearrangement
+	//    lines are examples of non-sequentially ordered training and evaluation
+	//    datasources: Datasource for evaluation: {"splitting":{"percentBegin":70,
+	//    "percentEnd":100, "strategy":"random", "randomSeed"="s3://my_s3_path/bucket/file.csv"}}
+	//    Datasource for training: {"splitting":{"percentBegin":70, "percentEnd":100,
 	//    "strategy":"random", "randomSeed"="s3://my_s3_path/bucket/file.csv", "complement":"true"}}
 	DataRearrangement *string `type:"string"`
 
@@ -7718,15 +8141,17 @@ type RealtimeEndpointInfo struct {
 	// can have one of the following values:
 	//
 	//    * NONE - Endpoint does not exist or was previously deleted.
+	//
 	//    * READY - Endpoint is ready to be used for real-time predictions.
+	//
 	//    * UPDATING - Updating/creating the endpoint.
 	EndpointStatus *string `type:"string" enum:"RealtimeEndpointStatus"`
 
 	// The URI that specifies where to send real-time prediction requests for the
 	// MLModel.
-	//
-	// NoteThe application must wait until the real-time endpoint is ready before
-	// using this URI.
+	//  Note
+	// The application must wait until the real-time endpoint is ready before using
+	// this URI.
 	EndpointUrl *string `type:"string"`
 
 	// The maximum processing rate for the real-time endpoint for MLModel, measured
@@ -7779,56 +8204,36 @@ type RedshiftDataSpec struct {
 	// There are multiple parameters that control what data is used to create a
 	// datasource:
 	//
-	//    * percentBegin
+	//    * percentBegin Use percentBegin to indicate the beginning of the range
+	//    of the data used to create the Datasource. If you do not include percentBegin
+	//    and percentEnd, Amazon ML includes all of the data when creating the datasource.
 	//
-	// Use percentBegin to indicate the beginning of the range of the data used
-	//    to create the Datasource. If you do not include percentBegin and percentEnd,
-	//    Amazon ML includes all of the data when creating the datasource.
+	//    * percentEnd Use percentEnd to indicate the end of the range of the data
+	//    used to create the Datasource. If you do not include percentBegin and
+	//    percentEnd, Amazon ML includes all of the data when creating the datasource.
 	//
-	//    * percentEnd
+	//    * complement The complement parameter instructs Amazon ML to use the data
+	//    that is not included in the range of percentBegin to percentEnd to create
+	//    a datasource. The complement parameter is useful if you need to create
+	//    complementary datasources for training and evaluation. To create a complementary
+	//    datasource, use the same values for percentBegin and percentEnd, along
+	//    with the complement parameter. For example, the following two datasources
+	//    do not share any data, and can be used to train and evaluate a model.
+	//    The first datasource has 25 percent of the data, and the second one has
+	//    75 percent of the data. Datasource for evaluation: {"splitting":{"percentBegin":0,
+	//    "percentEnd":25}} Datasource for training: {"splitting":{"percentBegin":0,
+	//    "percentEnd":25, "complement":"true"}}
 	//
-	// Use percentEnd to indicate the end of the range of the data used to create
-	//    the Datasource. If you do not include percentBegin and percentEnd, Amazon
-	//    ML includes all of the data when creating the datasource.
-	//
-	//    * complement
-	//
-	// The complement parameter instructs Amazon ML to use the data that is not
-	//    included in the range of percentBegin to percentEnd to create a datasource.
-	//    The complement parameter is useful if you need to create complementary
-	//    datasources for training and evaluation. To create a complementary datasource,
-	//    use the same values for percentBegin and percentEnd, along with the complement
-	//    parameter.
-	//
-	// For example, the following two datasources do not share any data, and can
-	//    be used to train and evaluate a model. The first datasource has 25 percent
-	//    of the data, and the second one has 75 percent of the data.
-	//
-	// Datasource for evaluation: {"splitting":{"percentBegin":0, "percentEnd":25}}
-	//
-	// Datasource for training: {"splitting":{"percentBegin":0, "percentEnd":25,
-	//    "complement":"true"}}
-	//
-	//    * strategy
-	//
-	// To change how Amazon ML splits the data for a datasource, use the strategy
-	//    parameter.
-	//
-	// The default value for the strategy parameter is sequential, meaning that
-	//    Amazon ML takes all of the data records between the percentBegin and percentEnd
-	//    parameters for the datasource, in the order that the records appear in
-	//    the input data.
-	//
-	// The following two DataRearrangement lines are examples of sequentially ordered
-	//    training and evaluation datasources:
-	//
-	// Datasource for evaluation: {"splitting":{"percentBegin":70, "percentEnd":100,
-	//    "strategy":"sequential"}}
-	//
-	// Datasource for training: {"splitting":{"percentBegin":70, "percentEnd":100,
-	//    "strategy":"sequential", "complement":"true"}}
-	//
-	// To randomly split the input data into the proportions indicated by the percentBegin
+	//    * strategy To change how Amazon ML splits the data for a datasource, use
+	//    the strategy parameter. The default value for the strategy parameter is
+	//    sequential, meaning that Amazon ML takes all of the data records between
+	//    the percentBegin and percentEnd parameters for the datasource, in the
+	//    order that the records appear in the input data. The following two DataRearrangement
+	//    lines are examples of sequentially ordered training and evaluation datasources:
+	//    Datasource for evaluation: {"splitting":{"percentBegin":70, "percentEnd":100,
+	//    "strategy":"sequential"}} Datasource for training: {"splitting":{"percentBegin":70,
+	//    "percentEnd":100, "strategy":"sequential", "complement":"true"}} To randomly
+	//    split the input data into the proportions indicated by the percentBegin
 	//    and percentEnd parameters, set the strategy parameter to random and provide
 	//    a string that is used as the seed value for the random data splitting
 	//    (for example, you can use the S3 path to your data as the random seed
@@ -7841,15 +8246,11 @@ type RedshiftDataSpec struct {
 	//    ensures that variables in the training and evaluation data are distributed
 	//    similarly. It is useful in the cases where the input data may have an
 	//    implicit sort order, which would otherwise result in training and evaluation
-	//    datasources containing non-similar data records.
-	//
-	// The following two DataRearrangement lines are examples of non-sequentially
-	//    ordered training and evaluation datasources:
-	//
-	// Datasource for evaluation: {"splitting":{"percentBegin":70, "percentEnd":100,
-	//    "strategy":"random", "randomSeed"="s3://my_s3_path/bucket/file.csv"}}
-	//
-	// Datasource for training: {"splitting":{"percentBegin":70, "percentEnd":100,
+	//    datasources containing non-similar data records. The following two DataRearrangement
+	//    lines are examples of non-sequentially ordered training and evaluation
+	//    datasources: Datasource for evaluation: {"splitting":{"percentBegin":70,
+	//    "percentEnd":100, "strategy":"random", "randomSeed"="s3://my_s3_path/bucket/file.csv"}}
+	//    Datasource for training: {"splitting":{"percentBegin":70, "percentEnd":100,
 	//    "strategy":"random", "randomSeed"="s3://my_s3_path/bucket/file.csv", "complement":"true"}}
 	DataRearrangement *string `type:"string"`
 
@@ -8174,6 +8575,64 @@ func (s *RedshiftMetadata) SetSelectSqlQuery(v string) *RedshiftMetadata {
 	return s
 }
 
+// A specified resource cannot be located.
+type ResourceNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Code_ *int64 `locationName:"code" type:"integer"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Describes the data specification of a DataSource.
 type S3DataSpec struct {
 	_ struct{} `type:"structure"`
@@ -8192,56 +8651,36 @@ type S3DataSpec struct {
 	// There are multiple parameters that control what data is used to create a
 	// datasource:
 	//
-	//    * percentBegin
+	//    * percentBegin Use percentBegin to indicate the beginning of the range
+	//    of the data used to create the Datasource. If you do not include percentBegin
+	//    and percentEnd, Amazon ML includes all of the data when creating the datasource.
 	//
-	// Use percentBegin to indicate the beginning of the range of the data used
-	//    to create the Datasource. If you do not include percentBegin and percentEnd,
-	//    Amazon ML includes all of the data when creating the datasource.
+	//    * percentEnd Use percentEnd to indicate the end of the range of the data
+	//    used to create the Datasource. If you do not include percentBegin and
+	//    percentEnd, Amazon ML includes all of the data when creating the datasource.
 	//
-	//    * percentEnd
+	//    * complement The complement parameter instructs Amazon ML to use the data
+	//    that is not included in the range of percentBegin to percentEnd to create
+	//    a datasource. The complement parameter is useful if you need to create
+	//    complementary datasources for training and evaluation. To create a complementary
+	//    datasource, use the same values for percentBegin and percentEnd, along
+	//    with the complement parameter. For example, the following two datasources
+	//    do not share any data, and can be used to train and evaluate a model.
+	//    The first datasource has 25 percent of the data, and the second one has
+	//    75 percent of the data. Datasource for evaluation: {"splitting":{"percentBegin":0,
+	//    "percentEnd":25}} Datasource for training: {"splitting":{"percentBegin":0,
+	//    "percentEnd":25, "complement":"true"}}
 	//
-	// Use percentEnd to indicate the end of the range of the data used to create
-	//    the Datasource. If you do not include percentBegin and percentEnd, Amazon
-	//    ML includes all of the data when creating the datasource.
-	//
-	//    * complement
-	//
-	// The complement parameter instructs Amazon ML to use the data that is not
-	//    included in the range of percentBegin to percentEnd to create a datasource.
-	//    The complement parameter is useful if you need to create complementary
-	//    datasources for training and evaluation. To create a complementary datasource,
-	//    use the same values for percentBegin and percentEnd, along with the complement
-	//    parameter.
-	//
-	// For example, the following two datasources do not share any data, and can
-	//    be used to train and evaluate a model. The first datasource has 25 percent
-	//    of the data, and the second one has 75 percent of the data.
-	//
-	// Datasource for evaluation: {"splitting":{"percentBegin":0, "percentEnd":25}}
-	//
-	// Datasource for training: {"splitting":{"percentBegin":0, "percentEnd":25,
-	//    "complement":"true"}}
-	//
-	//    * strategy
-	//
-	// To change how Amazon ML splits the data for a datasource, use the strategy
-	//    parameter.
-	//
-	// The default value for the strategy parameter is sequential, meaning that
-	//    Amazon ML takes all of the data records between the percentBegin and percentEnd
-	//    parameters for the datasource, in the order that the records appear in
-	//    the input data.
-	//
-	// The following two DataRearrangement lines are examples of sequentially ordered
-	//    training and evaluation datasources:
-	//
-	// Datasource for evaluation: {"splitting":{"percentBegin":70, "percentEnd":100,
-	//    "strategy":"sequential"}}
-	//
-	// Datasource for training: {"splitting":{"percentBegin":70, "percentEnd":100,
-	//    "strategy":"sequential", "complement":"true"}}
-	//
-	// To randomly split the input data into the proportions indicated by the percentBegin
+	//    * strategy To change how Amazon ML splits the data for a datasource, use
+	//    the strategy parameter. The default value for the strategy parameter is
+	//    sequential, meaning that Amazon ML takes all of the data records between
+	//    the percentBegin and percentEnd parameters for the datasource, in the
+	//    order that the records appear in the input data. The following two DataRearrangement
+	//    lines are examples of sequentially ordered training and evaluation datasources:
+	//    Datasource for evaluation: {"splitting":{"percentBegin":70, "percentEnd":100,
+	//    "strategy":"sequential"}} Datasource for training: {"splitting":{"percentBegin":70,
+	//    "percentEnd":100, "strategy":"sequential", "complement":"true"}} To randomly
+	//    split the input data into the proportions indicated by the percentBegin
 	//    and percentEnd parameters, set the strategy parameter to random and provide
 	//    a string that is used as the seed value for the random data splitting
 	//    (for example, you can use the S3 path to your data as the random seed
@@ -8254,15 +8693,11 @@ type S3DataSpec struct {
 	//    ensures that variables in the training and evaluation data are distributed
 	//    similarly. It is useful in the cases where the input data may have an
 	//    implicit sort order, which would otherwise result in training and evaluation
-	//    datasources containing non-similar data records.
-	//
-	// The following two DataRearrangement lines are examples of non-sequentially
-	//    ordered training and evaluation datasources:
-	//
-	// Datasource for evaluation: {"splitting":{"percentBegin":70, "percentEnd":100,
-	//    "strategy":"random", "randomSeed"="s3://my_s3_path/bucket/file.csv"}}
-	//
-	// Datasource for training: {"splitting":{"percentBegin":70, "percentEnd":100,
+	//    datasources containing non-similar data records. The following two DataRearrangement
+	//    lines are examples of non-sequentially ordered training and evaluation
+	//    datasources: Datasource for evaluation: {"splitting":{"percentBegin":70,
+	//    "percentEnd":100, "strategy":"random", "randomSeed"="s3://my_s3_path/bucket/file.csv"}}
+	//    Datasource for training: {"splitting":{"percentBegin":70, "percentEnd":100,
 	//    "strategy":"random", "randomSeed"="s3://my_s3_path/bucket/file.csv", "complement":"true"}}
 	DataRearrangement *string `type:"string"`
 
@@ -8398,6 +8833,61 @@ func (s *Tag) SetKey(v string) *Tag {
 func (s *Tag) SetValue(v string) *Tag {
 	s.Value = &v
 	return s
+}
+
+type TagLimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s TagLimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagLimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorTagLimitExceededException(v protocol.ResponseMetadata) error {
+	return &TagLimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TagLimitExceededException) Code() string {
+	return "TagLimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s TagLimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TagLimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s TagLimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TagLimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TagLimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type UpdateBatchPredictionInput struct {
@@ -8743,6 +9233,7 @@ func (s *UpdateMLModelOutput) SetMLModelId(v string) *UpdateMLModelOutput {
 // ML include the following:
 //
 //    * SGD - Stochastic Gradient Descent.
+//
 //    * RandomForest - Random forest of decision trees.
 const (
 	// AlgorithmSgd is a Algorithm enum value
@@ -8754,14 +9245,17 @@ const (
 //    * CreatedAt - Sets the search criteria to BatchPrediction creation date.
 //
 //    * Status - Sets the search criteria to BatchPrediction status.
-//    * Name - Sets the search criteria to the contents of BatchPredictionName.
+//
+//    * Name - Sets the search criteria to the contents of BatchPrediction Name.
 //
 //    * IAMUser - Sets the search criteria to the user account that invoked
 //    the BatchPrediction creation.
+//
 //    * MLModelId - Sets the search criteria to the MLModel used in the BatchPrediction.
 //
 //    * DataSourceId - Sets the search criteria to the DataSource used in the
 //    BatchPrediction.
+//
 //    * DataURI - Sets the search criteria to the data file(s) used in the BatchPrediction.
 //    The URL can identify either a file or an Amazon Simple Storage Service
 //    (Amazon S3) bucket or directory.
@@ -8794,14 +9288,19 @@ const (
 // A list of the variables to use in searching or filtering DataSource.
 //
 //    * CreatedAt - Sets the search criteria to DataSource creation date.
+//
 //    * Status - Sets the search criteria to DataSource status.
-//    * Name - Sets the search criteria to the contents of DataSourceName.
+//
+//    * Name - Sets the search criteria to the contents of DataSource Name.
+//
 //    * DataUri - Sets the search criteria to the URI of data files used to
 //    create the DataSource. The URI can identify either a file or an Amazon
 //    Simple Storage Service (Amazon S3) bucket or directory.
+//
 //    * IAMUser - Sets the search criteria to the user account that invoked
 //    the DataSource creation.
-// NoteThe variable names should match the variable names in the DataSource.
+//  Note
+// The variable names should match the variable names in the DataSource.
 const (
 	// DataSourceFilterVariableCreatedAt is a DataSourceFilterVariable enum value
 	DataSourceFilterVariableCreatedAt = "CreatedAt"
@@ -8822,7 +9321,17 @@ const (
 	DataSourceFilterVariableIamuser = "IAMUser"
 )
 
-// Contains the key values of DetailsMap: PredictiveModelType- Indicates the type of the MLModel. Algorithm- Indicates the algorithm that was used for the MLModel
+// Contains the key values of
+//    DetailsMap
+// :
+//    PredictiveModelType
+//  - Indicates the type of the
+//    MLModel
+// .
+//    Algorithm
+//  - Indicates the algorithm that was used for the
+//    MLModel
+// .
 const (
 	// DetailsAttributesPredictiveModelType is a DetailsAttributes enum value
 	DetailsAttributesPredictiveModelType = "PredictiveModelType"
@@ -8834,9 +9343,13 @@ const (
 // Object status with the following possible values:
 //
 //    * PENDING
+//
 //    * INPROGRESS
+//
 //    * FAILED
+//
 //    * COMPLETED
+//
 //    * DELETED
 const (
 	// EntityStatusPending is a EntityStatus enum value
@@ -8858,10 +9371,14 @@ const (
 // A list of the variables to use in searching or filtering Evaluation.
 //
 //    * CreatedAt - Sets the search criteria to Evaluation creation date.
+//
 //    * Status - Sets the search criteria to Evaluation status.
-//    * Name - Sets the search criteria to the contents of EvaluationName.
+//
+//    * Name - Sets the search criteria to the contents of Evaluation Name.
+//
 //    * IAMUser - Sets the search criteria to the user account that invoked
 //    an evaluation.
+//
 //    * MLModelId - Sets the search criteria to the Predictor that was evaluated.
 //
 //    * DataSourceId - Sets the search criteria to the DataSource used in evaluation.
@@ -8956,6 +9473,7 @@ const (
 // the following:
 //
 //    * asc - Present the information in ascending order (from A-Z).
+//
 //    * dsc - Present the information in descending order (from Z-A).
 const (
 	// SortOrderAsc is a SortOrder enum value

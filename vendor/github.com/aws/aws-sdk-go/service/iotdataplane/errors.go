@@ -2,6 +2,10 @@
 
 package iotdataplane
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeConflictException for service response error code
@@ -64,3 +68,16 @@ const (
 	// The document encoding is not supported.
 	ErrCodeUnsupportedDocumentEncodingException = "UnsupportedDocumentEncodingException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ConflictException":                    newErrorConflictException,
+	"InternalFailureException":             newErrorInternalFailureException,
+	"InvalidRequestException":              newErrorInvalidRequestException,
+	"MethodNotAllowedException":            newErrorMethodNotAllowedException,
+	"RequestEntityTooLargeException":       newErrorRequestEntityTooLargeException,
+	"ResourceNotFoundException":            newErrorResourceNotFoundException,
+	"ServiceUnavailableException":          newErrorServiceUnavailableException,
+	"ThrottlingException":                  newErrorThrottlingException,
+	"UnauthorizedException":                newErrorUnauthorizedException,
+	"UnsupportedDocumentEncodingException": newErrorUnsupportedDocumentEncodingException,
+}

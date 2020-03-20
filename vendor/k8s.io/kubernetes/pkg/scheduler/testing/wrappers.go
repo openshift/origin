@@ -21,6 +21,7 @@ import (
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var zero int64
@@ -150,6 +151,18 @@ func (p *PodWrapper) Name(s string) *PodWrapper {
 	return p
 }
 
+// UID sets `s` as the UID of the inner pod.
+func (p *PodWrapper) UID(s string) *PodWrapper {
+	p.SetUID(types.UID(s))
+	return p
+}
+
+// SchedulerName sets `s` as the scheduler name of the inner pod.
+func (p *PodWrapper) SchedulerName(s string) *PodWrapper {
+	p.Spec.SchedulerName = s
+	return p
+}
+
 // Namespace sets `s` as the namespace of the inner pod.
 func (p *PodWrapper) Namespace(s string) *PodWrapper {
 	p.SetNamespace(s)
@@ -168,6 +181,13 @@ func (p *PodWrapper) Container(s string) *PodWrapper {
 // Priority sets a priority value into PodSpec of the inner pod.
 func (p *PodWrapper) Priority(val int32) *PodWrapper {
 	p.Spec.Priority = &val
+	return p
+}
+
+// Terminating sets the inner pod's deletionTimestamp to current timestamp.
+func (p *PodWrapper) Terminating() *PodWrapper {
+	now := metav1.Now()
+	p.DeletionTimestamp = &now
 	return p
 }
 
@@ -353,6 +373,12 @@ func (n *NodeWrapper) Obj() *v1.Node {
 // Name sets `s` as the name of the inner pod.
 func (n *NodeWrapper) Name(s string) *NodeWrapper {
 	n.SetName(s)
+	return n
+}
+
+// UID sets `s` as the UID of the inner pod.
+func (n *NodeWrapper) UID(s string) *NodeWrapper {
+	n.SetUID(types.UID(s))
 	return n
 }
 

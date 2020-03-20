@@ -189,7 +189,7 @@ func testDlaqr5(t *testing.T, impl Dlaqr5er, n, extra, kacc22 int, rnd *rand.Ran
 	if !isOrthogonal(z) {
 		t.Errorf("%v: Z is not orthogonal", prefix)
 	}
-	// Construct Z^T * HOrig * Z and check that it is equal to H from Dlaqr5.
+	// Construct Zᵀ * HOrig * Z and check that it is equal to H from Dlaqr5.
 	hz := blas64.General{
 		Rows:   n,
 		Cols:   n,
@@ -208,7 +208,7 @@ func testDlaqr5(t *testing.T, impl Dlaqr5er, n, extra, kacc22 int, rnd *rand.Ran
 		for j := 0; j < n; j++ {
 			diff := zhz.Data[i*zhz.Stride+j] - h.Data[i*h.Stride+j]
 			if math.Abs(diff) > 1e-13 {
-				t.Errorf("%v: Z^T*HOrig*Z and H are not equal, diff at [%v,%v]=%v", prefix, i, j, diff)
+				t.Errorf("%v: Zᵀ*HOrig*Z and H are not equal, diff at [%v,%v]=%v", prefix, i, j, diff)
 			}
 		}
 	}

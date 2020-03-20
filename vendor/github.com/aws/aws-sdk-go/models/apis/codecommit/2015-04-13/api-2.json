@@ -13,6 +13,123 @@
     "uid":"codecommit-2015-04-13"
   },
   "operations":{
+    "AssociateApprovalRuleTemplateWithRepository":{
+      "name":"AssociateApprovalRuleTemplateWithRepository",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"AssociateApprovalRuleTemplateWithRepositoryInput"},
+      "errors":[
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateDoesNotExistException"},
+        {"shape":"MaximumRuleTemplatesAssociatedWithRepositoryException"},
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "BatchAssociateApprovalRuleTemplateWithRepositories":{
+      "name":"BatchAssociateApprovalRuleTemplateWithRepositories",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"BatchAssociateApprovalRuleTemplateWithRepositoriesInput"},
+      "output":{"shape":"BatchAssociateApprovalRuleTemplateWithRepositoriesOutput"},
+      "errors":[
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateDoesNotExistException"},
+        {"shape":"RepositoryNamesRequiredException"},
+        {"shape":"MaximumRepositoryNamesExceededException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "BatchDescribeMergeConflicts":{
+      "name":"BatchDescribeMergeConflicts",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"BatchDescribeMergeConflictsInput"},
+      "output":{"shape":"BatchDescribeMergeConflictsOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"MergeOptionRequiredException"},
+        {"shape":"InvalidMergeOptionException"},
+        {"shape":"InvalidContinuationTokenException"},
+        {"shape":"CommitRequiredException"},
+        {"shape":"CommitDoesNotExistException"},
+        {"shape":"InvalidCommitException"},
+        {"shape":"TipsDivergenceExceededException"},
+        {"shape":"InvalidMaxConflictFilesException"},
+        {"shape":"InvalidMaxMergeHunksException"},
+        {"shape":"InvalidConflictDetailLevelException"},
+        {"shape":"InvalidConflictResolutionStrategyException"},
+        {"shape":"MaximumFileContentToLoadExceededException"},
+        {"shape":"MaximumItemsToCompareExceededException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "BatchDisassociateApprovalRuleTemplateFromRepositories":{
+      "name":"BatchDisassociateApprovalRuleTemplateFromRepositories",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"BatchDisassociateApprovalRuleTemplateFromRepositoriesInput"},
+      "output":{"shape":"BatchDisassociateApprovalRuleTemplateFromRepositoriesOutput"},
+      "errors":[
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateDoesNotExistException"},
+        {"shape":"RepositoryNamesRequiredException"},
+        {"shape":"MaximumRepositoryNamesExceededException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "BatchGetCommits":{
+      "name":"BatchGetCommits",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"BatchGetCommitsInput"},
+      "output":{"shape":"BatchGetCommitsOutput"},
+      "errors":[
+        {"shape":"CommitIdsListRequiredException"},
+        {"shape":"CommitIdsLimitExceededException"},
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
     "BatchGetRepositories":{
       "name":"BatchGetRepositories",
       "http":{
@@ -30,6 +147,24 @@
         {"shape":"EncryptionKeyDisabledException"},
         {"shape":"EncryptionKeyNotFoundException"},
         {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "CreateApprovalRuleTemplate":{
+      "name":"CreateApprovalRuleTemplate",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateApprovalRuleTemplateInput"},
+      "output":{"shape":"CreateApprovalRuleTemplateOutput"},
+      "errors":[
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateNameAlreadyExistsException"},
+        {"shape":"ApprovalRuleTemplateContentRequiredException"},
+        {"shape":"InvalidApprovalRuleTemplateContentException"},
+        {"shape":"InvalidApprovalRuleTemplateDescriptionException"},
+        {"shape":"NumberOfRuleTemplatesExceededException"}
       ]
     },
     "CreateBranch":{
@@ -54,6 +189,55 @@
         {"shape":"EncryptionKeyDisabledException"},
         {"shape":"EncryptionKeyNotFoundException"},
         {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "CreateCommit":{
+      "name":"CreateCommit",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateCommitInput"},
+      "output":{"shape":"CreateCommitOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"ParentCommitIdRequiredException"},
+        {"shape":"InvalidParentCommitIdException"},
+        {"shape":"ParentCommitDoesNotExistException"},
+        {"shape":"ParentCommitIdOutdatedException"},
+        {"shape":"BranchNameRequiredException"},
+        {"shape":"InvalidBranchNameException"},
+        {"shape":"BranchDoesNotExistException"},
+        {"shape":"BranchNameIsTagNameException"},
+        {"shape":"FileEntryRequiredException"},
+        {"shape":"MaximumFileEntriesExceededException"},
+        {"shape":"PutFileEntryConflictException"},
+        {"shape":"SourceFileOrContentRequiredException"},
+        {"shape":"FileContentAndSourceFileSpecifiedException"},
+        {"shape":"PathRequiredException"},
+        {"shape":"InvalidPathException"},
+        {"shape":"SamePathRequestException"},
+        {"shape":"FileDoesNotExistException"},
+        {"shape":"FileContentSizeLimitExceededException"},
+        {"shape":"FolderContentSizeLimitExceededException"},
+        {"shape":"InvalidDeletionParameterException"},
+        {"shape":"RestrictedSourceFileException"},
+        {"shape":"FileModeRequiredException"},
+        {"shape":"InvalidFileModeException"},
+        {"shape":"NameLengthExceededException"},
+        {"shape":"InvalidEmailException"},
+        {"shape":"CommitMessageLengthExceededException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"},
+        {"shape":"NoChangeException"},
+        {"shape":"FileNameConflictsWithDirectoryNameException"},
+        {"shape":"DirectoryNameConflictsWithFileNameException"},
+        {"shape":"FilePathConflictsWithSubmodulePathException"}
       ]
     },
     "CreatePullRequest":{
@@ -92,6 +276,32 @@
         {"shape":"SourceAndDestinationAreSameException"}
       ]
     },
+    "CreatePullRequestApprovalRule":{
+      "name":"CreatePullRequestApprovalRule",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreatePullRequestApprovalRuleInput"},
+      "output":{"shape":"CreatePullRequestApprovalRuleOutput"},
+      "errors":[
+        {"shape":"ApprovalRuleNameRequiredException"},
+        {"shape":"InvalidApprovalRuleNameException"},
+        {"shape":"ApprovalRuleNameAlreadyExistsException"},
+        {"shape":"ApprovalRuleContentRequiredException"},
+        {"shape":"InvalidApprovalRuleContentException"},
+        {"shape":"NumberOfRulesExceededException"},
+        {"shape":"PullRequestDoesNotExistException"},
+        {"shape":"InvalidPullRequestIdException"},
+        {"shape":"PullRequestIdRequiredException"},
+        {"shape":"PullRequestAlreadyClosedException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
     "CreateRepository":{
       "name":"CreateRepository",
       "http":{
@@ -110,7 +320,72 @@
         {"shape":"EncryptionKeyAccessDeniedException"},
         {"shape":"EncryptionKeyDisabledException"},
         {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"},
+        {"shape":"InvalidTagsMapException"},
+        {"shape":"TooManyTagsException"},
+        {"shape":"InvalidSystemTagUsageException"},
+        {"shape":"TagPolicyException"}
+      ]
+    },
+    "CreateUnreferencedMergeCommit":{
+      "name":"CreateUnreferencedMergeCommit",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateUnreferencedMergeCommitInput"},
+      "output":{"shape":"CreateUnreferencedMergeCommitOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"TipsDivergenceExceededException"},
+        {"shape":"CommitRequiredException"},
+        {"shape":"InvalidCommitException"},
+        {"shape":"CommitDoesNotExistException"},
+        {"shape":"MergeOptionRequiredException"},
+        {"shape":"InvalidMergeOptionException"},
+        {"shape":"InvalidConflictDetailLevelException"},
+        {"shape":"InvalidConflictResolutionStrategyException"},
+        {"shape":"InvalidConflictResolutionException"},
+        {"shape":"ManualMergeRequiredException"},
+        {"shape":"MaximumConflictResolutionEntriesExceededException"},
+        {"shape":"MultipleConflictResolutionEntriesException"},
+        {"shape":"ReplacementTypeRequiredException"},
+        {"shape":"InvalidReplacementTypeException"},
+        {"shape":"ReplacementContentRequiredException"},
+        {"shape":"InvalidReplacementContentException"},
+        {"shape":"PathRequiredException"},
+        {"shape":"InvalidPathException"},
+        {"shape":"FileContentSizeLimitExceededException"},
+        {"shape":"FolderContentSizeLimitExceededException"},
+        {"shape":"MaximumFileContentToLoadExceededException"},
+        {"shape":"MaximumItemsToCompareExceededException"},
+        {"shape":"ConcurrentReferenceUpdateException"},
+        {"shape":"FileModeRequiredException"},
+        {"shape":"InvalidFileModeException"},
+        {"shape":"NameLengthExceededException"},
+        {"shape":"InvalidEmailException"},
+        {"shape":"CommitMessageLengthExceededException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
         {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "DeleteApprovalRuleTemplate":{
+      "name":"DeleteApprovalRuleTemplate",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteApprovalRuleTemplateInput"},
+      "output":{"shape":"DeleteApprovalRuleTemplateOutput"},
+      "errors":[
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateInUseException"}
       ]
     },
     "DeleteBranch":{
@@ -183,6 +458,29 @@
         {"shape":"EncryptionKeyUnavailableException"}
       ]
     },
+    "DeletePullRequestApprovalRule":{
+      "name":"DeletePullRequestApprovalRule",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeletePullRequestApprovalRuleInput"},
+      "output":{"shape":"DeletePullRequestApprovalRuleOutput"},
+      "errors":[
+        {"shape":"PullRequestDoesNotExistException"},
+        {"shape":"InvalidPullRequestIdException"},
+        {"shape":"PullRequestIdRequiredException"},
+        {"shape":"PullRequestAlreadyClosedException"},
+        {"shape":"ApprovalRuleNameRequiredException"},
+        {"shape":"InvalidApprovalRuleNameException"},
+        {"shape":"CannotDeleteApprovalRuleFromTemplateException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
     "DeleteRepository":{
       "name":"DeleteRepository",
       "http":{
@@ -194,6 +492,40 @@
       "errors":[
         {"shape":"RepositoryNameRequiredException"},
         {"shape":"InvalidRepositoryNameException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "DescribeMergeConflicts":{
+      "name":"DescribeMergeConflicts",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeMergeConflictsInput"},
+      "output":{"shape":"DescribeMergeConflictsOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"MergeOptionRequiredException"},
+        {"shape":"InvalidMergeOptionException"},
+        {"shape":"InvalidContinuationTokenException"},
+        {"shape":"CommitRequiredException"},
+        {"shape":"CommitDoesNotExistException"},
+        {"shape":"InvalidCommitException"},
+        {"shape":"TipsDivergenceExceededException"},
+        {"shape":"PathRequiredException"},
+        {"shape":"InvalidPathException"},
+        {"shape":"FileDoesNotExistException"},
+        {"shape":"InvalidMaxMergeHunksException"},
+        {"shape":"InvalidConflictDetailLevelException"},
+        {"shape":"InvalidConflictResolutionStrategyException"},
+        {"shape":"MaximumFileContentToLoadExceededException"},
+        {"shape":"MaximumItemsToCompareExceededException"},
         {"shape":"EncryptionIntegrityChecksFailedException"},
         {"shape":"EncryptionKeyAccessDeniedException"},
         {"shape":"EncryptionKeyDisabledException"},
@@ -223,6 +555,63 @@
         {"shape":"EncryptionKeyDisabledException"},
         {"shape":"EncryptionKeyNotFoundException"},
         {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "DisassociateApprovalRuleTemplateFromRepository":{
+      "name":"DisassociateApprovalRuleTemplateFromRepository",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DisassociateApprovalRuleTemplateFromRepositoryInput"},
+      "errors":[
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateDoesNotExistException"},
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "EvaluatePullRequestApprovalRules":{
+      "name":"EvaluatePullRequestApprovalRules",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"EvaluatePullRequestApprovalRulesInput"},
+      "output":{"shape":"EvaluatePullRequestApprovalRulesOutput"},
+      "errors":[
+        {"shape":"PullRequestDoesNotExistException"},
+        {"shape":"InvalidPullRequestIdException"},
+        {"shape":"PullRequestIdRequiredException"},
+        {"shape":"InvalidRevisionIdException"},
+        {"shape":"RevisionIdRequiredException"},
+        {"shape":"RevisionNotCurrentException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "GetApprovalRuleTemplate":{
+      "name":"GetApprovalRuleTemplate",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetApprovalRuleTemplateInput"},
+      "output":{"shape":"GetApprovalRuleTemplateOutput"},
+      "errors":[
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateDoesNotExistException"}
       ]
     },
     "GetBlob":{
@@ -435,6 +824,30 @@
         {"shape":"EncryptionKeyUnavailableException"}
       ]
     },
+    "GetMergeCommit":{
+      "name":"GetMergeCommit",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetMergeCommitInput"},
+      "output":{"shape":"GetMergeCommitOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"CommitRequiredException"},
+        {"shape":"InvalidCommitException"},
+        {"shape":"CommitDoesNotExistException"},
+        {"shape":"InvalidConflictDetailLevelException"},
+        {"shape":"InvalidConflictResolutionStrategyException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
     "GetMergeConflicts":{
       "name":"GetMergeConflicts",
       "http":{
@@ -449,12 +862,45 @@
         {"shape":"RepositoryDoesNotExistException"},
         {"shape":"MergeOptionRequiredException"},
         {"shape":"InvalidMergeOptionException"},
-        {"shape":"InvalidDestinationCommitSpecifierException"},
-        {"shape":"InvalidSourceCommitSpecifierException"},
+        {"shape":"InvalidContinuationTokenException"},
         {"shape":"CommitRequiredException"},
         {"shape":"CommitDoesNotExistException"},
         {"shape":"InvalidCommitException"},
         {"shape":"TipsDivergenceExceededException"},
+        {"shape":"InvalidMaxConflictFilesException"},
+        {"shape":"InvalidConflictDetailLevelException"},
+        {"shape":"InvalidDestinationCommitSpecifierException"},
+        {"shape":"InvalidSourceCommitSpecifierException"},
+        {"shape":"InvalidConflictResolutionStrategyException"},
+        {"shape":"MaximumFileContentToLoadExceededException"},
+        {"shape":"MaximumItemsToCompareExceededException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "GetMergeOptions":{
+      "name":"GetMergeOptions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetMergeOptionsInput"},
+      "output":{"shape":"GetMergeOptionsOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"CommitRequiredException"},
+        {"shape":"CommitDoesNotExistException"},
+        {"shape":"InvalidCommitException"},
+        {"shape":"TipsDivergenceExceededException"},
+        {"shape":"InvalidConflictDetailLevelException"},
+        {"shape":"InvalidConflictResolutionStrategyException"},
+        {"shape":"MaximumFileContentToLoadExceededException"},
+        {"shape":"MaximumItemsToCompareExceededException"},
         {"shape":"EncryptionIntegrityChecksFailedException"},
         {"shape":"EncryptionKeyAccessDeniedException"},
         {"shape":"EncryptionKeyDisabledException"},
@@ -474,6 +920,48 @@
         {"shape":"PullRequestDoesNotExistException"},
         {"shape":"InvalidPullRequestIdException"},
         {"shape":"PullRequestIdRequiredException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "GetPullRequestApprovalStates":{
+      "name":"GetPullRequestApprovalStates",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetPullRequestApprovalStatesInput"},
+      "output":{"shape":"GetPullRequestApprovalStatesOutput"},
+      "errors":[
+        {"shape":"PullRequestDoesNotExistException"},
+        {"shape":"InvalidPullRequestIdException"},
+        {"shape":"PullRequestIdRequiredException"},
+        {"shape":"InvalidRevisionIdException"},
+        {"shape":"RevisionIdRequiredException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "GetPullRequestOverrideState":{
+      "name":"GetPullRequestOverrideState",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetPullRequestOverrideStateInput"},
+      "output":{"shape":"GetPullRequestOverrideStateOutput"},
+      "errors":[
+        {"shape":"PullRequestDoesNotExistException"},
+        {"shape":"InvalidPullRequestIdException"},
+        {"shape":"PullRequestIdRequiredException"},
+        {"shape":"InvalidRevisionIdException"},
+        {"shape":"RevisionIdRequiredException"},
         {"shape":"EncryptionIntegrityChecksFailedException"},
         {"shape":"EncryptionKeyAccessDeniedException"},
         {"shape":"EncryptionKeyDisabledException"},
@@ -512,6 +1000,40 @@
         {"shape":"RepositoryNameRequiredException"},
         {"shape":"InvalidRepositoryNameException"},
         {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "ListApprovalRuleTemplates":{
+      "name":"ListApprovalRuleTemplates",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListApprovalRuleTemplatesInput"},
+      "output":{"shape":"ListApprovalRuleTemplatesOutput"},
+      "errors":[
+        {"shape":"InvalidMaxResultsException"},
+        {"shape":"InvalidContinuationTokenException"}
+      ]
+    },
+    "ListAssociatedApprovalRuleTemplatesForRepository":{
+      "name":"ListAssociatedApprovalRuleTemplatesForRepository",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListAssociatedApprovalRuleTemplatesForRepositoryInput"},
+      "output":{"shape":"ListAssociatedApprovalRuleTemplatesForRepositoryOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"InvalidMaxResultsException"},
+        {"shape":"InvalidContinuationTokenException"},
         {"shape":"EncryptionIntegrityChecksFailedException"},
         {"shape":"EncryptionKeyAccessDeniedException"},
         {"shape":"EncryptionKeyDisabledException"},
@@ -577,6 +1099,172 @@
         {"shape":"InvalidContinuationTokenException"}
       ]
     },
+    "ListRepositoriesForApprovalRuleTemplate":{
+      "name":"ListRepositoriesForApprovalRuleTemplate",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListRepositoriesForApprovalRuleTemplateInput"},
+      "output":{"shape":"ListRepositoriesForApprovalRuleTemplateOutput"},
+      "errors":[
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateDoesNotExistException"},
+        {"shape":"InvalidMaxResultsException"},
+        {"shape":"InvalidContinuationTokenException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "ListTagsForResource":{
+      "name":"ListTagsForResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTagsForResourceInput"},
+      "output":{"shape":"ListTagsForResourceOutput"},
+      "errors":[
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"ResourceArnRequiredException"},
+        {"shape":"InvalidResourceArnException"}
+      ]
+    },
+    "MergeBranchesByFastForward":{
+      "name":"MergeBranchesByFastForward",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"MergeBranchesByFastForwardInput"},
+      "output":{"shape":"MergeBranchesByFastForwardOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"TipsDivergenceExceededException"},
+        {"shape":"CommitRequiredException"},
+        {"shape":"InvalidCommitException"},
+        {"shape":"CommitDoesNotExistException"},
+        {"shape":"InvalidTargetBranchException"},
+        {"shape":"InvalidBranchNameException"},
+        {"shape":"BranchNameRequiredException"},
+        {"shape":"BranchNameIsTagNameException"},
+        {"shape":"BranchDoesNotExistException"},
+        {"shape":"ManualMergeRequiredException"},
+        {"shape":"ConcurrentReferenceUpdateException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "MergeBranchesBySquash":{
+      "name":"MergeBranchesBySquash",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"MergeBranchesBySquashInput"},
+      "output":{"shape":"MergeBranchesBySquashOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"TipsDivergenceExceededException"},
+        {"shape":"CommitRequiredException"},
+        {"shape":"InvalidCommitException"},
+        {"shape":"CommitDoesNotExistException"},
+        {"shape":"InvalidTargetBranchException"},
+        {"shape":"InvalidBranchNameException"},
+        {"shape":"BranchNameRequiredException"},
+        {"shape":"BranchNameIsTagNameException"},
+        {"shape":"BranchDoesNotExistException"},
+        {"shape":"ManualMergeRequiredException"},
+        {"shape":"InvalidConflictDetailLevelException"},
+        {"shape":"InvalidConflictResolutionStrategyException"},
+        {"shape":"InvalidConflictResolutionException"},
+        {"shape":"MaximumConflictResolutionEntriesExceededException"},
+        {"shape":"MultipleConflictResolutionEntriesException"},
+        {"shape":"ReplacementTypeRequiredException"},
+        {"shape":"InvalidReplacementTypeException"},
+        {"shape":"ReplacementContentRequiredException"},
+        {"shape":"InvalidReplacementContentException"},
+        {"shape":"PathRequiredException"},
+        {"shape":"InvalidPathException"},
+        {"shape":"FileContentSizeLimitExceededException"},
+        {"shape":"FolderContentSizeLimitExceededException"},
+        {"shape":"MaximumFileContentToLoadExceededException"},
+        {"shape":"MaximumItemsToCompareExceededException"},
+        {"shape":"FileModeRequiredException"},
+        {"shape":"InvalidFileModeException"},
+        {"shape":"NameLengthExceededException"},
+        {"shape":"InvalidEmailException"},
+        {"shape":"CommitMessageLengthExceededException"},
+        {"shape":"ConcurrentReferenceUpdateException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "MergeBranchesByThreeWay":{
+      "name":"MergeBranchesByThreeWay",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"MergeBranchesByThreeWayInput"},
+      "output":{"shape":"MergeBranchesByThreeWayOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"TipsDivergenceExceededException"},
+        {"shape":"CommitRequiredException"},
+        {"shape":"InvalidCommitException"},
+        {"shape":"CommitDoesNotExistException"},
+        {"shape":"InvalidTargetBranchException"},
+        {"shape":"InvalidBranchNameException"},
+        {"shape":"BranchNameRequiredException"},
+        {"shape":"BranchNameIsTagNameException"},
+        {"shape":"BranchDoesNotExistException"},
+        {"shape":"ManualMergeRequiredException"},
+        {"shape":"ConcurrentReferenceUpdateException"},
+        {"shape":"InvalidConflictDetailLevelException"},
+        {"shape":"InvalidConflictResolutionStrategyException"},
+        {"shape":"InvalidConflictResolutionException"},
+        {"shape":"MaximumConflictResolutionEntriesExceededException"},
+        {"shape":"MultipleConflictResolutionEntriesException"},
+        {"shape":"ReplacementTypeRequiredException"},
+        {"shape":"InvalidReplacementTypeException"},
+        {"shape":"ReplacementContentRequiredException"},
+        {"shape":"InvalidReplacementContentException"},
+        {"shape":"PathRequiredException"},
+        {"shape":"InvalidPathException"},
+        {"shape":"FileContentSizeLimitExceededException"},
+        {"shape":"FolderContentSizeLimitExceededException"},
+        {"shape":"MaximumFileContentToLoadExceededException"},
+        {"shape":"MaximumItemsToCompareExceededException"},
+        {"shape":"FileModeRequiredException"},
+        {"shape":"InvalidFileModeException"},
+        {"shape":"NameLengthExceededException"},
+        {"shape":"InvalidEmailException"},
+        {"shape":"CommitMessageLengthExceededException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
     "MergePullRequestByFastForward":{
       "name":"MergePullRequestByFastForward",
       "http":{
@@ -594,9 +1282,135 @@
         {"shape":"TipOfSourceReferenceIsDifferentException"},
         {"shape":"ReferenceDoesNotExistException"},
         {"shape":"InvalidCommitIdException"},
+        {"shape":"RepositoryNotAssociatedWithPullRequestException"},
         {"shape":"RepositoryNameRequiredException"},
         {"shape":"InvalidRepositoryNameException"},
         {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"ConcurrentReferenceUpdateException"},
+        {"shape":"PullRequestApprovalRulesNotSatisfiedException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "MergePullRequestBySquash":{
+      "name":"MergePullRequestBySquash",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"MergePullRequestBySquashInput"},
+      "output":{"shape":"MergePullRequestBySquashOutput"},
+      "errors":[
+        {"shape":"PullRequestAlreadyClosedException"},
+        {"shape":"PullRequestDoesNotExistException"},
+        {"shape":"PullRequestIdRequiredException"},
+        {"shape":"InvalidPullRequestIdException"},
+        {"shape":"InvalidCommitIdException"},
+        {"shape":"ManualMergeRequiredException"},
+        {"shape":"TipOfSourceReferenceIsDifferentException"},
+        {"shape":"TipsDivergenceExceededException"},
+        {"shape":"NameLengthExceededException"},
+        {"shape":"InvalidEmailException"},
+        {"shape":"CommitMessageLengthExceededException"},
+        {"shape":"InvalidConflictDetailLevelException"},
+        {"shape":"InvalidConflictResolutionStrategyException"},
+        {"shape":"InvalidConflictResolutionException"},
+        {"shape":"ReplacementTypeRequiredException"},
+        {"shape":"InvalidReplacementTypeException"},
+        {"shape":"MultipleConflictResolutionEntriesException"},
+        {"shape":"ReplacementContentRequiredException"},
+        {"shape":"MaximumConflictResolutionEntriesExceededException"},
+        {"shape":"ConcurrentReferenceUpdateException"},
+        {"shape":"PathRequiredException"},
+        {"shape":"InvalidPathException"},
+        {"shape":"InvalidFileModeException"},
+        {"shape":"InvalidReplacementContentException"},
+        {"shape":"FileContentSizeLimitExceededException"},
+        {"shape":"FolderContentSizeLimitExceededException"},
+        {"shape":"MaximumFileContentToLoadExceededException"},
+        {"shape":"MaximumItemsToCompareExceededException"},
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"RepositoryNotAssociatedWithPullRequestException"},
+        {"shape":"PullRequestApprovalRulesNotSatisfiedException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "MergePullRequestByThreeWay":{
+      "name":"MergePullRequestByThreeWay",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"MergePullRequestByThreeWayInput"},
+      "output":{"shape":"MergePullRequestByThreeWayOutput"},
+      "errors":[
+        {"shape":"PullRequestAlreadyClosedException"},
+        {"shape":"PullRequestDoesNotExistException"},
+        {"shape":"PullRequestIdRequiredException"},
+        {"shape":"InvalidPullRequestIdException"},
+        {"shape":"InvalidCommitIdException"},
+        {"shape":"ManualMergeRequiredException"},
+        {"shape":"TipOfSourceReferenceIsDifferentException"},
+        {"shape":"TipsDivergenceExceededException"},
+        {"shape":"NameLengthExceededException"},
+        {"shape":"InvalidEmailException"},
+        {"shape":"CommitMessageLengthExceededException"},
+        {"shape":"InvalidConflictDetailLevelException"},
+        {"shape":"InvalidConflictResolutionStrategyException"},
+        {"shape":"InvalidConflictResolutionException"},
+        {"shape":"ReplacementTypeRequiredException"},
+        {"shape":"InvalidReplacementTypeException"},
+        {"shape":"MultipleConflictResolutionEntriesException"},
+        {"shape":"ReplacementContentRequiredException"},
+        {"shape":"MaximumConflictResolutionEntriesExceededException"},
+        {"shape":"PathRequiredException"},
+        {"shape":"InvalidPathException"},
+        {"shape":"InvalidFileModeException"},
+        {"shape":"InvalidReplacementContentException"},
+        {"shape":"FileContentSizeLimitExceededException"},
+        {"shape":"FolderContentSizeLimitExceededException"},
+        {"shape":"MaximumFileContentToLoadExceededException"},
+        {"shape":"MaximumItemsToCompareExceededException"},
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"RepositoryNotAssociatedWithPullRequestException"},
+        {"shape":"ConcurrentReferenceUpdateException"},
+        {"shape":"PullRequestApprovalRulesNotSatisfiedException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "OverridePullRequestApprovalRules":{
+      "name":"OverridePullRequestApprovalRules",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"OverridePullRequestApprovalRulesInput"},
+      "errors":[
+        {"shape":"PullRequestDoesNotExistException"},
+        {"shape":"InvalidPullRequestIdException"},
+        {"shape":"PullRequestIdRequiredException"},
+        {"shape":"InvalidRevisionIdException"},
+        {"shape":"RevisionIdRequiredException"},
+        {"shape":"InvalidOverrideStatusException"},
+        {"shape":"OverrideStatusRequiredException"},
+        {"shape":"OverrideAlreadySetException"},
+        {"shape":"RevisionNotCurrentException"},
+        {"shape":"PullRequestAlreadyClosedException"},
         {"shape":"EncryptionIntegrityChecksFailedException"},
         {"shape":"EncryptionKeyAccessDeniedException"},
         {"shape":"EncryptionKeyDisabledException"},
@@ -772,6 +1586,25 @@
         {"shape":"EncryptionKeyUnavailableException"}
       ]
     },
+    "TagResource":{
+      "name":"TagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"TagResourceInput"},
+      "errors":[
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"ResourceArnRequiredException"},
+        {"shape":"InvalidResourceArnException"},
+        {"shape":"TagsMapRequiredException"},
+        {"shape":"InvalidTagsMapException"},
+        {"shape":"TooManyTagsException"},
+        {"shape":"InvalidSystemTagUsageException"},
+        {"shape":"TagPolicyException"}
+      ]
+    },
     "TestRepositoryTriggers":{
       "name":"TestRepositoryTriggers",
       "http":{
@@ -802,6 +1635,72 @@
         {"shape":"EncryptionKeyDisabledException"},
         {"shape":"EncryptionKeyNotFoundException"},
         {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "UntagResource":{
+      "name":"UntagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UntagResourceInput"},
+      "errors":[
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"ResourceArnRequiredException"},
+        {"shape":"InvalidResourceArnException"},
+        {"shape":"TagKeysListRequiredException"},
+        {"shape":"InvalidTagKeysListException"},
+        {"shape":"TooManyTagsException"},
+        {"shape":"InvalidSystemTagUsageException"},
+        {"shape":"TagPolicyException"}
+      ]
+    },
+    "UpdateApprovalRuleTemplateContent":{
+      "name":"UpdateApprovalRuleTemplateContent",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateApprovalRuleTemplateContentInput"},
+      "output":{"shape":"UpdateApprovalRuleTemplateContentOutput"},
+      "errors":[
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"ApprovalRuleTemplateDoesNotExistException"},
+        {"shape":"InvalidApprovalRuleTemplateContentException"},
+        {"shape":"InvalidRuleContentSha256Exception"},
+        {"shape":"ApprovalRuleTemplateContentRequiredException"}
+      ]
+    },
+    "UpdateApprovalRuleTemplateDescription":{
+      "name":"UpdateApprovalRuleTemplateDescription",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateApprovalRuleTemplateDescriptionInput"},
+      "output":{"shape":"UpdateApprovalRuleTemplateDescriptionOutput"},
+      "errors":[
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"ApprovalRuleTemplateDoesNotExistException"},
+        {"shape":"InvalidApprovalRuleTemplateDescriptionException"}
+      ]
+    },
+    "UpdateApprovalRuleTemplateName":{
+      "name":"UpdateApprovalRuleTemplateName",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateApprovalRuleTemplateNameInput"},
+      "output":{"shape":"UpdateApprovalRuleTemplateNameOutput"},
+      "errors":[
+        {"shape":"InvalidApprovalRuleTemplateNameException"},
+        {"shape":"ApprovalRuleTemplateNameRequiredException"},
+        {"shape":"ApprovalRuleTemplateDoesNotExistException"},
+        {"shape":"ApprovalRuleTemplateNameAlreadyExistsException"}
       ]
     },
     "UpdateComment":{
@@ -836,6 +1735,59 @@
         {"shape":"BranchNameRequiredException"},
         {"shape":"InvalidBranchNameException"},
         {"shape":"BranchDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "UpdatePullRequestApprovalRuleContent":{
+      "name":"UpdatePullRequestApprovalRuleContent",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdatePullRequestApprovalRuleContentInput"},
+      "output":{"shape":"UpdatePullRequestApprovalRuleContentOutput"},
+      "errors":[
+        {"shape":"PullRequestDoesNotExistException"},
+        {"shape":"InvalidPullRequestIdException"},
+        {"shape":"PullRequestIdRequiredException"},
+        {"shape":"PullRequestAlreadyClosedException"},
+        {"shape":"ApprovalRuleNameRequiredException"},
+        {"shape":"InvalidApprovalRuleNameException"},
+        {"shape":"ApprovalRuleDoesNotExistException"},
+        {"shape":"InvalidRuleContentSha256Exception"},
+        {"shape":"ApprovalRuleContentRequiredException"},
+        {"shape":"InvalidApprovalRuleContentException"},
+        {"shape":"CannotModifyApprovalRuleFromTemplateException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ]
+    },
+    "UpdatePullRequestApprovalState":{
+      "name":"UpdatePullRequestApprovalState",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdatePullRequestApprovalStateInput"},
+      "errors":[
+        {"shape":"PullRequestDoesNotExistException"},
+        {"shape":"InvalidPullRequestIdException"},
+        {"shape":"PullRequestIdRequiredException"},
+        {"shape":"InvalidRevisionIdException"},
+        {"shape":"RevisionIdRequiredException"},
+        {"shape":"InvalidApprovalStateException"},
+        {"shape":"ApprovalStateRequiredException"},
+        {"shape":"PullRequestCannotBeApprovedByAuthorException"},
+        {"shape":"RevisionNotCurrentException"},
+        {"shape":"PullRequestAlreadyClosedException"},
+        {"shape":"MaximumNumberOfApprovalsExceededException"},
         {"shape":"EncryptionIntegrityChecksFailedException"},
         {"shape":"EncryptionKeyAccessDeniedException"},
         {"shape":"EncryptionKeyDisabledException"},
@@ -941,12 +1893,345 @@
       "exception":true
     },
     "AdditionalData":{"type":"string"},
+    "Approval":{
+      "type":"structure",
+      "members":{
+        "userArn":{"shape":"Arn"},
+        "approvalState":{"shape":"ApprovalState"}
+      }
+    },
+    "ApprovalList":{
+      "type":"list",
+      "member":{"shape":"Approval"}
+    },
+    "ApprovalRule":{
+      "type":"structure",
+      "members":{
+        "approvalRuleId":{"shape":"ApprovalRuleId"},
+        "approvalRuleName":{"shape":"ApprovalRuleName"},
+        "approvalRuleContent":{"shape":"ApprovalRuleContent"},
+        "ruleContentSha256":{"shape":"RuleContentSha256"},
+        "lastModifiedDate":{"shape":"LastModifiedDate"},
+        "creationDate":{"shape":"CreationDate"},
+        "lastModifiedUser":{"shape":"Arn"},
+        "originApprovalRuleTemplate":{"shape":"OriginApprovalRuleTemplate"}
+      }
+    },
+    "ApprovalRuleContent":{
+      "type":"string",
+      "max":3000,
+      "min":1
+    },
+    "ApprovalRuleContentRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "ApprovalRuleDoesNotExistException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "ApprovalRuleEventMetadata":{
+      "type":"structure",
+      "members":{
+        "approvalRuleName":{"shape":"ApprovalRuleName"},
+        "approvalRuleId":{"shape":"ApprovalRuleId"},
+        "approvalRuleContent":{"shape":"ApprovalRuleContent"}
+      }
+    },
+    "ApprovalRuleId":{"type":"string"},
+    "ApprovalRuleName":{
+      "type":"string",
+      "max":100,
+      "min":1
+    },
+    "ApprovalRuleNameAlreadyExistsException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "ApprovalRuleNameRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "ApprovalRuleOverriddenEventMetadata":{
+      "type":"structure",
+      "members":{
+        "revisionId":{"shape":"RevisionId"},
+        "overrideStatus":{"shape":"OverrideStatus"}
+      }
+    },
+    "ApprovalRuleTemplate":{
+      "type":"structure",
+      "members":{
+        "approvalRuleTemplateId":{"shape":"ApprovalRuleTemplateId"},
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"},
+        "approvalRuleTemplateDescription":{"shape":"ApprovalRuleTemplateDescription"},
+        "approvalRuleTemplateContent":{"shape":"ApprovalRuleTemplateContent"},
+        "ruleContentSha256":{"shape":"RuleContentSha256"},
+        "lastModifiedDate":{"shape":"LastModifiedDate"},
+        "creationDate":{"shape":"CreationDate"},
+        "lastModifiedUser":{"shape":"Arn"}
+      }
+    },
+    "ApprovalRuleTemplateContent":{
+      "type":"string",
+      "max":3000,
+      "min":1
+    },
+    "ApprovalRuleTemplateContentRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "ApprovalRuleTemplateDescription":{
+      "type":"string",
+      "max":1000,
+      "min":0
+    },
+    "ApprovalRuleTemplateDoesNotExistException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "ApprovalRuleTemplateId":{"type":"string"},
+    "ApprovalRuleTemplateInUseException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "ApprovalRuleTemplateName":{
+      "type":"string",
+      "max":100,
+      "min":1
+    },
+    "ApprovalRuleTemplateNameAlreadyExistsException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "ApprovalRuleTemplateNameList":{
+      "type":"list",
+      "member":{"shape":"ApprovalRuleTemplateName"}
+    },
+    "ApprovalRuleTemplateNameRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "ApprovalRulesList":{
+      "type":"list",
+      "member":{"shape":"ApprovalRule"}
+    },
+    "ApprovalRulesNotSatisfiedList":{
+      "type":"list",
+      "member":{"shape":"ApprovalRuleName"}
+    },
+    "ApprovalRulesSatisfiedList":{
+      "type":"list",
+      "member":{"shape":"ApprovalRuleName"}
+    },
+    "ApprovalState":{
+      "type":"string",
+      "enum":[
+        "APPROVE",
+        "REVOKE"
+      ]
+    },
+    "ApprovalStateChangedEventMetadata":{
+      "type":"structure",
+      "members":{
+        "revisionId":{"shape":"RevisionId"},
+        "approvalStatus":{"shape":"ApprovalState"}
+      }
+    },
+    "ApprovalStateRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "Approved":{"type":"boolean"},
     "Arn":{"type":"string"},
+    "AssociateApprovalRuleTemplateWithRepositoryInput":{
+      "type":"structure",
+      "required":[
+        "approvalRuleTemplateName",
+        "repositoryName"
+      ],
+      "members":{
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"},
+        "repositoryName":{"shape":"RepositoryName"}
+      }
+    },
     "AuthorDoesNotExistException":{
       "type":"structure",
       "members":{
       },
       "exception":true
+    },
+    "BatchAssociateApprovalRuleTemplateWithRepositoriesError":{
+      "type":"structure",
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "errorCode":{"shape":"ErrorCode"},
+        "errorMessage":{"shape":"ErrorMessage"}
+      }
+    },
+    "BatchAssociateApprovalRuleTemplateWithRepositoriesErrorsList":{
+      "type":"list",
+      "member":{"shape":"BatchAssociateApprovalRuleTemplateWithRepositoriesError"}
+    },
+    "BatchAssociateApprovalRuleTemplateWithRepositoriesInput":{
+      "type":"structure",
+      "required":[
+        "approvalRuleTemplateName",
+        "repositoryNames"
+      ],
+      "members":{
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"},
+        "repositoryNames":{"shape":"RepositoryNameList"}
+      }
+    },
+    "BatchAssociateApprovalRuleTemplateWithRepositoriesOutput":{
+      "type":"structure",
+      "required":[
+        "associatedRepositoryNames",
+        "errors"
+      ],
+      "members":{
+        "associatedRepositoryNames":{"shape":"RepositoryNameList"},
+        "errors":{"shape":"BatchAssociateApprovalRuleTemplateWithRepositoriesErrorsList"}
+      }
+    },
+    "BatchDescribeMergeConflictsError":{
+      "type":"structure",
+      "required":[
+        "filePath",
+        "exceptionName",
+        "message"
+      ],
+      "members":{
+        "filePath":{"shape":"Path"},
+        "exceptionName":{"shape":"ExceptionName"},
+        "message":{"shape":"Message"}
+      }
+    },
+    "BatchDescribeMergeConflictsErrors":{
+      "type":"list",
+      "member":{"shape":"BatchDescribeMergeConflictsError"}
+    },
+    "BatchDescribeMergeConflictsInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "destinationCommitSpecifier",
+        "sourceCommitSpecifier",
+        "mergeOption"
+      ],
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "destinationCommitSpecifier":{"shape":"CommitName"},
+        "sourceCommitSpecifier":{"shape":"CommitName"},
+        "mergeOption":{"shape":"MergeOptionTypeEnum"},
+        "maxMergeHunks":{"shape":"MaxResults"},
+        "maxConflictFiles":{"shape":"MaxResults"},
+        "filePaths":{"shape":"FilePaths"},
+        "conflictDetailLevel":{"shape":"ConflictDetailLevelTypeEnum"},
+        "conflictResolutionStrategy":{"shape":"ConflictResolutionStrategyTypeEnum"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "BatchDescribeMergeConflictsOutput":{
+      "type":"structure",
+      "required":[
+        "conflicts",
+        "destinationCommitId",
+        "sourceCommitId"
+      ],
+      "members":{
+        "conflicts":{"shape":"Conflicts"},
+        "nextToken":{"shape":"NextToken"},
+        "errors":{"shape":"BatchDescribeMergeConflictsErrors"},
+        "destinationCommitId":{"shape":"ObjectId"},
+        "sourceCommitId":{"shape":"ObjectId"},
+        "baseCommitId":{"shape":"ObjectId"}
+      }
+    },
+    "BatchDisassociateApprovalRuleTemplateFromRepositoriesError":{
+      "type":"structure",
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "errorCode":{"shape":"ErrorCode"},
+        "errorMessage":{"shape":"ErrorMessage"}
+      }
+    },
+    "BatchDisassociateApprovalRuleTemplateFromRepositoriesErrorsList":{
+      "type":"list",
+      "member":{"shape":"BatchDisassociateApprovalRuleTemplateFromRepositoriesError"}
+    },
+    "BatchDisassociateApprovalRuleTemplateFromRepositoriesInput":{
+      "type":"structure",
+      "required":[
+        "approvalRuleTemplateName",
+        "repositoryNames"
+      ],
+      "members":{
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"},
+        "repositoryNames":{"shape":"RepositoryNameList"}
+      }
+    },
+    "BatchDisassociateApprovalRuleTemplateFromRepositoriesOutput":{
+      "type":"structure",
+      "required":[
+        "disassociatedRepositoryNames",
+        "errors"
+      ],
+      "members":{
+        "disassociatedRepositoryNames":{"shape":"RepositoryNameList"},
+        "errors":{"shape":"BatchDisassociateApprovalRuleTemplateFromRepositoriesErrorsList"}
+      }
+    },
+    "BatchGetCommitsError":{
+      "type":"structure",
+      "members":{
+        "commitId":{"shape":"ObjectId"},
+        "errorCode":{"shape":"ErrorCode"},
+        "errorMessage":{"shape":"ErrorMessage"}
+      }
+    },
+    "BatchGetCommitsErrorsList":{
+      "type":"list",
+      "member":{"shape":"BatchGetCommitsError"}
+    },
+    "BatchGetCommitsInput":{
+      "type":"structure",
+      "required":[
+        "commitIds",
+        "repositoryName"
+      ],
+      "members":{
+        "commitIds":{"shape":"CommitIdsInputList"},
+        "repositoryName":{"shape":"RepositoryName"}
+      }
+    },
+    "BatchGetCommitsOutput":{
+      "type":"structure",
+      "members":{
+        "commits":{"shape":"CommitObjectsList"},
+        "errors":{"shape":"BatchGetCommitsErrorsList"}
+      }
     },
     "BatchGetRepositoriesInput":{
       "type":"structure",
@@ -1028,6 +2313,19 @@
       },
       "exception":true
     },
+    "CannotDeleteApprovalRuleFromTemplateException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "CannotModifyApprovalRuleFromTemplateException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "CapitalBoolean":{"type":"boolean"},
     "ChangeTypeEnum":{
       "type":"string",
       "enum":[
@@ -1163,6 +2461,22 @@
       },
       "exception":true
     },
+    "CommitIdsInputList":{
+      "type":"list",
+      "member":{"shape":"ObjectId"}
+    },
+    "CommitIdsLimitExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "CommitIdsListRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "CommitMessageLengthExceededException":{
       "type":"structure",
       "members":{
@@ -1170,13 +2484,96 @@
       "exception":true
     },
     "CommitName":{"type":"string"},
+    "CommitObjectsList":{
+      "type":"list",
+      "member":{"shape":"Commit"}
+    },
     "CommitRequiredException":{
       "type":"structure",
       "members":{
       },
       "exception":true
     },
+    "ConcurrentReferenceUpdateException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "Conflict":{
+      "type":"structure",
+      "members":{
+        "conflictMetadata":{"shape":"ConflictMetadata"},
+        "mergeHunks":{"shape":"MergeHunks"}
+      }
+    },
+    "ConflictDetailLevelTypeEnum":{
+      "type":"string",
+      "enum":[
+        "FILE_LEVEL",
+        "LINE_LEVEL"
+      ]
+    },
+    "ConflictMetadata":{
+      "type":"structure",
+      "members":{
+        "filePath":{"shape":"Path"},
+        "fileSizes":{"shape":"FileSizes"},
+        "fileModes":{"shape":"FileModes"},
+        "objectTypes":{"shape":"ObjectTypes"},
+        "numberOfConflicts":{"shape":"NumberOfConflicts"},
+        "isBinaryFile":{"shape":"IsBinaryFile"},
+        "contentConflict":{"shape":"IsContentConflict"},
+        "fileModeConflict":{"shape":"IsFileModeConflict"},
+        "objectTypeConflict":{"shape":"IsObjectTypeConflict"},
+        "mergeOperations":{"shape":"MergeOperations"}
+      }
+    },
+    "ConflictMetadataList":{
+      "type":"list",
+      "member":{"shape":"ConflictMetadata"}
+    },
+    "ConflictResolution":{
+      "type":"structure",
+      "members":{
+        "replaceContents":{"shape":"ReplaceContentEntries"},
+        "deleteFiles":{"shape":"DeleteFileEntries"},
+        "setFileModes":{"shape":"SetFileModeEntries"}
+      }
+    },
+    "ConflictResolutionStrategyTypeEnum":{
+      "type":"string",
+      "enum":[
+        "NONE",
+        "ACCEPT_SOURCE",
+        "ACCEPT_DESTINATION",
+        "AUTOMERGE"
+      ]
+    },
+    "Conflicts":{
+      "type":"list",
+      "member":{"shape":"Conflict"}
+    },
     "Content":{"type":"string"},
+    "CreateApprovalRuleTemplateInput":{
+      "type":"structure",
+      "required":[
+        "approvalRuleTemplateName",
+        "approvalRuleTemplateContent"
+      ],
+      "members":{
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"},
+        "approvalRuleTemplateContent":{"shape":"ApprovalRuleTemplateContent"},
+        "approvalRuleTemplateDescription":{"shape":"ApprovalRuleTemplateDescription"}
+      }
+    },
+    "CreateApprovalRuleTemplateOutput":{
+      "type":"structure",
+      "required":["approvalRuleTemplate"],
+      "members":{
+        "approvalRuleTemplate":{"shape":"ApprovalRuleTemplate"}
+      }
+    },
     "CreateBranchInput":{
       "type":"structure",
       "required":[
@@ -1188,6 +2585,55 @@
         "repositoryName":{"shape":"RepositoryName"},
         "branchName":{"shape":"BranchName"},
         "commitId":{"shape":"CommitId"}
+      }
+    },
+    "CreateCommitInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "branchName"
+      ],
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "branchName":{"shape":"BranchName"},
+        "parentCommitId":{"shape":"CommitId"},
+        "authorName":{"shape":"Name"},
+        "email":{"shape":"Email"},
+        "commitMessage":{"shape":"Message"},
+        "keepEmptyFolders":{"shape":"KeepEmptyFolders"},
+        "putFiles":{"shape":"PutFileEntries"},
+        "deleteFiles":{"shape":"DeleteFileEntries"},
+        "setFileModes":{"shape":"SetFileModeEntries"}
+      }
+    },
+    "CreateCommitOutput":{
+      "type":"structure",
+      "members":{
+        "commitId":{"shape":"ObjectId"},
+        "treeId":{"shape":"ObjectId"},
+        "filesAdded":{"shape":"FilesMetadata"},
+        "filesUpdated":{"shape":"FilesMetadata"},
+        "filesDeleted":{"shape":"FilesMetadata"}
+      }
+    },
+    "CreatePullRequestApprovalRuleInput":{
+      "type":"structure",
+      "required":[
+        "pullRequestId",
+        "approvalRuleName",
+        "approvalRuleContent"
+      ],
+      "members":{
+        "pullRequestId":{"shape":"PullRequestId"},
+        "approvalRuleName":{"shape":"ApprovalRuleName"},
+        "approvalRuleContent":{"shape":"ApprovalRuleContent"}
+      }
+    },
+    "CreatePullRequestApprovalRuleOutput":{
+      "type":"structure",
+      "required":["approvalRule"],
+      "members":{
+        "approvalRule":{"shape":"ApprovalRule"}
       }
     },
     "CreatePullRequestInput":{
@@ -1218,13 +2664,43 @@
       "required":["repositoryName"],
       "members":{
         "repositoryName":{"shape":"RepositoryName"},
-        "repositoryDescription":{"shape":"RepositoryDescription"}
+        "repositoryDescription":{"shape":"RepositoryDescription"},
+        "tags":{"shape":"TagsMap"}
       }
     },
     "CreateRepositoryOutput":{
       "type":"structure",
       "members":{
         "repositoryMetadata":{"shape":"RepositoryMetadata"}
+      }
+    },
+    "CreateUnreferencedMergeCommitInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "sourceCommitSpecifier",
+        "destinationCommitSpecifier",
+        "mergeOption"
+      ],
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "sourceCommitSpecifier":{"shape":"CommitName"},
+        "destinationCommitSpecifier":{"shape":"CommitName"},
+        "mergeOption":{"shape":"MergeOptionTypeEnum"},
+        "conflictDetailLevel":{"shape":"ConflictDetailLevelTypeEnum"},
+        "conflictResolutionStrategy":{"shape":"ConflictResolutionStrategyTypeEnum"},
+        "authorName":{"shape":"Name"},
+        "email":{"shape":"Email"},
+        "commitMessage":{"shape":"Message"},
+        "keepEmptyFolders":{"shape":"KeepEmptyFolders"},
+        "conflictResolution":{"shape":"ConflictResolution"}
+      }
+    },
+    "CreateUnreferencedMergeCommitOutput":{
+      "type":"structure",
+      "members":{
+        "commitId":{"shape":"ObjectId"},
+        "treeId":{"shape":"ObjectId"}
       }
     },
     "CreationDate":{"type":"timestamp"},
@@ -1234,6 +2710,20 @@
       "members":{
       },
       "exception":true
+    },
+    "DeleteApprovalRuleTemplateInput":{
+      "type":"structure",
+      "required":["approvalRuleTemplateName"],
+      "members":{
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"}
+      }
+    },
+    "DeleteApprovalRuleTemplateOutput":{
+      "type":"structure",
+      "required":["approvalRuleTemplateId"],
+      "members":{
+        "approvalRuleTemplateId":{"shape":"ApprovalRuleTemplateId"}
+      }
     },
     "DeleteBranchInput":{
       "type":"structure",
@@ -1263,6 +2753,17 @@
       "type":"structure",
       "members":{
         "comment":{"shape":"Comment"}
+      }
+    },
+    "DeleteFileEntries":{
+      "type":"list",
+      "member":{"shape":"DeleteFileEntry"}
+    },
+    "DeleteFileEntry":{
+      "type":"structure",
+      "required":["filePath"],
+      "members":{
+        "filePath":{"shape":"Path"}
       }
     },
     "DeleteFileInput":{
@@ -1299,6 +2800,24 @@
         "filePath":{"shape":"Path"}
       }
     },
+    "DeletePullRequestApprovalRuleInput":{
+      "type":"structure",
+      "required":[
+        "pullRequestId",
+        "approvalRuleName"
+      ],
+      "members":{
+        "pullRequestId":{"shape":"PullRequestId"},
+        "approvalRuleName":{"shape":"ApprovalRuleName"}
+      }
+    },
+    "DeletePullRequestApprovalRuleOutput":{
+      "type":"structure",
+      "required":["approvalRuleId"],
+      "members":{
+        "approvalRuleId":{"shape":"ApprovalRuleId"}
+      }
+    },
     "DeleteRepositoryInput":{
       "type":"structure",
       "required":["repositoryName"],
@@ -1310,6 +2829,44 @@
       "type":"structure",
       "members":{
         "repositoryId":{"shape":"RepositoryId"}
+      }
+    },
+    "DescribeMergeConflictsInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "destinationCommitSpecifier",
+        "sourceCommitSpecifier",
+        "mergeOption",
+        "filePath"
+      ],
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "destinationCommitSpecifier":{"shape":"CommitName"},
+        "sourceCommitSpecifier":{"shape":"CommitName"},
+        "mergeOption":{"shape":"MergeOptionTypeEnum"},
+        "maxMergeHunks":{"shape":"MaxResults"},
+        "filePath":{"shape":"Path"},
+        "conflictDetailLevel":{"shape":"ConflictDetailLevelTypeEnum"},
+        "conflictResolutionStrategy":{"shape":"ConflictResolutionStrategyTypeEnum"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeMergeConflictsOutput":{
+      "type":"structure",
+      "required":[
+        "conflictMetadata",
+        "mergeHunks",
+        "destinationCommitId",
+        "sourceCommitId"
+      ],
+      "members":{
+        "conflictMetadata":{"shape":"ConflictMetadata"},
+        "mergeHunks":{"shape":"MergeHunks"},
+        "nextToken":{"shape":"NextToken"},
+        "destinationCommitId":{"shape":"ObjectId"},
+        "sourceCommitId":{"shape":"ObjectId"},
+        "baseCommitId":{"shape":"ObjectId"}
       }
     },
     "DescribePullRequestEventsInput":{
@@ -1353,6 +2910,17 @@
       },
       "exception":true
     },
+    "DisassociateApprovalRuleTemplateFromRepositoryInput":{
+      "type":"structure",
+      "required":[
+        "approvalRuleTemplateName",
+        "repositoryName"
+      ],
+      "members":{
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"},
+        "repositoryName":{"shape":"RepositoryName"}
+      }
+    },
     "Email":{"type":"string"},
     "EncryptionIntegrityChecksFailedException":{
       "type":"structure",
@@ -1385,7 +2953,37 @@
       },
       "exception":true
     },
+    "ErrorCode":{"type":"string"},
+    "ErrorMessage":{"type":"string"},
+    "EvaluatePullRequestApprovalRulesInput":{
+      "type":"structure",
+      "required":[
+        "pullRequestId",
+        "revisionId"
+      ],
+      "members":{
+        "pullRequestId":{"shape":"PullRequestId"},
+        "revisionId":{"shape":"RevisionId"}
+      }
+    },
+    "EvaluatePullRequestApprovalRulesOutput":{
+      "type":"structure",
+      "required":["evaluation"],
+      "members":{
+        "evaluation":{"shape":"Evaluation"}
+      }
+    },
+    "Evaluation":{
+      "type":"structure",
+      "members":{
+        "approved":{"shape":"Approved"},
+        "overridden":{"shape":"Overridden"},
+        "approvalRulesSatisfied":{"shape":"ApprovalRulesSatisfiedList"},
+        "approvalRulesNotSatisfied":{"shape":"ApprovalRulesNotSatisfiedList"}
+      }
+    },
     "EventDate":{"type":"timestamp"},
+    "ExceptionName":{"type":"string"},
     "File":{
       "type":"structure",
       "members":{
@@ -1398,6 +2996,12 @@
     "FileContent":{
       "type":"blob",
       "max":6291456
+    },
+    "FileContentAndSourceFileSpecifiedException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
     },
     "FileContentRequiredException":{
       "type":"structure",
@@ -1417,9 +3021,29 @@
       },
       "exception":true
     },
+    "FileEntryRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "FileList":{
       "type":"list",
       "member":{"shape":"File"}
+    },
+    "FileMetadata":{
+      "type":"structure",
+      "members":{
+        "absolutePath":{"shape":"Path"},
+        "blobId":{"shape":"ObjectId"},
+        "fileMode":{"shape":"FileModeTypeEnum"}
+      }
+    },
+    "FileModeRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
     },
     "FileModeTypeEnum":{
       "type":"string",
@@ -1428,6 +3052,14 @@
         "NORMAL",
         "SYMLINK"
       ]
+    },
+    "FileModes":{
+      "type":"structure",
+      "members":{
+        "source":{"shape":"FileModeTypeEnum"},
+        "destination":{"shape":"FileModeTypeEnum"},
+        "base":{"shape":"FileModeTypeEnum"}
+      }
     },
     "FileNameConflictsWithDirectoryNameException":{
       "type":"structure",
@@ -1441,11 +3073,28 @@
       },
       "exception":true
     },
+    "FilePaths":{
+      "type":"list",
+      "member":{"shape":"Path"}
+    },
+    "FileSize":{"type":"long"},
+    "FileSizes":{
+      "type":"structure",
+      "members":{
+        "source":{"shape":"FileSize"},
+        "destination":{"shape":"FileSize"},
+        "base":{"shape":"FileSize"}
+      }
+    },
     "FileTooLargeException":{
       "type":"structure",
       "members":{
       },
       "exception":true
+    },
+    "FilesMetadata":{
+      "type":"list",
+      "member":{"shape":"FileMetadata"}
     },
     "Folder":{
       "type":"structure",
@@ -1470,6 +3119,20 @@
     "FolderList":{
       "type":"list",
       "member":{"shape":"Folder"}
+    },
+    "GetApprovalRuleTemplateInput":{
+      "type":"structure",
+      "required":["approvalRuleTemplateName"],
+      "members":{
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"}
+      }
+    },
+    "GetApprovalRuleTemplateOutput":{
+      "type":"structure",
+      "required":["approvalRuleTemplate"],
+      "members":{
+        "approvalRuleTemplate":{"shape":"ApprovalRuleTemplate"}
+      }
     },
     "GetBlobInput":{
       "type":"structure",
@@ -1655,6 +3318,30 @@
         "subModules":{"shape":"SubModuleList"}
       }
     },
+    "GetMergeCommitInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "sourceCommitSpecifier",
+        "destinationCommitSpecifier"
+      ],
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "sourceCommitSpecifier":{"shape":"CommitName"},
+        "destinationCommitSpecifier":{"shape":"CommitName"},
+        "conflictDetailLevel":{"shape":"ConflictDetailLevelTypeEnum"},
+        "conflictResolutionStrategy":{"shape":"ConflictResolutionStrategyTypeEnum"}
+      }
+    },
+    "GetMergeCommitOutput":{
+      "type":"structure",
+      "members":{
+        "sourceCommitId":{"shape":"ObjectId"},
+        "destinationCommitId":{"shape":"ObjectId"},
+        "baseCommitId":{"shape":"ObjectId"},
+        "mergedCommitId":{"shape":"ObjectId"}
+      }
+    },
     "GetMergeConflictsInput":{
       "type":"structure",
       "required":[
@@ -1667,7 +3354,11 @@
         "repositoryName":{"shape":"RepositoryName"},
         "destinationCommitSpecifier":{"shape":"CommitName"},
         "sourceCommitSpecifier":{"shape":"CommitName"},
-        "mergeOption":{"shape":"MergeOptionTypeEnum"}
+        "mergeOption":{"shape":"MergeOptionTypeEnum"},
+        "conflictDetailLevel":{"shape":"ConflictDetailLevelTypeEnum"},
+        "maxConflictFiles":{"shape":"MaxResults"},
+        "conflictResolutionStrategy":{"shape":"ConflictResolutionStrategyTypeEnum"},
+        "nextToken":{"shape":"NextToken"}
       }
     },
     "GetMergeConflictsOutput":{
@@ -1675,12 +3366,63 @@
       "required":[
         "mergeable",
         "destinationCommitId",
-        "sourceCommitId"
+        "sourceCommitId",
+        "conflictMetadataList"
       ],
       "members":{
         "mergeable":{"shape":"IsMergeable"},
-        "destinationCommitId":{"shape":"CommitId"},
-        "sourceCommitId":{"shape":"CommitId"}
+        "destinationCommitId":{"shape":"ObjectId"},
+        "sourceCommitId":{"shape":"ObjectId"},
+        "baseCommitId":{"shape":"ObjectId"},
+        "conflictMetadataList":{"shape":"ConflictMetadataList"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "GetMergeOptionsInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "sourceCommitSpecifier",
+        "destinationCommitSpecifier"
+      ],
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "sourceCommitSpecifier":{"shape":"CommitName"},
+        "destinationCommitSpecifier":{"shape":"CommitName"},
+        "conflictDetailLevel":{"shape":"ConflictDetailLevelTypeEnum"},
+        "conflictResolutionStrategy":{"shape":"ConflictResolutionStrategyTypeEnum"}
+      }
+    },
+    "GetMergeOptionsOutput":{
+      "type":"structure",
+      "required":[
+        "mergeOptions",
+        "sourceCommitId",
+        "destinationCommitId",
+        "baseCommitId"
+      ],
+      "members":{
+        "mergeOptions":{"shape":"MergeOptions"},
+        "sourceCommitId":{"shape":"ObjectId"},
+        "destinationCommitId":{"shape":"ObjectId"},
+        "baseCommitId":{"shape":"ObjectId"}
+      }
+    },
+    "GetPullRequestApprovalStatesInput":{
+      "type":"structure",
+      "required":[
+        "pullRequestId",
+        "revisionId"
+      ],
+      "members":{
+        "pullRequestId":{"shape":"PullRequestId"},
+        "revisionId":{"shape":"RevisionId"}
+      }
+    },
+    "GetPullRequestApprovalStatesOutput":{
+      "type":"structure",
+      "members":{
+        "approvals":{"shape":"ApprovalList"}
       }
     },
     "GetPullRequestInput":{
@@ -1695,6 +3437,24 @@
       "required":["pullRequest"],
       "members":{
         "pullRequest":{"shape":"PullRequest"}
+      }
+    },
+    "GetPullRequestOverrideStateInput":{
+      "type":"structure",
+      "required":[
+        "pullRequestId",
+        "revisionId"
+      ],
+      "members":{
+        "pullRequestId":{"shape":"PullRequestId"},
+        "revisionId":{"shape":"RevisionId"}
+      }
+    },
+    "GetPullRequestOverrideStateOutput":{
+      "type":"structure",
+      "members":{
+        "overridden":{"shape":"Overridden"},
+        "overrider":{"shape":"Arn"}
       }
     },
     "GetRepositoryInput":{
@@ -1724,6 +3484,7 @@
         "triggers":{"shape":"RepositoryTriggersList"}
       }
     },
+    "HunkContent":{"type":"string"},
     "IdempotencyParameterMismatchException":{
       "type":"structure",
       "members":{
@@ -1731,6 +3492,42 @@
       "exception":true
     },
     "InvalidActorArnException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidApprovalRuleContentException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidApprovalRuleNameException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidApprovalRuleTemplateContentException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidApprovalRuleTemplateDescriptionException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidApprovalRuleTemplateNameException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidApprovalStateException":{
       "type":"structure",
       "members":{
       },
@@ -1773,6 +3570,24 @@
       "exception":true
     },
     "InvalidCommitIdException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidConflictDetailLevelException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidConflictResolutionException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidConflictResolutionStrategyException":{
       "type":"structure",
       "members":{
       },
@@ -1826,6 +3641,18 @@
       },
       "exception":true
     },
+    "InvalidMaxConflictFilesException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidMaxMergeHunksException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "InvalidMaxResultsException":{
       "type":"structure",
       "members":{
@@ -1839,6 +3666,12 @@
       "exception":true
     },
     "InvalidOrderException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidOverrideStatusException":{
       "type":"structure",
       "members":{
       },
@@ -1892,6 +3725,18 @@
       },
       "exception":true
     },
+    "InvalidReplacementContentException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidReplacementTypeException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "InvalidRepositoryDescriptionException":{
       "type":"structure",
       "members":{
@@ -1940,6 +3785,24 @@
       },
       "exception":true
     },
+    "InvalidResourceArnException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidRevisionIdException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidRuleContentSha256Exception":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "InvalidSortByException":{
       "type":"structure",
       "members":{
@@ -1947,6 +3810,30 @@
       "exception":true
     },
     "InvalidSourceCommitSpecifierException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidSystemTagUsageException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidTagKeysListException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidTagsMapException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidTargetBranchException":{
       "type":"structure",
       "members":{
       },
@@ -1970,14 +3857,58 @@
       },
       "exception":true
     },
+    "IsBinaryFile":{
+      "type":"structure",
+      "members":{
+        "source":{"shape":"CapitalBoolean"},
+        "destination":{"shape":"CapitalBoolean"},
+        "base":{"shape":"CapitalBoolean"}
+      }
+    },
     "IsCommentDeleted":{"type":"boolean"},
+    "IsContentConflict":{"type":"boolean"},
+    "IsFileModeConflict":{"type":"boolean"},
+    "IsHunkConflict":{"type":"boolean"},
     "IsMergeable":{"type":"boolean"},
     "IsMerged":{"type":"boolean"},
+    "IsMove":{"type":"boolean"},
+    "IsObjectTypeConflict":{"type":"boolean"},
     "KeepEmptyFolders":{"type":"boolean"},
     "LastModifiedDate":{"type":"timestamp"},
     "Limit":{
       "type":"integer",
       "box":true
+    },
+    "LineNumber":{"type":"integer"},
+    "ListApprovalRuleTemplatesInput":{
+      "type":"structure",
+      "members":{
+        "nextToken":{"shape":"NextToken"},
+        "maxResults":{"shape":"MaxResults"}
+      }
+    },
+    "ListApprovalRuleTemplatesOutput":{
+      "type":"structure",
+      "members":{
+        "approvalRuleTemplateNames":{"shape":"ApprovalRuleTemplateNameList"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListAssociatedApprovalRuleTemplatesForRepositoryInput":{
+      "type":"structure",
+      "required":["repositoryName"],
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "nextToken":{"shape":"NextToken"},
+        "maxResults":{"shape":"MaxResults"}
+      }
+    },
+    "ListAssociatedApprovalRuleTemplatesForRepositoryOutput":{
+      "type":"structure",
+      "members":{
+        "approvalRuleTemplateNames":{"shape":"ApprovalRuleTemplateNameList"},
+        "nextToken":{"shape":"NextToken"}
+      }
     },
     "ListBranchesInput":{
       "type":"structure",
@@ -2013,6 +3944,22 @@
         "nextToken":{"shape":"NextToken"}
       }
     },
+    "ListRepositoriesForApprovalRuleTemplateInput":{
+      "type":"structure",
+      "required":["approvalRuleTemplateName"],
+      "members":{
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"},
+        "nextToken":{"shape":"NextToken"},
+        "maxResults":{"shape":"MaxResults"}
+      }
+    },
+    "ListRepositoriesForApprovalRuleTemplateOutput":{
+      "type":"structure",
+      "members":{
+        "repositoryNames":{"shape":"RepositoryNameList"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
     "ListRepositoriesInput":{
       "type":"structure",
       "members":{
@@ -2025,6 +3972,21 @@
       "type":"structure",
       "members":{
         "repositories":{"shape":"RepositoryNameIdPairList"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListTagsForResourceInput":{
+      "type":"structure",
+      "required":["resourceArn"],
+      "members":{
+        "resourceArn":{"shape":"ResourceArn"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListTagsForResourceOutput":{
+      "type":"structure",
+      "members":{
+        "tags":{"shape":"TagsMap"},
         "nextToken":{"shape":"NextToken"}
       }
     },
@@ -2049,6 +4011,36 @@
       },
       "exception":true
     },
+    "MaximumConflictResolutionEntriesExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "MaximumFileContentToLoadExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "MaximumFileEntriesExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "MaximumItemsToCompareExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "MaximumNumberOfApprovalsExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "MaximumOpenPullRequestsExceededException":{
       "type":"structure",
       "members":{
@@ -2067,11 +4059,124 @@
       },
       "exception":true
     },
+    "MaximumRuleTemplatesAssociatedWithRepositoryException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "MergeBranchesByFastForwardInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "sourceCommitSpecifier",
+        "destinationCommitSpecifier"
+      ],
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "sourceCommitSpecifier":{"shape":"CommitName"},
+        "destinationCommitSpecifier":{"shape":"CommitName"},
+        "targetBranch":{"shape":"BranchName"}
+      }
+    },
+    "MergeBranchesByFastForwardOutput":{
+      "type":"structure",
+      "members":{
+        "commitId":{"shape":"ObjectId"},
+        "treeId":{"shape":"ObjectId"}
+      }
+    },
+    "MergeBranchesBySquashInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "sourceCommitSpecifier",
+        "destinationCommitSpecifier"
+      ],
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "sourceCommitSpecifier":{"shape":"CommitName"},
+        "destinationCommitSpecifier":{"shape":"CommitName"},
+        "targetBranch":{"shape":"BranchName"},
+        "conflictDetailLevel":{"shape":"ConflictDetailLevelTypeEnum"},
+        "conflictResolutionStrategy":{"shape":"ConflictResolutionStrategyTypeEnum"},
+        "authorName":{"shape":"Name"},
+        "email":{"shape":"Email"},
+        "commitMessage":{"shape":"Message"},
+        "keepEmptyFolders":{"shape":"KeepEmptyFolders"},
+        "conflictResolution":{"shape":"ConflictResolution"}
+      }
+    },
+    "MergeBranchesBySquashOutput":{
+      "type":"structure",
+      "members":{
+        "commitId":{"shape":"ObjectId"},
+        "treeId":{"shape":"ObjectId"}
+      }
+    },
+    "MergeBranchesByThreeWayInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "sourceCommitSpecifier",
+        "destinationCommitSpecifier"
+      ],
+      "members":{
+        "repositoryName":{"shape":"RepositoryName"},
+        "sourceCommitSpecifier":{"shape":"CommitName"},
+        "destinationCommitSpecifier":{"shape":"CommitName"},
+        "targetBranch":{"shape":"BranchName"},
+        "conflictDetailLevel":{"shape":"ConflictDetailLevelTypeEnum"},
+        "conflictResolutionStrategy":{"shape":"ConflictResolutionStrategyTypeEnum"},
+        "authorName":{"shape":"Name"},
+        "email":{"shape":"Email"},
+        "commitMessage":{"shape":"Message"},
+        "keepEmptyFolders":{"shape":"KeepEmptyFolders"},
+        "conflictResolution":{"shape":"ConflictResolution"}
+      }
+    },
+    "MergeBranchesByThreeWayOutput":{
+      "type":"structure",
+      "members":{
+        "commitId":{"shape":"ObjectId"},
+        "treeId":{"shape":"ObjectId"}
+      }
+    },
+    "MergeHunk":{
+      "type":"structure",
+      "members":{
+        "isConflict":{"shape":"IsHunkConflict"},
+        "source":{"shape":"MergeHunkDetail"},
+        "destination":{"shape":"MergeHunkDetail"},
+        "base":{"shape":"MergeHunkDetail"}
+      }
+    },
+    "MergeHunkDetail":{
+      "type":"structure",
+      "members":{
+        "startLine":{"shape":"LineNumber"},
+        "endLine":{"shape":"LineNumber"},
+        "hunkContent":{"shape":"HunkContent"}
+      }
+    },
+    "MergeHunks":{
+      "type":"list",
+      "member":{"shape":"MergeHunk"}
+    },
     "MergeMetadata":{
       "type":"structure",
       "members":{
         "isMerged":{"shape":"IsMerged"},
-        "mergedBy":{"shape":"Arn"}
+        "mergedBy":{"shape":"Arn"},
+        "mergeCommitId":{"shape":"CommitId"},
+        "mergeOption":{"shape":"MergeOptionTypeEnum"}
+      }
+    },
+    "MergeOperations":{
+      "type":"structure",
+      "members":{
+        "source":{"shape":"ChangeTypeEnum"},
+        "destination":{"shape":"ChangeTypeEnum"}
       }
     },
     "MergeOptionRequiredException":{
@@ -2082,7 +4187,15 @@
     },
     "MergeOptionTypeEnum":{
       "type":"string",
-      "enum":["FAST_FORWARD_MERGE"]
+      "enum":[
+        "FAST_FORWARD_MERGE",
+        "SQUASH_MERGE",
+        "THREE_WAY_MERGE"
+      ]
+    },
+    "MergeOptions":{
+      "type":"list",
+      "member":{"shape":"MergeOptionTypeEnum"}
     },
     "MergePullRequestByFastForwardInput":{
       "type":"structure",
@@ -2093,7 +4206,7 @@
       "members":{
         "pullRequestId":{"shape":"PullRequestId"},
         "repositoryName":{"shape":"RepositoryName"},
-        "sourceCommitId":{"shape":"CommitId"}
+        "sourceCommitId":{"shape":"ObjectId"}
       }
     },
     "MergePullRequestByFastForwardOutput":{
@@ -2102,8 +4215,64 @@
         "pullRequest":{"shape":"PullRequest"}
       }
     },
+    "MergePullRequestBySquashInput":{
+      "type":"structure",
+      "required":[
+        "pullRequestId",
+        "repositoryName"
+      ],
+      "members":{
+        "pullRequestId":{"shape":"PullRequestId"},
+        "repositoryName":{"shape":"RepositoryName"},
+        "sourceCommitId":{"shape":"ObjectId"},
+        "conflictDetailLevel":{"shape":"ConflictDetailLevelTypeEnum"},
+        "conflictResolutionStrategy":{"shape":"ConflictResolutionStrategyTypeEnum"},
+        "commitMessage":{"shape":"Message"},
+        "authorName":{"shape":"Name"},
+        "email":{"shape":"Email"},
+        "keepEmptyFolders":{"shape":"KeepEmptyFolders"},
+        "conflictResolution":{"shape":"ConflictResolution"}
+      }
+    },
+    "MergePullRequestBySquashOutput":{
+      "type":"structure",
+      "members":{
+        "pullRequest":{"shape":"PullRequest"}
+      }
+    },
+    "MergePullRequestByThreeWayInput":{
+      "type":"structure",
+      "required":[
+        "pullRequestId",
+        "repositoryName"
+      ],
+      "members":{
+        "pullRequestId":{"shape":"PullRequestId"},
+        "repositoryName":{"shape":"RepositoryName"},
+        "sourceCommitId":{"shape":"ObjectId"},
+        "conflictDetailLevel":{"shape":"ConflictDetailLevelTypeEnum"},
+        "conflictResolutionStrategy":{"shape":"ConflictResolutionStrategyTypeEnum"},
+        "commitMessage":{"shape":"Message"},
+        "authorName":{"shape":"Name"},
+        "email":{"shape":"Email"},
+        "keepEmptyFolders":{"shape":"KeepEmptyFolders"},
+        "conflictResolution":{"shape":"ConflictResolution"}
+      }
+    },
+    "MergePullRequestByThreeWayOutput":{
+      "type":"structure",
+      "members":{
+        "pullRequest":{"shape":"PullRequest"}
+      }
+    },
     "Message":{"type":"string"},
     "Mode":{"type":"string"},
+    "MultipleConflictResolutionEntriesException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "MultipleRepositoriesInPullRequestException":{
       "type":"structure",
       "members":{
@@ -2118,14 +4287,90 @@
       "exception":true
     },
     "NextToken":{"type":"string"},
+    "NoChangeException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "NumberOfConflicts":{"type":"integer"},
+    "NumberOfRuleTemplatesExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "NumberOfRulesExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "ObjectId":{"type":"string"},
     "ObjectSize":{"type":"long"},
+    "ObjectTypeEnum":{
+      "type":"string",
+      "enum":[
+        "FILE",
+        "DIRECTORY",
+        "GIT_LINK",
+        "SYMBOLIC_LINK"
+      ]
+    },
+    "ObjectTypes":{
+      "type":"structure",
+      "members":{
+        "source":{"shape":"ObjectTypeEnum"},
+        "destination":{"shape":"ObjectTypeEnum"},
+        "base":{"shape":"ObjectTypeEnum"}
+      }
+    },
     "OrderEnum":{
       "type":"string",
       "enum":[
         "ascending",
         "descending"
       ]
+    },
+    "OriginApprovalRuleTemplate":{
+      "type":"structure",
+      "members":{
+        "approvalRuleTemplateId":{"shape":"ApprovalRuleTemplateId"},
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"}
+      }
+    },
+    "Overridden":{"type":"boolean"},
+    "OverrideAlreadySetException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "OverridePullRequestApprovalRulesInput":{
+      "type":"structure",
+      "required":[
+        "pullRequestId",
+        "revisionId",
+        "overrideStatus"
+      ],
+      "members":{
+        "pullRequestId":{"shape":"PullRequestId"},
+        "revisionId":{"shape":"RevisionId"},
+        "overrideStatus":{"shape":"OverrideStatus"}
+      }
+    },
+    "OverrideStatus":{
+      "type":"string",
+      "enum":[
+        "OVERRIDE",
+        "REVOKE"
+      ]
+    },
+    "OverrideStatusRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
     },
     "ParentCommitDoesNotExistException":{
       "type":"structure",
@@ -2261,10 +4506,24 @@
         "pullRequestStatus":{"shape":"PullRequestStatusEnum"},
         "authorArn":{"shape":"Arn"},
         "pullRequestTargets":{"shape":"PullRequestTargetList"},
-        "clientRequestToken":{"shape":"ClientRequestToken"}
+        "clientRequestToken":{"shape":"ClientRequestToken"},
+        "revisionId":{"shape":"RevisionId"},
+        "approvalRules":{"shape":"ApprovalRulesList"}
       }
     },
     "PullRequestAlreadyClosedException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "PullRequestApprovalRulesNotSatisfiedException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "PullRequestCannotBeApprovedByAuthorException":{
       "type":"structure",
       "members":{
       },
@@ -2295,7 +4554,10 @@
         "pullRequestCreatedEventMetadata":{"shape":"PullRequestCreatedEventMetadata"},
         "pullRequestStatusChangedEventMetadata":{"shape":"PullRequestStatusChangedEventMetadata"},
         "pullRequestSourceReferenceUpdatedEventMetadata":{"shape":"PullRequestSourceReferenceUpdatedEventMetadata"},
-        "pullRequestMergedStateChangedEventMetadata":{"shape":"PullRequestMergedStateChangedEventMetadata"}
+        "pullRequestMergedStateChangedEventMetadata":{"shape":"PullRequestMergedStateChangedEventMetadata"},
+        "approvalRuleEventMetadata":{"shape":"ApprovalRuleEventMetadata"},
+        "approvalStateChangedEventMetadata":{"shape":"ApprovalStateChangedEventMetadata"},
+        "approvalRuleOverriddenEventMetadata":{"shape":"ApprovalRuleOverriddenEventMetadata"}
       }
     },
     "PullRequestEventList":{
@@ -2308,7 +4570,12 @@
         "PULL_REQUEST_CREATED",
         "PULL_REQUEST_STATUS_CHANGED",
         "PULL_REQUEST_SOURCE_REFERENCE_UPDATED",
-        "PULL_REQUEST_MERGE_STATE_CHANGED"
+        "PULL_REQUEST_MERGE_STATE_CHANGED",
+        "PULL_REQUEST_APPROVAL_RULE_CREATED",
+        "PULL_REQUEST_APPROVAL_RULE_UPDATED",
+        "PULL_REQUEST_APPROVAL_RULE_DELETED",
+        "PULL_REQUEST_APPROVAL_RULE_OVERRIDDEN",
+        "PULL_REQUEST_APPROVAL_STATE_CHANGED"
       ]
     },
     "PullRequestId":{"type":"string"},
@@ -2373,6 +4640,26 @@
     "PullRequestTargetList":{
       "type":"list",
       "member":{"shape":"PullRequestTarget"}
+    },
+    "PutFileEntries":{
+      "type":"list",
+      "member":{"shape":"PutFileEntry"}
+    },
+    "PutFileEntry":{
+      "type":"structure",
+      "required":["filePath"],
+      "members":{
+        "filePath":{"shape":"Path"},
+        "fileMode":{"shape":"FileModeTypeEnum"},
+        "fileContent":{"shape":"FileContent"},
+        "sourceFile":{"shape":"SourceFileSpecifier"}
+      }
+    },
+    "PutFileEntryConflictException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
     },
     "PutFileInput":{
       "type":"structure",
@@ -2449,6 +4736,44 @@
         "BEFORE",
         "AFTER"
       ]
+    },
+    "ReplaceContentEntries":{
+      "type":"list",
+      "member":{"shape":"ReplaceContentEntry"}
+    },
+    "ReplaceContentEntry":{
+      "type":"structure",
+      "required":[
+        "filePath",
+        "replacementType"
+      ],
+      "members":{
+        "filePath":{"shape":"Path"},
+        "replacementType":{"shape":"ReplacementTypeEnum"},
+        "content":{"shape":"FileContent"},
+        "fileMode":{"shape":"FileModeTypeEnum"}
+      }
+    },
+    "ReplacementContentRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "ReplacementTypeEnum":{
+      "type":"string",
+      "enum":[
+        "KEEP_BASE",
+        "KEEP_SOURCE",
+        "KEEP_DESTINATION",
+        "USE_NEW_CONTENT"
+      ]
+    },
+    "ReplacementTypeRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
     },
     "RepositoryDescription":{
       "type":"string",
@@ -2616,11 +4941,59 @@
       },
       "exception":true
     },
+    "ResourceArn":{"type":"string"},
+    "ResourceArnRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "RestrictedSourceFileException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "RevisionId":{"type":"string"},
+    "RevisionIdRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "RevisionNotCurrentException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "RuleContentSha256":{"type":"string"},
     "SameFileContentException":{
       "type":"structure",
       "members":{
       },
       "exception":true
+    },
+    "SamePathRequestException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "SetFileModeEntries":{
+      "type":"list",
+      "member":{"shape":"SetFileModeEntry"}
+    },
+    "SetFileModeEntry":{
+      "type":"structure",
+      "required":[
+        "filePath",
+        "fileMode"
+      ],
+      "members":{
+        "filePath":{"shape":"Path"},
+        "fileMode":{"shape":"FileModeTypeEnum"}
+      }
     },
     "SortByEnum":{
       "type":"string",
@@ -2634,6 +5007,20 @@
       "members":{
       },
       "exception":true
+    },
+    "SourceFileOrContentRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "SourceFileSpecifier":{
+      "type":"structure",
+      "required":["filePath"],
+      "members":{
+        "filePath":{"shape":"Path"},
+        "isMove":{"shape":"IsMove"}
+      }
     },
     "SubModule":{
       "type":"structure",
@@ -2659,6 +5046,54 @@
     "SymbolicLinkList":{
       "type":"list",
       "member":{"shape":"SymbolicLink"}
+    },
+    "TagKey":{
+      "type":"string",
+      "max":128,
+      "min":1
+    },
+    "TagKeysList":{
+      "type":"list",
+      "member":{"shape":"TagKey"}
+    },
+    "TagKeysListRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "TagPolicyException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "TagResourceInput":{
+      "type":"structure",
+      "required":[
+        "resourceArn",
+        "tags"
+      ],
+      "members":{
+        "resourceArn":{"shape":"ResourceArn"},
+        "tags":{"shape":"TagsMap"}
+      }
+    },
+    "TagValue":{
+      "type":"string",
+      "max":256,
+      "min":0
+    },
+    "TagsMap":{
+      "type":"map",
+      "key":{"shape":"TagKey"},
+      "value":{"shape":"TagValue"}
+    },
+    "TagsMapRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
     },
     "Target":{
       "type":"structure",
@@ -2728,6 +5163,78 @@
       },
       "exception":true
     },
+    "TooManyTagsException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "UntagResourceInput":{
+      "type":"structure",
+      "required":[
+        "resourceArn",
+        "tagKeys"
+      ],
+      "members":{
+        "resourceArn":{"shape":"ResourceArn"},
+        "tagKeys":{"shape":"TagKeysList"}
+      }
+    },
+    "UpdateApprovalRuleTemplateContentInput":{
+      "type":"structure",
+      "required":[
+        "approvalRuleTemplateName",
+        "newRuleContent"
+      ],
+      "members":{
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"},
+        "newRuleContent":{"shape":"ApprovalRuleTemplateContent"},
+        "existingRuleContentSha256":{"shape":"RuleContentSha256"}
+      }
+    },
+    "UpdateApprovalRuleTemplateContentOutput":{
+      "type":"structure",
+      "required":["approvalRuleTemplate"],
+      "members":{
+        "approvalRuleTemplate":{"shape":"ApprovalRuleTemplate"}
+      }
+    },
+    "UpdateApprovalRuleTemplateDescriptionInput":{
+      "type":"structure",
+      "required":[
+        "approvalRuleTemplateName",
+        "approvalRuleTemplateDescription"
+      ],
+      "members":{
+        "approvalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"},
+        "approvalRuleTemplateDescription":{"shape":"ApprovalRuleTemplateDescription"}
+      }
+    },
+    "UpdateApprovalRuleTemplateDescriptionOutput":{
+      "type":"structure",
+      "required":["approvalRuleTemplate"],
+      "members":{
+        "approvalRuleTemplate":{"shape":"ApprovalRuleTemplate"}
+      }
+    },
+    "UpdateApprovalRuleTemplateNameInput":{
+      "type":"structure",
+      "required":[
+        "oldApprovalRuleTemplateName",
+        "newApprovalRuleTemplateName"
+      ],
+      "members":{
+        "oldApprovalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"},
+        "newApprovalRuleTemplateName":{"shape":"ApprovalRuleTemplateName"}
+      }
+    },
+    "UpdateApprovalRuleTemplateNameOutput":{
+      "type":"structure",
+      "required":["approvalRuleTemplate"],
+      "members":{
+        "approvalRuleTemplate":{"shape":"ApprovalRuleTemplate"}
+      }
+    },
     "UpdateCommentInput":{
       "type":"structure",
       "required":[
@@ -2754,6 +5261,40 @@
       "members":{
         "repositoryName":{"shape":"RepositoryName"},
         "defaultBranchName":{"shape":"BranchName"}
+      }
+    },
+    "UpdatePullRequestApprovalRuleContentInput":{
+      "type":"structure",
+      "required":[
+        "pullRequestId",
+        "approvalRuleName",
+        "newRuleContent"
+      ],
+      "members":{
+        "pullRequestId":{"shape":"PullRequestId"},
+        "approvalRuleName":{"shape":"ApprovalRuleName"},
+        "existingRuleContentSha256":{"shape":"RuleContentSha256"},
+        "newRuleContent":{"shape":"ApprovalRuleContent"}
+      }
+    },
+    "UpdatePullRequestApprovalRuleContentOutput":{
+      "type":"structure",
+      "required":["approvalRule"],
+      "members":{
+        "approvalRule":{"shape":"ApprovalRule"}
+      }
+    },
+    "UpdatePullRequestApprovalStateInput":{
+      "type":"structure",
+      "required":[
+        "pullRequestId",
+        "revisionId",
+        "approvalState"
+      ],
+      "members":{
+        "pullRequestId":{"shape":"PullRequestId"},
+        "revisionId":{"shape":"RevisionId"},
+        "approvalState":{"shape":"ApprovalState"}
       }
     },
     "UpdatePullRequestDescriptionInput":{

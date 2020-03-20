@@ -5,24 +5,34 @@ package s3_test
 import (
 	"bytes"
 	"encoding/csv"
-	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/internal/sdkio"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func TestInteg_SelectObjectContent(t *testing.T) {
 	keyName := "selectObject.csv"
-	putTestFile(t, filepath.Join("testdata", "positive_select.csv"), keyName)
 
-	resp, err := svc.SelectObjectContent(&s3.SelectObjectContentInput{
-		Bucket:         bucketName,
+	var header = []byte("A,B,C,D,E,F,G,H,I,J\n")
+	var recordRow = []byte("0,0,0.5,217.371,217.658,218.002,269.445,487.447,2.106,489.554\n")
+
+	buf := make([]byte, 0, 6*sdkio.MebiByte)
+	buf = append(buf, []byte(header)...)
+	for i := 0; i < (cap(buf)/len(recordRow))-1; i++ {
+		buf = append(buf, recordRow...)
+	}
+
+	// Put a mock CSV file to the S3 bucket so that its contents can be
+	// selected.
+	putTestContent(t, bytes.NewReader(buf), keyName)
+
+	resp, err := s3Svc.SelectObjectContent(&s3.SelectObjectContentInput{
+		Bucket:         &integMetadata.Buckets.Source.Name,
 		Key:            &keyName,
 		Expression:     aws.String("Select * from S3Object"),
 		ExpressionType: aws.String(s3.ExpressionTypeSql),
@@ -43,15 +53,85 @@ func TestInteg_SelectObjectContent(t *testing.T) {
 	}
 	defer resp.EventStream.Close()
 
+	recReader, recWriter := io.Pipe()
+
 	var sum int64
 	var processed int64
-	for event := range resp.EventStream.Events() {
-		switch tv := event.(type) {
-		case *s3.RecordsEvent:
-			sum += int64(len(tv.Payload))
-		case *s3.StatsEvent:
-			processed = *tv.Details.BytesProcessed
+
+	var gotEndEvent bool
+	go func(w *io.PipeWriter, resp *s3.SelectObjectContentOutput) {
+		defer recWriter.Close()
+		var numRecordEvents int64
+		for event := range resp.EventStream.Events() {
+			switch tv := event.(type) {
+			case *s3.RecordsEvent:
+				n, err := recWriter.Write(tv.Payload)
+				if err != nil {
+					t.Logf("failed to write to record writer, %v, %v", n, err)
+				}
+				sum += int64(n)
+				numRecordEvents++
+			case *s3.StatsEvent:
+				processed = *tv.Details.BytesProcessed
+			case *s3.EndEvent:
+				gotEndEvent = true
+				t.Logf("s3.EndEvent received")
+			}
 		}
+		t.Logf("received %d record events", numRecordEvents)
+	}(recWriter, resp)
+
+	type Record []string
+
+	records := make(chan []Record)
+	go func(r io.Reader, records chan<- []Record, batchSize int) {
+		defer close(records)
+
+		csvReader := csv.NewReader(r)
+		var count int64
+
+		batch := make([]Record, 0, batchSize)
+		for {
+			count++
+			record, err := csvReader.Read()
+			if err != nil {
+				if _, ok := err.(*csv.ParseError); ok {
+					t.Logf("failed to decode record row, %v, %v", count, err)
+					continue
+				}
+				if err != io.EOF {
+					t.Logf("csv decode failed, %v", err)
+				}
+				err = nil
+				break
+			}
+			batch = append(batch, record)
+			if len(batch) >= batchSize {
+				records <- batch
+				batch = batch[0:0]
+			}
+		}
+		if len(batch) != 0 {
+			records <- batch
+		}
+	}(recReader, records, 10)
+
+	var count int64
+	for batch := range records {
+		// To simulate processing of a batch, add sleep delay.
+		count += int64(len(batch))
+
+		if err := resp.EventStream.Err(); err != nil {
+			t.Errorf("exect no error, got %v", err)
+		}
+	}
+
+	if !gotEndEvent {
+		t.Errorf("expected EndEvent, did not receive")
+	}
+
+	if e, a := int64(101474), count; e != a {
+		t.Errorf("expect %d records, got %d", e, a)
 	}
 
 	if sum == 0 {
@@ -63,14 +143,14 @@ func TestInteg_SelectObjectContent(t *testing.T) {
 	}
 
 	if err := resp.EventStream.Err(); err != nil {
-		t.Fatalf("exect no error, %v", err)
+		t.Fatalf("expect no error, got %v", err)
 	}
 }
 
 func TestInteg_SelectObjectContent_Error(t *testing.T) {
 	keyName := "negativeSelect.csv"
 
-	buf := make([]byte, 0, 1024*1024*6)
+	buf := make([]byte, 0, 6*sdkio.MebiByte)
 	buf = append(buf, []byte("name,number\n")...)
 	line := []byte("jj,0\n")
 	for i := 0; i < (cap(buf)/len(line))-2; i++ {
@@ -80,8 +160,8 @@ func TestInteg_SelectObjectContent_Error(t *testing.T) {
 
 	putTestContent(t, bytes.NewReader(buf), keyName)
 
-	resp, err := svc.SelectObjectContent(&s3.SelectObjectContentInput{
-		Bucket:         bucketName,
+	resp, err := s3Svc.SelectObjectContent(&s3.SelectObjectContentInput{
+		Bucket:         &integMetadata.Buckets.Source.Name,
 		Key:            &keyName,
 		Expression:     aws.String("SELECT name FROM S3Object WHERE cast(number as int) < 1"),
 		ExpressionType: aws.String(s3.ExpressionTypeSql),
@@ -139,8 +219,8 @@ gopher,0
 	putTestContent(t, strings.NewReader(buf), keyName)
 
 	// Make the Select Object Content API request using the object uploaded.
-	resp, err := svc.SelectObjectContent(&s3.SelectObjectContentInput{
-		Bucket:         bucketName,
+	resp, err := s3Svc.SelectObjectContent(&s3.SelectObjectContentInput{
+		Bucket:         &integMetadata.Buckets.Source.Name,
 		Key:            &keyName,
 		Expression:     aws.String("SELECT name FROM S3Object WHERE cast(number as int) < 1"),
 		ExpressionType: aws.String(s3.ExpressionTypeSql),
@@ -154,8 +234,7 @@ gopher,0
 		},
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed making API request, %v\n", err)
-		return
+		t.Fatalf("failed making API request, %v\n", err)
 	}
 	defer resp.EventStream.Close()
 
@@ -167,7 +246,7 @@ gopher,0
 			case *s3.RecordsEvent:
 				resultWriter.Write(e.Payload)
 			case *s3.StatsEvent:
-				fmt.Printf("Processed %d bytes\n", *e.Details.BytesProcessed)
+				t.Logf("Processed %d bytes\n", *e.Details.BytesProcessed)
 			}
 		}
 	}()
@@ -179,10 +258,10 @@ gopher,0
 		if err == io.EOF {
 			break
 		}
-		fmt.Println(record)
+		t.Log(record)
 	}
 
 	if err := resp.EventStream.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "reading from event stream failed, %v\n", err)
+		t.Fatalf("reading from event stream failed, %v\n", err)
 	}
 }

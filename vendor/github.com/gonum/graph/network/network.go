@@ -10,5 +10,8 @@
 //    http://www.vldb.org/pvldb/vol7/p1023-maehara.pdf
 // * other centrality measures
 
+// This repository is no longer maintained.
+// Development has moved to https://github.com/gonum/gonum.
+//
 // Package network provides network analysis functions.
 package network

@@ -1104,6 +1104,8 @@
         "eu-west-1",
         "eu-west-2",
         "eu-west-3",
+        "ap-east-1",
+        "me-south-1",
         "ap-south-1",
         "ap-southeast-1",
         "ap-southeast-2",
@@ -1111,7 +1113,9 @@
         "ap-northeast-2",
         "ap-northeast-3",
         "eu-north-1",
-        "sa-east-1"
+        "sa-east-1",
+        "cn-northwest-1",
+        "cn-north-1"
       ],
       "max":64,
       "min":1
@@ -3194,6 +3198,8 @@
         "sa-east-1",
         "cn-north-1",
         "cn-northwest-1",
+        "ap-east-1",
+        "me-south-1",
         "ap-south-1"
       ],
       "max":64,
@@ -3746,6 +3752,8 @@
         "eu-west-2",
         "eu-west-3",
         "eu-central-1",
+        "ap-east-1",
+        "me-south-1",
         "ap-southeast-1",
         "ap-southeast-2",
         "ap-south-1",

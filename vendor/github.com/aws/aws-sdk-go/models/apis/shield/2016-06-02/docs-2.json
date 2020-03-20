@@ -1,11 +1,11 @@
 {
   "version": "2.0",
-  "service": "<fullname>AWS Shield Advanced</fullname> <p>This is the <i>AWS Shield Advanced API Reference</i>. This guide is for developers who need detailed information about the AWS Shield Advanced API actions, data types, and errors. For detailed information about AWS WAF and AWS Shield Advanced features and an overview of how to use the AWS WAF and AWS Shield Advanced APIs, see the <a href=\"http://docs.aws.amazon.com/waf/latest/developerguide/\">AWS WAF and AWS Shield Developer Guide</a>.</p>",
+  "service": "<fullname>AWS Shield Advanced</fullname> <p>This is the <i>AWS Shield Advanced API Reference</i>. This guide is for developers who need detailed information about the AWS Shield Advanced API actions, data types, and errors. For detailed information about AWS WAF and AWS Shield Advanced features and an overview of how to use the AWS WAF and AWS Shield Advanced APIs, see the <a href=\"https://docs.aws.amazon.com/waf/latest/developerguide/\">AWS WAF and AWS Shield Developer Guide</a>.</p>",
   "operations": {
-    "AssociateDRTLogBucket": "<p>Authorizes the DDoS Response team (DRT) to access the specified Amazon S3 bucket containing your flow logs. You can associate up to 10 Amazon S3 buckets with your subscription.</p> <p>To use the services of the DRT and make an <code>AssociateDRTLogBucket</code> request, you must be subscribed to the <a href=\"https://aws.amazon.com/premiumsupport/business-support/\">Business Support plan</a> or the <a href=\"https://aws.amazon.com/premiumsupport/enterprise-support/\">Enterprise Support plan</a>.</p>",
+    "AssociateDRTLogBucket": "<p>Authorizes the DDoS Response team (DRT) to access the specified Amazon S3 bucket containing your AWS WAF logs. You can associate up to 10 Amazon S3 buckets with your subscription.</p> <p>To use the services of the DRT and make an <code>AssociateDRTLogBucket</code> request, you must be subscribed to the <a href=\"https://aws.amazon.com/premiumsupport/business-support/\">Business Support plan</a> or the <a href=\"https://aws.amazon.com/premiumsupport/enterprise-support/\">Enterprise Support plan</a>.</p>",
     "AssociateDRTRole": "<p>Authorizes the DDoS Response team (DRT), using the specified role, to access your AWS account to assist with DDoS attack mitigation during potential attacks. This enables the DRT to inspect your AWS WAF configuration and create or update AWS WAF rules and web ACLs.</p> <p>You can associate only one <code>RoleArn</code> with your subscription. If you submit an <code>AssociateDRTRole</code> request for an account that already has an associated role, the new <code>RoleArn</code> will replace the existing <code>RoleArn</code>. </p> <p>Prior to making the <code>AssociateDRTRole</code> request, you must attach the <a href=\"https://console.aws.amazon.com/iam/home?#/policies/arn:aws:iam::aws:policy/service-role/AWSShieldDRTAccessPolicy\">AWSShieldDRTAccessPolicy</a> managed policy to the role you will specify in the request. For more information see <a href=\" https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_manage-attach-detach.html\">Attaching and Detaching IAM Policies</a>. The role must also trust the service principal <code> drt.shield.amazonaws.com</code>. For more information, see <a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html\">IAM JSON Policy Elements: Principal</a>.</p> <p>The DRT will have access only to your AWS WAF and Shield resources. By submitting this request, you authorize the DRT to inspect your AWS WAF and Shield configuration and create and update AWS WAF rules and web ACLs on your behalf. The DRT takes these actions only if explicitly authorized by you.</p> <p>You must have the <code>iam:PassRole</code> permission to make an <code>AssociateDRTRole</code> request. For more information, see <a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html\">Granting a User Permissions to Pass a Role to an AWS Service</a>. </p> <p>To use the services of the DRT and make an <code>AssociateDRTRole</code> request, you must be subscribed to the <a href=\"https://aws.amazon.com/premiumsupport/business-support/\">Business Support plan</a> or the <a href=\"https://aws.amazon.com/premiumsupport/enterprise-support/\">Enterprise Support plan</a>.</p>",
-    "CreateProtection": "<p>Enables AWS Shield Advanced for a specific AWS resource. The resource can be an Amazon CloudFront distribution, Elastic Load Balancing load balancer, Elastic IP Address, or an Amazon Route 53 hosted zone.</p> <p>You can add protection to only a single resource with each CreateProtection request. If you want to add protection to multiple resources at once, use the <a href=\"https://console.aws.amazon.com/waf/\">AWS WAF console</a>. For more information see <a href=\"https://docs.aws.amazon.com/waf/latest/developerguide/getting-started-ddos.html\">Getting Started with AWS Shield Advanced</a> and <a href=\"https://docs.aws.amazon.com/waf/latest/developerguide/configure-new-protection.html\">Add AWS Shield Advanced Protection to more AWS Resources</a>.</p>",
-    "CreateSubscription": "<p>Activates AWS Shield Advanced for an account.</p> <p>As part of this request you can specify <code>EmergencySettings</code> that automaticaly grant the DDoS response team (DRT) needed permissions to assist you during a suspected DDoS attack. For more information see <a href=\"https://docs.aws.amazon.com/waf/latest/developerguide/authorize-DRT.html\">Authorize the DDoS Response Team to Create Rules and Web ACLs on Your Behalf</a>.</p> <p>When you initally create a subscription, your subscription is set to be automatically renewed at the end of the existing subscription period. You can change this by submitting an <code>UpdateSubscription</code> request. </p>",
+    "CreateProtection": "<p>Enables AWS Shield Advanced for a specific AWS resource. The resource can be an Amazon CloudFront distribution, Elastic Load Balancing load balancer, AWS Global Accelerator accelerator, Elastic IP Address, or an Amazon Route 53 hosted zone.</p> <p>You can add protection to only a single resource with each CreateProtection request. If you want to add protection to multiple resources at once, use the <a href=\"https://console.aws.amazon.com/waf/\">AWS WAF console</a>. For more information see <a href=\"https://docs.aws.amazon.com/waf/latest/developerguide/getting-started-ddos.html\">Getting Started with AWS Shield Advanced</a> and <a href=\"https://docs.aws.amazon.com/waf/latest/developerguide/configure-new-protection.html\">Add AWS Shield Advanced Protection to more AWS Resources</a>.</p>",
+    "CreateSubscription": "<p>Activates AWS Shield Advanced for an account.</p> <p>As part of this request you can specify <code>EmergencySettings</code> that automaticaly grant the DDoS response team (DRT) needed permissions to assist you during a suspected DDoS attack. For more information see <a href=\"https://docs.aws.amazon.com/waf/latest/developerguide/authorize-DRT.html\">Authorize the DDoS Response Team to Create Rules and Web ACLs on Your Behalf</a>.</p> <p>To use the services of the DRT, you must be subscribed to the <a href=\"https://aws.amazon.com/premiumsupport/business-support/\">Business Support plan</a> or the <a href=\"https://aws.amazon.com/premiumsupport/enterprise-support/\">Enterprise Support plan</a>.</p> <p>When you initally create a subscription, your subscription is set to be automatically renewed at the end of the existing subscription period. You can change this by submitting an <code>UpdateSubscription</code> request. </p>",
     "DeleteProtection": "<p>Deletes an AWS Shield Advanced <a>Protection</a>.</p>",
     "DeleteSubscription": "<p>Removes AWS Shield Advanced from an account. AWS Shield Advanced requires a 1-year subscription commitment. You cannot delete a subscription prior to the completion of that commitment. </p>",
     "DescribeAttack": "<p>Describes the details of a DDoS attack. </p>",
@@ -13,7 +13,7 @@
     "DescribeEmergencyContactSettings": "<p>Lists the email addresses that the DRT can use to contact you during a suspected attack.</p>",
     "DescribeProtection": "<p>Lists the details of a <a>Protection</a> object.</p>",
     "DescribeSubscription": "<p>Provides details about the AWS Shield Advanced subscription for an account.</p>",
-    "DisassociateDRTLogBucket": "<p>Removes the DDoS Response team's (DRT) access to the specified Amazon S3 bucket containing your flow logs.</p> <p>To make a <code>DisassociateDRTLogBucket</code> request, you must be subscribed to the <a href=\"https://aws.amazon.com/premiumsupport/business-support/\">Business Support plan</a> or the <a href=\"https://aws.amazon.com/premiumsupport/enterprise-support/\">Enterprise Support plan</a>. However, if you are not subscribed to one of these support plans, but had been previously and had granted the DRT access to your account, you can submit a <code>DisassociateDRTLogBucket</code> request to remove this access.</p>",
+    "DisassociateDRTLogBucket": "<p>Removes the DDoS Response team's (DRT) access to the specified Amazon S3 bucket containing your AWS WAF logs.</p> <p>To make a <code>DisassociateDRTLogBucket</code> request, you must be subscribed to the <a href=\"https://aws.amazon.com/premiumsupport/business-support/\">Business Support plan</a> or the <a href=\"https://aws.amazon.com/premiumsupport/enterprise-support/\">Enterprise Support plan</a>. However, if you are not subscribed to one of these support plans, but had been previously and had granted the DRT access to your account, you can submit a <code>DisassociateDRTLogBucket</code> request to remove this access.</p>",
     "DisassociateDRTRole": "<p>Removes the DDoS Response team's (DRT) access to your AWS account.</p> <p>To make a <code>DisassociateDRTRole</code> request, you must be subscribed to the <a href=\"https://aws.amazon.com/premiumsupport/business-support/\">Business Support plan</a> or the <a href=\"https://aws.amazon.com/premiumsupport/enterprise-support/\">Enterprise Support plan</a>. However, if you are not subscribed to one of these support plans, but had been previously and had granted the DRT access to your account, you can submit a <code>DisassociateDRTRole</code> request to remove this access.</p>",
     "GetSubscriptionState": "<p>Returns the <code>SubscriptionState</code>, either <code>Active</code> or <code>Inactive</code>.</p>",
     "ListAttacks": "<p>Returns all ongoing DDoS attacks or all DDoS attacks during a specified time period.</p>",
@@ -23,7 +23,7 @@
   },
   "shapes": {
     "AccessDeniedException": {
-      "base": null,
+      "base": "<p>Exception that indicates the specified <code>AttackId</code> does not exist, or the requester does not have the appropriate permissions to access the <code>AttackId</code>.</p>",
       "refs": {
       }
     },
@@ -68,7 +68,7 @@
     "AttackLayer": {
       "base": null,
       "refs": {
-        "AttackProperty$AttackLayer": "<p>The type of DDoS event that was observed. <code>NETWORK</code> indicates layer 3 and layer 4 events and <code>APPLICATION</code> indicates layer 7 events.</p>"
+        "AttackProperty$AttackLayer": "<p>The type of distributed denial of service (DDoS) event that was observed. <code>NETWORK</code> indicates layer 3 and layer 4 events and <code>APPLICATION</code> indicates layer 7 events.</p>"
       }
     },
     "AttackProperties": {
@@ -86,7 +86,7 @@
     "AttackPropertyIdentifier": {
       "base": null,
       "refs": {
-        "AttackProperty$AttackPropertyIdentifier": "<p>Defines the DDoS attack property information that is provided.</p>"
+        "AttackProperty$AttackPropertyIdentifier": "<p>Defines the DDoS attack property information that is provided. The <code>WORDPRESS_PINGBACK_REFLECTOR</code> and <code>WORDPRESS_PINGBACK_SOURCE</code> values are valid only for WordPress reflective pingback DDoS attacks.</p>"
       }
     },
     "AttackSummaries": {
@@ -378,8 +378,8 @@
     "LogBucket": {
       "base": null,
       "refs": {
-        "AssociateDRTLogBucketRequest$LogBucket": "<p>The Amazon S3 bucket that contains your flow logs.</p>",
-        "DisassociateDRTLogBucketRequest$LogBucket": "<p>The Amazon S3 bucket that contains your flow logs.</p>",
+        "AssociateDRTLogBucketRequest$LogBucket": "<p>The Amazon S3 bucket that contains your AWS WAF logs.</p>",
+        "DisassociateDRTLogBucketRequest$LogBucket": "<p>The Amazon S3 bucket that contains your AWS WAF logs.</p>",
         "LogBucketList$member": null
       }
     },
@@ -438,7 +438,7 @@
       "refs": {
         "CreateProtectionResponse$ProtectionId": "<p>The unique identifier (ID) for the <a>Protection</a> object that is created.</p>",
         "DeleteProtectionRequest$ProtectionId": "<p>The unique identifier (ID) for the <a>Protection</a> object to be deleted.</p>",
-        "DescribeProtectionRequest$ProtectionId": "<p>The unique identifier (ID) for the <a>Protection</a> object that is described.</p>",
+        "DescribeProtectionRequest$ProtectionId": "<p>The unique identifier (ID) for the <a>Protection</a> object that is described. When submitting the <code>DescribeProtection</code> request you must provide either the <code>ResourceArn</code> or the <code>ProtectionID</code>, but not both.</p>",
         "Protection$Id": "<p>The unique identifier (ID) of the protection.</p>"
       }
     },
@@ -464,7 +464,8 @@
       "base": null,
       "refs": {
         "AttackDetail$ResourceArn": "<p>The ARN (Amazon Resource Name) of the resource that was attacked.</p>",
-        "CreateProtectionRequest$ResourceArn": "<p>The ARN (Amazon Resource Name) of the resource to be protected.</p> <p>The ARN should be in one of the following formats:</p> <ul> <li> <p>For an Application Load Balancer: <code>arn:aws:elasticloadbalancing:<i>region</i>:<i>account-id</i>:loadbalancer/app/<i>load-balancer-name</i>/<i>load-balancer-id</i> </code> </p> </li> <li> <p>For an Elastic Load Balancer (Classic Load Balancer): <code>arn:aws:elasticloadbalancing:<i>region</i>:<i>account-id</i>:loadbalancer/<i>load-balancer-name</i> </code> </p> </li> <li> <p>For AWS CloudFront distribution: <code>arn:aws:cloudfront::<i>account-id</i>:distribution/<i>distribution-id</i> </code> </p> </li> <li> <p>For Amazon Route 53: <code>arn:aws:route53:::hostedzone/<i>hosted-zone-id</i> </code> </p> </li> <li> <p>For an Elastic IP address: <code>arn:aws:ec2:<i>region</i>:<i>account-id</i>:eip-allocation/<i>allocation-id</i> </code> </p> </li> </ul>",
+        "CreateProtectionRequest$ResourceArn": "<p>The ARN (Amazon Resource Name) of the resource to be protected.</p> <p>The ARN should be in one of the following formats:</p> <ul> <li> <p>For an Application Load Balancer: <code>arn:aws:elasticloadbalancing:<i>region</i>:<i>account-id</i>:loadbalancer/app/<i>load-balancer-name</i>/<i>load-balancer-id</i> </code> </p> </li> <li> <p>For an Elastic Load Balancer (Classic Load Balancer): <code>arn:aws:elasticloadbalancing:<i>region</i>:<i>account-id</i>:loadbalancer/<i>load-balancer-name</i> </code> </p> </li> <li> <p>For an AWS CloudFront distribution: <code>arn:aws:cloudfront::<i>account-id</i>:distribution/<i>distribution-id</i> </code> </p> </li> <li> <p>For an AWS Global Accelerator accelerator: <code>arn:aws:globalaccelerator::<i>account-id</i>:accelerator/<i>accelerator-id</i> </code> </p> </li> <li> <p>For Amazon Route 53: <code>arn:aws:route53:::hostedzone/<i>hosted-zone-id</i> </code> </p> </li> <li> <p>For an Elastic IP address: <code>arn:aws:ec2:<i>region</i>:<i>account-id</i>:eip-allocation/<i>allocation-id</i> </code> </p> </li> </ul>",
+        "DescribeProtectionRequest$ResourceArn": "<p>The ARN (Amazon Resource Name) of the AWS resource for the <a>Protection</a> object that is described. When submitting the <code>DescribeProtection</code> request you must provide either the <code>ResourceArn</code> or the <code>ProtectionID</code>, but not both.</p>",
         "Protection$ResourceArn": "<p>The ARN (Amazon Resource Name) of the AWS resource that is protected.</p>",
         "ResourceArnFilterList$member": null
       }
@@ -492,7 +493,7 @@
       "refs": {
         "AttackSummary$AttackId": "<p>The unique identifier (ID) of the attack.</p>",
         "AttackSummary$ResourceArn": "<p>The ARN (Amazon Resource Name) of the resource that was attacked.</p>",
-        "AttackVectorDescription$VectorType": "<p>The attack type. Valid values:</p> <ul> <li> <p>UDP_TRAFFIC</p> </li> <li> <p>UDP_FRAGMENT</p> </li> <li> <p>GENERIC_UDP_REFLECTION</p> </li> <li> <p>DNS_REFLECTION</p> </li> <li> <p>NTP_REFLECTION</p> </li> <li> <p>CHARGEN_REFLECTION</p> </li> <li> <p>SSDP_REFLECTION</p> </li> <li> <p>PORT_MAPPER</p> </li> <li> <p>RIP_REFLECTION</p> </li> <li> <p>SNMP_REFLECTION</p> </li> <li> <p>MSSQL_REFLECTION</p> </li> <li> <p>NET_BIOS_REFLECTION</p> </li> <li> <p>SYN_FLOOD</p> </li> <li> <p>ACK_FLOOD</p> </li> <li> <p>REQUEST_FLOOD</p> </li> </ul>",
+        "AttackVectorDescription$VectorType": "<p>The attack type. Valid values:</p> <ul> <li> <p>UDP_TRAFFIC</p> </li> <li> <p>UDP_FRAGMENT</p> </li> <li> <p>GENERIC_UDP_REFLECTION</p> </li> <li> <p>DNS_REFLECTION</p> </li> <li> <p>NTP_REFLECTION</p> </li> <li> <p>CHARGEN_REFLECTION</p> </li> <li> <p>SSDP_REFLECTION</p> </li> <li> <p>PORT_MAPPER</p> </li> <li> <p>RIP_REFLECTION</p> </li> <li> <p>SNMP_REFLECTION</p> </li> <li> <p>MSSQL_REFLECTION</p> </li> <li> <p>NET_BIOS_REFLECTION</p> </li> <li> <p>SYN_FLOOD</p> </li> <li> <p>ACK_FLOOD</p> </li> <li> <p>REQUEST_FLOOD</p> </li> <li> <p>HTTP_REFLECTION</p> </li> <li> <p>UDS_REFLECTION</p> </li> <li> <p>MEMCACHED_REFLECTION</p> </li> </ul>",
         "Contributor$Name": "<p>The name of the contributor. This is dependent on the <code>AttackPropertyIdentifier</code>. For example, if the <code>AttackPropertyIdentifier</code> is <code>SOURCE_COUNTRY</code>, the <code>Name</code> could be <code>United States</code>.</p>",
         "Limit$Type": "<p>The type of protection.</p>",
         "Mitigation$MitigationName": "<p>The name of the mitigation taken for this attack.</p>",

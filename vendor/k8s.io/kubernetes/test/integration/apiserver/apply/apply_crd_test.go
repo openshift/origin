@@ -17,6 +17,7 @@ limitations under the License.
 package apiserver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -25,7 +26,7 @@ import (
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apiextensions-apiserver/test/integration/fixtures"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	genericfeatures "k8s.io/apiserver/pkg/features"
@@ -81,7 +82,7 @@ spec:
 		Name(name).
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to create custom resource with apply: %v:\n%v", err, string(result))
 	}
@@ -92,7 +93,7 @@ spec:
 		AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
 		Name(name).
 		Body([]byte(`{"spec":{"replicas": 5}}`)).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to update number of replicas with merge patch: %v:\n%v", err, string(result))
 	}
@@ -104,11 +105,11 @@ spec:
 		Name(name).
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err == nil {
 		t.Fatalf("Expecting to get conflicts when applying object after updating replicas, got no error: %s", result)
 	}
-	status, ok := err.(*errors.StatusError)
+	status, ok := err.(*apierrors.StatusError)
 	if !ok {
 		t.Fatalf("Expecting to get conflicts as API error")
 	}
@@ -123,7 +124,7 @@ spec:
 		Param("force", "true").
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to apply object with force after updating replicas: %v:\n%v", err, string(result))
 	}
@@ -190,12 +191,12 @@ func TestApplyCRDStructuralSchema(t *testing.T) {
 										"type": "string"
 									},
 									"protocol": {
-										"type": "string",
-										"nullable": true
+										"type": "string"
 									}
 								},
 								"required": [
-									"containerPort"
+									"containerPort",
+									"protocol"
 								],
 								"type": "object"
 							}
@@ -241,7 +242,7 @@ spec:
 		Name(name).
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to create custom resource with apply: %v:\n%v", err, string(result))
 	}
@@ -255,7 +256,7 @@ spec:
 		AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
 		Name(name).
 		Body([]byte(`{"metadata":{"finalizers":["test-finalizer","another-one"]}}`)).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to add finalizer with merge patch: %v:\n%v", err, string(result))
 	}
@@ -270,7 +271,7 @@ spec:
 		Param("fieldManager", "apply_test").
 		SetHeader("Accept", "application/json").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to apply same config after adding a finalizer: %v:\n%v", err, string(result))
 	}
@@ -283,7 +284,7 @@ spec:
 		AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
 		Name(name).
 		Body([]byte(`{"spec":{"replicas": 5}}`)).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to update number of replicas with merge patch: %v:\n%v", err, string(result))
 	}
@@ -295,11 +296,11 @@ spec:
 		Name(name).
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err == nil {
 		t.Fatalf("Expecting to get conflicts when applying object after updating replicas, got no error: %s", result)
 	}
-	status, ok := err.(*errors.StatusError)
+	status, ok := err.(*apierrors.StatusError)
 	if !ok {
 		t.Fatalf("Expecting to get conflicts as API error")
 	}
@@ -314,7 +315,7 @@ spec:
 		Param("force", "true").
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to apply object with force after updating replicas: %v:\n%v", err, string(result))
 	}
@@ -335,11 +336,11 @@ spec:
   - name: "y"
     containerPort: 80
     protocol: TCP`, apiVersion, kind, name))).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err == nil {
 		t.Fatalf("Expecting to get conflicts when a different applier updates existing list item, got no error: %s", result)
 	}
-	status, ok = err.(*errors.StatusError)
+	status, ok = err.(*apierrors.StatusError)
 	if !ok {
 		t.Fatalf("Expecting to get conflicts as API error")
 	}
@@ -363,7 +364,7 @@ spec:
     containerPort: 8080
     protocol: TCP`, apiVersion, kind, name))).
 		SetHeader("Accept", "application/json").
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to add a new list item to the object as a different applier: %v:\n%v", err, string(result))
 	}
@@ -447,7 +448,7 @@ spec:
 		Name(name).
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to create custom resource with apply: %v:\n%v", err, string(result))
 	}
@@ -460,7 +461,7 @@ spec:
 		AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
 		Name(name).
 		Body([]byte(`{"metadata":{"finalizers":["test-finalizer","another-one"]}}`)).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to add finalizer with merge patch: %v:\n%v", err, string(result))
 	}
@@ -475,7 +476,7 @@ spec:
 		Param("fieldManager", "apply_test").
 		SetHeader("Accept", "application/json").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to apply same config after adding a finalizer: %v:\n%v", err, string(result))
 	}
@@ -488,7 +489,7 @@ spec:
 		AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
 		Name(name).
 		Body([]byte(`{"spec":{"replicas": 5}}`)).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to update number of replicas with merge patch: %v:\n%v", err, string(result))
 	}
@@ -500,11 +501,11 @@ spec:
 		Name(name).
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err == nil {
 		t.Fatalf("Expecting to get conflicts when applying object after updating replicas, got no error: %s", result)
 	}
-	status, ok := err.(*errors.StatusError)
+	status, ok := err.(*apierrors.StatusError)
 	if !ok {
 		t.Fatalf("Expecting to get conflicts as API error")
 	}
@@ -519,7 +520,7 @@ spec:
 		Param("force", "true").
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to apply object with force after updating replicas: %v:\n%v", err, string(result))
 	}
@@ -671,7 +672,7 @@ spec:
 		Name(name).
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to create custom resource with apply: %v:\n%v", err, string(result))
 	}
@@ -682,7 +683,7 @@ spec:
 		AbsPath("/apis", noxuDefinition.Spec.Group, noxuDefinition.Spec.Version, noxuDefinition.Spec.Names.Plural).
 		Name(name).
 		Body([]byte(`{"spec":{"replicas": 5}}`)).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to update number of replicas with merge patch: %v:\n%v", err, string(result))
 	}
@@ -694,11 +695,11 @@ spec:
 		Name(name).
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err == nil {
 		t.Fatalf("Expecting to get conflicts when applying object after updating replicas, got no error: %s", result)
 	}
-	status, ok := err.(*errors.StatusError)
+	status, ok := err.(*apierrors.StatusError)
 	if !ok {
 		t.Fatalf("Expecting to get conflicts as API error")
 	}
@@ -713,7 +714,7 @@ spec:
 		Param("force", "true").
 		Param("fieldManager", "apply_test").
 		Body(yamlBody).
-		DoRaw()
+		DoRaw(context.TODO())
 	if err != nil {
 		t.Fatalf("failed to apply object with force after updating replicas: %v:\n%v", err, string(result))
 	}

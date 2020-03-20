@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
@@ -21,15 +22,15 @@ type DNSesGetter interface {
 
 // DNSInterface has methods to work with DNS resources.
 type DNSInterface interface {
-	Create(*v1.DNS) (*v1.DNS, error)
-	Update(*v1.DNS) (*v1.DNS, error)
-	UpdateStatus(*v1.DNS) (*v1.DNS, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.DNS, error)
-	List(opts metav1.ListOptions) (*v1.DNSList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.DNS, err error)
+	Create(ctx context.Context, dNS *v1.DNS, opts metav1.CreateOptions) (*v1.DNS, error)
+	Update(ctx context.Context, dNS *v1.DNS, opts metav1.UpdateOptions) (*v1.DNS, error)
+	UpdateStatus(ctx context.Context, dNS *v1.DNS, opts metav1.UpdateOptions) (*v1.DNS, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.DNS, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.DNSList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.DNS, err error)
 	DNSExpansion
 }
 
@@ -46,19 +47,19 @@ func newDNSes(c *ConfigV1Client) *dNSes {
 }
 
 // Get takes name of the dNS, and returns the corresponding dNS object, and an error if there is any.
-func (c *dNSes) Get(name string, options metav1.GetOptions) (result *v1.DNS, err error) {
+func (c *dNSes) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.DNS, err error) {
 	result = &v1.DNS{}
 	err = c.client.Get().
 		Resource("dnses").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of DNSes that match those selectors.
-func (c *dNSes) List(opts metav1.ListOptions) (result *v1.DNSList, err error) {
+func (c *dNSes) List(ctx context.Context, opts metav1.ListOptions) (result *v1.DNSList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -68,13 +69,13 @@ func (c *dNSes) List(opts metav1.ListOptions) (result *v1.DNSList, err error) {
 		Resource("dnses").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested dNSes.
-func (c *dNSes) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *dNSes) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -84,81 +85,84 @@ func (c *dNSes) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 		Resource("dnses").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a dNS and creates it.  Returns the server's representation of the dNS, and an error, if there is any.
-func (c *dNSes) Create(dNS *v1.DNS) (result *v1.DNS, err error) {
+func (c *dNSes) Create(ctx context.Context, dNS *v1.DNS, opts metav1.CreateOptions) (result *v1.DNS, err error) {
 	result = &v1.DNS{}
 	err = c.client.Post().
 		Resource("dnses").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(dNS).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a dNS and updates it. Returns the server's representation of the dNS, and an error, if there is any.
-func (c *dNSes) Update(dNS *v1.DNS) (result *v1.DNS, err error) {
+func (c *dNSes) Update(ctx context.Context, dNS *v1.DNS, opts metav1.UpdateOptions) (result *v1.DNS, err error) {
 	result = &v1.DNS{}
 	err = c.client.Put().
 		Resource("dnses").
 		Name(dNS.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(dNS).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *dNSes) UpdateStatus(dNS *v1.DNS) (result *v1.DNS, err error) {
+func (c *dNSes) UpdateStatus(ctx context.Context, dNS *v1.DNS, opts metav1.UpdateOptions) (result *v1.DNS, err error) {
 	result = &v1.DNS{}
 	err = c.client.Put().
 		Resource("dnses").
 		Name(dNS.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(dNS).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the dNS and deletes it. Returns an error if one occurs.
-func (c *dNSes) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *dNSes) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("dnses").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *dNSes) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (c *dNSes) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("dnses").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched dNS.
-func (c *dNSes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.DNS, err error) {
+func (c *dNSes) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.DNS, err error) {
 	result = &v1.DNS{}
 	err = c.client.Patch(pt).
 		Resource("dnses").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

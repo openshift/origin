@@ -2,6 +2,10 @@
 
 package opsworkscm
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeInvalidNextTokenException for service response error code
@@ -41,3 +45,12 @@ const (
 	// One or more of the provided request parameters are not valid.
 	ErrCodeValidationException = "ValidationException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"InvalidNextTokenException":      newErrorInvalidNextTokenException,
+	"InvalidStateException":          newErrorInvalidStateException,
+	"LimitExceededException":         newErrorLimitExceededException,
+	"ResourceAlreadyExistsException": newErrorResourceAlreadyExistsException,
+	"ResourceNotFoundException":      newErrorResourceNotFoundException,
+	"ValidationException":            newErrorValidationException,
+}

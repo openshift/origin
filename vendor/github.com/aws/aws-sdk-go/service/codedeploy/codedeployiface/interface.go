@@ -218,6 +218,10 @@ type CodeDeployAPI interface {
 	ListOnPremisesInstancesWithContext(aws.Context, *codedeploy.ListOnPremisesInstancesInput, ...request.Option) (*codedeploy.ListOnPremisesInstancesOutput, error)
 	ListOnPremisesInstancesRequest(*codedeploy.ListOnPremisesInstancesInput) (*request.Request, *codedeploy.ListOnPremisesInstancesOutput)
 
+	ListTagsForResource(*codedeploy.ListTagsForResourceInput) (*codedeploy.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *codedeploy.ListTagsForResourceInput, ...request.Option) (*codedeploy.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*codedeploy.ListTagsForResourceInput) (*request.Request, *codedeploy.ListTagsForResourceOutput)
+
 	PutLifecycleEventHookExecutionStatus(*codedeploy.PutLifecycleEventHookExecutionStatusInput) (*codedeploy.PutLifecycleEventHookExecutionStatusOutput, error)
 	PutLifecycleEventHookExecutionStatusWithContext(aws.Context, *codedeploy.PutLifecycleEventHookExecutionStatusInput, ...request.Option) (*codedeploy.PutLifecycleEventHookExecutionStatusOutput, error)
 	PutLifecycleEventHookExecutionStatusRequest(*codedeploy.PutLifecycleEventHookExecutionStatusInput) (*request.Request, *codedeploy.PutLifecycleEventHookExecutionStatusOutput)
@@ -241,6 +245,14 @@ type CodeDeployAPI interface {
 	StopDeployment(*codedeploy.StopDeploymentInput) (*codedeploy.StopDeploymentOutput, error)
 	StopDeploymentWithContext(aws.Context, *codedeploy.StopDeploymentInput, ...request.Option) (*codedeploy.StopDeploymentOutput, error)
 	StopDeploymentRequest(*codedeploy.StopDeploymentInput) (*request.Request, *codedeploy.StopDeploymentOutput)
+
+	TagResource(*codedeploy.TagResourceInput) (*codedeploy.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *codedeploy.TagResourceInput, ...request.Option) (*codedeploy.TagResourceOutput, error)
+	TagResourceRequest(*codedeploy.TagResourceInput) (*request.Request, *codedeploy.TagResourceOutput)
+
+	UntagResource(*codedeploy.UntagResourceInput) (*codedeploy.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *codedeploy.UntagResourceInput, ...request.Option) (*codedeploy.UntagResourceOutput, error)
+	UntagResourceRequest(*codedeploy.UntagResourceInput) (*request.Request, *codedeploy.UntagResourceOutput)
 
 	UpdateApplication(*codedeploy.UpdateApplicationInput) (*codedeploy.UpdateApplicationOutput, error)
 	UpdateApplicationWithContext(aws.Context, *codedeploy.UpdateApplicationInput, ...request.Option) (*codedeploy.UpdateApplicationOutput, error)

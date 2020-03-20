@@ -24,7 +24,8 @@
       "errors":[
         {"shape":"InvalidArgumentException"},
         {"shape":"LimitExceededException"},
-        {"shape":"ResourceInUseException"}
+        {"shape":"ResourceInUseException"},
+        {"shape":"InvalidKMSResourceException"}
       ]
     },
     "DeleteDeliveryStream":{
@@ -86,6 +87,7 @@
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"InvalidArgumentException"},
+        {"shape":"InvalidKMSResourceException"},
         {"shape":"ServiceUnavailableException"}
       ]
     },
@@ -100,6 +102,7 @@
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"InvalidArgumentException"},
+        {"shape":"InvalidKMSResourceException"},
         {"shape":"ServiceUnavailableException"}
       ]
     },
@@ -115,7 +118,8 @@
         {"shape":"ResourceNotFoundException"},
         {"shape":"ResourceInUseException"},
         {"shape":"InvalidArgumentException"},
-        {"shape":"LimitExceededException"}
+        {"shape":"LimitExceededException"},
+        {"shape":"InvalidKMSResourceException"}
       ]
     },
     "StopDeliveryStreamEncryption":{
@@ -215,7 +219,7 @@
     "ClusterJDBCURL":{
       "type":"string",
       "min":1,
-      "pattern":"jdbc:(redshift|postgresql)://((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+redshift\\.amazonaws\\.com:\\d{1,5}/[a-zA-Z0-9_$]+"
+      "pattern":"jdbc:(redshift|postgresql)://((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+redshift\\.([a-zA-Z0-9\\.]+):\\d{1,5}/[a-zA-Z0-9_$]+"
     },
     "ColumnToJsonKeyMappings":{
       "type":"map",
@@ -255,6 +259,7 @@
         "DeliveryStreamName":{"shape":"DeliveryStreamName"},
         "DeliveryStreamType":{"shape":"DeliveryStreamType"},
         "KinesisStreamSourceConfiguration":{"shape":"KinesisStreamSourceConfiguration"},
+        "DeliveryStreamEncryptionConfigurationInput":{"shape":"DeliveryStreamEncryptionConfigurationInput"},
         "S3DestinationConfiguration":{
           "shape":"S3DestinationConfiguration",
           "deprecated":true
@@ -295,7 +300,8 @@
       "type":"structure",
       "required":["DeliveryStreamName"],
       "members":{
-        "DeliveryStreamName":{"shape":"DeliveryStreamName"}
+        "DeliveryStreamName":{"shape":"DeliveryStreamName"},
+        "AllowForceDelete":{"shape":"BooleanObject"}
       }
     },
     "DeleteDeliveryStreamOutput":{
@@ -325,6 +331,7 @@
         "DeliveryStreamName":{"shape":"DeliveryStreamName"},
         "DeliveryStreamARN":{"shape":"DeliveryStreamARN"},
         "DeliveryStreamStatus":{"shape":"DeliveryStreamStatus"},
+        "FailureDescription":{"shape":"FailureDescription"},
         "DeliveryStreamEncryptionConfiguration":{"shape":"DeliveryStreamEncryptionConfiguration"},
         "DeliveryStreamType":{"shape":"DeliveryStreamType"},
         "VersionId":{"shape":"DeliveryStreamVersionId"},
@@ -338,7 +345,18 @@
     "DeliveryStreamEncryptionConfiguration":{
       "type":"structure",
       "members":{
-        "Status":{"shape":"DeliveryStreamEncryptionStatus"}
+        "KeyARN":{"shape":"AWSKMSKeyARN"},
+        "KeyType":{"shape":"KeyType"},
+        "Status":{"shape":"DeliveryStreamEncryptionStatus"},
+        "FailureDescription":{"shape":"FailureDescription"}
+      }
+    },
+    "DeliveryStreamEncryptionConfigurationInput":{
+      "type":"structure",
+      "required":["KeyType"],
+      "members":{
+        "KeyARN":{"shape":"AWSKMSKeyARN"},
+        "KeyType":{"shape":"KeyType"}
       }
     },
     "DeliveryStreamEncryptionStatus":{
@@ -346,8 +364,23 @@
       "enum":[
         "ENABLED",
         "ENABLING",
+        "ENABLING_FAILED",
         "DISABLED",
-        "DISABLING"
+        "DISABLING",
+        "DISABLING_FAILED"
+      ]
+    },
+    "DeliveryStreamFailureType":{
+      "type":"string",
+      "enum":[
+        "RETIRE_KMS_GRANT_FAILED",
+        "CREATE_KMS_GRANT_FAILED",
+        "KMS_ACCESS_DENIED",
+        "DISABLED_KMS_KEY",
+        "INVALID_KMS_KEY",
+        "KMS_KEY_NOT_FOUND",
+        "KMS_OPT_IN_REQUIRED",
+        "UNKNOWN_ERROR"
       ]
     },
     "DeliveryStreamName":{
@@ -364,7 +397,9 @@
       "type":"string",
       "enum":[
         "CREATING",
+        "CREATING_FAILED",
         "DELETING",
+        "DELETING_FAILED",
         "ACTIVE"
       ]
     },
@@ -447,18 +482,23 @@
       "max":100,
       "min":1
     },
+    "ElasticsearchClusterEndpoint":{
+      "type":"string",
+      "max":512,
+      "min":1,
+      "pattern":"https:.*"
+    },
     "ElasticsearchDestinationConfiguration":{
       "type":"structure",
       "required":[
         "RoleARN",
-        "DomainARN",
         "IndexName",
-        "TypeName",
         "S3Configuration"
       ],
       "members":{
         "RoleARN":{"shape":"RoleARN"},
         "DomainARN":{"shape":"ElasticsearchDomainARN"},
+        "ClusterEndpoint":{"shape":"ElasticsearchClusterEndpoint"},
         "IndexName":{"shape":"ElasticsearchIndexName"},
         "TypeName":{"shape":"ElasticsearchTypeName"},
         "IndexRotationPeriod":{"shape":"ElasticsearchIndexRotationPeriod"},
@@ -475,6 +515,7 @@
       "members":{
         "RoleARN":{"shape":"RoleARN"},
         "DomainARN":{"shape":"ElasticsearchDomainARN"},
+        "ClusterEndpoint":{"shape":"ElasticsearchClusterEndpoint"},
         "IndexName":{"shape":"ElasticsearchIndexName"},
         "TypeName":{"shape":"ElasticsearchTypeName"},
         "IndexRotationPeriod":{"shape":"ElasticsearchIndexRotationPeriod"},
@@ -491,6 +532,7 @@
       "members":{
         "RoleARN":{"shape":"RoleARN"},
         "DomainARN":{"shape":"ElasticsearchDomainARN"},
+        "ClusterEndpoint":{"shape":"ElasticsearchClusterEndpoint"},
         "IndexName":{"shape":"ElasticsearchIndexName"},
         "TypeName":{"shape":"ElasticsearchTypeName"},
         "IndexRotationPeriod":{"shape":"ElasticsearchIndexRotationPeriod"},
@@ -543,7 +585,7 @@
     "ElasticsearchTypeName":{
       "type":"string",
       "max":100,
-      "min":1
+      "min":0
     },
     "EncryptionConfiguration":{
       "type":"structure",
@@ -617,6 +659,17 @@
         "DataFormatConversionConfiguration":{"shape":"DataFormatConversionConfiguration"}
       }
     },
+    "FailureDescription":{
+      "type":"structure",
+      "required":[
+        "Type",
+        "Details"
+      ],
+      "members":{
+        "Type":{"shape":"DeliveryStreamFailureType"},
+        "Details":{"shape":"NonEmptyString"}
+      }
+    },
     "HECAcknowledgmentTimeoutInSeconds":{
       "type":"integer",
       "max":600,
@@ -655,12 +708,27 @@
       },
       "exception":true
     },
+    "InvalidKMSResourceException":{
+      "type":"structure",
+      "members":{
+        "code":{"shape":"ErrorCode"},
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
+    },
     "KMSEncryptionConfig":{
       "type":"structure",
       "required":["AWSKMSKeyARN"],
       "members":{
         "AWSKMSKeyARN":{"shape":"AWSKMSKeyARN"}
       }
+    },
+    "KeyType":{
+      "type":"string",
+      "enum":[
+        "AWS_OWNED_CMK",
+        "CUSTOMER_MANAGED_CMK"
+      ]
     },
     "KinesisStreamARN":{
       "type":"string",
@@ -1258,7 +1326,8 @@
       "type":"structure",
       "required":["DeliveryStreamName"],
       "members":{
-        "DeliveryStreamName":{"shape":"DeliveryStreamName"}
+        "DeliveryStreamName":{"shape":"DeliveryStreamName"},
+        "DeliveryStreamEncryptionConfigurationInput":{"shape":"DeliveryStreamEncryptionConfigurationInput"}
       }
     },
     "StartDeliveryStreamEncryptionOutput":{

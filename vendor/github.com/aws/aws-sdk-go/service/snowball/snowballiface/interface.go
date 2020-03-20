@@ -111,6 +111,10 @@ type SnowballAPI interface {
 	GetSnowballUsageWithContext(aws.Context, *snowball.GetSnowballUsageInput, ...request.Option) (*snowball.GetSnowballUsageOutput, error)
 	GetSnowballUsageRequest(*snowball.GetSnowballUsageInput) (*request.Request, *snowball.GetSnowballUsageOutput)
 
+	GetSoftwareUpdates(*snowball.GetSoftwareUpdatesInput) (*snowball.GetSoftwareUpdatesOutput, error)
+	GetSoftwareUpdatesWithContext(aws.Context, *snowball.GetSoftwareUpdatesInput, ...request.Option) (*snowball.GetSoftwareUpdatesOutput, error)
+	GetSoftwareUpdatesRequest(*snowball.GetSoftwareUpdatesInput) (*request.Request, *snowball.GetSoftwareUpdatesOutput)
+
 	ListClusterJobs(*snowball.ListClusterJobsInput) (*snowball.ListClusterJobsOutput, error)
 	ListClusterJobsWithContext(aws.Context, *snowball.ListClusterJobsInput, ...request.Option) (*snowball.ListClusterJobsOutput, error)
 	ListClusterJobsRequest(*snowball.ListClusterJobsInput) (*request.Request, *snowball.ListClusterJobsOutput)

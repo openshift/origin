@@ -100,7 +100,7 @@ func DlatrdTest(t *testing.T, impl Dlatrder) {
 					}
 					v.Data[i-1] = 1
 
-					// Compute H = I - tau[i-1] * v * v^T.
+					// Compute H = I - tau[i-1] * v * vᵀ.
 					h := blas64.General{
 						Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n),
 					}
@@ -132,7 +132,7 @@ func DlatrdTest(t *testing.T, impl Dlatrder) {
 						v.Data[j] = a[j*lda+i]
 					}
 
-					// Compute H = I - tau[i] * v * v^T.
+					// Compute H = I - tau[i] * v * vᵀ.
 					h := blas64.General{
 						Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n),
 					}
@@ -164,7 +164,7 @@ func DlatrdTest(t *testing.T, impl Dlatrder) {
 // dlatrdCheckDecomposition checks that the first nb rows have been successfully
 // reduced.
 func dlatrdCheckDecomposition(t *testing.T, uplo blas.Uplo, n, nb int, e, a []float64, lda int, aGen, q blas64.General) bool {
-	// Compute ans = Q^T * A * Q.
+	// Compute ans = Qᵀ * A * Q.
 	// ans should be a tridiagonal matrix in the first or last nb rows and
 	// columns, depending on uplo.
 	tmp := blas64.General{
@@ -183,7 +183,7 @@ func dlatrdCheckDecomposition(t *testing.T, uplo blas.Uplo, n, nb int, e, a []fl
 	blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, tmp, q, 0, ans)
 
 	// Compare the output of Dlatrd (stored in a and e) with the explicit
-	// reduction to tridiagonal matrix Q^T * A * Q (stored in ans).
+	// reduction to tridiagonal matrix Qᵀ * A * Q (stored in ans).
 	if uplo == blas.Upper {
 		for i := n - nb; i < n; i++ {
 			for j := 0; j < n; j++ {

@@ -20,7 +20,10 @@ func main() {
 	sess := session.Must(
 		session.NewSession(&aws.Config{
 			// Use a custom retryer to provide custom retry rules.
-			Retryer: CustomRetryer{DefaultRetryer: client.DefaultRetryer{NumMaxRetries: 3}},
+			Retryer: CustomRetryer{
+				DefaultRetryer: client.DefaultRetryer{
+					NumMaxRetries: client.DefaultRetryerMaxNumRetries,
+				}},
 
 			// Use the SDK's SharedCredentialsProvider directly instead of the
 			// SDK's default credential chain. This ensures that the

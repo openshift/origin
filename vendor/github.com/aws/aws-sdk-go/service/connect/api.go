@@ -3,6 +3,7 @@
 package connect
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -56,7 +57,7 @@ func (c *Connect) CreateUserRequest(input *CreateUserInput) (req *request.Reques
 
 // CreateUser API operation for Amazon Connect Service.
 //
-// Creates a new user account in your Amazon Connect instance.
+// Creates a user account for the specified Amazon Connect instance.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -65,26 +66,26 @@ func (c *Connect) CreateUserRequest(input *CreateUserInput) (req *request.Reques
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation CreateUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   The allowed limit for the resource has been reached.
+//   * LimitExceededException
+//   The allowed limit for the resource has been exceeded.
 //
-//   * ErrCodeDuplicateResourceException "DuplicateResourceException"
-//   A resource with that name already exists.
+//   * DuplicateResourceException
+//   A resource with the specified name already exists.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/CreateUser
@@ -154,7 +155,7 @@ func (c *Connect) DeleteUserRequest(input *DeleteUserInput) (req *request.Reques
 
 // DeleteUser API operation for Amazon Connect Service.
 //
-// Deletes a user account from Amazon Connect.
+// Deletes a user account from the specified Amazon Connect instance.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -163,20 +164,20 @@ func (c *Connect) DeleteUserRequest(input *DeleteUserInput) (req *request.Reques
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation DeleteUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/DeleteUser
@@ -245,8 +246,9 @@ func (c *Connect) DescribeUserRequest(input *DescribeUserInput) (req *request.Re
 
 // DescribeUser API operation for Amazon Connect Service.
 //
-// Returns a User object that contains information about the user account specified
-// by the UserId.
+// Describes the specified user account. You can find the instance ID in the
+// console (it’s the final part of the ARN). The console does not display
+// the user IDs. Instead, list the users and note the IDs provided in the output.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -255,20 +257,20 @@ func (c *Connect) DescribeUserRequest(input *DescribeUserInput) (req *request.Re
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation DescribeUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/DescribeUser
@@ -337,8 +339,7 @@ func (c *Connect) DescribeUserHierarchyGroupRequest(input *DescribeUserHierarchy
 
 // DescribeUserHierarchyGroup API operation for Amazon Connect Service.
 //
-// Returns a HierarchyGroup object that includes information about a hierarchy
-// group in your instance.
+// Describes the specified hierarchy group.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -347,20 +348,20 @@ func (c *Connect) DescribeUserHierarchyGroupRequest(input *DescribeUserHierarchy
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation DescribeUserHierarchyGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/DescribeUserHierarchyGroup
@@ -429,8 +430,7 @@ func (c *Connect) DescribeUserHierarchyStructureRequest(input *DescribeUserHiera
 
 // DescribeUserHierarchyStructure API operation for Amazon Connect Service.
 //
-// Returns a HiearchyGroupStructure object, which contains data about the levels
-// in the agent hierarchy.
+// Describes the hierarchy structure of the specified Amazon Connect instance.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -439,20 +439,20 @@ func (c *Connect) DescribeUserHierarchyStructureRequest(input *DescribeUserHiera
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation DescribeUserHierarchyStructure for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/DescribeUserHierarchyStructure
@@ -521,7 +521,7 @@ func (c *Connect) GetContactAttributesRequest(input *GetContactAttributesInput) 
 
 // GetContactAttributes API operation for Amazon Connect Service.
 //
-// Retrieves the contact attributes associated with a contact.
+// Retrieves the contact attributes for the specified contact.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -530,14 +530,14 @@ func (c *Connect) GetContactAttributesRequest(input *GetContactAttributesInput) 
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation GetContactAttributes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/GetContactAttributes
@@ -612,11 +612,10 @@ func (c *Connect) GetCurrentMetricDataRequest(input *GetCurrentMetricDataInput) 
 
 // GetCurrentMetricData API operation for Amazon Connect Service.
 //
-// The GetCurrentMetricData operation retrieves current metric data from your
-// Amazon Connect instance.
+// Gets the real-time metric data from the specified Amazon Connect instance.
 //
-// If you are using an IAM account, it must have permission to the connect:GetCurrentMetricData
-// action.
+// For more information, see Real-time Metrics Reports (https://docs.aws.amazon.com/connect/latest/adminguide/real-time-metrics-reports.html)
+// in the Amazon Connect Administrator Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -625,20 +624,20 @@ func (c *Connect) GetCurrentMetricDataRequest(input *GetCurrentMetricDataInput) 
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation GetCurrentMetricData for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/GetCurrentMetricData
@@ -674,7 +673,7 @@ func (c *Connect) GetCurrentMetricDataWithContext(ctx aws.Context, input *GetCur
 //    // Example iterating over at most 3 pages of a GetCurrentMetricData operation.
 //    pageNum := 0
 //    err := client.GetCurrentMetricDataPages(params,
-//        func(page *GetCurrentMetricDataOutput, lastPage bool) bool {
+//        func(page *connect.GetCurrentMetricDataOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -706,10 +705,12 @@ func (c *Connect) GetCurrentMetricDataPagesWithContext(ctx aws.Context, input *G
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*GetCurrentMetricDataOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*GetCurrentMetricDataOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -766,24 +767,24 @@ func (c *Connect) GetFederationTokenRequest(input *GetFederationTokenInput) (req
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation GetFederationToken for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeUserNotFoundException "UserNotFoundException"
+//   * UserNotFoundException
 //   No user with the specified credentials was found in the Amazon Connect instance.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
-//   * ErrCodeDuplicateResourceException "DuplicateResourceException"
-//   A resource with that name already exists.
+//   * DuplicateResourceException
+//   A resource with the specified name already exists.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/GetFederationToken
 func (c *Connect) GetFederationToken(input *GetFederationTokenInput) (*GetFederationTokenOutput, error) {
@@ -857,11 +858,10 @@ func (c *Connect) GetMetricDataRequest(input *GetMetricDataInput) (req *request.
 
 // GetMetricData API operation for Amazon Connect Service.
 //
-// The GetMetricData operation retrieves historical metrics data from your Amazon
-// Connect instance.
+// Gets historical metric data from the specified Amazon Connect instance.
 //
-// If you are using an IAM account, it must have permission to the connect:GetMetricData
-// action.
+// For more information, see Historical Metrics Reports (https://docs.aws.amazon.com/connect/latest/adminguide/historical-metrics.html)
+// in the Amazon Connect Administrator Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -870,20 +870,20 @@ func (c *Connect) GetMetricDataRequest(input *GetMetricDataInput) (req *request.
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation GetMetricData for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/GetMetricData
@@ -919,7 +919,7 @@ func (c *Connect) GetMetricDataWithContext(ctx aws.Context, input *GetMetricData
 //    // Example iterating over at most 3 pages of a GetMetricData operation.
 //    pageNum := 0
 //    err := client.GetMetricDataPages(params,
-//        func(page *GetMetricDataOutput, lastPage bool) bool {
+//        func(page *connect.GetMetricDataOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -951,10 +951,611 @@ func (c *Connect) GetMetricDataPagesWithContext(ctx aws.Context, input *GetMetri
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*GetMetricDataOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*GetMetricDataOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
+	return p.Err()
+}
+
+const opListContactFlows = "ListContactFlows"
+
+// ListContactFlowsRequest generates a "aws/request.Request" representing the
+// client's request for the ListContactFlows operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListContactFlows for more information on using the ListContactFlows
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListContactFlowsRequest method.
+//    req, resp := client.ListContactFlowsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListContactFlows
+func (c *Connect) ListContactFlowsRequest(input *ListContactFlowsInput) (req *request.Request, output *ListContactFlowsOutput) {
+	op := &request.Operation{
+		Name:       opListContactFlows,
+		HTTPMethod: "GET",
+		HTTPPath:   "/contact-flows-summary/{InstanceId}",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListContactFlowsInput{}
+	}
+
+	output = &ListContactFlowsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListContactFlows API operation for Amazon Connect Service.
+//
+// Provides information about the contact flows for the specified Amazon Connect
+// instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation ListContactFlows for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * ThrottlingException
+//   The throttling limit has been exceeded.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListContactFlows
+func (c *Connect) ListContactFlows(input *ListContactFlowsInput) (*ListContactFlowsOutput, error) {
+	req, out := c.ListContactFlowsRequest(input)
+	return out, req.Send()
+}
+
+// ListContactFlowsWithContext is the same as ListContactFlows with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListContactFlows for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListContactFlowsWithContext(ctx aws.Context, input *ListContactFlowsInput, opts ...request.Option) (*ListContactFlowsOutput, error) {
+	req, out := c.ListContactFlowsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListContactFlowsPages iterates over the pages of a ListContactFlows operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListContactFlows method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListContactFlows operation.
+//    pageNum := 0
+//    err := client.ListContactFlowsPages(params,
+//        func(page *connect.ListContactFlowsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Connect) ListContactFlowsPages(input *ListContactFlowsInput, fn func(*ListContactFlowsOutput, bool) bool) error {
+	return c.ListContactFlowsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListContactFlowsPagesWithContext same as ListContactFlowsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListContactFlowsPagesWithContext(ctx aws.Context, input *ListContactFlowsInput, fn func(*ListContactFlowsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListContactFlowsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListContactFlowsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListContactFlowsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opListHoursOfOperations = "ListHoursOfOperations"
+
+// ListHoursOfOperationsRequest generates a "aws/request.Request" representing the
+// client's request for the ListHoursOfOperations operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListHoursOfOperations for more information on using the ListHoursOfOperations
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListHoursOfOperationsRequest method.
+//    req, resp := client.ListHoursOfOperationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListHoursOfOperations
+func (c *Connect) ListHoursOfOperationsRequest(input *ListHoursOfOperationsInput) (req *request.Request, output *ListHoursOfOperationsOutput) {
+	op := &request.Operation{
+		Name:       opListHoursOfOperations,
+		HTTPMethod: "GET",
+		HTTPPath:   "/hours-of-operations-summary/{InstanceId}",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListHoursOfOperationsInput{}
+	}
+
+	output = &ListHoursOfOperationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListHoursOfOperations API operation for Amazon Connect Service.
+//
+// Provides information about the hours of operation for the specified Amazon
+// Connect instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation ListHoursOfOperations for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * ThrottlingException
+//   The throttling limit has been exceeded.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListHoursOfOperations
+func (c *Connect) ListHoursOfOperations(input *ListHoursOfOperationsInput) (*ListHoursOfOperationsOutput, error) {
+	req, out := c.ListHoursOfOperationsRequest(input)
+	return out, req.Send()
+}
+
+// ListHoursOfOperationsWithContext is the same as ListHoursOfOperations with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListHoursOfOperations for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListHoursOfOperationsWithContext(ctx aws.Context, input *ListHoursOfOperationsInput, opts ...request.Option) (*ListHoursOfOperationsOutput, error) {
+	req, out := c.ListHoursOfOperationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListHoursOfOperationsPages iterates over the pages of a ListHoursOfOperations operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListHoursOfOperations method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListHoursOfOperations operation.
+//    pageNum := 0
+//    err := client.ListHoursOfOperationsPages(params,
+//        func(page *connect.ListHoursOfOperationsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Connect) ListHoursOfOperationsPages(input *ListHoursOfOperationsInput, fn func(*ListHoursOfOperationsOutput, bool) bool) error {
+	return c.ListHoursOfOperationsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListHoursOfOperationsPagesWithContext same as ListHoursOfOperationsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListHoursOfOperationsPagesWithContext(ctx aws.Context, input *ListHoursOfOperationsInput, fn func(*ListHoursOfOperationsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListHoursOfOperationsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListHoursOfOperationsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListHoursOfOperationsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opListPhoneNumbers = "ListPhoneNumbers"
+
+// ListPhoneNumbersRequest generates a "aws/request.Request" representing the
+// client's request for the ListPhoneNumbers operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListPhoneNumbers for more information on using the ListPhoneNumbers
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListPhoneNumbersRequest method.
+//    req, resp := client.ListPhoneNumbersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListPhoneNumbers
+func (c *Connect) ListPhoneNumbersRequest(input *ListPhoneNumbersInput) (req *request.Request, output *ListPhoneNumbersOutput) {
+	op := &request.Operation{
+		Name:       opListPhoneNumbers,
+		HTTPMethod: "GET",
+		HTTPPath:   "/phone-numbers-summary/{InstanceId}",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListPhoneNumbersInput{}
+	}
+
+	output = &ListPhoneNumbersOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListPhoneNumbers API operation for Amazon Connect Service.
+//
+// Provides information about the phone numbers for the specified Amazon Connect
+// instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation ListPhoneNumbers for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * ThrottlingException
+//   The throttling limit has been exceeded.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListPhoneNumbers
+func (c *Connect) ListPhoneNumbers(input *ListPhoneNumbersInput) (*ListPhoneNumbersOutput, error) {
+	req, out := c.ListPhoneNumbersRequest(input)
+	return out, req.Send()
+}
+
+// ListPhoneNumbersWithContext is the same as ListPhoneNumbers with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListPhoneNumbers for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListPhoneNumbersWithContext(ctx aws.Context, input *ListPhoneNumbersInput, opts ...request.Option) (*ListPhoneNumbersOutput, error) {
+	req, out := c.ListPhoneNumbersRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListPhoneNumbersPages iterates over the pages of a ListPhoneNumbers operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListPhoneNumbers method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListPhoneNumbers operation.
+//    pageNum := 0
+//    err := client.ListPhoneNumbersPages(params,
+//        func(page *connect.ListPhoneNumbersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Connect) ListPhoneNumbersPages(input *ListPhoneNumbersInput, fn func(*ListPhoneNumbersOutput, bool) bool) error {
+	return c.ListPhoneNumbersPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListPhoneNumbersPagesWithContext same as ListPhoneNumbersPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListPhoneNumbersPagesWithContext(ctx aws.Context, input *ListPhoneNumbersInput, fn func(*ListPhoneNumbersOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListPhoneNumbersInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListPhoneNumbersRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListPhoneNumbersOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opListQueues = "ListQueues"
+
+// ListQueuesRequest generates a "aws/request.Request" representing the
+// client's request for the ListQueues operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListQueues for more information on using the ListQueues
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListQueuesRequest method.
+//    req, resp := client.ListQueuesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListQueues
+func (c *Connect) ListQueuesRequest(input *ListQueuesInput) (req *request.Request, output *ListQueuesOutput) {
+	op := &request.Operation{
+		Name:       opListQueues,
+		HTTPMethod: "GET",
+		HTTPPath:   "/queues-summary/{InstanceId}",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListQueuesInput{}
+	}
+
+	output = &ListQueuesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListQueues API operation for Amazon Connect Service.
+//
+// Provides information about the queues for the specified Amazon Connect instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation ListQueues for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * ThrottlingException
+//   The throttling limit has been exceeded.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListQueues
+func (c *Connect) ListQueues(input *ListQueuesInput) (*ListQueuesOutput, error) {
+	req, out := c.ListQueuesRequest(input)
+	return out, req.Send()
+}
+
+// ListQueuesWithContext is the same as ListQueues with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListQueues for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListQueuesWithContext(ctx aws.Context, input *ListQueuesInput, opts ...request.Option) (*ListQueuesOutput, error) {
+	req, out := c.ListQueuesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListQueuesPages iterates over the pages of a ListQueues operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListQueues method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListQueues operation.
+//    pageNum := 0
+//    err := client.ListQueuesPages(params,
+//        func(page *connect.ListQueuesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Connect) ListQueuesPages(input *ListQueuesInput, fn func(*ListQueuesOutput, bool) bool) error {
+	return c.ListQueuesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListQueuesPagesWithContext same as ListQueuesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListQueuesPagesWithContext(ctx aws.Context, input *ListQueuesInput, fn func(*ListQueuesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListQueuesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListQueuesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListQueuesOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
 	return p.Err()
 }
 
@@ -989,6 +1590,12 @@ func (c *Connect) ListRoutingProfilesRequest(input *ListRoutingProfilesInput) (r
 		Name:       opListRoutingProfiles,
 		HTTPMethod: "GET",
 		HTTPPath:   "/routing-profiles-summary/{InstanceId}",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1002,8 +1609,8 @@ func (c *Connect) ListRoutingProfilesRequest(input *ListRoutingProfilesInput) (r
 
 // ListRoutingProfiles API operation for Amazon Connect Service.
 //
-// Returns an array of RoutingProfileSummary objects that includes information
-// about the routing profiles in your instance.
+// Provides summary information about the routing profiles for the specified
+// Amazon Connect instance.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1012,20 +1619,20 @@ func (c *Connect) ListRoutingProfilesRequest(input *ListRoutingProfilesInput) (r
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation ListRoutingProfiles for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListRoutingProfiles
@@ -1048,6 +1655,58 @@ func (c *Connect) ListRoutingProfilesWithContext(ctx aws.Context, input *ListRou
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+// ListRoutingProfilesPages iterates over the pages of a ListRoutingProfiles operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListRoutingProfiles method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListRoutingProfiles operation.
+//    pageNum := 0
+//    err := client.ListRoutingProfilesPages(params,
+//        func(page *connect.ListRoutingProfilesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Connect) ListRoutingProfilesPages(input *ListRoutingProfilesInput, fn func(*ListRoutingProfilesOutput, bool) bool) error {
+	return c.ListRoutingProfilesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListRoutingProfilesPagesWithContext same as ListRoutingProfilesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListRoutingProfilesPagesWithContext(ctx aws.Context, input *ListRoutingProfilesInput, fn func(*ListRoutingProfilesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListRoutingProfilesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListRoutingProfilesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListRoutingProfilesOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
 }
 
 const opListSecurityProfiles = "ListSecurityProfiles"
@@ -1081,6 +1740,12 @@ func (c *Connect) ListSecurityProfilesRequest(input *ListSecurityProfilesInput) 
 		Name:       opListSecurityProfiles,
 		HTTPMethod: "GET",
 		HTTPPath:   "/security-profiles-summary/{InstanceId}",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1094,9 +1759,8 @@ func (c *Connect) ListSecurityProfilesRequest(input *ListSecurityProfilesInput) 
 
 // ListSecurityProfiles API operation for Amazon Connect Service.
 //
-// Returns an array of SecurityProfileSummary objects that contain information
-// about the security profiles in your instance, including the ARN, Id, and
-// Name of the security profile.
+// Provides summary information about the security profiles for the specified
+// Amazon Connect instance.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1105,20 +1769,20 @@ func (c *Connect) ListSecurityProfilesRequest(input *ListSecurityProfilesInput) 
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation ListSecurityProfiles for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListSecurityProfiles
@@ -1138,6 +1802,149 @@ func (c *Connect) ListSecurityProfiles(input *ListSecurityProfilesInput) (*ListS
 // for more information on using Contexts.
 func (c *Connect) ListSecurityProfilesWithContext(ctx aws.Context, input *ListSecurityProfilesInput, opts ...request.Option) (*ListSecurityProfilesOutput, error) {
 	req, out := c.ListSecurityProfilesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListSecurityProfilesPages iterates over the pages of a ListSecurityProfiles operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListSecurityProfiles method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListSecurityProfiles operation.
+//    pageNum := 0
+//    err := client.ListSecurityProfilesPages(params,
+//        func(page *connect.ListSecurityProfilesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Connect) ListSecurityProfilesPages(input *ListSecurityProfilesInput, fn func(*ListSecurityProfilesOutput, bool) bool) error {
+	return c.ListSecurityProfilesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListSecurityProfilesPagesWithContext same as ListSecurityProfilesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListSecurityProfilesPagesWithContext(ctx aws.Context, input *ListSecurityProfilesInput, fn func(*ListSecurityProfilesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListSecurityProfilesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListSecurityProfilesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListSecurityProfilesOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opListTagsForResource = "ListTagsForResource"
+
+// ListTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListTagsForResourceRequest method.
+//    req, resp := client.ListTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListTagsForResource
+func (c *Connect) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
+	op := &request.Operation{
+		Name:       opListTagsForResource,
+		HTTPMethod: "GET",
+		HTTPPath:   "/tags/{resourceArn}",
+	}
+
+	if input == nil {
+		input = &ListTagsForResourceInput{}
+	}
+
+	output = &ListTagsForResourceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTagsForResource API operation for Amazon Connect Service.
+//
+// Lists the tags for the specified resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation ListTagsForResource for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * ThrottlingException
+//   The throttling limit has been exceeded.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListTagsForResource
+func (c *Connect) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	return out, req.Send()
+}
+
+// ListTagsForResourceWithContext is the same as ListTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListTagsForResourceWithContext(ctx aws.Context, input *ListTagsForResourceInput, opts ...request.Option) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1174,6 +1981,12 @@ func (c *Connect) ListUserHierarchyGroupsRequest(input *ListUserHierarchyGroupsI
 		Name:       opListUserHierarchyGroups,
 		HTTPMethod: "GET",
 		HTTPPath:   "/user-hierarchy-groups-summary/{InstanceId}",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1187,8 +2000,8 @@ func (c *Connect) ListUserHierarchyGroupsRequest(input *ListUserHierarchyGroupsI
 
 // ListUserHierarchyGroups API operation for Amazon Connect Service.
 //
-// Returns a UserHierarchyGroupSummaryList, which is an array of HierarchyGroupSummary
-// objects that contain information about the hierarchy groups in your instance.
+// Provides summary information about the hierarchy groups for the specified
+// Amazon Connect instance.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1197,20 +2010,20 @@ func (c *Connect) ListUserHierarchyGroupsRequest(input *ListUserHierarchyGroupsI
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation ListUserHierarchyGroups for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListUserHierarchyGroups
@@ -1233,6 +2046,58 @@ func (c *Connect) ListUserHierarchyGroupsWithContext(ctx aws.Context, input *Lis
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+// ListUserHierarchyGroupsPages iterates over the pages of a ListUserHierarchyGroups operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListUserHierarchyGroups method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListUserHierarchyGroups operation.
+//    pageNum := 0
+//    err := client.ListUserHierarchyGroupsPages(params,
+//        func(page *connect.ListUserHierarchyGroupsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Connect) ListUserHierarchyGroupsPages(input *ListUserHierarchyGroupsInput, fn func(*ListUserHierarchyGroupsOutput, bool) bool) error {
+	return c.ListUserHierarchyGroupsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListUserHierarchyGroupsPagesWithContext same as ListUserHierarchyGroupsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListUserHierarchyGroupsPagesWithContext(ctx aws.Context, input *ListUserHierarchyGroupsInput, fn func(*ListUserHierarchyGroupsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListUserHierarchyGroupsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListUserHierarchyGroupsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListUserHierarchyGroupsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
 }
 
 const opListUsers = "ListUsers"
@@ -1266,6 +2131,12 @@ func (c *Connect) ListUsersRequest(input *ListUsersInput) (req *request.Request,
 		Name:       opListUsers,
 		HTTPMethod: "GET",
 		HTTPPath:   "/users-summary/{InstanceId}",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1279,7 +2150,8 @@ func (c *Connect) ListUsersRequest(input *ListUsersInput) (req *request.Request,
 
 // ListUsers API operation for Amazon Connect Service.
 //
-// Returns a UserSummaryList, which is an array of UserSummary objects.
+// Provides summary information about the users for the specified Amazon Connect
+// instance.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1288,20 +2160,20 @@ func (c *Connect) ListUsersRequest(input *ListUsersInput) (req *request.Request,
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation ListUsers for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ListUsers
@@ -1321,6 +2193,157 @@ func (c *Connect) ListUsers(input *ListUsersInput) (*ListUsersOutput, error) {
 // for more information on using Contexts.
 func (c *Connect) ListUsersWithContext(ctx aws.Context, input *ListUsersInput, opts ...request.Option) (*ListUsersOutput, error) {
 	req, out := c.ListUsersRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListUsersPages iterates over the pages of a ListUsers operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListUsers method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListUsers operation.
+//    pageNum := 0
+//    err := client.ListUsersPages(params,
+//        func(page *connect.ListUsersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Connect) ListUsersPages(input *ListUsersInput, fn func(*ListUsersOutput, bool) bool) error {
+	return c.ListUsersPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListUsersPagesWithContext same as ListUsersPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ListUsersPagesWithContext(ctx aws.Context, input *ListUsersInput, fn func(*ListUsersOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListUsersInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListUsersRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListUsersOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opStartChatContact = "StartChatContact"
+
+// StartChatContactRequest generates a "aws/request.Request" representing the
+// client's request for the StartChatContact operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartChatContact for more information on using the StartChatContact
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartChatContactRequest method.
+//    req, resp := client.StartChatContactRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/StartChatContact
+func (c *Connect) StartChatContactRequest(input *StartChatContactInput) (req *request.Request, output *StartChatContactOutput) {
+	op := &request.Operation{
+		Name:       opStartChatContact,
+		HTTPMethod: "PUT",
+		HTTPPath:   "/contact/chat",
+	}
+
+	if input == nil {
+		input = &StartChatContactInput{}
+	}
+
+	output = &StartChatContactOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartChatContact API operation for Amazon Connect Service.
+//
+// Initiates a contact flow to start a new chat for the customer. Response of
+// this API provides a token required to obtain credentials from the CreateParticipantConnection
+// (https://docs.aws.amazon.com/connect-participant/latest/APIReference/API_CreateParticipantConnection.html)
+// API in the Amazon Connect Participant Service.
+//
+// When a new chat contact is successfully created, clients need to subscribe
+// to the participant’s connection for the created chat within 5 minutes.
+// This is achieved by invoking CreateParticipantConnection (https://docs.aws.amazon.com/connect-participant/latest/APIReference/API_CreateParticipantConnection.html)
+// with WEBSOCKET and CONNECTION_CREDENTIALS.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation StartChatContact for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+//   * LimitExceededException
+//   The allowed limit for the resource has been exceeded.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/StartChatContact
+func (c *Connect) StartChatContact(input *StartChatContactInput) (*StartChatContactOutput, error) {
+	req, out := c.StartChatContactRequest(input)
+	return out, req.Send()
+}
+
+// StartChatContactWithContext is the same as StartChatContact with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartChatContact for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) StartChatContactWithContext(ctx aws.Context, input *StartChatContactInput, opts ...request.Option) (*StartChatContactOutput, error) {
+	req, out := c.StartChatContactRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1370,14 +2393,10 @@ func (c *Connect) StartOutboundVoiceContactRequest(input *StartOutboundVoiceCont
 
 // StartOutboundVoiceContact API operation for Amazon Connect Service.
 //
-// The StartOutboundVoiceContact operation initiates a contact flow to place
-// an outbound call to a customer.
-//
-// If you are using an IAM account, it must have permission to the connect:StartOutboundVoiceContact
-// action.
+// Initiates a contact flow to place an outbound call to a customer.
 //
 // There is a 60 second dialing timeout for this operation. If the call is not
-// connected after 60 seconds, the call fails.
+// connected after 60 seconds, it fails.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1386,26 +2405,26 @@ func (c *Connect) StartOutboundVoiceContactRequest(input *StartOutboundVoiceCont
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation StartOutboundVoiceContact for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   The allowed limit for the resource has been reached.
+//   * LimitExceededException
+//   The allowed limit for the resource has been exceeded.
 //
-//   * ErrCodeDestinationNotAllowedException "DestinationNotAllowedException"
+//   * DestinationNotAllowedException
 //   Outbound calls to the destination number are not allowed.
 //
-//   * ErrCodeOutboundContactNotPermittedException "OutboundContactNotPermittedException"
+//   * OutboundContactNotPermittedException
 //   The contact is not permitted.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/StartOutboundVoiceContact
@@ -1475,10 +2494,7 @@ func (c *Connect) StopContactRequest(input *StopContactInput) (req *request.Requ
 
 // StopContact API operation for Amazon Connect Service.
 //
-// Ends the contact initiated by the StartOutboundVoiceContact operation.
-//
-// If you are using an IAM account, it must have permission to the connect:StopContact
-// action.
+// Ends the specified contact.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1487,20 +2503,20 @@ func (c *Connect) StopContactRequest(input *StopContactInput) (req *request.Requ
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation StopContact for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeContactNotFoundException "ContactNotFoundException"
+//   * ContactNotFoundException
 //   The contact with the specified ID is not active or does not exist.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/StopContact
@@ -1520,6 +2536,192 @@ func (c *Connect) StopContact(input *StopContactInput) (*StopContactOutput, erro
 // for more information on using Contexts.
 func (c *Connect) StopContactWithContext(ctx aws.Context, input *StopContactInput, opts ...request.Option) (*StopContactOutput, error) {
 	req, out := c.StopContactRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagResource = "TagResource"
+
+// TagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the TagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagResource for more information on using the TagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagResourceRequest method.
+//    req, resp := client.TagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/TagResource
+func (c *Connect) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
+	op := &request.Operation{
+		Name:       opTagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/tags/{resourceArn}",
+	}
+
+	if input == nil {
+		input = &TagResourceInput{}
+	}
+
+	output = &TagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagResource API operation for Amazon Connect Service.
+//
+// Adds the specified tags to the specified resource.
+//
+// The supported resource type is users.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation TagResource for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * ThrottlingException
+//   The throttling limit has been exceeded.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/TagResource
+func (c *Connect) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	return out, req.Send()
+}
+
+// TagResourceWithContext is the same as TagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) TagResourceWithContext(ctx aws.Context, input *TagResourceInput, opts ...request.Option) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagResource = "UntagResource"
+
+// UntagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UntagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagResource for more information on using the UntagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagResourceRequest method.
+//    req, resp := client.UntagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/UntagResource
+func (c *Connect) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
+	op := &request.Operation{
+		Name:       opUntagResource,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/tags/{resourceArn}",
+	}
+
+	if input == nil {
+		input = &UntagResourceInput{}
+	}
+
+	output = &UntagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagResource API operation for Amazon Connect Service.
+//
+// Removes the specified tags from the specified resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation UntagResource for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * ThrottlingException
+//   The throttling limit has been exceeded.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/UntagResource
+func (c *Connect) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	return out, req.Send()
+}
+
+// UntagResourceWithContext is the same as UntagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) UntagResourceWithContext(ctx aws.Context, input *UntagResourceInput, opts ...request.Option) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1570,29 +2772,27 @@ func (c *Connect) UpdateContactAttributesRequest(input *UpdateContactAttributesI
 
 // UpdateContactAttributes API operation for Amazon Connect Service.
 //
-// The UpdateContactAttributes operation lets you programmatically create new,
-// or update existing, contact attributes associated with a contact. You can
-// use the operation to add or update attributes for both ongoing and completed
-// contacts. For example, you can update the customer's name or the reason the
-// customer called while the call is active, or add notes about steps that the
-// agent took during the call that are displayed to the next agent that takes
-// the call. You can also use the UpdateContactAttributes operation to update
-// attributes for a contact using data from your CRM application and save the
-// data with the contact in Amazon Connect. You could also flag calls for additional
-// analysis, such as legal review or identifying abusive callers.
+// Creates or updates the contact attributes associated with the specified contact.
+//
+// You can add or update attributes for both ongoing and completed contacts.
+// For example, you can update the customer's name or the reason the customer
+// called while the call is active, or add notes about steps that the agent
+// took during the call that are displayed to the next agent that takes the
+// call. You can also update attributes for a contact using data from your CRM
+// application and save the data with the contact in Amazon Connect. You could
+// also flag calls for additional analysis, such as legal review or identifying
+// abusive callers.
 //
 // Contact attributes are available in Amazon Connect for 24 months, and are
 // then deleted.
 //
-// Important:
-//
-// You cannot use the operation to update attributes for contacts that occurred
-// prior to the release of the API, September 12, 2018. You can update attributes
-// only for contacts that started after the release of the API. If you attempt
-// to update attributes for a contact that occurred prior to the release of
-// the API, a 400 error is returned. This applies also to queued callbacks that
-// were initiated prior to the release of the API but are still active in your
-// instance.
+// Important: You cannot use the operation to update attributes for contacts
+// that occurred prior to the release of the API, September 12, 2018. You can
+// update attributes only for contacts that started after the release of the
+// API. If you attempt to update attributes for a contact that occurred prior
+// to the release of the API, a 400 error is returned. This applies also to
+// queued callbacks that were initiated prior to the release of the API but
+// are still active in your instance.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1601,17 +2801,17 @@ func (c *Connect) UpdateContactAttributesRequest(input *UpdateContactAttributesI
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation UpdateContactAttributes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/UpdateContactAttributes
@@ -1681,7 +2881,7 @@ func (c *Connect) UpdateUserHierarchyRequest(input *UpdateUserHierarchyInput) (r
 
 // UpdateUserHierarchy API operation for Amazon Connect Service.
 //
-// Assigns the specified hierarchy group to the user.
+// Assigns the specified hierarchy group to the specified user.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1690,20 +2890,20 @@ func (c *Connect) UpdateUserHierarchyRequest(input *UpdateUserHierarchyInput) (r
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation UpdateUserHierarchy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/UpdateUserHierarchy
@@ -1773,8 +2973,7 @@ func (c *Connect) UpdateUserIdentityInfoRequest(input *UpdateUserIdentityInfoInp
 
 // UpdateUserIdentityInfo API operation for Amazon Connect Service.
 //
-// Updates the identity information for the specified user in a UserIdentityInfo
-// object, including email, first name, and last name.
+// Updates the identity information for the specified user.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1783,20 +2982,20 @@ func (c *Connect) UpdateUserIdentityInfoRequest(input *UpdateUserIdentityInfoInp
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation UpdateUserIdentityInfo for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/UpdateUserIdentityInfo
@@ -1866,8 +3065,7 @@ func (c *Connect) UpdateUserPhoneConfigRequest(input *UpdateUserPhoneConfigInput
 
 // UpdateUserPhoneConfig API operation for Amazon Connect Service.
 //
-// Updates the phone configuration settings in the UserPhoneConfig object for
-// the specified user.
+// Updates the phone configuration settings for the specified user.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1876,20 +3074,20 @@ func (c *Connect) UpdateUserPhoneConfigRequest(input *UpdateUserPhoneConfigInput
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation UpdateUserPhoneConfig for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/UpdateUserPhoneConfig
@@ -1959,7 +3157,7 @@ func (c *Connect) UpdateUserRoutingProfileRequest(input *UpdateUserRoutingProfil
 
 // UpdateUserRoutingProfile API operation for Amazon Connect Service.
 //
-// Assigns the specified routing profile to a user.
+// Assigns the specified routing profile to the specified user.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1968,20 +3166,20 @@ func (c *Connect) UpdateUserRoutingProfileRequest(input *UpdateUserRoutingProfil
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation UpdateUserRoutingProfile for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/UpdateUserRoutingProfile
@@ -2051,7 +3249,7 @@ func (c *Connect) UpdateUserSecurityProfilesRequest(input *UpdateUserSecurityPro
 
 // UpdateUserSecurityProfiles API operation for Amazon Connect Service.
 //
-// Updates the security profiles assigned to the user.
+// Assigns the specified security profiles to the specified user.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2060,20 +3258,20 @@ func (c *Connect) UpdateUserSecurityProfilesRequest(input *UpdateUserSecurityPro
 // See the AWS API reference guide for Amazon Connect Service's
 // API operation UpdateUserSecurityProfiles for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is not valid.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
-//   One or more of the parameters provided to the operation are not valid.
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The throttling limit has been exceeded.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Request processing failed due to an error or failure with the service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/UpdateUserSecurityProfiles
@@ -2098,62 +3296,226 @@ func (c *Connect) UpdateUserSecurityProfilesWithContext(ctx aws.Context, input *
 	return out, req.Send()
 }
 
+// A chat message.
+type ChatMessage struct {
+	_ struct{} `type:"structure"`
+
+	// The content of the chat message.
+	//
+	// Content is a required field
+	Content *string `min:"1" type:"string" required:"true"`
+
+	// The type of the content. Supported types are text/plain.
+	//
+	// ContentType is a required field
+	ContentType *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ChatMessage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ChatMessage) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChatMessage) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChatMessage"}
+	if s.Content == nil {
+		invalidParams.Add(request.NewErrParamRequired("Content"))
+	}
+	if s.Content != nil && len(*s.Content) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Content", 1))
+	}
+	if s.ContentType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContentType"))
+	}
+	if s.ContentType != nil && len(*s.ContentType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ContentType", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContent sets the Content field's value.
+func (s *ChatMessage) SetContent(v string) *ChatMessage {
+	s.Content = &v
+	return s
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *ChatMessage) SetContentType(v string) *ChatMessage {
+	s.ContentType = &v
+	return s
+}
+
+// Contains summary information about a contact flow.
+type ContactFlowSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the contact flow.
+	Arn *string `type:"string"`
+
+	// The type of contact flow.
+	ContactFlowType *string `type:"string" enum:"ContactFlowType"`
+
+	// The identifier of the contact flow.
+	Id *string `type:"string"`
+
+	// The name of the contact flow.
+	Name *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ContactFlowSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ContactFlowSummary) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *ContactFlowSummary) SetArn(v string) *ContactFlowSummary {
+	s.Arn = &v
+	return s
+}
+
+// SetContactFlowType sets the ContactFlowType field's value.
+func (s *ContactFlowSummary) SetContactFlowType(v string) *ContactFlowSummary {
+	s.ContactFlowType = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *ContactFlowSummary) SetId(v string) *ContactFlowSummary {
+	s.Id = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ContactFlowSummary) SetName(v string) *ContactFlowSummary {
+	s.Name = &v
+	return s
+}
+
+// The contact with the specified ID is not active or does not exist.
+type ContactNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ContactNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ContactNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorContactNotFoundException(v protocol.ResponseMetadata) error {
+	return &ContactNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ContactNotFoundException) Code() string {
+	return "ContactNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ContactNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ContactNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ContactNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ContactNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ContactNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type CreateUserInput struct {
 	_ struct{} `type:"structure"`
 
-	// The unique identifier for the user account in the directory service directory
-	// used for identity management. If Amazon Connect is unable to access the existing
-	// directory, you can use the DirectoryUserId to authenticate users. If you
-	// include the parameter, it is assumed that Amazon Connect cannot access the
-	// directory. If the parameter is not included, the UserIdentityInfo is used
-	// to authenticate users from your existing directory.
+	// The identifier of the user account in the directory used for identity management.
+	// If Amazon Connect cannot access the directory, you can specify this identifier
+	// to authenticate users. If you include the identifier, we assume that Amazon
+	// Connect cannot access the directory. Otherwise, the identity information
+	// is used to authenticate users from your directory.
 	//
 	// This parameter is required if you are using an existing directory for identity
 	// management in Amazon Connect when Amazon Connect cannot access your directory
 	// to authenticate users. If you are using SAML for identity management and
-	// include this parameter, an InvalidRequestException is returned.
+	// include this parameter, an error is returned.
 	DirectoryUserId *string `type:"string"`
 
-	// The unique identifier for the hierarchy group to assign to the user created.
+	// The identifier of the hierarchy group for the user.
 	HierarchyGroupId *string `type:"string"`
 
-	// Information about the user, including email address, first name, and last
-	// name.
+	// The information about the identity of the user.
 	IdentityInfo *UserIdentityInfo `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// The password for the user account to create. This is required if you are
-	// using Amazon Connect for identity management. If you are using SAML for identity
-	// management and include this parameter, an InvalidRequestException is returned.
+	// The password for the user account. A password is required if you are using
+	// Amazon Connect for identity management. Otherwise, it is an error to include
+	// a password.
 	Password *string `type:"string"`
 
-	// Specifies the phone settings for the user, including AfterContactWorkTimeLimit,
-	// AutoAccept, DeskPhoneNumber, and PhoneType.
+	// The phone settings for the user.
 	//
 	// PhoneConfig is a required field
 	PhoneConfig *UserPhoneConfig `type:"structure" required:"true"`
 
-	// The unique identifier for the routing profile to assign to the user created.
+	// The identifier of the routing profile for the user.
 	//
 	// RoutingProfileId is a required field
 	RoutingProfileId *string `type:"string" required:"true"`
 
-	// The unique identifier of the security profile to assign to the user created.
+	// The identifier of the security profile for the user.
 	//
 	// SecurityProfileIds is a required field
 	SecurityProfileIds []*string `min:"1" type:"list" required:"true"`
 
-	// The user name in Amazon Connect for the account to create. If you are using
-	// SAML for identity management in your Amazon Connect, the value for Username
-	// can include up to 64 characters from [a-zA-Z0-9_-.\@]+.
+	// One or more tags.
+	Tags map[string]*string `min:"1" type:"map"`
+
+	// The user name for the account. For instances not using SAML for identity
+	// management, the user name can include up to 20 characters. If you are using
+	// SAML for identity management, the user name can include up to 64 characters
+	// from [a-zA-Z0-9_-.\@]+.
 	//
 	// Username is a required field
 	Username *string `min:"1" type:"string" required:"true"`
@@ -2189,6 +3551,9 @@ func (s *CreateUserInput) Validate() error {
 	}
 	if s.SecurityProfileIds != nil && len(s.SecurityProfileIds) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("SecurityProfileIds", 1))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
 	}
 	if s.Username == nil {
 		invalidParams.Add(request.NewErrParamRequired("Username"))
@@ -2261,6 +3626,12 @@ func (s *CreateUserInput) SetSecurityProfileIds(v []*string) *CreateUserInput {
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *CreateUserInput) SetTags(v map[string]*string) *CreateUserInput {
+	s.Tags = v
+	return s
+}
+
 // SetUsername sets the Username field's value.
 func (s *CreateUserInput) SetUsername(v string) *CreateUserInput {
 	s.Username = &v
@@ -2270,10 +3641,10 @@ func (s *CreateUserInput) SetUsername(v string) *CreateUserInput {
 type CreateUserOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the user account created.
+	// The Amazon Resource Name (ARN) of the user account.
 	UserArn *string `type:"string"`
 
-	// The unique identifier for the user account in Amazon Connect
+	// The identifier of the user account.
 	UserId *string `type:"string"`
 }
 
@@ -2299,15 +3670,15 @@ func (s *CreateUserOutput) SetUserId(v string) *CreateUserOutput {
 	return s
 }
 
-// The credentials to use for federation.
+// Contains credentials to use for federation.
 type Credentials struct {
 	_ struct{} `type:"structure"`
 
-	// An access token generated for a federated user to access Amazon Connect
+	// An access token generated for a federated user to access Amazon Connect.
 	AccessToken *string `type:"string" sensitive:"true"`
 
 	// A token generated with an expiration time for the session a user is logged
-	// in to Amazon Connect
+	// in to Amazon Connect.
 	AccessTokenExpiration *time.Time `type:"timestamp"`
 
 	// Renews a token generated for a user to access the Amazon Connect instance.
@@ -2351,7 +3722,7 @@ func (s *Credentials) SetRefreshTokenExpiration(v time.Time) *Credentials {
 	return s
 }
 
-// A CurrentMetric object that contains the Name and Unit for the metric.
+// Contains information about a real-time metric.
 type CurrentMetric struct {
 	_ struct{} `type:"structure"`
 
@@ -2384,14 +3755,14 @@ func (s *CurrentMetric) SetUnit(v string) *CurrentMetric {
 	return s
 }
 
-// A CurrentMetricData object.
+// Contains the data for a real-time metric.
 type CurrentMetricData struct {
 	_ struct{} `type:"structure"`
 
-	// The metric in a CurrentMetricData object.
+	// Information about the metric.
 	Metric *CurrentMetric `type:"structure"`
 
-	// The value of the metric in the CurrentMetricData object.
+	// The value of the metric.
 	Value *float64 `type:"double"`
 }
 
@@ -2417,14 +3788,14 @@ func (s *CurrentMetricData) SetValue(v float64) *CurrentMetricData {
 	return s
 }
 
-// A CurrentMetricResult object.
+// Contains information about a set of real-time metrics.
 type CurrentMetricResult struct {
 	_ struct{} `type:"structure"`
 
-	// The Collections for the CurrentMetricResult object.
+	// The set of metrics.
 	Collections []*CurrentMetricData `type:"list"`
 
-	// The Dimensions for the CurrentMetricResult object.
+	// The dimensions for the metrics.
 	Dimensions *Dimensions `type:"structure"`
 }
 
@@ -2453,16 +3824,12 @@ func (s *CurrentMetricResult) SetDimensions(v *Dimensions) *CurrentMetricResult 
 type DeleteUserInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// The unique identifier of the user to delete.
+	// The identifier of the user.
 	//
 	// UserId is a required field
 	UserId *string `location:"uri" locationName:"UserId" type:"string" required:"true"`
@@ -2529,16 +3896,12 @@ func (s DeleteUserOutput) GoString() string {
 type DescribeUserHierarchyGroupInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for the hierarchy group to return.
+	// The identifier of the hierarchy group.
 	//
 	// HierarchyGroupId is a required field
 	HierarchyGroupId *string `location:"uri" locationName:"HierarchyGroupId" type:"string" required:"true"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
@@ -2591,7 +3954,7 @@ func (s *DescribeUserHierarchyGroupInput) SetInstanceId(v string) *DescribeUserH
 type DescribeUserHierarchyGroupOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Returns a HierarchyGroup object.
+	// Information about the hierarchy group.
 	HierarchyGroup *HierarchyGroup `type:"structure"`
 }
 
@@ -2614,11 +3977,7 @@ func (s *DescribeUserHierarchyGroupOutput) SetHierarchyGroup(v *HierarchyGroup) 
 type DescribeUserHierarchyStructureInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
@@ -2659,7 +4018,7 @@ func (s *DescribeUserHierarchyStructureInput) SetInstanceId(v string) *DescribeU
 type DescribeUserHierarchyStructureOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A HierarchyStructure object.
+	// Information about the hierarchy structure.
 	HierarchyStructure *HierarchyStructure `type:"structure"`
 }
 
@@ -2682,16 +4041,12 @@ func (s *DescribeUserHierarchyStructureOutput) SetHierarchyStructure(v *Hierarch
 type DescribeUserInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// Unique identifier for the user account to return.
+	// The identifier of the user account.
 	//
 	// UserId is a required field
 	UserId *string `location:"uri" locationName:"UserId" type:"string" required:"true"`
@@ -2744,8 +4099,7 @@ func (s *DescribeUserInput) SetUserId(v string) *DescribeUserInput {
 type DescribeUserOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A User object that contains information about the user account and configuration
-	// settings.
+	// Information about the user account and configuration settings.
 	User *User `type:"structure"`
 }
 
@@ -2765,14 +4119,71 @@ func (s *DescribeUserOutput) SetUser(v *User) *DescribeUserOutput {
 	return s
 }
 
-// A Dimensions object that includes the Channel and Queue for the metric.
+// Outbound calls to the destination number are not allowed.
+type DestinationNotAllowedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s DestinationNotAllowedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DestinationNotAllowedException) GoString() string {
+	return s.String()
+}
+
+func newErrorDestinationNotAllowedException(v protocol.ResponseMetadata) error {
+	return &DestinationNotAllowedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DestinationNotAllowedException) Code() string {
+	return "DestinationNotAllowedException"
+}
+
+// Message returns the exception's message.
+func (s DestinationNotAllowedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DestinationNotAllowedException) OrigErr() error {
+	return nil
+}
+
+func (s DestinationNotAllowedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DestinationNotAllowedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DestinationNotAllowedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Contains information about the dimensions for a set of metrics.
 type Dimensions struct {
 	_ struct{} `type:"structure"`
 
-	// The channel used for grouping and filters. Only VOICE is supported.
+	// The channel used for grouping and filters.
 	Channel *string `type:"string" enum:"Channel"`
 
-	// A QueueReference object used as one part of dimension for the metrics results.
+	// Information about the queue for which metrics are returned.
 	Queue *QueueReference `type:"structure"`
 }
 
@@ -2798,15 +4209,71 @@ func (s *Dimensions) SetQueue(v *QueueReference) *Dimensions {
 	return s
 }
 
-// The filter, either channel or queues, to apply to the metric results retrieved.
+// A resource with the specified name already exists.
+type DuplicateResourceException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s DuplicateResourceException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DuplicateResourceException) GoString() string {
+	return s.String()
+}
+
+func newErrorDuplicateResourceException(v protocol.ResponseMetadata) error {
+	return &DuplicateResourceException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DuplicateResourceException) Code() string {
+	return "DuplicateResourceException"
+}
+
+// Message returns the exception's message.
+func (s DuplicateResourceException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DuplicateResourceException) OrigErr() error {
+	return nil
+}
+
+func (s DuplicateResourceException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DuplicateResourceException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DuplicateResourceException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Contains the filter to apply when retrieving metrics.
 type Filters struct {
 	_ struct{} `type:"structure"`
 
-	// The Channel to use as a filter for the metrics returned. Only VOICE is supported.
+	// The channel to use to filter the metrics.
 	Channels []*string `type:"list"`
 
-	// A list of up to 100 queue IDs or queue ARNs to use to filter the metrics
-	// retrieved. You can include both IDs and ARNs in a request.
+	// The queues to use to filter the metrics. You can specify up to 100 queues
+	// per request.
 	Queues []*string `min:"1" type:"list"`
 }
 
@@ -2848,13 +4315,12 @@ func (s *Filters) SetQueues(v []*string) *Filters {
 type GetContactAttributesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ID for the initial contact in Amazon Connect associated with the attributes
-	// to update.
+	// The identifier of the initial contact.
 	//
 	// InitialContactId is a required field
 	InitialContactId *string `location:"uri" locationName:"InitialContactId" min:"1" type:"string" required:"true"`
 
-	// The instance ID for the instance from which to retrieve contact attributes.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
@@ -2907,7 +4373,7 @@ func (s *GetContactAttributesInput) SetInstanceId(v string) *GetContactAttribute
 type GetContactAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The attributes to update.
+	// Information about the attributes.
 	Attributes map[string]*string `type:"map"`
 }
 
@@ -2930,47 +4396,68 @@ func (s *GetContactAttributesOutput) SetAttributes(v map[string]*string) *GetCon
 type GetCurrentMetricDataInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of CurrentMetric objects for the metrics to retrieve. Each CurrentMetric
-	// includes a name of a metric to retrieve and the unit to use for it. You must
-	// list each metric to retrieve data for in the request.
+	// The metrics to retrieve. Specify the name and unit for each metric. The following
+	// metrics are available:
 	//
-	// The following metrics are available:
+	// AGENTS_AFTER_CONTACT_WORK
 	//
-	// AGENTS_AVAILABLEUnit: COUNT
+	// Unit: COUNT
 	//
-	// AGENTS_ONLINEUnit: COUNT
+	// AGENTS_AVAILABLE
 	//
-	// AGENTS_ON_CALLUnit: COUNT
+	// Unit: COUNT
 	//
-	// AGENTS_STAFFEDUnit: COUNT
+	// AGENTS_ERROR
 	//
-	// AGENTS_AFTER_CONTACT_WORKUnit: COUNT
+	// Unit: COUNT
 	//
-	// AGENTS_NON_PRODUCTIVEUnit: COUNT
+	// AGENTS_NON_PRODUCTIVE
 	//
-	// AGENTS_ERRORUnit: COUNT
+	// Unit: COUNT
 	//
-	// CONTACTS_IN_QUEUEUnit: COUNT
+	// AGENTS_ON_CALL
 	//
-	// OLDEST_CONTACT_AGEUnit: SECONDS
+	// Unit: COUNT
 	//
-	// CONTACTS_SCHEDULEDUnit: COUNT
+	// AGENTS_ON_CONTACT
+	//
+	// Unit: COUNT
+	//
+	// AGENTS_ONLINE
+	//
+	// Unit: COUNT
+	//
+	// AGENTS_STAFFED
+	//
+	// Unit: COUNT
+	//
+	// CONTACTS_IN_QUEUE
+	//
+	// Unit: COUNT
+	//
+	// CONTACTS_SCHEDULED
+	//
+	// Unit: COUNT
+	//
+	// OLDEST_CONTACT_AGE
+	//
+	// Unit: SECONDS
+	//
+	// SLOTS_ACTIVE
+	//
+	// Unit: COUNT
+	//
+	// SLOTS_AVAILABLE
+	//
+	// Unit: COUNT
 	//
 	// CurrentMetrics is a required field
 	CurrentMetrics []*CurrentMetric `type:"list" required:"true"`
 
-	// A Filters object that contains a list of queue IDs or queue ARNs, up to 100,
-	// or list of Channels to use to filter the metrics returned in the response.
-	// Metric data is retrieved only for the resources associated with the queue
-	// IDs, ARNs, or Channels included in the filter. You can include both IDs and
-	// ARNs in the same request. To retrieve metrics for all queues, add the queue
-	// ID or ARN for each queue in your instance. Only VOICE is supported for Channels.
-	//
-	// To find the ARN for a queue, open the queue you want to use in the Amazon
-	// Connect Queue editor. The ARN for the queue is displayed in the address bar
-	// as part of the URL. For example, the queue ARN is the set of characters at
-	// the end of the URL, after 'id=' such as arn:aws:connect:us-east-1:270923740243:instance/78fb859d-1b7d-44b1-8aa3-12f0835c5855/queue/1d1a4575-9618-40ab-bbeb-81e45795fe61.
-	// The queue ID is also included in the URL, and is the string after 'queue/'.
+	// The queues, up to 100, or channels, to use to filter the metrics returned.
+	// Metric data is retrieved only for the resources associated with the queues
+	// or channels included in the filter. You can include both queue IDs and queue
+	// ARNs in the same request. The only supported channel is VOICE.
 	//
 	// Filters is a required field
 	Filters *Filters `type:"structure" required:"true"`
@@ -2980,29 +4467,23 @@ type GetCurrentMetricDataInput struct {
 	// all queues. If you group by CHANNEL, you should include a Channels filter.
 	// The only supported channel is VOICE.
 	//
-	// If no Grouping is included in the request, a summary of CurrentMetrics is
-	// returned.
+	// If no Grouping is included in the request, a summary of metrics is returned.
 	Groupings []*string `type:"list"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// MaxResults indicates the maximum number of results to return per page in
-	// the response, between 1 and 100.
+	// The maximimum number of results to return per page.
 	MaxResults *int64 `min:"1" type:"integer"`
 
 	// The token for the next set of results. Use the value returned in the previous
 	// response in the next request to retrieve the next set of results.
 	//
 	// The token expires after 5 minutes from the time it is created. Subsequent
-	// requests that use the NextToken must use the same request parameters as the
-	// request that generated the token.
+	// requests that use the token must use the same request parameters as the request
+	// that generated the token.
 	NextToken *string `type:"string"`
 }
 
@@ -3085,28 +4566,17 @@ func (s *GetCurrentMetricDataInput) SetNextToken(v string) *GetCurrentMetricData
 type GetCurrentMetricDataOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The time at which CurrentMetricData was retrieved and cached for pagination.
+	// The time at which the metrics were retrieved and cached for pagination.
 	DataSnapshotTime *time.Time `type:"timestamp"`
 
-	// A list of CurrentMetricResult objects organized by Dimensions combining with
-	// CurrentMetricDataCollections.
-	//
-	// Dimensions is the resourceId specified in the Filters of the request.
-	//
-	// Collections is a list of CurrentMetricData objects with corresponding values
-	// to the CurrentMetrics specified in the request.
-	//
-	// If no Grouping is specified in the request, Collections is a summary for
-	// the CurrentMetric returned.
+	// Information about the real-time metrics.
 	MetricResults []*CurrentMetricResult `type:"list"`
 
-	// A string returned in the response. Use the value returned in the response
-	// as the value of the NextToken in a subsequent request to retrieve the next
-	// set of results.
+	// If there are additional results, this is the token for the next set of results.
 	//
 	// The token expires after 5 minutes from the time it is created. Subsequent
-	// requests that use the NextToken must use the same request parameters as the
-	// request that generated the token.
+	// requests that use the token must use the same request parameters as the request
+	// that generated the token.
 	NextToken *string `type:"string"`
 }
 
@@ -3141,11 +4611,7 @@ func (s *GetCurrentMetricDataOutput) SetNextToken(v string) *GetCurrentMetricDat
 type GetFederationTokenInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
@@ -3212,153 +4678,182 @@ type GetMetricDataInput struct {
 	// The timestamp, in UNIX Epoch time format, at which to end the reporting interval
 	// for the retrieval of historical metrics data. The time must be specified
 	// using an interval of 5 minutes, such as 11:00, 11:05, 11:10, and must be
-	// later than the StartTime timestamp.
+	// later than the start time timestamp.
 	//
-	// The time range between StartTime and EndTime must be less than 24 hours.
+	// The time range between the start and end time must be less than 24 hours.
 	//
 	// EndTime is a required field
 	EndTime *time.Time `type:"timestamp" required:"true"`
 
-	// A Filters object that contains a list of queue IDs or queue ARNs, up to 100,
-	// or a list of Channels to use to filter the metrics returned in the response.
-	// Metric data is retrieved only for the resources associated with the IDs,
-	// ARNs, or Channels included in the filter. You can use both IDs and ARNs together
-	// in a request. Only VOICE is supported for Channel.
-	//
-	// To find the ARN for a queue, open the queue you want to use in the Amazon
-	// Connect Queue editor. The ARN for the queue is displayed in the address bar
-	// as part of the URL. For example, the queue ARN is the set of characters at
-	// the end of the URL, after 'id=' such as arn:aws:connect:us-east-1:270923740243:instance/78fb859d-1b7d-44b1-8aa3-12f0835c5855/queue/1d1a4575-9618-40ab-bbeb-81e45795fe61.
-	// The queue ID is also included in the URL, and is the string after 'queue/'.
+	// The queues, up to 100, or channels, to use to filter the metrics returned.
+	// Metric data is retrieved only for the resources associated with the queues
+	// or channels included in the filter. You can include both queue IDs and queue
+	// ARNs in the same request. The only supported channel is VOICE.
 	//
 	// Filters is a required field
 	Filters *Filters `type:"structure" required:"true"`
 
 	// The grouping applied to the metrics returned. For example, when results are
-	// grouped by queueId, the metrics returned are grouped by queue. The values
-	// returned apply to the metrics for each queue rather than aggregated for all
-	// queues.
+	// grouped by queue, the metrics returned are grouped by queue. The values returned
+	// apply to the metrics for each queue rather than aggregated for all queues.
 	//
-	// The current version supports grouping by Queue
+	// The only supported grouping is QUEUE.
 	//
-	// If no Grouping is included in the request, a summary of HistoricalMetrics
-	// for all queues is returned.
+	// If no grouping is specified, a summary of metrics for all queues is returned.
 	Groupings []*string `type:"list"`
 
-	// A list of HistoricalMetric objects that contain the metrics to retrieve with
-	// the request.
-	//
-	// A HistoricalMetric object contains: HistoricalMetricName, Statistic, Threshold,
-	// and Unit.
-	//
-	// You must list each metric to retrieve data for in the request. For each historical
-	// metric you include in the request, you must include a Unit and a Statistic.
-	//
+	// The metrics to retrieve. Specify the name, unit, and statistic for each metric.
 	// The following historical metrics are available:
 	//
-	// CONTACTS_QUEUEDUnit: COUNT
+	// ABANDON_TIME
+	//
+	// Unit: SECONDS
+	//
+	// Statistic: AVG
+	//
+	// AFTER_CONTACT_WORK_TIME
+	//
+	// Unit: SECONDS
+	//
+	// Statistic: AVG
+	//
+	// API_CONTACTS_HANDLED
+	//
+	// Unit: COUNT
 	//
 	// Statistic: SUM
 	//
-	// CONTACTS_HANDLEDUnit: COUNT
+	// CALLBACK_CONTACTS_HANDLED
 	//
-	// Statistics: SUM
+	// Unit: COUNT
 	//
-	// CONTACTS_ABANDONEDUnit: COUNT
+	// Statistic: SUM
 	//
-	// Statistics: SUM
+	// CONTACTS_ABANDONED
 	//
-	// CONTACTS_CONSULTEDUnit: COUNT
+	// Unit: COUNT
 	//
-	// Statistics: SUM
+	// Statistic: SUM
 	//
-	// CONTACTS_AGENT_HUNG_UP_FIRSTUnit: COUNT
+	// CONTACTS_AGENT_HUNG_UP_FIRST
 	//
-	// Statistics: SUM
+	// Unit: COUNT
 	//
-	// CONTACTS_HANDLED_INCOMINGUnit: COUNT
+	// Statistic: SUM
 	//
-	// Statistics: SUM
+	// CONTACTS_CONSULTED
 	//
-	// CONTACTS_HANDLED_OUTBOUNDUnit: COUNT
+	// Unit: COUNT
 	//
-	// Statistics: SUM
+	// Statistic: SUM
 	//
-	// CONTACTS_HOLD_ABANDONSUnit: COUNT
+	// CONTACTS_HANDLED
 	//
-	// Statistics: SUM
+	// Unit: COUNT
 	//
-	// CONTACTS_TRANSFERRED_INUnit: COUNT
+	// Statistic: SUM
 	//
-	// Statistics: SUM
+	// CONTACTS_HANDLED_INCOMING
 	//
-	// CONTACTS_TRANSFERRED_OUTUnit: COUNT
+	// Unit: COUNT
 	//
-	// Statistics: SUM
+	// Statistic: SUM
 	//
-	// CONTACTS_TRANSFERRED_IN_FROM_QUEUEUnit: COUNT
+	// CONTACTS_HANDLED_OUTBOUND
 	//
-	// Statistics: SUM
+	// Unit: COUNT
 	//
-	// CONTACTS_TRANSFERRED_OUT_FROM_QUEUEUnit: COUNT
+	// Statistic: SUM
 	//
-	// Statistics: SUM
+	// CONTACTS_HOLD_ABANDONS
 	//
-	// CALLBACK_CONTACTS_HANDLEDUnit: COUNT
+	// Unit: COUNT
 	//
-	// Statistics: SUM
+	// Statistic: SUM
 	//
-	// CALLBACK_CONTACTS_HANDLEDUnit: COUNT
+	// CONTACTS_MISSED
 	//
-	// Statistics: SUM
+	// Unit: COUNT
 	//
-	// API_CONTACTS_HANDLEDUnit: COUNT
+	// Statistic: SUM
 	//
-	// Statistics: SUM
+	// CONTACTS_QUEUED
 	//
-	// CONTACTS_MISSEDUnit: COUNT
+	// Unit: COUNT
 	//
-	// Statistics: SUM
+	// Statistic: SUM
 	//
-	// OCCUPANCYUnit: PERCENT
+	// CONTACTS_TRANSFERRED_IN
 	//
-	// Statistics: AVG
+	// Unit: COUNT
 	//
-	// HANDLE_TIMEUnit: SECONDS
+	// Statistic: SUM
 	//
-	// Statistics: AVG
+	// CONTACTS_TRANSFERRED_IN_FROM_QUEUE
 	//
-	// AFTER_CONTACT_WORK_TIMEUnit: SECONDS
+	// Unit: COUNT
 	//
-	// Statistics: AVG
+	// Statistic: SUM
 	//
-	// QUEUED_TIMEUnit: SECONDS
+	// CONTACTS_TRANSFERRED_OUT
 	//
-	// Statistics: MAX
+	// Unit: COUNT
 	//
-	// ABANDON_TIMEUnit: COUNT
+	// Statistic: SUM
 	//
-	// Statistics: SUM
+	// CONTACTS_TRANSFERRED_OUT_FROM_QUEUE
 	//
-	// QUEUE_ANSWER_TIMEUnit: SECONDS
+	// Unit: COUNT
 	//
-	// Statistics: AVG
+	// Statistic: SUM
 	//
-	// HOLD_TIMEUnit: SECONDS
+	// HANDLE_TIME
 	//
-	// Statistics: AVG
+	// Unit: SECONDS
 	//
-	// INTERACTION_TIMEUnit: SECONDS
+	// Statistic: AVG
 	//
-	// Statistics: AVG
+	// HOLD_TIME
 	//
-	// INTERACTION_AND_HOLD_TIMEUnit: SECONDS
+	// Unit: SECONDS
 	//
-	// Statistics: AVG
+	// Statistic: AVG
 	//
-	// SERVICE_LEVELUnit: PERCENT
+	// INTERACTION_AND_HOLD_TIME
 	//
-	// Statistics: AVG
+	// Unit: SECONDS
+	//
+	// Statistic: AVG
+	//
+	// INTERACTION_TIME
+	//
+	// Unit: SECONDS
+	//
+	// Statistic: AVG
+	//
+	// OCCUPANCY
+	//
+	// Unit: PERCENT
+	//
+	// Statistic: AVG
+	//
+	// QUEUE_ANSWER_TIME
+	//
+	// Unit: SECONDS
+	//
+	// Statistic: AVG
+	//
+	// QUEUED_TIME
+	//
+	// Unit: SECONDS
+	//
+	// Statistic: MAX
+	//
+	// SERVICE_LEVEL
+	//
+	// Unit: PERCENT
+	//
+	// Statistic: AVG
 	//
 	// Threshold: Only "Less than" comparisons are supported, with the following
 	// service level thresholds: 15, 20, 25, 30, 45, 60, 90, 120, 180, 240, 300,
@@ -3367,17 +4862,12 @@ type GetMetricDataInput struct {
 	// HistoricalMetrics is a required field
 	HistoricalMetrics []*HistoricalMetric `type:"list" required:"true"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// Indicates the maximum number of results to return per page in the response,
-	// between 1-100.
+	// The maximimum number of results to return per page.
 	MaxResults *int64 `min:"1" type:"integer"`
 
 	// The token for the next set of results. Use the value returned in the previous
@@ -3388,8 +4878,8 @@ type GetMetricDataInput struct {
 	// interval for the retrieval of historical metrics data. The time must be specified
 	// using a multiple of 5 minutes, such as 10:05, 10:10, 10:15.
 	//
-	// StartTime cannot be earlier than 24 hours before the time of the request.
-	// Historical metrics are available in Amazon Connect only for 24 hours.
+	// The start time cannot be earlier than 24 hours before the time of the request.
+	// Historical metrics are available only for 24 hours.
 	//
 	// StartTime is a required field
 	StartTime *time.Time `type:"timestamp" required:"true"`
@@ -3492,22 +4982,16 @@ func (s *GetMetricDataInput) SetStartTime(v time.Time) *GetMetricDataInput {
 type GetMetricDataOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of HistoricalMetricResult objects, organized by Dimensions, which
-	// is the ID of the resource specified in the Filters used for the request.
-	// The metrics are combined with the metrics included in Collections, which
-	// is a list of HisotricalMetricData objects.
+	// Information about the historical metrics.
 	//
-	// If no Grouping is specified in the request, Collections includes summary
-	// data for the HistoricalMetrics.
+	// If no grouping is specified, a summary of metric data is returned.
 	MetricResults []*HistoricalMetricResult `type:"list"`
 
-	// A string returned in the response. Use the value returned in the response
-	// as the value of the NextToken in a subsequent request to retrieve the next
-	// set of results.
+	// If there are additional results, this is the token for the next set of results.
 	//
 	// The token expires after 5 minutes from the time it is created. Subsequent
-	// requests that use the NextToken must use the same request parameters as the
-	// request that generated the token.
+	// requests that use the token must use the same request parameters as the request
+	// that generated the token.
 	NextToken *string `type:"string"`
 }
 
@@ -3533,25 +5017,23 @@ func (s *GetMetricDataOutput) SetNextToken(v string) *GetMetricDataOutput {
 	return s
 }
 
-// A HierarchyGroup object that contains information about a hierarchy group
-// in your Amazon Connect instance.
+// Contains information about a hierarchy group.
 type HierarchyGroup struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) for the hierarchy group.
+	// The Amazon Resource Name (ARN) of the hierarchy group.
 	Arn *string `type:"string"`
 
-	// A HierarchyPath object that contains information about the levels in the
-	// hierarchy group.
+	// Information about the levels in the hierarchy group.
 	HierarchyPath *HierarchyPath `type:"structure"`
 
-	// The identifier for the hierarchy group.
+	// The identifier of the hierarchy group.
 	Id *string `type:"string"`
 
-	// The identifier for the level in the hierarchy group.
+	// The identifier of the level in the hierarchy group.
 	LevelId *string `type:"string"`
 
-	// The name of the hierarchy group in your instance.
+	// The name of the hierarchy group.
 	Name *string `type:"string"`
 }
 
@@ -3595,12 +5077,11 @@ func (s *HierarchyGroup) SetName(v string) *HierarchyGroup {
 	return s
 }
 
-// A HierarchyGroupSummary object that contains information about the hierarchy
-// group, including ARN, Id, and Name.
+// Contains summary information about a hierarchy group.
 type HierarchyGroupSummary struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN for the hierarchy group.
+	// The Amazon Resource Name (ARN) of the hierarchy group.
 	Arn *string `type:"string"`
 
 	// The identifier of the hierarchy group.
@@ -3638,18 +5119,17 @@ func (s *HierarchyGroupSummary) SetName(v string) *HierarchyGroupSummary {
 	return s
 }
 
-// A HierarchyLevel object that contains information about the levels in a hierarchy
-// group, including ARN, Id, and Name.
+// Contains information about a hierarchy level.
 type HierarchyLevel struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN for the hierarchy group level.
+	// The Amazon Resource Name (ARN) of the hierarchy level.
 	Arn *string `type:"string"`
 
-	// The identifier for the hierarchy group level.
+	// The identifier of the hierarchy level.
 	Id *string `type:"string"`
 
-	// The name of the hierarchy group level.
+	// The name of the hierarchy level.
 	Name *string `type:"string"`
 }
 
@@ -3681,29 +5161,23 @@ func (s *HierarchyLevel) SetName(v string) *HierarchyLevel {
 	return s
 }
 
-// A HierarchyPath object that contains information about the levels of the
-// hierarchy group.
+// Contains information about the levels of a hierarchy group.
 type HierarchyPath struct {
 	_ struct{} `type:"structure"`
 
-	// A HierarchyGroupSummary object that contains information about the level
-	// of the hierarchy group, including ARN, Id, and Name.
+	// Information about level five.
 	LevelFive *HierarchyGroupSummary `type:"structure"`
 
-	// A HierarchyGroupSummary object that contains information about the level
-	// of the hierarchy group, including ARN, Id, and Name.
+	// Information about level four.
 	LevelFour *HierarchyGroupSummary `type:"structure"`
 
-	// A HierarchyGroupSummary object that contains information about the level
-	// of the hierarchy group, including ARN, Id, and Name.
+	// Information about level one.
 	LevelOne *HierarchyGroupSummary `type:"structure"`
 
-	// A HierarchyGroupSummary object that contains information about the level
-	// of the hierarchy group, including ARN, Id, and Name.
+	// Information about level three.
 	LevelThree *HierarchyGroupSummary `type:"structure"`
 
-	// A HierarchyGroupSummary object that contains information about the level
-	// of the hierarchy group, including ARN, Id, and Name.
+	// Information about level two.
 	LevelTwo *HierarchyGroupSummary `type:"structure"`
 }
 
@@ -3747,29 +5221,23 @@ func (s *HierarchyPath) SetLevelTwo(v *HierarchyGroupSummary) *HierarchyPath {
 	return s
 }
 
-// A HierarchyStructure object that contains information about the hierarchy
-// group structure.
+// Contains information about a hierarchy structure.
 type HierarchyStructure struct {
 	_ struct{} `type:"structure"`
 
-	// A HierarchyLevel object that contains information about the hierarchy group
-	// level.
+	// Information about level five.
 	LevelFive *HierarchyLevel `type:"structure"`
 
-	// A HierarchyLevel object that contains information about the hierarchy group
-	// level.
+	// Information about level four.
 	LevelFour *HierarchyLevel `type:"structure"`
 
-	// A HierarchyLevel object that contains information about the hierarchy group
-	// level.
+	// Information about level one.
 	LevelOne *HierarchyLevel `type:"structure"`
 
-	// A HierarchyLevel object that contains information about the hierarchy group
-	// level.
+	// Information about level three.
 	LevelThree *HierarchyLevel `type:"structure"`
 
-	// A HierarchyLevel object that contains information about the hierarchy group
-	// level.
+	// Information about level two.
 	LevelTwo *HierarchyLevel `type:"structure"`
 }
 
@@ -3813,12 +5281,11 @@ func (s *HierarchyStructure) SetLevelTwo(v *HierarchyLevel) *HierarchyStructure 
 	return s
 }
 
-// A HistoricalMetric object that contains the Name, Unit, Statistic, and Threshold
-// for the metric.
+// Contains information about a historical metric.
 type HistoricalMetric struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the historical metric.
+	// The name of the metric.
 	Name *string `type:"string" enum:"HistoricalMetricName"`
 
 	// The statistic for the metric.
@@ -3865,14 +5332,14 @@ func (s *HistoricalMetric) SetUnit(v string) *HistoricalMetric {
 	return s
 }
 
-// A HistoricalMetricData object than contains a Metric and a Value.
+// Contains the data for a historical metric.
 type HistoricalMetricData struct {
 	_ struct{} `type:"structure"`
 
-	// A HistoricalMetric object.
+	// Information about the metric.
 	Metric *HistoricalMetric `type:"structure"`
 
-	// The Value of the metric.
+	// The value of the metric.
 	Value *float64 `type:"double"`
 }
 
@@ -3898,14 +5365,14 @@ func (s *HistoricalMetricData) SetValue(v float64) *HistoricalMetricData {
 	return s
 }
 
-// The metrics data returned from a GetMetricData operation.
+// Contains information about the historical metrics retrieved.
 type HistoricalMetricResult struct {
 	_ struct{} `type:"structure"`
 
-	// A list of HistoricalMetricData objects.
+	// The set of metrics.
 	Collections []*HistoricalMetricData `type:"list"`
 
-	// The Dimensions for the metrics.
+	// The dimension for the metrics.
 	Dimensions *Dimensions `type:"structure"`
 }
 
@@ -3931,19 +5398,701 @@ func (s *HistoricalMetricResult) SetDimensions(v *Dimensions) *HistoricalMetricR
 	return s
 }
 
-type ListRoutingProfilesInput struct {
+// Contains summary information about hours of operation for a contact center.
+type HoursOfOperationSummary struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The Amazon Resource Name (ARN) of the hours of operation.
+	Arn *string `type:"string"`
+
+	// The identifier of the hours of operation.
+	Id *string `type:"string"`
+
+	// The name of the hours of operation.
+	Name *string `type:"string"`
+}
+
+// String returns the string representation
+func (s HoursOfOperationSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s HoursOfOperationSummary) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *HoursOfOperationSummary) SetArn(v string) *HoursOfOperationSummary {
+	s.Arn = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *HoursOfOperationSummary) SetId(v string) *HoursOfOperationSummary {
+	s.Id = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *HoursOfOperationSummary) SetName(v string) *HoursOfOperationSummary {
+	s.Name = &v
+	return s
+}
+
+// Request processing failed due to an error or failure with the service.
+type InternalServiceException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalServiceException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalServiceException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServiceException(v protocol.ResponseMetadata) error {
+	return &InternalServiceException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalServiceException) Code() string {
+	return "InternalServiceException"
+}
+
+// Message returns the exception's message.
+func (s InternalServiceException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalServiceException) OrigErr() error {
+	return nil
+}
+
+func (s InternalServiceException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalServiceException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalServiceException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// One or more of the specified parameters are not valid.
+type InvalidParameterException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidParameterException) Code() string {
+	return "InvalidParameterException"
+}
+
+// Message returns the exception's message.
+func (s InvalidParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidParameterException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidParameterException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidParameterException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The request is not valid.
+type InvalidRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidRequestException(v protocol.ResponseMetadata) error {
+	return &InvalidRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidRequestException) Code() string {
+	return "InvalidRequestException"
+}
+
+// Message returns the exception's message.
+func (s InvalidRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidRequestException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidRequestException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The allowed limit for the resource has been exceeded.
+type LimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+type ListContactFlowsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The type of contact flow.
+	ContactFlowTypes []*string `location:"querystring" locationName:"contactFlowTypes" type:"list"`
+
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// The maximum number of routing profiles to return in the response.
+	// The maximimum number of results to return per page.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
+
+	// The token for the next set of results. Use the value returned in the previous
+	// response in the next request to retrieve the next set of results.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListContactFlowsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListContactFlowsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListContactFlowsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListContactFlowsInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.InstanceId != nil && len(*s.InstanceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContactFlowTypes sets the ContactFlowTypes field's value.
+func (s *ListContactFlowsInput) SetContactFlowTypes(v []*string) *ListContactFlowsInput {
+	s.ContactFlowTypes = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *ListContactFlowsInput) SetInstanceId(v string) *ListContactFlowsInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListContactFlowsInput) SetMaxResults(v int64) *ListContactFlowsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListContactFlowsInput) SetNextToken(v string) *ListContactFlowsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListContactFlowsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the contact flows.
+	ContactFlowSummaryList []*ContactFlowSummary `type:"list"`
+
+	// If there are additional results, this is the token for the next set of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListContactFlowsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListContactFlowsOutput) GoString() string {
+	return s.String()
+}
+
+// SetContactFlowSummaryList sets the ContactFlowSummaryList field's value.
+func (s *ListContactFlowsOutput) SetContactFlowSummaryList(v []*ContactFlowSummary) *ListContactFlowsOutput {
+	s.ContactFlowSummaryList = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListContactFlowsOutput) SetNextToken(v string) *ListContactFlowsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListHoursOfOperationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Amazon Connect instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
+
+	// The maximimum number of results to return per page.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
+
+	// The token for the next set of results. Use the value returned in the previous
+	// response in the next request to retrieve the next set of results.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListHoursOfOperationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListHoursOfOperationsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListHoursOfOperationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListHoursOfOperationsInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.InstanceId != nil && len(*s.InstanceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *ListHoursOfOperationsInput) SetInstanceId(v string) *ListHoursOfOperationsInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListHoursOfOperationsInput) SetMaxResults(v int64) *ListHoursOfOperationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListHoursOfOperationsInput) SetNextToken(v string) *ListHoursOfOperationsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListHoursOfOperationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the hours of operation.
+	HoursOfOperationSummaryList []*HoursOfOperationSummary `type:"list"`
+
+	// If there are additional results, this is the token for the next set of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListHoursOfOperationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListHoursOfOperationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetHoursOfOperationSummaryList sets the HoursOfOperationSummaryList field's value.
+func (s *ListHoursOfOperationsOutput) SetHoursOfOperationSummaryList(v []*HoursOfOperationSummary) *ListHoursOfOperationsOutput {
+	s.HoursOfOperationSummaryList = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListHoursOfOperationsOutput) SetNextToken(v string) *ListHoursOfOperationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListPhoneNumbersInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Amazon Connect instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
+
+	// The maximimum number of results to return per page.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
+
+	// The token for the next set of results. Use the value returned in the previous
+	// response in the next request to retrieve the next set of results.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+
+	// The ISO country code.
+	PhoneNumberCountryCodes []*string `location:"querystring" locationName:"phoneNumberCountryCodes" type:"list"`
+
+	// The type of phone number.
+	PhoneNumberTypes []*string `location:"querystring" locationName:"phoneNumberTypes" type:"list"`
+}
+
+// String returns the string representation
+func (s ListPhoneNumbersInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListPhoneNumbersInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListPhoneNumbersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListPhoneNumbersInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.InstanceId != nil && len(*s.InstanceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *ListPhoneNumbersInput) SetInstanceId(v string) *ListPhoneNumbersInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListPhoneNumbersInput) SetMaxResults(v int64) *ListPhoneNumbersInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPhoneNumbersInput) SetNextToken(v string) *ListPhoneNumbersInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPhoneNumberCountryCodes sets the PhoneNumberCountryCodes field's value.
+func (s *ListPhoneNumbersInput) SetPhoneNumberCountryCodes(v []*string) *ListPhoneNumbersInput {
+	s.PhoneNumberCountryCodes = v
+	return s
+}
+
+// SetPhoneNumberTypes sets the PhoneNumberTypes field's value.
+func (s *ListPhoneNumbersInput) SetPhoneNumberTypes(v []*string) *ListPhoneNumbersInput {
+	s.PhoneNumberTypes = v
+	return s
+}
+
+type ListPhoneNumbersOutput struct {
+	_ struct{} `type:"structure"`
+
+	// If there are additional results, this is the token for the next set of results.
+	NextToken *string `type:"string"`
+
+	// Information about the phone numbers.
+	PhoneNumberSummaryList []*PhoneNumberSummary `type:"list"`
+}
+
+// String returns the string representation
+func (s ListPhoneNumbersOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListPhoneNumbersOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPhoneNumbersOutput) SetNextToken(v string) *ListPhoneNumbersOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPhoneNumberSummaryList sets the PhoneNumberSummaryList field's value.
+func (s *ListPhoneNumbersOutput) SetPhoneNumberSummaryList(v []*PhoneNumberSummary) *ListPhoneNumbersOutput {
+	s.PhoneNumberSummaryList = v
+	return s
+}
+
+type ListQueuesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Amazon Connect instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
+
+	// The maximimum number of results to return per page.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
+
+	// The token for the next set of results. Use the value returned in the previous
+	// response in the next request to retrieve the next set of results.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+
+	// The type of queue.
+	QueueTypes []*string `location:"querystring" locationName:"queueTypes" type:"list"`
+}
+
+// String returns the string representation
+func (s ListQueuesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListQueuesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListQueuesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListQueuesInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.InstanceId != nil && len(*s.InstanceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *ListQueuesInput) SetInstanceId(v string) *ListQueuesInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListQueuesInput) SetMaxResults(v int64) *ListQueuesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListQueuesInput) SetNextToken(v string) *ListQueuesInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetQueueTypes sets the QueueTypes field's value.
+func (s *ListQueuesInput) SetQueueTypes(v []*string) *ListQueuesInput {
+	s.QueueTypes = v
+	return s
+}
+
+type ListQueuesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// If there are additional results, this is the token for the next set of results.
+	NextToken *string `type:"string"`
+
+	// Information about the queues.
+	QueueSummaryList []*QueueSummary `type:"list"`
+}
+
+// String returns the string representation
+func (s ListQueuesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListQueuesOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListQueuesOutput) SetNextToken(v string) *ListQueuesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetQueueSummaryList sets the QueueSummaryList field's value.
+func (s *ListQueuesOutput) SetQueueSummaryList(v []*QueueSummary) *ListQueuesOutput {
+	s.QueueSummaryList = v
+	return s
+}
+
+type ListRoutingProfilesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Amazon Connect instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
+
+	// The maximimum number of results to return per page.
 	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
 
 	// The token for the next set of results. Use the value returned in the previous
@@ -4001,13 +6150,10 @@ func (s *ListRoutingProfilesInput) SetNextToken(v string) *ListRoutingProfilesIn
 type ListRoutingProfilesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A string returned in the response. Use the value returned in the response
-	// as the value of the NextToken in a subsequent request to retrieve the next
-	// set of results.
+	// If there are additional results, this is the token for the next set of results.
 	NextToken *string `type:"string"`
 
-	// An array of RoutingProfileSummary objects that include the ARN, Id, and Name
-	// of the routing profile.
+	// Information about the routing profiles.
 	RoutingProfileSummaryList []*RoutingProfileSummary `type:"list"`
 }
 
@@ -4036,16 +6182,12 @@ func (s *ListRoutingProfilesOutput) SetRoutingProfileSummaryList(v []*RoutingPro
 type ListSecurityProfilesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// The maximum number of security profiles to return.
+	// The maximimum number of results to return per page.
 	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
 
 	// The token for the next set of results. Use the value returned in the previous
@@ -4103,12 +6245,10 @@ func (s *ListSecurityProfilesInput) SetNextToken(v string) *ListSecurityProfiles
 type ListSecurityProfilesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A string returned in the response. Use the value returned in the response
-	// as the value of the NextToken in a subsequent request to retrieve the next
-	// set of results.
+	// If there are additional results, this is the token for the next set of results.
 	NextToken *string `type:"string"`
 
-	// An array of SecurityProfileSummary objects.
+	// Information about the security profiles.
 	SecurityProfileSummaryList []*SecurityProfileSummary `type:"list"`
 }
 
@@ -4134,19 +6274,79 @@ func (s *ListSecurityProfilesOutput) SetSecurityProfileSummaryList(v []*Security
 	return s
 }
 
+type ListTagsForResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the resource.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resourceArn" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *ListTagsForResourceInput) SetResourceArn(v string) *ListTagsForResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+type ListTagsForResourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the tags.
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsForResourceOutput) SetTags(v map[string]*string) *ListTagsForResourceOutput {
+	s.Tags = v
+	return s
+}
+
 type ListUserHierarchyGroupsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// The maximum number of hierarchy groups to return.
+	// The maximimum number of results to return per page.
 	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
 
 	// The token for the next set of results. Use the value returned in the previous
@@ -4204,12 +6404,10 @@ func (s *ListUserHierarchyGroupsInput) SetNextToken(v string) *ListUserHierarchy
 type ListUserHierarchyGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A string returned in the response. Use the value returned in the response
-	// as the value of the NextToken in a subsequent request to retrieve the next
-	// set of results.
+	// If there are additional results, this is the token for the next set of results.
 	NextToken *string `type:"string"`
 
-	// An array of HierarchyGroupSummary objects.
+	// Information about the hierarchy groups.
 	UserHierarchyGroupSummaryList []*HierarchyGroupSummary `type:"list"`
 }
 
@@ -4238,16 +6436,12 @@ func (s *ListUserHierarchyGroupsOutput) SetUserHierarchyGroupSummaryList(v []*Hi
 type ListUsersInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// The maximum number of results to return in the response.
+	// The maximimum number of results to return per page.
 	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
 
 	// The token for the next set of results. Use the value returned in the previous
@@ -4305,13 +6499,10 @@ func (s *ListUsersInput) SetNextToken(v string) *ListUsersInput {
 type ListUsersOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A string returned in the response. Use the value returned in the response
-	// as the value of the NextToken in a subsequent request to retrieve the next
-	// set of results.
+	// If there are additional results, this is the token for the next set of results.
 	NextToken *string `type:"string"`
 
-	// An array of UserSummary objects that contain information about the users
-	// in your instance.
+	// Information about the users.
 	UserSummaryList []*UserSummary `type:"list"`
 }
 
@@ -4337,15 +6528,173 @@ func (s *ListUsersOutput) SetUserSummaryList(v []*UserSummary) *ListUsersOutput 
 	return s
 }
 
-// A QueueReference object that contains the the QueueId and ARN for the queue
-// resource for which metrics are returned.
+// The contact is not permitted.
+type OutboundContactNotPermittedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s OutboundContactNotPermittedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OutboundContactNotPermittedException) GoString() string {
+	return s.String()
+}
+
+func newErrorOutboundContactNotPermittedException(v protocol.ResponseMetadata) error {
+	return &OutboundContactNotPermittedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s OutboundContactNotPermittedException) Code() string {
+	return "OutboundContactNotPermittedException"
+}
+
+// Message returns the exception's message.
+func (s OutboundContactNotPermittedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s OutboundContactNotPermittedException) OrigErr() error {
+	return nil
+}
+
+func (s OutboundContactNotPermittedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s OutboundContactNotPermittedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s OutboundContactNotPermittedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The customer's details.
+type ParticipantDetails struct {
+	_ struct{} `type:"structure"`
+
+	// Display name of the participant.
+	//
+	// DisplayName is a required field
+	DisplayName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ParticipantDetails) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ParticipantDetails) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ParticipantDetails) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ParticipantDetails"}
+	if s.DisplayName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DisplayName"))
+	}
+	if s.DisplayName != nil && len(*s.DisplayName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DisplayName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDisplayName sets the DisplayName field's value.
+func (s *ParticipantDetails) SetDisplayName(v string) *ParticipantDetails {
+	s.DisplayName = &v
+	return s
+}
+
+// Contains summary information about a phone number for a contact center.
+type PhoneNumberSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the phone number.
+	Arn *string `type:"string"`
+
+	// The identifier of the phone number.
+	Id *string `type:"string"`
+
+	// The phone number.
+	PhoneNumber *string `type:"string"`
+
+	// The ISO country code.
+	PhoneNumberCountryCode *string `type:"string" enum:"PhoneNumberCountryCode"`
+
+	// The type of phone number.
+	PhoneNumberType *string `type:"string" enum:"PhoneNumberType"`
+}
+
+// String returns the string representation
+func (s PhoneNumberSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PhoneNumberSummary) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *PhoneNumberSummary) SetArn(v string) *PhoneNumberSummary {
+	s.Arn = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *PhoneNumberSummary) SetId(v string) *PhoneNumberSummary {
+	s.Id = &v
+	return s
+}
+
+// SetPhoneNumber sets the PhoneNumber field's value.
+func (s *PhoneNumberSummary) SetPhoneNumber(v string) *PhoneNumberSummary {
+	s.PhoneNumber = &v
+	return s
+}
+
+// SetPhoneNumberCountryCode sets the PhoneNumberCountryCode field's value.
+func (s *PhoneNumberSummary) SetPhoneNumberCountryCode(v string) *PhoneNumberSummary {
+	s.PhoneNumberCountryCode = &v
+	return s
+}
+
+// SetPhoneNumberType sets the PhoneNumberType field's value.
+func (s *PhoneNumberSummary) SetPhoneNumberType(v string) *PhoneNumberSummary {
+	s.PhoneNumberType = &v
+	return s
+}
+
+// Contains information about a queue resource for which metrics are returned.
 type QueueReference struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of queue.
+	// The Amazon Resource Name (ARN) of the queue.
 	Arn *string `type:"string"`
 
-	// The ID of the queue associated with the metrics returned.
+	// The identifier of the queue.
 	Id *string `type:"string"`
 }
 
@@ -4371,12 +6720,119 @@ func (s *QueueReference) SetId(v string) *QueueReference {
 	return s
 }
 
-// A RoutingProfileSummary object that contains information about a routing
-// profile, including ARN, Id, and Name.
+// Contains summary information about a queue.
+type QueueSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the queue.
+	Arn *string `type:"string"`
+
+	// The identifier of the queue.
+	Id *string `type:"string"`
+
+	// The name of the queue.
+	Name *string `min:"1" type:"string"`
+
+	// The type of queue.
+	QueueType *string `type:"string" enum:"QueueType"`
+}
+
+// String returns the string representation
+func (s QueueSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s QueueSummary) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *QueueSummary) SetArn(v string) *QueueSummary {
+	s.Arn = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *QueueSummary) SetId(v string) *QueueSummary {
+	s.Id = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *QueueSummary) SetName(v string) *QueueSummary {
+	s.Name = &v
+	return s
+}
+
+// SetQueueType sets the QueueType field's value.
+func (s *QueueSummary) SetQueueType(v string) *QueueSummary {
+	s.QueueType = &v
+	return s
+}
+
+// The specified resource was not found.
+type ResourceNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Contains summary information about a routing profile.
 type RoutingProfileSummary struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN of the routing profile.
+	// The Amazon Resource Name (ARN) of the routing profile.
 	Arn *string `type:"string"`
 
 	// The identifier of the routing profile.
@@ -4414,12 +6870,11 @@ func (s *RoutingProfileSummary) SetName(v string) *RoutingProfileSummary {
 	return s
 }
 
-// A SecurityProfileSummary object that contains information about a security
-// profile, including ARN, Id, Name.
+// Contains information about a security profile.
 type SecurityProfileSummary struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN of the security profile.
+	// The Amazon Resource Name (ARN) of the security profile.
 	Arn *string `type:"string"`
 
 	// The identifier of the security profile.
@@ -4457,18 +6912,171 @@ func (s *SecurityProfileSummary) SetName(v string) *SecurityProfileSummary {
 	return s
 }
 
-type StartOutboundVoiceContactInput struct {
+type StartChatContactInput struct {
 	_ struct{} `type:"structure"`
 
-	// Specify a custom key-value pair using an attribute map. The attributes are
-	// standard Amazon Connect attributes, and can be accessed in contact flows
-	// just like any other contact attributes.
+	// A custom key-value pair using an attribute map. The attributes are standard
+	// Amazon Connect attributes, and can be accessed in contact flows just like
+	// any other contact attributes.
 	//
 	// There can be up to 32,768 UTF-8 bytes across all key-value pairs per contact.
 	// Attribute keys can include only alphanumeric, dash, and underscore characters.
+	Attributes map[string]*string `type:"map"`
+
+	// A unique, case-sensitive identifier that you provide to ensure the idempotency
+	// of the request.
+	ClientToken *string `type:"string" idempotencyToken:"true"`
+
+	// The identifier of the contact flow for the chat.
 	//
-	// For example, if you want play a greeting when the customer answers the call,
-	// you can pass the customer name in attributes similar to the following:
+	// ContactFlowId is a required field
+	ContactFlowId *string `type:"string" required:"true"`
+
+	// The initial message to be sent to the newly created chat.
+	InitialMessage *ChatMessage `type:"structure"`
+
+	// The identifier of the Amazon Connect instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `min:"1" type:"string" required:"true"`
+
+	// Information identifying the participant.
+	//
+	// ParticipantDetails is a required field
+	ParticipantDetails *ParticipantDetails `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartChatContactInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartChatContactInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartChatContactInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartChatContactInput"}
+	if s.ContactFlowId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContactFlowId"))
+	}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.InstanceId != nil && len(*s.InstanceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceId", 1))
+	}
+	if s.ParticipantDetails == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParticipantDetails"))
+	}
+	if s.InitialMessage != nil {
+		if err := s.InitialMessage.Validate(); err != nil {
+			invalidParams.AddNested("InitialMessage", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ParticipantDetails != nil {
+		if err := s.ParticipantDetails.Validate(); err != nil {
+			invalidParams.AddNested("ParticipantDetails", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *StartChatContactInput) SetAttributes(v map[string]*string) *StartChatContactInput {
+	s.Attributes = v
+	return s
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *StartChatContactInput) SetClientToken(v string) *StartChatContactInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetContactFlowId sets the ContactFlowId field's value.
+func (s *StartChatContactInput) SetContactFlowId(v string) *StartChatContactInput {
+	s.ContactFlowId = &v
+	return s
+}
+
+// SetInitialMessage sets the InitialMessage field's value.
+func (s *StartChatContactInput) SetInitialMessage(v *ChatMessage) *StartChatContactInput {
+	s.InitialMessage = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *StartChatContactInput) SetInstanceId(v string) *StartChatContactInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetParticipantDetails sets the ParticipantDetails field's value.
+func (s *StartChatContactInput) SetParticipantDetails(v *ParticipantDetails) *StartChatContactInput {
+	s.ParticipantDetails = v
+	return s
+}
+
+type StartChatContactOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of this contact within the Amazon Connect instance.
+	ContactId *string `min:"1" type:"string"`
+
+	// The identifier for a chat participant. The participantId for a chat participant
+	// is the same throughout the chat lifecycle.
+	ParticipantId *string `min:"1" type:"string"`
+
+	// The token used by the chat participant to call CreateParticipantConnection
+	// (https://docs.aws.amazon.com/connect-participant/latest/APIReference/API_CreateParticipantConnection.html).
+	// The participant token is valid for the lifetime of a chat participant.
+	ParticipantToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s StartChatContactOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartChatContactOutput) GoString() string {
+	return s.String()
+}
+
+// SetContactId sets the ContactId field's value.
+func (s *StartChatContactOutput) SetContactId(v string) *StartChatContactOutput {
+	s.ContactId = &v
+	return s
+}
+
+// SetParticipantId sets the ParticipantId field's value.
+func (s *StartChatContactOutput) SetParticipantId(v string) *StartChatContactOutput {
+	s.ParticipantId = &v
+	return s
+}
+
+// SetParticipantToken sets the ParticipantToken field's value.
+func (s *StartChatContactOutput) SetParticipantToken(v string) *StartChatContactOutput {
+	s.ParticipantToken = &v
+	return s
+}
+
+type StartOutboundVoiceContactInput struct {
+	_ struct{} `type:"structure"`
+
+	// A custom key-value pair using an attribute map. The attributes are standard
+	// Amazon Connect attributes, and can be accessed in contact flows just like
+	// any other contact attributes.
+	//
+	// There can be up to 32,768 UTF-8 bytes across all key-value pairs per contact.
+	// Attribute keys can include only alphanumeric, dash, and underscore characters.
 	Attributes map[string]*string `type:"map"`
 
 	// A unique, case-sensitive identifier that you provide to ensure the idempotency
@@ -4477,42 +7085,29 @@ type StartOutboundVoiceContactInput struct {
 	// a new contact is started.
 	ClientToken *string `type:"string" idempotencyToken:"true"`
 
-	// The identifier for the contact flow to connect the outbound call to.
-	//
-	// To find the ContactFlowId, open the contact flow you want to use in the Amazon
-	// Connect contact flow editor. The ID for the contact flow is displayed in
-	// the address bar as part of the URL. For example, the contact flow ID is the
-	// set of characters at the end of the URL, after 'contact-flow/' such as 78ea8fd5-2659-4f2b-b528-699760ccfc1b.
+	// The identifier of the contact flow for the outbound call.
 	//
 	// ContactFlowId is a required field
 	ContactFlowId *string `type:"string" required:"true"`
 
-	// The phone number of the customer in E.164 format.
+	// The phone number of the customer, in E.164 format.
 	//
 	// DestinationPhoneNumber is a required field
 	DestinationPhoneNumber *string `type:"string" required:"true"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `min:"1" type:"string" required:"true"`
 
-	// The queue to add the call to. If you specify a queue, the phone displayed
-	// for caller ID is the phone number specified in the queue. If you do not specify
-	// a queue, the queue used will be the queue defined in the contact flow.
-	//
-	// To find the QueueId, open the queue you want to use in the Amazon Connect
-	// Queue editor. The ID for the queue is displayed in the address bar as part
-	// of the URL. For example, the queue ID is the set of characters at the end
-	// of the URL, after 'queue/' such as queue/aeg40574-2d01-51c3-73d6-bf8624d2168c.
+	// The queue for the call. If you specify a queue, the phone displayed for caller
+	// ID is the phone number specified in the queue. If you do not specify a queue,
+	// the queue defined in the contact flow is used. If you do not specify a queue,
+	// you must specify a source phone number.
 	QueueId *string `type:"string"`
 
-	// The phone number, in E.164 format, associated with your Amazon Connect instance
-	// to use for the outbound call.
+	// The phone number associated with the Amazon Connect instance, in E.164 format.
+	// If you do not specify a source phone number, you must specify a queue.
 	SourcePhoneNumber *string `type:"string"`
 }
 
@@ -4593,7 +7188,7 @@ func (s *StartOutboundVoiceContactInput) SetSourcePhoneNumber(v string) *StartOu
 type StartOutboundVoiceContactOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The unique identifier of this contact within your Amazon Connect instance.
+	// The identifier of this contact within the Amazon Connect instance.
 	ContactId *string `min:"1" type:"string"`
 }
 
@@ -4616,16 +7211,12 @@ func (s *StartOutboundVoiceContactOutput) SetContactId(v string) *StartOutboundV
 type StopContactInput struct {
 	_ struct{} `type:"structure"`
 
-	// The unique identifier of the contact to end.
+	// The ID of the contact.
 	//
 	// ContactId is a required field
 	ContactId *string `min:"1" type:"string" required:"true"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `min:"1" type:"string" required:"true"`
@@ -4689,17 +7280,87 @@ func (s StopContactOutput) GoString() string {
 	return s.String()
 }
 
-// A Threshold object that includes a comparison and ThresholdValue to compare
-// to. Used with service level metrics.
+type TagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the resource.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resourceArn" type:"string" required:"true"`
+
+	// One or more tags. For example, { "tags": {"key1":"value1", "key2":"value2"}
+	// }.
+	//
+	// Tags is a required field
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map" required:"true"`
+}
+
+// String returns the string representation
+func (s TagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *TagResourceInput) SetResourceArn(v string) *TagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagResourceInput) SetTags(v map[string]*string) *TagResourceInput {
+	s.Tags = v
+	return s
+}
+
+type TagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceOutput) GoString() string {
+	return s.String()
+}
+
+// Contains information about the threshold for service level metrics.
 type Threshold struct {
 	_ struct{} `type:"structure"`
 
-	// The Threshold to use to compare service level metrics to. Only "Less than"
-	// (LT) comparisons are supported.
+	// The type of comparison. Only "less than" (LT) comparisons are supported.
 	Comparison *string `type:"string" enum:"Comparison"`
 
-	// The value of the threshold to compare the metric to. Only "Less than" (LT)
-	// comparisons are supported.
+	// The threshold value to compare.
 	ThresholdValue *float64 `type:"double"`
 }
 
@@ -4725,31 +7386,153 @@ func (s *Threshold) SetThresholdValue(v float64) *Threshold {
 	return s
 }
 
+// The throttling limit has been exceeded.
+type ThrottlingException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ThrottlingException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ThrottlingException) GoString() string {
+	return s.String()
+}
+
+func newErrorThrottlingException(v protocol.ResponseMetadata) error {
+	return &ThrottlingException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ThrottlingException) Code() string {
+	return "ThrottlingException"
+}
+
+// Message returns the exception's message.
+func (s ThrottlingException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ThrottlingException) OrigErr() error {
+	return nil
+}
+
+func (s ThrottlingException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ThrottlingException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ThrottlingException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+type UntagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the resource.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resourceArn" type:"string" required:"true"`
+
+	// The tag keys.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `location:"querystring" locationName:"tagKeys" min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+	if s.TagKeys != nil && len(s.TagKeys) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TagKeys", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *UntagResourceInput) SetResourceArn(v string) *UntagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceOutput) GoString() string {
+	return s.String()
+}
+
 type UpdateContactAttributesInput struct {
 	_ struct{} `type:"structure"`
 
-	// Specify a custom key-value pair using an attribute map. The attributes are
-	// standard Amazon Connect attributes, and can be accessed in contact flows
-	// just like any other contact attributes.
+	// The Amazon Connect attributes. These attributes can be accessed in contact
+	// flows just like any other contact attributes.
 	//
-	// There can be up to 32,768 UTF-8 bytes across all key-value pairs per contact.
+	// You can have up to 32,768 UTF-8 bytes across all attributes for a contact.
 	// Attribute keys can include only alphanumeric, dash, and underscore characters.
 	//
 	// Attributes is a required field
 	Attributes map[string]*string `type:"map" required:"true"`
 
-	// The unique identifier of the contact for which to update attributes. This
-	// is the identifier for the contact associated with the first interaction with
-	// the contact center.
+	// The identifier of the contact. This is the identifier of the contact associated
+	// with the first interaction with the contact center.
 	//
 	// InitialContactId is a required field
 	InitialContactId *string `min:"1" type:"string" required:"true"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `min:"1" type:"string" required:"true"`
@@ -4825,19 +7608,15 @@ func (s UpdateContactAttributesOutput) GoString() string {
 type UpdateUserHierarchyInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for the hierarchy group to assign to the user.
+	// The identifier of the hierarchy group.
 	HierarchyGroupId *string `type:"string"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// The identifier of the user account to assign the hierarchy group to.
+	// The identifier of the user account.
 	//
 	// UserId is a required field
 	UserId *string `location:"uri" locationName:"UserId" type:"string" required:"true"`
@@ -4910,21 +7689,17 @@ func (s UpdateUserHierarchyOutput) GoString() string {
 type UpdateUserIdentityInfoInput struct {
 	_ struct{} `type:"structure"`
 
-	// A UserIdentityInfo object.
+	// The identity information for the user.
 	//
 	// IdentityInfo is a required field
 	IdentityInfo *UserIdentityInfo `type:"structure" required:"true"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// The identifier for the user account to update identity information for.
+	// The identifier of the user account.
 	//
 	// UserId is a required field
 	UserId *string `location:"uri" locationName:"UserId" type:"string" required:"true"`
@@ -5005,22 +7780,17 @@ func (s UpdateUserIdentityInfoOutput) GoString() string {
 type UpdateUserPhoneConfigInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// A UserPhoneConfig object that contains settings for AfterContactWorkTimeLimit,
-	// AutoAccept, DeskPhoneNumber, and PhoneType to assign to the user.
+	// Information about phone configuration settings for the user.
 	//
 	// PhoneConfig is a required field
 	PhoneConfig *UserPhoneConfig `type:"structure" required:"true"`
 
-	// The identifier for the user account to change phone settings for.
+	// The identifier of the user account.
 	//
 	// UserId is a required field
 	UserId *string `location:"uri" locationName:"UserId" type:"string" required:"true"`
@@ -5101,21 +7871,17 @@ func (s UpdateUserPhoneConfigOutput) GoString() string {
 type UpdateUserRoutingProfileInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// The identifier of the routing profile to assign to the user.
+	// The identifier of the routing profile for the user.
 	//
 	// RoutingProfileId is a required field
 	RoutingProfileId *string `type:"string" required:"true"`
 
-	// The identifier for the user account to assign the routing profile to.
+	// The identifier of the user account.
 	//
 	// UserId is a required field
 	UserId *string `location:"uri" locationName:"UserId" type:"string" required:"true"`
@@ -5191,21 +7957,17 @@ func (s UpdateUserRoutingProfileOutput) GoString() string {
 type UpdateUserSecurityProfilesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier for your Amazon Connect instance. To find the ID of your instance,
-	// open the AWS console and select Amazon Connect. Select the alias of the instance
-	// in the Instance alias column. The instance ID is displayed in the Overview
-	// section of your instance settings. For example, the instance ID is the set
-	// of characters at the end of the instance ARN, after instance/, such as 10a4c4eb-f57e-4d4c-b602-bf39176ced07.
+	// The identifier of the Amazon Connect instance.
 	//
 	// InstanceId is a required field
 	InstanceId *string `location:"uri" locationName:"InstanceId" min:"1" type:"string" required:"true"`
 
-	// The identifiers for the security profiles to assign to the user.
+	// The identifiers of the security profiles for the user.
 	//
 	// SecurityProfileIds is a required field
 	SecurityProfileIds []*string `min:"1" type:"list" required:"true"`
 
-	// The identifier of the user account to assign the security profiles.
+	// The identifier of the user account.
 	//
 	// UserId is a required field
 	UserId *string `location:"uri" locationName:"UserId" type:"string" required:"true"`
@@ -5281,35 +8043,36 @@ func (s UpdateUserSecurityProfilesOutput) GoString() string {
 	return s.String()
 }
 
-// A User object that contains information about a user account in your Amazon
-// Connect instance, including configuration settings.
+// Contains information about a user account for a Amazon Connect instance.
 type User struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN of the user account.
+	// The Amazon Resource Name (ARN) of the user account.
 	Arn *string `type:"string"`
 
-	// The directory Id for the user account in the existing directory used for
-	// identity management.
+	// The identifier of the user account in the directory used for identity management.
 	DirectoryUserId *string `type:"string"`
 
-	// The identifier for the hierarchy group assigned to the user.
+	// The identifier of the hierarchy group for the user.
 	HierarchyGroupId *string `type:"string"`
 
 	// The identifier of the user account.
 	Id *string `type:"string"`
 
-	// A UserIdentityInfo object.
+	// Information about the user identity.
 	IdentityInfo *UserIdentityInfo `type:"structure"`
 
-	// A UserPhoneConfig object.
+	// Information about the phone configuration for the user.
 	PhoneConfig *UserPhoneConfig `type:"structure"`
 
-	// The identifier of the routing profile assigned to the user.
+	// The identifier of the routing profile for the user.
 	RoutingProfileId *string `type:"string"`
 
-	// The identifier(s) for the security profile assigned to the user.
+	// The identifiers of the security profiles for the user.
 	SecurityProfileIds []*string `min:"1" type:"list"`
+
+	// The tags.
+	Tags map[string]*string `min:"1" type:"map"`
 
 	// The user name assigned to the user account.
 	Username *string `min:"1" type:"string"`
@@ -5373,27 +8136,32 @@ func (s *User) SetSecurityProfileIds(v []*string) *User {
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *User) SetTags(v map[string]*string) *User {
+	s.Tags = v
+	return s
+}
+
 // SetUsername sets the Username field's value.
 func (s *User) SetUsername(v string) *User {
 	s.Username = &v
 	return s
 }
 
-// A UserIdentityInfo object that contains information about the user's identity,
-// including email address, first name, and last name.
+// Contains information about the identity of a user.
 type UserIdentityInfo struct {
 	_ struct{} `type:"structure"`
 
-	// The email address added to the user account. If you are using SAML for identity
-	// management and include this parameter, an InvalidRequestException is returned.
+	// The email address. If you are using SAML for identity management and include
+	// this parameter, an error is returned.
 	Email *string `type:"string"`
 
-	// The first name used in the user account. This is required if you are using
-	// Amazon Connect or SAML for identity management.
+	// The first name. This is required if you are using Amazon Connect or SAML
+	// for identity management.
 	FirstName *string `min:"1" type:"string"`
 
-	// The last name used in the user account. This is required if you are using
-	// Amazon Connect or SAML for identity management.
+	// The last name. This is required if you are using Amazon Connect or SAML for
+	// identity management.
 	LastName *string `min:"1" type:"string"`
 }
 
@@ -5441,21 +8209,76 @@ func (s *UserIdentityInfo) SetLastName(v string) *UserIdentityInfo {
 	return s
 }
 
-// A UserPhoneConfig object that contains information about the user phone configuration
-// settings.
+// No user with the specified credentials was found in the Amazon Connect instance.
+type UserNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s UserNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UserNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorUserNotFoundException(v protocol.ResponseMetadata) error {
+	return &UserNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UserNotFoundException) Code() string {
+	return "UserNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s UserNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UserNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s UserNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UserNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UserNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Contains information about the phone configuration settings for a user.
 type UserPhoneConfig struct {
 	_ struct{} `type:"structure"`
 
-	// The After Call Work (ACW) timeout setting, in seconds, for the user.
+	// The After Call Work (ACW) timeout setting, in seconds.
 	AfterContactWorkTimeLimit *int64 `type:"integer"`
 
-	// The Auto accept setting for the user, Yes or No.
+	// The Auto accept setting.
 	AutoAccept *bool `type:"boolean"`
 
 	// The phone number for the user's desk phone.
 	DeskPhoneNumber *string `type:"string"`
 
-	// The phone type selected for the user, either Soft phone or Desk phone.
+	// The phone type.
 	//
 	// PhoneType is a required field
 	PhoneType *string `type:"string" required:"true" enum:"PhoneType"`
@@ -5508,18 +8331,17 @@ func (s *UserPhoneConfig) SetPhoneType(v string) *UserPhoneConfig {
 	return s
 }
 
-// A UserSummary object that contains Information about a user, including ARN,
-// Id, and user name.
+// Contains summary information about a user.
 type UserSummary struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN for the user account.
+	// The Amazon Resource Name (ARN) of the user account.
 	Arn *string `type:"string"`
 
-	// The identifier for the user account.
+	// The identifier of the user account.
 	Id *string `type:"string"`
 
-	// The Amazon Connect user name for the user account.
+	// The Amazon Connect user name of the user account.
 	Username *string `min:"1" type:"string"`
 }
 
@@ -5554,6 +8376,9 @@ func (s *UserSummary) SetUsername(v string) *UserSummary {
 const (
 	// ChannelVoice is a Channel enum value
 	ChannelVoice = "VOICE"
+
+	// ChannelChat is a Channel enum value
+	ChannelChat = "CHAT"
 )
 
 const (
@@ -5561,7 +8386,36 @@ const (
 	ComparisonLt = "LT"
 )
 
-// A list of current metric names.
+const (
+	// ContactFlowTypeContactFlow is a ContactFlowType enum value
+	ContactFlowTypeContactFlow = "CONTACT_FLOW"
+
+	// ContactFlowTypeCustomerQueue is a ContactFlowType enum value
+	ContactFlowTypeCustomerQueue = "CUSTOMER_QUEUE"
+
+	// ContactFlowTypeCustomerHold is a ContactFlowType enum value
+	ContactFlowTypeCustomerHold = "CUSTOMER_HOLD"
+
+	// ContactFlowTypeCustomerWhisper is a ContactFlowType enum value
+	ContactFlowTypeCustomerWhisper = "CUSTOMER_WHISPER"
+
+	// ContactFlowTypeAgentHold is a ContactFlowType enum value
+	ContactFlowTypeAgentHold = "AGENT_HOLD"
+
+	// ContactFlowTypeAgentWhisper is a ContactFlowType enum value
+	ContactFlowTypeAgentWhisper = "AGENT_WHISPER"
+
+	// ContactFlowTypeOutboundWhisper is a ContactFlowType enum value
+	ContactFlowTypeOutboundWhisper = "OUTBOUND_WHISPER"
+
+	// ContactFlowTypeAgentTransfer is a ContactFlowType enum value
+	ContactFlowTypeAgentTransfer = "AGENT_TRANSFER"
+
+	// ContactFlowTypeQueueTransfer is a ContactFlowType enum value
+	ContactFlowTypeQueueTransfer = "QUEUE_TRANSFER"
+)
+
+// The current metric names.
 const (
 	// CurrentMetricNameAgentsOnline is a CurrentMetricName enum value
 	CurrentMetricNameAgentsOnline = "AGENTS_ONLINE"
@@ -5592,6 +8446,15 @@ const (
 
 	// CurrentMetricNameContactsScheduled is a CurrentMetricName enum value
 	CurrentMetricNameContactsScheduled = "CONTACTS_SCHEDULED"
+
+	// CurrentMetricNameAgentsOnContact is a CurrentMetricName enum value
+	CurrentMetricNameAgentsOnContact = "AGENTS_ON_CONTACT"
+
+	// CurrentMetricNameSlotsActive is a CurrentMetricName enum value
+	CurrentMetricNameSlotsActive = "SLOTS_ACTIVE"
+
+	// CurrentMetricNameSlotsAvailable is a CurrentMetricName enum value
+	CurrentMetricNameSlotsAvailable = "SLOTS_AVAILABLE"
 )
 
 const (
@@ -5602,7 +8465,7 @@ const (
 	GroupingChannel = "CHANNEL"
 )
 
-// A list of historical metric names.
+// The historical metric names.
 const (
 	// HistoricalMetricNameContactsQueued is a HistoricalMetricName enum value
 	HistoricalMetricNameContactsQueued = "CONTACTS_QUEUED"
@@ -5681,11 +8544,740 @@ const (
 )
 
 const (
+	// PhoneNumberCountryCodeAf is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAf = "AF"
+
+	// PhoneNumberCountryCodeAl is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAl = "AL"
+
+	// PhoneNumberCountryCodeDz is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeDz = "DZ"
+
+	// PhoneNumberCountryCodeAs is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAs = "AS"
+
+	// PhoneNumberCountryCodeAd is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAd = "AD"
+
+	// PhoneNumberCountryCodeAo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAo = "AO"
+
+	// PhoneNumberCountryCodeAi is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAi = "AI"
+
+	// PhoneNumberCountryCodeAq is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAq = "AQ"
+
+	// PhoneNumberCountryCodeAg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAg = "AG"
+
+	// PhoneNumberCountryCodeAr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAr = "AR"
+
+	// PhoneNumberCountryCodeAm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAm = "AM"
+
+	// PhoneNumberCountryCodeAw is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAw = "AW"
+
+	// PhoneNumberCountryCodeAu is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAu = "AU"
+
+	// PhoneNumberCountryCodeAt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAt = "AT"
+
+	// PhoneNumberCountryCodeAz is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAz = "AZ"
+
+	// PhoneNumberCountryCodeBs is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBs = "BS"
+
+	// PhoneNumberCountryCodeBh is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBh = "BH"
+
+	// PhoneNumberCountryCodeBd is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBd = "BD"
+
+	// PhoneNumberCountryCodeBb is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBb = "BB"
+
+	// PhoneNumberCountryCodeBy is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBy = "BY"
+
+	// PhoneNumberCountryCodeBe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBe = "BE"
+
+	// PhoneNumberCountryCodeBz is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBz = "BZ"
+
+	// PhoneNumberCountryCodeBj is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBj = "BJ"
+
+	// PhoneNumberCountryCodeBm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBm = "BM"
+
+	// PhoneNumberCountryCodeBt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBt = "BT"
+
+	// PhoneNumberCountryCodeBo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBo = "BO"
+
+	// PhoneNumberCountryCodeBa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBa = "BA"
+
+	// PhoneNumberCountryCodeBw is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBw = "BW"
+
+	// PhoneNumberCountryCodeBr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBr = "BR"
+
+	// PhoneNumberCountryCodeIo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeIo = "IO"
+
+	// PhoneNumberCountryCodeVg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeVg = "VG"
+
+	// PhoneNumberCountryCodeBn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBn = "BN"
+
+	// PhoneNumberCountryCodeBg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBg = "BG"
+
+	// PhoneNumberCountryCodeBf is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBf = "BF"
+
+	// PhoneNumberCountryCodeBi is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBi = "BI"
+
+	// PhoneNumberCountryCodeKh is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKh = "KH"
+
+	// PhoneNumberCountryCodeCm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCm = "CM"
+
+	// PhoneNumberCountryCodeCa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCa = "CA"
+
+	// PhoneNumberCountryCodeCv is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCv = "CV"
+
+	// PhoneNumberCountryCodeKy is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKy = "KY"
+
+	// PhoneNumberCountryCodeCf is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCf = "CF"
+
+	// PhoneNumberCountryCodeTd is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTd = "TD"
+
+	// PhoneNumberCountryCodeCl is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCl = "CL"
+
+	// PhoneNumberCountryCodeCn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCn = "CN"
+
+	// PhoneNumberCountryCodeCx is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCx = "CX"
+
+	// PhoneNumberCountryCodeCc is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCc = "CC"
+
+	// PhoneNumberCountryCodeCo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCo = "CO"
+
+	// PhoneNumberCountryCodeKm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKm = "KM"
+
+	// PhoneNumberCountryCodeCk is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCk = "CK"
+
+	// PhoneNumberCountryCodeCr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCr = "CR"
+
+	// PhoneNumberCountryCodeHr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeHr = "HR"
+
+	// PhoneNumberCountryCodeCu is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCu = "CU"
+
+	// PhoneNumberCountryCodeCw is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCw = "CW"
+
+	// PhoneNumberCountryCodeCy is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCy = "CY"
+
+	// PhoneNumberCountryCodeCz is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCz = "CZ"
+
+	// PhoneNumberCountryCodeCd is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCd = "CD"
+
+	// PhoneNumberCountryCodeDk is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeDk = "DK"
+
+	// PhoneNumberCountryCodeDj is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeDj = "DJ"
+
+	// PhoneNumberCountryCodeDm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeDm = "DM"
+
+	// PhoneNumberCountryCodeDo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeDo = "DO"
+
+	// PhoneNumberCountryCodeTl is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTl = "TL"
+
+	// PhoneNumberCountryCodeEc is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeEc = "EC"
+
+	// PhoneNumberCountryCodeEg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeEg = "EG"
+
+	// PhoneNumberCountryCodeSv is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSv = "SV"
+
+	// PhoneNumberCountryCodeGq is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGq = "GQ"
+
+	// PhoneNumberCountryCodeEr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeEr = "ER"
+
+	// PhoneNumberCountryCodeEe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeEe = "EE"
+
+	// PhoneNumberCountryCodeEt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeEt = "ET"
+
+	// PhoneNumberCountryCodeFk is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeFk = "FK"
+
+	// PhoneNumberCountryCodeFo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeFo = "FO"
+
+	// PhoneNumberCountryCodeFj is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeFj = "FJ"
+
+	// PhoneNumberCountryCodeFi is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeFi = "FI"
+
+	// PhoneNumberCountryCodeFr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeFr = "FR"
+
+	// PhoneNumberCountryCodePf is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePf = "PF"
+
+	// PhoneNumberCountryCodeGa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGa = "GA"
+
+	// PhoneNumberCountryCodeGm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGm = "GM"
+
+	// PhoneNumberCountryCodeGe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGe = "GE"
+
+	// PhoneNumberCountryCodeDe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeDe = "DE"
+
+	// PhoneNumberCountryCodeGh is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGh = "GH"
+
+	// PhoneNumberCountryCodeGi is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGi = "GI"
+
+	// PhoneNumberCountryCodeGr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGr = "GR"
+
+	// PhoneNumberCountryCodeGl is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGl = "GL"
+
+	// PhoneNumberCountryCodeGd is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGd = "GD"
+
+	// PhoneNumberCountryCodeGu is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGu = "GU"
+
+	// PhoneNumberCountryCodeGt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGt = "GT"
+
+	// PhoneNumberCountryCodeGg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGg = "GG"
+
+	// PhoneNumberCountryCodeGn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGn = "GN"
+
+	// PhoneNumberCountryCodeGw is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGw = "GW"
+
+	// PhoneNumberCountryCodeGy is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGy = "GY"
+
+	// PhoneNumberCountryCodeHt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeHt = "HT"
+
+	// PhoneNumberCountryCodeHn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeHn = "HN"
+
+	// PhoneNumberCountryCodeHk is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeHk = "HK"
+
+	// PhoneNumberCountryCodeHu is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeHu = "HU"
+
+	// PhoneNumberCountryCodeIs is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeIs = "IS"
+
+	// PhoneNumberCountryCodeIn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeIn = "IN"
+
+	// PhoneNumberCountryCodeId is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeId = "ID"
+
+	// PhoneNumberCountryCodeIr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeIr = "IR"
+
+	// PhoneNumberCountryCodeIq is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeIq = "IQ"
+
+	// PhoneNumberCountryCodeIe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeIe = "IE"
+
+	// PhoneNumberCountryCodeIm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeIm = "IM"
+
+	// PhoneNumberCountryCodeIl is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeIl = "IL"
+
+	// PhoneNumberCountryCodeIt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeIt = "IT"
+
+	// PhoneNumberCountryCodeCi is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCi = "CI"
+
+	// PhoneNumberCountryCodeJm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeJm = "JM"
+
+	// PhoneNumberCountryCodeJp is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeJp = "JP"
+
+	// PhoneNumberCountryCodeJe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeJe = "JE"
+
+	// PhoneNumberCountryCodeJo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeJo = "JO"
+
+	// PhoneNumberCountryCodeKz is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKz = "KZ"
+
+	// PhoneNumberCountryCodeKe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKe = "KE"
+
+	// PhoneNumberCountryCodeKi is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKi = "KI"
+
+	// PhoneNumberCountryCodeKw is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKw = "KW"
+
+	// PhoneNumberCountryCodeKg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKg = "KG"
+
+	// PhoneNumberCountryCodeLa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLa = "LA"
+
+	// PhoneNumberCountryCodeLv is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLv = "LV"
+
+	// PhoneNumberCountryCodeLb is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLb = "LB"
+
+	// PhoneNumberCountryCodeLs is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLs = "LS"
+
+	// PhoneNumberCountryCodeLr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLr = "LR"
+
+	// PhoneNumberCountryCodeLy is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLy = "LY"
+
+	// PhoneNumberCountryCodeLi is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLi = "LI"
+
+	// PhoneNumberCountryCodeLt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLt = "LT"
+
+	// PhoneNumberCountryCodeLu is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLu = "LU"
+
+	// PhoneNumberCountryCodeMo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMo = "MO"
+
+	// PhoneNumberCountryCodeMk is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMk = "MK"
+
+	// PhoneNumberCountryCodeMg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMg = "MG"
+
+	// PhoneNumberCountryCodeMw is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMw = "MW"
+
+	// PhoneNumberCountryCodeMy is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMy = "MY"
+
+	// PhoneNumberCountryCodeMv is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMv = "MV"
+
+	// PhoneNumberCountryCodeMl is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMl = "ML"
+
+	// PhoneNumberCountryCodeMt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMt = "MT"
+
+	// PhoneNumberCountryCodeMh is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMh = "MH"
+
+	// PhoneNumberCountryCodeMr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMr = "MR"
+
+	// PhoneNumberCountryCodeMu is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMu = "MU"
+
+	// PhoneNumberCountryCodeYt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeYt = "YT"
+
+	// PhoneNumberCountryCodeMx is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMx = "MX"
+
+	// PhoneNumberCountryCodeFm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeFm = "FM"
+
+	// PhoneNumberCountryCodeMd is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMd = "MD"
+
+	// PhoneNumberCountryCodeMc is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMc = "MC"
+
+	// PhoneNumberCountryCodeMn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMn = "MN"
+
+	// PhoneNumberCountryCodeMe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMe = "ME"
+
+	// PhoneNumberCountryCodeMs is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMs = "MS"
+
+	// PhoneNumberCountryCodeMa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMa = "MA"
+
+	// PhoneNumberCountryCodeMz is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMz = "MZ"
+
+	// PhoneNumberCountryCodeMm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMm = "MM"
+
+	// PhoneNumberCountryCodeNa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNa = "NA"
+
+	// PhoneNumberCountryCodeNr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNr = "NR"
+
+	// PhoneNumberCountryCodeNp is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNp = "NP"
+
+	// PhoneNumberCountryCodeNl is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNl = "NL"
+
+	// PhoneNumberCountryCodeAn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAn = "AN"
+
+	// PhoneNumberCountryCodeNc is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNc = "NC"
+
+	// PhoneNumberCountryCodeNz is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNz = "NZ"
+
+	// PhoneNumberCountryCodeNi is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNi = "NI"
+
+	// PhoneNumberCountryCodeNe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNe = "NE"
+
+	// PhoneNumberCountryCodeNg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNg = "NG"
+
+	// PhoneNumberCountryCodeNu is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNu = "NU"
+
+	// PhoneNumberCountryCodeKp is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKp = "KP"
+
+	// PhoneNumberCountryCodeMp is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMp = "MP"
+
+	// PhoneNumberCountryCodeNo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeNo = "NO"
+
+	// PhoneNumberCountryCodeOm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeOm = "OM"
+
+	// PhoneNumberCountryCodePk is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePk = "PK"
+
+	// PhoneNumberCountryCodePw is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePw = "PW"
+
+	// PhoneNumberCountryCodePa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePa = "PA"
+
+	// PhoneNumberCountryCodePg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePg = "PG"
+
+	// PhoneNumberCountryCodePy is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePy = "PY"
+
+	// PhoneNumberCountryCodePe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePe = "PE"
+
+	// PhoneNumberCountryCodePh is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePh = "PH"
+
+	// PhoneNumberCountryCodePn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePn = "PN"
+
+	// PhoneNumberCountryCodePl is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePl = "PL"
+
+	// PhoneNumberCountryCodePt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePt = "PT"
+
+	// PhoneNumberCountryCodePr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePr = "PR"
+
+	// PhoneNumberCountryCodeQa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeQa = "QA"
+
+	// PhoneNumberCountryCodeCg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCg = "CG"
+
+	// PhoneNumberCountryCodeRe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeRe = "RE"
+
+	// PhoneNumberCountryCodeRo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeRo = "RO"
+
+	// PhoneNumberCountryCodeRu is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeRu = "RU"
+
+	// PhoneNumberCountryCodeRw is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeRw = "RW"
+
+	// PhoneNumberCountryCodeBl is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeBl = "BL"
+
+	// PhoneNumberCountryCodeSh is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSh = "SH"
+
+	// PhoneNumberCountryCodeKn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKn = "KN"
+
+	// PhoneNumberCountryCodeLc is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLc = "LC"
+
+	// PhoneNumberCountryCodeMf is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeMf = "MF"
+
+	// PhoneNumberCountryCodePm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodePm = "PM"
+
+	// PhoneNumberCountryCodeVc is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeVc = "VC"
+
+	// PhoneNumberCountryCodeWs is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeWs = "WS"
+
+	// PhoneNumberCountryCodeSm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSm = "SM"
+
+	// PhoneNumberCountryCodeSt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSt = "ST"
+
+	// PhoneNumberCountryCodeSa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSa = "SA"
+
+	// PhoneNumberCountryCodeSn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSn = "SN"
+
+	// PhoneNumberCountryCodeRs is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeRs = "RS"
+
+	// PhoneNumberCountryCodeSc is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSc = "SC"
+
+	// PhoneNumberCountryCodeSl is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSl = "SL"
+
+	// PhoneNumberCountryCodeSg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSg = "SG"
+
+	// PhoneNumberCountryCodeSx is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSx = "SX"
+
+	// PhoneNumberCountryCodeSk is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSk = "SK"
+
+	// PhoneNumberCountryCodeSi is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSi = "SI"
+
+	// PhoneNumberCountryCodeSb is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSb = "SB"
+
+	// PhoneNumberCountryCodeSo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSo = "SO"
+
+	// PhoneNumberCountryCodeZa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeZa = "ZA"
+
+	// PhoneNumberCountryCodeKr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeKr = "KR"
+
+	// PhoneNumberCountryCodeEs is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeEs = "ES"
+
+	// PhoneNumberCountryCodeLk is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeLk = "LK"
+
+	// PhoneNumberCountryCodeSd is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSd = "SD"
+
+	// PhoneNumberCountryCodeSr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSr = "SR"
+
+	// PhoneNumberCountryCodeSj is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSj = "SJ"
+
+	// PhoneNumberCountryCodeSz is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSz = "SZ"
+
+	// PhoneNumberCountryCodeSe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSe = "SE"
+
+	// PhoneNumberCountryCodeCh is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeCh = "CH"
+
+	// PhoneNumberCountryCodeSy is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeSy = "SY"
+
+	// PhoneNumberCountryCodeTw is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTw = "TW"
+
+	// PhoneNumberCountryCodeTj is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTj = "TJ"
+
+	// PhoneNumberCountryCodeTz is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTz = "TZ"
+
+	// PhoneNumberCountryCodeTh is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTh = "TH"
+
+	// PhoneNumberCountryCodeTg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTg = "TG"
+
+	// PhoneNumberCountryCodeTk is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTk = "TK"
+
+	// PhoneNumberCountryCodeTo is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTo = "TO"
+
+	// PhoneNumberCountryCodeTt is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTt = "TT"
+
+	// PhoneNumberCountryCodeTn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTn = "TN"
+
+	// PhoneNumberCountryCodeTr is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTr = "TR"
+
+	// PhoneNumberCountryCodeTm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTm = "TM"
+
+	// PhoneNumberCountryCodeTc is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTc = "TC"
+
+	// PhoneNumberCountryCodeTv is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeTv = "TV"
+
+	// PhoneNumberCountryCodeVi is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeVi = "VI"
+
+	// PhoneNumberCountryCodeUg is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeUg = "UG"
+
+	// PhoneNumberCountryCodeUa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeUa = "UA"
+
+	// PhoneNumberCountryCodeAe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeAe = "AE"
+
+	// PhoneNumberCountryCodeGb is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeGb = "GB"
+
+	// PhoneNumberCountryCodeUs is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeUs = "US"
+
+	// PhoneNumberCountryCodeUy is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeUy = "UY"
+
+	// PhoneNumberCountryCodeUz is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeUz = "UZ"
+
+	// PhoneNumberCountryCodeVu is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeVu = "VU"
+
+	// PhoneNumberCountryCodeVa is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeVa = "VA"
+
+	// PhoneNumberCountryCodeVe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeVe = "VE"
+
+	// PhoneNumberCountryCodeVn is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeVn = "VN"
+
+	// PhoneNumberCountryCodeWf is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeWf = "WF"
+
+	// PhoneNumberCountryCodeEh is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeEh = "EH"
+
+	// PhoneNumberCountryCodeYe is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeYe = "YE"
+
+	// PhoneNumberCountryCodeZm is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeZm = "ZM"
+
+	// PhoneNumberCountryCodeZw is a PhoneNumberCountryCode enum value
+	PhoneNumberCountryCodeZw = "ZW"
+)
+
+const (
+	// PhoneNumberTypeTollFree is a PhoneNumberType enum value
+	PhoneNumberTypeTollFree = "TOLL_FREE"
+
+	// PhoneNumberTypeDid is a PhoneNumberType enum value
+	PhoneNumberTypeDid = "DID"
+)
+
+const (
 	// PhoneTypeSoftPhone is a PhoneType enum value
 	PhoneTypeSoftPhone = "SOFT_PHONE"
 
 	// PhoneTypeDeskPhone is a PhoneType enum value
 	PhoneTypeDeskPhone = "DESK_PHONE"
+)
+
+const (
+	// QueueTypeStandard is a QueueType enum value
+	QueueTypeStandard = "STANDARD"
+
+	// QueueTypeAgent is a QueueType enum value
+	QueueTypeAgent = "AGENT"
 )
 
 const (

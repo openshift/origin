@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -201,7 +202,7 @@ func (c *keyController) checkAndCreateKeys() error {
 	if err != nil {
 		return fmt.Errorf("failed to create key: %v", err)
 	}
-	_, createErr := c.secretClient.Secrets("openshift-config-managed").Create(keySecret)
+	_, createErr := c.secretClient.Secrets("openshift-config-managed").Create(context.TODO(), keySecret, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(createErr) {
 		return c.validateExistingSecret(keySecret, newKeyID)
 	}
@@ -216,7 +217,7 @@ func (c *keyController) checkAndCreateKeys() error {
 }
 
 func (c *keyController) validateExistingSecret(keySecret *corev1.Secret, keyID uint64) error {
-	actualKeySecret, err := c.secretClient.Secrets("openshift-config-managed").Get(keySecret.Name, metav1.GetOptions{})
+	actualKeySecret, err := c.secretClient.Secrets("openshift-config-managed").Get(context.TODO(), keySecret.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -249,7 +250,7 @@ func (c *keyController) generateKeySecret(keyID uint64, currentMode state.Mode, 
 }
 
 func (c *keyController) getCurrentModeAndExternalReason() (state.Mode, string, error) {
-	apiServer, err := c.apiServerClient.Get("cluster", metav1.GetOptions{})
+	apiServer, err := c.apiServerClient.Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return "", "", err
 	}

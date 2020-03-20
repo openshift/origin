@@ -16,29 +16,7 @@ import (
 // Length represents a length in metres.
 type Length float64
 
-const (
-	Yottametre Length = 1e24
-	Zettametre Length = 1e21
-	Exametre   Length = 1e18
-	Petametre  Length = 1e15
-	Terametre  Length = 1e12
-	Gigametre  Length = 1e9
-	Megametre  Length = 1e6
-	Kilometre  Length = 1e3
-	Hectometre Length = 1e2
-	Decametre  Length = 1e1
-	Metre      Length = 1.0
-	Decimetre  Length = 1e-1
-	Centimetre Length = 1e-2
-	Millimetre Length = 1e-3
-	Micrometre Length = 1e-6
-	Nanometre  Length = 1e-9
-	Picometre  Length = 1e-12
-	Femtometre Length = 1e-15
-	Attometre  Length = 1e-18
-	Zeptometre Length = 1e-21
-	Yoctometre Length = 1e-24
-)
+const Metre Length = 1
 
 // Unit converts the Length to a *Unit
 func (l Length) Unit() *Unit {

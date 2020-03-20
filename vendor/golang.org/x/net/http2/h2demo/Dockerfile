@@ -25,7 +25,7 @@ COPY . /go/src/golang.org/x/net
 
 # Install binary to /go/bin:
 WORKDIR /go/src/golang.org/x/net/http2/h2demo
-RUN go install -tags "h2demo netgo"
+RUN go install -tags "netgo"
 
 
 FROM debian:stretch

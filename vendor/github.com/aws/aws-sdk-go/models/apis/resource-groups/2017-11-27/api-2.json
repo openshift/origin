@@ -342,7 +342,9 @@
     },
     "GroupArn":{
       "type":"string",
-      "pattern":"arn:aws:resource-groups:[a-z]{2}-[a-z]+-\\d{1}:[0-9]{12}:group/[a-zA-Z0-9_\\.-]{1,128}"
+      "max":1600,
+      "min":12,
+      "pattern":"arn:aws(-[a-z]+)*:resource-groups:[a-z]{2}-[a-z]+-\\d{1}:[0-9]{12}:group/[a-zA-Z0-9_\\.-]{1,128}"
     },
     "GroupDescription":{
       "type":"string",
@@ -371,7 +373,8 @@
     "GroupFilterValue":{
       "type":"string",
       "max":128,
-      "min":1
+      "min":1,
+      "pattern":"AWS::(AllSupported|[a-zA-Z0-9]+::[a-zA-Z0-9]+)"
     },
     "GroupFilterValues":{
       "type":"list",
@@ -490,7 +493,12 @@
       "error":{"httpStatusCode":405},
       "exception":true
     },
-    "NextToken":{"type":"string"},
+    "NextToken":{
+      "type":"string",
+      "max":8192,
+      "min":0,
+      "pattern":"^[a-zA-Z0-9+/]*={0,2}$"
+    },
     "NotFoundException":{
       "type":"structure",
       "members":{
@@ -501,7 +509,8 @@
     },
     "Query":{
       "type":"string",
-      "max":2048
+      "max":4096,
+      "pattern":"[\\s\\S]*"
     },
     "QueryError":{
       "type":"structure",
@@ -527,11 +536,14 @@
       "enum":[
         "TAG_FILTERS_1_0",
         "CLOUDFORMATION_STACK_1_0"
-      ]
+      ],
+      "max":128,
+      "min":1,
+      "pattern":"^\\w+$"
     },
     "ResourceArn":{
       "type":"string",
-      "pattern":"arn:aws:[a-z0-9\\-]*:([a-z]{2}-[a-z]+-\\d{1})?:([0-9]{12})?:.+"
+      "pattern":"arn:aws(-[a-z]+)*:[a-z0-9\\-]*:([a-z]{2}-[a-z]+-\\d{1})?:([0-9]{12})?:.+"
     },
     "ResourceFilter":{
       "type":"structure",

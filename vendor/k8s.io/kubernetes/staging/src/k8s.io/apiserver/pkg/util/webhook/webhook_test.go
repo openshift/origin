@@ -37,7 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd/api/v1"
+	v1 "k8s.io/client-go/tools/clientcmd/api/v1"
 )
 
 const (
@@ -259,7 +259,7 @@ func TestKubeConfigFile(t *testing.T) {
 			if err == nil {
 				defer os.Remove(kubeConfigFile)
 
-				_, err = NewGenericWebhook(runtime.NewScheme(), scheme.Codecs, kubeConfigFile, groupVersions, retryBackoff)
+				_, err = NewGenericWebhook(runtime.NewScheme(), scheme.Codecs, kubeConfigFile, groupVersions, retryBackoff, nil)
 			}
 
 			return err
@@ -282,7 +282,7 @@ func TestKubeConfigFile(t *testing.T) {
 // TestMissingKubeConfigFile ensures that a kube config path to a missing file is handled properly
 func TestMissingKubeConfigFile(t *testing.T) {
 	kubeConfigPath := "/some/missing/path"
-	_, err := NewGenericWebhook(runtime.NewScheme(), scheme.Codecs, kubeConfigPath, groupVersions, retryBackoff)
+	_, err := NewGenericWebhook(runtime.NewScheme(), scheme.Codecs, kubeConfigPath, groupVersions, retryBackoff, nil)
 
 	if err == nil {
 		t.Errorf("creating the webhook should had failed")
@@ -394,10 +394,10 @@ func TestTLSConfig(t *testing.T) {
 
 			defer os.Remove(configFile)
 
-			wh, err := NewGenericWebhook(runtime.NewScheme(), scheme.Codecs, configFile, groupVersions, retryBackoff)
+			wh, err := NewGenericWebhook(runtime.NewScheme(), scheme.Codecs, configFile, groupVersions, retryBackoff, nil)
 
 			if err == nil {
-				err = wh.RestClient.Get().Do().Error()
+				err = wh.RestClient.Get().Do(context.TODO()).Error()
 			}
 
 			if err == nil {
@@ -459,14 +459,14 @@ func TestRequestTimeout(t *testing.T) {
 
 	var requestTimeout = 10 * time.Millisecond
 
-	wh, err := newGenericWebhook(runtime.NewScheme(), scheme.Codecs, configFile, groupVersions, retryBackoff, requestTimeout)
+	wh, err := newGenericWebhook(runtime.NewScheme(), scheme.Codecs, configFile, groupVersions, retryBackoff, requestTimeout, nil)
 	if err != nil {
 		t.Fatalf("failed to create the webhook: %v", err)
 	}
 
 	resultCh := make(chan rest.Result)
 
-	go func() { resultCh <- wh.RestClient.Get().Do() }()
+	go func() { resultCh <- wh.RestClient.Get().Do(context.TODO()) }()
 	select {
 	case <-time.After(time.Second * 5):
 		t.Errorf("expected request to timeout after %s", requestTimeout)
@@ -545,14 +545,14 @@ func TestWithExponentialBackoff(t *testing.T) {
 
 	defer os.Remove(configFile)
 
-	wh, err := NewGenericWebhook(runtime.NewScheme(), scheme.Codecs, configFile, groupVersions, retryBackoff)
+	wh, err := NewGenericWebhook(runtime.NewScheme(), scheme.Codecs, configFile, groupVersions, retryBackoff, nil)
 
 	if err != nil {
 		t.Fatalf("failed to create the webhook: %v", err)
 	}
 
 	result := wh.WithExponentialBackoff(context.Background(), func() rest.Result {
-		return wh.RestClient.Get().Do()
+		return wh.RestClient.Get().Do(context.TODO())
 	})
 
 	var statusCode int
@@ -564,7 +564,7 @@ func TestWithExponentialBackoff(t *testing.T) {
 	}
 
 	result = wh.WithExponentialBackoff(context.Background(), func() rest.Result {
-		return wh.RestClient.Get().Do()
+		return wh.RestClient.Get().Do(context.TODO())
 	})
 
 	result.StatusCode(&statusCode)

@@ -13,7 +13,6 @@ go_library(
         "//staging/src/k8s.io/api/core/v1:go_default_library",
     ] + select({
         "@io_bazel_rules_go//go/platform:android": [
-            "//staging/src/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
             "//staging/src/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
             "//staging/src/k8s.io/client-go/tools/record:go_default_library",
             "//vendor/github.com/google/cadvisor/utils/oomparser:go_default_library",
@@ -32,7 +31,6 @@ go_library(
             "//staging/src/k8s.io/client-go/tools/record:go_default_library",
         ],
         "@io_bazel_rules_go//go/platform:linux": [
-            "//staging/src/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
             "//staging/src/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
             "//staging/src/k8s.io/client-go/tools/record:go_default_library",
             "//vendor/github.com/google/cadvisor/utils/oomparser:go_default_library",
@@ -64,6 +62,21 @@ go_test(
     name = "go_default_test",
     srcs = ["oom_watcher_linux_test.go"],
     embed = [":go_default_library"],
+    deps = select({
+        "@io_bazel_rules_go//go/platform:android": [
+            "//staging/src/k8s.io/api/core/v1:go_default_library",
+            "//staging/src/k8s.io/client-go/tools/record:go_default_library",
+            "//vendor/github.com/google/cadvisor/utils/oomparser:go_default_library",
+            "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
+            "//staging/src/k8s.io/api/core/v1:go_default_library",
+            "//staging/src/k8s.io/client-go/tools/record:go_default_library",
+            "//vendor/github.com/google/cadvisor/utils/oomparser:go_default_library",
+            "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 filegroup(

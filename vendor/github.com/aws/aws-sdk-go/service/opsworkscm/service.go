@@ -8,11 +8,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/signer/v4"
+	"github.com/aws/aws-sdk-go/private/protocol"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 // OpsWorksCM provides the API operation methods for making requests to
-// AWS OpsWorks for Chef Automate. See this package's package overview docs
+// AWS OpsWorks CM. See this package's package overview docs
 // for details on the service.
 //
 // OpsWorksCM methods are safe to use concurrently. It is not safe to
@@ -31,7 +32,7 @@ var initRequest func(*request.Request)
 const (
 	ServiceName = "opsworks-cm" // Name of service.
 	EndpointsID = ServiceName   // ID to lookup a service endpoint with.
-	ServiceID   = "OpsWorksCM"  // ServiceID is a unique identifer of a specific service.
+	ServiceID   = "OpsWorksCM"  // ServiceID is a unique identifier of a specific service.
 )
 
 // New creates a new instance of the OpsWorksCM client with a session.
@@ -39,6 +40,8 @@ const (
 // aws.Config parameter to add your extra config.
 //
 // Example:
+//     mySession := session.Must(session.NewSession())
+//
 //     // Create a OpsWorksCM client from just a session.
 //     svc := opsworkscm.New(mySession)
 //
@@ -49,11 +52,11 @@ func New(p client.ConfigProvider, cfgs ...*aws.Config) *OpsWorksCM {
 	if c.SigningNameDerived || len(c.SigningName) == 0 {
 		c.SigningName = "opsworks-cm"
 	}
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
+	return newClient(*c.Config, c.Handlers, c.PartitionID, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *OpsWorksCM {
+func newClient(cfg aws.Config, handlers request.Handlers, partitionID, endpoint, signingRegion, signingName string) *OpsWorksCM {
 	svc := &OpsWorksCM{
 		Client: client.New(
 			cfg,
@@ -62,6 +65,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 				ServiceID:     ServiceID,
 				SigningName:   signingName,
 				SigningRegion: signingRegion,
+				PartitionID:   partitionID,
 				Endpoint:      endpoint,
 				APIVersion:    "2016-11-01",
 				JSONVersion:   "1.1",
@@ -76,7 +80,9 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	svc.Handlers.Build.PushBackNamed(jsonrpc.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(jsonrpc.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(jsonrpc.UnmarshalMetaHandler)
-	svc.Handlers.UnmarshalError.PushBackNamed(jsonrpc.UnmarshalErrorHandler)
+	svc.Handlers.UnmarshalError.PushBackNamed(
+		protocol.NewUnmarshalErrorHandler(jsonrpc.NewUnmarshalTypedError(exceptionFromCode)).NamedHandler(),
+	)
 
 	// Run custom client initialization if present
 	if initClient != nil {

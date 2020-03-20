@@ -80,6 +80,10 @@ type KinesisAnalyticsV2API interface {
 	AddApplicationReferenceDataSourceWithContext(aws.Context, *kinesisanalyticsv2.AddApplicationReferenceDataSourceInput, ...request.Option) (*kinesisanalyticsv2.AddApplicationReferenceDataSourceOutput, error)
 	AddApplicationReferenceDataSourceRequest(*kinesisanalyticsv2.AddApplicationReferenceDataSourceInput) (*request.Request, *kinesisanalyticsv2.AddApplicationReferenceDataSourceOutput)
 
+	AddApplicationVpcConfiguration(*kinesisanalyticsv2.AddApplicationVpcConfigurationInput) (*kinesisanalyticsv2.AddApplicationVpcConfigurationOutput, error)
+	AddApplicationVpcConfigurationWithContext(aws.Context, *kinesisanalyticsv2.AddApplicationVpcConfigurationInput, ...request.Option) (*kinesisanalyticsv2.AddApplicationVpcConfigurationOutput, error)
+	AddApplicationVpcConfigurationRequest(*kinesisanalyticsv2.AddApplicationVpcConfigurationInput) (*request.Request, *kinesisanalyticsv2.AddApplicationVpcConfigurationOutput)
+
 	CreateApplication(*kinesisanalyticsv2.CreateApplicationInput) (*kinesisanalyticsv2.CreateApplicationOutput, error)
 	CreateApplicationWithContext(aws.Context, *kinesisanalyticsv2.CreateApplicationInput, ...request.Option) (*kinesisanalyticsv2.CreateApplicationOutput, error)
 	CreateApplicationRequest(*kinesisanalyticsv2.CreateApplicationInput) (*request.Request, *kinesisanalyticsv2.CreateApplicationOutput)
@@ -112,6 +116,10 @@ type KinesisAnalyticsV2API interface {
 	DeleteApplicationSnapshotWithContext(aws.Context, *kinesisanalyticsv2.DeleteApplicationSnapshotInput, ...request.Option) (*kinesisanalyticsv2.DeleteApplicationSnapshotOutput, error)
 	DeleteApplicationSnapshotRequest(*kinesisanalyticsv2.DeleteApplicationSnapshotInput) (*request.Request, *kinesisanalyticsv2.DeleteApplicationSnapshotOutput)
 
+	DeleteApplicationVpcConfiguration(*kinesisanalyticsv2.DeleteApplicationVpcConfigurationInput) (*kinesisanalyticsv2.DeleteApplicationVpcConfigurationOutput, error)
+	DeleteApplicationVpcConfigurationWithContext(aws.Context, *kinesisanalyticsv2.DeleteApplicationVpcConfigurationInput, ...request.Option) (*kinesisanalyticsv2.DeleteApplicationVpcConfigurationOutput, error)
+	DeleteApplicationVpcConfigurationRequest(*kinesisanalyticsv2.DeleteApplicationVpcConfigurationInput) (*request.Request, *kinesisanalyticsv2.DeleteApplicationVpcConfigurationOutput)
+
 	DescribeApplication(*kinesisanalyticsv2.DescribeApplicationInput) (*kinesisanalyticsv2.DescribeApplicationOutput, error)
 	DescribeApplicationWithContext(aws.Context, *kinesisanalyticsv2.DescribeApplicationInput, ...request.Option) (*kinesisanalyticsv2.DescribeApplicationOutput, error)
 	DescribeApplicationRequest(*kinesisanalyticsv2.DescribeApplicationInput) (*request.Request, *kinesisanalyticsv2.DescribeApplicationOutput)
@@ -132,6 +140,10 @@ type KinesisAnalyticsV2API interface {
 	ListApplicationsWithContext(aws.Context, *kinesisanalyticsv2.ListApplicationsInput, ...request.Option) (*kinesisanalyticsv2.ListApplicationsOutput, error)
 	ListApplicationsRequest(*kinesisanalyticsv2.ListApplicationsInput) (*request.Request, *kinesisanalyticsv2.ListApplicationsOutput)
 
+	ListTagsForResource(*kinesisanalyticsv2.ListTagsForResourceInput) (*kinesisanalyticsv2.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *kinesisanalyticsv2.ListTagsForResourceInput, ...request.Option) (*kinesisanalyticsv2.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*kinesisanalyticsv2.ListTagsForResourceInput) (*request.Request, *kinesisanalyticsv2.ListTagsForResourceOutput)
+
 	StartApplication(*kinesisanalyticsv2.StartApplicationInput) (*kinesisanalyticsv2.StartApplicationOutput, error)
 	StartApplicationWithContext(aws.Context, *kinesisanalyticsv2.StartApplicationInput, ...request.Option) (*kinesisanalyticsv2.StartApplicationOutput, error)
 	StartApplicationRequest(*kinesisanalyticsv2.StartApplicationInput) (*request.Request, *kinesisanalyticsv2.StartApplicationOutput)
@@ -139,6 +151,14 @@ type KinesisAnalyticsV2API interface {
 	StopApplication(*kinesisanalyticsv2.StopApplicationInput) (*kinesisanalyticsv2.StopApplicationOutput, error)
 	StopApplicationWithContext(aws.Context, *kinesisanalyticsv2.StopApplicationInput, ...request.Option) (*kinesisanalyticsv2.StopApplicationOutput, error)
 	StopApplicationRequest(*kinesisanalyticsv2.StopApplicationInput) (*request.Request, *kinesisanalyticsv2.StopApplicationOutput)
+
+	TagResource(*kinesisanalyticsv2.TagResourceInput) (*kinesisanalyticsv2.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *kinesisanalyticsv2.TagResourceInput, ...request.Option) (*kinesisanalyticsv2.TagResourceOutput, error)
+	TagResourceRequest(*kinesisanalyticsv2.TagResourceInput) (*request.Request, *kinesisanalyticsv2.TagResourceOutput)
+
+	UntagResource(*kinesisanalyticsv2.UntagResourceInput) (*kinesisanalyticsv2.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *kinesisanalyticsv2.UntagResourceInput, ...request.Option) (*kinesisanalyticsv2.UntagResourceOutput, error)
+	UntagResourceRequest(*kinesisanalyticsv2.UntagResourceInput) (*request.Request, *kinesisanalyticsv2.UntagResourceOutput)
 
 	UpdateApplication(*kinesisanalyticsv2.UpdateApplicationInput) (*kinesisanalyticsv2.UpdateApplicationOutput, error)
 	UpdateApplicationWithContext(aws.Context, *kinesisanalyticsv2.UpdateApplicationInput, ...request.Option) (*kinesisanalyticsv2.UpdateApplicationOutput, error)

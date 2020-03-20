@@ -16,13 +16,13 @@ func TestGravitationalFormat(t *testing.T) {
 		format string
 		want   string
 	}{
-		{"%v", "6.67408e-11 m^3 kg^-1 s^-2"},
+		{"%v", "6.6743e-11 m^3 kg^-1 s^-2"},
 		{"%.1v", "7e-11 m^3 kg^-1 s^-2"},
 		{"%50.1v", "                              7e-11 m^3 kg^-1 s^-2"},
-		{"%50v", "                        6.67408e-11 m^3 kg^-1 s^-2"},
-		{"%1v", "6.67408e-11 m^3 kg^-1 s^-2"},
-		{"%#v", "constant.gravitationalUnits(6.67408e-11)"},
-		{"%s", "%!s(constant.gravitationalUnits=6.67408e-11 m^3 kg^-1 s^-2)"},
+		{"%50v", "                         6.6743e-11 m^3 kg^-1 s^-2"},
+		{"%1v", "6.6743e-11 m^3 kg^-1 s^-2"},
+		{"%#v", "constant.gravitationalUnits(6.6743e-11)"},
+		{"%s", "%!s(constant.gravitationalUnits=6.6743e-11 m^3 kg^-1 s^-2)"},
 	} {
 		got := fmt.Sprintf(test.format, Gravitational)
 		if got != test.want {

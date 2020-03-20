@@ -1,6 +1,7 @@
 package resourceapply
 
 import (
+	"context"
 	"reflect"
 	"sort"
 	"testing"
@@ -117,7 +118,7 @@ func TestApplyServiceMonitor(t *testing.T) {
 		Group:    "monitoring.coreos.com",
 		Version:  "v1",
 		Resource: "servicemonitors",
-	}).Namespace("openshift-kube-apiserver").Get("cluster-kube-apiserver", metav1.GetOptions{})
+	}).Namespace("openshift-kube-apiserver").Get(context.TODO(), "cluster-kube-apiserver", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("expected to get update monitor, got: %v", err)
 	}

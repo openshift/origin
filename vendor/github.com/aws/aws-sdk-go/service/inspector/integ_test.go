@@ -27,7 +27,9 @@ func TestInteg_00_ListAssessmentTemplates(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := inspector.New(sess)
 	params := &inspector.ListAssessmentTemplatesInput{}
-	_, err := svc.ListAssessmentTemplatesWithContext(ctx, params)
+	_, err := svc.ListAssessmentTemplatesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_ListTagsForResource(t *testing.T) {
 	params := &inspector.ListTagsForResourceInput{
 		ResourceArn: aws.String("fake-arn"),
 	}
-	_, err := svc.ListTagsForResourceWithContext(ctx, params)
+	_, err := svc.ListTagsForResourceWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

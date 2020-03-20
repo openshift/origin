@@ -17,7 +17,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CreateOpt is is passed used to change the default plugin config before
+// CreateOpt is passed used to change the default plugin config before
 // creating it
 type CreateOpt func(*Config)
 
@@ -92,7 +92,7 @@ func CreateInRegistry(ctx context.Context, repo string, auth *types.AuthConfig, 
 		return nil, nil
 	}
 
-	regService, err := registry.NewService(registry.ServiceOptions{V2Only: true})
+	regService, err := registry.NewService(registry.ServiceOptions{})
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func ensureBasicPluginBin() (string, error) {
 	installPath := filepath.Join(os.Getenv("GOPATH"), "bin", name)
 	sourcePath := filepath.Join("github.com", "docker", "docker", "internal", "test", "fixtures", "plugin", "basic")
 	cmd := exec.Command(goBin, "build", "-o", installPath, sourcePath)
-	cmd.Env = append(cmd.Env, "GOPATH="+os.Getenv("GOPATH"), "CGO_ENABLED=0")
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", errors.Wrapf(err, "error building basic plugin bin: %s", string(out))
 	}

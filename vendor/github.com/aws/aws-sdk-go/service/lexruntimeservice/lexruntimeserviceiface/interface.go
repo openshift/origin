@@ -26,7 +26,7 @@ import (
 //    // myFunc uses an SDK service client to make a request to
 //    // Amazon Lex Runtime Service.
 //    func myFunc(svc lexruntimeserviceiface.LexRuntimeServiceAPI) bool {
-//        // Make svc.PostContent request
+//        // Make svc.DeleteSession request
 //    }
 //
 //    func main() {
@@ -42,7 +42,7 @@ import (
 //    type mockLexRuntimeServiceClient struct {
 //        lexruntimeserviceiface.LexRuntimeServiceAPI
 //    }
-//    func (m *mockLexRuntimeServiceClient) PostContent(input *lexruntimeservice.PostContentInput) (*lexruntimeservice.PostContentOutput, error) {
+//    func (m *mockLexRuntimeServiceClient) DeleteSession(input *lexruntimeservice.DeleteSessionInput) (*lexruntimeservice.DeleteSessionOutput, error) {
 //        // mock response/functionality
 //    }
 //
@@ -60,6 +60,14 @@ import (
 // and waiters. Its suggested to use the pattern above for testing, or using
 // tooling to generate mocks to satisfy the interfaces.
 type LexRuntimeServiceAPI interface {
+	DeleteSession(*lexruntimeservice.DeleteSessionInput) (*lexruntimeservice.DeleteSessionOutput, error)
+	DeleteSessionWithContext(aws.Context, *lexruntimeservice.DeleteSessionInput, ...request.Option) (*lexruntimeservice.DeleteSessionOutput, error)
+	DeleteSessionRequest(*lexruntimeservice.DeleteSessionInput) (*request.Request, *lexruntimeservice.DeleteSessionOutput)
+
+	GetSession(*lexruntimeservice.GetSessionInput) (*lexruntimeservice.GetSessionOutput, error)
+	GetSessionWithContext(aws.Context, *lexruntimeservice.GetSessionInput, ...request.Option) (*lexruntimeservice.GetSessionOutput, error)
+	GetSessionRequest(*lexruntimeservice.GetSessionInput) (*request.Request, *lexruntimeservice.GetSessionOutput)
+
 	PostContent(*lexruntimeservice.PostContentInput) (*lexruntimeservice.PostContentOutput, error)
 	PostContentWithContext(aws.Context, *lexruntimeservice.PostContentInput, ...request.Option) (*lexruntimeservice.PostContentOutput, error)
 	PostContentRequest(*lexruntimeservice.PostContentInput) (*request.Request, *lexruntimeservice.PostContentOutput)
@@ -67,6 +75,10 @@ type LexRuntimeServiceAPI interface {
 	PostText(*lexruntimeservice.PostTextInput) (*lexruntimeservice.PostTextOutput, error)
 	PostTextWithContext(aws.Context, *lexruntimeservice.PostTextInput, ...request.Option) (*lexruntimeservice.PostTextOutput, error)
 	PostTextRequest(*lexruntimeservice.PostTextInput) (*request.Request, *lexruntimeservice.PostTextOutput)
+
+	PutSession(*lexruntimeservice.PutSessionInput) (*lexruntimeservice.PutSessionOutput, error)
+	PutSessionWithContext(aws.Context, *lexruntimeservice.PutSessionInput, ...request.Option) (*lexruntimeservice.PutSessionOutput, error)
+	PutSessionRequest(*lexruntimeservice.PutSessionInput) (*request.Request, *lexruntimeservice.PutSessionOutput)
 }
 
 var _ LexRuntimeServiceAPI = (*lexruntimeservice.LexRuntimeService)(nil)

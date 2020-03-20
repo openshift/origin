@@ -186,6 +186,22 @@
       ],
       "idempotent":true
     },
+    "DescribeCopyJob":{
+      "name":"DescribeCopyJob",
+      "http":{
+        "method":"GET",
+        "requestUri":"/copy-jobs/{copyJobId}"
+      },
+      "input":{"shape":"DescribeCopyJobInput"},
+      "output":{"shape":"DescribeCopyJobOutput"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidParameterValueException"},
+        {"shape":"MissingParameterValueException"},
+        {"shape":"ServiceUnavailableException"}
+      ],
+      "idempotent":true
+    },
     "DescribeProtectedResource":{
       "name":"DescribeProtectedResource",
       "http":{
@@ -382,6 +398,7 @@
       "output":{"shape":"ListBackupJobsOutput"},
       "errors":[
         {"shape":"InvalidParameterValueException"},
+        {"shape":"InvalidRequestException"},
         {"shape":"ServiceUnavailableException"}
       ],
       "idempotent":true
@@ -464,6 +481,19 @@
         {"shape":"ServiceUnavailableException"}
       ],
       "idempotent":true
+    },
+    "ListCopyJobs":{
+      "name":"ListCopyJobs",
+      "http":{
+        "method":"GET",
+        "requestUri":"/copy-jobs/"
+      },
+      "input":{"shape":"ListCopyJobsInput"},
+      "output":{"shape":"ListCopyJobsOutput"},
+      "errors":[
+        {"shape":"InvalidParameterValueException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
     },
     "ListProtectedResources":{
       "name":"ListProtectedResources",
@@ -581,6 +611,23 @@
       },
       "input":{"shape":"StartBackupJobInput"},
       "output":{"shape":"StartBackupJobOutput"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidParameterValueException"},
+        {"shape":"MissingParameterValueException"},
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"LimitExceededException"}
+      ],
+      "idempotent":true
+    },
+    "StartCopyJob":{
+      "name":"StartCopyJob",
+      "http":{
+        "method":"PUT",
+        "requestUri":"/copy-jobs"
+      },
+      "input":{"shape":"StartCopyJobInput"},
+      "output":{"shape":"StartCopyJobOutput"},
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"InvalidParameterValueException"},
@@ -807,7 +854,8 @@
         "CompletionWindowMinutes":{"shape":"WindowMinutes"},
         "Lifecycle":{"shape":"Lifecycle"},
         "RecoveryPointTags":{"shape":"Tags"},
-        "RuleId":{"shape":"string"}
+        "RuleId":{"shape":"string"},
+        "CopyActions":{"shape":"CopyActions"}
       }
     },
     "BackupRuleInput":{
@@ -823,7 +871,8 @@
         "StartWindowMinutes":{"shape":"WindowMinutes"},
         "CompletionWindowMinutes":{"shape":"WindowMinutes"},
         "Lifecycle":{"shape":"Lifecycle"},
-        "RecoveryPointTags":{"shape":"Tags"}
+        "RecoveryPointTags":{"shape":"Tags"},
+        "CopyActions":{"shape":"CopyActions"}
       }
     },
     "BackupRuleName":{
@@ -875,8 +924,16 @@
       "enum":[
         "BACKUP_JOB_STARTED",
         "BACKUP_JOB_COMPLETED",
+        "BACKUP_JOB_SUCCESSFUL",
+        "BACKUP_JOB_FAILED",
+        "BACKUP_JOB_EXPIRED",
         "RESTORE_JOB_STARTED",
         "RESTORE_JOB_COMPLETED",
+        "RESTORE_JOB_SUCCESSFUL",
+        "RESTORE_JOB_FAILED",
+        "COPY_JOB_STARTED",
+        "COPY_JOB_SUCCESSFUL",
+        "COPY_JOB_FAILED",
         "RECOVERY_POINT_MODIFIED",
         "BACKUP_PLAN_CREATED",
         "BACKUP_PLAN_MODIFIED"
@@ -932,6 +989,50 @@
       "enum":["STRINGEQUALS"]
     },
     "ConditionValue":{"type":"string"},
+    "CopyAction":{
+      "type":"structure",
+      "required":["DestinationBackupVaultArn"],
+      "members":{
+        "Lifecycle":{"shape":"Lifecycle"},
+        "DestinationBackupVaultArn":{"shape":"ARN"}
+      }
+    },
+    "CopyActions":{
+      "type":"list",
+      "member":{"shape":"CopyAction"}
+    },
+    "CopyJob":{
+      "type":"structure",
+      "members":{
+        "CopyJobId":{"shape":"string"},
+        "SourceBackupVaultArn":{"shape":"ARN"},
+        "SourceRecoveryPointArn":{"shape":"ARN"},
+        "DestinationBackupVaultArn":{"shape":"ARN"},
+        "DestinationRecoveryPointArn":{"shape":"ARN"},
+        "ResourceArn":{"shape":"ARN"},
+        "CreationDate":{"shape":"timestamp"},
+        "CompletionDate":{"shape":"timestamp"},
+        "State":{"shape":"CopyJobState"},
+        "StatusMessage":{"shape":"string"},
+        "BackupSizeInBytes":{"shape":"Long"},
+        "IamRoleArn":{"shape":"IAMRoleArn"},
+        "CreatedBy":{"shape":"RecoveryPointCreator"},
+        "ResourceType":{"shape":"ResourceType"}
+      }
+    },
+    "CopyJobState":{
+      "type":"string",
+      "enum":[
+        "CREATED",
+        "RUNNING",
+        "COMPLETED",
+        "FAILED"
+      ]
+    },
+    "CopyJobsList":{
+      "type":"list",
+      "member":{"shape":"CopyJob"}
+    },
     "CreateBackupPlanInput":{
       "type":"structure",
       "required":["BackupPlan"],
@@ -1152,6 +1253,23 @@
         "CreationDate":{"shape":"timestamp"},
         "CreatorRequestId":{"shape":"string"},
         "NumberOfRecoveryPoints":{"shape":"long"}
+      }
+    },
+    "DescribeCopyJobInput":{
+      "type":"structure",
+      "required":["CopyJobId"],
+      "members":{
+        "CopyJobId":{
+          "shape":"string",
+          "location":"uri",
+          "locationName":"copyJobId"
+        }
+      }
+    },
+    "DescribeCopyJobOutput":{
+      "type":"structure",
+      "members":{
+        "CopyJob":{"shape":"CopyJob"}
       }
     },
     "DescribeProtectedResourceInput":{
@@ -1636,6 +1754,58 @@
         "NextToken":{"shape":"string"}
       }
     },
+    "ListCopyJobsInput":{
+      "type":"structure",
+      "members":{
+        "NextToken":{
+          "shape":"string",
+          "location":"querystring",
+          "locationName":"nextToken"
+        },
+        "MaxResults":{
+          "shape":"MaxResults",
+          "location":"querystring",
+          "locationName":"maxResults"
+        },
+        "ByResourceArn":{
+          "shape":"ARN",
+          "location":"querystring",
+          "locationName":"resourceArn"
+        },
+        "ByState":{
+          "shape":"CopyJobState",
+          "location":"querystring",
+          "locationName":"state"
+        },
+        "ByCreatedBefore":{
+          "shape":"timestamp",
+          "location":"querystring",
+          "locationName":"createdBefore"
+        },
+        "ByCreatedAfter":{
+          "shape":"timestamp",
+          "location":"querystring",
+          "locationName":"createdAfter"
+        },
+        "ByResourceType":{
+          "shape":"ResourceType",
+          "location":"querystring",
+          "locationName":"resourceType"
+        },
+        "ByDestinationVaultArn":{
+          "shape":"string",
+          "location":"querystring",
+          "locationName":"destinationVaultArn"
+        }
+      }
+    },
+    "ListCopyJobsOutput":{
+      "type":"structure",
+      "members":{
+        "CopyJobs":{"shape":"CopyJobsList"},
+        "NextToken":{"shape":"string"}
+      }
+    },
     "ListOfTags":{
       "type":"list",
       "member":{"shape":"Condition"}
@@ -1802,7 +1972,8 @@
     "Metadata":{
       "type":"map",
       "key":{"shape":"MetadataKey"},
-      "value":{"shape":"MetadataValue"}
+      "value":{"shape":"MetadataValue"},
+      "sensitive":true
     },
     "MetadataKey":{"type":"string"},
     "MetadataValue":{"type":"string"},
@@ -2002,6 +2173,30 @@
       "members":{
         "BackupJobId":{"shape":"string"},
         "RecoveryPointArn":{"shape":"ARN"},
+        "CreationDate":{"shape":"timestamp"}
+      }
+    },
+    "StartCopyJobInput":{
+      "type":"structure",
+      "required":[
+        "RecoveryPointArn",
+        "SourceBackupVaultName",
+        "DestinationBackupVaultArn",
+        "IamRoleArn"
+      ],
+      "members":{
+        "RecoveryPointArn":{"shape":"ARN"},
+        "SourceBackupVaultName":{"shape":"BackupVaultName"},
+        "DestinationBackupVaultArn":{"shape":"ARN"},
+        "IamRoleArn":{"shape":"IAMRoleArn"},
+        "IdempotencyToken":{"shape":"string"},
+        "Lifecycle":{"shape":"Lifecycle"}
+      }
+    },
+    "StartCopyJobOutput":{
+      "type":"structure",
+      "members":{
+        "CopyJobId":{"shape":"string"},
         "CreationDate":{"shape":"timestamp"}
       }
     },

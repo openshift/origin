@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -18,12 +17,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/awstesting"
 	"github.com/aws/aws-sdk-go/awstesting/unit"
+	"github.com/aws/aws-sdk-go/internal/sdktesting"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func TestValidateEndpointHandler(t *testing.T) {
-	os.Clearenv()
-
+	restoreEnvFn := sdktesting.StashEnv()
+	defer restoreEnvFn()
 	svc := awstesting.NewClient(aws.NewConfig().WithRegion("us-west-2"))
 	svc.Handlers.Clear()
 	svc.Handlers.Validate.PushBackNamed(corehandlers.ValidateEndpointHandler)
@@ -37,8 +37,8 @@ func TestValidateEndpointHandler(t *testing.T) {
 }
 
 func TestValidateEndpointHandlerErrorRegion(t *testing.T) {
-	os.Clearenv()
-
+	restoreEnvFn := sdktesting.StashEnv()
+	defer restoreEnvFn()
 	svc := awstesting.NewClient()
 	svc.Handlers.Clear()
 	svc.Handlers.Validate.PushBackNamed(corehandlers.ValidateEndpointHandler)
@@ -69,7 +69,9 @@ func (m *mockCredsProvider) IsExpired() bool {
 }
 
 func TestAfterRetryRefreshCreds(t *testing.T) {
-	os.Clearenv()
+	restoreEnvFn := sdktesting.StashEnv()
+	defer restoreEnvFn()
+
 	credProvider := &mockCredsProvider{}
 
 	svc := awstesting.NewClient(&aws.Config{
@@ -118,7 +120,7 @@ func TestAfterRetryWithContextCanceled(t *testing.T) {
 
 	req := c.NewRequest(&request.Operation{Name: "Operation"}, nil, nil)
 
-	ctx := &awstesting.FakeContext{DoneCh: make(chan struct{}, 0)}
+	ctx := &awstesting.FakeContext{DoneCh: make(chan struct{})}
 	req.SetContext(ctx)
 
 	req.Error = fmt.Errorf("some error")
@@ -148,7 +150,7 @@ func TestAfterRetryWithContext(t *testing.T) {
 
 	req := c.NewRequest(&request.Operation{Name: "Operation"}, nil, nil)
 
-	ctx := &awstesting.FakeContext{DoneCh: make(chan struct{}, 0)}
+	ctx := &awstesting.FakeContext{DoneCh: make(chan struct{})}
 	req.SetContext(ctx)
 
 	req.Error = fmt.Errorf("some error")
@@ -176,7 +178,7 @@ func TestSendWithContextCanceled(t *testing.T) {
 
 	req := c.NewRequest(&request.Operation{Name: "Operation"}, nil, nil)
 
-	ctx := &awstesting.FakeContext{DoneCh: make(chan struct{}, 0)}
+	ctx := &awstesting.FakeContext{DoneCh: make(chan struct{})}
 	req.SetContext(ctx)
 
 	req.Error = fmt.Errorf("some error")
@@ -237,6 +239,7 @@ func TestSendWithoutFollowRedirects(t *testing.T) {
 			t.Fatalf("expect not to redirect, but was")
 		}
 	}))
+	defer server.Close()
 
 	svc := awstesting.NewClient(&aws.Config{
 		DisableSSL: aws.Bool(true),
@@ -342,6 +345,7 @@ func setupContentLengthTestServer(t *testing.T, hasContentLength bool, contentLe
 
 func TestBuildContentLength_ZeroBody(t *testing.T) {
 	server := setupContentLengthTestServer(t, false, 0)
+	defer server.Close()
 
 	svc := s3.New(unit.Session, &aws.Config{
 		Endpoint:         aws.String(server.URL),
@@ -360,6 +364,7 @@ func TestBuildContentLength_ZeroBody(t *testing.T) {
 
 func TestBuildContentLength_NegativeBody(t *testing.T) {
 	server := setupContentLengthTestServer(t, false, 0)
+	defer server.Close()
 
 	svc := s3.New(unit.Session, &aws.Config{
 		Endpoint:         aws.String(server.URL),
@@ -380,6 +385,7 @@ func TestBuildContentLength_NegativeBody(t *testing.T) {
 
 func TestBuildContentLength_WithBody(t *testing.T) {
 	server := setupContentLengthTestServer(t, true, 1024)
+	defer server.Close()
 
 	svc := s3.New(unit.Session, &aws.Config{
 		Endpoint:         aws.String(server.URL),

@@ -3,11 +3,13 @@
 package mobile
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
 )
 
 const opCreateProject = "CreateProject"
@@ -63,30 +65,30 @@ func (c *Mobile) CreateProjectRequest(input *CreateProjectInput) (req *request.R
 // See the AWS API reference guide for AWS Mobile's
 // API operation CreateProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalFailureException "InternalFailureException"
+// Returned Error Types:
+//   * InternalFailureException
 //   The service has encountered an unexpected error condition which prevents
 //   it from servicing the request.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable. The request should be retried after
 //   some time delay.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Credentials of the caller are insufficient to authorize the request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Too many requests have been received for this AWS account in too short a
 //   time. The request should be retried after some time delay.
 //
-//   * ErrCodeBadRequestException "BadRequestException"
+//   * BadRequestException
 //   The request cannot be processed because some parameter is not valid or the
 //   project state prevents the operation from being performed.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   No entity can be found with the specified identifier.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   There are too many AWS Mobile Hub projects in the account or the account
 //   has exceeded the maximum number of resources in some AWS service. You should
 //   create another sub-account using AWS Organizations or remove some resources
@@ -167,23 +169,23 @@ func (c *Mobile) DeleteProjectRequest(input *DeleteProjectInput) (req *request.R
 // See the AWS API reference guide for AWS Mobile's
 // API operation DeleteProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalFailureException "InternalFailureException"
+// Returned Error Types:
+//   * InternalFailureException
 //   The service has encountered an unexpected error condition which prevents
 //   it from servicing the request.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable. The request should be retried after
 //   some time delay.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Credentials of the caller are insufficient to authorize the request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Too many requests have been received for this AWS account in too short a
 //   time. The request should be retried after some time delay.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   No entity can be found with the specified identifier.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mobile-2017-07-01/DeleteProject
@@ -261,27 +263,27 @@ func (c *Mobile) DescribeBundleRequest(input *DescribeBundleInput) (req *request
 // See the AWS API reference guide for AWS Mobile's
 // API operation DescribeBundle for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalFailureException "InternalFailureException"
+// Returned Error Types:
+//   * InternalFailureException
 //   The service has encountered an unexpected error condition which prevents
 //   it from servicing the request.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable. The request should be retried after
 //   some time delay.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Credentials of the caller are insufficient to authorize the request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Too many requests have been received for this AWS account in too short a
 //   time. The request should be retried after some time delay.
 //
-//   * ErrCodeBadRequestException "BadRequestException"
+//   * BadRequestException
 //   The request cannot be processed because some parameter is not valid or the
 //   project state prevents the operation from being performed.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   No entity can be found with the specified identifier.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mobile-2017-07-01/DescribeBundle
@@ -359,27 +361,27 @@ func (c *Mobile) DescribeProjectRequest(input *DescribeProjectInput) (req *reque
 // See the AWS API reference guide for AWS Mobile's
 // API operation DescribeProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalFailureException "InternalFailureException"
+// Returned Error Types:
+//   * InternalFailureException
 //   The service has encountered an unexpected error condition which prevents
 //   it from servicing the request.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable. The request should be retried after
 //   some time delay.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Credentials of the caller are insufficient to authorize the request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Too many requests have been received for this AWS account in too short a
 //   time. The request should be retried after some time delay.
 //
-//   * ErrCodeBadRequestException "BadRequestException"
+//   * BadRequestException
 //   The request cannot be processed because some parameter is not valid or the
 //   project state prevents the operation from being performed.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   No entity can be found with the specified identifier.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mobile-2017-07-01/DescribeProject
@@ -458,27 +460,27 @@ func (c *Mobile) ExportBundleRequest(input *ExportBundleInput) (req *request.Req
 // See the AWS API reference guide for AWS Mobile's
 // API operation ExportBundle for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalFailureException "InternalFailureException"
+// Returned Error Types:
+//   * InternalFailureException
 //   The service has encountered an unexpected error condition which prevents
 //   it from servicing the request.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable. The request should be retried after
 //   some time delay.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Credentials of the caller are insufficient to authorize the request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Too many requests have been received for this AWS account in too short a
 //   time. The request should be retried after some time delay.
 //
-//   * ErrCodeBadRequestException "BadRequestException"
+//   * BadRequestException
 //   The request cannot be processed because some parameter is not valid or the
 //   project state prevents the operation from being performed.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   No entity can be found with the specified identifier.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mobile-2017-07-01/ExportBundle
@@ -558,27 +560,27 @@ func (c *Mobile) ExportProjectRequest(input *ExportProjectInput) (req *request.R
 // See the AWS API reference guide for AWS Mobile's
 // API operation ExportProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalFailureException "InternalFailureException"
+// Returned Error Types:
+//   * InternalFailureException
 //   The service has encountered an unexpected error condition which prevents
 //   it from servicing the request.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable. The request should be retried after
 //   some time delay.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Credentials of the caller are insufficient to authorize the request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Too many requests have been received for this AWS account in too short a
 //   time. The request should be retried after some time delay.
 //
-//   * ErrCodeBadRequestException "BadRequestException"
+//   * BadRequestException
 //   The request cannot be processed because some parameter is not valid or the
 //   project state prevents the operation from being performed.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   No entity can be found with the specified identifier.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mobile-2017-07-01/ExportProject
@@ -662,23 +664,23 @@ func (c *Mobile) ListBundlesRequest(input *ListBundlesInput) (req *request.Reque
 // See the AWS API reference guide for AWS Mobile's
 // API operation ListBundles for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalFailureException "InternalFailureException"
+// Returned Error Types:
+//   * InternalFailureException
 //   The service has encountered an unexpected error condition which prevents
 //   it from servicing the request.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable. The request should be retried after
 //   some time delay.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Credentials of the caller are insufficient to authorize the request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Too many requests have been received for this AWS account in too short a
 //   time. The request should be retried after some time delay.
 //
-//   * ErrCodeBadRequestException "BadRequestException"
+//   * BadRequestException
 //   The request cannot be processed because some parameter is not valid or the
 //   project state prevents the operation from being performed.
 //
@@ -715,7 +717,7 @@ func (c *Mobile) ListBundlesWithContext(ctx aws.Context, input *ListBundlesInput
 //    // Example iterating over at most 3 pages of a ListBundles operation.
 //    pageNum := 0
 //    err := client.ListBundlesPages(params,
-//        func(page *ListBundlesOutput, lastPage bool) bool {
+//        func(page *mobile.ListBundlesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -747,10 +749,12 @@ func (c *Mobile) ListBundlesPagesWithContext(ctx aws.Context, input *ListBundles
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListBundlesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListBundlesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -813,23 +817,23 @@ func (c *Mobile) ListProjectsRequest(input *ListProjectsInput) (req *request.Req
 // See the AWS API reference guide for AWS Mobile's
 // API operation ListProjects for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalFailureException "InternalFailureException"
+// Returned Error Types:
+//   * InternalFailureException
 //   The service has encountered an unexpected error condition which prevents
 //   it from servicing the request.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable. The request should be retried after
 //   some time delay.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Credentials of the caller are insufficient to authorize the request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Too many requests have been received for this AWS account in too short a
 //   time. The request should be retried after some time delay.
 //
-//   * ErrCodeBadRequestException "BadRequestException"
+//   * BadRequestException
 //   The request cannot be processed because some parameter is not valid or the
 //   project state prevents the operation from being performed.
 //
@@ -866,7 +870,7 @@ func (c *Mobile) ListProjectsWithContext(ctx aws.Context, input *ListProjectsInp
 //    // Example iterating over at most 3 pages of a ListProjects operation.
 //    pageNum := 0
 //    err := client.ListProjectsPages(params,
-//        func(page *ListProjectsOutput, lastPage bool) bool {
+//        func(page *mobile.ListProjectsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -898,10 +902,12 @@ func (c *Mobile) ListProjectsPagesWithContext(ctx aws.Context, input *ListProjec
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListProjectsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListProjectsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -958,33 +964,33 @@ func (c *Mobile) UpdateProjectRequest(input *UpdateProjectInput) (req *request.R
 // See the AWS API reference guide for AWS Mobile's
 // API operation UpdateProject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalFailureException "InternalFailureException"
+// Returned Error Types:
+//   * InternalFailureException
 //   The service has encountered an unexpected error condition which prevents
 //   it from servicing the request.
 //
-//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   * ServiceUnavailableException
 //   The service is temporarily unavailable. The request should be retried after
 //   some time delay.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Credentials of the caller are insufficient to authorize the request.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Too many requests have been received for this AWS account in too short a
 //   time. The request should be retried after some time delay.
 //
-//   * ErrCodeBadRequestException "BadRequestException"
+//   * BadRequestException
 //   The request cannot be processed because some parameter is not valid or the
 //   project state prevents the operation from being performed.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   No entity can be found with the specified identifier.
 //
-//   * ErrCodeAccountActionRequiredException "AccountActionRequiredException"
+//   * AccountActionRequiredException
 //   Account Action is required in order to continue the request.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   There are too many AWS Mobile Hub projects in the account or the account
 //   has exceeded the maximum number of resources in some AWS service. You should
 //   create another sub-account using AWS Organizations or remove some resources
@@ -1010,6 +1016,121 @@ func (c *Mobile) UpdateProjectWithContext(ctx aws.Context, input *UpdateProjectI
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+// Account Action is required in order to continue the request.
+type AccountActionRequiredException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The Exception Error Message.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AccountActionRequiredException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AccountActionRequiredException) GoString() string {
+	return s.String()
+}
+
+func newErrorAccountActionRequiredException(v protocol.ResponseMetadata) error {
+	return &AccountActionRequiredException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s AccountActionRequiredException) Code() string {
+	return "AccountActionRequiredException"
+}
+
+// Message returns the exception's message.
+func (s AccountActionRequiredException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s AccountActionRequiredException) OrigErr() error {
+	return nil
+}
+
+func (s AccountActionRequiredException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s AccountActionRequiredException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s AccountActionRequiredException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The request cannot be processed because some parameter is not valid or the
+// project state prevents the operation from being performed.
+type BadRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The Exception Error Message.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s BadRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BadRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorBadRequestException(v protocol.ResponseMetadata) error {
+	return &BadRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s BadRequestException) Code() string {
+	return "BadRequestException"
+}
+
+// Message returns the exception's message.
+func (s BadRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s BadRequestException) OrigErr() error {
+	return nil
+}
+
+func (s BadRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s BadRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s BadRequestException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // The details of the bundle.
@@ -1554,6 +1675,127 @@ func (s *ExportProjectOutput) SetSnapshotId(v string) *ExportProjectOutput {
 	return s
 }
 
+// The service has encountered an unexpected error condition which prevents
+// it from servicing the request.
+type InternalFailureException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The Exception Error Message.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalFailureException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalFailureException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalFailureException(v protocol.ResponseMetadata) error {
+	return &InternalFailureException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalFailureException) Code() string {
+	return "InternalFailureException"
+}
+
+// Message returns the exception's message.
+func (s InternalFailureException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalFailureException) OrigErr() error {
+	return nil
+}
+
+func (s InternalFailureException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalFailureException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalFailureException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// There are too many AWS Mobile Hub projects in the account or the account
+// has exceeded the maximum number of resources in some AWS service. You should
+// create another sub-account using AWS Organizations or remove some resources
+// and retry your request.
+type LimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The Exception Error Message.
+	Message_ *string `locationName:"message" type:"string"`
+
+	// The Exception Error Message.
+	RetryAfterSeconds *string `location:"header" locationName:"Retry-After" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Request structure to request all available bundles.
 type ListBundlesInput struct {
 	_ struct{} `type:"structure"`
@@ -1691,6 +1933,63 @@ func (s *ListProjectsOutput) SetNextToken(v string) *ListProjectsOutput {
 func (s *ListProjectsOutput) SetProjects(v []*ProjectSummary) *ListProjectsOutput {
 	s.Projects = v
 	return s
+}
+
+// No entity can be found with the specified identifier.
+type NotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The Exception Error Message.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s NotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorNotFoundException(v protocol.ResponseMetadata) error {
+	return &NotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s NotFoundException) Code() string {
+	return "NotFoundException"
+}
+
+// Message returns the exception's message.
+func (s NotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s NotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s NotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s NotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s NotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // Detailed information about an AWS Mobile Hub project.
@@ -1872,6 +2171,185 @@ func (s *Resource) SetName(v string) *Resource {
 func (s *Resource) SetType(v string) *Resource {
 	s.Type = &v
 	return s
+}
+
+// The service is temporarily unavailable. The request should be retried after
+// some time delay.
+type ServiceUnavailableException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The Exception Error Message.
+	Message_ *string `locationName:"message" type:"string"`
+
+	// The Exception Error Message.
+	RetryAfterSeconds *string `location:"header" locationName:"Retry-After" type:"string"`
+}
+
+// String returns the string representation
+func (s ServiceUnavailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ServiceUnavailableException) GoString() string {
+	return s.String()
+}
+
+func newErrorServiceUnavailableException(v protocol.ResponseMetadata) error {
+	return &ServiceUnavailableException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ServiceUnavailableException) Code() string {
+	return "ServiceUnavailableException"
+}
+
+// Message returns the exception's message.
+func (s ServiceUnavailableException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ServiceUnavailableException) OrigErr() error {
+	return nil
+}
+
+func (s ServiceUnavailableException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ServiceUnavailableException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ServiceUnavailableException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Too many requests have been received for this AWS account in too short a
+// time. The request should be retried after some time delay.
+type TooManyRequestsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The Exception Error Message.
+	Message_ *string `locationName:"message" type:"string"`
+
+	// The Exception Error Message.
+	RetryAfterSeconds *string `location:"header" locationName:"Retry-After" type:"string"`
+}
+
+// String returns the string representation
+func (s TooManyRequestsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TooManyRequestsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTooManyRequestsException(v protocol.ResponseMetadata) error {
+	return &TooManyRequestsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TooManyRequestsException) Code() string {
+	return "TooManyRequestsException"
+}
+
+// Message returns the exception's message.
+func (s TooManyRequestsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TooManyRequestsException) OrigErr() error {
+	return nil
+}
+
+func (s TooManyRequestsException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TooManyRequestsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TooManyRequestsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Credentials of the caller are insufficient to authorize the request.
+type UnauthorizedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The Exception Error Message.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnauthorizedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnauthorizedException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnauthorizedException(v protocol.ResponseMetadata) error {
+	return &UnauthorizedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnauthorizedException) Code() string {
+	return "UnauthorizedException"
+}
+
+// Message returns the exception's message.
+func (s UnauthorizedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnauthorizedException) OrigErr() error {
+	return nil
+}
+
+func (s UnauthorizedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnauthorizedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnauthorizedException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // Request structure used for requests to update project configuration.

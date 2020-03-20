@@ -1,0 +1,1 @@
+../../script.d/check-generate.sh

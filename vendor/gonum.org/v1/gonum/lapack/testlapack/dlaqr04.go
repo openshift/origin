@@ -444,7 +444,7 @@ func testDlaqr04(t *testing.T, impl Dlaqr04er, test dlaqr04Test, optwork bool, r
 		zhz := eye(n, n)
 		blas64.Gemm(blas.Trans, blas.NoTrans, 1, z, hz, 0, zhz)
 		if !equalApproxGeneral(zhz, h, 10*tol) {
-			t.Errorf("%v: Z^T*(initial H)*Z and (final H) are not equal", prefix)
+			t.Errorf("%v: Zᵀ*(initial H)*Z and (final H) are not equal", prefix)
 		}
 	}
 }

@@ -25,7 +25,8 @@
         {"shape":"InvalidParameterException"},
         {"shape":"InternalErrorException"},
         {"shape":"CreationLimitExceededException"},
-        {"shape":"DuplicateRecordException"}
+        {"shape":"DuplicateRecordException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "CreateNotification":{
@@ -41,7 +42,8 @@
         {"shape":"InvalidParameterException"},
         {"shape":"NotFoundException"},
         {"shape":"CreationLimitExceededException"},
-        {"shape":"DuplicateRecordException"}
+        {"shape":"DuplicateRecordException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "CreateSubscriber":{
@@ -57,7 +59,8 @@
         {"shape":"InvalidParameterException"},
         {"shape":"CreationLimitExceededException"},
         {"shape":"DuplicateRecordException"},
-        {"shape":"NotFoundException"}
+        {"shape":"NotFoundException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "DeleteBudget":{
@@ -71,7 +74,8 @@
       "errors":[
         {"shape":"InternalErrorException"},
         {"shape":"InvalidParameterException"},
-        {"shape":"NotFoundException"}
+        {"shape":"NotFoundException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "DeleteNotification":{
@@ -85,7 +89,8 @@
       "errors":[
         {"shape":"InvalidParameterException"},
         {"shape":"InternalErrorException"},
-        {"shape":"NotFoundException"}
+        {"shape":"NotFoundException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "DeleteSubscriber":{
@@ -99,7 +104,8 @@
       "errors":[
         {"shape":"InternalErrorException"},
         {"shape":"InvalidParameterException"},
-        {"shape":"NotFoundException"}
+        {"shape":"NotFoundException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "DescribeBudget":{
@@ -113,7 +119,8 @@
       "errors":[
         {"shape":"InternalErrorException"},
         {"shape":"InvalidParameterException"},
-        {"shape":"NotFoundException"}
+        {"shape":"NotFoundException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "DescribeBudgetPerformanceHistory":{
@@ -129,7 +136,8 @@
         {"shape":"InvalidParameterException"},
         {"shape":"NotFoundException"},
         {"shape":"InvalidNextTokenException"},
-        {"shape":"ExpiredNextTokenException"}
+        {"shape":"ExpiredNextTokenException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "DescribeBudgets":{
@@ -145,7 +153,8 @@
         {"shape":"InvalidParameterException"},
         {"shape":"NotFoundException"},
         {"shape":"InvalidNextTokenException"},
-        {"shape":"ExpiredNextTokenException"}
+        {"shape":"ExpiredNextTokenException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "DescribeNotificationsForBudget":{
@@ -161,7 +170,8 @@
         {"shape":"InvalidParameterException"},
         {"shape":"NotFoundException"},
         {"shape":"InvalidNextTokenException"},
-        {"shape":"ExpiredNextTokenException"}
+        {"shape":"ExpiredNextTokenException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "DescribeSubscribersForNotification":{
@@ -177,7 +187,8 @@
         {"shape":"NotFoundException"},
         {"shape":"InvalidParameterException"},
         {"shape":"InvalidNextTokenException"},
-        {"shape":"ExpiredNextTokenException"}
+        {"shape":"ExpiredNextTokenException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "UpdateBudget":{
@@ -191,7 +202,8 @@
       "errors":[
         {"shape":"InternalErrorException"},
         {"shape":"InvalidParameterException"},
-        {"shape":"NotFoundException"}
+        {"shape":"NotFoundException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "UpdateNotification":{
@@ -206,7 +218,8 @@
         {"shape":"InternalErrorException"},
         {"shape":"InvalidParameterException"},
         {"shape":"NotFoundException"},
-        {"shape":"DuplicateRecordException"}
+        {"shape":"DuplicateRecordException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "UpdateSubscriber":{
@@ -221,11 +234,19 @@
         {"shape":"InternalErrorException"},
         {"shape":"InvalidParameterException"},
         {"shape":"NotFoundException"},
-        {"shape":"DuplicateRecordException"}
+        {"shape":"DuplicateRecordException"},
+        {"shape":"AccessDeniedException"}
       ]
     }
   },
   "shapes":{
+    "AccessDeniedException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"errorMessage"}
+      },
+      "exception":true
+    },
     "AccountId":{
       "type":"string",
       "max":12,
@@ -242,6 +263,7 @@
       "members":{
         "BudgetName":{"shape":"BudgetName"},
         "BudgetLimit":{"shape":"Spend"},
+        "PlannedBudgetLimits":{"shape":"PlannedBudgetLimits"},
         "CostFilters":{"shape":"CostFilters"},
         "CostTypes":{"shape":"CostTypes"},
         "TimeUnit":{"shape":"TimeUnit"},
@@ -274,7 +296,9 @@
         "USAGE",
         "COST",
         "RI_UTILIZATION",
-        "RI_COVERAGE"
+        "RI_COVERAGE",
+        "SAVINGS_PLANS_UTILIZATION",
+        "SAVINGS_PLANS_COVERAGE"
       ]
     },
     "BudgetedAndActualAmounts":{
@@ -667,6 +691,11 @@
       "min":1,
       "pattern":"([0-9]*\\.)?[0-9]+"
     },
+    "PlannedBudgetLimits":{
+      "type":"map",
+      "key":{"shape":"GenericString"},
+      "value":{"shape":"Spend"}
+    },
     "Spend":{
       "type":"structure",
       "required":[
@@ -693,7 +722,7 @@
       "type":"string",
       "max":2147483647,
       "min":1,
-      "pattern":".*",
+      "pattern":"(.*[\\n\\r\\t\\f\\ ]?)*",
       "sensitive":true
     },
     "Subscribers":{

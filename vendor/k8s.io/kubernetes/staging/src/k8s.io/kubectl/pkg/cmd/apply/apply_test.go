@@ -29,12 +29,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/googleapis/gnostic/OpenAPIv2"
 	"github.com/spf13/cobra"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	kubeerr "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -562,6 +561,55 @@ func TestApplyObject(t *testing.T) {
 	}
 }
 
+func TestApplyPruneObjects(t *testing.T) {
+	cmdtesting.InitTestErrorHandler(t)
+	nameRC, currentRC := readAndAnnotateReplicationController(t, filenameRC)
+	pathRC := "/namespaces/test/replicationcontrollers/" + nameRC
+
+	for _, fn := range testingOpenAPISchemaFns {
+		t.Run("test apply returns correct output", func(t *testing.T) {
+			tf := cmdtesting.NewTestFactory().WithNamespace("test")
+			defer tf.Cleanup()
+
+			tf.UnstructuredClient = &fake.RESTClient{
+				NegotiatedSerializer: resource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
+				Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+					switch p, m := req.URL.Path, req.Method; {
+					case p == pathRC && m == "GET":
+						bodyRC := ioutil.NopCloser(bytes.NewReader(currentRC))
+						return &http.Response{StatusCode: http.StatusOK, Header: cmdtesting.DefaultHeader(), Body: bodyRC}, nil
+					case p == pathRC && m == "PATCH":
+						validatePatchApplication(t, req)
+						bodyRC := ioutil.NopCloser(bytes.NewReader(currentRC))
+						return &http.Response{StatusCode: http.StatusOK, Header: cmdtesting.DefaultHeader(), Body: bodyRC}, nil
+					default:
+						t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
+						return nil, nil
+					}
+				}),
+			}
+			tf.OpenAPISchemaFunc = fn
+			tf.ClientConfigVal = cmdtesting.DefaultClientConfig()
+
+			ioStreams, _, buf, errBuf := genericclioptions.NewTestIOStreams()
+			cmd := NewCmdApply("kubectl", tf, ioStreams)
+			cmd.Flags().Set("filename", filenameRC)
+			cmd.Flags().Set("prune", "true")
+			cmd.Flags().Set("namespace", "test")
+			cmd.Flags().Set("output", "yaml")
+			cmd.Flags().Set("all", "true")
+			cmd.Run(cmd, []string{})
+
+			if !strings.Contains(buf.String(), "test-rc") {
+				t.Fatalf("unexpected output: %s\nexpected to contain: %s", buf.String(), "test-rc")
+			}
+			if errBuf.String() != "" {
+				t.Fatalf("unexpected error output: %s", errBuf.String())
+			}
+		})
+	}
+}
+
 func TestApplyObjectOutput(t *testing.T) {
 	cmdtesting.InitTestErrorHandler(t)
 	nameRC, currentRC := readAndAnnotateReplicationController(t, filenameRC)
@@ -651,7 +699,7 @@ func TestApplyRetry(t *testing.T) {
 					case p == pathRC && m == "PATCH":
 						if firstPatch {
 							firstPatch = false
-							statusErr := kubeerr.NewConflict(schema.GroupResource{Group: "", Resource: "rc"}, "test-rc", fmt.Errorf("the object has been modified. Please apply at first"))
+							statusErr := apierrors.NewConflict(schema.GroupResource{Group: "", Resource: "rc"}, "test-rc", fmt.Errorf("the object has been modified. Please apply at first"))
 							bodyBytes, _ := json.Marshal(statusErr)
 							bodyErr := ioutil.NopCloser(bytes.NewReader(bodyBytes))
 							return &http.Response{StatusCode: http.StatusConflict, Header: cmdtesting.DefaultHeader(), Body: bodyErr}, nil
@@ -1278,7 +1326,7 @@ func TestForceApply(t *testing.T) {
 					case strings.HasSuffix(p, pathRC) && m == "PATCH":
 						counts["patch"]++
 						if counts["patch"] <= 6 {
-							statusErr := kubeerr.NewConflict(schema.GroupResource{Group: "", Resource: "rc"}, "test-rc", fmt.Errorf("the object has been modified. Please apply at first"))
+							statusErr := apierrors.NewConflict(schema.GroupResource{Group: "", Resource: "rc"}, "test-rc", fmt.Errorf("the object has been modified. Please apply at first"))
 							bodyBytes, _ := json.Marshal(statusErr)
 							bodyErr := ioutil.NopCloser(bytes.NewReader(bodyBytes))
 							return &http.Response{StatusCode: http.StatusConflict, Header: cmdtesting.DefaultHeader(), Body: bodyErr}, nil
@@ -1338,77 +1386,5 @@ func TestForceApply(t *testing.T) {
 				t.Fatalf("unexpected error output: %s", errBuf.String())
 			}
 		})
-	}
-}
-
-func TestDryRunVerifier(t *testing.T) {
-	dryRunVerifier := DryRunVerifier{
-		Finder: cmdutil.NewCRDFinder(func() ([]schema.GroupKind, error) {
-			return []schema.GroupKind{
-				{
-					Group: "crd.com",
-					Kind:  "MyCRD",
-				},
-				{
-					Group: "crd.com",
-					Kind:  "MyNewCRD",
-				},
-			}, nil
-		}),
-		OpenAPIGetter: &fakeSchema,
-	}
-
-	err := dryRunVerifier.HasSupport(schema.GroupVersionKind{Group: "", Version: "v1", Kind: "NodeProxyOptions"})
-	if err == nil {
-		t.Fatalf("NodeProxyOptions doesn't support dry-run, yet no error found")
-	}
-
-	err = dryRunVerifier.HasSupport(schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Pod"})
-	if err != nil {
-		t.Fatalf("Pod should support dry-run: %v", err)
-	}
-
-	err = dryRunVerifier.HasSupport(schema.GroupVersionKind{Group: "crd.com", Version: "v1", Kind: "MyCRD"})
-	if err != nil {
-		t.Fatalf("MyCRD should support dry-run: %v", err)
-	}
-
-	err = dryRunVerifier.HasSupport(schema.GroupVersionKind{Group: "crd.com", Version: "v1", Kind: "Random"})
-	if err == nil {
-		t.Fatalf("Random doesn't support dry-run, yet no error found")
-	}
-}
-
-type EmptyOpenAPI struct{}
-
-func (EmptyOpenAPI) OpenAPISchema() (*openapi_v2.Document, error) {
-	return &openapi_v2.Document{}, nil
-}
-
-func TestDryRunVerifierNoOpenAPI(t *testing.T) {
-	dryRunVerifier := DryRunVerifier{
-		Finder: cmdutil.NewCRDFinder(func() ([]schema.GroupKind, error) {
-			return []schema.GroupKind{
-				{
-					Group: "crd.com",
-					Kind:  "MyCRD",
-				},
-				{
-					Group: "crd.com",
-					Kind:  "MyNewCRD",
-				},
-			}, nil
-		}),
-		OpenAPIGetter: EmptyOpenAPI{},
-	}
-
-	err := dryRunVerifier.HasSupport(schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Pod"})
-	if err == nil {
-		t.Fatalf("Pod doesn't support dry-run, yet no error found")
-	}
-
-	err = dryRunVerifier.HasSupport(schema.GroupVersionKind{Group: "crd.com", Version: "v1", Kind: "MyCRD"})
-	if err == nil {
-		t.Fatalf("MyCRD doesn't support dry-run, yet no error found")
 	}
 }
