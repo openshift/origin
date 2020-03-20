@@ -53,7 +53,9 @@
         {"shape":"PolicyTypeNotEnabledException"},
         {"shape":"ServiceException"},
         {"shape":"TargetNotFoundException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"},
+        {"shape":"PolicyChangesInProgressException"}
       ]
     },
     "CancelHandshake":{
@@ -91,7 +93,28 @@
         {"shape":"InvalidInputException"},
         {"shape":"FinalizingOrganizationException"},
         {"shape":"ServiceException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"}
+      ]
+    },
+    "CreateGovCloudAccount":{
+      "name":"CreateGovCloudAccount",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateGovCloudAccountRequest"},
+      "output":{"shape":"CreateGovCloudAccountResponse"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"AWSOrganizationsNotInUseException"},
+        {"shape":"ConcurrentModificationException"},
+        {"shape":"ConstraintViolationException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"FinalizingOrganizationException"},
+        {"shape":"ServiceException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"}
       ]
     },
     "CreateOrganization":{
@@ -151,7 +174,8 @@
         {"shape":"MalformedPolicyDocumentException"},
         {"shape":"PolicyTypeNotAvailableForOrganizationException"},
         {"shape":"ServiceException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"}
       ]
     },
     "DeclineHandshake":{
@@ -222,7 +246,8 @@
         {"shape":"PolicyInUseException"},
         {"shape":"PolicyNotFoundException"},
         {"shape":"ServiceException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"}
       ]
     },
     "DescribeAccount":{
@@ -256,7 +281,28 @@
         {"shape":"CreateAccountStatusNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"ServiceException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"}
+      ]
+    },
+    "DescribeEffectivePolicy":{
+      "name":"DescribeEffectivePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeEffectivePolicyRequest"},
+      "output":{"shape":"DescribeEffectivePolicyResponse"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"AWSOrganizationsNotInUseException"},
+        {"shape":"ConstraintViolationException"},
+        {"shape":"ServiceException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"TargetNotFoundException"},
+        {"shape":"EffectivePolicyNotFoundException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"UnsupportedAPIEndpointException"}
       ]
     },
     "DescribeHandshake":{
@@ -322,7 +368,8 @@
         {"shape":"InvalidInputException"},
         {"shape":"PolicyNotFoundException"},
         {"shape":"ServiceException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"}
       ]
     },
     "DetachPolicy":{
@@ -342,7 +389,9 @@
         {"shape":"PolicyNotFoundException"},
         {"shape":"ServiceException"},
         {"shape":"TargetNotFoundException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"},
+        {"shape":"PolicyChangesInProgressException"}
       ]
     },
     "DisableAWSServiceAccess":{
@@ -379,7 +428,9 @@
         {"shape":"PolicyTypeNotEnabledException"},
         {"shape":"RootNotFoundException"},
         {"shape":"ServiceException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"},
+        {"shape":"PolicyChangesInProgressException"}
       ]
     },
     "EnableAWSServiceAccess":{
@@ -435,7 +486,9 @@
         {"shape":"RootNotFoundException"},
         {"shape":"ServiceException"},
         {"shape":"TooManyRequestsException"},
-        {"shape":"PolicyTypeNotAvailableForOrganizationException"}
+        {"shape":"PolicyTypeNotAvailableForOrganizationException"},
+        {"shape":"UnsupportedAPIEndpointException"},
+        {"shape":"PolicyChangesInProgressException"}
       ]
     },
     "InviteAccountToOrganization":{
@@ -557,7 +610,8 @@
         {"shape":"AWSOrganizationsNotInUseException"},
         {"shape":"InvalidInputException"},
         {"shape":"ServiceException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"}
       ]
     },
     "ListHandshakesForAccount":{
@@ -640,7 +694,8 @@
         {"shape":"AWSOrganizationsNotInUseException"},
         {"shape":"InvalidInputException"},
         {"shape":"ServiceException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"}
       ]
     },
     "ListPoliciesForTarget":{
@@ -657,7 +712,8 @@
         {"shape":"InvalidInputException"},
         {"shape":"ServiceException"},
         {"shape":"TargetNotFoundException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"}
       ]
     },
     "ListRoots":{
@@ -671,6 +727,23 @@
       "errors":[
         {"shape":"AccessDeniedException"},
         {"shape":"AWSOrganizationsNotInUseException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"ServiceException"},
+        {"shape":"TooManyRequestsException"}
+      ]
+    },
+    "ListTagsForResource":{
+      "name":"ListTagsForResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTagsForResourceRequest"},
+      "output":{"shape":"ListTagsForResourceResponse"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"AWSOrganizationsNotInUseException"},
+        {"shape":"TargetNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"ServiceException"},
         {"shape":"TooManyRequestsException"}
@@ -690,7 +763,8 @@
         {"shape":"InvalidInputException"},
         {"shape":"PolicyNotFoundException"},
         {"shape":"ServiceException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"}
       ]
     },
     "MoveAccount":{
@@ -732,6 +806,42 @@
         {"shape":"TooManyRequestsException"}
       ]
     },
+    "TagResource":{
+      "name":"TagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"TagResourceRequest"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"ConcurrentModificationException"},
+        {"shape":"AWSOrganizationsNotInUseException"},
+        {"shape":"TargetNotFoundException"},
+        {"shape":"ConstraintViolationException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"ServiceException"},
+        {"shape":"TooManyRequestsException"}
+      ]
+    },
+    "UntagResource":{
+      "name":"UntagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UntagResourceRequest"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"ConcurrentModificationException"},
+        {"shape":"AWSOrganizationsNotInUseException"},
+        {"shape":"TargetNotFoundException"},
+        {"shape":"ConstraintViolationException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"ServiceException"},
+        {"shape":"TooManyRequestsException"}
+      ]
+    },
     "UpdateOrganizationalUnit":{
       "name":"UpdateOrganizationalUnit",
       "http":{
@@ -769,7 +879,9 @@
         {"shape":"MalformedPolicyDocumentException"},
         {"shape":"PolicyNotFoundException"},
         {"shape":"ServiceException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedAPIEndpointException"},
+        {"shape":"PolicyChangesInProgressException"}
       ]
     }
   },
@@ -965,6 +1077,7 @@
         "OU_NUMBER_LIMIT_EXCEEDED",
         "OU_DEPTH_LIMIT_EXCEEDED",
         "POLICY_NUMBER_LIMIT_EXCEEDED",
+        "POLICY_CONTENT_LIMIT_EXCEEDED",
         "MAX_POLICY_TYPE_ATTACHMENT_LIMIT_EXCEEDED",
         "MIN_POLICY_TYPE_ATTACHMENT_LIMIT_EXCEEDED",
         "ACCOUNT_CANNOT_LEAVE_ORGANIZATION",
@@ -975,9 +1088,13 @@
         "ACCOUNT_CREATION_RATE_LIMIT_EXCEEDED",
         "MASTER_ACCOUNT_ADDRESS_DOES_NOT_MATCH_MARKETPLACE",
         "MASTER_ACCOUNT_MISSING_CONTACT_INFO",
+        "MASTER_ACCOUNT_NOT_GOVCLOUD_ENABLED",
         "ORGANIZATION_NOT_IN_ALL_FEATURES_MODE",
+        "CREATE_ORGANIZATION_IN_BILLING_MODE_UNSUPPORTED_REGION",
         "EMAIL_VERIFICATION_CODE_EXPIRED",
-        "WAIT_PERIOD_ACTIVE"
+        "WAIT_PERIOD_ACTIVE",
+        "MAX_TAG_LIMIT_EXCEEDED",
+        "TAG_POLICY_VIOLATION"
       ]
     },
     "CreateAccountFailureReason":{
@@ -988,7 +1105,8 @@
         "INVALID_ADDRESS",
         "INVALID_EMAIL",
         "CONCURRENT_ACCOUNT_MODIFICATION",
-        "INTERNAL_FAILURE"
+        "INTERNAL_FAILURE",
+        "GOVCLOUD_ACCOUNT_ALREADY_EXISTS"
       ]
     },
     "CreateAccountRequest":{
@@ -1035,6 +1153,7 @@
         "RequestedTimestamp":{"shape":"Timestamp"},
         "CompletedTimestamp":{"shape":"Timestamp"},
         "AccountId":{"shape":"AccountId"},
+        "GovCloudAccountId":{"shape":"AccountId"},
         "FailureReason":{"shape":"CreateAccountFailureReason"}
       }
     },
@@ -1048,6 +1167,25 @@
     "CreateAccountStatuses":{
       "type":"list",
       "member":{"shape":"CreateAccountStatus"}
+    },
+    "CreateGovCloudAccountRequest":{
+      "type":"structure",
+      "required":[
+        "Email",
+        "AccountName"
+      ],
+      "members":{
+        "Email":{"shape":"Email"},
+        "AccountName":{"shape":"AccountName"},
+        "RoleName":{"shape":"RoleName"},
+        "IamUserAccessToBilling":{"shape":"IAMUserAccessToBilling"}
+      }
+    },
+    "CreateGovCloudAccountResponse":{
+      "type":"structure",
+      "members":{
+        "CreateAccountStatus":{"shape":"CreateAccountStatus"}
+      }
     },
     "CreateOrganizationRequest":{
       "type":"structure",
@@ -1150,6 +1288,20 @@
       "type":"structure",
       "members":{
         "CreateAccountStatus":{"shape":"CreateAccountStatus"}
+      }
+    },
+    "DescribeEffectivePolicyRequest":{
+      "type":"structure",
+      "required":["PolicyType"],
+      "members":{
+        "PolicyType":{"shape":"EffectivePolicyType"},
+        "TargetId":{"shape":"PolicyTargetId"}
+      }
+    },
+    "DescribeEffectivePolicyResponse":{
+      "type":"structure",
+      "members":{
+        "EffectivePolicy":{"shape":"EffectivePolicy"}
       }
     },
     "DescribeHandshakeRequest":{
@@ -1273,6 +1425,26 @@
         "Message":{"shape":"ExceptionMessage"}
       },
       "exception":true
+    },
+    "EffectivePolicy":{
+      "type":"structure",
+      "members":{
+        "PolicyContent":{"shape":"PolicyContent"},
+        "LastUpdatedTimestamp":{"shape":"Timestamp"},
+        "TargetId":{"shape":"PolicyTargetId"},
+        "PolicyType":{"shape":"EffectivePolicyType"}
+      }
+    },
+    "EffectivePolicyNotFoundException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ExceptionMessage"}
+      },
+      "exception":true
+    },
+    "EffectivePolicyType":{
+      "type":"string",
+      "enum":["TAG_POLICY"]
     },
     "Email":{
       "type":"string",
@@ -1510,6 +1682,7 @@
         "INVALID_SYNTAX_ORGANIZATION_ARN",
         "INVALID_SYNTAX_POLICY_ID",
         "INVALID_ENUM",
+        "INVALID_ENUM_POLICY_TYPE",
         "INVALID_LIST_MEMBER",
         "MAX_LENGTH_EXCEEDED",
         "MAX_VALUE_EXCEEDED",
@@ -1524,7 +1697,9 @@
         "MOVING_ACCOUNT_BETWEEN_DIFFERENT_ROOTS",
         "INVALID_FULL_NAME_TARGET",
         "UNRECOGNIZED_SERVICE_PRINCIPAL",
-        "INVALID_ROLE_NAME"
+        "INVALID_ROLE_NAME",
+        "INVALID_SYSTEM_TAGS_PARAMETER",
+        "TARGET_NOT_SUPPORTED"
       ]
     },
     "InviteAccountToOrganizationRequest":{
@@ -1732,6 +1907,21 @@
         "NextToken":{"shape":"NextToken"}
       }
     },
+    "ListTagsForResourceRequest":{
+      "type":"structure",
+      "required":["ResourceId"],
+      "members":{
+        "ResourceId":{"shape":"TaggableResourceId"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListTagsForResourceResponse":{
+      "type":"structure",
+      "members":{
+        "Tags":{"shape":"Tags"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
     "ListTargetsForPolicyRequest":{
       "type":"structure",
       "required":["PolicyId"],
@@ -1899,6 +2089,13 @@
       "type":"string",
       "pattern":"^(arn:aws:organizations::\\d{12}:policy\\/o-[a-z0-9]{10,32}\\/[0-9a-z_]+\\/p-[0-9a-z]{10,32})|(arn:aws:organizations::aws:policy\\/[0-9a-z_]+\\/p-[0-9a-zA-Z_]{10,128})"
     },
+    "PolicyChangesInProgressException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ExceptionMessage"}
+      },
+      "exception":true
+    },
     "PolicyContent":{
       "type":"string",
       "max":1000000,
@@ -1968,7 +2165,10 @@
     },
     "PolicyType":{
       "type":"string",
-      "enum":["SERVICE_CONTROL_POLICY"]
+      "enum":[
+        "SERVICE_CONTROL_POLICY",
+        "TAG_POLICY"
+      ]
     },
     "PolicyTypeAlreadyEnabledException":{
       "type":"structure",
@@ -2074,6 +2274,52 @@
       },
       "exception":true
     },
+    "Tag":{
+      "type":"structure",
+      "required":[
+        "Key",
+        "Value"
+      ],
+      "members":{
+        "Key":{"shape":"TagKey"},
+        "Value":{"shape":"TagValue"}
+      }
+    },
+    "TagKey":{
+      "type":"string",
+      "max":128,
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
+    },
+    "TagKeys":{
+      "type":"list",
+      "member":{"shape":"TagKey"}
+    },
+    "TagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceId",
+        "Tags"
+      ],
+      "members":{
+        "ResourceId":{"shape":"TaggableResourceId"},
+        "Tags":{"shape":"Tags"}
+      }
+    },
+    "TagValue":{
+      "type":"string",
+      "max":256,
+      "min":0,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
+    },
+    "TaggableResourceId":{
+      "type":"string",
+      "pattern":"^\\d{12}$"
+    },
+    "Tags":{
+      "type":"list",
+      "member":{"shape":"Tag"}
+    },
     "TargetName":{
       "type":"string",
       "max":128,
@@ -2102,6 +2348,24 @@
         "Message":{"shape":"ExceptionMessage"}
       },
       "exception":true
+    },
+    "UnsupportedAPIEndpointException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ExceptionMessage"}
+      },
+      "exception":true
+    },
+    "UntagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceId",
+        "TagKeys"
+      ],
+      "members":{
+        "ResourceId":{"shape":"TaggableResourceId"},
+        "TagKeys":{"shape":"TagKeys"}
+      }
     },
     "UpdateOrganizationalUnitRequest":{
       "type":"structure",

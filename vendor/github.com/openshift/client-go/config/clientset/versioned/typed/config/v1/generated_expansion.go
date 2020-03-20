@@ -28,6 +28,8 @@ type NetworkExpansion interface{}
 
 type OAuthExpansion interface{}
 
+type OperatorHubExpansion interface{}
+
 type ProjectExpansion interface{}
 
 type ProxyExpansion interface{}

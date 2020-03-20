@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/awstesting/unit"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
@@ -140,6 +141,7 @@ func TestVirtualHostStyleSuite(t *testing.T) {
 		Region                    string
 		UseDualStack              bool
 		UseS3Accelerate           bool
+		S3UsEast1RegionalEndpoint string
 		ConfiguredAddressingStyle string
 
 		ExpectedURI string
@@ -157,6 +159,16 @@ func TestVirtualHostStyleSuite(t *testing.T) {
 			UseDualStack:     &c.UseDualStack,
 			S3UseAccelerate:  &c.UseS3Accelerate,
 			S3ForcePathStyle: aws.Bool(c.ConfiguredAddressingStyle == testPathStyle),
+			S3UsEast1RegionalEndpoint: func() endpoints.S3UsEast1RegionalEndpoint {
+				if len(c.S3UsEast1RegionalEndpoint) == 0 {
+					return endpoints.UnsetS3UsEast1Endpoint
+				}
+				v, err := endpoints.GetS3UsEast1RegionalEndpoint(c.S3UsEast1RegionalEndpoint)
+				if err != nil {
+					t.Fatalf("unexpected error, %v", err)
+				}
+				return v
+			}(),
 		})
 
 		req, _ := svc.HeadBucketRequest(&s3.HeadBucketInput{
@@ -173,7 +185,7 @@ func TestVirtualHostStyleSuite(t *testing.T) {
 			func(r rune) bool { return r == '/' },
 		)
 		if e, a := c.ExpectedURI, actualURI; e != a {
-			t.Errorf("%d, expect\n%s\nurl to be\n%s", i, e, a)
+			t.Errorf("%d URLs do not match\nexpect: %s\nactual: %s", i, e, a)
 		}
 	}
 }

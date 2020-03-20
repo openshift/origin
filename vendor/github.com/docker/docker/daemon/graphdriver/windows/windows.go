@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -23,6 +22,7 @@ import (
 	"github.com/Microsoft/go-winio"
 	"github.com/Microsoft/go-winio/archive/tar"
 	"github.com/Microsoft/go-winio/backuptar"
+	"github.com/Microsoft/go-winio/vhd"
 	"github.com/Microsoft/hcsshim"
 	"github.com/docker/docker/daemon/graphdriver"
 	"github.com/docker/docker/pkg/archive"
@@ -33,6 +33,7 @@ import (
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/docker/docker/pkg/system"
 	units "github.com/docker/go-units"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows"
 )
@@ -95,7 +96,7 @@ func InitFilter(home string, options []string, uidMaps, gidMaps []idtools.IDMap)
 		return nil, fmt.Errorf("%s is on an ReFS volume - ReFS volumes are not supported", home)
 	}
 
-	if err := idtools.MkdirAllAndChown(home, 0700, idtools.IDPair{UID: 0, GID: 0}); err != nil {
+	if err := idtools.MkdirAllAndChown(home, 0700, idtools.Identity{UID: 0, GID: 0}); err != nil {
 		return nil, fmt.Errorf("windowsfilter failed to create '%s': %v", home, err)
 	}
 
@@ -331,7 +332,18 @@ func (d *Driver) Remove(id string) error {
 	tmpID := fmt.Sprintf("%s-removing", rID)
 	tmpLayerPath := filepath.Join(d.info.HomeDir, tmpID)
 	if err := os.Rename(layerPath, tmpLayerPath); err != nil && !os.IsNotExist(err) {
-		return err
+		if !os.IsPermission(err) {
+			return err
+		}
+		// If permission denied, it's possible that the scratch is still mounted, an
+		// artifact after a hard daemon crash for example. Worth a shot to try detaching it
+		// before retrying the rename.
+		if detachErr := vhd.DetachVhd(filepath.Join(layerPath, "sandbox.vhdx")); detachErr != nil {
+			return errors.Wrapf(err, "failed to detach VHD: %s", detachErr)
+		}
+		if renameErr := os.Rename(layerPath, tmpLayerPath); renameErr != nil && !os.IsNotExist(renameErr) {
+			return errors.Wrapf(err, "second rename attempt following detach failed: %s", renameErr)
+		}
 	}
 	if err := hcsshim.DestroyLayer(d.info, tmpID); err != nil {
 		logrus.Errorf("Failed to DestroyLayer %s: %s", id, err)
@@ -444,7 +456,7 @@ func (d *Driver) Cleanup() error {
 
 	// Note we don't return an error below - it's possible the files
 	// are locked. However, next time around after the daemon exits,
-	// we likely will be able to to cleanup successfully. Instead we log
+	// we likely will be able to cleanup successfully. Instead we log
 	// warnings if there are errors.
 	for _, item := range items {
 		if item.IsDir() && strings.HasSuffix(item.Name(), "-removing") {

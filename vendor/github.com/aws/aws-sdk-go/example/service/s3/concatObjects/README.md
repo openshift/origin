@@ -10,5 +10,5 @@ two objects that we want to concatenate together.
 The example uses the bucket name provided, two keys for each object, and lastly the output key.
 
 ```sh
-AWS_REGION=<region> go run -tags example concatenateObjects.go <bucket> <key for object 1> <key for object 2> <key for output>
+AWS_REGION=<region> go run -tags example concatObjects.go <bucket> <key for object 1> <key for object 2> <key for output>
 ```

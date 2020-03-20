@@ -8,5 +8,5 @@ package constant
 
 import "gonum.org/v1/gonum/unit"
 
-// FineStructure is the fine structure constant (α), it describes the strength of the electromagnetic interaction between elementary charged particles. The standard uncertainty of the constant is 1.7e-12 .
-const FineStructure = unit.Dimless(0.0072973525664)
+// FineStructure is the fine structure constant (α), it describes the strength of the electromagnetic interaction between elementary charged particles. The standard uncertainty of the constant is 1.1e-12 .
+const FineStructure = unit.Dimless(0.0072973525693)

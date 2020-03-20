@@ -2,6 +2,10 @@
 
 package codestar
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeConcurrentModificationException for service response error code
@@ -89,3 +93,19 @@ const (
 	// The specified input is either not valid, or it could not be validated.
 	ErrCodeValidationException = "ValidationException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ConcurrentModificationException":      newErrorConcurrentModificationException,
+	"InvalidNextTokenException":            newErrorInvalidNextTokenException,
+	"InvalidServiceRoleException":          newErrorInvalidServiceRoleException,
+	"LimitExceededException":               newErrorLimitExceededException,
+	"ProjectAlreadyExistsException":        newErrorProjectAlreadyExistsException,
+	"ProjectConfigurationException":        newErrorProjectConfigurationException,
+	"ProjectCreationFailedException":       newErrorProjectCreationFailedException,
+	"ProjectNotFoundException":             newErrorProjectNotFoundException,
+	"TeamMemberAlreadyAssociatedException": newErrorTeamMemberAlreadyAssociatedException,
+	"TeamMemberNotFoundException":          newErrorTeamMemberNotFoundException,
+	"UserProfileAlreadyExistsException":    newErrorUserProfileAlreadyExistsException,
+	"UserProfileNotFoundException":         newErrorUserProfileNotFoundException,
+	"ValidationException":                  newErrorValidationException,
+}

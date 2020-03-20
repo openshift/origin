@@ -60,7 +60,7 @@ func TestRetryThrottleStatusCodes(t *testing.T) {
 
 	d := DefaultRetryer{NumMaxRetries: 10}
 	for i, c := range cases {
-		throttle := d.shouldThrottle(&c.r)
+		throttle := c.r.IsErrorThrottle()
 		retry := d.ShouldRetry(&c.r)
 
 		if e, a := c.expectThrottle, throttle; e != a {
@@ -154,7 +154,7 @@ func TestGetRetryDelay(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		a, ok := getRetryDelay(&c.r)
+		a, ok := getRetryAfterDelay(&c.r)
 		if c.ok != ok {
 			t.Errorf("%d: expected %v, but received %v", i, c.ok, ok)
 		}
@@ -166,14 +166,15 @@ func TestGetRetryDelay(t *testing.T) {
 }
 
 func TestRetryDelay(t *testing.T) {
+	d := DefaultRetryer{NumMaxRetries: 100}
 	r := request.Request{}
 	for i := 0; i < 100; i++ {
 		rTemp := r
-		rTemp.HTTPResponse = &http.Response{StatusCode: 500, Header: http.Header{"Retry-After": []string{""}}}
+		rTemp.HTTPResponse = &http.Response{StatusCode: 500, Header: http.Header{"Retry-After": []string{"299"}}}
 		rTemp.RetryCount = i
-		a, _ := getRetryDelay(&rTemp)
+		a := d.RetryRules(&rTemp)
 		if a > 5*time.Minute {
-			t.Errorf("retry delay should never be greater than five minutes, received %d", a)
+			t.Errorf("retry delay should never be greater than five minutes, received %s for retrycount %d", a, i)
 		}
 	}
 
@@ -181,9 +182,18 @@ func TestRetryDelay(t *testing.T) {
 		rTemp := r
 		rTemp.RetryCount = i
 		rTemp.HTTPResponse = &http.Response{StatusCode: 503, Header: http.Header{"Retry-After": []string{""}}}
-		a, _ := getRetryDelay(&rTemp)
+		a := d.RetryRules(&rTemp)
 		if a > 5*time.Minute {
-			t.Errorf("retry delay should never be greater than five minutes, received %d", a)
+			t.Errorf("retry delay should not be greater than five minutes, received %s for retrycount %d", a, i)
 		}
 	}
+
+	rTemp := r
+	rTemp.RetryCount = 1
+	rTemp.HTTPResponse = &http.Response{StatusCode: 503, Header: http.Header{"Retry-After": []string{"300"}}}
+	a := d.RetryRules(&rTemp)
+	if a < 5*time.Minute {
+		t.Errorf("retry delay should not be less than retry-after duration, received %s for retrycount %d", a, 1)
+	}
+
 }

@@ -20,7 +20,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Message_Humour int32
 
@@ -437,7 +437,7 @@ type isTestUTF8_Oneof interface {
 }
 
 type TestUTF8_Field struct {
-	Field string `protobuf:"bytes,3,opt,name=field,proto3,oneof"`
+	Field string `protobuf:"bytes,3,opt,name=field,proto3,oneof" json:"field,omitempty"`
 }
 
 func (*TestUTF8_Field) isTestUTF8_Oneof() {}
@@ -484,55 +484,11 @@ func (m *TestUTF8) GetMapValue() map[int64]string {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*TestUTF8) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _TestUTF8_OneofMarshaler, _TestUTF8_OneofUnmarshaler, _TestUTF8_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*TestUTF8) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*TestUTF8_Field)(nil),
 	}
-}
-
-func _TestUTF8_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*TestUTF8)
-	// oneof
-	switch x := m.Oneof.(type) {
-	case *TestUTF8_Field:
-		_ = b.EncodeVarint(3<<3 | proto.WireBytes)
-		_ = b.EncodeStringBytes(x.Field)
-	case nil:
-	default:
-		return fmt.Errorf("TestUTF8.Oneof has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _TestUTF8_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*TestUTF8)
-	switch tag {
-	case 3: // oneof.field
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Oneof = &TestUTF8_Field{x}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _TestUTF8_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*TestUTF8)
-	// oneof
-	switch x := m.Oneof.(type) {
-	case *TestUTF8_Field:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Field)))
-		n += len(x.Field)
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 func init() {

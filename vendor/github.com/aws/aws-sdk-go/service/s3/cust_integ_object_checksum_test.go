@@ -48,8 +48,8 @@ func SkipTestContentMD5Validate(t *testing.T) {
 
 	for i, c := range cases {
 		keyName := aws.String(c.Name)
-		req, _ := svc.PutObjectRequest(&s3.PutObjectInput{
-			Bucket: bucketName,
+		req, _ := s3Svc.PutObjectRequest(&s3.PutObjectInput{
+			Bucket: &integMetadata.Buckets.Source.Name,
 			Key:    keyName,
 			Body:   bytes.NewReader(c.Body),
 		})
@@ -64,7 +64,7 @@ func SkipTestContentMD5Validate(t *testing.T) {
 		}
 
 		getObjIn := &s3.GetObjectInput{
-			Bucket: bucketName,
+			Bucket: &integMetadata.Buckets.Source.Name,
 			Key:    keyName,
 		}
 
@@ -74,7 +74,7 @@ func SkipTestContentMD5Validate(t *testing.T) {
 			expectBody = c.Body[c.RangeGet[0]:c.RangeGet[1]]
 		}
 
-		getReq, getOut := svc.GetObjectRequest(getObjIn)
+		getReq, getOut := s3Svc.GetObjectRequest(getObjIn)
 
 		getReq.Build()
 		if e, a := "append-md5", getReq.HTTPRequest.Header.Get("X-Amz-Te"); e != a {

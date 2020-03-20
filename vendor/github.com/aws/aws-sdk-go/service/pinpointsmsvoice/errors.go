@@ -2,6 +2,10 @@
 
 package pinpointsmsvoice
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeAlreadyExistsException for service response error code
@@ -42,3 +46,12 @@ const (
 	// then try again.
 	ErrCodeTooManyRequestsException = "TooManyRequestsException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"AlreadyExistsException":        newErrorAlreadyExistsException,
+	"BadRequestException":           newErrorBadRequestException,
+	"InternalServiceErrorException": newErrorInternalServiceErrorException,
+	"LimitExceededException":        newErrorLimitExceededException,
+	"NotFoundException":             newErrorNotFoundException,
+	"TooManyRequestsException":      newErrorTooManyRequestsException,
+}

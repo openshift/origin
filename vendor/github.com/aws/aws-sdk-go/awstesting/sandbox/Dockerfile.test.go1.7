@@ -1,4 +1,3 @@
-FROM ubuntu:12.04
 FROM golang:1.7
 
 ADD . /go/src/github.com/aws/aws-sdk-go
@@ -8,4 +7,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& rm -rf /var/list/apt/lists/*
 
 WORKDIR /go/src/github.com/aws/aws-sdk-go
-CMD ["make", "unit-old-go-race-cover"]
+CMD ["make", "get-deps-tests", "unit-old-go-race-cover"]

@@ -1,6 +1,7 @@
 package apiservice
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -67,7 +68,7 @@ func checkDiscoveryForByAPIServices(recorder events.Recorder, restclient rest.In
 		url := "/apis/" + apiService.Spec.Group + "/" + apiService.Spec.Version
 
 		statusCode := 0
-		result := restclient.Get().AbsPath(url).Do().StatusCode(&statusCode)
+		result := restclient.Get().AbsPath(url).Do(context.TODO()).StatusCode(&statusCode)
 		if statusCode != http.StatusOK {
 			groupVersionString := fmt.Sprintf("%s.%s", apiService.Spec.Group, apiService.Spec.Version)
 			recorder.Warningf("OpenShiftAPICheckFailed", fmt.Sprintf("%q failed with HTTP status code %d (%v)", groupVersionString, statusCode, result.Error()))

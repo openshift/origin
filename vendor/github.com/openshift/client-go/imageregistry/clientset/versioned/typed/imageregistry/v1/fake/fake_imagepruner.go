@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -22,7 +24,7 @@ var imageprunersResource = schema.GroupVersionResource{Group: "imageregistry.ope
 var imageprunersKind = schema.GroupVersionKind{Group: "imageregistry.operator.openshift.io", Version: "v1", Kind: "ImagePruner"}
 
 // Get takes name of the imagePruner, and returns the corresponding imagePruner object, and an error if there is any.
-func (c *FakeImagePruners) Get(name string, options v1.GetOptions) (result *imageregistryv1.ImagePruner, err error) {
+func (c *FakeImagePruners) Get(ctx context.Context, name string, options v1.GetOptions) (result *imageregistryv1.ImagePruner, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(imageprunersResource, name), &imageregistryv1.ImagePruner{})
 	if obj == nil {
@@ -32,7 +34,7 @@ func (c *FakeImagePruners) Get(name string, options v1.GetOptions) (result *imag
 }
 
 // List takes label and field selectors, and returns the list of ImagePruners that match those selectors.
-func (c *FakeImagePruners) List(opts v1.ListOptions) (result *imageregistryv1.ImagePrunerList, err error) {
+func (c *FakeImagePruners) List(ctx context.Context, opts v1.ListOptions) (result *imageregistryv1.ImagePrunerList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(imageprunersResource, imageprunersKind, opts), &imageregistryv1.ImagePrunerList{})
 	if obj == nil {
@@ -53,13 +55,13 @@ func (c *FakeImagePruners) List(opts v1.ListOptions) (result *imageregistryv1.Im
 }
 
 // Watch returns a watch.Interface that watches the requested imagePruners.
-func (c *FakeImagePruners) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeImagePruners) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(imageprunersResource, opts))
 }
 
 // Create takes the representation of a imagePruner and creates it.  Returns the server's representation of the imagePruner, and an error, if there is any.
-func (c *FakeImagePruners) Create(imagePruner *imageregistryv1.ImagePruner) (result *imageregistryv1.ImagePruner, err error) {
+func (c *FakeImagePruners) Create(ctx context.Context, imagePruner *imageregistryv1.ImagePruner, opts v1.CreateOptions) (result *imageregistryv1.ImagePruner, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(imageprunersResource, imagePruner), &imageregistryv1.ImagePruner{})
 	if obj == nil {
@@ -69,7 +71,7 @@ func (c *FakeImagePruners) Create(imagePruner *imageregistryv1.ImagePruner) (res
 }
 
 // Update takes the representation of a imagePruner and updates it. Returns the server's representation of the imagePruner, and an error, if there is any.
-func (c *FakeImagePruners) Update(imagePruner *imageregistryv1.ImagePruner) (result *imageregistryv1.ImagePruner, err error) {
+func (c *FakeImagePruners) Update(ctx context.Context, imagePruner *imageregistryv1.ImagePruner, opts v1.UpdateOptions) (result *imageregistryv1.ImagePruner, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(imageprunersResource, imagePruner), &imageregistryv1.ImagePruner{})
 	if obj == nil {
@@ -80,7 +82,7 @@ func (c *FakeImagePruners) Update(imagePruner *imageregistryv1.ImagePruner) (res
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeImagePruners) UpdateStatus(imagePruner *imageregistryv1.ImagePruner) (*imageregistryv1.ImagePruner, error) {
+func (c *FakeImagePruners) UpdateStatus(ctx context.Context, imagePruner *imageregistryv1.ImagePruner, opts v1.UpdateOptions) (*imageregistryv1.ImagePruner, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateSubresourceAction(imageprunersResource, "status", imagePruner), &imageregistryv1.ImagePruner{})
 	if obj == nil {
@@ -90,22 +92,22 @@ func (c *FakeImagePruners) UpdateStatus(imagePruner *imageregistryv1.ImagePruner
 }
 
 // Delete takes name of the imagePruner and deletes it. Returns an error if one occurs.
-func (c *FakeImagePruners) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeImagePruners) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(imageprunersResource, name), &imageregistryv1.ImagePruner{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeImagePruners) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(imageprunersResource, listOptions)
+func (c *FakeImagePruners) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(imageprunersResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &imageregistryv1.ImagePrunerList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched imagePruner.
-func (c *FakeImagePruners) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *imageregistryv1.ImagePruner, err error) {
+func (c *FakeImagePruners) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *imageregistryv1.ImagePruner, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(imageprunersResource, name, pt, data, subresources...), &imageregistryv1.ImagePruner{})
 	if obj == nil {

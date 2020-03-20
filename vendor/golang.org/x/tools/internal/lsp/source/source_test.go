@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -16,9 +17,10 @@ import (
 	"golang.org/x/tools/go/packages/packagestest"
 	"golang.org/x/tools/internal/lsp/cache"
 	"golang.org/x/tools/internal/lsp/diff"
+	"golang.org/x/tools/internal/lsp/fuzzy"
+	"golang.org/x/tools/internal/lsp/protocol"
 	"golang.org/x/tools/internal/lsp/source"
 	"golang.org/x/tools/internal/lsp/tests"
-	"golang.org/x/tools/internal/lsp/xlog"
 	"golang.org/x/tools/internal/span"
 )
 
@@ -29,18 +31,20 @@ func TestSource(t *testing.T) {
 type runner struct {
 	view source.View
 	data *tests.Data
+	ctx  context.Context
 }
 
 func testSource(t *testing.T, exporter packagestest.Exporter) {
+	ctx := tests.Context(t)
 	data := tests.Load(t, exporter, "../testdata")
 	defer data.Exported.Cleanup()
 
-	log := xlog.New(xlog.StdSink{})
 	cache := cache.New()
-	session := cache.NewSession(log)
+	session := cache.NewSession(ctx)
 	r := &runner{
-		view: session.NewView("source_test", span.FileURI(data.Config.Dir)),
+		view: session.NewView(ctx, "source_test", span.FileURI(data.Config.Dir)),
 		data: data,
+		ctx:  ctx,
 	}
 	r.view.SetEnv(data.Config.Env)
 	for filename, content := range data.Config.Overlay {
@@ -51,87 +55,30 @@ func testSource(t *testing.T, exporter packagestest.Exporter) {
 
 func (r *runner) Diagnostics(t *testing.T, data tests.Diagnostics) {
 	for uri, want := range data {
-		f, err := r.view.GetFile(context.Background(), uri)
+		f, err := r.view.GetFile(r.ctx, uri)
 		if err != nil {
 			t.Fatal(err)
 		}
-		results, err := source.Diagnostics(context.Background(), r.view, f.(source.GoFile), nil)
+		results, err := source.Diagnostics(r.ctx, r.view, f.(source.GoFile), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		got := results[uri]
-		if diff := diffDiagnostics(uri, want, got); diff != "" {
+		// A special case to test that there are no diagnostics for a file.
+		if len(want) == 1 && want[0].Source == "no_diagnostics" {
+			if len(got) != 0 {
+				t.Errorf("expected no diagnostics for %s, got %v", uri, got)
+			}
+			continue
+		}
+		if diff := tests.DiffDiagnostics(uri, want, got); diff != "" {
 			t.Error(diff)
 		}
 	}
 }
 
-func sortDiagnostics(d []source.Diagnostic) {
-	sort.Slice(d, func(i int, j int) bool {
-		if r := span.Compare(d[i].Span, d[j].Span); r != 0 {
-			return r < 0
-		}
-		return d[i].Message < d[j].Message
-	})
-}
-
-// diffDiagnostics prints the diff between expected and actual diagnostics test
-// results.
-func diffDiagnostics(uri span.URI, want, got []source.Diagnostic) string {
-	sortDiagnostics(want)
-	sortDiagnostics(got)
-	if len(got) != len(want) {
-		return summarizeDiagnostics(-1, want, got, "different lengths got %v want %v", len(got), len(want))
-	}
-	for i, w := range want {
-		g := got[i]
-		if w.Message != g.Message {
-			return summarizeDiagnostics(i, want, got, "incorrect Message got %v want %v", g.Message, w.Message)
-		}
-		if span.ComparePoint(w.Start(), g.Start()) != 0 {
-			return summarizeDiagnostics(i, want, got, "incorrect Start got %v want %v", g.Start(), w.Start())
-		}
-		// Special case for diagnostics on parse errors.
-		if strings.Contains(string(uri), "noparse") {
-			if span.ComparePoint(g.Start(), g.End()) != 0 || span.ComparePoint(w.Start(), g.End()) != 0 {
-				return summarizeDiagnostics(i, want, got, "incorrect End got %v want %v", g.End(), w.Start())
-			}
-		} else if !g.IsPoint() { // Accept any 'want' range if the diagnostic returns a zero-length range.
-			if span.ComparePoint(w.End(), g.End()) != 0 {
-				return summarizeDiagnostics(i, want, got, "incorrect End got %v want %v", g.End(), w.End())
-			}
-		}
-		if w.Severity != g.Severity {
-			return summarizeDiagnostics(i, want, got, "incorrect Severity got %v want %v", g.Severity, w.Severity)
-		}
-		if w.Source != g.Source {
-			return summarizeDiagnostics(i, want, got, "incorrect Source got %v want %v", g.Source, w.Source)
-		}
-	}
-	return ""
-}
-
-func summarizeDiagnostics(i int, want []source.Diagnostic, got []source.Diagnostic, reason string, args ...interface{}) string {
-	msg := &bytes.Buffer{}
-	fmt.Fprint(msg, "diagnostics failed")
-	if i >= 0 {
-		fmt.Fprintf(msg, " at %d", i)
-	}
-	fmt.Fprint(msg, " because of ")
-	fmt.Fprintf(msg, reason, args...)
-	fmt.Fprint(msg, ":\nexpected:\n")
-	for _, d := range want {
-		fmt.Fprintf(msg, "  %v\n", d)
-	}
-	fmt.Fprintf(msg, "got:\n")
-	for _, d := range got {
-		fmt.Fprintf(msg, "  %v\n", d)
-	}
-	return msg.String()
-}
-
 func (r *runner) Completion(t *testing.T, data tests.Completions, snippets tests.CompletionSnippets, items tests.CompletionItems) {
-	ctx := context.Background()
+	ctx := r.ctx
 	for src, itemList := range data {
 		var want []source.CompletionItem
 		for _, pos := range itemList {
@@ -141,14 +88,28 @@ func (r *runner) Completion(t *testing.T, data tests.Completions, snippets tests
 		if err != nil {
 			t.Fatalf("failed for %v: %v", src, err)
 		}
-		tok := f.(source.GoFile).GetToken(ctx)
-		if tok == nil {
-			t.Fatalf("failed to get token for %v", src)
-		}
-		pos := tok.Pos(src.Start().Offset())
-		list, surrounding, err := source.Completion(ctx, f.(source.GoFile), pos)
+		deepComplete := strings.Contains(string(src.URI()), "deepcomplete")
+		unimported := strings.Contains(string(src.URI()), "unimported")
+		list, surrounding, err := source.Completion(ctx, r.view, f.(source.GoFile), protocol.Position{
+			Line:      float64(src.Start().Line() - 1),
+			Character: float64(src.Start().Column() - 1),
+		}, source.CompletionOptions{
+			DeepComplete:     deepComplete,
+			WantDocumentaton: true,
+			WantUnimported:   unimported,
+		})
 		if err != nil {
 			t.Fatalf("failed for %v: %v", src, err)
+		}
+		var (
+			prefix       string
+			fuzzyMatcher *fuzzy.Matcher
+		)
+		if surrounding != nil {
+			prefix = strings.ToLower(surrounding.Prefix())
+			if deepComplete && prefix != "" {
+				fuzzyMatcher = fuzzy.NewMatcher(surrounding.Prefix(), fuzzy.Symbol)
+			}
 		}
 		wantBuiltins := strings.Contains(string(src.URI()), "builtins")
 		var got []source.CompletionItem
@@ -156,14 +117,19 @@ func (r *runner) Completion(t *testing.T, data tests.Completions, snippets tests
 			if !wantBuiltins && isBuiltin(item) {
 				continue
 			}
-			var prefix string
-			if surrounding != nil {
-				prefix = surrounding.Prefix()
-			}
-			// We let the client do fuzzy matching, so we return all possible candidates.
-			// To simplify testing, filter results with prefixes that don't match exactly.
-			if !strings.HasPrefix(item.Label, prefix) {
-				continue
+
+			// If deep completion is enabled, we need to use the fuzzy matcher to match
+			// the code's behvaior.
+			if deepComplete {
+				if fuzzyMatcher != nil && fuzzyMatcher.Score(item.Label) <= 0 {
+					continue
+				}
+			} else {
+				// We let the client do fuzzy matching, so we return all possible candidates.
+				// To simplify testing, filter results with prefixes that don't match exactly.
+				if !strings.HasPrefix(strings.ToLower(item.Label), prefix) {
+					continue
+				}
 			}
 			got = append(got, item)
 		}
@@ -177,9 +143,12 @@ func (r *runner) Completion(t *testing.T, data tests.Completions, snippets tests
 			if err != nil {
 				t.Fatalf("failed for %v: %v", src, err)
 			}
-			tok := f.GetToken(ctx)
-			pos := tok.Pos(src.Start().Offset())
-			list, _, err := source.Completion(ctx, f.(source.GoFile), pos)
+			list, _, err := source.Completion(ctx, r.view, f.(source.GoFile), protocol.Position{
+				Line:      float64(src.Start().Line() - 1),
+				Character: float64(src.Start().Column() - 1),
+			}, source.CompletionOptions{
+				DeepComplete: strings.Contains(string(src.URI()), "deepcomplete"),
+			})
 			if err != nil {
 				t.Fatalf("failed for %v: %v", src, err)
 			}
@@ -227,12 +196,28 @@ func isBuiltin(item source.CompletionItem) bool {
 // diffCompletionItems prints the diff between expected and actual completion
 // test results.
 func diffCompletionItems(t *testing.T, spn span.Span, want []source.CompletionItem, got []source.CompletionItem) string {
-	if len(got) != len(want) {
-		return summarizeCompletionItems(-1, want, got, "different lengths got %v want %v", len(got), len(want))
-	}
 	sort.SliceStable(got, func(i, j int) bool {
 		return got[i].Score > got[j].Score
 	})
+
+	// duplicate the lsp/completion logic to limit deep candidates to keep expected
+	// list short
+	var idx, seenDeepCompletions int
+	for _, item := range got {
+		if item.Depth > 0 {
+			if seenDeepCompletions >= 3 {
+				continue
+			}
+			seenDeepCompletions++
+		}
+		got[idx] = item
+		idx++
+	}
+	got = got[:idx]
+
+	if len(got) != len(want) {
+		return summarizeCompletionItems(-1, want, got, "different lengths got %v want %v", len(got), len(want))
+	}
 	for i, w := range want {
 		g := got[i]
 		if w.Label != g.Label {
@@ -240,6 +225,11 @@ func diffCompletionItems(t *testing.T, spn span.Span, want []source.CompletionIt
 		}
 		if w.Detail != g.Detail {
 			return summarizeCompletionItems(i, want, got, "incorrect Detail got %v want %v", g.Detail, w.Detail)
+		}
+		if w.Documentation != "" && !strings.HasPrefix(w.Documentation, "@") {
+			if w.Documentation != g.Documentation {
+				return summarizeCompletionItems(i, want, got, "incorrect Documentation got %v want %v", g.Documentation, w.Documentation)
+			}
 		}
 		if w.Kind != g.Kind {
 			return summarizeCompletionItems(i, want, got, "incorrect Kind got %v want %v", g.Kind, w.Kind)
@@ -268,7 +258,7 @@ func summarizeCompletionItems(i int, want []source.CompletionItem, got []source.
 }
 
 func (r *runner) Format(t *testing.T, data tests.Formats) {
-	ctx := context.Background()
+	ctx := r.ctx
 	for _, spn := range data {
 		uri := spn.URI()
 		filename := uri.Filename()
@@ -281,7 +271,11 @@ func (r *runner) Format(t *testing.T, data tests.Formats) {
 		if err != nil {
 			t.Fatalf("failed for %v: %v", spn, err)
 		}
-		rng, err := spn.Range(span.NewTokenConverter(f.FileSet(), f.GetToken(ctx)))
+		tok, err := f.(source.GoFile).GetToken(ctx)
+		if err != nil {
+			t.Fatalf("failed to get token for %s: %v", spn.URI(), err)
+		}
+		rng, err := spn.Range(span.NewTokenConverter(f.FileSet(), tok))
 		if err != nil {
 			t.Fatalf("failed for %v: %v", spn, err)
 		}
@@ -292,13 +286,12 @@ func (r *runner) Format(t *testing.T, data tests.Formats) {
 			}
 			continue
 		}
-		ops := source.EditsToDiff(edits)
 		data, _, err := f.Handle(ctx).Read(ctx)
 		if err != nil {
 			t.Error(err)
 			continue
 		}
-		got := strings.Join(diff.ApplyEdits(diff.SplitLines(string(data)), ops), "")
+		got := diff.ApplyEdits(string(data), edits)
 		if gofmted != got {
 			t.Errorf("format failed for %s, expected:\n%v\ngot:\n%v", filename, gofmted, got)
 		}
@@ -306,7 +299,7 @@ func (r *runner) Format(t *testing.T, data tests.Formats) {
 }
 
 func (r *runner) Import(t *testing.T, data tests.Imports) {
-	ctx := context.Background()
+	ctx := r.ctx
 	for _, spn := range data {
 		uri := spn.URI()
 		filename := uri.Filename()
@@ -319,24 +312,27 @@ func (r *runner) Import(t *testing.T, data tests.Imports) {
 		if err != nil {
 			t.Fatalf("failed for %v: %v", spn, err)
 		}
-		rng, err := spn.Range(span.NewTokenConverter(f.FileSet(), f.GetToken(ctx)))
+		tok, err := f.(source.GoFile).GetToken(ctx)
+		if err != nil {
+			t.Fatalf("failed to get token for %s: %v", spn.URI(), err)
+		}
+		rng, err := spn.Range(span.NewTokenConverter(f.FileSet(), tok))
 		if err != nil {
 			t.Fatalf("failed for %v: %v", spn, err)
 		}
-		edits, err := source.Imports(ctx, f.(source.GoFile), rng)
+		edits, err := source.Imports(ctx, r.view, f.(source.GoFile), rng)
 		if err != nil {
 			if goimported != "" {
 				t.Error(err)
 			}
 			continue
 		}
-		ops := source.EditsToDiff(edits)
 		data, _, err := f.Handle(ctx).Read(ctx)
 		if err != nil {
 			t.Error(err)
 			continue
 		}
-		got := strings.Join(diff.ApplyEdits(diff.SplitLines(string(data)), ops), "")
+		got := diff.ApplyEdits(string(data), edits)
 		if goimported != got {
 			t.Errorf("import failed for %s, expected:\n%v\ngot:\n%v", filename, goimported, got)
 		}
@@ -344,22 +340,30 @@ func (r *runner) Import(t *testing.T, data tests.Imports) {
 }
 
 func (r *runner) Definition(t *testing.T, data tests.Definitions) {
-	ctx := context.Background()
+	ctx := r.ctx
 	for _, d := range data {
 		f, err := r.view.GetFile(ctx, d.Src.URI())
 		if err != nil {
 			t.Fatalf("failed for %v: %v", d.Src, err)
 		}
-		tok := f.GetToken(ctx)
+		tok, err := f.(source.GoFile).GetToken(ctx)
+		if err != nil {
+			t.Fatalf("failed to get token for %s: %v", d.Src.URI(), err)
+		}
 		pos := tok.Pos(d.Src.Start().Offset())
-		ident, err := source.Identifier(ctx, r.view, f.(source.GoFile), pos)
+		ident, err := source.Identifier(ctx, f.(source.GoFile), pos)
 		if err != nil {
 			t.Fatalf("failed for %v: %v", d.Src, err)
 		}
-		hover, err := ident.Hover(ctx, false, true)
+		h, err := ident.Hover(ctx)
 		if err != nil {
 			t.Fatalf("failed for %v: %v", d.Src, err)
 		}
+		var hover string
+		if h.Synopsis != "" {
+			hover += h.Synopsis + "\n"
+		}
+		hover += h.Signature
 		rng := ident.DeclarationRange()
 		if d.IsType {
 			rng = ident.Type.Range
@@ -386,18 +390,24 @@ func (r *runner) Definition(t *testing.T, data tests.Definitions) {
 }
 
 func (r *runner) Highlight(t *testing.T, data tests.Highlights) {
-	ctx := context.Background()
+	ctx := r.ctx
 	for name, locations := range data {
 		src := locations[0]
 		f, err := r.view.GetFile(ctx, src.URI())
 		if err != nil {
 			t.Fatalf("failed for %v: %v", src, err)
 		}
-		tok := f.GetToken(ctx)
+		tok, err := f.(source.GoFile).GetToken(ctx)
+		if err != nil {
+			t.Fatalf("failed to get token for %s: %v", src.URI(), err)
+		}
 		pos := tok.Pos(src.Start().Offset())
-		highlights := source.Highlight(ctx, f.(source.GoFile), pos)
+		highlights, err := source.Highlight(ctx, f.(source.GoFile), pos)
+		if err != nil {
+			t.Errorf("highlight failed for %s: %v", src.URI(), err)
+		}
 		if len(highlights) != len(locations) {
-			t.Fatalf("got %d highlights for %s, expected %d", len(highlights), name, len(locations))
+			t.Errorf("got %d highlights for %s, expected %d", len(highlights), name, len(locations))
 		}
 		for i, h := range highlights {
 			if h != locations[i] {
@@ -408,16 +418,18 @@ func (r *runner) Highlight(t *testing.T, data tests.Highlights) {
 }
 
 func (r *runner) Reference(t *testing.T, data tests.References) {
-	ctx := context.Background()
+	ctx := r.ctx
 	for src, itemList := range data {
 		f, err := r.view.GetFile(ctx, src.URI())
 		if err != nil {
 			t.Fatalf("failed for %v: %v", src, err)
 		}
-
-		tok := f.GetToken(ctx)
+		tok, err := f.(source.GoFile).GetToken(ctx)
+		if err != nil {
+			t.Fatalf("failed to get token for %s: %v", src.URI(), err)
+		}
 		pos := tok.Pos(src.Start().Offset())
-		ident, err := source.Identifier(ctx, r.view, f.(source.GoFile), pos)
+		ident, err := source.Identifier(ctx, f.(source.GoFile), pos)
 		if err != nil {
 			t.Fatalf("failed for %v: %v", src, err)
 		}
@@ -427,20 +439,26 @@ func (r *runner) Reference(t *testing.T, data tests.References) {
 			want[pos] = true
 		}
 
-		got, err := ident.References(ctx)
+		refs, err := ident.References(ctx)
 		if err != nil {
 			t.Fatalf("failed for %v: %v", src, err)
 		}
 
-		if len(got) != len(itemList) {
-			t.Errorf("references failed: different lengths got %v want %v", len(got), len(itemList))
-		}
-		for _, refInfo := range got {
+		got := make(map[span.Span]bool)
+		for _, refInfo := range refs {
 			refSpan, err := refInfo.Range.Span()
 			if err != nil {
 				t.Errorf("failed for %v item %v: %v", src, refInfo.Name, err)
 			}
-			if !want[refSpan] {
+			got[refSpan] = true
+		}
+
+		if len(got) != len(want) {
+			t.Errorf("references failed: different lengths got %v want %v", len(got), len(want))
+		}
+
+		for spn, _ := range got {
+			if !want[spn] {
 				t.Errorf("references failed: incorrect references got %v want locations %v", got, want)
 			}
 		}
@@ -448,56 +466,75 @@ func (r *runner) Reference(t *testing.T, data tests.References) {
 }
 
 func (r *runner) Rename(t *testing.T, data tests.Renames) {
-	ctx := context.Background()
+	ctx := r.ctx
 	for spn, newText := range data {
-		uri := spn.URI()
-		filename := uri.Filename()
+		tag := fmt.Sprintf("%s-rename", newText)
 
 		f, err := r.view.GetFile(ctx, spn.URI())
 		if err != nil {
 			t.Fatalf("failed for %v: %v", spn, err)
 		}
-
-		tok := f.GetToken(ctx)
+		tok, err := f.(source.GoFile).GetToken(ctx)
+		if err != nil {
+			t.Fatalf("failed to get token for %s: %v", spn.URI(), err)
+		}
 		pos := tok.Pos(spn.Start().Offset())
-
-		changes, err := source.Rename(context.Background(), r.view, f.(source.GoFile), pos, newText)
+		ident, err := source.Identifier(r.ctx, f.(source.GoFile), pos)
 		if err != nil {
 			t.Error(err)
 			continue
 		}
-
-		if len(changes) != 1 { // Renames must only affect a single file in these tests.
-			t.Errorf("rename failed for %s, edited %d files, wanted 1 file", newText, len(changes))
-			continue
-		}
-
-		edits := changes[uri]
-		if edits == nil {
-			t.Errorf("rename failed for %s, did not edit %s", newText, filename)
-			continue
-		}
-		data, _, err := f.Handle(ctx).Read(ctx)
+		changes, err := ident.Rename(r.ctx, newText)
 		if err != nil {
-			t.Error(err)
+			renamed := string(r.data.Golden(tag, spn.URI().Filename(), func() ([]byte, error) {
+				return []byte(err.Error()), nil
+			}))
+			if err.Error() != renamed {
+				t.Errorf("rename failed for %s, expected:\n%v\ngot:\n%v\n", newText, renamed, err)
+			}
 			continue
 		}
 
-		got := applyEdits(string(data), edits)
-		tag := fmt.Sprintf("%s-rename", newText)
-		gorenamed := string(r.data.Golden(tag, filename, func() ([]byte, error) {
+		var res []string
+		for editSpn, edits := range changes {
+			f, err := r.view.GetFile(ctx, editSpn)
+			if err != nil {
+				t.Fatalf("failed for %v: %v", spn, err)
+			}
+
+			data, _, err := f.Handle(ctx).Read(ctx)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+			filename := filepath.Base(editSpn.Filename())
+			contents := applyEdits(string(data), edits)
+			res = append(res, fmt.Sprintf("%s:\n%s", filename, contents))
+		}
+
+		// Sort on filename
+		sort.Strings(res)
+
+		var got string
+		for i, val := range res {
+			if i != 0 {
+				got += "\n"
+			}
+			got += val
+		}
+
+		renamed := string(r.data.Golden(tag, spn.URI().Filename(), func() ([]byte, error) {
 			return []byte(got), nil
 		}))
 
-		if gorenamed != got {
-			t.Errorf("rename failed for %s, expected:\n%v\ngot:\n%v", newText, gorenamed, got)
+		if renamed != got {
+			t.Errorf("rename failed for %s, expected:\n%v\ngot:\n%v", newText, renamed, got)
 		}
 	}
 }
 
-func applyEdits(contents string, edits []source.TextEdit) string {
+func applyEdits(contents string, edits []diff.TextEdit) string {
 	res := contents
-	sortSourceTextEdits(edits)
 
 	// Apply the edits from the end of the file forward
 	// to preserve the offsets
@@ -511,24 +548,17 @@ func applyEdits(contents string, edits []source.TextEdit) string {
 	return res
 }
 
-func sortSourceTextEdits(d []source.TextEdit) {
-	sort.Slice(d, func(i int, j int) bool {
-		if r := span.Compare(d[i].Span, d[j].Span); r != 0 {
-			return r < 0
-		}
-		return d[i].NewText < d[j].NewText
-	})
-}
-
 func (r *runner) Symbol(t *testing.T, data tests.Symbols) {
-	ctx := context.Background()
+	ctx := r.ctx
 	for uri, expectedSymbols := range data {
 		f, err := r.view.GetFile(ctx, uri)
 		if err != nil {
 			t.Fatalf("failed for %v: %v", uri, err)
 		}
-		symbols := source.DocumentSymbols(ctx, f.(source.GoFile))
-
+		symbols, err := source.DocumentSymbols(ctx, f.(source.GoFile))
+		if err != nil {
+			t.Errorf("symbols failed for %s: %v", uri, err)
+		}
 		if len(symbols) != len(expectedSymbols) {
 			t.Errorf("want %d top-level symbols in %v, got %d", len(expectedSymbols), uri, len(symbols))
 			continue
@@ -583,37 +613,46 @@ func summarizeSymbols(i int, want []source.Symbol, got []source.Symbol, reason s
 }
 
 func (r *runner) SignatureHelp(t *testing.T, data tests.Signatures) {
-	ctx := context.Background()
-	for spn, expectedSignatures := range data {
+	ctx := r.ctx
+	for spn, expectedSignature := range data {
 		f, err := r.view.GetFile(ctx, spn.URI())
 		if err != nil {
 			t.Fatalf("failed for %v: %v", spn, err)
 		}
-		tok := f.GetToken(ctx)
+		tok, err := f.(source.GoFile).GetToken(ctx)
+		if err != nil {
+			t.Fatalf("failed to get token for %s: %v", spn.URI(), err)
+		}
 		pos := tok.Pos(spn.Start().Offset())
 		gotSignature, err := source.SignatureHelp(ctx, f.(source.GoFile), pos)
 		if err != nil {
-			t.Fatalf("failed for %v: %v", spn, err)
+			// Only fail if we got an error we did not expect.
+			if expectedSignature != nil {
+				t.Fatalf("failed for %v: %v", spn, err)
+			}
 		}
-		if diff := diffSignatures(spn, expectedSignatures, *gotSignature); diff != "" {
+		if expectedSignature == nil {
+			if gotSignature != nil {
+				t.Errorf("expected no signature, got %v", gotSignature)
+			}
+			continue
+		}
+		if diff := diffSignatures(spn, expectedSignature, gotSignature); diff != "" {
 			t.Error(diff)
 		}
 	}
 }
 
-func diffSignatures(spn span.Span, want source.SignatureInformation, got source.SignatureInformation) string {
+func diffSignatures(spn span.Span, want *source.SignatureInformation, got *source.SignatureInformation) string {
 	decorate := func(f string, args ...interface{}) string {
 		return fmt.Sprintf("Invalid signature at %s: %s", spn, fmt.Sprintf(f, args...))
 	}
-
 	if want.ActiveParameter != got.ActiveParameter {
 		return decorate("wanted active parameter of %d, got %f", want.ActiveParameter, got.ActiveParameter)
 	}
-
 	if want.Label != got.Label {
 		return decorate("wanted label %q, got %q", want.Label, got.Label)
 	}
-
 	var paramParts []string
 	for _, p := range got.Parameters {
 		paramParts = append(paramParts, p.Label)
@@ -622,10 +661,9 @@ func diffSignatures(spn span.Span, want source.SignatureInformation, got source.
 	if !strings.Contains(got.Label, paramsStr) {
 		return decorate("expected signature %q to contain params %q", got.Label, paramsStr)
 	}
-
 	return ""
 }
 
 func (r *runner) Link(t *testing.T, data tests.Links) {
-	//This is a pure LSP feature, no source level functionality to be tested
+	// This is a pure LSP feature, no source level functionality to be tested.
 }

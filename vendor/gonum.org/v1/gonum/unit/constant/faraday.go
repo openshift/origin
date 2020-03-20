@@ -13,8 +13,8 @@ import (
 )
 
 // Faraday is the Faraday constant, the magnitude of electric charge per mole of electrons.
-// The dimensions of Faraday are A s mol^-1. The standard uncertainty of the constant is 0.00059 A s mol^-1.
-const Faraday = faradayUnits(96485.33289)
+// The dimensions of Faraday are A s mol^-1. The constant is exact.
+const Faraday = faradayUnits(96485.33212)
 
 type faradayUnits float64
 

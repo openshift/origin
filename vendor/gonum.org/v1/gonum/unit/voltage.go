@@ -16,29 +16,7 @@ import (
 // Voltage represents a voltage in Volts.
 type Voltage float64
 
-const (
-	Yottavolt Voltage = 1e24
-	Zettavolt Voltage = 1e21
-	Exavolt   Voltage = 1e18
-	Petavolt  Voltage = 1e15
-	Teravolt  Voltage = 1e12
-	Gigavolt  Voltage = 1e9
-	Megavolt  Voltage = 1e6
-	Kilovolt  Voltage = 1e3
-	Hectovolt Voltage = 1e2
-	Decavolt  Voltage = 1e1
-	Volt      Voltage = 1.0
-	Decivolt  Voltage = 1e-1
-	Centivolt Voltage = 1e-2
-	Millivolt Voltage = 1e-3
-	Microvolt Voltage = 1e-6
-	Nanovolt  Voltage = 1e-9
-	Picovolt  Voltage = 1e-12
-	Femtovolt Voltage = 1e-15
-	Attovolt  Voltage = 1e-18
-	Zeptovolt Voltage = 1e-21
-	Yoctovolt Voltage = 1e-24
-)
+const Volt Voltage = 1
 
 // Unit converts the Voltage to a *Unit
 func (v Voltage) Unit() *Unit {

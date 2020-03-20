@@ -16,29 +16,7 @@ import (
 // Force represents a force in Newtons.
 type Force float64
 
-const (
-	Yottanewton Force = 1e24
-	Zettanewton Force = 1e21
-	Exanewton   Force = 1e18
-	Petanewton  Force = 1e15
-	Teranewton  Force = 1e12
-	Giganewton  Force = 1e9
-	Meganewton  Force = 1e6
-	Kilonewton  Force = 1e3
-	Hectonewton Force = 1e2
-	Decanewton  Force = 1e1
-	Newton      Force = 1.0
-	Decinewton  Force = 1e-1
-	Centinewton Force = 1e-2
-	Millinewton Force = 1e-3
-	Micronewton Force = 1e-6
-	Nanonewton  Force = 1e-9
-	Piconewton  Force = 1e-12
-	Femtonewton Force = 1e-15
-	Attonewton  Force = 1e-18
-	Zeptonewton Force = 1e-21
-	Yoctonewton Force = 1e-24
-)
+const Newton Force = 1
 
 // Unit converts the Force to a *Unit
 func (f Force) Unit() *Unit {

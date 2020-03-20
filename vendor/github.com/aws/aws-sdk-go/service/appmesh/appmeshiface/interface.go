@@ -76,6 +76,10 @@ type AppMeshAPI interface {
 	CreateVirtualRouterWithContext(aws.Context, *appmesh.CreateVirtualRouterInput, ...request.Option) (*appmesh.CreateVirtualRouterOutput, error)
 	CreateVirtualRouterRequest(*appmesh.CreateVirtualRouterInput) (*request.Request, *appmesh.CreateVirtualRouterOutput)
 
+	CreateVirtualService(*appmesh.CreateVirtualServiceInput) (*appmesh.CreateVirtualServiceOutput, error)
+	CreateVirtualServiceWithContext(aws.Context, *appmesh.CreateVirtualServiceInput, ...request.Option) (*appmesh.CreateVirtualServiceOutput, error)
+	CreateVirtualServiceRequest(*appmesh.CreateVirtualServiceInput) (*request.Request, *appmesh.CreateVirtualServiceOutput)
+
 	DeleteMesh(*appmesh.DeleteMeshInput) (*appmesh.DeleteMeshOutput, error)
 	DeleteMeshWithContext(aws.Context, *appmesh.DeleteMeshInput, ...request.Option) (*appmesh.DeleteMeshOutput, error)
 	DeleteMeshRequest(*appmesh.DeleteMeshInput) (*request.Request, *appmesh.DeleteMeshOutput)
@@ -91,6 +95,10 @@ type AppMeshAPI interface {
 	DeleteVirtualRouter(*appmesh.DeleteVirtualRouterInput) (*appmesh.DeleteVirtualRouterOutput, error)
 	DeleteVirtualRouterWithContext(aws.Context, *appmesh.DeleteVirtualRouterInput, ...request.Option) (*appmesh.DeleteVirtualRouterOutput, error)
 	DeleteVirtualRouterRequest(*appmesh.DeleteVirtualRouterInput) (*request.Request, *appmesh.DeleteVirtualRouterOutput)
+
+	DeleteVirtualService(*appmesh.DeleteVirtualServiceInput) (*appmesh.DeleteVirtualServiceOutput, error)
+	DeleteVirtualServiceWithContext(aws.Context, *appmesh.DeleteVirtualServiceInput, ...request.Option) (*appmesh.DeleteVirtualServiceOutput, error)
+	DeleteVirtualServiceRequest(*appmesh.DeleteVirtualServiceInput) (*request.Request, *appmesh.DeleteVirtualServiceOutput)
 
 	DescribeMesh(*appmesh.DescribeMeshInput) (*appmesh.DescribeMeshOutput, error)
 	DescribeMeshWithContext(aws.Context, *appmesh.DescribeMeshInput, ...request.Option) (*appmesh.DescribeMeshOutput, error)
@@ -108,6 +116,10 @@ type AppMeshAPI interface {
 	DescribeVirtualRouterWithContext(aws.Context, *appmesh.DescribeVirtualRouterInput, ...request.Option) (*appmesh.DescribeVirtualRouterOutput, error)
 	DescribeVirtualRouterRequest(*appmesh.DescribeVirtualRouterInput) (*request.Request, *appmesh.DescribeVirtualRouterOutput)
 
+	DescribeVirtualService(*appmesh.DescribeVirtualServiceInput) (*appmesh.DescribeVirtualServiceOutput, error)
+	DescribeVirtualServiceWithContext(aws.Context, *appmesh.DescribeVirtualServiceInput, ...request.Option) (*appmesh.DescribeVirtualServiceOutput, error)
+	DescribeVirtualServiceRequest(*appmesh.DescribeVirtualServiceInput) (*request.Request, *appmesh.DescribeVirtualServiceOutput)
+
 	ListMeshes(*appmesh.ListMeshesInput) (*appmesh.ListMeshesOutput, error)
 	ListMeshesWithContext(aws.Context, *appmesh.ListMeshesInput, ...request.Option) (*appmesh.ListMeshesOutput, error)
 	ListMeshesRequest(*appmesh.ListMeshesInput) (*request.Request, *appmesh.ListMeshesOutput)
@@ -121,6 +133,13 @@ type AppMeshAPI interface {
 
 	ListRoutesPages(*appmesh.ListRoutesInput, func(*appmesh.ListRoutesOutput, bool) bool) error
 	ListRoutesPagesWithContext(aws.Context, *appmesh.ListRoutesInput, func(*appmesh.ListRoutesOutput, bool) bool, ...request.Option) error
+
+	ListTagsForResource(*appmesh.ListTagsForResourceInput) (*appmesh.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *appmesh.ListTagsForResourceInput, ...request.Option) (*appmesh.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*appmesh.ListTagsForResourceInput) (*request.Request, *appmesh.ListTagsForResourceOutput)
+
+	ListTagsForResourcePages(*appmesh.ListTagsForResourceInput, func(*appmesh.ListTagsForResourceOutput, bool) bool) error
+	ListTagsForResourcePagesWithContext(aws.Context, *appmesh.ListTagsForResourceInput, func(*appmesh.ListTagsForResourceOutput, bool) bool, ...request.Option) error
 
 	ListVirtualNodes(*appmesh.ListVirtualNodesInput) (*appmesh.ListVirtualNodesOutput, error)
 	ListVirtualNodesWithContext(aws.Context, *appmesh.ListVirtualNodesInput, ...request.Option) (*appmesh.ListVirtualNodesOutput, error)
@@ -136,6 +155,25 @@ type AppMeshAPI interface {
 	ListVirtualRoutersPages(*appmesh.ListVirtualRoutersInput, func(*appmesh.ListVirtualRoutersOutput, bool) bool) error
 	ListVirtualRoutersPagesWithContext(aws.Context, *appmesh.ListVirtualRoutersInput, func(*appmesh.ListVirtualRoutersOutput, bool) bool, ...request.Option) error
 
+	ListVirtualServices(*appmesh.ListVirtualServicesInput) (*appmesh.ListVirtualServicesOutput, error)
+	ListVirtualServicesWithContext(aws.Context, *appmesh.ListVirtualServicesInput, ...request.Option) (*appmesh.ListVirtualServicesOutput, error)
+	ListVirtualServicesRequest(*appmesh.ListVirtualServicesInput) (*request.Request, *appmesh.ListVirtualServicesOutput)
+
+	ListVirtualServicesPages(*appmesh.ListVirtualServicesInput, func(*appmesh.ListVirtualServicesOutput, bool) bool) error
+	ListVirtualServicesPagesWithContext(aws.Context, *appmesh.ListVirtualServicesInput, func(*appmesh.ListVirtualServicesOutput, bool) bool, ...request.Option) error
+
+	TagResource(*appmesh.TagResourceInput) (*appmesh.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *appmesh.TagResourceInput, ...request.Option) (*appmesh.TagResourceOutput, error)
+	TagResourceRequest(*appmesh.TagResourceInput) (*request.Request, *appmesh.TagResourceOutput)
+
+	UntagResource(*appmesh.UntagResourceInput) (*appmesh.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *appmesh.UntagResourceInput, ...request.Option) (*appmesh.UntagResourceOutput, error)
+	UntagResourceRequest(*appmesh.UntagResourceInput) (*request.Request, *appmesh.UntagResourceOutput)
+
+	UpdateMesh(*appmesh.UpdateMeshInput) (*appmesh.UpdateMeshOutput, error)
+	UpdateMeshWithContext(aws.Context, *appmesh.UpdateMeshInput, ...request.Option) (*appmesh.UpdateMeshOutput, error)
+	UpdateMeshRequest(*appmesh.UpdateMeshInput) (*request.Request, *appmesh.UpdateMeshOutput)
+
 	UpdateRoute(*appmesh.UpdateRouteInput) (*appmesh.UpdateRouteOutput, error)
 	UpdateRouteWithContext(aws.Context, *appmesh.UpdateRouteInput, ...request.Option) (*appmesh.UpdateRouteOutput, error)
 	UpdateRouteRequest(*appmesh.UpdateRouteInput) (*request.Request, *appmesh.UpdateRouteOutput)
@@ -147,6 +185,10 @@ type AppMeshAPI interface {
 	UpdateVirtualRouter(*appmesh.UpdateVirtualRouterInput) (*appmesh.UpdateVirtualRouterOutput, error)
 	UpdateVirtualRouterWithContext(aws.Context, *appmesh.UpdateVirtualRouterInput, ...request.Option) (*appmesh.UpdateVirtualRouterOutput, error)
 	UpdateVirtualRouterRequest(*appmesh.UpdateVirtualRouterInput) (*request.Request, *appmesh.UpdateVirtualRouterOutput)
+
+	UpdateVirtualService(*appmesh.UpdateVirtualServiceInput) (*appmesh.UpdateVirtualServiceOutput, error)
+	UpdateVirtualServiceWithContext(aws.Context, *appmesh.UpdateVirtualServiceInput, ...request.Option) (*appmesh.UpdateVirtualServiceOutput, error)
+	UpdateVirtualServiceRequest(*appmesh.UpdateVirtualServiceInput) (*request.Request, *appmesh.UpdateVirtualServiceOutput)
 }
 
 var _ AppMeshAPI = (*appmesh.AppMesh)(nil)

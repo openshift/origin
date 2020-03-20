@@ -29,91 +29,46 @@
 package tags
 
 import (
-	"bytes"
-	"encoding/json"
-	"encoding/xml"
-	math_rand "math/rand"
+	"reflect"
 	"testing"
-	"time"
 )
 
-type MyJson struct {
-	MyField1 string
-	MyField2 string
-}
+func TestTags(t *testing.T) {
 
-func NewPopulatedMyJson(r randyTags) *MyJson {
-	this := &MyJson{}
-	if r.Intn(10) != 0 {
-		this.MyField1 = randStringTags(r)
-	}
-	if r.Intn(10) != 0 {
-		this.MyField2 = randStringTags(r)
-	}
-	return this
-}
-
-func TestJson(t *testing.T) {
-	popr := math_rand.New(math_rand.NewSource(time.Now().UnixNano()))
-	msg1 := NewPopulatedMyJson(popr)
-	data, err := json.Marshal(msg1)
-	if err != nil {
-		panic(err)
-	}
-	outside := &Outside{}
-	err = json.Unmarshal(data, outside)
-	if err != nil {
-		panic(err)
-	}
-	if outside.GetField1() != msg1.MyField1 {
-		t.Fatalf("proto field1 %s != %s", outside.GetField1(), msg1.MyField1)
-	}
-	if outside.GetField2() != msg1.MyField2 {
-		t.Fatalf("proto field2 %s != %s", outside.GetField2(), msg1.MyField2)
-	}
-	data2, err := json.Marshal(outside)
-	if err != nil {
-		panic(err)
-	}
-	msg2 := &MyJson{}
-	err = json.Unmarshal(data2, msg2)
-	if err != nil {
-		panic(err)
-	}
-	if msg2.MyField1 != msg1.MyField1 {
-		t.Fatalf("proto field1 %s != %s", msg2.MyField1, msg1.MyField1)
-	}
-	if msg2.MyField2 != msg1.MyField2 {
-		t.Fatalf("proto field2 %s != %s", msg2.MyField2, msg1.MyField2)
-	}
-}
-
-func TestXml(t *testing.T) {
-	s := "<Outside>Field1Value<!--Field2Value--><XXX_NoUnkeyedLiteral></XXX_NoUnkeyedLiteral><XXX_unrecognized></XXX_unrecognized><XXX_sizecache>0</XXX_sizecache></Outside>"
-	field1 := "Field1Value"
-	field2 := "Field2Value"
-	msg1 := &Outside{}
-	err := xml.Unmarshal([]byte(s), msg1)
-	if err != nil {
-		panic(err)
-	}
-	msg2 := &Outside{
-		Inside: &Inside{
-			Field1: &field1,
+	var tests = []struct {
+		value   interface{}
+		field   string
+		jsontag string
+		xmltag  string
+	}{
+		{
+			value:   Inside{},
+			field:   "Field1",
+			jsontag: "MyField1",
+			xmltag:  ",chardata",
 		},
-		Field2: &field2,
+		{
+			value:   Outside{},
+			field:   "Field2",
+			jsontag: "MyField2",
+			xmltag:  ",comment",
+		},
+		{
+			value:   Outside_Field3{},
+			field:   "Field3",
+			jsontag: "MyField3",
+			xmltag:  ",comment",
+		},
 	}
-	if msg1.GetField1() != msg2.GetField1() {
-		t.Fatalf("field1 expected %s got %s", msg2.GetField1(), msg1.GetField1())
-	}
-	if err != nil {
-		panic(err)
-	}
-	data, err := xml.Marshal(msg2)
-	if err != nil {
-		panic(err)
-	}
-	if !bytes.Equal(data, []byte(s)) {
-		t.Fatalf("expected %s got %s", s, string(data))
+
+	for _, tt := range tests {
+		tv := reflect.ValueOf(tt.value).Type()
+		f, _ := tv.FieldByName(tt.field)
+		if jsontag := f.Tag.Get("json"); jsontag != tt.jsontag {
+			t.Fatalf("proto %q type: json tag %s != %s", tv.Name(), jsontag, tt.jsontag)
+		}
+		if xmltag := f.Tag.Get("xml"); xmltag != tt.xmltag {
+			t.Fatalf("proto %q type: xml tag %s != %s", tv.Name(), xmltag, tt.xmltag)
+		}
 	}
 }

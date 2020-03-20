@@ -168,7 +168,7 @@ func testDgehrd(t *testing.T, impl Dgehrder, n, ilo, ihi, extra int, optwork boo
 		t.Errorf("%v: Q is not orthogonal\nQ=%v", prefix, q)
 	}
 
-	// Construct Q^T * AOrig * Q and check that it is upper Hessenberg.
+	// Construct Qᵀ * AOrig * Q and check that it is upper Hessenberg.
 	aq := blas64.General{
 		Rows:   n,
 		Cols:   n,
@@ -188,7 +188,7 @@ func testDgehrd(t *testing.T, impl Dgehrder, n, ilo, ihi, extra int, optwork boo
 			qaqij := qaq.Data[i*qaq.Stride+j]
 			diff := qaqij - a.Data[i*a.Stride+j]
 			if math.Abs(diff) > 1e-13 {
-				t.Errorf("%v: Q^T*AOrig*Q and A are not equal, diff at [%v,%v]=%v", prefix, i, j, diff)
+				t.Errorf("%v: Qᵀ*AOrig*Q and A are not equal, diff at [%v,%v]=%v", prefix, i, j, diff)
 			}
 		}
 	}
@@ -197,13 +197,13 @@ func testDgehrd(t *testing.T, impl Dgehrder, n, ilo, ihi, extra int, optwork boo
 			qaqij := qaq.Data[i*qaq.Stride+j]
 			if j < i-1 {
 				if math.Abs(qaqij) > 1e-13 {
-					t.Errorf("%v: Q^T*AOrig*Q is not upper Hessenberg, [%v,%v]=%v", prefix, i, j, qaqij)
+					t.Errorf("%v: Qᵀ*AOrig*Q is not upper Hessenberg, [%v,%v]=%v", prefix, i, j, qaqij)
 				}
 				continue
 			}
 			diff := qaqij - a.Data[i*a.Stride+j]
 			if math.Abs(diff) > 1e-13 {
-				t.Errorf("%v: Q^T*AOrig*Q and A are not equal, diff at [%v,%v]=%v", prefix, i, j, diff)
+				t.Errorf("%v: Qᵀ*AOrig*Q and A are not equal, diff at [%v,%v]=%v", prefix, i, j, diff)
 			}
 		}
 	}

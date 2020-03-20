@@ -479,7 +479,8 @@
         "EncryptionAtRestOptions":{"shape":"EncryptionAtRestOptions"},
         "NodeToNodeEncryptionOptions":{"shape":"NodeToNodeEncryptionOptions"},
         "AdvancedOptions":{"shape":"AdvancedOptions"},
-        "LogPublishingOptions":{"shape":"LogPublishingOptions"}
+        "LogPublishingOptions":{"shape":"LogPublishingOptions"},
+        "DomainEndpointOptions":{"shape":"DomainEndpointOptions"}
       }
     },
     "CreateElasticsearchDomainResponse":{
@@ -657,6 +658,24 @@
       "error":{"httpStatusCode":409},
       "exception":true
     },
+    "DomainEndpointOptions":{
+      "type":"structure",
+      "members":{
+        "EnforceHTTPS":{"shape":"Boolean"},
+        "TLSSecurityPolicy":{"shape":"TLSSecurityPolicy"}
+      }
+    },
+    "DomainEndpointOptionsStatus":{
+      "type":"structure",
+      "required":[
+        "Options",
+        "Status"
+      ],
+      "members":{
+        "Options":{"shape":"DomainEndpointOptions"},
+        "Status":{"shape":"OptionStatus"}
+      }
+    },
     "DomainId":{
       "type":"string",
       "max":64,
@@ -715,6 +734,24 @@
         "m4.2xlarge.elasticsearch",
         "m4.4xlarge.elasticsearch",
         "m4.10xlarge.elasticsearch",
+        "m5.large.elasticsearch",
+        "m5.xlarge.elasticsearch",
+        "m5.2xlarge.elasticsearch",
+        "m5.4xlarge.elasticsearch",
+        "m5.12xlarge.elasticsearch",
+        "r5.large.elasticsearch",
+        "r5.xlarge.elasticsearch",
+        "r5.2xlarge.elasticsearch",
+        "r5.4xlarge.elasticsearch",
+        "r5.12xlarge.elasticsearch",
+        "c5.large.elasticsearch",
+        "c5.xlarge.elasticsearch",
+        "c5.2xlarge.elasticsearch",
+        "c5.4xlarge.elasticsearch",
+        "c5.9xlarge.elasticsearch",
+        "c5.18xlarge.elasticsearch",
+        "ultrawarm1.medium.elasticsearch",
+        "ultrawarm1.large.elasticsearch",
         "t2.micro.elasticsearch",
         "t2.small.elasticsearch",
         "t2.medium.elasticsearch",
@@ -748,6 +785,13 @@
         "i3.16xlarge.elasticsearch"
       ]
     },
+    "ESWarmPartitionInstanceType":{
+      "type":"string",
+      "enum":[
+        "ultrawarm1.medium.elasticsearch",
+        "ultrawarm1.large.elasticsearch"
+      ]
+    },
     "ElasticsearchClusterConfig":{
       "type":"structure",
       "members":{
@@ -755,8 +799,12 @@
         "InstanceCount":{"shape":"IntegerClass"},
         "DedicatedMasterEnabled":{"shape":"Boolean"},
         "ZoneAwarenessEnabled":{"shape":"Boolean"},
+        "ZoneAwarenessConfig":{"shape":"ZoneAwarenessConfig"},
         "DedicatedMasterType":{"shape":"ESPartitionInstanceType"},
-        "DedicatedMasterCount":{"shape":"IntegerClass"}
+        "DedicatedMasterCount":{"shape":"IntegerClass"},
+        "WarmEnabled":{"shape":"Boolean"},
+        "WarmType":{"shape":"ESWarmPartitionInstanceType"},
+        "WarmCount":{"shape":"IntegerClass"}
       }
     },
     "ElasticsearchClusterConfigStatus":{
@@ -783,7 +831,8 @@
         "EncryptionAtRestOptions":{"shape":"EncryptionAtRestOptionsStatus"},
         "NodeToNodeEncryptionOptions":{"shape":"NodeToNodeEncryptionOptionsStatus"},
         "AdvancedOptions":{"shape":"AdvancedOptionsStatus"},
-        "LogPublishingOptions":{"shape":"LogPublishingOptionsStatus"}
+        "LogPublishingOptions":{"shape":"LogPublishingOptionsStatus"},
+        "DomainEndpointOptions":{"shape":"DomainEndpointOptionsStatus"}
       }
     },
     "ElasticsearchDomainStatus":{
@@ -815,7 +864,8 @@
         "NodeToNodeEncryptionOptions":{"shape":"NodeToNodeEncryptionOptions"},
         "AdvancedOptions":{"shape":"AdvancedOptions"},
         "LogPublishingOptions":{"shape":"LogPublishingOptions"},
-        "ServiceSoftwareOptions":{"shape":"ServiceSoftwareOptions"}
+        "ServiceSoftwareOptions":{"shape":"ServiceSoftwareOptions"},
+        "DomainEndpointOptions":{"shape":"DomainEndpointOptions"}
       }
     },
     "ElasticsearchDomainStatusList":{
@@ -1348,6 +1398,13 @@
       "type":"list",
       "member":{"shape":"String"}
     },
+    "TLSSecurityPolicy":{
+      "type":"string",
+      "enum":[
+        "Policy-Min-TLS-1-0-2019-07",
+        "Policy-Min-TLS-1-2-2019-07"
+      ]
+    },
     "Tag":{
       "type":"structure",
       "required":[
@@ -1393,7 +1450,8 @@
         "CognitoOptions":{"shape":"CognitoOptions"},
         "AdvancedOptions":{"shape":"AdvancedOptions"},
         "AccessPolicies":{"shape":"PolicyDocument"},
-        "LogPublishingOptions":{"shape":"LogPublishingOptions"}
+        "LogPublishingOptions":{"shape":"LogPublishingOptions"},
+        "DomainEndpointOptions":{"shape":"DomainEndpointOptions"}
       }
     },
     "UpdateElasticsearchDomainConfigResponse":{
@@ -1515,6 +1573,12 @@
         "gp2",
         "io1"
       ]
+    },
+    "ZoneAwarenessConfig":{
+      "type":"structure",
+      "members":{
+        "AvailabilityZoneCount":{"shape":"IntegerClass"}
+      }
     }
   }
 }

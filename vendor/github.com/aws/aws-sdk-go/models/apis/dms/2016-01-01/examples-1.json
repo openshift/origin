@@ -250,6 +250,27 @@
         "title": "Delete Certificate"
       }
     ],
+    "DeleteConnection": [
+      {
+        "input": {
+          "EndpointArn": "arn:aws:dms:us-east-1:123456789012:endpoint:RAAR3R22XSH46S3PWLC3NJAWKM",
+          "ReplicationInstanceArn": "arn:aws:dms:us-east-1:123456789012:rep:6UTDJGBOUS3VI3SUWA66XFJCJQ"
+        },
+        "output": {
+          "Connection": {
+          }
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "Deletes the connection between the replication instance and the endpoint.",
+        "id": "delete-connection-1481751957981",
+        "title": "Delete Connection"
+      }
+    ],
     "DeleteEndpoint": [
       {
         "input": {

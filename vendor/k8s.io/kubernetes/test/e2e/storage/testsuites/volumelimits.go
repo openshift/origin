@@ -17,6 +17,7 @@ limitations under the License.
 package testsuites
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -26,7 +27,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -60,30 +61,30 @@ var _ TestSuite = &volumeLimitsTestSuite{}
 func InitVolumeLimitsTestSuite() TestSuite {
 	return &volumeLimitsTestSuite{
 		tsInfo: TestSuiteInfo{
-			name: "volumeLimits",
-			testPatterns: []testpatterns.TestPattern{
+			Name: "volumeLimits",
+			TestPatterns: []testpatterns.TestPattern{
 				testpatterns.FsVolModeDynamicPV,
 			},
 		},
 	}
 }
 
-func (t *volumeLimitsTestSuite) getTestSuiteInfo() TestSuiteInfo {
+func (t *volumeLimitsTestSuite) GetTestSuiteInfo() TestSuiteInfo {
 	return t.tsInfo
 }
 
-func (t *volumeLimitsTestSuite) skipRedundantSuite(driver TestDriver, pattern testpatterns.TestPattern) {
+func (t *volumeLimitsTestSuite) SkipRedundantSuite(driver TestDriver, pattern testpatterns.TestPattern) {
 }
 
-func (t *volumeLimitsTestSuite) defineTests(driver TestDriver, pattern testpatterns.TestPattern) {
+func (t *volumeLimitsTestSuite) DefineTests(driver TestDriver, pattern testpatterns.TestPattern) {
 	type local struct {
 		config      *PerTestConfig
 		testCleanup func()
 
 		cs clientset.Interface
 		ns *v1.Namespace
-		// genericVolumeTestResource contains pv, pvc, sc, etc. of the first pod created
-		resource *genericVolumeTestResource
+		// VolumeResource contains pv, pvc, sc, etc. of the first pod created
+		resource *VolumeResource
 
 		// All created PVCs, incl. the one in resource
 		pvcs []*v1.PersistentVolumeClaim
@@ -127,7 +128,7 @@ func (t *volumeLimitsTestSuite) defineTests(driver TestDriver, pattern testpatte
 		ginkgo.By("Picking a node")
 		// Some CSI drivers are deployed to a single node (e.g csi-hostpath),
 		// so we use that node instead of picking a random one.
-		nodeName := l.config.ClientNodeName
+		nodeName := l.config.ClientNodeSelection.Name
 		if nodeName == "" {
 			node, err := e2enode.GetRandomReadySchedulableNode(f.ClientSet)
 			framework.ExpectNoError(err)
@@ -141,14 +142,14 @@ func (t *volumeLimitsTestSuite) defineTests(driver TestDriver, pattern testpatte
 
 		framework.Logf("Node %s can handle %d volumes of driver %s", nodeName, limit, driverInfo.Name)
 		// Create a storage class and generate a PVC. Do not instantiate the PVC yet, keep it for the last pod.
-		testVolumeSizeRange := t.getTestSuiteInfo().supportedSizeRange
+		testVolumeSizeRange := t.GetTestSuiteInfo().SupportedSizeRange
 		driverVolumeSizeRange := dDriver.GetDriverInfo().SupportedSizeRange
 		claimSize, err := getSizeRangesIntersection(testVolumeSizeRange, driverVolumeSizeRange)
 		framework.ExpectNoError(err, "determine intersection of test size range %+v and driver size range %+v", testVolumeSizeRange, dDriver)
 
-		l.resource = createGenericVolumeTestResource(driver, l.config, pattern, testVolumeSizeRange)
+		l.resource = CreateVolumeResource(driver, l.config, pattern, testVolumeSizeRange)
 		defer func() {
-			err := l.resource.cleanupResource()
+			err := l.resource.CleanupResource()
 			framework.ExpectNoError(err, "while cleaning up resource")
 		}()
 		defer func() {
@@ -161,9 +162,9 @@ func (t *volumeLimitsTestSuite) defineTests(driver TestDriver, pattern testpatte
 		for i := 0; i < limit; i++ {
 			pvc := e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
 				ClaimSize:        claimSize,
-				StorageClassName: &l.resource.sc.Name,
+				StorageClassName: &l.resource.Sc.Name,
 			}, l.ns.Name)
-			pvc, err = l.cs.CoreV1().PersistentVolumeClaims(l.ns.Name).Create(pvc)
+			pvc, err = l.cs.CoreV1().PersistentVolumeClaims(l.ns.Name).Create(context.TODO(), pvc, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 			l.pvcs = append(l.pvcs, pvc)
 		}
@@ -174,11 +175,11 @@ func (t *volumeLimitsTestSuite) defineTests(driver TestDriver, pattern testpatte
 		selection := e2epod.NodeSelection{}
 		e2epod.SetAffinity(&selection, nodeName)
 		pod.Spec.Affinity = selection.Affinity
-		l.runningPod, err = l.cs.CoreV1().Pods(l.ns.Name).Create(pod)
+		l.runningPod, err = l.cs.CoreV1().Pods(l.ns.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Waiting for all PVCs to get Bound")
-		l.pvNames, err = waitForAllPVCsPhase(l.cs, testSlowMultiplier*e2epv.PVBindingTimeout, l.pvcs)
+		l.pvNames, err = waitForAllPVCsBound(l.cs, testSlowMultiplier*e2epv.PVBindingTimeout, l.pvcs)
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Waiting for the pod Running")
@@ -186,17 +187,22 @@ func (t *volumeLimitsTestSuite) defineTests(driver TestDriver, pattern testpatte
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Creating an extra pod with one volume to exceed the limit")
-		pod = e2epod.MakeSecPod(l.ns.Name, []*v1.PersistentVolumeClaim{l.resource.pvc}, nil, false, "", false, false, e2epv.SELinuxLabel, nil)
+		pod = e2epod.MakeSecPod(l.ns.Name, []*v1.PersistentVolumeClaim{l.resource.Pvc}, nil, false, "", false, false, e2epv.SELinuxLabel, nil)
 		// Use affinity to schedule everything on the right node
 		e2epod.SetAffinity(&selection, nodeName)
 		pod.Spec.Affinity = selection.Affinity
-		l.unschedulablePod, err = l.cs.CoreV1().Pods(l.ns.Name).Create(pod)
+		l.unschedulablePod, err = l.cs.CoreV1().Pods(l.ns.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+		framework.ExpectNoError(err, "Failed to create an extra pod with one volume to exceed the limit")
 
 		ginkgo.By("Waiting for the pod to get unschedulable with the right message")
 		err = e2epod.WaitForPodCondition(l.cs, l.ns.Name, l.unschedulablePod.Name, "Unschedulable", framework.PodStartTimeout, func(pod *v1.Pod) (bool, error) {
 			if pod.Status.Phase == v1.PodPending {
+				reg, err := regexp.Compile(`max.+volume.+count`)
+				if err != nil {
+					return false, err
+				}
 				for _, cond := range pod.Status.Conditions {
-					matched, _ := regexp.MatchString("max.+volume.+count", cond.Message)
+					matched := reg.MatchString(cond.Message)
 					if cond.Type == v1.PodScheduled && cond.Status == v1.ConditionFalse && cond.Reason == "Unschedulable" && matched {
 						return true, nil
 					}
@@ -214,19 +220,19 @@ func (t *volumeLimitsTestSuite) defineTests(driver TestDriver, pattern testpatte
 func cleanupTest(cs clientset.Interface, ns string, runningPodName, unschedulablePodName string, pvcs []*v1.PersistentVolumeClaim, pvNames sets.String) error {
 	var cleanupErrors []string
 	if runningPodName != "" {
-		err := cs.CoreV1().Pods(ns).Delete(runningPodName, nil)
+		err := cs.CoreV1().Pods(ns).Delete(context.TODO(), runningPodName, metav1.DeleteOptions{})
 		if err != nil {
 			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete pod %s: %s", runningPodName, err))
 		}
 	}
 	if unschedulablePodName != "" {
-		err := cs.CoreV1().Pods(ns).Delete(unschedulablePodName, nil)
+		err := cs.CoreV1().Pods(ns).Delete(context.TODO(), unschedulablePodName, metav1.DeleteOptions{})
 		if err != nil {
 			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete pod %s: %s", unschedulablePodName, err))
 		}
 	}
 	for _, pvc := range pvcs {
-		err := cs.CoreV1().PersistentVolumeClaims(ns).Delete(pvc.Name, nil)
+		err := cs.CoreV1().PersistentVolumeClaims(ns).Delete(context.TODO(), pvc.Name, metav1.DeleteOptions{})
 		if err != nil {
 			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete PVC %s: %s", pvc.Name, err))
 		}
@@ -237,11 +243,11 @@ func cleanupTest(cs clientset.Interface, ns string, runningPodName, unschedulabl
 	err := wait.Poll(5*time.Second, testSlowMultiplier*e2epv.PVDeletingTimeout, func() (bool, error) {
 		existing := 0
 		for _, pvName := range pvNames.UnsortedList() {
-			_, err := cs.CoreV1().PersistentVolumes().Get(pvName, metav1.GetOptions{})
+			_, err := cs.CoreV1().PersistentVolumes().Get(context.TODO(), pvName, metav1.GetOptions{})
 			if err == nil {
 				existing++
 			} else {
-				if errors.IsNotFound(err) {
+				if apierrors.IsNotFound(err) {
 					pvNames.Delete(pvName)
 				} else {
 					framework.Logf("Failed to get PV %s: %s", pvName, err)
@@ -263,12 +269,13 @@ func cleanupTest(cs clientset.Interface, ns string, runningPodName, unschedulabl
 	return nil
 }
 
-func waitForAllPVCsPhase(cs clientset.Interface, timeout time.Duration, pvcs []*v1.PersistentVolumeClaim) (sets.String, error) {
+// waitForAllPVCsBound waits until the given PVCs are all bound. It then returns the bound PVC names as a set.
+func waitForAllPVCsBound(cs clientset.Interface, timeout time.Duration, pvcs []*v1.PersistentVolumeClaim) (sets.String, error) {
 	pvNames := sets.NewString()
 	err := wait.Poll(5*time.Second, timeout, func() (bool, error) {
 		unbound := 0
 		for _, pvc := range pvcs {
-			pvc, err := cs.CoreV1().PersistentVolumeClaims(pvc.Namespace).Get(pvc.Name, metav1.GetOptions{})
+			pvc, err := cs.CoreV1().PersistentVolumeClaims(pvc.Namespace).Get(context.TODO(), pvc.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -284,7 +291,10 @@ func waitForAllPVCsPhase(cs clientset.Interface, timeout time.Duration, pvcs []*
 		}
 		return true, nil
 	})
-	return pvNames, err
+	if err != nil {
+		return nil, fmt.Errorf("error waiting for all PVCs to be bound: %v", err)
+	}
+	return pvNames, nil
 }
 
 func getNodeLimits(cs clientset.Interface, config *PerTestConfig, nodeName string, driverInfo *DriverInfo) (int, error) {
@@ -295,7 +305,7 @@ func getNodeLimits(cs clientset.Interface, config *PerTestConfig, nodeName strin
 }
 
 func getInTreeNodeLimits(cs clientset.Interface, nodeName string, driverInfo *DriverInfo) (int, error) {
-	node, err := cs.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	node, err := cs.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	if err != nil {
 		return 0, err
 	}
@@ -322,10 +332,10 @@ func getInTreeNodeLimits(cs clientset.Interface, nodeName string, driverInfo *Dr
 }
 
 func getCSINodeLimits(cs clientset.Interface, config *PerTestConfig, nodeName string, driverInfo *DriverInfo) (int, error) {
-	// Wait in a loop, the driver might just have been installed and kubelet takes a while to publish everything.
+	// Retry with a timeout, the driver might just have been installed and kubelet takes a while to publish everything.
 	var limit int
 	err := wait.PollImmediate(2*time.Second, csiNodeInfoTimeout, func() (bool, error) {
-		csiNode, err := cs.StorageV1().CSINodes().Get(nodeName, metav1.GetOptions{})
+		csiNode, err := cs.StorageV1().CSINodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("%s", err)
 			return false, nil
@@ -350,5 +360,8 @@ func getCSINodeLimits(cs clientset.Interface, config *PerTestConfig, nodeName st
 		limit = int(*csiDriver.Allocatable.Count)
 		return true, nil
 	})
-	return limit, err
+	if err != nil {
+		return 0, fmt.Errorf("could not get CSINode limit for driver %s: %v", driverInfo.Name, err)
+	}
+	return limit, nil
 }

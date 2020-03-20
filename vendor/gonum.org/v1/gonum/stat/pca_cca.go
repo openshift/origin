@@ -48,20 +48,23 @@ func (c *PC) PrincipalComponents(a mat.Matrix, weights []float64) (ok bool) {
 
 // VectorsTo returns the component direction vectors of a principal components
 // analysis. The vectors are returned in the columns of a d×min(n, d) matrix.
-// If dst is not nil it must either be zero-sized or be a d×min(n, d) matrix.
-// dst will  be used as the destination for the direction vector data. If dst
-// is nil, a new mat.Dense is allocated for the destination.
-func (c *PC) VectorsTo(dst *mat.Dense) *mat.Dense {
+//
+// If dst is empty, VectorsTo will resize dst to be d×min(n, d). When dst is
+// non-empty, VectorsTo will panic if dst is not d×min(n, d). VectorsTo will also
+// panic if the receiver does not contain a successful PC.
+func (c *PC) VectorsTo(dst *mat.Dense) {
 	if !c.ok {
 		panic("stat: use of unsuccessful principal components analysis")
 	}
 
-	if dst != nil {
-		if d, n := dst.Dims(); !dst.IsZero() && (d != c.d || n != min(c.n, c.d)) {
+	if dst.IsEmpty() {
+		dst.ReuseAs(c.d, min(c.n, c.d))
+	} else {
+		if d, n := dst.Dims(); d != c.d || n != min(c.n, c.d) {
 			panic(mat.ErrShape)
 		}
 	}
-	return c.svd.VTo(dst)
+	c.svd.VTo(dst)
 }
 
 // VarsTo returns the column variances of the principal component scores,
@@ -130,8 +133,8 @@ type CC struct {
 // as Xc * Sx^{-1/2} and Yc * Sy^{-1/2} respectively, and the correlation matrix
 // between the sphered data is called the canonical correlation matrix,
 // Sx^{-1/2} * Sxy * Sy^{-1/2}. In cases where S^{-1/2} is ambiguous for some
-// covariance matrix S, S^{-1/2} is taken to be E * D^{-1/2} * E^T where S can
-// be eigendecomposed as S = E * D * E^T.
+// covariance matrix S, S^{-1/2} is taken to be E * D^{-1/2} * Eᵀ where S can
+// be eigendecomposed as S = E * D * Eᵀ.
 //
 // The canonical correlations are the correlations between the corresponding
 // pairs of canonical variables and can be obtained with c.Corrs(). Canonical
@@ -182,14 +185,15 @@ func (c *CC) CanonicalCorrelations(x, y mat.Matrix, weights []float64) error {
 	if !c.ok {
 		return errors.New("stat: failed to factorize y")
 	}
-	xu := c.x.UTo(nil)
-	xv := c.x.VTo(nil)
-	yu := c.y.UTo(nil)
-	yv := c.y.VTo(nil)
+	var xu, xv, yu, yv mat.Dense
+	c.x.UTo(&xu)
+	c.x.VTo(&xv)
+	c.y.UTo(&yu)
+	c.y.VTo(&yv)
 
 	// Calculate and factorise the canonical correlation matrix.
 	var ccor mat.Dense
-	ccor.Product(xv, xu.T(), yu, yv.T())
+	ccor.Product(&xv, xu.T(), &yu, yv.T())
 	if c.c == nil {
 		c.c = &mat.SVD{}
 	}
@@ -217,65 +221,69 @@ func (c *CC) CorrsTo(dst []float64) []float64 {
 // LeftTo returns the left eigenvectors of the canonical correlation matrix if
 // spheredSpace is true. If spheredSpace is false it returns these eigenvectors
 // back-transformed to the original data space.
-// If dst is not nil it must either be zero-sized or be an xd×yd matrix where xd
-// and yd are the number of variables in the input x and y matrices. dst will
-// be used as the destination for the vector data. If dst is nil, a new
-// mat.Dense is allocated for the destination.
-func (c *CC) LeftTo(dst *mat.Dense, spheredSpace bool) *mat.Dense {
+//
+// If dst is empty, LeftTo will resize dst to be xd×yd. When dst is
+// non-empty, LeftTo will panic if dst is not xd×yd. LeftTo will also
+// panic if the receiver does not contain a successful CC.
+func (c *CC) LeftTo(dst *mat.Dense, spheredSpace bool) {
 	if !c.ok || c.n < 2 {
 		panic("stat: canonical correlations missing or invalid")
 	}
 
-	if dst != nil {
-		if d, n := dst.Dims(); !dst.IsZero() && (n != c.yd || d != c.xd) {
+	if dst.IsEmpty() {
+		dst.ReuseAs(c.xd, c.yd)
+	} else {
+		if d, n := dst.Dims(); d != c.xd || n != c.yd {
 			panic(mat.ErrShape)
 		}
 	}
-	dst = c.c.UTo(dst)
+	c.c.UTo(dst)
 	if spheredSpace {
-		return dst
+		return
 	}
 
 	xs := c.x.Values(nil)
-	xv := c.x.VTo(nil)
+	xv := &mat.Dense{}
+	c.x.VTo(xv)
 
 	scaleColsReciSqrt(xv, xs)
 
 	dst.Product(xv, xv.T(), dst)
 	dst.Scale(math.Sqrt(float64(c.n-1)), dst)
-	return dst
 }
 
 // RightTo returns the right eigenvectors of the canonical correlation matrix if
 // spheredSpace is true. If spheredSpace is false it returns these eigenvectors
 // back-transformed to the original data space.
-// If dst is not nil it must either be zero-sized or be an yd×yd matrix where yd
-// is the number of variables in the input y matrix. dst will
-// be used as the destination for the vector data. If dst is nil, a new
-// mat.Dense is allocated for the destination.
-func (c *CC) RightTo(dst *mat.Dense, spheredSpace bool) *mat.Dense {
+//
+// If dst is empty, RightTo will resize dst to be yd×yd. When dst is
+// non-empty, RightTo will panic if dst is not yd×yd. RightTo will also
+// panic if the receiver does not contain a successful CC.
+func (c *CC) RightTo(dst *mat.Dense, spheredSpace bool) {
 	if !c.ok || c.n < 2 {
 		panic("stat: canonical correlations missing or invalid")
 	}
 
-	if dst != nil {
-		if d, n := dst.Dims(); (n != 0 || d != 0) && (n != c.yd || d != c.yd) {
+	if dst.IsEmpty() {
+		dst.ReuseAs(c.yd, c.yd)
+	} else {
+		if d, n := dst.Dims(); d != c.yd || n != c.yd {
 			panic(mat.ErrShape)
 		}
 	}
-	dst = c.c.VTo(dst)
+	c.c.VTo(dst)
 	if spheredSpace {
-		return dst
+		return
 	}
 
 	ys := c.y.Values(nil)
-	yv := c.y.VTo(nil)
+	yv := &mat.Dense{}
+	c.y.VTo(yv)
 
 	scaleColsReciSqrt(yv, ys)
 
 	dst.Product(yv, yv.T(), dst)
 	dst.Scale(math.Sqrt(float64(c.n-1)), dst)
-	return dst
 }
 
 func svdFactorizeCentered(work *mat.SVD, m mat.Matrix, weights []float64) (svd *mat.SVD, ok bool) {

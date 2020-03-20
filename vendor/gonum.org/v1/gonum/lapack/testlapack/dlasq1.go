@@ -56,7 +56,7 @@ func Dlasq1Test(t *testing.T, impl Dlasq1er) {
 
 			// Check that they are singular values. The
 			// singular values are the square roots of the
-			// eigenvalues of X^T * X
+			// eigenvalues of Xᵀ * X
 			mmCopy := make([]float64, len(mm))
 			copy(mmCopy, mm)
 			ipiv := make([]int, n)

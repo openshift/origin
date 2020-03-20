@@ -11,30 +11,24 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// Hessian approximates the Hessian matrix of the multivariate function f
-// at the location x. That is
+// Hessian approximates the Hessian matrix of the multivariate function f at
+// the location x. That is
 //  H_{i,j} = ∂^2 f(x)/∂x_i ∂x_j
-// If dst is not nil, the resulting H will be stored in-place into dst
-// and returned, otherwise a new matrix will be allocated first. Finite difference
-// formula and other options are specified by settings. If settings is nil,
-// the Hessian will be estimated using the Forward formula and a default step size.
+// The resulting H will be stored in dst. Finite difference formula and other
+// options are specified by settings. If settings is nil, the Hessian will be
+// estimated using the Forward formula and a default step size.
 //
-// Hessian panics if the size of dst and x is not equal, or if the derivative
-// order of the formula is not 1.
-func Hessian(dst *mat.SymDense, f func(x []float64) float64, x []float64, settings *Settings) *mat.SymDense {
+// If the dst matrix is empty it will be resized to the correct dimensions,
+// otherwise the dimensions of dst must match the length of x or Hessian will panic.
+// Hessian will panic if the derivative order of the formula is not 1.
+func Hessian(dst *mat.SymDense, f func(x []float64) float64, x []float64, settings *Settings) {
 	n := len(x)
-	if dst == nil {
-		dst = mat.NewSymDense(n, nil)
-	} else {
-		if n2 := dst.Symmetric(); n2 != n {
-			panic("hessian: dst size mismatch")
-		}
-		for i := 0; i < n; i++ {
-			for j := i; j < n; j++ {
-				dst.SetSym(i, j, 0)
-			}
-		}
+	if dst.IsEmpty() {
+		*dst = *(dst.GrowSym(n).(*mat.SymDense))
+	} else if dst.Symmetric() != n {
+		panic("hessian: dst size mismatch")
 	}
+	dst.Zero()
 
 	// Default settings.
 	formula := Forward
@@ -74,10 +68,9 @@ func Hessian(dst *mat.SymDense, f func(x []float64) float64, x []float64, settin
 	nWorkers := computeWorkers(concurrent, evals)
 	if nWorkers == 1 {
 		hessianSerial(dst, f, x, formula.Stencil, step, originKnown, originValue)
-		return dst
+		return
 	}
 	hessianConcurrent(dst, nWorkers, evals, f, x, formula.Stencil, step, originKnown, originValue)
-	return dst
 }
 
 func hessianSerial(dst *mat.SymDense, f func(x []float64) float64, x []float64, stencil []Point, step float64, originKnown bool, originValue float64) {

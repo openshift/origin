@@ -47,3 +47,18 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Errorf("decryption failed, got: %x, want: %x", message2, message)
 	}
 }
+
+func TestDecryptBadKey(t *testing.T) {
+	priv := &PrivateKey{
+		PublicKey: PublicKey{
+			G: fromHex(generatorHex),
+			P: fromHex("2"),
+		},
+		X: fromHex("42"),
+	}
+	priv.Y = new(big.Int).Exp(priv.G, priv.X, priv.P)
+	c1, c2 := fromHex("8"), fromHex("8")
+	if _, err := Decrypt(priv, c1, c2); err == nil {
+		t.Errorf("unexpected success decrypting")
+	}
+}

@@ -1,8 +1,8 @@
 package browsersafe
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authorization/authorizer"

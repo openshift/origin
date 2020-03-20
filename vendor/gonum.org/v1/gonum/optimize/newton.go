@@ -82,7 +82,6 @@ func (n *Newton) Init(dim, tasks int) int {
 func (n *Newton) Run(operation chan<- Task, result <-chan Task, tasks []Task) {
 	n.status, n.err = localOptimizer{}.run(n, n.GradStopThreshold, operation, result, tasks)
 	close(operation)
-	return
 }
 
 func (n *Newton) initLocal(loc *Location) (Operation, error) {

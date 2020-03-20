@@ -16,29 +16,7 @@ import (
 // Angle represents an angle in radians.
 type Angle float64
 
-const (
-	Yottarad Angle = 1e24
-	Zettarad Angle = 1e21
-	Exarad   Angle = 1e18
-	Petarad  Angle = 1e15
-	Terarad  Angle = 1e12
-	Gigarad  Angle = 1e9
-	Megarad  Angle = 1e6
-	Kilorad  Angle = 1e3
-	Hectorad Angle = 1e2
-	Decarad  Angle = 1e1
-	Rad      Angle = 1.0
-	Decirad  Angle = 1e-1
-	Centirad Angle = 1e-2
-	Millirad Angle = 1e-3
-	Microrad Angle = 1e-6
-	Nanorad  Angle = 1e-9
-	Picorad  Angle = 1e-12
-	Femtorad Angle = 1e-15
-	Attorad  Angle = 1e-18
-	Zeptorad Angle = 1e-21
-	Yoctorad Angle = 1e-24
-)
+const Rad Angle = 1
 
 // Unit converts the Angle to a *Unit
 func (a Angle) Unit() *Unit {

@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
@@ -21,14 +22,14 @@ type BuildsGetter interface {
 
 // BuildInterface has methods to work with Build resources.
 type BuildInterface interface {
-	Create(*v1.Build) (*v1.Build, error)
-	Update(*v1.Build) (*v1.Build, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.Build, error)
-	List(opts metav1.ListOptions) (*v1.BuildList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Build, err error)
+	Create(ctx context.Context, build *v1.Build, opts metav1.CreateOptions) (*v1.Build, error)
+	Update(ctx context.Context, build *v1.Build, opts metav1.UpdateOptions) (*v1.Build, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Build, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.BuildList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Build, err error)
 	BuildExpansion
 }
 
@@ -45,19 +46,19 @@ func newBuilds(c *ConfigV1Client) *builds {
 }
 
 // Get takes name of the build, and returns the corresponding build object, and an error if there is any.
-func (c *builds) Get(name string, options metav1.GetOptions) (result *v1.Build, err error) {
+func (c *builds) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.Build, err error) {
 	result = &v1.Build{}
 	err = c.client.Get().
 		Resource("builds").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Builds that match those selectors.
-func (c *builds) List(opts metav1.ListOptions) (result *v1.BuildList, err error) {
+func (c *builds) List(ctx context.Context, opts metav1.ListOptions) (result *v1.BuildList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -67,13 +68,13 @@ func (c *builds) List(opts metav1.ListOptions) (result *v1.BuildList, err error)
 		Resource("builds").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested builds.
-func (c *builds) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *builds) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,66 +84,69 @@ func (c *builds) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 		Resource("builds").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a build and creates it.  Returns the server's representation of the build, and an error, if there is any.
-func (c *builds) Create(build *v1.Build) (result *v1.Build, err error) {
+func (c *builds) Create(ctx context.Context, build *v1.Build, opts metav1.CreateOptions) (result *v1.Build, err error) {
 	result = &v1.Build{}
 	err = c.client.Post().
 		Resource("builds").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(build).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a build and updates it. Returns the server's representation of the build, and an error, if there is any.
-func (c *builds) Update(build *v1.Build) (result *v1.Build, err error) {
+func (c *builds) Update(ctx context.Context, build *v1.Build, opts metav1.UpdateOptions) (result *v1.Build, err error) {
 	result = &v1.Build{}
 	err = c.client.Put().
 		Resource("builds").
 		Name(build.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(build).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the build and deletes it. Returns an error if one occurs.
-func (c *builds) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *builds) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("builds").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *builds) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (c *builds) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("builds").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched build.
-func (c *builds) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Build, err error) {
+func (c *builds) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Build, err error) {
 	result = &v1.Build{}
 	err = c.client.Patch(pt).
 		Resource("builds").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

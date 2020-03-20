@@ -7,6 +7,7 @@
 package unix_test
 
 import (
+	"os"
 	"os/exec"
 	"runtime"
 	"testing"
@@ -48,24 +49,54 @@ func TestGetfsstat(t *testing.T) {
 }
 
 func TestSelect(t *testing.T) {
-	err := unix.Select(0, nil, nil, nil, &unix.Timeval{Sec: 0, Usec: 0})
+	n, err := unix.Select(0, nil, nil, nil, &unix.Timeval{Sec: 0, Usec: 0})
 	if err != nil {
 		t.Fatalf("Select: %v", err)
+	}
+	if n != 0 {
+		t.Fatalf("Select: expected 0 ready file descriptors, got %v", n)
 	}
 
 	dur := 250 * time.Millisecond
 	tv := unix.NsecToTimeval(int64(dur))
 	start := time.Now()
-	err = unix.Select(0, nil, nil, nil, &tv)
+	n, err = unix.Select(0, nil, nil, nil, &tv)
 	took := time.Since(start)
 	if err != nil {
 		t.Fatalf("Select: %v", err)
+	}
+	if n != 0 {
+		t.Fatalf("Select: expected 0 ready file descriptors, got %v", n)
 	}
 
 	// On some BSDs the actual timeout might also be slightly less than the requested.
 	// Add an acceptable margin to avoid flaky tests.
 	if took < dur*2/3 {
 		t.Errorf("Select: timeout should have been at least %v, got %v", dur, took)
+	}
+
+	rr, ww, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rr.Close()
+	defer ww.Close()
+
+	if _, err := ww.Write([]byte("HELLO GOPHER")); err != nil {
+		t.Fatal(err)
+	}
+
+	rFdSet := &unix.FdSet{}
+	fd := rr.Fd()
+	// FD_SET(fd, rFdSet)
+	rFdSet.Bits[fd/unix.NFDBITS] |= (1 << (fd % unix.NFDBITS))
+
+	n, err = unix.Select(int(fd+1), rFdSet, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Select: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("Select: expected 1 ready file descriptors, got %v", n)
 	}
 }
 

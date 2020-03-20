@@ -16,29 +16,7 @@ import (
 // MagneticFluxDensity represents a magnetic flux density in Tesla.
 type MagneticFluxDensity float64
 
-const (
-	Yottatesla MagneticFluxDensity = 1e24
-	Zettatesla MagneticFluxDensity = 1e21
-	Exatesla   MagneticFluxDensity = 1e18
-	Petatesla  MagneticFluxDensity = 1e15
-	Teratesla  MagneticFluxDensity = 1e12
-	Gigatesla  MagneticFluxDensity = 1e9
-	Megatesla  MagneticFluxDensity = 1e6
-	Kilotesla  MagneticFluxDensity = 1e3
-	Hectotesla MagneticFluxDensity = 1e2
-	Decatesla  MagneticFluxDensity = 1e1
-	Tesla      MagneticFluxDensity = 1.0
-	Decitesla  MagneticFluxDensity = 1e-1
-	Centitesla MagneticFluxDensity = 1e-2
-	Millitesla MagneticFluxDensity = 1e-3
-	Microtesla MagneticFluxDensity = 1e-6
-	Nanotesla  MagneticFluxDensity = 1e-9
-	Picotesla  MagneticFluxDensity = 1e-12
-	Femtotesla MagneticFluxDensity = 1e-15
-	Attotesla  MagneticFluxDensity = 1e-18
-	Zeptotesla MagneticFluxDensity = 1e-21
-	Yoctotesla MagneticFluxDensity = 1e-24
-)
+const Tesla MagneticFluxDensity = 1
 
 // Unit converts the MagneticFluxDensity to a *Unit
 func (m MagneticFluxDensity) Unit() *Unit {

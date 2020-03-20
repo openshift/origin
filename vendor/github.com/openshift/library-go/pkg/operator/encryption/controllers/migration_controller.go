@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -11,16 +12,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/errors"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/encryption/controllers/migrators"
 	"github.com/openshift/library-go/pkg/operator/encryption/encryptionconfig"
 	"github.com/openshift/library-go/pkg/operator/encryption/secrets"
@@ -32,8 +31,6 @@ import (
 )
 
 const (
-	migrationWorkKey = "key"
-
 	// how long to wait until we retry a migration when it failed with unknown errors.
 	migrationRetryDuration = time.Minute * 5
 )
@@ -57,26 +54,22 @@ const (
 //   current write-key secrets.
 type migrationController struct {
 	component string
+	name      string
 
 	operatorClient operatorv1helpers.OperatorClient
+	secretClient   corev1client.SecretsGetter
 
-	queue         workqueue.RateLimitingInterface
-	eventRecorder events.Recorder
-
-	preRunCachesSynced []cache.InformerSynced
-
-	encryptedGRs []schema.GroupResource
-
+	preRunCachesSynced       []cache.InformerSynced
 	encryptionSecretSelector metav1.ListOptions
-
-	secretClient corev1client.SecretsGetter
 
 	deployer statemachine.Deployer
 	migrator migrators.Migrator
+	provider Provider
 }
 
 func NewMigrationController(
 	component string,
+	provider Provider,
 	deployer statemachine.Deployer,
 	migrator migrators.Migrator,
 	operatorClient operatorv1helpers.OperatorClient,
@@ -84,35 +77,33 @@ func NewMigrationController(
 	secretClient corev1client.SecretsGetter,
 	encryptionSecretSelector metav1.ListOptions,
 	eventRecorder events.Recorder,
-	encryptedGRs []schema.GroupResource,
-) *migrationController {
+) factory.Controller {
 	c := &migrationController{
 		component:      component,
+		name:           "EncryptionMigrationController",
 		operatorClient: operatorClient,
-
-		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "EncryptionMigrationController"),
-		eventRecorder: eventRecorder.WithComponentSuffix("encryption-migration-controller"),
-
-		encryptedGRs: encryptedGRs,
 
 		encryptionSecretSelector: encryptionSecretSelector,
 		secretClient:             secretClient,
 		deployer:                 deployer,
 		migrator:                 migrator,
+		provider:                 provider,
 	}
 
-	c.preRunCachesSynced = setUpInformers(deployer, operatorClient, kubeInformersForNamespaces, c.eventHandler())
-	c.preRunCachesSynced = append(c.preRunCachesSynced, migrator.AddEventHandler(c.eventHandler())...)
-
-	return c
+	return factory.New().ResyncEvery(time.Second).WithSync(c.sync).WithInformers(
+		migrator,
+		operatorClient.Informer(),
+		kubeInformersForNamespaces.InformersFor("openshift-config-managed").Core().V1().Secrets().Informer(),
+		deployer,
+	).ToController(c.name, eventRecorder.WithComponentSuffix("encryption-migration-controller"))
 }
 
-func (c *migrationController) sync() error {
-	if ready, err := shouldRunEncryptionController(c.operatorClient); err != nil || !ready {
+func (c *migrationController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+	if ready, err := shouldRunEncryptionController(c.operatorClient, c.provider.ShouldRunEncryptionControllers); err != nil || !ready {
 		return err // we will get re-kicked when the operator status updates
 	}
 
-	migratingResources, migrationError := c.migrateKeysIfNeededAndRevisionStable()
+	migratingResources, migrationError := c.migrateKeysIfNeededAndRevisionStable(syncCtx, c.provider.EncryptedGRs())
 
 	// update failing condition
 	degraded := operatorv1.OperatorCondition{
@@ -160,14 +151,14 @@ func (c *migrationController) setProgressing(migrating bool, reason, message str
 }
 
 // TODO doc
-func (c *migrationController) migrateKeysIfNeededAndRevisionStable() (migratingResources []schema.GroupResource, err error) {
+func (c *migrationController) migrateKeysIfNeededAndRevisionStable(syncContext factory.SyncContext, encryptedGRs []schema.GroupResource) (migratingResources []schema.GroupResource, err error) {
 	// no storage migration during revision changes
-	currentEncryptionConfig, desiredEncryptionState, _, isTransitionalReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, c.encryptedGRs)
+	currentEncryptionConfig, desiredEncryptionState, _, isTransitionalReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, encryptedGRs)
 	if err != nil {
 		return nil, err
 	}
 	if currentEncryptionConfig == nil || len(isTransitionalReason) > 0 {
-		c.queue.AddAfter(migrationWorkKey, 2*time.Minute)
+		syncContext.Queue().AddAfter(syncContext.QueueKey(), 2*time.Minute)
 		return nil, nil
 	}
 
@@ -188,7 +179,7 @@ func (c *migrationController) migrateKeysIfNeededAndRevisionStable() (migratingR
 			}
 		}
 
-		c.queue.AddAfter(migrationWorkKey, 2*time.Minute)
+		syncContext.Queue().AddAfter(syncContext.QueueKey(), 2*time.Minute)
 		return nil, nil // retry in a little while but do not go degraded
 	}
 
@@ -249,7 +240,7 @@ func (c *migrationController) migrateKeysIfNeededAndRevisionStable() (migratingR
 			continue
 		}
 		if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-			s, err := c.secretClient.Secrets(oldWriteKey.Namespace).Get(oldWriteKey.Name, metav1.GetOptions{})
+			s, err := c.secretClient.Secrets(oldWriteKey.Namespace).Get(context.TODO(), oldWriteKey.Name, metav1.GetOptions{})
 			if err != nil {
 				return fmt.Errorf("failed to get key secret %s/%s: %v", oldWriteKey.Namespace, oldWriteKey.Name, err)
 			}
@@ -259,7 +250,7 @@ func (c *migrationController) migrateKeysIfNeededAndRevisionStable() (migratingR
 				return nil
 			}
 
-			_, _, updateErr := resourceapply.ApplySecret(c.secretClient, c.eventRecorder, s)
+			_, _, updateErr := resourceapply.ApplySecret(c.secretClient, syncContext.Recorder(), s)
 			return updateErr
 		}); err != nil {
 			errs = append(errs, err)
@@ -307,55 +298,6 @@ func setResourceMigrated(gr schema.GroupResource, s *corev1.Secret) (bool, error
 	}
 
 	return true, nil
-}
-
-func (c *migrationController) Run(stopCh <-chan struct{}) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting EncryptionMigrationController")
-	defer klog.Infof("Shutting down EncryptionMigrationController")
-	if !cache.WaitForCacheSync(stopCh, c.preRunCachesSynced...) {
-		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
-		return
-	}
-
-	// only start one worker
-	go wait.Until(c.runWorker, time.Second, stopCh)
-
-	<-stopCh
-}
-
-func (c *migrationController) runWorker() {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *migrationController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with: %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-func (c *migrationController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(migrationWorkKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(migrationWorkKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(migrationWorkKey) },
-	}
 }
 
 // groupToHumanReadable extracts a group from gr and makes it more readable, for example it converts an empty group to "core"

@@ -19,11 +19,11 @@ import (
 
 // Convert converts a General-form LP into a standard form LP.
 // The general form of an LP is:
-//  minimize c^T * x
+//  minimize cᵀ * x
 //  s.t      G * x <= h
 //           A * x = b
 // And the standard form is:
-//  minimize cNew^T * x
+//  minimize cNewᵀ * x
 //  s.t      aNew * x = bNew
 //           x >= 0
 // If there are no constraints of the given type, the inputs may be nil.
@@ -64,11 +64,11 @@ func Convert(c []float64, g mat.Matrix, h []float64, a mat.Matrix, b []float64) 
 	// Convert the general form LP.
 	// Derivation:
 	// 0. Start with general form
-	//  min.	c^T * x
+	//  min.	cᵀ * x
 	//  s.t.	G * x <= h
 	//  		A * x = b
 	// 1. Introduce slack variables for each constraint
-	//  min. 	c^T * x
+	//  min. 	cᵀ * x
 	//  s.t.	G * x + s = h
 	//			A * x = b
 	//      	s >= 0
@@ -77,7 +77,7 @@ func Convert(c []float64, g mat.Matrix, h []float64, a mat.Matrix, b []float64) 
 	//   x = xp - xn
 	//   xp >= 0, xn >= 0
 	// This makes the LP
-	//  min.	c^T * xp - c^T xn
+	//  min.	cᵀ * xp - cᵀ xn
 	//  s.t. 	G * xp - G * xn + s = h
 	//			A * xp  - A * xn = b
 	//			xp >= 0, xn >= 0, s >= 0
@@ -85,19 +85,19 @@ func Convert(c []float64, g mat.Matrix, h []float64, a mat.Matrix, b []float64) 
 	//  xt = [xp
 	//	 	  xn
 	//		  s ]
-	//  min.	[c^T, -c^T, 0] xt
+	//  min.	[cᵀ, -cᵀ, 0] xt
 	//  s.t.	[G, -G, I] xt = h
 	//   		[A, -A, 0] xt = b
 	//			x >= 0
 
 	// In summary:
 	// Original LP:
-	//  min.	c^T * x
+	//  min.	cᵀ * x
 	//  s.t.	G * x <= h
 	//  		A * x = b
 	// Standard Form:
 	//  xt = [xp; xn; s]
-	//  min.	[c^T, -c^T, 0] xt
+	//  min.	[cᵀ, -cᵀ, 0] xt
 	//  s.t.	[G, -G, I] xt = h
 	//   		[A, -A, 0] xt = b
 	//			x >= 0

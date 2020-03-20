@@ -27,7 +27,9 @@ func TestInteg_00_ListClusters(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := emr.New(sess)
 	params := &emr.ListClustersInput{}
-	_, err := svc.ListClustersWithContext(ctx, params)
+	_, err := svc.ListClustersWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeCluster(t *testing.T) {
 	params := &emr.DescribeClusterInput{
 		ClusterId: aws.String("fake_cluster"),
 	}
-	_, err := svc.DescribeClusterWithContext(ctx, params)
+	_, err := svc.DescribeClusterWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

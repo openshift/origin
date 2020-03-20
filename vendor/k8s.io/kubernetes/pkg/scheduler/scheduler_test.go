@@ -24,9 +24,13 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"sort"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/events/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -34,42 +38,30 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
+	clienttesting "k8s.io/client-go/testing"
 	clientcache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/events"
-	volumescheduling "k8s.io/kubernetes/pkg/controller/volume/scheduling"
-	"k8s.io/kubernetes/pkg/scheduler/algorithm"
-	"k8s.io/kubernetes/pkg/scheduler/algorithm/predicates"
-	"k8s.io/kubernetes/pkg/scheduler/algorithm/priorities"
+	"k8s.io/kubernetes/pkg/controller/volume/scheduling"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/core"
+	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/defaultbinder"
+	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/nodeports"
+	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
+	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/queuesort"
+	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/volumebinding"
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
 	internalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
 	fakecache "k8s.io/kubernetes/pkg/scheduler/internal/cache/fake"
 	internalqueue "k8s.io/kubernetes/pkg/scheduler/internal/queue"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
-	nodeinfosnapshot "k8s.io/kubernetes/pkg/scheduler/nodeinfo/snapshot"
-	"k8s.io/kubernetes/pkg/scheduler/volumebinder"
+	"k8s.io/kubernetes/pkg/scheduler/nodeinfo"
+	"k8s.io/kubernetes/pkg/scheduler/profile"
+	st "k8s.io/kubernetes/pkg/scheduler/testing"
 )
-
-var (
-	emptyPluginRegistry = framework.Registry{}
-	// emptyFramework is an empty framework used in tests.
-	// Note: If the test runs in goroutine, please don't use this variable to avoid a race condition.
-	emptyFramework, _ = framework.NewFramework(emptyPluginRegistry, nil, nil)
-	emptySnapshot     = nodeinfosnapshot.NewEmptySnapshot()
-)
-
-type fakeBinder struct {
-	b func(binding *v1.Binding) error
-}
-
-func (fb fakeBinder) Bind(binding *v1.Binding) error { return fb.b(binding) }
 
 type fakePodConditionUpdater struct{}
 
@@ -103,7 +95,8 @@ func podWithID(id, desiredHost string) *v1.Pod {
 			SelfLink: fmt.Sprintf("/api/v1/%s/%s", string(v1.ResourcePods), id),
 		},
 		Spec: v1.PodSpec{
-			NodeName: desiredHost,
+			NodeName:      desiredHost,
+			SchedulerName: testSchedulerName,
 		},
 	}
 }
@@ -118,7 +111,8 @@ func deletingPod(id string) *v1.Pod {
 			SelfLink:          fmt.Sprintf("/api/v1/%s/%s", string(v1.ResourcePods), id),
 		},
 		Spec: v1.PodSpec{
-			NodeName: "",
+			NodeName:      "",
+			SchedulerName: testSchedulerName,
 		},
 	}
 }
@@ -139,71 +133,108 @@ func podWithResources(id, desiredHost string, limits v1.ResourceList, requests v
 	return pod
 }
 
-func PredicateOne(pod *v1.Pod, meta predicates.Metadata, nodeInfo *schedulernodeinfo.NodeInfo) (bool, []predicates.PredicateFailureReason, error) {
-	return true, nil, nil
-}
-
-func PriorityOne(pod *v1.Pod, meta interface{}, nodeInfo *schedulernodeinfo.NodeInfo) (framework.NodeScore, error) {
-	return framework.NodeScore{}, nil
-}
-
 type mockScheduler struct {
 	result core.ScheduleResult
 	err    error
 }
 
-func (es mockScheduler) PredicateMetadataProducer() predicates.MetadataProducer {
-	return nil
-
-}
-
-func (es mockScheduler) Schedule(ctx context.Context, state *framework.CycleState, pod *v1.Pod) (core.ScheduleResult, error) {
+func (es mockScheduler) Schedule(ctx context.Context, profile *profile.Profile, state *framework.CycleState, pod *v1.Pod) (core.ScheduleResult, error) {
 	return es.result, es.err
 }
 
-func (es mockScheduler) Predicates() map[string]predicates.FitPredicate {
+func (es mockScheduler) Extenders() []core.SchedulerExtender {
 	return nil
 }
-func (es mockScheduler) Prioritizers() []priorities.PriorityConfig {
-	return nil
-}
-func (es mockScheduler) Extenders() []algorithm.SchedulerExtender {
-	return nil
-}
-
-func (es mockScheduler) Preempt(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scheduleErr error) (*v1.Node, []*v1.Pod, []*v1.Pod, error) {
+func (es mockScheduler) Preempt(ctx context.Context, i *profile.Profile, state *framework.CycleState, pod *v1.Pod, scheduleErr error) (*v1.Node, []*v1.Pod, []*v1.Pod, error) {
 	return nil, nil, nil, nil
 }
 
 func TestSchedulerCreation(t *testing.T) {
-	client := clientsetfake.NewSimpleClientset()
-	informerFactory := informers.NewSharedInformerFactory(client, 0)
+	invalidRegistry := map[string]framework.PluginFactory{
+		defaultbinder.Name: defaultbinder.New,
+	}
+	validRegistry := map[string]framework.PluginFactory{
+		"Foo": defaultbinder.New,
+	}
+	cases := []struct {
+		name         string
+		opts         []Option
+		wantErr      string
+		wantProfiles []string
+	}{
+		{
+			name:         "default scheduler",
+			wantProfiles: []string{"default-scheduler"},
+		},
+		{
+			name:         "valid out-of-tree registry",
+			opts:         []Option{WithFrameworkOutOfTreeRegistry(validRegistry)},
+			wantProfiles: []string{"default-scheduler"},
+		},
+		{
+			name:         "repeated plugin name in out-of-tree plugin",
+			opts:         []Option{WithFrameworkOutOfTreeRegistry(invalidRegistry)},
+			wantProfiles: []string{"default-scheduler"},
+			wantErr:      "a plugin named DefaultBinder already exists",
+		},
+		{
+			name: "multiple profiles",
+			opts: []Option{WithProfiles(
+				schedulerapi.KubeSchedulerProfile{SchedulerName: "foo"},
+				schedulerapi.KubeSchedulerProfile{SchedulerName: "bar"},
+			)},
+			wantProfiles: []string{"bar", "foo"},
+		},
+		{
+			name: "Repeated profiles",
+			opts: []Option{WithProfiles(
+				schedulerapi.KubeSchedulerProfile{SchedulerName: "foo"},
+				schedulerapi.KubeSchedulerProfile{SchedulerName: "bar"},
+				schedulerapi.KubeSchedulerProfile{SchedulerName: "foo"},
+			)},
+			wantErr: "duplicate profile with scheduler name \"foo\"",
+		},
+	}
 
-	testSource := "testProvider"
-	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1beta1().Events("")})
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := clientsetfake.NewSimpleClientset()
+			informerFactory := informers.NewSharedInformerFactory(client, 0)
 
-	RegisterFitPredicate("PredicateOne", PredicateOne)
-	RegisterPriorityMapReduceFunction("PriorityOne", PriorityOne, nil, 1)
-	RegisterAlgorithmProvider(testSource, sets.NewString("PredicateOne"), sets.NewString("PriorityOne"))
+			eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1beta1().Events("")})
 
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	_, err := New(client,
-		informerFactory,
-		NewPodInformer(client, 0),
-		eventBroadcaster.NewRecorder(scheme.Scheme, "scheduler"),
-		stopCh,
-		WithAlgorithmSource(schedulerapi.SchedulerAlgorithmSource{Provider: &testSource}),
-		WithPodInitialBackoffSeconds(1),
-		WithPodMaxBackoffSeconds(10),
-	)
+			stopCh := make(chan struct{})
+			defer close(stopCh)
+			s, err := New(client,
+				informerFactory,
+				NewPodInformer(client, 0),
+				profile.NewRecorderFactory(eventBroadcaster),
+				stopCh,
+				tc.opts...,
+			)
 
-	if err != nil {
-		t.Fatalf("Failed to create scheduler: %v", err)
+			if len(tc.wantErr) != 0 {
+				if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+					t.Errorf("got error %q, want %q", err, tc.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Failed to create scheduler: %v", err)
+			}
+			profiles := make([]string, 0, len(s.Profiles))
+			for name := range s.Profiles {
+				profiles = append(profiles, name)
+			}
+			sort.Strings(profiles)
+			if diff := cmp.Diff(tc.wantProfiles, profiles); diff != "" {
+				t.Errorf("unexpected profiles (-want, +got):\n%s", diff)
+			}
+		})
 	}
 }
 
-func TestScheduler(t *testing.T) {
+func TestSchedulerScheduleOne(t *testing.T) {
 	testNode := v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "machine1", UID: types.UID("machine1")}}
 	client := clientsetfake.NewSimpleClientset(&testNode)
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1beta1().Events("")})
@@ -245,11 +276,12 @@ func TestScheduler(t *testing.T) {
 			expectBind:       &v1.Binding{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: types.UID("foo")}, Target: v1.ObjectReference{Kind: "Node", Name: testNode.Name}},
 			expectAssumedPod: podWithID("foo", testNode.Name),
 			injectBindError:  errB,
-			expectError:      errB,
+			expectError:      errors.New("plugin \"DefaultBinder\" failed to bind pod \"/foo\": binder"),
 			expectErrorPod:   podWithID("foo", testNode.Name),
 			expectForgetPod:  podWithID("foo", testNode.Name),
 			eventReason:      "FailedScheduling",
 		}, {
+			name:        "deleting pod",
 			sendPod:     deletingPod("foo"),
 			algo:        mockScheduler{core.ScheduleResult{}, nil},
 			eventReason: "FailedScheduling",
@@ -277,17 +309,32 @@ func TestScheduler(t *testing.T) {
 				AssumeFunc: func(pod *v1.Pod) {
 					gotAssumedPod = pod
 				},
+				IsAssumedPodFunc: func(pod *v1.Pod) bool {
+					if pod == nil || gotAssumedPod == nil {
+						return false
+					}
+					return pod.UID == gotAssumedPod.UID
+				},
+			}
+			client := clientsetfake.NewSimpleClientset(item.sendPod)
+			client.PrependReactor("create", "pods", func(action clienttesting.Action) (bool, runtime.Object, error) {
+				if action.GetSubresource() != "binding" {
+					return false, nil, nil
+				}
+				gotBinding = action.(clienttesting.CreateAction).GetObject().(*v1.Binding)
+				return true, gotBinding, item.injectBindError
+			})
+			fwk, err := st.NewFramework([]st.RegisterPluginFunc{
+				st.RegisterQueueSortPlugin(queuesort.Name, queuesort.New),
+				st.RegisterBindPlugin(defaultbinder.Name, defaultbinder.New),
+			}, framework.WithClientSet(client))
+			if err != nil {
+				t.Fatal(err)
 			}
 
 			s := &Scheduler{
-				SchedulerCache: sCache,
-				Algorithm:      item.algo,
-				GetBinder: func(pod *v1.Pod) Binder {
-					return fakeBinder{func(b *v1.Binding) error {
-						gotBinding = b
-						return item.injectBindError
-					}}
-				},
+				SchedulerCache:      sCache,
+				Algorithm:           item.algo,
 				podConditionUpdater: fakePodConditionUpdater{},
 				Error: func(p *framework.PodInfo, err error) {
 					gotPod = p.Pod
@@ -296,15 +343,19 @@ func TestScheduler(t *testing.T) {
 				NextPod: func() *framework.PodInfo {
 					return &framework.PodInfo{Pod: item.sendPod}
 				},
-				Framework:    emptyFramework,
-				Recorder:     eventBroadcaster.NewRecorder(scheme.Scheme, "scheduler"),
-				VolumeBinder: volumebinder.NewFakeVolumeBinder(&volumescheduling.FakeVolumeBinderConfig{AllBound: true}),
+				Profiles: profile.Map{
+					testSchedulerName: &profile.Profile{
+						Framework: fwk,
+						Recorder:  eventBroadcaster.NewRecorder(scheme.Scheme, testSchedulerName),
+					},
+				},
+				VolumeBinder: scheduling.NewFakeVolumeBinder(&scheduling.FakeVolumeBinderConfig{AllBound: true}),
 			}
 			called := make(chan struct{})
 			stopFunc := eventBroadcaster.StartEventWatcher(func(obj runtime.Object) {
 				e, _ := obj.(*v1beta1.Event)
-				if e, a := item.eventReason, e.Reason; e != a {
-					t.Errorf("expected %v, got %v", e, a)
+				if e.Reason != item.eventReason {
+					t.Errorf("got event %v, want %v", e.Reason, item.eventReason)
 				}
 				close(called)
 			})
@@ -322,11 +373,158 @@ func TestScheduler(t *testing.T) {
 			if e, a := item.expectError, gotError; !reflect.DeepEqual(e, a) {
 				t.Errorf("error: wanted %v, got %v", e, a)
 			}
-			if e, a := item.expectBind, gotBinding; !reflect.DeepEqual(e, a) {
-				t.Errorf("error: %s", diff.ObjectDiff(e, a))
+			if diff := cmp.Diff(item.expectBind, gotBinding); diff != "" {
+				t.Errorf("got binding diff (-want, +got): %s", diff)
 			}
 			stopFunc()
 		})
+	}
+}
+
+type fakeNodeSelectorArgs struct {
+	NodeName string `json:"nodeName"`
+}
+
+type fakeNodeSelector struct {
+	fakeNodeSelectorArgs
+}
+
+func newFakeNodeSelector(args *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+	pl := &fakeNodeSelector{}
+	if err := framework.DecodeInto(args, &pl.fakeNodeSelectorArgs); err != nil {
+		return nil, err
+	}
+	return pl, nil
+}
+
+func (s *fakeNodeSelector) Name() string {
+	return "FakeNodeSelector"
+}
+
+func (s *fakeNodeSelector) Filter(_ context.Context, _ *framework.CycleState, _ *v1.Pod, nodeInfo *nodeinfo.NodeInfo) *framework.Status {
+	if nodeInfo.Node().Name != s.NodeName {
+		return framework.NewStatus(framework.UnschedulableAndUnresolvable)
+	}
+	return nil
+}
+
+func TestSchedulerMultipleProfilesScheduling(t *testing.T) {
+	nodes := []runtime.Object{
+		st.MakeNode().Name("machine1").UID("machine1").Obj(),
+		st.MakeNode().Name("machine2").UID("machine2").Obj(),
+		st.MakeNode().Name("machine3").UID("machine3").Obj(),
+	}
+	pods := []*v1.Pod{
+		st.MakePod().Name("pod1").UID("pod1").SchedulerName("match-machine3").Obj(),
+		st.MakePod().Name("pod2").UID("pod2").SchedulerName("match-machine2").Obj(),
+		st.MakePod().Name("pod3").UID("pod3").SchedulerName("match-machine2").Obj(),
+		st.MakePod().Name("pod4").UID("pod4").SchedulerName("match-machine3").Obj(),
+	}
+	wantBindings := map[string]string{
+		"pod1": "machine3",
+		"pod2": "machine2",
+		"pod3": "machine2",
+		"pod4": "machine3",
+	}
+	wantControllers := map[string]string{
+		"pod1": "match-machine3",
+		"pod2": "match-machine2",
+		"pod3": "match-machine2",
+		"pod4": "match-machine3",
+	}
+
+	// Set up scheduler for the 3 nodes.
+	// We use a fake filter that only allows one particular node. We create two
+	// profiles, each with a different node in the filter configuration.
+	client := clientsetfake.NewSimpleClientset(nodes...)
+	broadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1beta1().Events("")})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	informerFactory := informers.NewSharedInformerFactory(client, 0)
+	sched, err := New(client,
+		informerFactory,
+		informerFactory.Core().V1().Pods(),
+		profile.NewRecorderFactory(broadcaster),
+		ctx.Done(),
+		WithProfiles(
+			schedulerapi.KubeSchedulerProfile{SchedulerName: "match-machine2",
+				Plugins: &schedulerapi.Plugins{
+					Filter: &schedulerapi.PluginSet{
+						Enabled:  []schedulerapi.Plugin{{Name: "FakeNodeSelector"}},
+						Disabled: []schedulerapi.Plugin{{Name: "*"}},
+					}},
+				PluginConfig: []schedulerapi.PluginConfig{
+					{Name: "FakeNodeSelector",
+						Args: runtime.Unknown{Raw: []byte(`{"nodeName":"machine2"}`)},
+					},
+				},
+			},
+			schedulerapi.KubeSchedulerProfile{
+				SchedulerName: "match-machine3",
+				Plugins: &schedulerapi.Plugins{
+					Filter: &schedulerapi.PluginSet{
+						Enabled:  []schedulerapi.Plugin{{Name: "FakeNodeSelector"}},
+						Disabled: []schedulerapi.Plugin{{Name: "*"}},
+					}},
+				PluginConfig: []schedulerapi.PluginConfig{
+					{Name: "FakeNodeSelector",
+						Args: runtime.Unknown{Raw: []byte(`{"nodeName":"machine3"}`)},
+					},
+				},
+			},
+		),
+		WithFrameworkOutOfTreeRegistry(framework.Registry{
+			"FakeNodeSelector": newFakeNodeSelector,
+		}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Capture the bindings and events' controllers.
+	var wg sync.WaitGroup
+	wg.Add(2 * len(pods))
+	bindings := make(map[string]string)
+	client.PrependReactor("create", "pods", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		if action.GetSubresource() != "binding" {
+			return false, nil, nil
+		}
+		binding := action.(clienttesting.CreateAction).GetObject().(*v1.Binding)
+		bindings[binding.Name] = binding.Target.Name
+		wg.Done()
+		return true, binding, nil
+	})
+	controllers := make(map[string]string)
+	stopFn := broadcaster.StartEventWatcher(func(obj runtime.Object) {
+		e, ok := obj.(*v1beta1.Event)
+		if !ok || e.Reason != "Scheduled" {
+			return
+		}
+		controllers[e.Regarding.Name] = e.ReportingController
+		wg.Done()
+	})
+	defer stopFn()
+
+	// Run scheduler.
+	informerFactory.Start(ctx.Done())
+	go sched.Run(ctx)
+
+	// Send pods to be scheduled.
+	for _, p := range pods {
+		_, err := client.CoreV1().Pods("").Create(ctx, p, metav1.CreateOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	wg.Wait()
+
+	// Verify correct bindings and reporting controllers.
+	if diff := cmp.Diff(wantBindings, bindings); diff != "" {
+		t.Errorf("pods were scheduled incorrectly (-want, +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(wantControllers, controllers); diff != "" {
+		t.Errorf("events were reported with wrong controllers (-want, +got):\n%s", diff)
 	}
 }
 
@@ -340,8 +538,13 @@ func TestSchedulerNoPhantomPodAfterExpire(t *testing.T) {
 	scache.AddNode(&node)
 	client := clientsetfake.NewSimpleClientset(&node)
 	informerFactory := informers.NewSharedInformerFactory(client, 0)
-	predicateMap := map[string]predicates.FitPredicate{"PodFitsHostPorts": predicates.PodFitsHostPorts}
-	scheduler, bindingChan, _ := setupTestSchedulerWithOnePodOnNode(t, queuedPodStore, scache, informerFactory, stop, predicateMap, pod, &node)
+
+	fns := []st.RegisterPluginFunc{
+		st.RegisterQueueSortPlugin(queuesort.Name, queuesort.New),
+		st.RegisterBindPlugin(defaultbinder.Name, defaultbinder.New),
+		st.RegisterPluginAsExtensions(nodeports.Name, nodeports.New, "Filter", "PreFilter"),
+	}
+	scheduler, bindingChan, _ := setupTestSchedulerWithOnePodOnNode(t, queuedPodStore, scache, informerFactory, stop, pod, &node, fns...)
 
 	waitPodExpireChan := make(chan struct{})
 	timeout := make(chan struct{})
@@ -403,8 +606,12 @@ func TestSchedulerNoPhantomPodAfterDelete(t *testing.T) {
 	scache.AddNode(&node)
 	client := clientsetfake.NewSimpleClientset(&node)
 	informerFactory := informers.NewSharedInformerFactory(client, 0)
-	predicateMap := map[string]predicates.FitPredicate{"PodFitsHostPorts": predicates.PodFitsHostPorts}
-	scheduler, bindingChan, errChan := setupTestSchedulerWithOnePodOnNode(t, queuedPodStore, scache, informerFactory, stop, predicateMap, firstPod, &node)
+	fns := []st.RegisterPluginFunc{
+		st.RegisterQueueSortPlugin(queuesort.Name, queuesort.New),
+		st.RegisterBindPlugin(defaultbinder.Name, defaultbinder.New),
+		st.RegisterPluginAsExtensions(nodeports.Name, nodeports.New, "Filter", "PreFilter"),
+	}
+	scheduler, bindingChan, errChan := setupTestSchedulerWithOnePodOnNode(t, queuedPodStore, scache, informerFactory, stop, firstPod, &node, fns...)
 
 	// We use conflicted pod ports to incur fit predicate failure.
 	secondPod := podWithPort("bar", "", 8080)
@@ -418,10 +625,12 @@ func TestSchedulerNoPhantomPodAfterDelete(t *testing.T) {
 		expectErr := &core.FitError{
 			Pod:         secondPod,
 			NumAllNodes: 1,
-			FailedPredicates: core.FailedPredicateMap{
-				node.Name: []predicates.PredicateFailureReason{predicates.ErrPodNotFitsHostPorts},
+			FilteredNodesStatuses: framework.NodeToStatusMap{
+				node.Name: framework.NewStatus(
+					framework.Unschedulable,
+					nodeports.ErrReason,
+				),
 			},
-			FilteredNodesStatuses: framework.NodeToStatusMap{},
 		}
 		if !reflect.DeepEqual(expectErr, err) {
 			t.Errorf("err want=%v, get=%v", expectErr, err)
@@ -458,81 +667,12 @@ func TestSchedulerNoPhantomPodAfterDelete(t *testing.T) {
 	}
 }
 
-// Scheduler should preserve predicate constraint even if binding was longer
-// than cache ttl
-func TestSchedulerErrorWithLongBinding(t *testing.T) {
-	stop := make(chan struct{})
-	defer close(stop)
-
-	firstPod := podWithPort("foo", "", 8080)
-	conflictPod := podWithPort("bar", "", 8080)
-	pods := map[string]*v1.Pod{firstPod.Name: firstPod, conflictPod.Name: conflictPod}
-	for _, test := range []struct {
-		name            string
-		Expected        map[string]bool
-		CacheTTL        time.Duration
-		BindingDuration time.Duration
-	}{
-		{
-			name:            "long cache ttl",
-			Expected:        map[string]bool{firstPod.Name: true},
-			CacheTTL:        100 * time.Millisecond,
-			BindingDuration: 300 * time.Millisecond,
-		},
-		{
-			name:            "short cache ttl",
-			Expected:        map[string]bool{firstPod.Name: true},
-			CacheTTL:        10 * time.Second,
-			BindingDuration: 300 * time.Millisecond,
-		},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			queuedPodStore := clientcache.NewFIFO(clientcache.MetaNamespaceKeyFunc)
-			scache := internalcache.New(test.CacheTTL, stop)
-
-			node := v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "machine1", UID: types.UID("machine1")}}
-			scache.AddNode(&node)
-
-			client := clientsetfake.NewSimpleClientset(&node)
-			informerFactory := informers.NewSharedInformerFactory(client, 0)
-			predicateMap := map[string]predicates.FitPredicate{"PodFitsHostPorts": predicates.PodFitsHostPorts}
-
-			scheduler, bindingChan := setupTestSchedulerLongBindingWithRetry(
-				queuedPodStore, scache, informerFactory, predicateMap, stop, test.BindingDuration)
-
-			informerFactory.Start(stop)
-			informerFactory.WaitForCacheSync(stop)
-
-			go scheduler.Run(context.Background())
-			queuedPodStore.Add(firstPod)
-			queuedPodStore.Add(conflictPod)
-
-			resultBindings := map[string]bool{}
-			waitChan := time.After(5 * time.Second)
-			for finished := false; !finished; {
-				select {
-				case b := <-bindingChan:
-					resultBindings[b.Name] = true
-					p := pods[b.Name]
-					p.Spec.NodeName = b.Target.Name
-					scache.AddPod(p)
-				case <-waitChan:
-					finished = true
-				}
-			}
-			if !reflect.DeepEqual(resultBindings, test.Expected) {
-				t.Errorf("Result binding are not equal to expected. %v != %v", resultBindings, test.Expected)
-			}
-		})
-	}
-}
-
 // queuedPodStore: pods queued before processing.
 // cache: scheduler cache that might contain assumed pods.
 func setupTestSchedulerWithOnePodOnNode(t *testing.T, queuedPodStore *clientcache.FIFO, scache internalcache.Cache,
-	informerFactory informers.SharedInformerFactory, stop chan struct{}, predicateMap map[string]predicates.FitPredicate, pod *v1.Pod, node *v1.Node) (*Scheduler, chan *v1.Binding, chan error) {
+	informerFactory informers.SharedInformerFactory, stop chan struct{}, pod *v1.Pod, node *v1.Node, fns ...st.RegisterPluginFunc) (*Scheduler, chan *v1.Binding, chan error) {
 
-	scheduler, bindingChan, errChan := setupTestScheduler(queuedPodStore, scache, informerFactory, predicateMap, nil)
+	scheduler, bindingChan, errChan := setupTestScheduler(queuedPodStore, scache, informerFactory, nil, nil, fns...)
 
 	informerFactory.Start(stop)
 	informerFactory.WaitForCacheSync(stop)
@@ -602,19 +742,22 @@ func TestSchedulerFailedSchedulingReasons(t *testing.T) {
 	}
 	client := clientsetfake.NewSimpleClientset(objects...)
 	informerFactory := informers.NewSharedInformerFactory(client, 0)
-	predicateMap := map[string]predicates.FitPredicate{
-		"PodFitsResources": predicates.PodFitsResources,
-	}
 
-	// Create expected failure reasons for all the nodes.  Hopefully they will get rolled up into a non-spammy summary.
-	failedPredicatesMap := core.FailedPredicateMap{}
+	// Create expected failure reasons for all the nodes. Hopefully they will get rolled up into a non-spammy summary.
+	failedNodeStatues := framework.NodeToStatusMap{}
 	for _, node := range nodes {
-		failedPredicatesMap[node.Name] = []predicates.PredicateFailureReason{
-			predicates.NewInsufficientResourceError(v1.ResourceCPU, 4000, 0, 2000),
-			predicates.NewInsufficientResourceError(v1.ResourceMemory, 500, 0, 100),
-		}
+		failedNodeStatues[node.Name] = framework.NewStatus(
+			framework.Unschedulable,
+			fmt.Sprintf("Insufficient %v", v1.ResourceCPU),
+			fmt.Sprintf("Insufficient %v", v1.ResourceMemory),
+		)
 	}
-	scheduler, _, errChan := setupTestScheduler(queuedPodStore, scache, informerFactory, predicateMap, nil)
+	fns := []st.RegisterPluginFunc{
+		st.RegisterQueueSortPlugin(queuesort.Name, queuesort.New),
+		st.RegisterBindPlugin(defaultbinder.Name, defaultbinder.New),
+		st.RegisterPluginAsExtensions(noderesources.FitName, noderesources.NewFit, "Filter", "PreFilter"),
+	}
+	scheduler, _, errChan := setupTestScheduler(queuedPodStore, scache, informerFactory, nil, nil, fns...)
 
 	informerFactory.Start(stop)
 	informerFactory.WaitForCacheSync(stop)
@@ -626,8 +769,7 @@ func TestSchedulerFailedSchedulingReasons(t *testing.T) {
 		expectErr := &core.FitError{
 			Pod:                   podWithTooBigResourceRequests,
 			NumAllNodes:           len(nodes),
-			FailedPredicates:      failedPredicatesMap,
-			FilteredNodesStatuses: framework.NodeToStatusMap{},
+			FilteredNodesStatuses: failedNodeStatues,
 		}
 		if len(fmt.Sprint(expectErr)) > 150 {
 			t.Errorf("message is too spammy ! %v ", len(fmt.Sprint(expectErr)))
@@ -642,109 +784,66 @@ func TestSchedulerFailedSchedulingReasons(t *testing.T) {
 
 // queuedPodStore: pods queued before processing.
 // scache: scheduler cache that might contain assumed pods.
-func setupTestScheduler(queuedPodStore *clientcache.FIFO, scache internalcache.Cache, informerFactory informers.SharedInformerFactory, predicateMap map[string]predicates.FitPredicate, recorder events.EventRecorder) (*Scheduler, chan *v1.Binding, chan error) {
+func setupTestScheduler(queuedPodStore *clientcache.FIFO, scache internalcache.Cache, informerFactory informers.SharedInformerFactory, broadcaster events.EventBroadcaster, volumeBinder scheduling.SchedulerVolumeBinder, fns ...st.RegisterPluginFunc) (*Scheduler, chan *v1.Binding, chan error) {
+	if volumeBinder == nil {
+		// Create default volume binder if it didn't set.
+		volumeBinder = scheduling.NewFakeVolumeBinder(&scheduling.FakeVolumeBinderConfig{AllBound: true})
+	}
+	bindingChan := make(chan *v1.Binding, 1)
+	client := clientsetfake.NewSimpleClientset()
+	client.PrependReactor("create", "pods", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		var b *v1.Binding
+		if action.GetSubresource() == "binding" {
+			b := action.(clienttesting.CreateAction).GetObject().(*v1.Binding)
+			bindingChan <- b
+		}
+		return true, b, nil
+	})
+
+	fwk, _ := st.NewFramework(fns, framework.WithClientSet(client), framework.WithVolumeBinder(volumeBinder))
+	prof := &profile.Profile{
+		Framework: fwk,
+		Recorder:  &events.FakeRecorder{},
+	}
+	if broadcaster != nil {
+		prof.Recorder = broadcaster.NewRecorder(scheme.Scheme, testSchedulerName)
+	}
+	profiles := profile.Map{
+		testSchedulerName: prof,
+	}
+
 	algo := core.NewGenericScheduler(
 		scache,
-		internalqueue.NewSchedulingQueue(nil, nil),
-		predicateMap,
-		predicates.EmptyMetadataProducer,
-		[]priorities.PriorityConfig{},
-		priorities.EmptyMetadataProducer,
-		emptySnapshot,
-		emptyFramework,
-		[]algorithm.SchedulerExtender{},
-		nil,
+		internalqueue.NewSchedulingQueue(nil),
+		internalcache.NewEmptySnapshot(),
+		[]core.SchedulerExtender{},
 		informerFactory.Core().V1().PersistentVolumeClaims().Lister(),
 		informerFactory.Policy().V1beta1().PodDisruptionBudgets().Lister(),
-		false,
 		false,
 		schedulerapi.DefaultPercentageOfNodesToScore,
 		false,
 	)
-	bindingChan := make(chan *v1.Binding, 1)
-	errChan := make(chan error, 1)
 
+	errChan := make(chan error, 1)
 	sched := &Scheduler{
 		SchedulerCache: scache,
 		Algorithm:      algo,
-		GetBinder: func(pod *v1.Pod) Binder {
-			return fakeBinder{func(b *v1.Binding) error {
-				bindingChan <- b
-				return nil
-			}}
-		},
 		NextPod: func() *framework.PodInfo {
 			return &framework.PodInfo{Pod: clientcache.Pop(queuedPodStore).(*v1.Pod)}
 		},
 		Error: func(p *framework.PodInfo, err error) {
 			errChan <- err
 		},
-		Recorder:            &events.FakeRecorder{},
+		Profiles:            profiles,
 		podConditionUpdater: fakePodConditionUpdater{},
 		podPreemptor:        fakePodPreemptor{},
-		Framework:           emptyFramework,
-		VolumeBinder:        volumebinder.NewFakeVolumeBinder(&volumescheduling.FakeVolumeBinderConfig{AllBound: true}),
-	}
-
-	if recorder != nil {
-		sched.Recorder = recorder
+		VolumeBinder:        volumeBinder,
 	}
 
 	return sched, bindingChan, errChan
 }
 
-func setupTestSchedulerLongBindingWithRetry(queuedPodStore *clientcache.FIFO, scache internalcache.Cache, informerFactory informers.SharedInformerFactory, predicateMap map[string]predicates.FitPredicate, stop chan struct{}, bindingTime time.Duration) (*Scheduler, chan *v1.Binding) {
-	algo := core.NewGenericScheduler(
-		scache,
-		internalqueue.NewSchedulingQueue(nil, nil),
-		predicateMap,
-		predicates.EmptyMetadataProducer,
-		[]priorities.PriorityConfig{},
-		priorities.EmptyMetadataProducer,
-		emptySnapshot,
-		emptyFramework,
-		[]algorithm.SchedulerExtender{},
-		nil,
-		informerFactory.Core().V1().PersistentVolumeClaims().Lister(),
-		informerFactory.Policy().V1beta1().PodDisruptionBudgets().Lister(),
-		false,
-		false,
-		schedulerapi.DefaultPercentageOfNodesToScore,
-		false,
-	)
-	bindingChan := make(chan *v1.Binding, 2)
-
-	sched := &Scheduler{
-		SchedulerCache: scache,
-		Algorithm:      algo,
-		GetBinder: func(pod *v1.Pod) Binder {
-			return fakeBinder{func(b *v1.Binding) error {
-				time.Sleep(bindingTime)
-				bindingChan <- b
-				return nil
-			}}
-		},
-		scheduledPodsHasSynced: func() bool {
-			return true
-		},
-		NextPod: func() *framework.PodInfo {
-			return &framework.PodInfo{Pod: clientcache.Pop(queuedPodStore).(*v1.Pod)}
-		},
-		Error: func(p *framework.PodInfo, err error) {
-			queuedPodStore.AddIfNotPresent(p)
-		},
-		Recorder:            &events.FakeRecorder{},
-		podConditionUpdater: fakePodConditionUpdater{},
-		podPreemptor:        fakePodPreemptor{},
-		StopEverything:      stop,
-		Framework:           emptyFramework,
-		VolumeBinder:        volumebinder.NewFakeVolumeBinder(&volumescheduling.FakeVolumeBinderConfig{AllBound: true}),
-	}
-
-	return sched, bindingChan
-}
-
-func setupTestSchedulerWithVolumeBinding(fakeVolumeBinder *volumebinder.VolumeBinder, stop <-chan struct{}, broadcaster events.EventBroadcaster) (*Scheduler, chan *v1.Binding, chan error) {
+func setupTestSchedulerWithVolumeBinding(volumeBinder scheduling.SchedulerVolumeBinder, stop <-chan struct{}, broadcaster events.EventBroadcaster) (*Scheduler, chan *v1.Binding, chan error) {
 	testNode := v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "machine1", UID: types.UID("machine1")}}
 	queuedPodStore := clientcache.NewFIFO(clientcache.MetaNamespaceKeyFunc)
 	pod := podWithID("foo", "")
@@ -758,15 +857,15 @@ func setupTestSchedulerWithVolumeBinding(fakeVolumeBinder *volumebinder.VolumeBi
 	client := clientsetfake.NewSimpleClientset(&testNode, &testPVC)
 	informerFactory := informers.NewSharedInformerFactory(client, 0)
 
-	predicateMap := map[string]predicates.FitPredicate{
-		predicates.CheckVolumeBindingPred: predicates.NewVolumeBindingPredicate(fakeVolumeBinder),
+	fns := []st.RegisterPluginFunc{
+		st.RegisterQueueSortPlugin(queuesort.Name, queuesort.New),
+		st.RegisterBindPlugin(defaultbinder.Name, defaultbinder.New),
+		st.RegisterFilterPlugin(volumebinding.Name, volumebinding.New),
 	}
-
-	recorder := broadcaster.NewRecorder(scheme.Scheme, "scheduler")
-	s, bindingChan, errChan := setupTestScheduler(queuedPodStore, scache, informerFactory, predicateMap, recorder)
+	s, bindingChan, errChan := setupTestScheduler(queuedPodStore, scache, informerFactory, broadcaster, volumeBinder, fns...)
 	informerFactory.Start(stop)
 	informerFactory.WaitForCacheSync(stop)
-	s.VolumeBinder = fakeVolumeBinder
+	s.VolumeBinder = volumeBinder
 	return s, bindingChan, errChan
 }
 
@@ -796,14 +895,12 @@ func TestSchedulerWithVolumeBinding(t *testing.T) {
 		expectAssumeCalled bool
 		expectBindCalled   bool
 		eventReason        string
-		volumeBinderConfig *volumescheduling.FakeVolumeBinderConfig
+		volumeBinderConfig *scheduling.FakeVolumeBinderConfig
 	}{
 		{
 			name: "all bound",
-			volumeBinderConfig: &volumescheduling.FakeVolumeBinderConfig{
-				AllBound:             true,
-				FindUnboundSatsified: true,
-				FindBoundSatsified:   true,
+			volumeBinderConfig: &scheduling.FakeVolumeBinderConfig{
+				AllBound: true,
 			},
 			expectAssumeCalled: true,
 			expectPodBind:      &v1.Binding{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "foo-ns", UID: types.UID("foo")}, Target: v1.ObjectReference{Kind: "Node", Name: "machine1"}},
@@ -811,38 +908,32 @@ func TestSchedulerWithVolumeBinding(t *testing.T) {
 		},
 		{
 			name: "bound/invalid pv affinity",
-			volumeBinderConfig: &volumescheduling.FakeVolumeBinderConfig{
-				AllBound:             true,
-				FindUnboundSatsified: true,
-				FindBoundSatsified:   false,
+			volumeBinderConfig: &scheduling.FakeVolumeBinderConfig{
+				AllBound:    true,
+				FindReasons: scheduling.ConflictReasons{scheduling.ErrReasonNodeConflict},
 			},
 			eventReason: "FailedScheduling",
 			expectError: makePredicateError("1 node(s) had volume node affinity conflict"),
 		},
 		{
 			name: "unbound/no matches",
-			volumeBinderConfig: &volumescheduling.FakeVolumeBinderConfig{
-				FindUnboundSatsified: false,
-				FindBoundSatsified:   true,
+			volumeBinderConfig: &scheduling.FakeVolumeBinderConfig{
+				FindReasons: scheduling.ConflictReasons{scheduling.ErrReasonBindConflict},
 			},
 			eventReason: "FailedScheduling",
 			expectError: makePredicateError("1 node(s) didn't find available persistent volumes to bind"),
 		},
 		{
 			name: "bound and unbound unsatisfied",
-			volumeBinderConfig: &volumescheduling.FakeVolumeBinderConfig{
-				FindUnboundSatsified: false,
-				FindBoundSatsified:   false,
+			volumeBinderConfig: &scheduling.FakeVolumeBinderConfig{
+				FindReasons: scheduling.ConflictReasons{scheduling.ErrReasonBindConflict, scheduling.ErrReasonNodeConflict},
 			},
 			eventReason: "FailedScheduling",
 			expectError: makePredicateError("1 node(s) didn't find available persistent volumes to bind, 1 node(s) had volume node affinity conflict"),
 		},
 		{
-			name: "unbound/found matches/bind succeeds",
-			volumeBinderConfig: &volumescheduling.FakeVolumeBinderConfig{
-				FindUnboundSatsified: true,
-				FindBoundSatsified:   true,
-			},
+			name:               "unbound/found matches/bind succeeds",
+			volumeBinderConfig: &scheduling.FakeVolumeBinderConfig{},
 			expectAssumeCalled: true,
 			expectBindCalled:   true,
 			expectPodBind:      &v1.Binding{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "foo-ns", UID: types.UID("foo")}, Target: v1.ObjectReference{Kind: "Node", Name: "machine1"}},
@@ -850,18 +941,16 @@ func TestSchedulerWithVolumeBinding(t *testing.T) {
 		},
 		{
 			name: "predicate error",
-			volumeBinderConfig: &volumescheduling.FakeVolumeBinderConfig{
+			volumeBinderConfig: &scheduling.FakeVolumeBinderConfig{
 				FindErr: findErr,
 			},
 			eventReason: "FailedScheduling",
-			expectError: findErr,
+			expectError: fmt.Errorf("running %q filter plugin for pod %q: %v", volumebinding.Name, "foo", findErr),
 		},
 		{
 			name: "assume error",
-			volumeBinderConfig: &volumescheduling.FakeVolumeBinderConfig{
-				FindUnboundSatsified: true,
-				FindBoundSatsified:   true,
-				AssumeErr:            assumeErr,
+			volumeBinderConfig: &scheduling.FakeVolumeBinderConfig{
+				AssumeErr: assumeErr,
 			},
 			expectAssumeCalled: true,
 			eventReason:        "FailedScheduling",
@@ -869,10 +958,8 @@ func TestSchedulerWithVolumeBinding(t *testing.T) {
 		},
 		{
 			name: "bind error",
-			volumeBinderConfig: &volumescheduling.FakeVolumeBinderConfig{
-				FindUnboundSatsified: true,
-				FindBoundSatsified:   true,
-				BindErr:              bindErr,
+			volumeBinderConfig: &scheduling.FakeVolumeBinderConfig{
+				BindErr: bindErr,
 			},
 			expectAssumeCalled: true,
 			expectBindCalled:   true,
@@ -884,11 +971,7 @@ func TestSchedulerWithVolumeBinding(t *testing.T) {
 	for _, item := range table {
 		t.Run(item.name, func(t *testing.T) {
 			stop := make(chan struct{})
-			fakeVolumeBinder := volumebinder.NewFakeVolumeBinder(item.volumeBinderConfig)
-			internalBinder, ok := fakeVolumeBinder.Binder.(*volumescheduling.FakeVolumeBinder)
-			if !ok {
-				t.Fatalf("Failed to get fake volume binder")
-			}
+			fakeVolumeBinder := scheduling.NewFakeVolumeBinder(item.volumeBinderConfig)
 			s, bindingChan, errChan := setupTestSchedulerWithVolumeBinding(fakeVolumeBinder, stop, eventBroadcaster)
 			eventChan := make(chan struct{})
 			stopFunc := eventBroadcaster.StartEventWatcher(func(obj runtime.Object) {
@@ -930,11 +1013,11 @@ func TestSchedulerWithVolumeBinding(t *testing.T) {
 				}
 			}
 
-			if item.expectAssumeCalled != internalBinder.AssumeCalled {
+			if item.expectAssumeCalled != fakeVolumeBinder.AssumeCalled {
 				t.Errorf("expectedAssumeCall %v", item.expectAssumeCalled)
 			}
 
-			if item.expectBindCalled != internalBinder.BindCalled {
+			if item.expectBindCalled != fakeVolumeBinder.BindCalled {
 				t.Errorf("expectedBindCall %v", item.expectBindCalled)
 			}
 
@@ -951,9 +1034,8 @@ func TestInitPolicyFromFile(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	for i, test := range []struct {
-		policy               string
-		expectedPredicates   sets.String
-		expectedPrioritizers sets.String
+		policy             string
+		expectedPredicates sets.String
 	}{
 		// Test json format policy file
 		{
@@ -973,10 +1055,6 @@ func TestInitPolicyFromFile(t *testing.T) {
 				"PredicateOne",
 				"PredicateTwo",
 			),
-			expectedPrioritizers: sets.NewString(
-				"PriorityOne",
-				"PriorityTwo",
-			),
 		},
 		// Test yaml format policy file
 		{
@@ -994,10 +1072,6 @@ priorities:
 			expectedPredicates: sets.NewString(
 				"PredicateOne",
 				"PredicateTwo",
-			),
-			expectedPrioritizers: sets.NewString(
-				"PriorityOne",
-				"PriorityTwo",
 			),
 		},
 	} {
@@ -1026,8 +1100,106 @@ priorities:
 		if !schedPredicates.Equal(test.expectedPredicates) {
 			t.Errorf("Expected predicates %v, got %v", test.expectedPredicates, schedPredicates)
 		}
-		if !schedPrioritizers.Equal(test.expectedPrioritizers) {
-			t.Errorf("Expected priority functions %v, got %v", test.expectedPrioritizers, schedPrioritizers)
-		}
+	}
+}
+
+func TestSchedulerBinding(t *testing.T) {
+	table := []struct {
+		podName      string
+		extenders    []core.SchedulerExtender
+		wantBinderID int
+		name         string
+	}{
+		{
+			name:    "the extender is not a binder",
+			podName: "pod0",
+			extenders: []core.SchedulerExtender{
+				&fakeExtender{isBinder: false, interestedPodName: "pod0"},
+			},
+			wantBinderID: -1, // default binding.
+		},
+		{
+			name:    "one of the extenders is a binder and interested in pod",
+			podName: "pod0",
+			extenders: []core.SchedulerExtender{
+				&fakeExtender{isBinder: false, interestedPodName: "pod0"},
+				&fakeExtender{isBinder: true, interestedPodName: "pod0"},
+			},
+			wantBinderID: 1,
+		},
+		{
+			name:    "one of the extenders is a binder, but not interested in pod",
+			podName: "pod1",
+			extenders: []core.SchedulerExtender{
+				&fakeExtender{isBinder: false, interestedPodName: "pod1"},
+				&fakeExtender{isBinder: true, interestedPodName: "pod0"},
+			},
+			wantBinderID: -1, // default binding.
+		},
+	}
+
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			pod := &v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: test.podName,
+				},
+			}
+			defaultBound := false
+			client := clientsetfake.NewSimpleClientset(pod)
+			client.PrependReactor("create", "pods", func(action clienttesting.Action) (bool, runtime.Object, error) {
+				if action.GetSubresource() == "binding" {
+					defaultBound = true
+				}
+				return false, nil, nil
+			})
+			fwk, err := st.NewFramework([]st.RegisterPluginFunc{
+				st.RegisterQueueSortPlugin(queuesort.Name, queuesort.New),
+				st.RegisterBindPlugin(defaultbinder.Name, defaultbinder.New),
+			}, framework.WithClientSet(client))
+			if err != nil {
+				t.Fatal(err)
+			}
+			prof := &profile.Profile{
+				Framework: fwk,
+				Recorder:  &events.FakeRecorder{},
+			}
+			stop := make(chan struct{})
+			defer close(stop)
+			scache := internalcache.New(100*time.Millisecond, stop)
+			algo := core.NewGenericScheduler(
+				scache,
+				nil,
+				nil,
+				test.extenders,
+				nil,
+				nil,
+				false,
+				0,
+				false,
+			)
+			sched := Scheduler{
+				Algorithm:      algo,
+				SchedulerCache: scache,
+			}
+			err = sched.bind(context.Background(), prof, pod, "node", nil)
+			if err != nil {
+				t.Error(err)
+			}
+
+			// Checking default binding.
+			if wantBound := test.wantBinderID == -1; defaultBound != wantBound {
+				t.Errorf("got bound with default binding: %v, want %v", defaultBound, wantBound)
+			}
+
+			// Checking extenders binding.
+			for i, ext := range test.extenders {
+				wantBound := i == test.wantBinderID
+				if gotBound := ext.(*fakeExtender).gotBind; gotBound != wantBound {
+					t.Errorf("got bound with extender #%d: %v, want %v", i, gotBound, wantBound)
+				}
+			}
+
+		})
 	}
 }

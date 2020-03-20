@@ -1,0 +1,1 @@
+../../script.d/deps.sh

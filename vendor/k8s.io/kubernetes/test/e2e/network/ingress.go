@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -28,7 +29,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -39,6 +40,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework/ingress"
 	"k8s.io/kubernetes/test/e2e/framework/providers/gce"
 	e2eservice "k8s.io/kubernetes/test/e2e/framework/service"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	"github.com/onsi/ginkgo"
 )
@@ -85,7 +87,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 
 		// Platform specific setup
 		ginkgo.BeforeEach(func() {
-			framework.SkipUnlessProviderIs("gce", "gke")
+			e2eskipper.SkipUnlessProviderIs("gce", "gke")
 			ginkgo.By("Initializing gce controller")
 			gceController = &gce.IngressController{
 				Ns:     ns,
@@ -171,7 +173,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 
 			ginkgo.By(fmt.Sprintf("waiting for Ingress %s to get instance group annotation", name))
 			pollErr := wait.Poll(2*time.Second, e2eservice.LoadBalancerPollTimeout, func() (bool, error) {
-				ing, err := f.ClientSet.NetworkingV1beta1().Ingresses(ns).Get(name, metav1.GetOptions{})
+				ing, err := f.ClientSet.NetworkingV1beta1().Ingresses(ns).Get(context.TODO(), name, metav1.GetOptions{})
 				framework.ExpectNoError(err)
 				annotations := ing.Annotations
 				if annotations == nil || annotations[instanceGroupAnnotation] == "" {
@@ -181,7 +183,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 				return true, nil
 			})
 			if pollErr != nil {
-				framework.ExpectNoError(fmt.Errorf("Timed out waiting for ingress %s to get %s annotation", name, instanceGroupAnnotation))
+				framework.ExpectNoError(fmt.Errorf("timed out waiting for ingress %s to get %s annotation", name, instanceGroupAnnotation))
 			}
 
 			// Verify that the ingress does not get other annotations like url-map, target-proxy, backends, etc.
@@ -194,7 +196,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 			scKey := ingress.StatusPrefix + "/ssl-cert"
 			beKey := ingress.StatusPrefix + "/backends"
 			wait.Poll(2*time.Second, time.Minute, func() (bool, error) {
-				ing, err := f.ClientSet.NetworkingV1beta1().Ingresses(ns).Get(name, metav1.GetOptions{})
+				ing, err := f.ClientSet.NetworkingV1beta1().Ingresses(ns).Get(context.TODO(), name, metav1.GetOptions{})
 				framework.ExpectNoError(err)
 				annotations := ing.Annotations
 				if annotations != nil && (annotations[umKey] != "" || annotations[fwKey] != "" ||
@@ -227,7 +229,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 				framework.Failf("unexpected backend service, expected none, got: %v", gceController.ListGlobalBackendServices())
 			}
 			// Controller does not have a list command for firewall rule. We use get instead.
-			if fw, err := gceController.GetFirewallRuleOrError(); err == nil {
+			if fw, err := gceController.GetFirewallRule(); err == nil {
 				framework.Failf("unexpected nil error in getting firewall rule, expected firewall NotFound, got firewall: %v", fw)
 			}
 
@@ -242,7 +244,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 
 		// Platform specific setup
 		ginkgo.BeforeEach(func() {
-			framework.SkipUnlessProviderIs("gce", "gke")
+			e2eskipper.SkipUnlessProviderIs("gce", "gke")
 			ginkgo.By("Initializing gce controller")
 			gceController = &gce.IngressController{
 				Ns:     ns,
@@ -294,11 +296,11 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 			framework.ExpectNoError(err)
 
 			ginkgo.By("Switch backend service to use IG")
-			svcList, err := f.ClientSet.CoreV1().Services(ns).List(metav1.ListOptions{})
+			svcList, err := f.ClientSet.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
 			framework.ExpectNoError(err)
 			for _, svc := range svcList.Items {
 				svc.Annotations[ingress.NEGAnnotation] = `{"ingress": false}`
-				_, err = f.ClientSet.CoreV1().Services(ns).Update(&svc)
+				_, err = f.ClientSet.CoreV1().Services(ns).Update(context.TODO(), &svc, metav1.UpdateOptions{})
 				framework.ExpectNoError(err)
 			}
 			err = wait.Poll(5*time.Second, e2eservice.LoadBalancerPollTimeout, func() (bool, error) {
@@ -312,11 +314,11 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 			jig.WaitForIngress(true)
 
 			ginkgo.By("Switch backend service to use NEG")
-			svcList, err = f.ClientSet.CoreV1().Services(ns).List(metav1.ListOptions{})
+			svcList, err = f.ClientSet.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
 			framework.ExpectNoError(err)
 			for _, svc := range svcList.Items {
 				svc.Annotations[ingress.NEGAnnotation] = `{"ingress": true}`
-				_, err = f.ClientSet.CoreV1().Services(ns).Update(&svc)
+				_, err = f.ClientSet.CoreV1().Services(ns).Update(context.TODO(), &svc, metav1.UpdateOptions{})
 				framework.ExpectNoError(err)
 			}
 			err = wait.Poll(5*time.Second, e2eservice.LoadBalancerPollTimeout, func() (bool, error) {
@@ -347,11 +349,12 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 		ginkgo.It("should sync endpoints to NEG", func() {
 			name := "hostname"
 			scaleAndValidateNEG := func(num int) {
-				scale, err := f.ClientSet.AppsV1().Deployments(ns).GetScale(name, metav1.GetOptions{})
+				scale, err := f.ClientSet.AppsV1().Deployments(ns).GetScale(context.TODO(), name, metav1.GetOptions{})
 				framework.ExpectNoError(err)
 				if scale.Spec.Replicas != int32(num) {
+					scale.ResourceVersion = "" // indicate the scale update should be unconditional
 					scale.Spec.Replicas = int32(num)
-					_, err = f.ClientSet.AppsV1().Deployments(ns).UpdateScale(name, scale)
+					_, err = f.ClientSet.AppsV1().Deployments(ns).UpdateScale(context.TODO(), name, scale, metav1.UpdateOptions{})
 					framework.ExpectNoError(err)
 				}
 				err = wait.Poll(10*time.Second, negUpdateTimeout, func() (bool, error) {
@@ -398,10 +401,11 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 			framework.ExpectNoError(err)
 
 			ginkgo.By(fmt.Sprintf("Scale backend replicas to %d", replicas))
-			scale, err := f.ClientSet.AppsV1().Deployments(ns).GetScale(name, metav1.GetOptions{})
+			scale, err := f.ClientSet.AppsV1().Deployments(ns).GetScale(context.TODO(), name, metav1.GetOptions{})
 			framework.ExpectNoError(err)
+			scale.ResourceVersion = "" // indicate the scale update should be unconditional
 			scale.Spec.Replicas = int32(replicas)
-			_, err = f.ClientSet.AppsV1().Deployments(ns).UpdateScale(name, scale)
+			_, err = f.ClientSet.AppsV1().Deployments(ns).UpdateScale(context.TODO(), name, scale, metav1.UpdateOptions{})
 			framework.ExpectNoError(err)
 
 			err = wait.Poll(10*time.Second, e2eservice.LoadBalancerPollTimeout, func() (bool, error) {
@@ -414,17 +418,17 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 			framework.ExpectNoError(err)
 
 			ginkgo.By("Trigger rolling update and observe service disruption")
-			deploy, err := f.ClientSet.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{})
+			deploy, err := f.ClientSet.AppsV1().Deployments(ns).Get(context.TODO(), name, metav1.GetOptions{})
 			framework.ExpectNoError(err)
 			// trigger by changing graceful termination period to 60 seconds
 			gracePeriod := int64(60)
 			deploy.Spec.Template.Spec.TerminationGracePeriodSeconds = &gracePeriod
-			_, err = f.ClientSet.AppsV1().Deployments(ns).Update(deploy)
+			_, err = f.ClientSet.AppsV1().Deployments(ns).Update(context.TODO(), deploy, metav1.UpdateOptions{})
 			framework.ExpectNoError(err)
 			err = wait.Poll(10*time.Second, e2eservice.LoadBalancerPollTimeout, func() (bool, error) {
 				res, err := jig.GetDistinctResponseFromIngress()
 				framework.ExpectNoError(err)
-				deploy, err := f.ClientSet.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{})
+				deploy, err := f.ClientSet.AppsV1().Deployments(ns).Get(context.TODO(), name, metav1.GetOptions{})
 				framework.ExpectNoError(err)
 				if int(deploy.Status.UpdatedReplicas) == replicas {
 					if res.Len() == replicas {
@@ -445,15 +449,16 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 			expectedKeys := []int32{80, 443}
 
 			scaleAndValidateExposedNEG := func(num int) {
-				scale, err := f.ClientSet.AppsV1().Deployments(ns).GetScale(name, metav1.GetOptions{})
+				scale, err := f.ClientSet.AppsV1().Deployments(ns).GetScale(context.TODO(), name, metav1.GetOptions{})
 				framework.ExpectNoError(err)
 				if scale.Spec.Replicas != int32(num) {
+					scale.ResourceVersion = "" // indicate the scale update should be unconditional
 					scale.Spec.Replicas = int32(num)
-					_, err = f.ClientSet.AppsV1().Deployments(ns).UpdateScale(name, scale)
+					_, err = f.ClientSet.AppsV1().Deployments(ns).UpdateScale(context.TODO(), name, scale, metav1.UpdateOptions{})
 					framework.ExpectNoError(err)
 				}
 				err = wait.Poll(10*time.Second, negUpdateTimeout, func() (bool, error) {
-					svc, err := f.ClientSet.CoreV1().Services(ns).Get(name, metav1.GetOptions{})
+					svc, err := f.ClientSet.CoreV1().Services(ns).Get(context.TODO(), name, metav1.GetOptions{})
 					framework.ExpectNoError(err)
 
 					var status ingress.NegStatus
@@ -533,46 +538,46 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 
 			// Add Ingress annotation - NEGs should stay the same.
 			ginkgo.By("Adding NEG Ingress annotation")
-			svcList, err := f.ClientSet.CoreV1().Services(ns).List(metav1.ListOptions{})
+			svcList, err := f.ClientSet.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
 			framework.ExpectNoError(err)
 			for _, svc := range svcList.Items {
 				svc.Annotations[ingress.NEGAnnotation] = `{"ingress":true,"exposed_ports":{"80":{},"443":{}}}`
-				_, err = f.ClientSet.CoreV1().Services(ns).Update(&svc)
+				_, err = f.ClientSet.CoreV1().Services(ns).Update(context.TODO(), &svc, metav1.UpdateOptions{})
 				framework.ExpectNoError(err)
 			}
 			detectNegAnnotation(f, jig, gceController, ns, name, 2)
 
 			// Modify exposed NEG annotation, but keep ingress annotation
 			ginkgo.By("Modifying exposed NEG annotation, but keep Ingress annotation")
-			svcList, err = f.ClientSet.CoreV1().Services(ns).List(metav1.ListOptions{})
+			svcList, err = f.ClientSet.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
 			framework.ExpectNoError(err)
 			for _, svc := range svcList.Items {
 				svc.Annotations[ingress.NEGAnnotation] = `{"ingress":true,"exposed_ports":{"443":{}}}`
-				_, err = f.ClientSet.CoreV1().Services(ns).Update(&svc)
+				_, err = f.ClientSet.CoreV1().Services(ns).Update(context.TODO(), &svc, metav1.UpdateOptions{})
 				framework.ExpectNoError(err)
 			}
 			detectNegAnnotation(f, jig, gceController, ns, name, 2)
 
 			// Remove Ingress annotation. Expect 1 NEG
 			ginkgo.By("Disabling Ingress annotation, but keeping one standalone NEG")
-			svcList, err = f.ClientSet.CoreV1().Services(ns).List(metav1.ListOptions{})
+			svcList, err = f.ClientSet.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
 			framework.ExpectNoError(err)
 			for _, svc := range svcList.Items {
 				svc.Annotations[ingress.NEGAnnotation] = `{"ingress":false,"exposed_ports":{"443":{}}}`
-				_, err = f.ClientSet.CoreV1().Services(ns).Update(&svc)
+				_, err = f.ClientSet.CoreV1().Services(ns).Update(context.TODO(), &svc, metav1.UpdateOptions{})
 				framework.ExpectNoError(err)
 			}
 			detectNegAnnotation(f, jig, gceController, ns, name, 1)
 
 			// Remove NEG annotation entirely. Expect 0 NEGs.
 			ginkgo.By("Removing NEG annotation")
-			svcList, err = f.ClientSet.CoreV1().Services(ns).List(metav1.ListOptions{})
+			svcList, err = f.ClientSet.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
 			framework.ExpectNoError(err)
 			for _, svc := range svcList.Items {
 				delete(svc.Annotations, ingress.NEGAnnotation)
 				// Service cannot be ClusterIP if it's using Instance Groups.
 				svc.Spec.Type = v1.ServiceTypeNodePort
-				_, err = f.ClientSet.CoreV1().Services(ns).Update(&svc)
+				_, err = f.ClientSet.CoreV1().Services(ns).Update(context.TODO(), &svc, metav1.UpdateOptions{})
 				framework.ExpectNoError(err)
 			}
 			detectNegAnnotation(f, jig, gceController, ns, name, 0)
@@ -585,7 +590,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 
 		// Platform specific setup
 		ginkgo.BeforeEach(func() {
-			framework.SkipUnlessProviderIs("gce", "gke")
+			e2eskipper.SkipUnlessProviderIs("gce", "gke")
 			jig.Class = ingress.MulticlusterIngressClassValue
 			jig.PollInterval = 5 * time.Second
 			ginkgo.By("Initializing gce controller")
@@ -713,7 +718,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 		var nginxController *ingress.NginxIngressController
 
 		ginkgo.BeforeEach(func() {
-			framework.SkipUnlessProviderIs("gce", "gke")
+			e2eskipper.SkipUnlessProviderIs("gce", "gke")
 			ginkgo.By("Initializing nginx controller")
 			jig.Class = "nginx"
 			nginxController = &ingress.NginxIngressController{Ns: ns, Client: jig.Client}
@@ -789,7 +794,7 @@ func executePresharedCertTest(f *framework.Framework, jig *ingress.TestJig, stat
 		}
 		ginkgo.By(fmt.Sprintf("Deleting ssl certificate %q on GCE", preSharedCertName))
 		err := wait.Poll(e2eservice.LoadBalancerPollInterval, e2eservice.LoadBalancerCleanupTimeout, func() (bool, error) {
-			if err := gceCloud.DeleteSslCertificate(preSharedCertName); err != nil && !errors.IsNotFound(err) {
+			if err := gceCloud.DeleteSslCertificate(preSharedCertName); err != nil && !apierrors.IsNotFound(err) {
 				framework.Logf("ginkgo.Failed to delete ssl certificate %q: %v. Retrying...", preSharedCertName, err)
 				return false, nil
 			}
@@ -871,7 +876,7 @@ func executeBacksideBacksideHTTPSTest(f *framework.Framework, jig *ingress.TestJ
 
 func detectNegAnnotation(f *framework.Framework, jig *ingress.TestJig, gceController *gce.IngressController, ns, name string, negs int) {
 	if err := wait.Poll(5*time.Second, negUpdateTimeout, func() (bool, error) {
-		svc, err := f.ClientSet.CoreV1().Services(ns).Get(name, metav1.GetOptions{})
+		svc, err := f.ClientSet.CoreV1().Services(ns).Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}

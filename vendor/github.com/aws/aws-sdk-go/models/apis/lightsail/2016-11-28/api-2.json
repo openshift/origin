@@ -408,6 +408,23 @@
         {"shape":"UnauthenticatedException"}
       ]
     },
+    "DeleteAutoSnapshot":{
+      "name":"DeleteAutoSnapshot",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteAutoSnapshotRequest"},
+      "output":{"shape":"DeleteAutoSnapshotResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"UnauthenticatedException"}
+      ]
+    },
     "DeleteDisk":{
       "name":"DeleteDisk",
       "http":{
@@ -524,6 +541,24 @@
       },
       "input":{"shape":"DeleteKeyPairRequest"},
       "output":{"shape":"DeleteKeyPairResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ]
+    },
+    "DeleteKnownHostKeys":{
+      "name":"DeleteKnownHostKeys",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteKnownHostKeysRequest"},
+      "output":{"shape":"DeleteKnownHostKeysResult"},
       "errors":[
         {"shape":"ServiceException"},
         {"shape":"InvalidInputException"},
@@ -660,6 +695,23 @@
         {"shape":"UnauthenticatedException"}
       ]
     },
+    "DisableAddOn":{
+      "name":"DisableAddOn",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DisableAddOnRequest"},
+      "output":{"shape":"DisableAddOnResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"UnauthenticatedException"}
+      ]
+    },
     "DownloadDefaultKeyPair":{
       "name":"DownloadDefaultKeyPair",
       "http":{
@@ -675,6 +727,23 @@
         {"shape":"OperationFailureException"},
         {"shape":"AccessDeniedException"},
         {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ]
+    },
+    "EnableAddOn":{
+      "name":"EnableAddOn",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"EnableAddOnRequest"},
+      "output":{"shape":"EnableAddOnResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
         {"shape":"UnauthenticatedException"}
       ]
     },
@@ -711,6 +780,23 @@
         {"shape":"OperationFailureException"},
         {"shape":"AccessDeniedException"},
         {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ]
+    },
+    "GetAutoSnapshots":{
+      "name":"GetAutoSnapshots",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetAutoSnapshotsRequest"},
+      "output":{"shape":"GetAutoSnapshotsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
         {"shape":"UnauthenticatedException"}
       ]
     },
@@ -1841,6 +1927,35 @@
       },
       "exception":true
     },
+    "AddOn":{
+      "type":"structure",
+      "members":{
+        "name":{"shape":"string"},
+        "status":{"shape":"string"},
+        "snapshotTimeOfDay":{"shape":"TimeOfDay"},
+        "nextSnapshotTimeOfDay":{"shape":"TimeOfDay"}
+      }
+    },
+    "AddOnList":{
+      "type":"list",
+      "member":{"shape":"AddOn"}
+    },
+    "AddOnRequest":{
+      "type":"structure",
+      "required":["addOnType"],
+      "members":{
+        "addOnType":{"shape":"AddOnType"},
+        "autoSnapshotAddOnRequest":{"shape":"AutoSnapshotAddOnRequest"}
+      }
+    },
+    "AddOnRequestList":{
+      "type":"list",
+      "member":{"shape":"AddOnRequest"}
+    },
+    "AddOnType":{
+      "type":"string",
+      "enum":["AutoSnapshot"]
+    },
     "AllocateStaticIpRequest":{
       "type":"structure",
       "required":["staticIpName"],
@@ -1924,10 +2039,53 @@
         "operations":{"shape":"OperationList"}
       }
     },
+    "AttachedDisk":{
+      "type":"structure",
+      "members":{
+        "path":{"shape":"string"},
+        "sizeInGb":{"shape":"integer"}
+      }
+    },
+    "AttachedDiskList":{
+      "type":"list",
+      "member":{"shape":"AttachedDisk"}
+    },
     "AttachedDiskMap":{
       "type":"map",
       "key":{"shape":"ResourceName"},
       "value":{"shape":"DiskMapList"}
+    },
+    "AutoSnapshotAddOnRequest":{
+      "type":"structure",
+      "members":{
+        "snapshotTimeOfDay":{"shape":"TimeOfDay"}
+      }
+    },
+    "AutoSnapshotDate":{
+      "type":"string",
+      "pattern":"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "AutoSnapshotDetails":{
+      "type":"structure",
+      "members":{
+        "date":{"shape":"string"},
+        "createdAt":{"shape":"IsoDate"},
+        "status":{"shape":"AutoSnapshotStatus"},
+        "fromAttachedDisks":{"shape":"AttachedDiskList"}
+      }
+    },
+    "AutoSnapshotDetailsList":{
+      "type":"list",
+      "member":{"shape":"AutoSnapshotDetails"}
+    },
+    "AutoSnapshotStatus":{
+      "type":"string",
+      "enum":[
+        "Success",
+        "Failed",
+        "InProgress",
+        "NotFound"
+      ]
     },
     "AvailabilityZone":{
       "type":"structure",
@@ -2042,12 +2200,14 @@
     "CopySnapshotRequest":{
       "type":"structure",
       "required":[
-        "sourceSnapshotName",
         "targetSnapshotName",
         "sourceRegion"
       ],
       "members":{
         "sourceSnapshotName":{"shape":"ResourceName"},
+        "sourceResourceName":{"shape":"string"},
+        "restoreDate":{"shape":"string"},
+        "useLatestRestorableAutoSnapshot":{"shape":"boolean"},
         "targetSnapshotName":{"shape":"ResourceName"},
         "sourceRegion":{"shape":"RegionName"}
       }
@@ -2075,7 +2235,6 @@
       "type":"structure",
       "required":[
         "diskName",
-        "diskSnapshotName",
         "availabilityZone",
         "sizeInGb"
       ],
@@ -2084,7 +2243,11 @@
         "diskSnapshotName":{"shape":"ResourceName"},
         "availabilityZone":{"shape":"NonEmptyString"},
         "sizeInGb":{"shape":"integer"},
-        "tags":{"shape":"TagList"}
+        "tags":{"shape":"TagList"},
+        "addOns":{"shape":"AddOnRequestList"},
+        "sourceDiskName":{"shape":"string"},
+        "restoreDate":{"shape":"string"},
+        "useLatestRestorableAutoSnapshot":{"shape":"boolean"}
       }
     },
     "CreateDiskFromSnapshotResult":{
@@ -2104,7 +2267,8 @@
         "diskName":{"shape":"ResourceName"},
         "availabilityZone":{"shape":"NonEmptyString"},
         "sizeInGb":{"shape":"integer"},
-        "tags":{"shape":"TagList"}
+        "tags":{"shape":"TagList"},
+        "addOns":{"shape":"AddOnRequestList"}
       }
     },
     "CreateDiskResult":{
@@ -2183,7 +2347,6 @@
       "required":[
         "instanceNames",
         "availabilityZone",
-        "instanceSnapshotName",
         "bundleId"
       ],
       "members":{
@@ -2194,7 +2357,11 @@
         "bundleId":{"shape":"NonEmptyString"},
         "userData":{"shape":"string"},
         "keyPairName":{"shape":"ResourceName"},
-        "tags":{"shape":"TagList"}
+        "tags":{"shape":"TagList"},
+        "addOns":{"shape":"AddOnRequestList"},
+        "sourceInstanceName":{"shape":"string"},
+        "restoreDate":{"shape":"string"},
+        "useLatestRestorableAutoSnapshot":{"shape":"boolean"}
       }
     },
     "CreateInstancesFromSnapshotResult":{
@@ -2222,7 +2389,8 @@
         "bundleId":{"shape":"NonEmptyString"},
         "userData":{"shape":"string"},
         "keyPairName":{"shape":"ResourceName"},
-        "tags":{"shape":"TagList"}
+        "tags":{"shape":"TagList"},
+        "addOns":{"shape":"AddOnRequestList"}
       }
     },
     "CreateInstancesResult":{
@@ -2359,11 +2527,29 @@
         "operations":{"shape":"OperationList"}
       }
     },
+    "DeleteAutoSnapshotRequest":{
+      "type":"structure",
+      "required":[
+        "resourceName",
+        "date"
+      ],
+      "members":{
+        "resourceName":{"shape":"ResourceName"},
+        "date":{"shape":"AutoSnapshotDate"}
+      }
+    },
+    "DeleteAutoSnapshotResult":{
+      "type":"structure",
+      "members":{
+        "operations":{"shape":"OperationList"}
+      }
+    },
     "DeleteDiskRequest":{
       "type":"structure",
       "required":["diskName"],
       "members":{
-        "diskName":{"shape":"ResourceName"}
+        "diskName":{"shape":"ResourceName"},
+        "forceDeleteAddOns":{"shape":"boolean"}
       }
     },
     "DeleteDiskResult":{
@@ -2419,7 +2605,8 @@
       "type":"structure",
       "required":["instanceName"],
       "members":{
-        "instanceName":{"shape":"ResourceName"}
+        "instanceName":{"shape":"ResourceName"},
+        "forceDeleteAddOns":{"shape":"boolean"}
       }
     },
     "DeleteInstanceResult":{
@@ -2452,6 +2639,19 @@
       "type":"structure",
       "members":{
         "operation":{"shape":"Operation"}
+      }
+    },
+    "DeleteKnownHostKeysRequest":{
+      "type":"structure",
+      "required":["instanceName"],
+      "members":{
+        "instanceName":{"shape":"ResourceName"}
+      }
+    },
+    "DeleteKnownHostKeysResult":{
+      "type":"structure",
+      "members":{
+        "operations":{"shape":"OperationList"}
       }
     },
     "DeleteLoadBalancerRequest":{
@@ -2563,6 +2763,23 @@
         "operations":{"shape":"OperationList"}
       }
     },
+    "DisableAddOnRequest":{
+      "type":"structure",
+      "required":[
+        "addOnType",
+        "resourceName"
+      ],
+      "members":{
+        "addOnType":{"shape":"AddOnType"},
+        "resourceName":{"shape":"ResourceName"}
+      }
+    },
+    "DisableAddOnResult":{
+      "type":"structure",
+      "members":{
+        "operations":{"shape":"OperationList"}
+      }
+    },
     "Disk":{
       "type":"structure",
       "members":{
@@ -2573,6 +2790,7 @@
         "location":{"shape":"ResourceLocation"},
         "resourceType":{"shape":"ResourceType"},
         "tags":{"shape":"TagList"},
+        "addOns":{"shape":"AddOnList"},
         "sizeInGb":{"shape":"integer"},
         "isSystemDisk":{"shape":"boolean"},
         "iops":{"shape":"integer"},
@@ -2634,7 +2852,8 @@
         "fromDiskName":{"shape":"ResourceName"},
         "fromDiskArn":{"shape":"NonEmptyString"},
         "fromInstanceName":{"shape":"ResourceName"},
-        "fromInstanceArn":{"shape":"NonEmptyString"}
+        "fromInstanceArn":{"shape":"NonEmptyString"},
+        "isFromAutoSnapshot":{"shape":"boolean"}
       }
     },
     "DiskSnapshotInfo":{
@@ -2725,6 +2944,23 @@
         "privateKeyBase64":{"shape":"Base64"}
       }
     },
+    "EnableAddOnRequest":{
+      "type":"structure",
+      "required":[
+        "resourceName",
+        "addOnRequest"
+      ],
+      "members":{
+        "resourceName":{"shape":"ResourceName"},
+        "addOnRequest":{"shape":"AddOnRequest"}
+      }
+    },
+    "EnableAddOnResult":{
+      "type":"structure",
+      "members":{
+        "operations":{"shape":"OperationList"}
+      }
+    },
     "ExportSnapshotRecord":{
       "type":"structure",
       "members":{
@@ -2786,6 +3022,21 @@
       "members":{
         "activeNames":{"shape":"StringList"},
         "nextPageToken":{"shape":"string"}
+      }
+    },
+    "GetAutoSnapshotsRequest":{
+      "type":"structure",
+      "required":["resourceName"],
+      "members":{
+        "resourceName":{"shape":"ResourceName"}
+      }
+    },
+    "GetAutoSnapshotsResult":{
+      "type":"structure",
+      "members":{
+        "resourceName":{"shape":"ResourceName"},
+        "resourceType":{"shape":"ResourceType"},
+        "autoSnapshots":{"shape":"AutoSnapshotDetailsList"}
       }
     },
     "GetBlueprintsRequest":{
@@ -3405,6 +3656,22 @@
         "nextPageToken":{"shape":"string"}
       }
     },
+    "HostKeyAttributes":{
+      "type":"structure",
+      "members":{
+        "algorithm":{"shape":"string"},
+        "publicKey":{"shape":"string"},
+        "witnessedAt":{"shape":"IsoDate"},
+        "fingerprintSHA1":{"shape":"string"},
+        "fingerprintSHA256":{"shape":"string"},
+        "notValidBefore":{"shape":"IsoDate"},
+        "notValidAfter":{"shape":"IsoDate"}
+      }
+    },
+    "HostKeysList":{
+      "type":"list",
+      "member":{"shape":"HostKeyAttributes"}
+    },
     "ImportKeyPairRequest":{
       "type":"structure",
       "required":[
@@ -3435,6 +3702,7 @@
         "blueprintId":{"shape":"NonEmptyString"},
         "blueprintName":{"shape":"NonEmptyString"},
         "bundleId":{"shape":"NonEmptyString"},
+        "addOns":{"shape":"AddOnList"},
         "isStaticIp":{"shape":"boolean"},
         "privateIpAddress":{"shape":"IpAddress"},
         "publicIpAddress":{"shape":"IpAddress"},
@@ -3457,7 +3725,8 @@
         "privateKey":{"shape":"string"},
         "protocol":{"shape":"InstanceAccessProtocol"},
         "instanceName":{"shape":"ResourceName"},
-        "username":{"shape":"string"}
+        "username":{"shape":"string"},
+        "hostKeys":{"shape":"HostKeysList"}
       }
     },
     "InstanceAccessProtocol":{
@@ -3613,6 +3882,7 @@
         "fromInstanceArn":{"shape":"NonEmptyString"},
         "fromBlueprintId":{"shape":"string"},
         "fromBundleId":{"shape":"string"},
+        "isFromAutoSnapshot":{"shape":"boolean"},
         "sizeInGb":{"shape":"integer"}
       }
     },
@@ -4061,6 +4331,7 @@
     "OperationType":{
       "type":"string",
       "enum":[
+        "DeleteKnownHostKeys",
         "DeleteInstance",
         "CreateInstance",
         "StopInstance",
@@ -4104,7 +4375,9 @@
         "UpdateRelationalDatabaseParameters",
         "StartRelationalDatabase",
         "RebootRelationalDatabase",
-        "StopRelationalDatabase"
+        "StopRelationalDatabase",
+        "EnableAddOn",
+        "DisableAddOn"
       ]
     },
     "PasswordData":{
@@ -4301,7 +4574,8 @@
         "preferredMaintenanceWindow":{"shape":"NonEmptyString"},
         "publiclyAccessible":{"shape":"boolean"},
         "masterEndpoint":{"shape":"RelationalDatabaseEndpoint"},
-        "pendingMaintenanceActions":{"shape":"PendingMaintenanceActionList"}
+        "pendingMaintenanceActions":{"shape":"PendingMaintenanceActionList"},
+        "caCertificateIdentifier":{"shape":"string"}
       }
     },
     "RelationalDatabaseBlueprint":{
@@ -4445,6 +4719,10 @@
       "members":{
         "operations":{"shape":"OperationList"}
       }
+    },
+    "ResourceArn":{
+      "type":"string",
+      "pattern":"^arn:(aws[^:]*):([a-zA-Z0-9-]+):([a-z0-9-]+):([0-9]+):([a-zA-Z]+)/([a-zA-Z0-9-]+)$"
     },
     "ResourceLocation":{
       "type":"structure",
@@ -4600,6 +4878,7 @@
       ],
       "members":{
         "resourceName":{"shape":"ResourceName"},
+        "resourceArn":{"shape":"ResourceArn"},
         "tags":{"shape":"TagList"}
       }
     },
@@ -4610,6 +4889,10 @@
       }
     },
     "TagValue":{"type":"string"},
+    "TimeOfDay":{
+      "type":"string",
+      "pattern":"^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$"
+    },
     "UnauthenticatedException":{
       "type":"structure",
       "members":{
@@ -4639,6 +4922,7 @@
       ],
       "members":{
         "resourceName":{"shape":"ResourceName"},
+        "resourceArn":{"shape":"ResourceArn"},
         "tagKeys":{"shape":"TagKeyList"}
       }
     },
@@ -4713,7 +4997,8 @@
         "enableBackupRetention":{"shape":"boolean"},
         "disableBackupRetention":{"shape":"boolean"},
         "publiclyAccessible":{"shape":"boolean"},
-        "applyImmediately":{"shape":"boolean"}
+        "applyImmediately":{"shape":"boolean"},
+        "caCertificateIdentifier":{"shape":"string"}
       }
     },
     "UpdateRelationalDatabaseResult":{

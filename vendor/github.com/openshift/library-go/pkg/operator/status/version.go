@@ -1,6 +1,7 @@
 package status
 
 import (
+	"context"
 	"os"
 	"sync"
 
@@ -73,7 +74,7 @@ func VersionForOperatorFromEnv() string {
 
 func VersionForOperand(namespace, imagePullSpec string, configMapGetter corev1client.ConfigMapsGetter, eventRecorder events.Recorder) string {
 	versionMap := map[string]string{}
-	versionMapping, err := configMapGetter.ConfigMaps(namespace).Get("version-mapping", metav1.GetOptions{})
+	versionMapping, err := configMapGetter.ConfigMaps(namespace).Get(context.TODO(), "version-mapping", metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		eventRecorder.Warningf("VersionMappingFailure", "unable to get version mapping: %v", err)
 		return ""

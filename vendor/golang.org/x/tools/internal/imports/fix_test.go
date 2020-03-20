@@ -372,7 +372,37 @@ func foo() {
 }
 `,
 	},
+	// Merge import blocks, even when no additions are required.
+	{
+		name: "merge_import_blocks_no_fix",
+		in: `package foo
 
+import (
+	"fmt"
+)
+import "os"
+
+import (
+	"rsc.io/p"
+)
+
+var _, _ = os.Args, fmt.Println
+var _, _ = snappy.ErrCorrupt, p.P
+`,
+		out: `package foo
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/golang/snappy"
+	"rsc.io/p"
+)
+
+var _, _ = os.Args, fmt.Println
+var _, _ = snappy.ErrCorrupt, p.P
+`,
+	},
 	// Delete existing empty import block
 	{
 		name: "delete_empty_import_block",
@@ -1855,7 +1885,7 @@ func TestImportPathToNameGoPathParse(t *testing.T) {
 		if strings.Contains(t.Name(), "GoPackages") {
 			t.Skip("go/packages does not ignore package main")
 		}
-		r := t.env.getResolver()
+		r := t.env.GetResolver()
 		srcDir := filepath.Dir(t.exported.File("example.net/pkg", "z.go"))
 		names, err := r.loadPackageNames([]string{"example.net/pkg"}, srcDir)
 		if err != nil {
@@ -2438,4 +2468,35 @@ var _ = bytes.Buffer{}
 			Files: fm{"foo.go": input},
 		},
 	}.processTest(t, "foo.com", "foo.go", nil, nil, want)
+}
+
+// TestStdLibGetCandidates tests that get packages finds std library packages
+// with correct priorities.
+func TestStdLibGetCandidates(t *testing.T) {
+	want := []struct {
+		wantName string
+		wantPkg  string
+	}{
+		{"bytes", "bytes"},
+		{"rand", "crypto/rand"},
+		{"rand", "math/rand"},
+		{"http", "net/http"},
+	}
+
+	got, err := GetAllCandidates("", nil)
+	if err != nil {
+		t.Fatalf("Process() = %v", err)
+	}
+	wantIdx := 0
+	for _, fix := range got {
+		if wantIdx >= len(want) {
+			break
+		}
+		if want[wantIdx].wantName == fix.IdentName && want[wantIdx].wantPkg == fix.StmtInfo.ImportPath && "" == fix.StmtInfo.Name {
+			wantIdx++
+		}
+	}
+	if wantIdx < len(want) {
+		t.Errorf("expected to find candidate with path: %q, name: %q next in ordered scan of results`", want[wantIdx].wantPkg, want[wantIdx].wantName)
+	}
 }

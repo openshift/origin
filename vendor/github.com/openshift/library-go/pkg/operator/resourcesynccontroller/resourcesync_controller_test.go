@@ -241,10 +241,10 @@ func TestSyncConfigMap(t *testing.T) {
 	if err := c.Sync(context.TODO(), c.syncCtx); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := kubeClient.CoreV1().Secrets("operator").Get("foo", metav1.GetOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Secrets("operator").Get(context.TODO(), "foo", metav1.GetOptions{}); err != nil {
 		t.Error(err)
 	}
-	if _, err := kubeClient.CoreV1().ConfigMaps("operator").Get("apple", metav1.GetOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().ConfigMaps("operator").Get(context.TODO(), "apple", metav1.GetOptions{}); err != nil {
 		t.Error(err)
 	}
 
@@ -259,10 +259,10 @@ func TestSyncConfigMap(t *testing.T) {
 	if err := c.Sync(context.TODO(), c.syncCtx); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := kubeClient.CoreV1().Secrets("operator").Get("foo", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
+	if _, err := kubeClient.CoreV1().Secrets("operator").Get(context.TODO(), "foo", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
 		t.Error(err)
 	}
-	if _, err := kubeClient.CoreV1().ConfigMaps("operator").Get("apple", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
+	if _, err := kubeClient.CoreV1().ConfigMaps("operator").Get(context.TODO(), "apple", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
 		t.Error(err)
 	}
 }

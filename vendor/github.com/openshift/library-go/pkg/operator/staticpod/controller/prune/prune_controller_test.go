@@ -1,6 +1,7 @@
 package prune
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -220,15 +221,15 @@ func TestPruneAPIResources(t *testing.T) {
 		}
 		failedLimit, succeededLimit := getRevisionLimits(operatorSpec)
 
-		excludedRevisions, err := c.excludedRevisionHistory(eventRecorder, failedLimit, succeededLimit)
+		excludedRevisions, err := c.excludedRevisionHistory(context.TODO(), eventRecorder, failedLimit, succeededLimit)
 		if err != nil {
 			t.Fatalf("unexpected error %q", err)
 		}
-		if apiErr := c.pruneAPIResources(excludedRevisions, excludedRevisions[len(excludedRevisions)-1]); apiErr != nil {
+		if apiErr := c.pruneAPIResources(context.TODO(), excludedRevisions, excludedRevisions[len(excludedRevisions)-1]); apiErr != nil {
 			t.Fatalf("unexpected error %q", apiErr)
 		}
 
-		statusConfigMaps, err := c.configMapGetter.ConfigMaps(tc.targetNamespace).List(metav1.ListOptions{})
+		statusConfigMaps, err := c.configMapGetter.ConfigMaps(tc.targetNamespace).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			t.Fatalf("unexpected error %q", err)
 		}
@@ -432,7 +433,7 @@ func TestPruneDiskResources(t *testing.T) {
 			}
 			failedLimit, succeededLimit := getRevisionLimits(operatorSpec)
 
-			excludedRevisions, err := c.excludedRevisionHistory(eventRecorder, failedLimit, succeededLimit)
+			excludedRevisions, err := c.excludedRevisionHistory(context.TODO(), eventRecorder, failedLimit, succeededLimit)
 			if err != nil {
 				t.Fatalf("unexpected error %q", err)
 			}

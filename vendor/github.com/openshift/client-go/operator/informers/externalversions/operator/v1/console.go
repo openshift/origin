@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -44,13 +45,13 @@ func NewFilteredConsoleInformer(client versioned.Interface, resyncPeriod time.Du
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OperatorV1().Consoles().List(options)
+				return client.OperatorV1().Consoles().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OperatorV1().Consoles().Watch(options)
+				return client.OperatorV1().Consoles().Watch(context.TODO(), options)
 			},
 		},
 		&operatorv1.Console{},

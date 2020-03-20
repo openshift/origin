@@ -140,10 +140,16 @@ export WINDOWS_LOGS_DIR="${WINDOWS_K8S_DIR}\logs"
 export WINDOWS_CNI_DIR="${WINDOWS_K8S_DIR}\cni"
 # Directory where CNI config files will be stored on Windows nodes.
 export WINDOWS_CNI_CONFIG_DIR="${WINDOWS_K8S_DIR}\cni\config"
+# CNI storage path for Windows nodes
+export WINDOWS_CNI_STORAGE_PATH="https://storage.googleapis.com/k8s-artifacts-cni/release"
+# CNI version for Windows nodes
+export WINDOWS_CNI_VERSION="v0.8.5"
 # Pod manifests directory for Windows nodes on Windows nodes.
 export WINDOWS_MANIFESTS_DIR="${WINDOWS_K8S_DIR}\manifests"
 # Directory where cert/key files will be stores on Windows nodes.
 export WINDOWS_PKI_DIR="${WINDOWS_K8S_DIR}\pki"
+# Location of the certificates file on Windows nodes.
+export WINDOWS_CA_FILE="${WINDOWS_PKI_DIR}\ca-certificates.crt"
 # Path for kubelet config file on Windows nodes.
 export WINDOWS_KUBELET_CONFIG_FILE="${WINDOWS_K8S_DIR}\kubelet-config.yaml"
 # Path for kubeconfig file on Windows nodes.

@@ -109,6 +109,27 @@
         "id": "to-list-your-available-clusters-1527868801040",
         "title": "To list your available clusters"
       }
+    ],
+    "ListTagsForResource": [
+      {
+        "input": {
+          "resourceArn": "arn:aws:eks:us-west-2:012345678910:cluster/beta"
+        },
+        "output": {
+          "tags": {
+            "aws:tag:domain": "beta"
+          }
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example lists all of the tags for the `beta` cluster.",
+        "id": "to-list-tags-for-a-cluster-1568666903378",
+        "title": "To list tags for a cluster"
+      }
     ]
   }
 }

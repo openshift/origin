@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -44,13 +45,13 @@ func NewFilteredKubeSchedulerInformer(client versioned.Interface, resyncPeriod t
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OperatorV1().KubeSchedulers().List(options)
+				return client.OperatorV1().KubeSchedulers().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OperatorV1().KubeSchedulers().Watch(options)
+				return client.OperatorV1().KubeSchedulers().Watch(context.TODO(), options)
 			},
 		},
 		&operatorv1.KubeScheduler{},

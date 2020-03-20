@@ -17,6 +17,7 @@ limitations under the License.
 package inclusterclient
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"flag"
@@ -72,11 +73,12 @@ func main(cmd *cobra.Command, args []string) {
 
 	c := kubernetes.NewForConfigOrDie(cfg).RESTClient()
 
+	//lint:ignore SA1015 noisy positive, `time.Tick` is used in a main function which is fine
 	t := time.Tick(time.Duration(pollInterval) * time.Second)
 	for {
 		<-t
 		klog.Infof("calling /healthz")
-		b, err := c.Get().AbsPath("/healthz").Do().Raw()
+		b, err := c.Get().AbsPath("/healthz").Do(context.TODO()).Raw()
 		if err != nil {
 			klog.Errorf("status=failed")
 			klog.Errorf("error checking /healthz: %v\n%s\n", err, string(b))

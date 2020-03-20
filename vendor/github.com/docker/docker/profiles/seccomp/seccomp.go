@@ -8,7 +8,8 @@ import (
 	"fmt"
 
 	"github.com/docker/docker/api/types"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/docker/docker/pkg/parsers/kernel"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 )
 
@@ -110,6 +111,13 @@ Loop:
 				}
 			}
 		}
+		if call.Excludes.MinKernel != "" {
+			if ok, err := kernelGreaterEqualThan(call.Excludes.MinKernel); err != nil {
+				return nil, err
+			} else if ok {
+				continue Loop
+			}
+		}
 		if len(call.Includes.Arches) > 0 {
 			if !inSlice(call.Includes.Arches, arch) {
 				continue Loop
@@ -120,6 +128,13 @@ Loop:
 				if !inSlice(rs.Process.Capabilities.Bounding, c) {
 					continue Loop
 				}
+			}
+		}
+		if call.Includes.MinKernel != "" {
+			if ok, err := kernelGreaterEqualThan(call.Includes.MinKernel); err != nil {
+				return nil, err
+			} else if !ok {
+				continue Loop
 			}
 		}
 
@@ -157,4 +172,20 @@ func createSpecsSyscall(name string, action types.Action, args []*types.Arg) spe
 		newCall.Args = append(newCall.Args, newArg)
 	}
 	return newCall
+}
+
+var currentKernelVersion *kernel.VersionInfo
+
+func kernelGreaterEqualThan(v string) (bool, error) {
+	version, err := kernel.ParseRelease(v)
+	if err != nil {
+		return false, err
+	}
+	if currentKernelVersion == nil {
+		currentKernelVersion, err = kernel.GetKernelVersion()
+		if err != nil {
+			return false, err
+		}
+	}
+	return kernel.CompareKernelVersion(*version, *currentKernelVersion) <= 0, nil
 }

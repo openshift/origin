@@ -89,10 +89,10 @@ func Dlags2Test(t *testing.T, impl Dlags2er) {
 			}
 
 			tmp := blas64.General{Rows: 2, Cols: 2, Stride: 2, Data: make([]float64, 4)}
-			// Transform A as U^T*A*Q.
+			// Transform A as Uᵀ*A*Q.
 			blas64.Gemm(blas.Trans, blas.NoTrans, 1, u, a, 0, tmp)
 			blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, tmp, q, 0, a)
-			// Transform B as V^T*A*Q.
+			// Transform B as Vᵀ*A*Q.
 			blas64.Gemm(blas.Trans, blas.NoTrans, 1, v, b, 0, tmp)
 			blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, tmp, q, 0, b)
 
@@ -107,10 +107,10 @@ func Dlags2Test(t *testing.T, impl Dlags2er) {
 			}
 			// Check that they are indeed zero.
 			if !floats.EqualWithinAbsOrRel(gotA, 0, 1e-14, 1e-14) {
-				t.Errorf("unexpected non-zero value for zero triangle of U^T*A*Q: %v", gotA)
+				t.Errorf("unexpected non-zero value for zero triangle of Uᵀ*A*Q: %v", gotA)
 			}
 			if !floats.EqualWithinAbsOrRel(gotB, 0, 1e-14, 1e-14) {
-				t.Errorf("unexpected non-zero value for zero triangle of V^T*B*Q: %v", gotB)
+				t.Errorf("unexpected non-zero value for zero triangle of Vᵀ*B*Q: %v", gotB)
 			}
 		}
 	}

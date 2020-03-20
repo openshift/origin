@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -162,7 +163,7 @@ func TestUnmarshalError(t *testing.T) {
 		if e, a := c.Code, err.(awserr.Error).Code(); e != a {
 			t.Errorf("%d, Code: expect %s, got %s", i, e, a)
 		}
-		if e, a := c.Msg, err.(awserr.Error).Message(); e != a {
+		if e, a := c.Msg, err.(awserr.Error).Message(); !strings.Contains(a, e) {
 			t.Errorf("%d, Message: expect %s, got %s", i, e, a)
 		}
 		if e, a := c.ReqID, err.(awserr.RequestFailure).RequestID(); e != a {
@@ -213,9 +214,17 @@ func Test200NoErrorUnmarshalError(t *testing.T) {
 const completeMultiErrResp = `<Error><Code>SomeException</Code><Message>Exception message</Message></Error>`
 
 func Test200WithErrorUnmarshalError(t *testing.T) {
-	s := s3.New(unit.Session)
+	const expectAttempts = 4
+	s := s3.New(unit.Session, &aws.Config{
+		MaxRetries: aws.Int(expectAttempts - 1),
+		SleepDelay: func(time.Duration) {},
+	})
+
+	var attempts int
 	s.Handlers.Send.Clear()
 	s.Handlers.Send.PushBack(func(r *request.Request) {
+		attempts++
+
 		r.HTTPResponse = &http.Response{
 			StatusCode: 200,
 			Header: http.Header{
@@ -227,6 +236,7 @@ func Test200WithErrorUnmarshalError(t *testing.T) {
 		}
 		r.HTTPResponse.Status = http.StatusText(r.HTTPResponse.StatusCode)
 	})
+
 	_, err := s.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
 		Bucket: aws.String("bucket"), Key: aws.String("key"),
 		UploadId: aws.String("id"),
@@ -237,6 +247,9 @@ func Test200WithErrorUnmarshalError(t *testing.T) {
 
 	if err == nil {
 		t.Fatalf("expected error, got nil")
+	}
+	if e, a := expectAttempts, attempts; e != a {
+		t.Errorf("expect %v attempts, got %v", e, a)
 	}
 	if e, a := "SomeException", err.(awserr.Error).Code(); e != a {
 		t.Errorf("Code: expect %s, got %s", e, a)

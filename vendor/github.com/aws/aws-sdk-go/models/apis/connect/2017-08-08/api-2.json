@@ -157,6 +157,70 @@
         {"shape":"ResourceNotFoundException"}
       ]
     },
+    "ListContactFlows":{
+      "name":"ListContactFlows",
+      "http":{
+        "method":"GET",
+        "requestUri":"/contact-flows-summary/{InstanceId}"
+      },
+      "input":{"shape":"ListContactFlowsRequest"},
+      "output":{"shape":"ListContactFlowsResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ThrottlingException"},
+        {"shape":"InternalServiceException"}
+      ]
+    },
+    "ListHoursOfOperations":{
+      "name":"ListHoursOfOperations",
+      "http":{
+        "method":"GET",
+        "requestUri":"/hours-of-operations-summary/{InstanceId}"
+      },
+      "input":{"shape":"ListHoursOfOperationsRequest"},
+      "output":{"shape":"ListHoursOfOperationsResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ThrottlingException"},
+        {"shape":"InternalServiceException"}
+      ]
+    },
+    "ListPhoneNumbers":{
+      "name":"ListPhoneNumbers",
+      "http":{
+        "method":"GET",
+        "requestUri":"/phone-numbers-summary/{InstanceId}"
+      },
+      "input":{"shape":"ListPhoneNumbersRequest"},
+      "output":{"shape":"ListPhoneNumbersResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ThrottlingException"},
+        {"shape":"InternalServiceException"}
+      ]
+    },
+    "ListQueues":{
+      "name":"ListQueues",
+      "http":{
+        "method":"GET",
+        "requestUri":"/queues-summary/{InstanceId}"
+      },
+      "input":{"shape":"ListQueuesRequest"},
+      "output":{"shape":"ListQueuesResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ThrottlingException"},
+        {"shape":"InternalServiceException"}
+      ]
+    },
     "ListRoutingProfiles":{
       "name":"ListRoutingProfiles",
       "http":{
@@ -187,6 +251,22 @@
         {"shape":"ResourceNotFoundException"},
         {"shape":"ThrottlingException"},
         {"shape":"InternalServiceException"}
+      ]
+    },
+    "ListTagsForResource":{
+      "name":"ListTagsForResource",
+      "http":{
+        "method":"GET",
+        "requestUri":"/tags/{resourceArn}"
+      },
+      "input":{"shape":"ListTagsForResourceRequest"},
+      "output":{"shape":"ListTagsForResourceResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ThrottlingException"}
       ]
     },
     "ListUserHierarchyGroups":{
@@ -221,6 +301,22 @@
         {"shape":"InternalServiceException"}
       ]
     },
+    "StartChatContact":{
+      "name":"StartChatContact",
+      "http":{
+        "method":"PUT",
+        "requestUri":"/contact/chat"
+      },
+      "input":{"shape":"StartChatContactRequest"},
+      "output":{"shape":"StartChatContactResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
     "StartOutboundVoiceContact":{
       "name":"StartOutboundVoiceContact",
       "http":{
@@ -253,6 +349,36 @@
         {"shape":"InvalidParameterException"},
         {"shape":"ResourceNotFoundException"},
         {"shape":"InternalServiceException"}
+      ]
+    },
+    "TagResource":{
+      "name":"TagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/tags/{resourceArn}"
+      },
+      "input":{"shape":"TagResourceRequest"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ThrottlingException"}
+      ]
+    },
+    "UntagResource":{
+      "name":"UntagResource",
+      "http":{
+        "method":"DELETE",
+        "requestUri":"/tags/{resourceArn}"
+      },
+      "input":{"shape":"UntagResourceRequest"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ThrottlingException"}
       ]
     },
     "UpdateContactAttributes":{
@@ -364,9 +490,8 @@
     },
     "AgentUsername":{
       "type":"string",
-      "max":20,
-      "min":1,
-      "pattern":"[a-zA-Z0-9\\_\\-\\.]+"
+      "max":100,
+      "min":1
     },
     "AttributeName":{
       "type":"string",
@@ -386,12 +511,36 @@
     "AutoAccept":{"type":"boolean"},
     "Channel":{
       "type":"string",
-      "enum":["VOICE"]
+      "enum":[
+        "VOICE",
+        "CHAT"
+      ]
     },
     "Channels":{
       "type":"list",
       "member":{"shape":"Channel"},
       "max":1
+    },
+    "ChatContent":{
+      "type":"string",
+      "max":1024,
+      "min":1
+    },
+    "ChatContentType":{
+      "type":"string",
+      "max":100,
+      "min":1
+    },
+    "ChatMessage":{
+      "type":"structure",
+      "required":[
+        "ContentType",
+        "Content"
+      ],
+      "members":{
+        "ContentType":{"shape":"ChatContentType"},
+        "Content":{"shape":"ChatContent"}
+      }
     },
     "ClientToken":{
       "type":"string",
@@ -404,6 +553,39 @@
     "ContactFlowId":{
       "type":"string",
       "max":500
+    },
+    "ContactFlowName":{"type":"string"},
+    "ContactFlowSummary":{
+      "type":"structure",
+      "members":{
+        "Id":{"shape":"ContactFlowId"},
+        "Arn":{"shape":"ARN"},
+        "Name":{"shape":"ContactFlowName"},
+        "ContactFlowType":{"shape":"ContactFlowType"}
+      }
+    },
+    "ContactFlowSummaryList":{
+      "type":"list",
+      "member":{"shape":"ContactFlowSummary"}
+    },
+    "ContactFlowType":{
+      "type":"string",
+      "enum":[
+        "CONTACT_FLOW",
+        "CUSTOMER_QUEUE",
+        "CUSTOMER_HOLD",
+        "CUSTOMER_WHISPER",
+        "AGENT_HOLD",
+        "AGENT_WHISPER",
+        "OUTBOUND_WHISPER",
+        "AGENT_TRANSFER",
+        "QUEUE_TRANSFER"
+      ]
+    },
+    "ContactFlowTypes":{
+      "type":"list",
+      "member":{"shape":"ContactFlowType"},
+      "max":10
     },
     "ContactId":{
       "type":"string",
@@ -440,7 +622,8 @@
           "shape":"InstanceId",
           "location":"uri",
           "locationName":"InstanceId"
-        }
+        },
+        "Tags":{"shape":"TagMap"}
       }
     },
     "CreateUserResponse":{
@@ -492,7 +675,10 @@
         "AGENTS_STAFFED",
         "CONTACTS_IN_QUEUE",
         "OLDEST_CONTACT_AGE",
-        "CONTACTS_SCHEDULED"
+        "CONTACTS_SCHEDULED",
+        "AGENTS_ON_CONTACT",
+        "SLOTS_ACTIVE",
+        "SLOTS_AVAILABLE"
       ]
     },
     "CurrentMetricResult":{
@@ -612,6 +798,11 @@
       }
     },
     "DirectoryUserId":{"type":"string"},
+    "DisplayName":{
+      "type":"string",
+      "max":256,
+      "min":1
+    },
     "DuplicateResourceException":{
       "type":"structure",
       "members":{
@@ -872,6 +1063,20 @@
       "type":"list",
       "member":{"shape":"HistoricalMetric"}
     },
+    "HoursOfOperationId":{"type":"string"},
+    "HoursOfOperationName":{"type":"string"},
+    "HoursOfOperationSummary":{
+      "type":"structure",
+      "members":{
+        "Id":{"shape":"HoursOfOperationId"},
+        "Arn":{"shape":"ARN"},
+        "Name":{"shape":"HoursOfOperationName"}
+      }
+    },
+    "HoursOfOperationSummaryList":{
+      "type":"list",
+      "member":{"shape":"HoursOfOperationSummary"}
+    },
     "InstanceId":{
       "type":"string",
       "max":100,
@@ -908,6 +1113,138 @@
       },
       "error":{"httpStatusCode":429},
       "exception":true
+    },
+    "ListContactFlowsRequest":{
+      "type":"structure",
+      "required":["InstanceId"],
+      "members":{
+        "InstanceId":{
+          "shape":"InstanceId",
+          "location":"uri",
+          "locationName":"InstanceId"
+        },
+        "ContactFlowTypes":{
+          "shape":"ContactFlowTypes",
+          "location":"querystring",
+          "locationName":"contactFlowTypes"
+        },
+        "NextToken":{
+          "shape":"NextToken",
+          "location":"querystring",
+          "locationName":"nextToken"
+        },
+        "MaxResults":{
+          "shape":"MaxResult1000",
+          "location":"querystring",
+          "locationName":"maxResults"
+        }
+      }
+    },
+    "ListContactFlowsResponse":{
+      "type":"structure",
+      "members":{
+        "ContactFlowSummaryList":{"shape":"ContactFlowSummaryList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListHoursOfOperationsRequest":{
+      "type":"structure",
+      "required":["InstanceId"],
+      "members":{
+        "InstanceId":{
+          "shape":"InstanceId",
+          "location":"uri",
+          "locationName":"InstanceId"
+        },
+        "NextToken":{
+          "shape":"NextToken",
+          "location":"querystring",
+          "locationName":"nextToken"
+        },
+        "MaxResults":{
+          "shape":"MaxResult1000",
+          "location":"querystring",
+          "locationName":"maxResults"
+        }
+      }
+    },
+    "ListHoursOfOperationsResponse":{
+      "type":"structure",
+      "members":{
+        "HoursOfOperationSummaryList":{"shape":"HoursOfOperationSummaryList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListPhoneNumbersRequest":{
+      "type":"structure",
+      "required":["InstanceId"],
+      "members":{
+        "InstanceId":{
+          "shape":"InstanceId",
+          "location":"uri",
+          "locationName":"InstanceId"
+        },
+        "PhoneNumberTypes":{
+          "shape":"PhoneNumberTypes",
+          "location":"querystring",
+          "locationName":"phoneNumberTypes"
+        },
+        "PhoneNumberCountryCodes":{
+          "shape":"PhoneNumberCountryCodes",
+          "location":"querystring",
+          "locationName":"phoneNumberCountryCodes"
+        },
+        "NextToken":{
+          "shape":"NextToken",
+          "location":"querystring",
+          "locationName":"nextToken"
+        },
+        "MaxResults":{
+          "shape":"MaxResult1000",
+          "location":"querystring",
+          "locationName":"maxResults"
+        }
+      }
+    },
+    "ListPhoneNumbersResponse":{
+      "type":"structure",
+      "members":{
+        "PhoneNumberSummaryList":{"shape":"PhoneNumberSummaryList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListQueuesRequest":{
+      "type":"structure",
+      "required":["InstanceId"],
+      "members":{
+        "InstanceId":{
+          "shape":"InstanceId",
+          "location":"uri",
+          "locationName":"InstanceId"
+        },
+        "QueueTypes":{
+          "shape":"QueueTypes",
+          "location":"querystring",
+          "locationName":"queueTypes"
+        },
+        "NextToken":{
+          "shape":"NextToken",
+          "location":"querystring",
+          "locationName":"nextToken"
+        },
+        "MaxResults":{
+          "shape":"MaxResult1000",
+          "location":"querystring",
+          "locationName":"maxResults"
+        }
+      }
+    },
+    "ListQueuesResponse":{
+      "type":"structure",
+      "members":{
+        "QueueSummaryList":{"shape":"QueueSummaryList"},
+        "NextToken":{"shape":"NextToken"}
+      }
     },
     "ListRoutingProfilesRequest":{
       "type":"structure",
@@ -965,6 +1302,23 @@
       "members":{
         "SecurityProfileSummaryList":{"shape":"SecurityProfileSummaryList"},
         "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListTagsForResourceRequest":{
+      "type":"structure",
+      "required":["resourceArn"],
+      "members":{
+        "resourceArn":{
+          "shape":"ARN",
+          "location":"uri",
+          "locationName":"resourceArn"
+        }
+      }
+    },
+    "ListTagsForResourceResponse":{
+      "type":"structure",
+      "members":{
+        "tags":{"shape":"TagMap"}
       }
     },
     "ListUserHierarchyGroupsRequest":{
@@ -1045,11 +1399,302 @@
       "error":{"httpStatusCode":403},
       "exception":true
     },
+    "ParticipantDetails":{
+      "type":"structure",
+      "required":["DisplayName"],
+      "members":{
+        "DisplayName":{"shape":"DisplayName"}
+      }
+    },
+    "ParticipantId":{
+      "type":"string",
+      "max":256,
+      "min":1
+    },
+    "ParticipantToken":{
+      "type":"string",
+      "max":1000,
+      "min":1
+    },
     "Password":{
       "type":"string",
       "pattern":"/^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d\\S]{8,64}$/"
     },
     "PhoneNumber":{"type":"string"},
+    "PhoneNumberCountryCode":{
+      "type":"string",
+      "enum":[
+        "AF",
+        "AL",
+        "DZ",
+        "AS",
+        "AD",
+        "AO",
+        "AI",
+        "AQ",
+        "AG",
+        "AR",
+        "AM",
+        "AW",
+        "AU",
+        "AT",
+        "AZ",
+        "BS",
+        "BH",
+        "BD",
+        "BB",
+        "BY",
+        "BE",
+        "BZ",
+        "BJ",
+        "BM",
+        "BT",
+        "BO",
+        "BA",
+        "BW",
+        "BR",
+        "IO",
+        "VG",
+        "BN",
+        "BG",
+        "BF",
+        "BI",
+        "KH",
+        "CM",
+        "CA",
+        "CV",
+        "KY",
+        "CF",
+        "TD",
+        "CL",
+        "CN",
+        "CX",
+        "CC",
+        "CO",
+        "KM",
+        "CK",
+        "CR",
+        "HR",
+        "CU",
+        "CW",
+        "CY",
+        "CZ",
+        "CD",
+        "DK",
+        "DJ",
+        "DM",
+        "DO",
+        "TL",
+        "EC",
+        "EG",
+        "SV",
+        "GQ",
+        "ER",
+        "EE",
+        "ET",
+        "FK",
+        "FO",
+        "FJ",
+        "FI",
+        "FR",
+        "PF",
+        "GA",
+        "GM",
+        "GE",
+        "DE",
+        "GH",
+        "GI",
+        "GR",
+        "GL",
+        "GD",
+        "GU",
+        "GT",
+        "GG",
+        "GN",
+        "GW",
+        "GY",
+        "HT",
+        "HN",
+        "HK",
+        "HU",
+        "IS",
+        "IN",
+        "ID",
+        "IR",
+        "IQ",
+        "IE",
+        "IM",
+        "IL",
+        "IT",
+        "CI",
+        "JM",
+        "JP",
+        "JE",
+        "JO",
+        "KZ",
+        "KE",
+        "KI",
+        "KW",
+        "KG",
+        "LA",
+        "LV",
+        "LB",
+        "LS",
+        "LR",
+        "LY",
+        "LI",
+        "LT",
+        "LU",
+        "MO",
+        "MK",
+        "MG",
+        "MW",
+        "MY",
+        "MV",
+        "ML",
+        "MT",
+        "MH",
+        "MR",
+        "MU",
+        "YT",
+        "MX",
+        "FM",
+        "MD",
+        "MC",
+        "MN",
+        "ME",
+        "MS",
+        "MA",
+        "MZ",
+        "MM",
+        "NA",
+        "NR",
+        "NP",
+        "NL",
+        "AN",
+        "NC",
+        "NZ",
+        "NI",
+        "NE",
+        "NG",
+        "NU",
+        "KP",
+        "MP",
+        "NO",
+        "OM",
+        "PK",
+        "PW",
+        "PA",
+        "PG",
+        "PY",
+        "PE",
+        "PH",
+        "PN",
+        "PL",
+        "PT",
+        "PR",
+        "QA",
+        "CG",
+        "RE",
+        "RO",
+        "RU",
+        "RW",
+        "BL",
+        "SH",
+        "KN",
+        "LC",
+        "MF",
+        "PM",
+        "VC",
+        "WS",
+        "SM",
+        "ST",
+        "SA",
+        "SN",
+        "RS",
+        "SC",
+        "SL",
+        "SG",
+        "SX",
+        "SK",
+        "SI",
+        "SB",
+        "SO",
+        "ZA",
+        "KR",
+        "ES",
+        "LK",
+        "SD",
+        "SR",
+        "SJ",
+        "SZ",
+        "SE",
+        "CH",
+        "SY",
+        "TW",
+        "TJ",
+        "TZ",
+        "TH",
+        "TG",
+        "TK",
+        "TO",
+        "TT",
+        "TN",
+        "TR",
+        "TM",
+        "TC",
+        "TV",
+        "VI",
+        "UG",
+        "UA",
+        "AE",
+        "GB",
+        "US",
+        "UY",
+        "UZ",
+        "VU",
+        "VA",
+        "VE",
+        "VN",
+        "WF",
+        "EH",
+        "YE",
+        "ZM",
+        "ZW"
+      ]
+    },
+    "PhoneNumberCountryCodes":{
+      "type":"list",
+      "member":{"shape":"PhoneNumberCountryCode"},
+      "max":10
+    },
+    "PhoneNumberId":{"type":"string"},
+    "PhoneNumberSummary":{
+      "type":"structure",
+      "members":{
+        "Id":{"shape":"PhoneNumberId"},
+        "Arn":{"shape":"ARN"},
+        "PhoneNumber":{"shape":"PhoneNumber"},
+        "PhoneNumberType":{"shape":"PhoneNumberType"},
+        "PhoneNumberCountryCode":{"shape":"PhoneNumberCountryCode"}
+      }
+    },
+    "PhoneNumberSummaryList":{
+      "type":"list",
+      "member":{"shape":"PhoneNumberSummary"}
+    },
+    "PhoneNumberType":{
+      "type":"string",
+      "enum":[
+        "TOLL_FREE",
+        "DID"
+      ]
+    },
+    "PhoneNumberTypes":{
+      "type":"list",
+      "member":{"shape":"PhoneNumberType"},
+      "max":2
+    },
     "PhoneType":{
       "type":"string",
       "enum":[
@@ -1058,12 +1703,42 @@
       ]
     },
     "QueueId":{"type":"string"},
+    "QueueName":{
+      "type":"string",
+      "max":256,
+      "min":1
+    },
     "QueueReference":{
       "type":"structure",
       "members":{
         "Id":{"shape":"QueueId"},
         "Arn":{"shape":"ARN"}
       }
+    },
+    "QueueSummary":{
+      "type":"structure",
+      "members":{
+        "Id":{"shape":"QueueId"},
+        "Arn":{"shape":"ARN"},
+        "Name":{"shape":"QueueName"},
+        "QueueType":{"shape":"QueueType"}
+      }
+    },
+    "QueueSummaryList":{
+      "type":"list",
+      "member":{"shape":"QueueSummary"}
+    },
+    "QueueType":{
+      "type":"string",
+      "enum":[
+        "STANDARD",
+        "AGENT"
+      ]
+    },
+    "QueueTypes":{
+      "type":"list",
+      "member":{"shape":"QueueType"},
+      "max":2
     },
     "Queues":{
       "type":"list",
@@ -1121,6 +1796,33 @@
       "type":"string",
       "sensitive":true
     },
+    "StartChatContactRequest":{
+      "type":"structure",
+      "required":[
+        "InstanceId",
+        "ContactFlowId",
+        "ParticipantDetails"
+      ],
+      "members":{
+        "InstanceId":{"shape":"InstanceId"},
+        "ContactFlowId":{"shape":"ContactFlowId"},
+        "Attributes":{"shape":"Attributes"},
+        "ParticipantDetails":{"shape":"ParticipantDetails"},
+        "InitialMessage":{"shape":"ChatMessage"},
+        "ClientToken":{
+          "shape":"ClientToken",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "StartChatContactResponse":{
+      "type":"structure",
+      "members":{
+        "ContactId":{"shape":"ContactId"},
+        "ParticipantId":{"shape":"ParticipantId"},
+        "ParticipantToken":{"shape":"ParticipantToken"}
+      }
+    },
     "StartOutboundVoiceContactRequest":{
       "type":"structure",
       "required":[
@@ -1171,6 +1873,44 @@
       "members":{
       }
     },
+    "TagKey":{
+      "type":"string",
+      "max":128,
+      "min":1,
+      "pattern":"^(?!aws:)[a-zA-Z+-=._:/]+$"
+    },
+    "TagKeyList":{
+      "type":"list",
+      "member":{"shape":"TagKey"},
+      "max":50,
+      "min":1
+    },
+    "TagMap":{
+      "type":"map",
+      "key":{"shape":"TagKey"},
+      "value":{"shape":"TagValue"},
+      "max":50,
+      "min":1
+    },
+    "TagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "resourceArn",
+        "tags"
+      ],
+      "members":{
+        "resourceArn":{
+          "shape":"ARN",
+          "location":"uri",
+          "locationName":"resourceArn"
+        },
+        "tags":{"shape":"TagMap"}
+      }
+    },
+    "TagValue":{
+      "type":"string",
+      "max":256
+    },
     "Threshold":{
       "type":"structure",
       "members":{
@@ -1197,6 +1937,25 @@
         "COUNT",
         "PERCENT"
       ]
+    },
+    "UntagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "resourceArn",
+        "tagKeys"
+      ],
+      "members":{
+        "resourceArn":{
+          "shape":"ARN",
+          "location":"uri",
+          "locationName":"resourceArn"
+        },
+        "tagKeys":{
+          "shape":"TagKeyList",
+          "location":"querystring",
+          "locationName":"tagKeys"
+        }
+      }
     },
     "UpdateContactAttributesRequest":{
       "type":"structure",
@@ -1331,7 +2090,8 @@
         "DirectoryUserId":{"shape":"DirectoryUserId"},
         "SecurityProfileIds":{"shape":"SecurityProfileIds"},
         "RoutingProfileId":{"shape":"RoutingProfileId"},
-        "HierarchyGroupId":{"shape":"HierarchyGroupId"}
+        "HierarchyGroupId":{"shape":"HierarchyGroupId"},
+        "Tags":{"shape":"TagMap"}
       }
     },
     "UserId":{"type":"string"},

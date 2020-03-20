@@ -9,18 +9,18 @@ import (
 	"testing"
 
 	"github.com/docker/distribution/reference"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
 	"github.com/opencontainers/go-digest"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 )
 
 var (
 	saveLoadTestCases = map[string]digest.Digest{
-		"registry:5000/foobar:HEAD":                                                        "sha256:470022b8af682154f57a2163d030eb369549549cba00edc69e1b99b46bb924d6",
-		"registry:5000/foobar:alternate":                                                   "sha256:ae300ebc4a4f00693702cfb0a5e0b7bc527b353828dc86ad09fb95c8a681b793",
-		"registry:5000/foobar:latest":                                                      "sha256:6153498b9ac00968d71b66cca4eac37e990b5f9eb50c26877eb8799c8847451b",
-		"registry:5000/foobar:master":                                                      "sha256:6c9917af4c4e05001b346421959d7ea81b6dc9d25718466a37a6add865dfd7fc",
-		"jess/hollywood:latest":                                                            "sha256:ae7a5519a0a55a2d4ef20ddcbd5d0ca0888a1f7ab806acc8e2a27baf46f529fe",
+		"registry:5000/foobar:HEAD":      "sha256:470022b8af682154f57a2163d030eb369549549cba00edc69e1b99b46bb924d6",
+		"registry:5000/foobar:alternate": "sha256:ae300ebc4a4f00693702cfb0a5e0b7bc527b353828dc86ad09fb95c8a681b793",
+		"registry:5000/foobar:latest":    "sha256:6153498b9ac00968d71b66cca4eac37e990b5f9eb50c26877eb8799c8847451b",
+		"registry:5000/foobar:master":    "sha256:6c9917af4c4e05001b346421959d7ea81b6dc9d25718466a37a6add865dfd7fc",
+		"jess/hollywood:latest":          "sha256:ae7a5519a0a55a2d4ef20ddcbd5d0ca0888a1f7ab806acc8e2a27baf46f529fe",
 		"registry@sha256:367eb40fd0330a7e464777121e39d2f5b3e8e23a1e159342e53ab05c9e4d94e6": "sha256:24126a56805beb9711be5f4590cc2eb55ab8d4a85ebd618eed72bb19fc50631c",
 		"busybox:latest": "sha256:91e54dfb11794fad694460162bf0cb0a4fa710cfa3f60979c177d920813e267c",
 	}
@@ -163,6 +163,10 @@ func TestAddDeleteGet(t *testing.T) {
 	if err = store.AddTag(ref4, testImageID2, false); err != nil {
 		t.Fatalf("error adding to store: %v", err)
 	}
+	// Write the same values again; should silently succeed
+	if err = store.AddTag(ref4, testImageID2, false); err != nil {
+		t.Fatalf("error redundantly adding to store: %v", err)
+	}
 
 	ref5, err := reference.ParseNormalizedNamed("username/repo3@sha256:58153dfb11794fad694460162bf0cb0a4fa710cfa3f60979c177d920813e267c")
 	if err != nil {
@@ -170,6 +174,10 @@ func TestAddDeleteGet(t *testing.T) {
 	}
 	if err = store.AddDigest(ref5.(reference.Canonical), testImageID2, false); err != nil {
 		t.Fatalf("error adding to store: %v", err)
+	}
+	// Write the same values again; should silently succeed
+	if err = store.AddDigest(ref5.(reference.Canonical), testImageID2, false); err != nil {
+		t.Fatalf("error redundantly adding to store: %v", err)
 	}
 
 	// Attempt to overwrite with force == false

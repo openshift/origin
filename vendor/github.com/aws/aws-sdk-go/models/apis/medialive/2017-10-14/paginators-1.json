@@ -35,6 +35,18 @@
       "output_token": "NextToken",
       "limit_key": "MaxResults",
       "result_key": "Reservations"
+    },
+    "ListMultiplexPrograms": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "MultiplexPrograms"
+    },
+    "ListMultiplexes": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "Multiplexes"
     }
   }
 }

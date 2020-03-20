@@ -1,5 +1,6 @@
-FROM ubuntu:12.04
 FROM aws-golang:tip
+
+ENV GOPROXY=direct
 
 ADD . /go/src/github.com/aws/aws-sdk-go
 
@@ -8,4 +9,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& rm -rf /var/list/apt/lists/*
 
 WORKDIR /go/src/github.com/aws/aws-sdk-go
-CMD ["make", "unit"]
+CMD ["make", "get-deps", "unit"]

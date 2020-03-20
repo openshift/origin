@@ -3,7 +3,10 @@
 package fake
 
 import (
+	"context"
+
 	v1 "github.com/openshift/api/security/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	testing "k8s.io/client-go/testing"
 )
@@ -19,7 +22,7 @@ var podsecuritypolicyreviewsResource = schema.GroupVersionResource{Group: "secur
 var podsecuritypolicyreviewsKind = schema.GroupVersionKind{Group: "security.openshift.io", Version: "v1", Kind: "PodSecurityPolicyReview"}
 
 // Create takes the representation of a podSecurityPolicyReview and creates it.  Returns the server's representation of the podSecurityPolicyReview, and an error, if there is any.
-func (c *FakePodSecurityPolicyReviews) Create(podSecurityPolicyReview *v1.PodSecurityPolicyReview) (result *v1.PodSecurityPolicyReview, err error) {
+func (c *FakePodSecurityPolicyReviews) Create(ctx context.Context, podSecurityPolicyReview *v1.PodSecurityPolicyReview, opts metav1.CreateOptions) (result *v1.PodSecurityPolicyReview, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(podsecuritypolicyreviewsResource, c.ns, podSecurityPolicyReview), &v1.PodSecurityPolicyReview{})
 

@@ -118,6 +118,69 @@ import _ "example.com"
 	mt.assertFound("example.com", "x")
 }
 
+// Tests that scanning the module cache > 1 time is able to find the same module.
+func TestModMultipleScans(t *testing.T) {
+	mt := setup(t, `
+-- go.mod --
+module x
+
+require example.com v1.0.0
+
+-- x.go --
+package x
+import _ "example.com"
+`, "")
+	defer mt.cleanup()
+
+	mt.assertScanFinds("example.com", "x")
+	mt.assertScanFinds("example.com", "x")
+
+}
+
+// Tests that scanning the module cache > 1 after changing a package in module cache to make it unimportable
+// is able to find the same module.
+func TestModCacheEditModFile(t *testing.T) {
+	mt := setup(t, `
+-- go.mod --
+module x
+
+require rsc.io/quote v1.5.2
+-- x.go --
+package x
+import _ "rsc.io/quote"
+`, "")
+	defer mt.cleanup()
+	found := mt.assertScanFinds("rsc.io/quote", "quote")
+
+	// Update the go.mod file of example.com so that it changes its module path (not allowed).
+	if err := os.Chmod(filepath.Join(found.dir, "go.mod"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(found.dir, "go.mod"), []byte("module bad.com\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Test that with its cache of module packages it still finds the package.
+	mt.assertScanFinds("rsc.io/quote", "quote")
+
+	// Rewrite the main package so that rsc.io/quote is not in scope.
+	if err := ioutil.WriteFile(filepath.Join(mt.env.WorkingDir, "go.mod"), []byte("module x\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(mt.env.WorkingDir, "x.go"), []byte("package x\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Uninitialize the go.mod dependent cached information and make sure it still finds the package.
+	mt.resolver.Initialized = false
+	mt.resolver.Main = nil
+	mt.resolver.ModsByModPath = nil
+	mt.resolver.ModsByDir = nil
+	mt.resolver.ModCachePkgs = nil
+	mt.assertScanFinds("rsc.io/quote", "quote")
+
+}
+
 // Tests that -mod=vendor sort of works. Adapted from mod_getmode_vendor.txt.
 func TestModeGetmodeVendor(t *testing.T) {
 	mt := setup(t, `
@@ -140,7 +203,7 @@ import _ "rsc.io/quote"
 
 	mt.env.GOFLAGS = ""
 	// Clear out the resolver's cache, since we've changed the environment.
-	mt.resolver = &moduleResolver{env: mt.env}
+	mt.resolver = &ModuleResolver{env: mt.env}
 	mt.assertModuleFoundInDir("rsc.io/quote", "quote", `pkg.*mod.*/quote@.*$`)
 }
 
@@ -486,7 +549,7 @@ var proxyDir string
 type modTest struct {
 	*testing.T
 	env      *ProcessEnv
-	resolver *moduleResolver
+	resolver *ModuleResolver
 	cleanup  func()
 }
 
@@ -538,7 +601,7 @@ func setup(t *testing.T, main, wd string) *modTest {
 	return &modTest{
 		T:        t,
 		env:      env,
-		resolver: &moduleResolver{env: env},
+		resolver: &ModuleResolver{env: env},
 		cleanup: func() {
 			_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 				if err != nil {

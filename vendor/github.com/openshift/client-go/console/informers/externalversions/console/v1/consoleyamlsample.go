@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	consolev1 "github.com/openshift/api/console/v1"
@@ -44,13 +45,13 @@ func NewFilteredConsoleYAMLSampleInformer(client versioned.Interface, resyncPeri
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ConsoleV1().ConsoleYAMLSamples().List(options)
+				return client.ConsoleV1().ConsoleYAMLSamples().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ConsoleV1().ConsoleYAMLSamples().Watch(options)
+				return client.ConsoleV1().ConsoleYAMLSamples().Watch(context.TODO(), options)
 			},
 		},
 		&consolev1.ConsoleYAMLSample{},

@@ -31,7 +31,6 @@ import (
 
 var (
 	v115         = semver.MustParse("1.15.0")
-	v114         = semver.MustParse("1.14.0")
 	alphaCounter = NewCounter(
 		&CounterOpts{
 			Namespace:      "some_namespace",
@@ -100,7 +99,6 @@ func TestRegister(t *testing.T) {
 	var tests = []struct {
 		desc                    string
 		metrics                 []*Counter
-		registryVersion         *semver.Version
 		expectedErrors          []error
 		expectedIsCreatedValues []bool
 		expectedIsDeprecated    []bool
@@ -109,7 +107,6 @@ func TestRegister(t *testing.T) {
 		{
 			desc:                    "test alpha metric",
 			metrics:                 []*Counter{alphaCounter},
-			registryVersion:         &v115,
 			expectedErrors:          []error{nil},
 			expectedIsCreatedValues: []bool{true},
 			expectedIsDeprecated:    []bool{false},
@@ -118,7 +115,6 @@ func TestRegister(t *testing.T) {
 		{
 			desc:                    "test registering same metric multiple times",
 			metrics:                 []*Counter{alphaCounter, alphaCounter},
-			registryVersion:         &v115,
 			expectedErrors:          []error{nil, prometheus.AlreadyRegisteredError{}},
 			expectedIsCreatedValues: []bool{true, true},
 			expectedIsDeprecated:    []bool{false, false},
@@ -127,7 +123,6 @@ func TestRegister(t *testing.T) {
 		{
 			desc:                    "test alpha deprecated metric",
 			metrics:                 []*Counter{alphaDeprecatedCounter},
-			registryVersion:         &v115,
 			expectedErrors:          []error{nil},
 			expectedIsCreatedValues: []bool{true},
 			expectedIsDeprecated:    []bool{true},
@@ -136,7 +131,6 @@ func TestRegister(t *testing.T) {
 		{
 			desc:                    "test alpha hidden metric",
 			metrics:                 []*Counter{alphaHiddenCounter},
-			registryVersion:         &v115,
 			expectedErrors:          []error{nil},
 			expectedIsCreatedValues: []bool{false},
 			expectedIsDeprecated:    []bool{true},
@@ -153,7 +147,7 @@ func TestRegister(t *testing.T) {
 			})
 			for i, m := range test.metrics {
 				err := registry.Register(m)
-				if err != test.expectedErrors[i] && err.Error() != test.expectedErrors[i].Error() {
+				if err != nil && err.Error() != test.expectedErrors[i].Error() {
 					t.Errorf("Got unexpected error %v, wanted %v", err, test.expectedErrors[i])
 				}
 				if m.IsCreated() != test.expectedIsCreatedValues[i] {
@@ -240,6 +234,7 @@ func TestShowHiddenMetric(t *testing.T) {
 	registry.MustRegister(alphaHiddenCounter)
 
 	ms, err := registry.Gather()
+	assert.Nil(t, err, "Gather failed %v", err)
 	assert.Equalf(t, expectedMetricCount, len(ms), "Got %v metrics, Want: %v metrics", len(ms), expectedMetricCount)
 
 	showHidden.Store(true)
@@ -257,9 +252,8 @@ func TestShowHiddenMetric(t *testing.T) {
 	expectedMetricCount = 1
 
 	ms, err = registry.Gather()
-	assert.Equalf(t, expectedMetricCount, len(ms), "Got %v metrics, Want: %v metrics", len(ms), expectedMetricCount)
 	assert.Nil(t, err, "Gather failed %v", err)
-
+	assert.Equalf(t, expectedMetricCount, len(ms), "Got %v metrics, Want: %v metrics", len(ms), expectedMetricCount)
 }
 
 func TestValidateShowHiddenMetricsVersion(t *testing.T) {
@@ -387,6 +381,92 @@ func TestEnableHiddenMetrics(t *testing.T) {
 			tc.counter.Inc()
 			if err := testutil.GatherAndCompare(registry, strings.NewReader(tc.expectedMetric), tc.fqName); err != nil {
 				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestEnableHiddenStableCollector(t *testing.T) {
+	var currentVersion = apimachineryversion.Info{
+		Major:      "1",
+		Minor:      "17",
+		GitVersion: "v1.17.0-alpha-1.12345",
+	}
+	var normal = NewDesc("test_enable_hidden_custom_metric_normal", "this is a normal metric", []string{"name"}, nil, STABLE, "")
+	var hiddenA = NewDesc("test_enable_hidden_custom_metric_hidden_a", "this is the hidden metric A", []string{"name"}, nil, STABLE, "1.16.0")
+	var hiddenB = NewDesc("test_enable_hidden_custom_metric_hidden_b", "this is the hidden metric B", []string{"name"}, nil, STABLE, "1.16.0")
+
+	var tests = []struct {
+		name                      string
+		descriptors               []*Desc
+		metricNames               []string
+		expectMetricsBeforeEnable string
+		expectMetricsAfterEnable  string
+	}{
+		{
+			name:        "all hidden",
+			descriptors: []*Desc{hiddenA, hiddenB},
+			metricNames: []string{"test_enable_hidden_custom_metric_hidden_a",
+				"test_enable_hidden_custom_metric_hidden_b"},
+			expectMetricsBeforeEnable: "",
+			expectMetricsAfterEnable: `
+        		# HELP test_enable_hidden_custom_metric_hidden_a [STABLE] (Deprecated since 1.16.0) this is the hidden metric A
+        		# TYPE test_enable_hidden_custom_metric_hidden_a gauge
+        		test_enable_hidden_custom_metric_hidden_a{name="value"} 1
+        		# HELP test_enable_hidden_custom_metric_hidden_b [STABLE] (Deprecated since 1.16.0) this is the hidden metric B
+        		# TYPE test_enable_hidden_custom_metric_hidden_b gauge
+        		test_enable_hidden_custom_metric_hidden_b{name="value"} 1
+			`,
+		},
+		{
+			name:        "partial hidden",
+			descriptors: []*Desc{normal, hiddenA, hiddenB},
+			metricNames: []string{"test_enable_hidden_custom_metric_normal",
+				"test_enable_hidden_custom_metric_hidden_a",
+				"test_enable_hidden_custom_metric_hidden_b"},
+			expectMetricsBeforeEnable: `
+        		# HELP test_enable_hidden_custom_metric_normal [STABLE] this is a normal metric
+        		# TYPE test_enable_hidden_custom_metric_normal gauge
+        		test_enable_hidden_custom_metric_normal{name="value"} 1
+			`,
+			expectMetricsAfterEnable: `
+        		# HELP test_enable_hidden_custom_metric_normal [STABLE] this is a normal metric
+        		# TYPE test_enable_hidden_custom_metric_normal gauge
+        		test_enable_hidden_custom_metric_normal{name="value"} 1
+        		# HELP test_enable_hidden_custom_metric_hidden_a [STABLE] (Deprecated since 1.16.0) this is the hidden metric A
+        		# TYPE test_enable_hidden_custom_metric_hidden_a gauge
+        		test_enable_hidden_custom_metric_hidden_a{name="value"} 1
+        		# HELP test_enable_hidden_custom_metric_hidden_b [STABLE] (Deprecated since 1.16.0) this is the hidden metric B
+        		# TYPE test_enable_hidden_custom_metric_hidden_b gauge
+        		test_enable_hidden_custom_metric_hidden_b{name="value"} 1
+			`,
+		},
+	}
+
+	for _, test := range tests {
+		tc := test
+		t.Run(tc.name, func(t *testing.T) {
+			registry := newKubeRegistry(currentVersion)
+			customCollector := newTestCustomCollector(tc.descriptors...)
+			registry.CustomMustRegister(customCollector)
+
+			if err := testutil.GatherAndCompare(registry, strings.NewReader(tc.expectMetricsBeforeEnable), tc.metricNames...); err != nil {
+				t.Fatalf("before enable test failed: %v", err)
+			}
+
+			SetShowHidden()
+			defer func() {
+				showHiddenOnce = *new(sync.Once)
+				showHidden.Store(false)
+			}()
+
+			if err := testutil.GatherAndCompare(registry, strings.NewReader(tc.expectMetricsAfterEnable), tc.metricNames...); err != nil {
+				t.Fatalf("after enable test failed: %v", err)
+			}
+
+			// refresh descriptors so as to share with cases.
+			for _, d := range tc.descriptors {
+				d.ClearState()
 			}
 		})
 	}

@@ -9,13 +9,12 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"golang.org/x/tools/internal/lsp"
 	"golang.org/x/tools/internal/lsp/diff"
 	"golang.org/x/tools/internal/lsp/protocol"
-	"golang.org/x/tools/internal/lsp/source"
 	"golang.org/x/tools/internal/span"
+	errors "golang.org/x/xerrors"
 )
 
 // format implements the format verb for gopls.
@@ -68,22 +67,20 @@ func (f *format) Run(ctx context.Context, args ...string) error {
 			return err
 		}
 		if loc.Range.Start != loc.Range.End {
-			return fmt.Errorf("only full file formatting supported")
+			return errors.Errorf("only full file formatting supported")
 		}
 		p := protocol.DocumentFormattingParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: loc.URI},
 		}
 		edits, err := conn.Formatting(ctx, &p)
 		if err != nil {
-			return fmt.Errorf("%v: %v", spn, err)
+			return errors.Errorf("%v: %v", spn, err)
 		}
 		sedits, err := lsp.FromProtocolEdits(file.mapper, edits)
 		if err != nil {
-			return fmt.Errorf("%v: %v", spn, err)
+			return errors.Errorf("%v: %v", spn, err)
 		}
-		ops := source.EditsToDiff(sedits)
-		lines := diff.SplitLines(string(file.mapper.Content))
-		formatted := strings.Join(diff.ApplyEdits(lines, ops), "")
+		formatted := diff.ApplyEdits(string(file.mapper.Content), sedits)
 		printIt := true
 		if f.List {
 			printIt = false
@@ -99,7 +96,7 @@ func (f *format) Run(ctx context.Context, args ...string) error {
 		}
 		if f.Diff {
 			printIt = false
-			u := diff.ToUnified(filename+".orig", filename, lines, ops)
+			u := diff.ToUnified(filename+".orig", filename, string(file.mapper.Content), sedits)
 			fmt.Print(u)
 		}
 		if printIt {

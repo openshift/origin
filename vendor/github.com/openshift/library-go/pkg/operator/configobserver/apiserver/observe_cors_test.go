@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"reflect"
 	"sort"
 	"testing"
 
@@ -80,11 +81,10 @@ func TestObserveAdditionalCORSAllowedOrigins(t *testing.T) {
 				}
 
 				gotCors, _, _ := unstructured.NestedStringSlice(gotConfig, corsPath...)
-				for i := range tt.expectedCORS {
-					if gotCors[i] != tt.expectedCORS[i] {
-						t.Fatalf("got = %v, want %v", gotCors, tt.expectedCORS)
-					}
+				if !reflect.DeepEqual(gotCors, tt.expectedCORS) {
+					t.Fatalf("got = %v, want %v", gotCors, tt.expectedCORS)
 				}
+
 			})
 		}
 	}

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,13 +13,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	apiserverv1 "k8s.io/apiserver/pkg/apis/config/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
 
@@ -26,6 +23,7 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions/config/v1"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/encryption/crypto"
 	"github.com/openshift/library-go/pkg/operator/encryption/secrets"
 	"github.com/openshift/library-go/pkg/operator/encryption/state"
@@ -33,8 +31,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorv1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 )
-
-const encWorkKey = "key"
 
 // encryptionSecretMigrationInterval determines how much time must pass after a key has been observed as
 // migrated before a new key is created by the key minting controller.  The new key's ID will be one
@@ -64,22 +60,18 @@ type keyController struct {
 	operatorClient  operatorv1helpers.OperatorClient
 	apiServerClient configv1client.APIServerInterface
 
-	queue         workqueue.RateLimitingInterface
-	eventRecorder events.Recorder
-
-	preRunCachesSynced []cache.InformerSynced
-
-	encryptedGRs []schema.GroupResource
-
 	component                string
+	name                     string
 	encryptionSecretSelector metav1.ListOptions
 
 	deployer     statemachine.Deployer
 	secretClient corev1client.SecretsGetter
+	provider     Provider
 }
 
 func NewKeyController(
 	component string,
+	provider Provider,
 	deployer statemachine.Deployer,
 	operatorClient operatorv1helpers.OperatorClient,
 	apiServerClient configv1client.APIServerInterface,
@@ -88,37 +80,37 @@ func NewKeyController(
 	secretClient corev1client.SecretsGetter,
 	encryptionSecretSelector metav1.ListOptions,
 	eventRecorder events.Recorder,
-	encryptedGRs []schema.GroupResource,
-) *keyController {
+) factory.Controller {
 	c := &keyController{
 		operatorClient:  operatorClient,
 		apiServerClient: apiServerClient,
 
-		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "EncryptionKeyController"),
-		eventRecorder: eventRecorder.WithComponentSuffix("encryption-key-controller"),
-
-		encryptedGRs: encryptedGRs,
-		component:    component,
+		component: component,
+		name:      "EncryptionKeyController",
 
 		encryptionSecretSelector: encryptionSecretSelector,
 		deployer:                 deployer,
+		provider:                 provider,
 		secretClient:             secretClient,
 	}
 
-	c.preRunCachesSynced = setUpInformers(deployer, operatorClient, kubeInformersForNamespaces, c.eventHandler())
-
-	apiServerInformer.Informer().AddEventHandler(c.eventHandler())
-	c.preRunCachesSynced = append(c.preRunCachesSynced, apiServerInformer.Informer().HasSynced)
-
-	return c
+	return factory.New().
+		WithSync(c.sync).
+		ResyncEvery(time.Second). // TODO: Is the 1s resync really necessary?
+		WithInformers(
+			apiServerInformer.Informer(),
+			operatorClient.Informer(),
+			kubeInformersForNamespaces.InformersFor("openshift-config-managed").Core().V1().Secrets().Informer(),
+			deployer,
+		).ToController(c.name, eventRecorder.WithComponentSuffix("encryption-key-controller"))
 }
 
-func (c *keyController) sync() error {
-	if ready, err := shouldRunEncryptionController(c.operatorClient); err != nil || !ready {
+func (c *keyController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+	if ready, err := shouldRunEncryptionController(c.operatorClient, c.provider.ShouldRunEncryptionControllers); err != nil || !ready {
 		return err // we will get re-kicked when the operator status updates
 	}
 
-	configError := c.checkAndCreateKeys()
+	configError := c.checkAndCreateKeys(syncCtx, c.provider.EncryptedGRs())
 
 	// update failing condition
 	cond := operatorv1.OperatorCondition{
@@ -137,18 +129,18 @@ func (c *keyController) sync() error {
 	return configError
 }
 
-func (c *keyController) checkAndCreateKeys() error {
+func (c *keyController) checkAndCreateKeys(syncContext factory.SyncContext, encryptedGRs []schema.GroupResource) error {
 	currentMode, externalReason, err := c.getCurrentModeAndExternalReason()
 	if err != nil {
 		return err
 	}
 
-	currentConfig, desiredEncryptionState, secrets, isProgressingReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, c.encryptedGRs)
+	currentConfig, desiredEncryptionState, secrets, isProgressingReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, encryptedGRs)
 	if err != nil {
 		return err
 	}
 	if len(isProgressingReason) > 0 {
-		c.queue.AddAfter(encWorkKey, 2*time.Minute)
+		syncContext.Queue().AddAfter(syncContext.QueueKey(), 2*time.Minute)
 		return nil
 	}
 
@@ -170,7 +162,7 @@ func (c *keyController) checkAndCreateKeys() error {
 
 	var commonReason *string
 	for gr, grKeys := range desiredEncryptionState {
-		latestKeyID, internalReason, needed := needsNewKey(grKeys, currentMode, externalReason, c.encryptedGRs)
+		latestKeyID, internalReason, needed := needsNewKey(grKeys, currentMode, externalReason, encryptedGRs)
 		if !needed {
 			continue
 		}
@@ -201,22 +193,22 @@ func (c *keyController) checkAndCreateKeys() error {
 	if err != nil {
 		return fmt.Errorf("failed to create key: %v", err)
 	}
-	_, createErr := c.secretClient.Secrets("openshift-config-managed").Create(keySecret)
+	_, createErr := c.secretClient.Secrets("openshift-config-managed").Create(context.TODO(), keySecret, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(createErr) {
 		return c.validateExistingSecret(keySecret, newKeyID)
 	}
 	if createErr != nil {
-		c.eventRecorder.Warningf("EncryptionKeyCreateFailed", "Secret %q failed to create: %v", keySecret.Name, err)
+		syncContext.Recorder().Warningf("EncryptionKeyCreateFailed", "Secret %q failed to create: %v", keySecret.Name, err)
 		return createErr
 	}
 
-	c.eventRecorder.Eventf("EncryptionKeyCreated", "Secret %q successfully created: %q", keySecret.Name, reasons)
+	syncContext.Recorder().Eventf("EncryptionKeyCreated", "Secret %q successfully created: %q", keySecret.Name, reasons)
 
 	return nil
 }
 
 func (c *keyController) validateExistingSecret(keySecret *corev1.Secret, keyID uint64) error {
-	actualKeySecret, err := c.secretClient.Secrets("openshift-config-managed").Get(keySecret.Name, metav1.GetOptions{})
+	actualKeySecret, err := c.secretClient.Secrets("openshift-config-managed").Get(context.TODO(), keySecret.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -249,7 +241,7 @@ func (c *keyController) generateKeySecret(keyID uint64, currentMode state.Mode, 
 }
 
 func (c *keyController) getCurrentModeAndExternalReason() (state.Mode, string, error) {
-	apiServer, err := c.apiServerClient.Get("cluster", metav1.GetOptions{})
+	apiServer, err := c.apiServerClient.Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return "", "", err
 	}
@@ -343,53 +335,4 @@ func needsNewKey(grKeys state.GroupResourceState, currentMode state.Mode, extern
 	// we check for encryptionSecretMigratedTimestamp set by migration controller to determine when migration completed
 	// this also generates back pressure for key rotation when migration takes a long time or was recently completed
 	return latestKeyID, "rotation-interval-has-passed", time.Since(latestKey.Migrated.Timestamp) > encryptionSecretMigrationInterval
-}
-
-func (c *keyController) Run(stopCh <-chan struct{}) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting EncryptionKeyController")
-	defer klog.Infof("Shutting down EncryptionKeyController")
-	if !cache.WaitForCacheSync(stopCh, c.preRunCachesSynced...) {
-		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
-		return
-	}
-
-	// only start one worker
-	go wait.Until(c.runWorker, time.Second, stopCh)
-
-	<-stopCh
-}
-
-func (c *keyController) runWorker() {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *keyController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with: %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-func (c *keyController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(encWorkKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(encWorkKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(encWorkKey) },
-	}
 }

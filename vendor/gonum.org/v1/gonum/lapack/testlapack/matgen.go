@@ -124,7 +124,7 @@ func Dlatm1(dst []float64, mode int, cond float64, rsign bool, dist int, rnd *ra
 
 // Dlagsy generates an n×n symmetric matrix A, by pre- and post- multiplying a
 // real diagonal matrix D with a random orthogonal matrix:
-//  A = U * D * U^T.
+//  A = U * D * Uᵀ.
 //
 // work must have length at least 2*n, otherwise Dlagsy will panic.
 //
@@ -317,7 +317,7 @@ func dlarnv(dst []float64, dist int, rnd *rand.Rand) {
 // trans specifies whether the matrix A or its transpose will be used.
 //
 // If imat is greater than 10, dlattr also generates the right hand side of the
-// linear system A*x=b, or A^T*x=b. Valid values of imat are 7, and all between 11
+// linear system A*x=b, or Aᵀ*x=b. Valid values of imat are 7, and all between 11
 // and 19, inclusive.
 //
 // b mush have length n, and work must have length 3*n, and dlattr will panic
@@ -737,4 +737,507 @@ func applyReflector(qh blas64.General, q blas64.General, v []float64) {
 			qh.Data[i*qh.Stride+j] *= norm2inv
 		}
 	}
+}
+
+func dlattb(kind int, uplo blas.Uplo, trans blas.Transpose, n, kd int, ab []float64, ldab int, rnd *rand.Rand) (diag blas.Diag, b []float64) {
+	switch {
+	case kind < 1 || 18 < kind:
+		panic("bad matrix kind")
+	case (6 <= kind && kind <= 9) || kind == 17:
+		diag = blas.Unit
+	default:
+		diag = blas.NonUnit
+	}
+
+	if n == 0 {
+		return
+	}
+
+	const (
+		unfl   = dlamchS
+		ulp    = dlamchE * dlamchB
+		smlnum = unfl
+		bignum = (1 - ulp) / smlnum
+
+		eps   = dlamchP
+		small = 0.25 * (dlamchS / eps)
+		large = 1 / small
+		badc2 = 0.1 / eps
+	)
+	badc1 := math.Sqrt(badc2)
+
+	var cndnum float64
+	switch {
+	case kind == 2 || kind == 8:
+		cndnum = badc1
+	case kind == 3 || kind == 9:
+		cndnum = badc2
+	default:
+		cndnum = 2
+	}
+
+	uniformM11 := func() float64 {
+		return 2*rnd.Float64() - 1
+	}
+
+	// Allocate the right-hand side and fill it with random numbers.
+	// The pathological matrix types below overwrite it with their
+	// custom vector.
+	b = make([]float64, n)
+	for i := range b {
+		b[i] = uniformM11()
+	}
+
+	bi := blas64.Implementation()
+	switch kind {
+	default:
+		panic("test matrix type not implemented")
+
+	case 1, 2, 3, 4, 5:
+		// Non-unit triangular matrix
+		// TODO(vladimir-ch)
+		var kl, ku int
+		switch uplo {
+		case blas.Upper:
+			ku = kd
+			kl = 0
+			// IOFF = 1 + MAX( 0, KD-N+1 )
+			// PACKIT = 'Q'
+			// 'Q' => store the upper triangle in band storage scheme
+			//        (only if matrix symmetric or upper triangular)
+		case blas.Lower:
+			ku = 0
+			kl = kd
+			// IOFF = 1
+			// PACKIT = 'B'
+			// 'B' => store the lower triangle in band storage scheme
+			//        (only if matrix symmetric or lower triangular)
+		}
+		anorm := 1.0
+		switch kind {
+		case 4:
+			anorm = small
+		case 5:
+			anorm = large
+		}
+		_, _, _ = kl, ku, anorm
+		// // DIST = 'S' // UNIFORM(-1, 1)
+		// // MODE = 3   // MODE = 3 sets D(I)=CNDNUM**(-(I-1)/(N-1))
+		// // TYPE = 'N' // If TYPE='N', the generated matrix is nonsymmetric
+		// CALL DLATMS( N, N, DIST, ISEED, TYPE, B, MODE, CNDNUM, ANORM,
+		// $            KL, KU, PACKIT, AB( IOFF, 1 ), LDAB, WORK, INFO )
+		panic("test matrix type not implemented")
+
+	case 6:
+		// Matrix is the identity.
+		if uplo == blas.Upper {
+			for i := 0; i < n; i++ {
+				// Fill the diagonal with non-unit numbers.
+				ab[i*ldab] = float64(i + 2)
+				for j := 1; j < min(n-i, kd+1); j++ {
+					ab[i*ldab+j] = 0
+				}
+			}
+		} else {
+			for i := 0; i < n; i++ {
+				for j := max(0, kd-i); j < kd; j++ {
+					ab[i*ldab+j] = 0
+				}
+				// Fill the diagonal with non-unit numbers.
+				ab[i*ldab+kd] = float64(i + 2)
+			}
+		}
+
+	case 7, 8, 9:
+		// Non-trivial unit triangular matrix
+		//
+		// A unit triangular matrix T with condition cndnum is formed.
+		// In this version, T only has bandwidth 2, the rest of it is
+		// zero.
+
+		tnorm := math.Sqrt(cndnum)
+
+		// Initialize AB to zero.
+		if uplo == blas.Upper {
+			for i := 0; i < n; i++ {
+				// Fill the diagonal with non-unit numbers.
+				ab[i*ldab] = float64(i + 2)
+				for j := 1; j < min(n-i, kd+1); j++ {
+					ab[i*ldab+j] = 0
+				}
+			}
+		} else {
+			for i := 0; i < n; i++ {
+				for j := max(0, kd-i); j < kd; j++ {
+					ab[i*ldab+j] = 0
+				}
+				// Fill the diagonal with non-unit numbers.
+				ab[i*ldab+kd] = float64(i + 2)
+			}
+		}
+
+		switch kd {
+		case 0:
+			// Unit diagonal matrix, nothing else to do.
+		case 1:
+			// Special case: T is tridiagonal. Set every other
+			// off-diagonal so that the matrix has norm tnorm+1.
+			if n > 1 {
+				if uplo == blas.Upper {
+					ab[1] = math.Copysign(tnorm, uniformM11())
+					for i := 2; i < n-1; i += 2 {
+						ab[i*ldab+1] = tnorm * uniformM11()
+					}
+				} else {
+					ab[ldab] = math.Copysign(tnorm, uniformM11())
+					for i := 3; i < n; i += 2 {
+						ab[i*ldab] = tnorm * uniformM11()
+					}
+				}
+			}
+		default:
+			// Form a unit triangular matrix T with condition cndnum. T is given
+			// by
+			//      | 1   +   *                      |
+			//      |     1   +                      |
+			//  T = |         1   +   *              |
+			//      |             1   +              |
+			//      |                 1   +   *      |
+			//      |                     1   +      |
+			//      |                          . . . |
+			// Each element marked with a '*' is formed by taking the product of
+			// the adjacent elements marked with '+'. The '*'s can be chosen
+			// freely, and the '+'s are chosen so that the inverse of T will
+			// have elements of the same magnitude as T.
+			work1 := make([]float64, n)
+			work2 := make([]float64, n)
+			star1 := math.Copysign(tnorm, uniformM11())
+			sfac := math.Sqrt(tnorm)
+			plus1 := math.Copysign(sfac, uniformM11())
+			for i := 0; i < n; i += 2 {
+				work1[i] = plus1
+				work2[i] = star1
+				if i+1 == n {
+					continue
+				}
+				plus2 := star1 / plus1
+				work1[i+1] = plus2
+				plus1 = star1 / plus2
+				// Generate a new *-value with norm between sqrt(tnorm)
+				// and tnorm.
+				rexp := uniformM11()
+				if rexp < 0 {
+					star1 = -math.Pow(sfac, 1-rexp)
+				} else {
+					star1 = math.Pow(sfac, 1+rexp)
+				}
+			}
+			// Copy the diagonal to AB.
+			if uplo == blas.Upper {
+				bi.Dcopy(n-1, work1, 1, ab[1:], ldab)
+				if n > 2 {
+					bi.Dcopy(n-2, work2, 1, ab[2:], ldab)
+				}
+			} else {
+				bi.Dcopy(n-1, work1, 1, ab[ldab+kd-1:], ldab)
+				if n > 2 {
+					bi.Dcopy(n-2, work2, 1, ab[2*ldab+kd-2:], ldab)
+				}
+			}
+		}
+
+	// Pathological test cases 10-18: these triangular matrices are badly
+	// scaled or badly conditioned, so when used in solving a triangular
+	// system they may cause overflow in the solution vector.
+
+	case 10:
+		// Generate a triangular matrix with elements between -1 and 1.
+		// Give the diagonal norm 2 to make it well-conditioned.
+		// Make the right hand side large so that it requires scaling.
+		if uplo == blas.Upper {
+			for i := 0; i < n; i++ {
+				for j := 0; j < min(n-j, kd+1); j++ {
+					ab[i*ldab+j] = uniformM11()
+				}
+				ab[i*ldab] = math.Copysign(2, ab[i*ldab])
+			}
+		} else {
+			for i := 0; i < n; i++ {
+				for j := max(0, kd-i); j < kd+1; j++ {
+					ab[i*ldab+j] = uniformM11()
+				}
+				ab[i*ldab+kd] = math.Copysign(2, ab[i*ldab+kd])
+			}
+		}
+		// Set the right hand side so that the largest value is bignum.
+		bnorm := math.Abs(b[bi.Idamax(n, b, 1)])
+		bscal := bignum / math.Max(1, bnorm)
+		bi.Dscal(n, bscal, b, 1)
+
+	case 11:
+		// Make the first diagonal element in the solve small to cause
+		// immediate overflow when dividing by T[j,j].
+		// The offdiagonal elements are small (cnorm[j] < 1).
+		tscal := 1 / float64(kd+1)
+		if uplo == blas.Upper {
+			for i := 0; i < n; i++ {
+				jlen := min(n-i, kd+1)
+				arow := ab[i*ldab : i*ldab+jlen]
+				dlarnv(arow, 2, rnd)
+				if jlen > 1 {
+					bi.Dscal(jlen-1, tscal, arow[1:], 1)
+				}
+				ab[i*ldab] = math.Copysign(1, ab[i*ldab])
+			}
+			ab[(n-1)*ldab] *= smlnum
+		} else {
+			for i := 0; i < n; i++ {
+				jlen := min(i+1, kd+1)
+				arow := ab[i*ldab+kd+1-jlen : i*ldab+kd+1]
+				dlarnv(arow, 2, rnd)
+				if jlen > 1 {
+					bi.Dscal(jlen-1, tscal, arow[:jlen-1], 1)
+				}
+				ab[i*ldab+kd] = math.Copysign(1, ab[i*ldab+kd])
+			}
+			ab[kd] *= smlnum
+		}
+
+	case 12:
+		// Make the first diagonal element in the solve small to cause
+		// immediate overflow when dividing by T[j,j].
+		// The offdiagonal elements are O(1) (cnorm[j] > 1).
+		if uplo == blas.Upper {
+			for i := 0; i < n; i++ {
+				jlen := min(n-i, kd+1)
+				arow := ab[i*ldab : i*ldab+jlen]
+				dlarnv(arow, 2, rnd)
+				ab[i*ldab] = math.Copysign(1, ab[i*ldab])
+			}
+			ab[(n-1)*ldab] *= smlnum
+		} else {
+			for i := 0; i < n; i++ {
+				jlen := min(i+1, kd+1)
+				arow := ab[i*ldab+kd+1-jlen : i*ldab+kd+1]
+				dlarnv(arow, 2, rnd)
+				ab[i*ldab+kd] = math.Copysign(1, ab[i*ldab+kd])
+			}
+			ab[kd] *= smlnum
+		}
+
+	case 13:
+		// T is diagonal with small numbers on the diagonal to make the growth
+		// factor underflow, but a small right hand side chosen so that the
+		// solution does not overflow.
+		if uplo == blas.Upper {
+			icount := 1
+			for i := n - 1; i >= 0; i-- {
+				if icount <= 2 {
+					ab[i*ldab] = smlnum
+				} else {
+					ab[i*ldab] = 1
+				}
+				for j := 1; j < min(n-i, kd+1); j++ {
+					ab[i*ldab+j] = 0
+				}
+				icount++
+				if icount > 4 {
+					icount = 1
+				}
+			}
+		} else {
+			icount := 1
+			for i := 0; i < n; i++ {
+				for j := max(0, kd-i); j < kd; j++ {
+					ab[i*ldab+j] = 0
+				}
+				if icount <= 2 {
+					ab[i*ldab+kd] = smlnum
+				} else {
+					ab[i*ldab+kd] = 1
+				}
+				icount++
+				if icount > 4 {
+					icount = 1
+				}
+			}
+		}
+		// Set the right hand side alternately zero and small.
+		if uplo == blas.Upper {
+			b[0] = 0
+			for i := n - 1; i > 1; i -= 2 {
+				b[i] = 0
+				b[i-1] = smlnum
+			}
+		} else {
+			b[n-1] = 0
+			for i := 0; i < n-1; i += 2 {
+				b[i] = 0
+				b[i+1] = smlnum
+			}
+		}
+
+	case 14:
+		// Make the diagonal elements small to cause gradual overflow when
+		// dividing by T[j,j]. To control the amount of scaling needed, the
+		// matrix is bidiagonal.
+		tscal := math.Pow(smlnum, 1/float64(kd+1))
+		if uplo == blas.Upper {
+			for i := 0; i < n; i++ {
+				ab[i*ldab] = tscal
+				if i < n-1 && kd > 0 {
+					ab[i*ldab+1] = -1
+				}
+				for j := 2; j < min(n-i, kd+1); j++ {
+					ab[i*ldab+j] = 0
+				}
+			}
+			b[n-1] = 1
+		} else {
+			for i := 0; i < n; i++ {
+				for j := max(0, kd-i); j < kd-1; j++ {
+					ab[i*ldab+j] = 0
+				}
+				if i > 0 && kd > 0 {
+					ab[i*ldab+kd-1] = -1
+				}
+				ab[i*ldab+kd] = tscal
+			}
+			b[0] = 1
+		}
+
+	case 15:
+		// One zero diagonal element.
+		iy := n / 2
+		if uplo == blas.Upper {
+			for i := 0; i < n; i++ {
+				jlen := min(n-i, kd+1)
+				dlarnv(ab[i*ldab:i*ldab+jlen], 2, rnd)
+				if i != iy {
+					ab[i*ldab] = math.Copysign(2, ab[i*ldab])
+				} else {
+					ab[i*ldab] = 0
+				}
+			}
+		} else {
+			for i := 0; i < n; i++ {
+				jlen := min(i+1, kd+1)
+				dlarnv(ab[i*ldab+kd+1-jlen:i*ldab+kd+1], 2, rnd)
+				if i != iy {
+					ab[i*ldab+kd] = math.Copysign(2, ab[i*ldab+kd])
+				} else {
+					ab[i*ldab+kd] = 0
+				}
+			}
+		}
+		bi.Dscal(n, 2, b, 1)
+
+		// case 16:
+		// TODO(vladimir-ch)
+		// Make the off-diagonal elements large to cause overflow when adding a
+		// column of T. In the non-transposed case, the matrix is constructed to
+		// cause overflow when adding a column in every other step.
+
+		// Initialize the matrix to zero.
+		// if uplo == blas.Upper {
+		// 	for i := 0; i < n; i++ {
+		// 		for j := 0; j < min(n-i, kd+1); j++ {
+		// 			ab[i*ldab+j] = 0
+		// 		}
+		// 	}
+		// } else {
+		// 	for i := 0; i < n; i++ {
+		// 		for j := max(0, kd-i); j < kd+1; j++ {
+		// 			ab[i*ldab+j] = 0
+		// 		}
+		// 	}
+		// }
+
+		// const tscal = (1 - ulp) / (unfl / ulp)
+		// texp := 1.0
+		// if kd > 0 {
+		// 	if uplo == blas.Upper {
+		// 		for j := n - 1; j >= 0; j -= kd {
+		// 		}
+		// 	} else {
+		// 		for j := 0; j < n; j += kd {
+		// 		}
+		// 	}
+		// } else {
+		// 	// Diagonal matrix.
+		// 	for i := 0; i < n; i++ {
+		// 		ab[i*ldab] = 1
+		// 		b[i] = float64(i + 1)
+		// 	}
+		// }
+
+	case 17:
+		// Generate a unit triangular matrix with elements between -1 and 1, and
+		// make the right hand side large so that it requires scaling.
+		if uplo == blas.Upper {
+			for i := 0; i < n; i++ {
+				ab[i*ldab] = float64(i + 2)
+				jlen := min(n-i-1, kd)
+				if jlen > 0 {
+					dlarnv(ab[i*ldab+1:i*ldab+1+jlen], 2, rnd)
+				}
+			}
+		} else {
+			for i := 0; i < n; i++ {
+				jlen := min(i, kd)
+				if jlen > 0 {
+					dlarnv(ab[i*ldab+kd-jlen:i*ldab+kd], 2, rnd)
+				}
+				ab[i*ldab+kd] = float64(i + 2)
+			}
+		}
+		// Set the right hand side so that the largest value is bignum.
+		bnorm := math.Abs(b[bi.Idamax(n, b, 1)])
+		bscal := bignum / math.Max(1, bnorm)
+		bi.Dscal(n, bscal, b, 1)
+
+	case 18:
+		// Generate a triangular matrix with elements between bignum/kd and
+		// bignum so that at least one of the column norms will exceed bignum.
+		tleft := bignum / math.Max(1, float64(kd))
+		// The reference LAPACK has
+		//  tscal := bignum * (float64(kd) / float64(kd+1))
+		// but this causes overflow when computing cnorm in Dlatbs. Our choice
+		// is more conservative but increases coverage in the same way as the
+		// LAPACK version.
+		tscal := bignum / math.Max(1, float64(kd))
+		if uplo == blas.Upper {
+			for i := 0; i < n; i++ {
+				for j := 0; j < min(n-i, kd+1); j++ {
+					r := uniformM11()
+					ab[i*ldab+j] = math.Copysign(tleft, r) + tscal*r
+				}
+			}
+		} else {
+			for i := 0; i < n; i++ {
+				for j := max(0, kd-i); j < kd+1; j++ {
+					r := uniformM11()
+					ab[i*ldab+j] = math.Copysign(tleft, r) + tscal*r
+				}
+			}
+		}
+		bi.Dscal(n, 2, b, 1)
+	}
+
+	// Flip the matrix if the transpose will be used.
+	if trans != blas.NoTrans {
+		if uplo == blas.Upper {
+			for j := 0; j < n/2; j++ {
+				jlen := min(n-2*j-1, kd+1)
+				bi.Dswap(jlen, ab[j*ldab:], 1, ab[(n-j-jlen)*ldab+jlen-1:], min(-ldab+1, -1))
+			}
+		} else {
+			for j := 0; j < n/2; j++ {
+				jlen := min(n-2*j-1, kd+1)
+				bi.Dswap(jlen, ab[j*ldab+kd:], max(ldab-1, 1), ab[(n-j-1)*ldab+kd+1-jlen:], -1)
+			}
+		}
+	}
+
+	return diag, b
 }

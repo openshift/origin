@@ -27,7 +27,9 @@ func TestInteg_00_ListAvailableSolutionStacks(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := elasticbeanstalk.New(sess)
 	params := &elasticbeanstalk.ListAvailableSolutionStacksInput{}
-	_, err := svc.ListAvailableSolutionStacksWithContext(ctx, params)
+	_, err := svc.ListAvailableSolutionStacksWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeEnvironmentResources(t *testing.T) {
 	params := &elasticbeanstalk.DescribeEnvironmentResourcesInput{
 		EnvironmentId: aws.String("fake_environment"),
 	}
-	_, err := svc.DescribeEnvironmentResourcesWithContext(ctx, params)
+	_, err := svc.DescribeEnvironmentResourcesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

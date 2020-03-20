@@ -1,5 +1,11 @@
 {
   "pagination": {
+    "DescribeCustomAvailabilityZones": {
+      "input_token": "Marker",
+      "limit_key": "MaxRecords",
+      "output_token": "Marker",
+      "result_key": "CustomAvailabilityZones"
+    },
     "DescribeDBClusters": {
       "input_token": "Marker",
       "limit_key": "MaxRecords",
@@ -42,6 +48,24 @@
       "output_token": "Marker",
       "result_key": "Parameters"
     },
+    "DescribeDBProxies": {
+      "input_token": "Marker",
+      "limit_key": "MaxRecords",
+      "output_token": "Marker",
+      "result_key": "DBProxies"
+    },
+    "DescribeDBProxyTargetGroups": {
+      "input_token": "Marker",
+      "limit_key": "MaxRecords",
+      "output_token": "Marker",
+      "result_key": "TargetGroups"
+    },
+    "DescribeDBProxyTargets": {
+      "input_token": "Marker",
+      "limit_key": "MaxRecords",
+      "output_token": "Marker",
+      "result_key": "Targets"
+    },
     "DescribeDBSecurityGroups": {
       "input_token": "Marker",
       "limit_key": "MaxRecords",
@@ -83,6 +107,12 @@
       "limit_key": "MaxRecords",
       "output_token": "Marker",
       "result_key": "GlobalClusters"
+    },
+    "DescribeInstallationMedia": {
+      "input_token": "Marker",
+      "limit_key": "MaxRecords",
+      "output_token": "Marker",
+      "result_key": "InstallationMedia"
     },
     "DescribeOptionGroupOptions": {
       "input_token": "Marker",

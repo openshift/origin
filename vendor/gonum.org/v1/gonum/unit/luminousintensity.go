@@ -16,29 +16,7 @@ import (
 // Candela represents a luminous intensity in candela.
 type LuminousIntensity float64
 
-const (
-	Yottacandela LuminousIntensity = 1e24
-	Zettacandela LuminousIntensity = 1e21
-	Exacandela   LuminousIntensity = 1e18
-	Petacandela  LuminousIntensity = 1e15
-	Teracandela  LuminousIntensity = 1e12
-	Gigacandela  LuminousIntensity = 1e9
-	Megacandela  LuminousIntensity = 1e6
-	Kilocandela  LuminousIntensity = 1e3
-	Hectocandela LuminousIntensity = 1e2
-	Decacandela  LuminousIntensity = 1e1
-	Candela      LuminousIntensity = 1.0
-	Decicandela  LuminousIntensity = 1e-1
-	Centicandela LuminousIntensity = 1e-2
-	Millicandela LuminousIntensity = 1e-3
-	Microcandela LuminousIntensity = 1e-6
-	Nanocandela  LuminousIntensity = 1e-9
-	Picocandela  LuminousIntensity = 1e-12
-	Femtocandela LuminousIntensity = 1e-15
-	Attocandela  LuminousIntensity = 1e-18
-	Zeptocandela LuminousIntensity = 1e-21
-	Yoctocandela LuminousIntensity = 1e-24
-)
+const Candela LuminousIntensity = 1
 
 // Unit converts the LuminousIntensity to a *Unit
 func (j LuminousIntensity) Unit() *Unit {

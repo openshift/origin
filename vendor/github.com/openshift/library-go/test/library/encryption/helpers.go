@@ -1,6 +1,7 @@
 package encryption
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -53,13 +54,13 @@ func SetAndWaitForEncryptionType(t testing.TB, encryptionType configv1.Encryptio
 	lastMigratedKeyMeta, err := GetLastKeyMeta(clientSet.Kube, namespace, labelSelector)
 	require.NoError(t, err)
 
-	apiServer, err := clientSet.ApiServerConfig.Get("cluster", metav1.GetOptions{})
+	apiServer, err := clientSet.ApiServerConfig.Get(context.TODO(), "cluster", metav1.GetOptions{})
 	require.NoError(t, err)
 	needsUpdate := apiServer.Spec.Encryption.Type != encryptionType
 	if needsUpdate {
 		t.Logf("Updating encryption type in the config file for APIServer to %q", encryptionType)
 		apiServer.Spec.Encryption.Type = encryptionType
-		_, err = clientSet.ApiServerConfig.Update(apiServer)
+		_, err = clientSet.ApiServerConfig.Update(context.TODO(), apiServer, metav1.UpdateOptions{})
 		require.NoError(t, err)
 	} else {
 		t.Logf("APIServer is already configured to use %q mode", encryptionType)
@@ -190,7 +191,7 @@ func GetLastKeyMeta(kubeClient kubernetes.Interface, namespace, labelSelector st
 	secretsClient := kubeClient.CoreV1().Secrets(namespace)
 	var selectedSecrets *corev1.SecretList
 	err := onErrorWithTimeout(wait.ForeverTestTimeout, retry.DefaultBackoff, transientAPIError, func() (err error) {
-		selectedSecrets, err = secretsClient.List(metav1.ListOptions{LabelSelector: labelSelector})
+		selectedSecrets, err = secretsClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 		return
 	})
 	if err != nil {
@@ -289,7 +290,7 @@ func setUpTearDown(namespace string) func(testing.TB, bool) {
 			eventsToPrint := 20
 			clientSet := GetClients(t)
 
-			eventList, err := clientSet.Kube.CoreV1().Events(namespace).List(metav1.ListOptions{})
+			eventList, err := clientSet.Kube.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
 			require.NoError(t, err)
 
 			sort.Slice(eventList.Items, func(i, j int) bool {

@@ -27,7 +27,9 @@ func TestInteg_00_DescribeConnections(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := directconnect.New(sess)
 	params := &directconnect.DescribeConnectionsInput{}
-	_, err := svc.DescribeConnectionsWithContext(ctx, params)
+	_, err := svc.DescribeConnectionsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeConnections(t *testing.T) {
 	params := &directconnect.DescribeConnectionsInput{
 		ConnectionId: aws.String("fake-connection"),
 	}
-	_, err := svc.DescribeConnectionsWithContext(ctx, params)
+	_, err := svc.DescribeConnectionsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

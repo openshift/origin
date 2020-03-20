@@ -121,9 +121,10 @@ func TestNormRand(t *testing.T) {
 		if !floats.EqualApprox(estMean, test.mean, 1e-2) {
 			t.Errorf("Mean mismatch: want: %v, got %v", test.mean, estMean)
 		}
-		estCov := stat.CovarianceMatrix(nil, samps, nil)
-		if !mat.EqualApprox(estCov, cov, 1e-2) {
-			t.Errorf("Cov mismatch: want: %v, got %v", cov, estCov)
+		var estCov mat.SymDense
+		stat.CovarianceMatrix(&estCov, samps, nil)
+		if !mat.EqualApprox(&estCov, cov, 1e-2) {
+			t.Errorf("Cov mismatch: want: %v, got %v", cov, &estCov)
 		}
 	}
 }
@@ -165,9 +166,10 @@ func TestNormalQuantile(t *testing.T) {
 		if !floats.EqualApprox(estMean, test.mean, 1e-2) {
 			t.Errorf("Mean mismatch: want: %v, got %v", test.mean, estMean)
 		}
-		estCov := stat.CovarianceMatrix(nil, samps, nil)
-		if !mat.EqualApprox(estCov, cov, 1e-2) {
-			t.Errorf("Cov mismatch: want: %v, got %v", cov, estCov)
+		var estCov mat.SymDense
+		stat.CovarianceMatrix(&estCov, samps, nil)
+		if !mat.EqualApprox(&estCov, cov, 1e-2) {
+			t.Errorf("Cov mismatch: want: %v, got %v", cov, &estCov)
 		}
 	}
 }
@@ -352,7 +354,8 @@ func TestConditionNormal(t *testing.T) {
 		for i := range estMean {
 			estMean[i] = stat.Mean(mat.Col(nil, i, samples), nil)
 		}
-		estCov := stat.CovarianceMatrix(nil, samples, nil)
+		var estCov mat.SymDense
+		stat.CovarianceMatrix(&estCov, samples, nil)
 
 		// Compute update rule.
 		newNormal, ok := normal.ConditionNormal(test.observed, test.value, nil)
@@ -399,14 +402,15 @@ func TestCovarianceMatrix(t *testing.T) {
 		if !ok {
 			t.Fatalf("Bad test, covariance matrix not positive definite")
 		}
-		cov := normal.CovarianceMatrix(nil)
-		if !mat.EqualApprox(cov, test.sigma, 1e-14) {
+		var cov mat.SymDense
+		normal.CovarianceMatrix(&cov)
+		if !mat.EqualApprox(&cov, test.sigma, 1e-14) {
 			t.Errorf("Covariance mismatch with nil input")
 		}
 		dim := test.sigma.Symmetric()
-		cov = mat.NewSymDense(dim, nil)
-		normal.CovarianceMatrix(cov)
-		if !mat.EqualApprox(cov, test.sigma, 1e-14) {
+		cov = *mat.NewSymDense(dim, nil)
+		normal.CovarianceMatrix(&cov)
+		if !mat.EqualApprox(&cov, test.sigma, 1e-14) {
 			t.Errorf("Covariance mismatch with supplied input")
 		}
 	}
@@ -459,8 +463,10 @@ func TestMarginal(t *testing.T) {
 			}
 		}
 
-		marginalCov := marginal.CovarianceMatrix(nil)
-		estCov := stat.CovarianceMatrix(nil, samps, nil)
+		var marginalCov mat.SymDense
+		marginal.CovarianceMatrix(&marginalCov)
+		var estCov mat.SymDense
+		stat.CovarianceMatrix(&estCov, samps, nil)
 		for i, v1 := range test.marginal {
 			for j, v2 := range test.marginal {
 				c := marginalCov.At(i, j)
@@ -532,7 +538,9 @@ func TestMarginalSingle(t *testing.T) {
 			if math.Abs(single.Mean()-mult.Mean(nil)[0]) > 1e-14 {
 				t.Errorf("Mean mismatch")
 			}
-			if math.Abs(single.Variance()-mult.CovarianceMatrix(nil).At(0, 0)) > 1e-14 {
+			var cov mat.SymDense
+			mult.CovarianceMatrix(&cov)
+			if math.Abs(single.Variance()-cov.At(0, 0)) > 1e-14 {
 				t.Errorf("Variance mismatch")
 			}
 		}

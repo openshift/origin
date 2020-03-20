@@ -6,10 +6,10 @@ package lsp
 
 import (
 	"context"
-	"fmt"
 
 	"golang.org/x/tools/internal/lsp/protocol"
 	"golang.org/x/tools/internal/span"
+	errors "golang.org/x/xerrors"
 )
 
 func (s *Server) changeFolders(ctx context.Context, event protocol.WorkspaceFoldersChangeEvent) error {
@@ -18,7 +18,7 @@ func (s *Server) changeFolders(ctx context.Context, event protocol.WorkspaceFold
 		if view != nil {
 			view.Shutdown(ctx)
 		} else {
-			return fmt.Errorf("view %s for %v not found", folder.Name, folder.URI)
+			return errors.Errorf("view %s for %v not found", folder.Name, folder.URI)
 		}
 	}
 
@@ -31,6 +31,12 @@ func (s *Server) changeFolders(ctx context.Context, event protocol.WorkspaceFold
 }
 
 func (s *Server) addView(ctx context.Context, name string, uri span.URI) error {
-	s.session.NewView(name, uri)
+	view := s.session.NewView(ctx, name, uri)
+	s.stateMu.Lock()
+	state := s.state
+	s.stateMu.Unlock()
+	if state >= serverInitialized {
+		s.fetchConfig(ctx, view)
+	}
 	return nil
 }

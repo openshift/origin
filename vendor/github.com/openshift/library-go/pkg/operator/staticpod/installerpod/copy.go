@@ -4,7 +4,7 @@ import (
 	"golang.org/x/net/context"
 	"k8s.io/klog"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -19,7 +19,7 @@ func (o *InstallOptions) getSecretWithRetry(ctx context.Context, name string, is
 
 	err := retry.RetryOnConnectionErrors(ctx, func(ctx context.Context) (bool, error) {
 		var clientErr error
-		secret, clientErr = o.KubeClient.CoreV1().Secrets(o.Namespace).Get(name, metav1.GetOptions{})
+		secret, clientErr = o.KubeClient.CoreV1().Secrets(o.Namespace).Get(ctx, name, metav1.GetOptions{})
 		if clientErr != nil {
 			klog.Infof("Failed to get secret %s/%s: %v", o.Namespace, name, clientErr)
 			return false, clientErr
@@ -47,7 +47,7 @@ func (o *InstallOptions) getConfigMapWithRetry(ctx context.Context, name string,
 
 	err := retry.RetryOnConnectionErrors(ctx, func(ctx context.Context) (bool, error) {
 		var clientErr error
-		config, clientErr = o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(name, metav1.GetOptions{})
+		config, clientErr = o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(ctx, name, metav1.GetOptions{})
 		if clientErr != nil {
 			klog.Infof("Failed to get config map %s/%s: %v", o.Namespace, name, clientErr)
 			return false, clientErr

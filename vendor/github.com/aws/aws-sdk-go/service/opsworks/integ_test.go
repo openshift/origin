@@ -27,7 +27,9 @@ func TestInteg_00_DescribeStacks(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := opsworks.New(sess)
 	params := &opsworks.DescribeStacksInput{}
-	_, err := svc.DescribeStacksWithContext(ctx, params)
+	_, err := svc.DescribeStacksWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeLayers(t *testing.T) {
 	params := &opsworks.DescribeLayersInput{
 		StackId: aws.String("fake_stack"),
 	}
-	_, err := svc.DescribeLayersWithContext(ctx, params)
+	_, err := svc.DescribeLayersWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

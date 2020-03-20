@@ -2,6 +2,10 @@
 
 package lexruntimeservice
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeBadGatewayException for service response error code
@@ -82,3 +86,17 @@ const (
 	// The Content-Type header (PostContent API) has an invalid value.
 	ErrCodeUnsupportedMediaTypeException = "UnsupportedMediaTypeException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"BadGatewayException":           newErrorBadGatewayException,
+	"BadRequestException":           newErrorBadRequestException,
+	"ConflictException":             newErrorConflictException,
+	"DependencyFailedException":     newErrorDependencyFailedException,
+	"InternalFailureException":      newErrorInternalFailureException,
+	"LimitExceededException":        newErrorLimitExceededException,
+	"LoopDetectedException":         newErrorLoopDetectedException,
+	"NotAcceptableException":        newErrorNotAcceptableException,
+	"NotFoundException":             newErrorNotFoundException,
+	"RequestTimeoutException":       newErrorRequestTimeoutException,
+	"UnsupportedMediaTypeException": newErrorUnsupportedMediaTypeException,
+}

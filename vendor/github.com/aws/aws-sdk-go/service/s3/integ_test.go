@@ -27,7 +27,9 @@ func TestInteg_00_ListBuckets(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := s3.New(sess)
 	params := &s3.ListBucketsInput{}
-	_, err := svc.ListBucketsWithContext(ctx, params)
+	_, err := svc.ListBucketsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

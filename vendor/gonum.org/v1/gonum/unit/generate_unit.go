@@ -18,16 +18,15 @@ import (
 )
 
 type Unit struct {
-	Name          string
+	DimensionName string
 	Receiver      string
-	Offset        int    // From normal (for example, mass base unit is kg, not kg)
+	PowerOffset   int    // from normal (for example, mass base unit is kg, not g)
 	PrintString   string // print string for the unit (kg for mass)
 	ExtraConstant []Constant
-	Suffix        string
-	Singular      string
-	TypeComment   string // Text to comment the type
+	Name          string
+	TypeComment   string // text to comment the type
 	Dimensions    []Dimension
-	ErForm        string //For Xxxer interface
+	ErForm        string // for Xxxer interface
 }
 
 type Dimension struct {
@@ -75,184 +74,92 @@ type Prefix struct {
 	Power int
 }
 
-var Prefixes = []Prefix{
-	{
-		Name:  "Yotta",
-		Power: 24,
-	},
-	{
-		Name:  "Zetta",
-		Power: 21,
-	},
-	{
-		Name:  "Exa",
-		Power: 18,
-	},
-	{
-		Name:  "Peta",
-		Power: 15,
-	},
-	{
-		Name:  "Tera",
-		Power: 12,
-	},
-	{
-		Name:  "Giga",
-		Power: 9,
-	},
-	{
-		Name:  "Mega",
-		Power: 6,
-	},
-	{
-		Name:  "Kilo",
-		Power: 3,
-	},
-	{
-		Name:  "Hecto",
-		Power: 2,
-	},
-	{
-		Name:  "Deca",
-		Power: 1,
-	},
-	{
-		Name:  "",
-		Power: 0,
-	},
-	{
-		Name:  "Deci",
-		Power: -1,
-	},
-	{
-		Name:  "Centi",
-		Power: -2,
-	},
-	{
-		Name:  "Milli",
-		Power: -3,
-	},
-	{
-		Name:  "Micro",
-		Power: -6,
-	},
-	{
-		Name:  "Nano",
-		Power: -9,
-	},
-	{
-		Name:  "Pico",
-		Power: -12,
-	},
-	{
-		Name:  "Femto",
-		Power: -15,
-	},
-	{
-		Name:  "Atto",
-		Power: -18,
-	},
-	{
-		Name:  "Zepto",
-		Power: -21,
-	},
-	{
-		Name:  "Yocto",
-		Power: -24,
-	},
-}
-
 var Units = []Unit{
 	// Base units.
 	{
-		Name:        "Angle",
-		Receiver:    "a",
-		PrintString: "rad",
-		Suffix:      "rad",
-		Singular:    "Rad",
-		TypeComment: "Angle represents an angle in radians",
+		DimensionName: "Angle",
+		Receiver:      "a",
+		PrintString:   "rad",
+		Name:          "Rad",
+		TypeComment:   "Angle represents an angle in radians",
 		Dimensions: []Dimension{
 			{Name: AngleName, Power: 1},
 		},
 	},
 	{
-		Name:        "Current",
-		Receiver:    "i",
-		PrintString: "A",
-		Suffix:      "ampere",
-		Singular:    "Ampere",
-		TypeComment: "Current represents a current in Amperes",
+		DimensionName: "Current",
+		Receiver:      "i",
+		PrintString:   "A",
+		Name:          "Ampere",
+		TypeComment:   "Current represents a current in Amperes",
 		Dimensions: []Dimension{
 			{Name: CurrentName, Power: 1},
 		},
 	},
 	{
-		Name:        "Length",
-		Receiver:    "l",
-		PrintString: "m",
-		Suffix:      "metre",
-		Singular:    "Metre",
-		TypeComment: "Length represents a length in metres",
+		DimensionName: "Length",
+		Receiver:      "l",
+		PrintString:   "m",
+		Name:          "Metre",
+		TypeComment:   "Length represents a length in metres",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 1},
 		},
 	},
 	{
-		Name:        "LuminousIntensity",
-		Receiver:    "j",
-		PrintString: "cd",
-		Suffix:      "candela",
-		Singular:    "Candela",
-		TypeComment: "Candela represents a luminous intensity in candela",
+		DimensionName: "LuminousIntensity",
+		Receiver:      "j",
+		PrintString:   "cd",
+		Name:          "Candela",
+		TypeComment:   "Candela represents a luminous intensity in candela",
 		Dimensions: []Dimension{
 			{Name: LuminousIntensityName, Power: 1},
 		},
 	},
 	{
-		Name:        "Mass",
-		Receiver:    "m",
-		Offset:      -3,
-		PrintString: "kg",
-		Suffix:      "gram",
-		Singular:    "Gram",
-		TypeComment: "Mass represents a mass in kilograms",
+		DimensionName: "Mass",
+		Receiver:      "m",
+		PowerOffset:   -3,
+		PrintString:   "kg",
+		Name:          "Gram",
+		TypeComment:   "Mass represents a mass in kilograms",
+		ExtraConstant: []Constant{
+			{Name: "Kilogram", Value: "Kilo * Gram"},
+		},
 		Dimensions: []Dimension{
 			{Name: MassName, Power: 1},
 		},
 	},
 	{
-		Name:        "Mole",
-		Receiver:    "n",
-		PrintString: "mol",
-		Suffix:      "mol",
-		Singular:    "mol",
-		TypeComment: "Mole represents an amount in moles",
+		DimensionName: "Mole",
+		Receiver:      "n",
+		PrintString:   "mol",
+		Name:          "Mol",
+		TypeComment:   "Mole represents an amount in moles",
 		Dimensions: []Dimension{
 			{Name: MoleName, Power: 1},
 		},
 	},
 	{
-		Name:        "Temperature",
-		Receiver:    "t",
-		PrintString: "K",
-		Suffix:      "kelvin",
-		Singular:    "Kelvin",
-		TypeComment: "Temperature represents a temperature in Kelvin",
+		DimensionName: "Temperature",
+		Receiver:      "t",
+		PrintString:   "K",
+		Name:          "Kelvin",
+		TypeComment:   "Temperature represents a temperature in Kelvin",
 		Dimensions: []Dimension{
 			{Name: TemperatureName, Power: 1},
 		},
 		ErForm: "Temperaturer",
 	},
 	{
-		Name:        "Time",
-		Receiver:    "t",
-		PrintString: "s",
-		Suffix:      "second",
-		Singular:    "Second",
-		TypeComment: "Time represents a time in seconds",
+		DimensionName: "Time",
+		Receiver:      "t",
+		PrintString:   "s",
+		Name:          "Second",
+		TypeComment:   "Time represents a duration in seconds",
 		ExtraConstant: []Constant{
-			{Name: "Hour", Value: "3600"},
-			{Name: "Minute", Value: "60"},
+			{Name: "Minute", Value: "60 * Second"},
+			{Name: "Hour", Value: "60 * Minute"},
 		},
 		Dimensions: []Dimension{
 			{Name: TimeName, Power: 1},
@@ -262,54 +169,51 @@ var Units = []Unit{
 
 	// Derived units.
 	{
-		Name:        "AbsorbedRadioactiveDose",
-		Receiver:    "a",
-		PrintString: "Gy",
-		Suffix:      "gray",
-		Singular:    "Gray",
-		TypeComment: "AbsorbedRadioactiveDose is a measure of absorbed dose of ionizing radiation in grays",
+		DimensionName: "AbsorbedRadioactiveDose",
+		Receiver:      "a",
+		PrintString:   "Gy",
+		Name:          "Gray",
+		TypeComment:   "AbsorbedRadioactiveDose is a measure of absorbed dose of ionizing radiation in grays",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 2},
 			{Name: TimeName, Power: -2},
 		},
 	},
 	{
-		Name:        "Acceleration",
-		Receiver:    "a",
-		PrintString: "m s^-2",
-		TypeComment: "Acceleration represents an acceleration in metres per second squared",
+		DimensionName: "Acceleration",
+		Receiver:      "a",
+		PrintString:   "m s^-2",
+		TypeComment:   "Acceleration represents an acceleration in metres per second squared",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 1},
 			{Name: TimeName, Power: -2},
 		},
 	},
 	{
-		Name:        "Area",
-		Receiver:    "a",
-		PrintString: "m^2",
-		TypeComment: "Area represents and area in square metres",
+		DimensionName: "Area",
+		Receiver:      "a",
+		PrintString:   "m^2",
+		TypeComment:   "Area represents an area in square metres",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 2},
 		},
 	},
 	{
-		Name:        "Radioactivity",
-		Receiver:    "r",
-		PrintString: "Bq",
-		Suffix:      "becquerel",
-		Singular:    "Becquerel",
-		TypeComment: "Radioactivity represents a rate of radioactive decay in becquerels",
+		DimensionName: "Radioactivity",
+		Receiver:      "r",
+		PrintString:   "Bq",
+		Name:          "Becquerel",
+		TypeComment:   "Radioactivity represents a rate of radioactive decay in becquerels",
 		Dimensions: []Dimension{
 			{Name: TimeName, Power: -1},
 		},
 	},
 	{
-		Name:        "Capacitance",
-		Receiver:    "cp",
-		PrintString: "F",
-		Suffix:      "farad",
-		Singular:    "Farad",
-		TypeComment: "Capacitance represents an electrical capacitance in Farads",
+		DimensionName: "Capacitance",
+		Receiver:      "cp",
+		PrintString:   "F",
+		Name:          "Farad",
+		TypeComment:   "Capacitance represents an electrical capacitance in Farads",
 		Dimensions: []Dimension{
 			{Name: CurrentName, Power: 2},
 			{Name: LengthName, Power: -2},
@@ -319,12 +223,11 @@ var Units = []Unit{
 		ErForm: "Capacitancer",
 	},
 	{
-		Name:        "Charge",
-		Receiver:    "ch",
-		PrintString: "C",
-		Suffix:      "coulomb",
-		Singular:    "coulomb",
-		TypeComment: "Charge represents an electric charge in Coulombs",
+		DimensionName: "Charge",
+		Receiver:      "ch",
+		PrintString:   "C",
+		Name:          "Coulomb",
+		TypeComment:   "Charge represents an electric charge in Coulombs",
 		Dimensions: []Dimension{
 			{Name: CurrentName, Power: 1},
 			{Name: TimeName, Power: 1},
@@ -332,12 +235,11 @@ var Units = []Unit{
 		ErForm: "Charger",
 	},
 	{
-		Name:        "Conductance",
-		Receiver:    "co",
-		PrintString: "S",
-		Suffix:      "siemens",
-		Singular:    "Siemens",
-		TypeComment: "Conductance represents an electrical conductance in Siemens",
+		DimensionName: "Conductance",
+		Receiver:      "co",
+		PrintString:   "S",
+		Name:          "Siemens",
+		TypeComment:   "Conductance represents an electrical conductance in Siemens",
 		Dimensions: []Dimension{
 			{Name: CurrentName, Power: 2},
 			{Name: LengthName, Power: -2},
@@ -347,24 +249,22 @@ var Units = []Unit{
 		ErForm: "Conductancer",
 	},
 	{
-		Name:        "EquivalentRadioactiveDose",
-		Receiver:    "a",
-		PrintString: "Sy",
-		Suffix:      "sievert",
-		Singular:    "Sievert",
-		TypeComment: "EquivalentRadioactiveDose is a measure of equivalent dose of ionizing radiation in sieverts",
+		DimensionName: "EquivalentRadioactiveDose",
+		Receiver:      "a",
+		PrintString:   "Sy",
+		Name:          "Sievert",
+		TypeComment:   "EquivalentRadioactiveDose is a measure of equivalent dose of ionizing radiation in sieverts",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 2},
 			{Name: TimeName, Power: -2},
 		},
 	},
 	{
-		Name:        "Energy",
-		Receiver:    "e",
-		PrintString: "J",
-		Suffix:      "joule",
-		Singular:    "Joule",
-		TypeComment: "Energy represents a quantity of energy in Joules",
+		DimensionName: "Energy",
+		Receiver:      "e",
+		PrintString:   "J",
+		Name:          "Joule",
+		TypeComment:   "Energy represents a quantity of energy in Joules",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 2},
 			{Name: MassName, Power: 1},
@@ -372,23 +272,21 @@ var Units = []Unit{
 		},
 	},
 	{
-		Name:        "Frequency",
-		Receiver:    "f",
-		PrintString: "Hz",
-		Suffix:      "hertz",
-		Singular:    "Hertz",
-		TypeComment: "Frequency represents a frequency in Hertz",
+		DimensionName: "Frequency",
+		Receiver:      "f",
+		PrintString:   "Hz",
+		Name:          "Hertz",
+		TypeComment:   "Frequency represents a frequency in Hertz",
 		Dimensions: []Dimension{
 			{Name: TimeName, Power: -1},
 		},
 	},
 	{
-		Name:        "Force",
-		Receiver:    "f",
-		PrintString: "N",
-		Suffix:      "newton",
-		Singular:    "Newton",
-		TypeComment: "Force represents a force in Newtons",
+		DimensionName: "Force",
+		Receiver:      "f",
+		PrintString:   "N",
+		Name:          "Newton",
+		TypeComment:   "Force represents a force in Newtons",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 1},
 			{Name: MassName, Power: 1},
@@ -397,12 +295,11 @@ var Units = []Unit{
 		ErForm: "Forcer",
 	},
 	{
-		Name:        "Inductance",
-		Receiver:    "i",
-		PrintString: "H",
-		Suffix:      "henry",
-		Singular:    "Henry",
-		TypeComment: "Inductance represents an electrical inductance in Henry",
+		DimensionName: "Inductance",
+		Receiver:      "i",
+		PrintString:   "H",
+		Name:          "Henry",
+		TypeComment:   "Inductance represents an electrical inductance in Henry",
 		Dimensions: []Dimension{
 			{Name: CurrentName, Power: -2},
 			{Name: LengthName, Power: 2},
@@ -412,12 +309,11 @@ var Units = []Unit{
 		ErForm: "Inductancer",
 	},
 	{
-		Name:        "Power",
-		Receiver:    "pw",
-		PrintString: "W",
-		Suffix:      "watt",
-		Singular:    "Watt",
-		TypeComment: "Power represents a power in Watts",
+		DimensionName: "Power",
+		Receiver:      "pw",
+		PrintString:   "W",
+		Name:          "Watt",
+		TypeComment:   "Power represents a power in Watts",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 2},
 			{Name: MassName, Power: 1},
@@ -425,12 +321,11 @@ var Units = []Unit{
 		},
 	},
 	{
-		Name:        "Resistance",
-		Receiver:    "r",
-		PrintString: "Ω",
-		Suffix:      "ohm",
-		Singular:    "Ohm",
-		TypeComment: "Resistance represents an electrical resistance, impedance or reactance in Ohms",
+		DimensionName: "Resistance",
+		Receiver:      "r",
+		PrintString:   "Ω",
+		Name:          "Ohm",
+		TypeComment:   "Resistance represents an electrical resistance, impedance or reactance in Ohms",
 		Dimensions: []Dimension{
 			{Name: CurrentName, Power: -2},
 			{Name: LengthName, Power: 2},
@@ -440,12 +335,11 @@ var Units = []Unit{
 		ErForm: "Resistancer",
 	},
 	{
-		Name:        "MagneticFlux",
-		Receiver:    "m",
-		PrintString: "Wb",
-		Suffix:      "weber",
-		Singular:    "Weber",
-		TypeComment: "MagneticFlux represents a magnetic flux in Weber",
+		DimensionName: "MagneticFlux",
+		Receiver:      "m",
+		PrintString:   "Wb",
+		Name:          "Weber",
+		TypeComment:   "MagneticFlux represents a magnetic flux in Weber",
 		Dimensions: []Dimension{
 			{Name: CurrentName, Power: -1},
 			{Name: LengthName, Power: 2},
@@ -454,12 +348,11 @@ var Units = []Unit{
 		},
 	},
 	{
-		Name:        "MagneticFluxDensity",
-		Receiver:    "m",
-		PrintString: "T",
-		Suffix:      "tesla",
-		Singular:    "Tesla",
-		TypeComment: "MagneticFluxDensity represents a magnetic flux density in Tesla",
+		DimensionName: "MagneticFluxDensity",
+		Receiver:      "m",
+		PrintString:   "T",
+		Name:          "Tesla",
+		TypeComment:   "MagneticFluxDensity represents a magnetic flux density in Tesla",
 		Dimensions: []Dimension{
 			{Name: CurrentName, Power: -1},
 			{Name: MassName, Power: 1},
@@ -467,12 +360,11 @@ var Units = []Unit{
 		},
 	},
 	{
-		Name:        "Pressure",
-		Receiver:    "pr",
-		PrintString: "Pa",
-		Suffix:      "pascal",
-		Singular:    "Pascal",
-		TypeComment: "Pressure represents a pressure in Pascals",
+		DimensionName: "Pressure",
+		Receiver:      "pr",
+		PrintString:   "Pa",
+		Name:          "Pascal",
+		TypeComment:   "Pressure represents a pressure in Pascals",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: -1},
 			{Name: MassName, Power: 1},
@@ -481,12 +373,11 @@ var Units = []Unit{
 		ErForm: "Pressurer",
 	},
 	{
-		Name:        "Torque",
-		Receiver:    "t",
-		PrintString: "N m",
-		Suffix:      "newtonmetre",
-		Singular:    "Newtonmetre",
-		TypeComment: "Torque represents a torque in Newton metres",
+		DimensionName: "Torque",
+		Receiver:      "t",
+		PrintString:   "N m",
+		Name:          "Newtonmetre",
+		TypeComment:   "Torque represents a torque in Newton metres",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 2},
 			{Name: MassName, Power: 1},
@@ -495,22 +386,21 @@ var Units = []Unit{
 		ErForm: "Torquer",
 	},
 	{
-		Name:        "Velocity",
-		Receiver:    "v",
-		PrintString: "m s^-1",
-		TypeComment: "Velocity represents a velocity in metres per second",
+		DimensionName: "Velocity",
+		Receiver:      "v",
+		PrintString:   "m s^-1",
+		TypeComment:   "Velocity represents a velocity in metres per second",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 1},
 			{Name: TimeName, Power: -1},
 		},
 	},
 	{
-		Name:        "Voltage",
-		Receiver:    "v",
-		PrintString: "V",
-		Suffix:      "volt",
-		Singular:    "Volt",
-		TypeComment: "Voltage represents a voltage in Volts",
+		DimensionName: "Voltage",
+		Receiver:      "v",
+		PrintString:   "V",
+		Name:          "Volt",
+		TypeComment:   "Voltage represents a voltage in Volts",
 		Dimensions: []Dimension{
 			{Name: CurrentName, Power: -1},
 			{Name: LengthName, Power: 2},
@@ -520,13 +410,12 @@ var Units = []Unit{
 		ErForm: "Voltager",
 	},
 	{
-		Name:        "Volume",
-		Receiver:    "v",
-		Offset:      -3,
-		PrintString: "m^3",
-		Suffix:      "litre",
-		Singular:    "Litre",
-		TypeComment: "Volume represents a volume in cubic metres",
+		DimensionName: "Volume",
+		Receiver:      "v",
+		PowerOffset:   -3,
+		PrintString:   "m^3",
+		Name:          "Litre",
+		TypeComment:   "Volume represents a volume in cubic metres",
 		Dimensions: []Dimension{
 			{Name: LengthName, Power: 3},
 		},
@@ -557,46 +446,44 @@ import (
 )
 
 // {{.TypeComment}}.
-type {{.Name}} float64
+type {{.DimensionName}} float64
 `
 
 var header = template.Must(template.New("header").Parse(headerTemplate))
 
 const constTemplate = `
-const(
-	{{$unit := .Unit}}
-	{{range $unit.ExtraConstant}} {{.Name}} {{$unit.Name}} = {{.Value}}
+const {{if .ExtraConstant}}({{end}}
+	{{.Name}} {{.DimensionName}} = {{if .PowerOffset}} 1e{{.PowerOffset}} {{else}} 1 {{end}}
+	{{$name := .Name}}
+	{{range .ExtraConstant}} {{.Name}} = {{.Value}}
 	{{end}}
-	{{$prefixes := .Prefixes}}
-	{{range $prefixes}} {{if .Name}} {{.Name}}{{$unit.Suffix}} {{else}} {{$unit.Singular}} {{end}} {{$unit.Name}} = {{if .Power}} 1e{{.Power}} {{else}} 1.0 {{end}}
-	{{end}}
-)
+{{if .ExtraConstant}}){{end}}
 `
 
 var prefix = template.Must(template.New("prefix").Parse(constTemplate))
 
 const methodTemplate = `
-// Unit converts the {{.Name}} to a *Unit
-func ({{.Receiver}} {{.Name}}) Unit() *Unit {
+// Unit converts the {{.DimensionName}} to a *Unit
+func ({{.Receiver}} {{.DimensionName}}) Unit() *Unit {
 	return New(float64({{.Receiver}}), Dimensions{
 		{{range .Dimensions}} {{.Name}}: {{.Power}},
 		{{end}}
 		})
 }
 
-// {{.Name}} allows {{.Name}} to implement a {{if .ErForm}}{{.ErForm}}{{else}}{{.Name}}er{{end}} interface
-func ({{.Receiver}} {{.Name}}) {{.Name}}() {{.Name}} {
+// {{.DimensionName}} allows {{.DimensionName}} to implement a {{if .ErForm}}{{.ErForm}}{{else}}{{.DimensionName}}er{{end}} interface
+func ({{.Receiver}} {{.DimensionName}}) {{.DimensionName}}() {{.DimensionName}} {
 	return {{.Receiver}}
 }
 
 // From converts the unit into the receiver. From returns an
 // error if there is a mismatch in dimension
-func ({{.Receiver}} *{{.Name}}) From(u Uniter) error {
-	if !DimensionsMatch(u, {{if .Singular}}{{.Singular}}{{else}}{{.Name}}(0){{end}}){
-		*{{.Receiver}} = {{.Name}}(math.NaN())
+func ({{.Receiver}} *{{.DimensionName}}) From(u Uniter) error {
+	if !DimensionsMatch(u, {{if .Name}}{{.Name}}{{else}}{{.DimensionName}}(0){{end}}){
+		*{{.Receiver}} = {{.DimensionName}}(math.NaN())
 		return errors.New("Dimension mismatch")
 	}
-	*{{.Receiver}} = {{.Name}}(u.Unit().Value())
+	*{{.Receiver}} = {{.DimensionName}}(u.Unit().Value())
 	return nil
 }
 `
@@ -604,7 +491,7 @@ func ({{.Receiver}} *{{.Name}}) From(u Uniter) error {
 var methods = template.Must(template.New("methods").Parse(methodTemplate))
 
 const formatTemplate = `
-func ({{.Receiver}} {{.Name}}) Format(fs fmt.State, c rune) {
+func ({{.Receiver}} {{.DimensionName}}) Format(fs fmt.State, c rune) {
 	switch c {
 	case 'v':
 		if fs.Flag('#') {
@@ -636,7 +523,7 @@ func ({{.Receiver}} {{.Name}}) Format(fs fmt.State, c rune) {
 var form = template.Must(template.New("format").Parse(formatTemplate))
 
 func generate(unit Unit) {
-	lowerName := strings.ToLower(unit.Name)
+	lowerName := strings.ToLower(unit.DimensionName)
 	filename := lowerName + ".go"
 	f, err := os.Create(filename)
 	if err != nil {
@@ -644,43 +531,26 @@ func generate(unit Unit) {
 	}
 	defer f.Close()
 
-	// Need to define new prefixes because text/template can't do math.
-	// Need to do math because kilogram = 1 not 10^3
+	var buf bytes.Buffer
 
-	prefixes := make([]Prefix, len(Prefixes))
-	for i, p := range Prefixes {
-		prefixes[i].Name = p.Name
-		prefixes[i].Power = p.Power + unit.Offset
-	}
-
-	data := struct {
-		Prefixes []Prefix
-		Unit     Unit
-	}{
-		prefixes,
-		unit,
-	}
-
-	buf := bytes.NewBuffer(make([]byte, 0))
-
-	err = header.Execute(buf, unit)
+	err = header.Execute(&buf, unit)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if unit.Singular != "" {
-		err = prefix.Execute(buf, data)
+	if unit.Name != "" {
+		err = prefix.Execute(&buf, unit)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	err = methods.Execute(buf, unit)
+	err = methods.Execute(&buf, unit)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = form.Execute(buf, unit)
+	err = form.Execute(&buf, unit)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -688,7 +558,7 @@ func generate(unit Unit) {
 	b, err := format.Source(buf.Bytes())
 	if err != nil {
 		f.Write(buf.Bytes()) // This is here to debug bad format
-		log.Fatalf("error formatting %q: %s", unit.Name, err)
+		log.Fatalf("error formatting %q: %s", unit.DimensionName, err)
 	}
 
 	f.Write(b)
@@ -707,9 +577,9 @@ import (
 	"testing"
 )
 
-func Test{{.Name}}Format(t *testing.T) {
+func Test{{.DimensionName}}Format(t *testing.T) {
 	for _, test := range []struct{
-		value  {{.Name}}
+		value  {{.DimensionName}}
 		format string
 		want   string
 	}{
@@ -718,8 +588,8 @@ func Test{{.Name}}Format(t *testing.T) {
 		{1.23456789, "%20.1v", "{{$s := printf "1 %s" .PrintString}}{{printf "%20s" $s}}"},
 		{1.23456789, "%20v", "{{$s := printf "1.23456789 %s" .PrintString}}{{printf "%20s" $s}}"},
 		{1.23456789, "%1v", "1.23456789 {{.PrintString}}"},
-		{1.23456789, "%#v", "unit.{{.Name}}(1.23456789)"},
-		{1.23456789, "%s", "%!s(unit.{{.Name}}=1.23456789 {{.PrintString}})"},
+		{1.23456789, "%#v", "unit.{{.DimensionName}}(1.23456789)"},
+		{1.23456789, "%s", "%!s(unit.{{.DimensionName}}=1.23456789 {{.PrintString}})"},
 	} {
 		got := fmt.Sprintf(test.format, test.value)
 		if got != test.want {
@@ -732,7 +602,7 @@ func Test{{.Name}}Format(t *testing.T) {
 var tests = template.Must(template.New("test").Parse(testTemplate))
 
 func generateTest(unit Unit) {
-	lowerName := strings.ToLower(unit.Name)
+	lowerName := strings.ToLower(unit.DimensionName)
 	filename := lowerName + "_test.go"
 	f, err := os.Create(filename)
 	if err != nil {
@@ -740,9 +610,8 @@ func generateTest(unit Unit) {
 	}
 	defer f.Close()
 
-	buf := bytes.NewBuffer(make([]byte, 0))
-
-	err = tests.Execute(buf, unit)
+	var buf bytes.Buffer
+	err = tests.Execute(&buf, unit)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -750,7 +619,7 @@ func generateTest(unit Unit) {
 	b, err := format.Source(buf.Bytes())
 	if err != nil {
 		f.Write(buf.Bytes()) // This is here to debug bad format.
-		log.Fatalf("error formatting test for %q: %s", unit.Name, err)
+		log.Fatalf("error formatting test for %q: %s", unit.DimensionName, err)
 	}
 
 	f.Write(b)

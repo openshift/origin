@@ -64,6 +64,10 @@ type KafkaAPI interface {
 	CreateClusterWithContext(aws.Context, *kafka.CreateClusterInput, ...request.Option) (*kafka.CreateClusterOutput, error)
 	CreateClusterRequest(*kafka.CreateClusterInput) (*request.Request, *kafka.CreateClusterOutput)
 
+	CreateConfiguration(*kafka.CreateConfigurationInput) (*kafka.CreateConfigurationOutput, error)
+	CreateConfigurationWithContext(aws.Context, *kafka.CreateConfigurationInput, ...request.Option) (*kafka.CreateConfigurationOutput, error)
+	CreateConfigurationRequest(*kafka.CreateConfigurationInput) (*request.Request, *kafka.CreateConfigurationOutput)
+
 	DeleteCluster(*kafka.DeleteClusterInput) (*kafka.DeleteClusterOutput, error)
 	DeleteClusterWithContext(aws.Context, *kafka.DeleteClusterInput, ...request.Option) (*kafka.DeleteClusterOutput, error)
 	DeleteClusterRequest(*kafka.DeleteClusterInput) (*request.Request, *kafka.DeleteClusterOutput)
@@ -72,17 +76,84 @@ type KafkaAPI interface {
 	DescribeClusterWithContext(aws.Context, *kafka.DescribeClusterInput, ...request.Option) (*kafka.DescribeClusterOutput, error)
 	DescribeClusterRequest(*kafka.DescribeClusterInput) (*request.Request, *kafka.DescribeClusterOutput)
 
+	DescribeClusterOperation(*kafka.DescribeClusterOperationInput) (*kafka.DescribeClusterOperationOutput, error)
+	DescribeClusterOperationWithContext(aws.Context, *kafka.DescribeClusterOperationInput, ...request.Option) (*kafka.DescribeClusterOperationOutput, error)
+	DescribeClusterOperationRequest(*kafka.DescribeClusterOperationInput) (*request.Request, *kafka.DescribeClusterOperationOutput)
+
+	DescribeConfiguration(*kafka.DescribeConfigurationInput) (*kafka.DescribeConfigurationOutput, error)
+	DescribeConfigurationWithContext(aws.Context, *kafka.DescribeConfigurationInput, ...request.Option) (*kafka.DescribeConfigurationOutput, error)
+	DescribeConfigurationRequest(*kafka.DescribeConfigurationInput) (*request.Request, *kafka.DescribeConfigurationOutput)
+
+	DescribeConfigurationRevision(*kafka.DescribeConfigurationRevisionInput) (*kafka.DescribeConfigurationRevisionOutput, error)
+	DescribeConfigurationRevisionWithContext(aws.Context, *kafka.DescribeConfigurationRevisionInput, ...request.Option) (*kafka.DescribeConfigurationRevisionOutput, error)
+	DescribeConfigurationRevisionRequest(*kafka.DescribeConfigurationRevisionInput) (*request.Request, *kafka.DescribeConfigurationRevisionOutput)
+
 	GetBootstrapBrokers(*kafka.GetBootstrapBrokersInput) (*kafka.GetBootstrapBrokersOutput, error)
 	GetBootstrapBrokersWithContext(aws.Context, *kafka.GetBootstrapBrokersInput, ...request.Option) (*kafka.GetBootstrapBrokersOutput, error)
 	GetBootstrapBrokersRequest(*kafka.GetBootstrapBrokersInput) (*request.Request, *kafka.GetBootstrapBrokersOutput)
+
+	ListClusterOperations(*kafka.ListClusterOperationsInput) (*kafka.ListClusterOperationsOutput, error)
+	ListClusterOperationsWithContext(aws.Context, *kafka.ListClusterOperationsInput, ...request.Option) (*kafka.ListClusterOperationsOutput, error)
+	ListClusterOperationsRequest(*kafka.ListClusterOperationsInput) (*request.Request, *kafka.ListClusterOperationsOutput)
+
+	ListClusterOperationsPages(*kafka.ListClusterOperationsInput, func(*kafka.ListClusterOperationsOutput, bool) bool) error
+	ListClusterOperationsPagesWithContext(aws.Context, *kafka.ListClusterOperationsInput, func(*kafka.ListClusterOperationsOutput, bool) bool, ...request.Option) error
 
 	ListClusters(*kafka.ListClustersInput) (*kafka.ListClustersOutput, error)
 	ListClustersWithContext(aws.Context, *kafka.ListClustersInput, ...request.Option) (*kafka.ListClustersOutput, error)
 	ListClustersRequest(*kafka.ListClustersInput) (*request.Request, *kafka.ListClustersOutput)
 
+	ListClustersPages(*kafka.ListClustersInput, func(*kafka.ListClustersOutput, bool) bool) error
+	ListClustersPagesWithContext(aws.Context, *kafka.ListClustersInput, func(*kafka.ListClustersOutput, bool) bool, ...request.Option) error
+
+	ListConfigurationRevisions(*kafka.ListConfigurationRevisionsInput) (*kafka.ListConfigurationRevisionsOutput, error)
+	ListConfigurationRevisionsWithContext(aws.Context, *kafka.ListConfigurationRevisionsInput, ...request.Option) (*kafka.ListConfigurationRevisionsOutput, error)
+	ListConfigurationRevisionsRequest(*kafka.ListConfigurationRevisionsInput) (*request.Request, *kafka.ListConfigurationRevisionsOutput)
+
+	ListConfigurationRevisionsPages(*kafka.ListConfigurationRevisionsInput, func(*kafka.ListConfigurationRevisionsOutput, bool) bool) error
+	ListConfigurationRevisionsPagesWithContext(aws.Context, *kafka.ListConfigurationRevisionsInput, func(*kafka.ListConfigurationRevisionsOutput, bool) bool, ...request.Option) error
+
+	ListConfigurations(*kafka.ListConfigurationsInput) (*kafka.ListConfigurationsOutput, error)
+	ListConfigurationsWithContext(aws.Context, *kafka.ListConfigurationsInput, ...request.Option) (*kafka.ListConfigurationsOutput, error)
+	ListConfigurationsRequest(*kafka.ListConfigurationsInput) (*request.Request, *kafka.ListConfigurationsOutput)
+
+	ListConfigurationsPages(*kafka.ListConfigurationsInput, func(*kafka.ListConfigurationsOutput, bool) bool) error
+	ListConfigurationsPagesWithContext(aws.Context, *kafka.ListConfigurationsInput, func(*kafka.ListConfigurationsOutput, bool) bool, ...request.Option) error
+
 	ListNodes(*kafka.ListNodesInput) (*kafka.ListNodesOutput, error)
 	ListNodesWithContext(aws.Context, *kafka.ListNodesInput, ...request.Option) (*kafka.ListNodesOutput, error)
 	ListNodesRequest(*kafka.ListNodesInput) (*request.Request, *kafka.ListNodesOutput)
+
+	ListNodesPages(*kafka.ListNodesInput, func(*kafka.ListNodesOutput, bool) bool) error
+	ListNodesPagesWithContext(aws.Context, *kafka.ListNodesInput, func(*kafka.ListNodesOutput, bool) bool, ...request.Option) error
+
+	ListTagsForResource(*kafka.ListTagsForResourceInput) (*kafka.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *kafka.ListTagsForResourceInput, ...request.Option) (*kafka.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*kafka.ListTagsForResourceInput) (*request.Request, *kafka.ListTagsForResourceOutput)
+
+	TagResource(*kafka.TagResourceInput) (*kafka.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *kafka.TagResourceInput, ...request.Option) (*kafka.TagResourceOutput, error)
+	TagResourceRequest(*kafka.TagResourceInput) (*request.Request, *kafka.TagResourceOutput)
+
+	UntagResource(*kafka.UntagResourceInput) (*kafka.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *kafka.UntagResourceInput, ...request.Option) (*kafka.UntagResourceOutput, error)
+	UntagResourceRequest(*kafka.UntagResourceInput) (*request.Request, *kafka.UntagResourceOutput)
+
+	UpdateBrokerCount(*kafka.UpdateBrokerCountInput) (*kafka.UpdateBrokerCountOutput, error)
+	UpdateBrokerCountWithContext(aws.Context, *kafka.UpdateBrokerCountInput, ...request.Option) (*kafka.UpdateBrokerCountOutput, error)
+	UpdateBrokerCountRequest(*kafka.UpdateBrokerCountInput) (*request.Request, *kafka.UpdateBrokerCountOutput)
+
+	UpdateBrokerStorage(*kafka.UpdateBrokerStorageInput) (*kafka.UpdateBrokerStorageOutput, error)
+	UpdateBrokerStorageWithContext(aws.Context, *kafka.UpdateBrokerStorageInput, ...request.Option) (*kafka.UpdateBrokerStorageOutput, error)
+	UpdateBrokerStorageRequest(*kafka.UpdateBrokerStorageInput) (*request.Request, *kafka.UpdateBrokerStorageOutput)
+
+	UpdateClusterConfiguration(*kafka.UpdateClusterConfigurationInput) (*kafka.UpdateClusterConfigurationOutput, error)
+	UpdateClusterConfigurationWithContext(aws.Context, *kafka.UpdateClusterConfigurationInput, ...request.Option) (*kafka.UpdateClusterConfigurationOutput, error)
+	UpdateClusterConfigurationRequest(*kafka.UpdateClusterConfigurationInput) (*request.Request, *kafka.UpdateClusterConfigurationOutput)
+
+	UpdateMonitoring(*kafka.UpdateMonitoringInput) (*kafka.UpdateMonitoringOutput, error)
+	UpdateMonitoringWithContext(aws.Context, *kafka.UpdateMonitoringInput, ...request.Option) (*kafka.UpdateMonitoringOutput, error)
+	UpdateMonitoringRequest(*kafka.UpdateMonitoringInput) (*request.Request, *kafka.UpdateMonitoringOutput)
 }
 
 var _ KafkaAPI = (*kafka.Kafka)(nil)

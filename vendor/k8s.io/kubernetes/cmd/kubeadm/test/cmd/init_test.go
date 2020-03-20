@@ -180,6 +180,16 @@ func TestCmdInitConfig(t *testing.T) {
 			args:     "--kubernetes-version=1.11.0 --config=testdata/init/v1beta2.yaml",
 			expected: false,
 		},
+		{
+			name:     "can load current component config",
+			args:     "--config=testdata/init/current-component-config.yaml",
+			expected: true,
+		},
+		{
+			name:     "can't load old component config",
+			args:     "--config=testdata/init/old-component-config.yaml",
+			expected: false,
+		},
 	}
 
 	for _, rt := range initTest {
@@ -343,12 +353,12 @@ func TestCmdInitFeatureGates(t *testing.T) {
 			args: "",
 		},
 		{
-			name: "feature gate CoreDNS=true",
-			args: "--feature-gates=CoreDNS=true",
-		},
-		{
 			name: "feature gate IPv6DualStack=true",
 			args: "--feature-gates=IPv6DualStack=true",
+		},
+		{
+			name: "feature gate PublicKeysECDSA=true",
+			args: "--feature-gates=PublicKeysECDSA=true",
 		},
 	}
 

@@ -13,11 +13,6 @@ type node int64
 
 func (n node) ID() int64 { return int64(n) }
 
-// count reports the number of elements stored in the node set.
-func (s Nodes) count() int {
-	return len(s)
-}
-
 // TestSame tests the assumption that pointer equality via unsafe conversion
 // of a map[int]struct{} to uintptr is a valid test for perfect identity between
 // set values. If any of the tests in TestSame fail, the package is broken and same

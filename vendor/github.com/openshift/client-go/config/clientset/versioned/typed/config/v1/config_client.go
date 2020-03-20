@@ -23,6 +23,7 @@ type ConfigV1Interface interface {
 	IngressesGetter
 	NetworksGetter
 	OAuthsGetter
+	OperatorHubsGetter
 	ProjectsGetter
 	ProxiesGetter
 	SchedulersGetter
@@ -83,6 +84,10 @@ func (c *ConfigV1Client) Networks() NetworkInterface {
 
 func (c *ConfigV1Client) OAuths() OAuthInterface {
 	return newOAuths(c)
+}
+
+func (c *ConfigV1Client) OperatorHubs() OperatorHubInterface {
+	return newOperatorHubs(c)
 }
 
 func (c *ConfigV1Client) Projects() ProjectInterface {

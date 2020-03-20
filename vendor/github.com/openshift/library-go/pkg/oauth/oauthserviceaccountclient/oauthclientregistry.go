@@ -1,6 +1,7 @@
 package oauthserviceaccountclient
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/url"
@@ -64,7 +65,7 @@ func init() {
 // Based on the namespace and names provided, it builds a map of resource name to redirect URIs.
 // The redirect URIs represent the default values as specified by the resource.
 // These values can be overridden by user specified data. Errors returned are informative and non-fatal.
-type namesToObjMapperFunc func(namespace string, names sets.String) (map[string]redirectURIList, []error)
+type namesToObjMapperFunc func(ctx context.Context, namespace string, names sets.String) (map[string]redirectURIList, []error)
 
 // TODO add ingress support
 // var ingressGroupKind = routeapi.SchemeGroupVersion.WithKind(IngressKind).GroupKind()
@@ -72,7 +73,7 @@ type namesToObjMapperFunc func(namespace string, names sets.String) (map[string]
 // OAuthClientGetter  exposes a way to get a specific client.  This is useful for other registries to get scope limitations
 // on particular clients.   This interface will make its easier to write a future cache on it
 type OAuthClientGetter interface {
-	Get(name string, options metav1.GetOptions) (*oauthv1.OAuthClient, error)
+	Get(ctx context.Context, name string, options metav1.GetOptions) (*oauthv1.OAuthClient, error)
 }
 
 type saOAuthClientAdapter struct {
@@ -227,14 +228,14 @@ func NewServiceAccountOAuthClientGetter(
 	}
 }
 
-func (a *saOAuthClientAdapter) Get(name string, options metav1.GetOptions) (*oauthv1.OAuthClient, error) {
+func (a *saOAuthClientAdapter) Get(ctx context.Context, name string, options metav1.GetOptions) (*oauthv1.OAuthClient, error) {
 	var err error
 	saNamespace, saName, err := apiserverserviceaccount.SplitUsername(name)
 	if err != nil {
-		return a.delegate.Get(name, options)
+		return a.delegate.Get(ctx, name, options)
 	}
 
-	sa, err := a.saClient.ServiceAccounts(saNamespace).Get(saName, metav1.GetOptions{})
+	sa, err := a.saClient.ServiceAccounts(saNamespace).Get(ctx, saName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +256,7 @@ func (a *saOAuthClientAdapter) Get(name string, options metav1.GetOptions) (*oau
 	}
 
 	if len(modelsMap) > 0 {
-		uris, extractErrors := a.extractRedirectURIs(modelsMap, saNamespace)
+		uris, extractErrors := a.extractRedirectURIs(ctx, modelsMap, saNamespace)
 		if len(uris) > 0 {
 			redirectURIs = append(redirectURIs, uris.extractValidRedirectURIStrings()...)
 		}
@@ -346,7 +347,7 @@ func parseModelPrefixName(key string) (string, string, bool) {
 
 // extractRedirectURIs builds redirect URIs using the given models and namespace.
 // The returned redirect URIs may contain duplicates and invalid entries. Errors returned are informative and non-fatal.
-func (a *saOAuthClientAdapter) extractRedirectURIs(modelsMap map[string]model, namespace string) (redirectURIList, []error) {
+func (a *saOAuthClientAdapter) extractRedirectURIs(ctx context.Context, modelsMap map[string]model, namespace string) (redirectURIList, []error) {
 	var data redirectURIList
 	routeErrors := []error{}
 	groupKindModelListMapper := map[schema.GroupKind]modelList{} // map of GroupKind to all models belonging to it
@@ -372,7 +373,7 @@ func (a *saOAuthClientAdapter) extractRedirectURIs(modelsMap map[string]model, n
 
 	for gk, models := range groupKindModelListMapper {
 		if names := models.getNames(); names.Len() > 0 {
-			objMapper, errs := groupKindModelToURI[gk](namespace, names)
+			objMapper, errs := groupKindModelToURI[gk](ctx, namespace, names)
 			if len(objMapper) > 0 {
 				data = append(data, models.getRedirectURIs(objMapper)...)
 			}
@@ -388,18 +389,18 @@ func (a *saOAuthClientAdapter) extractRedirectURIs(modelsMap map[string]model, n
 // redirectURIsFromRoutes is the namesToObjMapperFunc specific to Routes.
 // Returns a map of route name to redirect URIs that contain the default data as specified by the route's ingresses.
 // Errors returned are informative and non-fatal.
-func (a *saOAuthClientAdapter) redirectURIsFromRoutes(namespace string, osRouteNames sets.String) (map[string]redirectURIList, []error) {
+func (a *saOAuthClientAdapter) redirectURIsFromRoutes(ctx context.Context, namespace string, osRouteNames sets.String) (map[string]redirectURIList, []error) {
 	var routes []routev1.Route
 	routeErrors := []error{}
 	routeInterface := a.routeClient.Routes(namespace)
 	if osRouteNames.Len() > 1 {
-		if r, err := routeInterface.List(metav1.ListOptions{}); err == nil {
+		if r, err := routeInterface.List(ctx, metav1.ListOptions{}); err == nil {
 			routes = r.Items
 		} else {
 			routeErrors = append(routeErrors, err)
 		}
 	} else {
-		if r, err := routeInterface.Get(osRouteNames.List()[0], metav1.GetOptions{}); err == nil {
+		if r, err := routeInterface.Get(ctx, osRouteNames.List()[0], metav1.GetOptions{}); err == nil {
 			routes = append(routes, *r)
 		} else {
 			routeErrors = append(routeErrors, err)
@@ -466,7 +467,7 @@ func getScopeRestrictionsFor(namespace, name string) []oauthv1.ScopeRestriction 
 
 // getServiceAccountTokens returns all ServiceAccountToken secrets for the given ServiceAccount
 func (a *saOAuthClientAdapter) getServiceAccountTokens(sa *corev1.ServiceAccount) ([]string, error) {
-	allSecrets, err := a.secretClient.Secrets(sa.Namespace).List(metav1.ListOptions{})
+	allSecrets, err := a.secretClient.Secrets(sa.Namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

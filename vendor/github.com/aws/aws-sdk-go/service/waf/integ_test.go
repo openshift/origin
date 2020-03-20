@@ -29,7 +29,9 @@ func TestInteg_00_ListRules(t *testing.T) {
 	params := &waf.ListRulesInput{
 		Limit: aws.Int64(20),
 	}
-	_, err := svc.ListRulesWithContext(ctx, params)
+	_, err := svc.ListRulesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -44,7 +46,9 @@ func TestInteg_01_CreateSqlInjectionMatchSet(t *testing.T) {
 		ChangeToken: aws.String("fake_token"),
 		Name:        aws.String("fake_name"),
 	}
-	_, err := svc.CreateSqlInjectionMatchSetWithContext(ctx, params)
+	_, err := svc.CreateSqlInjectionMatchSetWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

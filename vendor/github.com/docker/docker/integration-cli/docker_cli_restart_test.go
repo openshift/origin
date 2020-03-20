@@ -76,7 +76,7 @@ func (s *DockerSuite) TestRestartWithVolumes(c *check.C) {
 }
 
 func (s *DockerSuite) TestRestartDisconnectedContainer(c *check.C) {
-	testRequires(c, DaemonIsLinux, SameHostDaemon, NotUserNamespace, NotArm)
+	testRequires(c, DaemonIsLinux, testEnv.IsLocalDaemon, NotUserNamespace, NotArm)
 
 	// Run a container on the default bridge network
 	out, _ := dockerCmd(c, "run", "-d", "--name", "c0", "busybox", "top")
@@ -85,11 +85,11 @@ func (s *DockerSuite) TestRestartDisconnectedContainer(c *check.C) {
 
 	// Disconnect the container from the network
 	out, err := dockerCmd(c, "network", "disconnect", "bridge", "c0")
-	c.Assert(err, check.NotNil, check.Commentf(out))
+	c.Assert(err, check.NotNil, check.Commentf("%s", out))
 
 	// Restart the container
 	dockerCmd(c, "restart", "c0")
-	c.Assert(err, check.NotNil, check.Commentf(out))
+	c.Assert(err, check.NotNil, check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestRestartPolicyNO(c *check.C) {
@@ -115,7 +115,7 @@ func (s *DockerSuite) TestRestartPolicyAlways(c *check.C) {
 
 func (s *DockerSuite) TestRestartPolicyOnFailure(c *check.C) {
 	out, _, err := dockerCmdWithError("create", "--restart=on-failure:-1", "busybox")
-	c.Assert(err, check.NotNil, check.Commentf(out))
+	c.Assert(err, check.NotNil, check.Commentf("%s", out))
 	c.Assert(out, checker.Contains, "maximum retry count cannot be negative")
 
 	out, _ = dockerCmd(c, "create", "--restart=on-failure:1", "busybox")
@@ -164,7 +164,10 @@ func (s *DockerSuite) TestRestartContainerwithGoodContainer(c *check.C) {
 }
 
 func (s *DockerSuite) TestRestartContainerSuccess(c *check.C) {
-	testRequires(c, SameHostDaemon)
+	// Skipped for Hyper-V isolated containers. Test is currently written
+	// such that it assumes there is a host process to kill. In Hyper-V
+	// containers, the process is inside the utility VM, not on the host.
+	testRequires(c, testEnv.IsLocalDaemon, IsolationIsProcess)
 
 	out := runSleepingContainer(c, "-d", "--restart=always")
 	id := strings.TrimSpace(out)
@@ -191,7 +194,7 @@ func (s *DockerSuite) TestRestartContainerSuccess(c *check.C) {
 
 func (s *DockerSuite) TestRestartWithPolicyUserDefinedNetwork(c *check.C) {
 	// TODO Windows. This may be portable following HNS integration post TP5.
-	testRequires(c, DaemonIsLinux, SameHostDaemon, NotUserNamespace, NotArm)
+	testRequires(c, DaemonIsLinux, testEnv.IsLocalDaemon, NotUserNamespace, NotArm)
 	dockerCmd(c, "network", "create", "-d", "bridge", "udNet")
 
 	dockerCmd(c, "run", "-d", "--net=udNet", "--name=first", "busybox", "top")
@@ -224,6 +227,7 @@ func (s *DockerSuite) TestRestartWithPolicyUserDefinedNetwork(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	err = waitInspect("second", "{{.State.Status}}", "running", 5*time.Second)
+	c.Assert(err, check.IsNil)
 
 	// ping to first and its alias foo must still succeed
 	_, _, err = dockerCmdWithError("exec", "second", "ping", "-c", "1", "first")
@@ -233,7 +237,10 @@ func (s *DockerSuite) TestRestartWithPolicyUserDefinedNetwork(c *check.C) {
 }
 
 func (s *DockerSuite) TestRestartPolicyAfterRestart(c *check.C) {
-	testRequires(c, SameHostDaemon)
+	// Skipped for Hyper-V isolated containers. Test is currently written
+	// such that it assumes there is a host process to kill. In Hyper-V
+	// containers, the process is inside the utility VM, not on the host.
+	testRequires(c, testEnv.IsLocalDaemon, IsolationIsProcess)
 
 	out := runSleepingContainer(c, "-d", "--restart=always")
 	id := strings.TrimSpace(out)

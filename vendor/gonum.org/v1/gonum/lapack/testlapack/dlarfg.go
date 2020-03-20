@@ -108,7 +108,7 @@ func DlarfgTest(t *testing.T, impl Dlarfger) {
 		blas64.Gemm(blas.Trans, blas.NoTrans, 1, hmat, hmat, 0, eye)
 		dist := distFromIdentity(n, eye.Data, n)
 		if dist > tol {
-			t.Errorf("H^T * H is not close to I, dist=%v", dist)
+			t.Errorf("Hᵀ * H is not close to I, dist=%v", dist)
 		}
 
 		xVec := blas64.Vector{

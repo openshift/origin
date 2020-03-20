@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
@@ -21,15 +22,15 @@ type OAuthsGetter interface {
 
 // OAuthInterface has methods to work with OAuth resources.
 type OAuthInterface interface {
-	Create(*v1.OAuth) (*v1.OAuth, error)
-	Update(*v1.OAuth) (*v1.OAuth, error)
-	UpdateStatus(*v1.OAuth) (*v1.OAuth, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.OAuth, error)
-	List(opts metav1.ListOptions) (*v1.OAuthList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.OAuth, err error)
+	Create(ctx context.Context, oAuth *v1.OAuth, opts metav1.CreateOptions) (*v1.OAuth, error)
+	Update(ctx context.Context, oAuth *v1.OAuth, opts metav1.UpdateOptions) (*v1.OAuth, error)
+	UpdateStatus(ctx context.Context, oAuth *v1.OAuth, opts metav1.UpdateOptions) (*v1.OAuth, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.OAuth, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.OAuthList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.OAuth, err error)
 	OAuthExpansion
 }
 
@@ -46,19 +47,19 @@ func newOAuths(c *ConfigV1Client) *oAuths {
 }
 
 // Get takes name of the oAuth, and returns the corresponding oAuth object, and an error if there is any.
-func (c *oAuths) Get(name string, options metav1.GetOptions) (result *v1.OAuth, err error) {
+func (c *oAuths) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.OAuth, err error) {
 	result = &v1.OAuth{}
 	err = c.client.Get().
 		Resource("oauths").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of OAuths that match those selectors.
-func (c *oAuths) List(opts metav1.ListOptions) (result *v1.OAuthList, err error) {
+func (c *oAuths) List(ctx context.Context, opts metav1.ListOptions) (result *v1.OAuthList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -68,13 +69,13 @@ func (c *oAuths) List(opts metav1.ListOptions) (result *v1.OAuthList, err error)
 		Resource("oauths").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested oAuths.
-func (c *oAuths) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *oAuths) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -84,81 +85,84 @@ func (c *oAuths) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 		Resource("oauths").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a oAuth and creates it.  Returns the server's representation of the oAuth, and an error, if there is any.
-func (c *oAuths) Create(oAuth *v1.OAuth) (result *v1.OAuth, err error) {
+func (c *oAuths) Create(ctx context.Context, oAuth *v1.OAuth, opts metav1.CreateOptions) (result *v1.OAuth, err error) {
 	result = &v1.OAuth{}
 	err = c.client.Post().
 		Resource("oauths").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(oAuth).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a oAuth and updates it. Returns the server's representation of the oAuth, and an error, if there is any.
-func (c *oAuths) Update(oAuth *v1.OAuth) (result *v1.OAuth, err error) {
+func (c *oAuths) Update(ctx context.Context, oAuth *v1.OAuth, opts metav1.UpdateOptions) (result *v1.OAuth, err error) {
 	result = &v1.OAuth{}
 	err = c.client.Put().
 		Resource("oauths").
 		Name(oAuth.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(oAuth).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *oAuths) UpdateStatus(oAuth *v1.OAuth) (result *v1.OAuth, err error) {
+func (c *oAuths) UpdateStatus(ctx context.Context, oAuth *v1.OAuth, opts metav1.UpdateOptions) (result *v1.OAuth, err error) {
 	result = &v1.OAuth{}
 	err = c.client.Put().
 		Resource("oauths").
 		Name(oAuth.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(oAuth).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the oAuth and deletes it. Returns an error if one occurs.
-func (c *oAuths) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *oAuths) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("oauths").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *oAuths) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (c *oAuths) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("oauths").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched oAuth.
-func (c *oAuths) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.OAuth, err error) {
+func (c *oAuths) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.OAuth, err error) {
 	result = &v1.OAuth{}
 	err = c.client.Patch(pt).
 		Resource("oauths").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

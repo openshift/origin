@@ -64,7 +64,7 @@ func testEventListeners(testName string, t *testing.T, buildServer func(http.Han
 {"status":"destroy","id":"dfdf82bd3881","from":"base:latest","time":1374067970}
 {"Action":"create","Actor":{"Attributes":{"HAProxyMode":"http","HealthCheck":"HttpGet","HealthCheckArgs":"http://127.0.0.1:39051/status/check","ServicePort_8080":"17801","image":"datanerd.us/siteeng/sample-app-go:latest","name":"sample-app-client-go-69818c1223ddb5"},"ID":"a925eaf4084d5c3bcf337b2abb05f566ebb94276dff34f6effb00d8ecd380e16"},"Type":"container","from":"datanerd.us/siteeng/sample-app-go:latest","id":"a925eaf4084d5c3bcf337b2abb05f566ebb94276dff34f6effb00d8ecd380e16","status":"create","time":1459133932,"timeNano":1459133932961735842}`
 
-	server := buildServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := buildServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		rsc := bufio.NewScanner(strings.NewReader(response))
 		for rsc.Scan() {
 			w.Write(rsc.Bytes())
@@ -271,7 +271,7 @@ loop:
 func TestEventListenerReAdding(t *testing.T) {
 	t.Parallel()
 	endChan := make(chan bool)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		<-endChan
 	}))
 

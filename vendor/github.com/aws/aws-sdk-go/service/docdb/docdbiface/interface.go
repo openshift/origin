@@ -116,6 +116,10 @@ type DocDBAPI interface {
 	DeleteDBSubnetGroupWithContext(aws.Context, *docdb.DeleteDBSubnetGroupInput, ...request.Option) (*docdb.DeleteDBSubnetGroupOutput, error)
 	DeleteDBSubnetGroupRequest(*docdb.DeleteDBSubnetGroupInput) (*request.Request, *docdb.DeleteDBSubnetGroupOutput)
 
+	DescribeCertificates(*docdb.DescribeCertificatesInput) (*docdb.DescribeCertificatesOutput, error)
+	DescribeCertificatesWithContext(aws.Context, *docdb.DescribeCertificatesInput, ...request.Option) (*docdb.DescribeCertificatesOutput, error)
+	DescribeCertificatesRequest(*docdb.DescribeCertificatesInput) (*request.Request, *docdb.DescribeCertificatesOutput)
+
 	DescribeDBClusterParameterGroups(*docdb.DescribeDBClusterParameterGroupsInput) (*docdb.DescribeDBClusterParameterGroupsOutput, error)
 	DescribeDBClusterParameterGroupsWithContext(aws.Context, *docdb.DescribeDBClusterParameterGroupsInput, ...request.Option) (*docdb.DescribeDBClusterParameterGroupsOutput, error)
 	DescribeDBClusterParameterGroupsRequest(*docdb.DescribeDBClusterParameterGroupsInput) (*request.Request, *docdb.DescribeDBClusterParameterGroupsOutput)
@@ -233,6 +237,14 @@ type DocDBAPI interface {
 	RestoreDBClusterToPointInTime(*docdb.RestoreDBClusterToPointInTimeInput) (*docdb.RestoreDBClusterToPointInTimeOutput, error)
 	RestoreDBClusterToPointInTimeWithContext(aws.Context, *docdb.RestoreDBClusterToPointInTimeInput, ...request.Option) (*docdb.RestoreDBClusterToPointInTimeOutput, error)
 	RestoreDBClusterToPointInTimeRequest(*docdb.RestoreDBClusterToPointInTimeInput) (*request.Request, *docdb.RestoreDBClusterToPointInTimeOutput)
+
+	StartDBCluster(*docdb.StartDBClusterInput) (*docdb.StartDBClusterOutput, error)
+	StartDBClusterWithContext(aws.Context, *docdb.StartDBClusterInput, ...request.Option) (*docdb.StartDBClusterOutput, error)
+	StartDBClusterRequest(*docdb.StartDBClusterInput) (*request.Request, *docdb.StartDBClusterOutput)
+
+	StopDBCluster(*docdb.StopDBClusterInput) (*docdb.StopDBClusterOutput, error)
+	StopDBClusterWithContext(aws.Context, *docdb.StopDBClusterInput, ...request.Option) (*docdb.StopDBClusterOutput, error)
+	StopDBClusterRequest(*docdb.StopDBClusterInput) (*request.Request, *docdb.StopDBClusterOutput)
 
 	WaitUntilDBInstanceAvailable(*docdb.DescribeDBInstancesInput) error
 	WaitUntilDBInstanceAvailableWithContext(aws.Context, *docdb.DescribeDBInstancesInput, ...request.WaiterOption) error

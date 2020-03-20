@@ -2,6 +2,10 @@
 
 package cloudsearchdomain
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeDocumentServiceException for service response error code
@@ -16,3 +20,8 @@ const (
 	// Information about any problems encountered while processing a search request.
 	ErrCodeSearchException = "SearchException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"DocumentServiceException": newErrorDocumentServiceException,
+	"SearchException":          newErrorSearchException,
+}

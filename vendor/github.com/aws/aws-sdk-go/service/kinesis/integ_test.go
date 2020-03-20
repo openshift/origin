@@ -27,7 +27,9 @@ func TestInteg_00_ListStreams(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := kinesis.New(sess)
 	params := &kinesis.ListStreamsInput{}
-	_, err := svc.ListStreamsWithContext(ctx, params)
+	_, err := svc.ListStreamsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeStream(t *testing.T) {
 	params := &kinesis.DescribeStreamInput{
 		StreamName: aws.String("bogus-stream-name"),
 	}
-	_, err := svc.DescribeStreamWithContext(ctx, params)
+	_, err := svc.DescribeStreamWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

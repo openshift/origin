@@ -67,24 +67,24 @@ func (c *AppStream) AssociateFleetRequest(input *AssociateFleetInput) (req *requ
 // See the AWS API reference guide for Amazon AppStream's
 // API operation AssociateFleet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLimitExceededException "LimitExceededException"
+// Returned Error Types:
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
-//   * ErrCodeIncompatibleImageException "IncompatibleImageException"
+//   * IncompatibleImageException
 //   The image does not support storage connectors.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/AssociateFleet
@@ -164,8 +164,8 @@ func (c *AppStream) BatchAssociateUserStackRequest(input *BatchAssociateUserStac
 // See the AWS API reference guide for Amazon AppStream's
 // API operation BatchAssociateUserStack for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+// Returned Error Types:
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/BatchAssociateUserStack
@@ -318,24 +318,24 @@ func (c *AppStream) CopyImageRequest(input *CopyImageInput) (req *request.Reques
 // See the AWS API reference guide for Amazon AppStream's
 // API operation CopyImage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
+// Returned Error Types:
+//   * ResourceAlreadyExistsException
 //   The specified resource already exists.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeResourceNotAvailableException "ResourceNotAvailableException"
+//   * ResourceNotAvailableException
 //   The specified resource exists and is not in use, but isn't available.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeIncompatibleImageException "IncompatibleImageException"
+//   * IncompatibleImageException
 //   The image does not support storage connectors.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/CopyImage
@@ -405,8 +405,8 @@ func (c *AppStream) CreateDirectoryConfigRequest(input *CreateDirectoryConfigInp
 // CreateDirectoryConfig API operation for Amazon AppStream.
 //
 // Creates a Directory Config object in AppStream 2.0. This object includes
-// the information required to join streaming instances to an Active Directory
-// domain.
+// the configuration information required to join fleets and image builders
+// to Microsoft Active Directory domains.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -415,14 +415,14 @@ func (c *AppStream) CreateDirectoryConfigRequest(input *CreateDirectoryConfigInp
 // See the AWS API reference guide for Amazon AppStream's
 // API operation CreateDirectoryConfig for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
+// Returned Error Types:
+//   * ResourceAlreadyExistsException
 //   The specified resource already exists.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
@@ -502,36 +502,36 @@ func (c *AppStream) CreateFleetRequest(input *CreateFleetInput) (req *request.Re
 // See the AWS API reference guide for Amazon AppStream's
 // API operation CreateFleet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
+// Returned Error Types:
+//   * ResourceAlreadyExistsException
 //   The specified resource already exists.
 //
-//   * ErrCodeResourceNotAvailableException "ResourceNotAvailableException"
+//   * ResourceNotAvailableException
 //   The specified resource exists and is not in use, but isn't available.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeInvalidRoleException "InvalidRoleException"
+//   * InvalidRoleException
 //   The specified role is invalid.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
-//   * ErrCodeIncompatibleImageException "IncompatibleImageException"
+//   * IncompatibleImageException
 //   The image does not support storage connectors.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/CreateFleet
@@ -613,36 +613,36 @@ func (c *AppStream) CreateImageBuilderRequest(input *CreateImageBuilderInput) (r
 // See the AWS API reference guide for Amazon AppStream's
 // API operation CreateImageBuilder for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLimitExceededException "LimitExceededException"
+// Returned Error Types:
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
+//   * ResourceAlreadyExistsException
 //   The specified resource already exists.
 //
-//   * ErrCodeResourceNotAvailableException "ResourceNotAvailableException"
+//   * ResourceNotAvailableException
 //   The specified resource exists and is not in use, but isn't available.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeInvalidRoleException "InvalidRoleException"
+//   * InvalidRoleException
 //   The specified role is invalid.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
-//   * ErrCodeIncompatibleImageException "IncompatibleImageException"
+//   * IncompatibleImageException
 //   The image does not support storage connectors.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/CreateImageBuilder
@@ -720,11 +720,11 @@ func (c *AppStream) CreateImageBuilderStreamingURLRequest(input *CreateImageBuil
 // See the AWS API reference guide for Amazon AppStream's
 // API operation CreateImageBuilderStreamingURL for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+// Returned Error Types:
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/CreateImageBuilderStreamingURL
@@ -803,27 +803,27 @@ func (c *AppStream) CreateStackRequest(input *CreateStackInput) (req *request.Re
 // See the AWS API reference guide for Amazon AppStream's
 // API operation CreateStack for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLimitExceededException "LimitExceededException"
+// Returned Error Types:
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
+//   * ResourceAlreadyExistsException
 //   The specified resource already exists.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
-//   * ErrCodeInvalidRoleException "InvalidRoleException"
+//   * InvalidRoleException
 //   The specified role is invalid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/CreateStack
@@ -903,17 +903,17 @@ func (c *AppStream) CreateStreamingURLRequest(input *CreateStreamingURLInput) (r
 // See the AWS API reference guide for Amazon AppStream's
 // API operation CreateStreamingURL for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeResourceNotAvailableException "ResourceNotAvailableException"
+//   * ResourceNotAvailableException
 //   The specified resource exists and is not in use, but isn't available.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/CreateStreamingURL
@@ -933,6 +933,92 @@ func (c *AppStream) CreateStreamingURL(input *CreateStreamingURLInput) (*CreateS
 // for more information on using Contexts.
 func (c *AppStream) CreateStreamingURLWithContext(ctx aws.Context, input *CreateStreamingURLInput, opts ...request.Option) (*CreateStreamingURLOutput, error) {
 	req, out := c.CreateStreamingURLRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateUsageReportSubscription = "CreateUsageReportSubscription"
+
+// CreateUsageReportSubscriptionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateUsageReportSubscription operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateUsageReportSubscription for more information on using the CreateUsageReportSubscription
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateUsageReportSubscriptionRequest method.
+//    req, resp := client.CreateUsageReportSubscriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/CreateUsageReportSubscription
+func (c *AppStream) CreateUsageReportSubscriptionRequest(input *CreateUsageReportSubscriptionInput) (req *request.Request, output *CreateUsageReportSubscriptionOutput) {
+	op := &request.Operation{
+		Name:       opCreateUsageReportSubscription,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateUsageReportSubscriptionInput{}
+	}
+
+	output = &CreateUsageReportSubscriptionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateUsageReportSubscription API operation for Amazon AppStream.
+//
+// Creates a usage report subscription. Usage reports are generated daily.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon AppStream's
+// API operation CreateUsageReportSubscription for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRoleException
+//   The specified role is invalid.
+//
+//   * InvalidAccountStatusException
+//   The resource cannot be created because your AWS account is suspended. For
+//   assistance, contact AWS Support.
+//
+//   * LimitExceededException
+//   The requested limit exceeds the permitted limit for an account.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/CreateUsageReportSubscription
+func (c *AppStream) CreateUsageReportSubscription(input *CreateUsageReportSubscriptionInput) (*CreateUsageReportSubscriptionOutput, error) {
+	req, out := c.CreateUsageReportSubscriptionRequest(input)
+	return out, req.Send()
+}
+
+// CreateUsageReportSubscriptionWithContext is the same as CreateUsageReportSubscription with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateUsageReportSubscription for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *AppStream) CreateUsageReportSubscriptionWithContext(ctx aws.Context, input *CreateUsageReportSubscriptionInput, opts ...request.Option) (*CreateUsageReportSubscriptionOutput, error) {
+	req, out := c.CreateUsageReportSubscriptionRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -992,21 +1078,21 @@ func (c *AppStream) CreateUserRequest(input *CreateUserInput) (req *request.Requ
 // See the AWS API reference guide for Amazon AppStream's
 // API operation CreateUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
+// Returned Error Types:
+//   * ResourceAlreadyExistsException
 //   The specified resource already exists.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/CreateUser
@@ -1087,11 +1173,11 @@ func (c *AppStream) DeleteDirectoryConfigRequest(input *DeleteDirectoryConfigInp
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DeleteDirectoryConfig for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
+// Returned Error Types:
+//   * ResourceInUseException
 //   The specified resource is in use.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DeleteDirectoryConfig
@@ -1170,14 +1256,14 @@ func (c *AppStream) DeleteFleetRequest(input *DeleteFleetInput) (req *request.Re
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DeleteFleet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
+// Returned Error Types:
+//   * ResourceInUseException
 //   The specified resource is in use.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DeleteFleet
@@ -1256,17 +1342,17 @@ func (c *AppStream) DeleteImageRequest(input *DeleteImageInput) (req *request.Re
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DeleteImage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
+// Returned Error Types:
+//   * ResourceInUseException
 //   The specified resource is in use.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DeleteImage
@@ -1344,14 +1430,14 @@ func (c *AppStream) DeleteImageBuilderRequest(input *DeleteImageBuilderInput) (r
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DeleteImageBuilder for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DeleteImageBuilder
@@ -1432,11 +1518,11 @@ func (c *AppStream) DeleteImagePermissionsRequest(input *DeleteImagePermissionsI
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DeleteImagePermissions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotAvailableException "ResourceNotAvailableException"
+// Returned Error Types:
+//   * ResourceNotAvailableException
 //   The specified resource exists and is not in use, but isn't available.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DeleteImagePermissions
@@ -1518,14 +1604,14 @@ func (c *AppStream) DeleteStackRequest(input *DeleteStackInput) (req *request.Re
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DeleteStack for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
+// Returned Error Types:
+//   * ResourceInUseException
 //   The specified resource is in use.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DeleteStack
@@ -1545,6 +1631,90 @@ func (c *AppStream) DeleteStack(input *DeleteStackInput) (*DeleteStackOutput, er
 // for more information on using Contexts.
 func (c *AppStream) DeleteStackWithContext(ctx aws.Context, input *DeleteStackInput, opts ...request.Option) (*DeleteStackOutput, error) {
 	req, out := c.DeleteStackRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteUsageReportSubscription = "DeleteUsageReportSubscription"
+
+// DeleteUsageReportSubscriptionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteUsageReportSubscription operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteUsageReportSubscription for more information on using the DeleteUsageReportSubscription
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteUsageReportSubscriptionRequest method.
+//    req, resp := client.DeleteUsageReportSubscriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DeleteUsageReportSubscription
+func (c *AppStream) DeleteUsageReportSubscriptionRequest(input *DeleteUsageReportSubscriptionInput) (req *request.Request, output *DeleteUsageReportSubscriptionOutput) {
+	op := &request.Operation{
+		Name:       opDeleteUsageReportSubscription,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteUsageReportSubscriptionInput{}
+	}
+
+	output = &DeleteUsageReportSubscriptionOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteUsageReportSubscription API operation for Amazon AppStream.
+//
+// Disables usage report generation.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon AppStream's
+// API operation DeleteUsageReportSubscription for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidAccountStatusException
+//   The resource cannot be created because your AWS account is suspended. For
+//   assistance, contact AWS Support.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DeleteUsageReportSubscription
+func (c *AppStream) DeleteUsageReportSubscription(input *DeleteUsageReportSubscriptionInput) (*DeleteUsageReportSubscriptionOutput, error) {
+	req, out := c.DeleteUsageReportSubscriptionRequest(input)
+	return out, req.Send()
+}
+
+// DeleteUsageReportSubscriptionWithContext is the same as DeleteUsageReportSubscription with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteUsageReportSubscription for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *AppStream) DeleteUsageReportSubscriptionWithContext(ctx aws.Context, input *DeleteUsageReportSubscriptionInput, opts ...request.Option) (*DeleteUsageReportSubscriptionOutput, error) {
+	req, out := c.DeleteUsageReportSubscriptionRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1604,8 +1774,8 @@ func (c *AppStream) DeleteUserRequest(input *DeleteUserInput) (req *request.Requ
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DeleteUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DeleteUser
@@ -1677,8 +1847,8 @@ func (c *AppStream) DescribeDirectoryConfigsRequest(input *DescribeDirectoryConf
 // Retrieves a list that describes one or more specified Directory Config objects
 // for AppStream 2.0, if the names for these objects are provided. Otherwise,
 // all Directory Config objects in the account are described. These objects
-// include the information required to join streaming instances to an Active
-// Directory domain.
+// include the configuration information required to join fleets and image builders
+// to Microsoft Active Directory domains.
 //
 // Although the response syntax in this topic includes the account password,
 // this password is not returned in the actual response.
@@ -1690,8 +1860,8 @@ func (c *AppStream) DescribeDirectoryConfigsRequest(input *DescribeDirectoryConf
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DescribeDirectoryConfigs for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeDirectoryConfigs
@@ -1770,8 +1940,8 @@ func (c *AppStream) DescribeFleetsRequest(input *DescribeFleetsInput) (req *requ
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DescribeFleets for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeFleets
@@ -1851,8 +2021,8 @@ func (c *AppStream) DescribeImageBuildersRequest(input *DescribeImageBuildersInp
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DescribeImageBuilders for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeImageBuilders
@@ -1937,8 +2107,8 @@ func (c *AppStream) DescribeImagePermissionsRequest(input *DescribeImagePermissi
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DescribeImagePermissions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeImagePermissions
@@ -1974,7 +2144,7 @@ func (c *AppStream) DescribeImagePermissionsWithContext(ctx aws.Context, input *
 //    // Example iterating over at most 3 pages of a DescribeImagePermissions operation.
 //    pageNum := 0
 //    err := client.DescribeImagePermissionsPages(params,
-//        func(page *DescribeImagePermissionsOutput, lastPage bool) bool {
+//        func(page *appstream.DescribeImagePermissionsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2006,10 +2176,12 @@ func (c *AppStream) DescribeImagePermissionsPagesWithContext(ctx aws.Context, in
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeImagePermissionsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeImagePermissionsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2074,11 +2246,11 @@ func (c *AppStream) DescribeImagesRequest(input *DescribeImagesInput) (req *requ
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DescribeImages for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+// Returned Error Types:
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeImages
@@ -2114,7 +2286,7 @@ func (c *AppStream) DescribeImagesWithContext(ctx aws.Context, input *DescribeIm
 //    // Example iterating over at most 3 pages of a DescribeImages operation.
 //    pageNum := 0
 //    err := client.DescribeImagesPages(params,
-//        func(page *DescribeImagesOutput, lastPage bool) bool {
+//        func(page *appstream.DescribeImagesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2146,10 +2318,12 @@ func (c *AppStream) DescribeImagesPagesWithContext(ctx aws.Context, input *Descr
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeImagesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeImagesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2209,8 +2383,8 @@ func (c *AppStream) DescribeSessionsRequest(input *DescribeSessionsInput) (req *
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DescribeSessions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+// Returned Error Types:
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeSessions
@@ -2289,8 +2463,8 @@ func (c *AppStream) DescribeStacksRequest(input *DescribeStacksInput) (req *requ
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DescribeStacks for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeStacks
@@ -2310,6 +2484,89 @@ func (c *AppStream) DescribeStacks(input *DescribeStacksInput) (*DescribeStacksO
 // for more information on using Contexts.
 func (c *AppStream) DescribeStacksWithContext(ctx aws.Context, input *DescribeStacksInput, opts ...request.Option) (*DescribeStacksOutput, error) {
 	req, out := c.DescribeStacksRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeUsageReportSubscriptions = "DescribeUsageReportSubscriptions"
+
+// DescribeUsageReportSubscriptionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeUsageReportSubscriptions operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeUsageReportSubscriptions for more information on using the DescribeUsageReportSubscriptions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeUsageReportSubscriptionsRequest method.
+//    req, resp := client.DescribeUsageReportSubscriptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeUsageReportSubscriptions
+func (c *AppStream) DescribeUsageReportSubscriptionsRequest(input *DescribeUsageReportSubscriptionsInput) (req *request.Request, output *DescribeUsageReportSubscriptionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeUsageReportSubscriptions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeUsageReportSubscriptionsInput{}
+	}
+
+	output = &DescribeUsageReportSubscriptionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeUsageReportSubscriptions API operation for Amazon AppStream.
+//
+// Retrieves a list that describes one or more usage report subscriptions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon AppStream's
+// API operation DescribeUsageReportSubscriptions for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * InvalidAccountStatusException
+//   The resource cannot be created because your AWS account is suspended. For
+//   assistance, contact AWS Support.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeUsageReportSubscriptions
+func (c *AppStream) DescribeUsageReportSubscriptions(input *DescribeUsageReportSubscriptionsInput) (*DescribeUsageReportSubscriptionsOutput, error) {
+	req, out := c.DescribeUsageReportSubscriptionsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeUsageReportSubscriptionsWithContext is the same as DescribeUsageReportSubscriptions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeUsageReportSubscriptions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *AppStream) DescribeUsageReportSubscriptionsWithContext(ctx aws.Context, input *DescribeUsageReportSubscriptionsInput, opts ...request.Option) (*DescribeUsageReportSubscriptionsOutput, error) {
+	req, out := c.DescribeUsageReportSubscriptionsRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -2374,8 +2631,8 @@ func (c *AppStream) DescribeUserStackAssociationsRequest(input *DescribeUserStac
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DescribeUserStackAssociations for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+// Returned Error Types:
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeUserStackAssociations
@@ -2453,11 +2710,11 @@ func (c *AppStream) DescribeUsersRequest(input *DescribeUsersInput) (req *reques
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DescribeUsers for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DescribeUsers
@@ -2537,8 +2794,8 @@ func (c *AppStream) DisableUserRequest(input *DisableUserInput) (req *request.Re
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DisableUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DisableUser
@@ -2617,14 +2874,14 @@ func (c *AppStream) DisassociateFleetRequest(input *DisassociateFleetInput) (req
 // See the AWS API reference guide for Amazon AppStream's
 // API operation DisassociateFleet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
+// Returned Error Types:
+//   * ResourceInUseException
 //   The specified resource is in use.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/DisassociateFleet
@@ -2704,11 +2961,11 @@ func (c *AppStream) EnableUserRequest(input *EnableUserInput) (req *request.Requ
 // See the AWS API reference guide for Amazon AppStream's
 // API operation EnableUser for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
@@ -3004,8 +3261,8 @@ func (c *AppStream) ListTagsForResourceRequest(input *ListTagsForResourceInput) 
 // Retrieves a list of all tags for the specified AppStream 2.0 resource. You
 // can tag AppStream 2.0 image builders, images, fleets, and stacks.
 //
-// For more information about tags, see Tagging Your Resources (http://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
-// in the Amazon AppStream 2.0 Developer Guide.
+// For more information about tags, see Tagging Your Resources (https://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
+// in the Amazon AppStream 2.0 Administration Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3014,8 +3271,8 @@ func (c *AppStream) ListTagsForResourceRequest(input *ListTagsForResourceInput) 
 // See the AWS API reference guide for Amazon AppStream's
 // API operation ListTagsForResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/ListTagsForResource
@@ -3094,22 +3351,28 @@ func (c *AppStream) StartFleetRequest(input *StartFleetInput) (req *request.Requ
 // See the AWS API reference guide for Amazon AppStream's
 // API operation StartFleet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
+//
+//   * ResourceNotAvailableException
+//   The specified resource exists and is not in use, but isn't available.
+//
+//   * InvalidRoleException
+//   The specified role is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/StartFleet
 func (c *AppStream) StartFleet(input *StartFleetInput) (*StartFleetOutput, error) {
@@ -3186,21 +3449,21 @@ func (c *AppStream) StartImageBuilderRequest(input *StartImageBuilderInput) (req
 // See the AWS API reference guide for Amazon AppStream's
 // API operation StartImageBuilder for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotAvailableException "ResourceNotAvailableException"
+// Returned Error Types:
+//   * ResourceNotAvailableException
 //   The specified resource exists and is not in use, but isn't available.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeIncompatibleImageException "IncompatibleImageException"
+//   * IncompatibleImageException
 //   The image does not support storage connectors.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/StartImageBuilder
@@ -3279,11 +3542,11 @@ func (c *AppStream) StopFleetRequest(input *StopFleetInput) (req *request.Reques
 // See the AWS API reference guide for Amazon AppStream's
 // API operation StopFleet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/StopFleet
@@ -3361,14 +3624,14 @@ func (c *AppStream) StopImageBuilderRequest(input *StopImageBuilderInput) (req *
 // See the AWS API reference guide for Amazon AppStream's
 // API operation StopImageBuilder for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/StopImageBuilder
@@ -3447,8 +3710,8 @@ func (c *AppStream) TagResourceRequest(input *TagResourceInput) (req *request.Re
 // To list the current tags for your resources, use ListTagsForResource. To
 // disassociate tags from your resources, use UntagResource.
 //
-// For more information about tags, see Tagging Your Resources (http://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
-// in the Amazon AppStream 2.0 Developer Guide.
+// For more information about tags, see Tagging Your Resources (https://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
+// in the Amazon AppStream 2.0 Administration Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3457,15 +3720,15 @@ func (c *AppStream) TagResourceRequest(input *TagResourceInput) (req *request.Re
 // See the AWS API reference guide for Amazon AppStream's
 // API operation TagResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLimitExceededException "LimitExceededException"
+// Returned Error Types:
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/TagResource
@@ -3540,8 +3803,8 @@ func (c *AppStream) UntagResourceRequest(input *UntagResourceInput) (req *reques
 //
 // To list the current tags for your resources, use ListTagsForResource.
 //
-// For more information about tags, see Tagging Your Resources (http://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
-// in the Amazon AppStream 2.0 Developer Guide.
+// For more information about tags, see Tagging Your Resources (https://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
+// in the Amazon AppStream 2.0 Administration Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3550,8 +3813,8 @@ func (c *AppStream) UntagResourceRequest(input *UntagResourceInput) (req *reques
 // See the AWS API reference guide for Amazon AppStream's
 // API operation UntagResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/UntagResource
@@ -3621,8 +3884,8 @@ func (c *AppStream) UpdateDirectoryConfigRequest(input *UpdateDirectoryConfigInp
 // UpdateDirectoryConfig API operation for Amazon AppStream.
 //
 // Updates the specified Directory Config object in AppStream 2.0. This object
-// includes the information required to join streaming instances to an Active
-// Directory domain.
+// includes the configuration information required to join fleets and image
+// builders to Microsoft Active Directory domains.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3631,14 +3894,14 @@ func (c *AppStream) UpdateDirectoryConfigRequest(input *UpdateDirectoryConfigInp
 // See the AWS API reference guide for Amazon AppStream's
 // API operation UpdateDirectoryConfig for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
+// Returned Error Types:
+//   * ResourceInUseException
 //   The specified resource is in use.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/UpdateDirectoryConfig
@@ -3711,7 +3974,8 @@ func (c *AppStream) UpdateFleetRequest(input *UpdateFleetInput) (req *request.Re
 //
 // If the fleet is in the STOPPED state, you can update any attribute except
 // the fleet name. If the fleet is in the RUNNING state, you can update the
-// DisplayName and ComputeCapacity attributes. If the fleet is in the STARTING
+// DisplayName, ComputeCapacity, ImageARN, ImageName, IdleDisconnectTimeoutInSeconds,
+// and DisconnectTimeoutInSeconds attributes. If the fleet is in the STARTING
 // or STOPPING state, you can't update it.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -3721,36 +3985,36 @@ func (c *AppStream) UpdateFleetRequest(input *UpdateFleetInput) (req *request.Re
 // See the AWS API reference guide for Amazon AppStream's
 // API operation UpdateFleet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceInUseException "ResourceInUseException"
+// Returned Error Types:
+//   * ResourceInUseException
 //   The specified resource is in use.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeInvalidRoleException "InvalidRoleException"
+//   * InvalidRoleException
 //   The specified role is invalid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeResourceNotAvailableException "ResourceNotAvailableException"
+//   * ResourceNotAvailableException
 //   The specified resource exists and is not in use, but isn't available.
 //
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   An API error occurred. Wait a few minutes and try again.
 //
-//   * ErrCodeIncompatibleImageException "IncompatibleImageException"
+//   * IncompatibleImageException
 //   The image does not support storage connectors.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/UpdateFleet
@@ -3829,14 +4093,14 @@ func (c *AppStream) UpdateImagePermissionsRequest(input *UpdateImagePermissionsI
 // See the AWS API reference guide for Amazon AppStream's
 // API operation UpdateImagePermissions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeResourceNotAvailableException "ResourceNotAvailableException"
+//   * ResourceNotAvailableException
 //   The specified resource exists and is not in use, but isn't available.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/UpdateImagePermissions
@@ -3914,31 +4178,34 @@ func (c *AppStream) UpdateStackRequest(input *UpdateStackInput) (req *request.Re
 // See the AWS API reference guide for Amazon AppStream's
 // API operation UpdateStack for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource was not found.
 //
-//   * ErrCodeResourceInUseException "ResourceInUseException"
+//   * ResourceInUseException
 //   The specified resource is in use.
 //
-//   * ErrCodeInvalidRoleException "InvalidRoleException"
+//   * InvalidRoleException
 //   The specified role is invalid.
 //
-//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
+//   * InvalidParameterCombinationException
 //   Indicates an incorrect combination of parameters, or a missing parameter.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The requested limit exceeds the permitted limit for an account.
 //
-//   * ErrCodeInvalidAccountStatusException "InvalidAccountStatusException"
+//   * InvalidAccountStatusException
 //   The resource cannot be created because your AWS account is suspended. For
 //   assistance, contact AWS Support.
 //
-//   * ErrCodeIncompatibleImageException "IncompatibleImageException"
+//   * IncompatibleImageException
 //   The image does not support storage connectors.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   The attempted operation is not permitted.
+//
+//   * ConcurrentModificationException
+//   An API error occurred. Wait a few minutes and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/appstream-2016-12-01/UpdateStack
 func (c *AppStream) UpdateStack(input *UpdateStackInput) (*UpdateStackOutput, error) {
@@ -3960,6 +4227,62 @@ func (c *AppStream) UpdateStackWithContext(ctx aws.Context, input *UpdateStackIn
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+// Describes an interface VPC endpoint (interface endpoint) that lets you create
+// a private connection between the virtual private cloud (VPC) that you specify
+// and AppStream 2.0. When you specify an interface endpoint for a stack, users
+// of the stack can connect to AppStream 2.0 only through that endpoint. When
+// you specify an interface endpoint for an image builder, administrators can
+// connect to the image builder only through that endpoint.
+type AccessEndpoint struct {
+	_ struct{} `type:"structure"`
+
+	// The type of interface endpoint.
+	//
+	// EndpointType is a required field
+	EndpointType *string `type:"string" required:"true" enum:"AccessEndpointType"`
+
+	// The identifier (ID) of the VPC in which the interface endpoint is used.
+	VpceId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s AccessEndpoint) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AccessEndpoint) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AccessEndpoint) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AccessEndpoint"}
+	if s.EndpointType == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndpointType"))
+	}
+	if s.VpceId != nil && len(*s.VpceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VpceId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEndpointType sets the EndpointType field's value.
+func (s *AccessEndpoint) SetEndpointType(v string) *AccessEndpoint {
+	s.EndpointType = &v
+	return s
+}
+
+// SetVpceId sets the VpceId field's value.
+func (s *AccessEndpoint) SetVpceId(v string) *AccessEndpoint {
+	s.VpceId = &v
+	return s
 }
 
 // Describes an application in the application catalog.
@@ -4100,10 +4423,10 @@ type ApplicationSettingsResponse struct {
 	// their streaming sessions.
 	Enabled *bool `type:"boolean"`
 
-	// The S3 bucket where users’ persistent application settings are stored. When
-	// persistent application settings are enabled for the first time for an account
-	// in an AWS Region, an S3 bucket is created. The bucket is unique to the AWS
-	// account and the Region.
+	// The S3 bucket where users’ persistent application settings are stored.
+	// When persistent application settings are enabled for the first time for an
+	// account in an AWS Region, an S3 bucket is created. The bucket is unique to
+	// the AWS account and the Region.
 	S3BucketName *string `min:"1" type:"string"`
 
 	// The path prefix for the S3 bucket where users’ persistent application settings
@@ -4217,7 +4540,7 @@ type BatchAssociateUserStackInput struct {
 	// The list of UserStackAssociation objects.
 	//
 	// UserStackAssociations is a required field
-	UserStackAssociations []*UserStackAssociation `type:"list" required:"true"`
+	UserStackAssociations []*UserStackAssociation `min:"1" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -4235,6 +4558,9 @@ func (s *BatchAssociateUserStackInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "BatchAssociateUserStackInput"}
 	if s.UserStackAssociations == nil {
 		invalidParams.Add(request.NewErrParamRequired("UserStackAssociations"))
+	}
+	if s.UserStackAssociations != nil && len(s.UserStackAssociations) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UserStackAssociations", 1))
 	}
 	if s.UserStackAssociations != nil {
 		for i, v := range s.UserStackAssociations {
@@ -4288,7 +4614,7 @@ type BatchDisassociateUserStackInput struct {
 	// The list of UserStackAssociation objects.
 	//
 	// UserStackAssociations is a required field
-	UserStackAssociations []*UserStackAssociation `type:"list" required:"true"`
+	UserStackAssociations []*UserStackAssociation `min:"1" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -4306,6 +4632,9 @@ func (s *BatchDisassociateUserStackInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "BatchDisassociateUserStackInput"}
 	if s.UserStackAssociations == nil {
 		invalidParams.Add(request.NewErrParamRequired("UserStackAssociations"))
+	}
+	if s.UserStackAssociations != nil && len(s.UserStackAssociations) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UserStackAssociations", 1))
 	}
 	if s.UserStackAssociations != nil {
 		for i, v := range s.UserStackAssociations {
@@ -4445,6 +4774,63 @@ func (s *ComputeCapacityStatus) SetRunning(v int64) *ComputeCapacityStatus {
 	return s
 }
 
+// An API error occurred. Wait a few minutes and try again.
+type ConcurrentModificationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ConcurrentModificationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConcurrentModificationException) GoString() string {
+	return s.String()
+}
+
+func newErrorConcurrentModificationException(v protocol.ResponseMetadata) error {
+	return &ConcurrentModificationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ConcurrentModificationException) Code() string {
+	return "ConcurrentModificationException"
+}
+
+// Message returns the exception's message.
+func (s ConcurrentModificationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ConcurrentModificationException) OrigErr() error {
+	return nil
+}
+
+func (s ConcurrentModificationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ConcurrentModificationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ConcurrentModificationException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type CopyImageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4560,8 +4946,8 @@ type CreateDirectoryConfigInput struct {
 	// OrganizationalUnitDistinguishedNames is a required field
 	OrganizationalUnitDistinguishedNames []*string `type:"list" required:"true"`
 
-	// The credentials for the service account used by the streaming instance to
-	// connect to the directory.
+	// The credentials for the service account used by the fleet or image builder
+	// to connect to the directory.
 	//
 	// ServiceAccountCredentials is a required field
 	ServiceAccountCredentials *ServiceAccountCredentials `type:"structure" required:"true"`
@@ -4653,10 +5039,13 @@ type CreateFleetInput struct {
 	// The description to display.
 	Description *string `type:"string"`
 
-	// The time after disconnection when a session is considered to have ended,
-	// in seconds. If a user who was disconnected reconnects within this time interval,
-	// the user is connected to their previous session. Specify a value between
-	// 60 and 57600.
+	// The amount of time that a streaming session remains active after users disconnect.
+	// If users try to reconnect to the streaming session after a disconnection
+	// or network interruption within this time interval, they are connected to
+	// their previous session. Otherwise, they are connected to a new session with
+	// a new streaming instance.
+	//
+	// Specify a value between 60 and 360000.
 	DisconnectTimeoutInSeconds *int64 `type:"integer"`
 
 	// The fleet name to display.
@@ -4671,14 +5060,53 @@ type CreateFleetInput struct {
 
 	// The fleet type.
 	//
-	// ALWAYS_ONProvides users with instant-on access to their apps. You are charged
-	// for all running instances in your fleet, even if no users are streaming apps.
+	// ALWAYS_ON
 	//
-	// ON_DEMANDProvide users with access to applications after they connect, which
-	// takes one to two minutes. You are charged for instance streaming when users
-	// are connected and a small hourly fee for instances that are not streaming
-	// apps.
+	// Provides users with instant-on access to their apps. You are charged for
+	// all running instances in your fleet, even if no users are streaming apps.
+	//
+	// ON_DEMAND
+	//
+	// Provide users with access to applications after they connect, which takes
+	// one to two minutes. You are charged for instance streaming when users are
+	// connected and a small hourly fee for instances that are not streaming apps.
 	FleetType *string `type:"string" enum:"FleetType"`
+
+	// The Amazon Resource Name (ARN) of the IAM role to apply to the fleet. To
+	// assume a role, a fleet instance calls the AWS Security Token Service (STS)
+	// AssumeRole API operation and passes the ARN of the role to use. The operation
+	// creates a new session with temporary credentials. AppStream 2.0 retrieves
+	// the temporary credentials and creates the AppStream_Machine_Role credential
+	// profile on the instance.
+	//
+	// For more information, see Using an IAM Role to Grant Permissions to Applications
+	// and Scripts Running on AppStream 2.0 Streaming Instances (https://docs.aws.amazon.com/appstream2/latest/developerguide/using-iam-roles-to-grant-permissions-to-applications-scripts-streaming-instances.html)
+	// in the Amazon AppStream 2.0 Administration Guide.
+	IamRoleArn *string `type:"string"`
+
+	// The amount of time that users can be idle (inactive) before they are disconnected
+	// from their streaming session and the DisconnectTimeoutInSeconds time interval
+	// begins. Users are notified before they are disconnected due to inactivity.
+	// If they try to reconnect to the streaming session before the time interval
+	// specified in DisconnectTimeoutInSeconds elapses, they are connected to their
+	// previous session. Users are considered idle when they stop providing keyboard
+	// or mouse input during their streaming session. File uploads and downloads,
+	// audio in, audio out, and pixels changing do not qualify as user activity.
+	// If users continue to be idle after the time interval in IdleDisconnectTimeoutInSeconds
+	// elapses, they are disconnected.
+	//
+	// To prevent users from being disconnected due to inactivity, specify a value
+	// of 0. Otherwise, specify a value between 60 and 3600. The default value is
+	// 0.
+	//
+	// If you enable this feature, we recommend that you specify a value that corresponds
+	// exactly to a whole number of minutes (for example, 60, 120, and 180). If
+	// you don't do this, the value is rounded to the nearest minute. For example,
+	// if you specify a value of 70, users are disconnected after 1 minute of inactivity.
+	// If you specify a value that is at the midpoint between two different minutes,
+	// the value is rounded up. For example, if you specify a value of 90, users
+	// are disconnected after 2 minutes of inactivity.
+	IdleDisconnectTimeoutInSeconds *int64 `type:"integer"`
 
 	// The ARN of the public, private, or shared image to use.
 	ImageArn *string `type:"string"`
@@ -4732,8 +5160,13 @@ type CreateFleetInput struct {
 	// InstanceType is a required field
 	InstanceType *string `min:"1" type:"string" required:"true"`
 
-	// The maximum time that a streaming session can run, in seconds. Specify a
-	// value between 600 and 57600.
+	// The maximum amount of time that a streaming session can remain active, in
+	// seconds. If users are still connected to a streaming instance five minutes
+	// before this limit is reached, they are prompted to save any open documents
+	// before being disconnected. After this time elapses, the instance is terminated
+	// and replaced by a new instance.
+	//
+	// Specify a value between 600 and 360000.
 	MaxUserDurationInSeconds *int64 `type:"integer"`
 
 	// A unique name for the fleet.
@@ -4741,14 +5174,19 @@ type CreateFleetInput struct {
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
-	// The tags to associate with the fleet. A tag is a key-value pair (the value
-	// is optional). For example, Environment=Test, or, if you do not specify a
+	// The tags to associate with the fleet. A tag is a key-value pair, and the
+	// value is optional. For example, Environment=Test. If you do not specify a
 	// value, Environment=.
 	//
-	// If you do not specify a value, we set the value to an empty string.
+	// If you do not specify a value, the value is set to an empty string.
 	//
-	// For more information, see Tagging Your Resources (http://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
-	// in the Amazon AppStream 2.0 Developer Guide.
+	// Generally allowed characters are: letters, numbers, and spaces representable
+	// in UTF-8, and the following special characters:
+	//
+	// _ . : / = + \ - @
+	//
+	// For more information, see Tagging Your Resources (https://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
+	// in the Amazon AppStream 2.0 Administration Guide.
 	Tags map[string]*string `min:"1" type:"map"`
 
 	// The VPC configuration for the fleet.
@@ -4840,6 +5278,18 @@ func (s *CreateFleetInput) SetFleetType(v string) *CreateFleetInput {
 	return s
 }
 
+// SetIamRoleArn sets the IamRoleArn field's value.
+func (s *CreateFleetInput) SetIamRoleArn(v string) *CreateFleetInput {
+	s.IamRoleArn = &v
+	return s
+}
+
+// SetIdleDisconnectTimeoutInSeconds sets the IdleDisconnectTimeoutInSeconds field's value.
+func (s *CreateFleetInput) SetIdleDisconnectTimeoutInSeconds(v int64) *CreateFleetInput {
+	s.IdleDisconnectTimeoutInSeconds = &v
+	return s
+}
+
 // SetImageArn sets the ImageArn field's value.
 func (s *CreateFleetInput) SetImageArn(v string) *CreateFleetInput {
 	s.ImageArn = &v
@@ -4908,6 +5358,10 @@ func (s *CreateFleetOutput) SetFleet(v *Fleet) *CreateFleetOutput {
 type CreateImageBuilderInput struct {
 	_ struct{} `type:"structure"`
 
+	// The list of interface VPC endpoint (interface endpoint) objects. Administrators
+	// can connect to the image builder only through the specified endpoints.
+	AccessEndpoints []*AccessEndpoint `min:"1" type:"list"`
+
 	// The version of the AppStream 2.0 agent to use for this image builder. To
 	// use the latest version of the AppStream 2.0 agent, specify [LATEST].
 	AppstreamAgentVersion *string `min:"1" type:"string"`
@@ -4925,13 +5379,66 @@ type CreateImageBuilderInput struct {
 	// Enables or disables default internet access for the image builder.
 	EnableDefaultInternetAccess *bool `type:"boolean"`
 
+	// The Amazon Resource Name (ARN) of the IAM role to apply to the image builder.
+	// To assume a role, the image builder calls the AWS Security Token Service
+	// (STS) AssumeRole API operation and passes the ARN of the role to use. The
+	// operation creates a new session with temporary credentials. AppStream 2.0
+	// retrieves the temporary credentials and creates the AppStream_Machine_Role
+	// credential profile on the instance.
+	//
+	// For more information, see Using an IAM Role to Grant Permissions to Applications
+	// and Scripts Running on AppStream 2.0 Streaming Instances (https://docs.aws.amazon.com/appstream2/latest/developerguide/using-iam-roles-to-grant-permissions-to-applications-scripts-streaming-instances.html)
+	// in the Amazon AppStream 2.0 Administration Guide.
+	IamRoleArn *string `type:"string"`
+
 	// The ARN of the public, private, or shared image to use.
 	ImageArn *string `type:"string"`
 
 	// The name of the image used to create the image builder.
 	ImageName *string `min:"1" type:"string"`
 
-	// The instance type to use when launching the image builder.
+	// The instance type to use when launching the image builder. The following
+	// instance types are available:
+	//
+	//    * stream.standard.medium
+	//
+	//    * stream.standard.large
+	//
+	//    * stream.compute.large
+	//
+	//    * stream.compute.xlarge
+	//
+	//    * stream.compute.2xlarge
+	//
+	//    * stream.compute.4xlarge
+	//
+	//    * stream.compute.8xlarge
+	//
+	//    * stream.memory.large
+	//
+	//    * stream.memory.xlarge
+	//
+	//    * stream.memory.2xlarge
+	//
+	//    * stream.memory.4xlarge
+	//
+	//    * stream.memory.8xlarge
+	//
+	//    * stream.graphics-design.large
+	//
+	//    * stream.graphics-design.xlarge
+	//
+	//    * stream.graphics-design.2xlarge
+	//
+	//    * stream.graphics-design.4xlarge
+	//
+	//    * stream.graphics-desktop.2xlarge
+	//
+	//    * stream.graphics-pro.4xlarge
+	//
+	//    * stream.graphics-pro.8xlarge
+	//
+	//    * stream.graphics-pro.16xlarge
 	//
 	// InstanceType is a required field
 	InstanceType *string `min:"1" type:"string" required:"true"`
@@ -4941,14 +5448,19 @@ type CreateImageBuilderInput struct {
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
-	// The tags to associate with the image builder. A tag is a key-value pair (the
-	// value is optional). For example, Environment=Test, or, if you do not specify
+	// The tags to associate with the image builder. A tag is a key-value pair,
+	// and the value is optional. For example, Environment=Test. If you do not specify
 	// a value, Environment=.
 	//
-	// If you do not specify a value, we set the value to an empty string.
+	// Generally allowed characters are: letters, numbers, and spaces representable
+	// in UTF-8, and the following special characters:
 	//
-	// For more information about tags, see Tagging Your Resources (http://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
-	// in the Amazon AppStream 2.0 Developer Guide.
+	// _ . : / = + \ - @
+	//
+	// If you do not specify a value, the value is set to an empty string.
+	//
+	// For more information about tags, see Tagging Your Resources (https://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
+	// in the Amazon AppStream 2.0 Administration Guide.
 	Tags map[string]*string `min:"1" type:"map"`
 
 	// The VPC configuration for the image builder. You can specify only one subnet.
@@ -4968,6 +5480,9 @@ func (s CreateImageBuilderInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateImageBuilderInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateImageBuilderInput"}
+	if s.AccessEndpoints != nil && len(s.AccessEndpoints) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccessEndpoints", 1))
+	}
 	if s.AppstreamAgentVersion != nil && len(*s.AppstreamAgentVersion) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("AppstreamAgentVersion", 1))
 	}
@@ -4986,11 +5501,27 @@ func (s *CreateImageBuilderInput) Validate() error {
 	if s.Tags != nil && len(s.Tags) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
 	}
+	if s.AccessEndpoints != nil {
+		for i, v := range s.AccessEndpoints {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "AccessEndpoints", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAccessEndpoints sets the AccessEndpoints field's value.
+func (s *CreateImageBuilderInput) SetAccessEndpoints(v []*AccessEndpoint) *CreateImageBuilderInput {
+	s.AccessEndpoints = v
+	return s
 }
 
 // SetAppstreamAgentVersion sets the AppstreamAgentVersion field's value.
@@ -5020,6 +5551,12 @@ func (s *CreateImageBuilderInput) SetDomainJoinInfo(v *DomainJoinInfo) *CreateIm
 // SetEnableDefaultInternetAccess sets the EnableDefaultInternetAccess field's value.
 func (s *CreateImageBuilderInput) SetEnableDefaultInternetAccess(v bool) *CreateImageBuilderInput {
 	s.EnableDefaultInternetAccess = &v
+	return s
+}
+
+// SetIamRoleArn sets the IamRoleArn field's value.
+func (s *CreateImageBuilderInput) SetIamRoleArn(v string) *CreateImageBuilderInput {
+	s.IamRoleArn = &v
 	return s
 }
 
@@ -5168,6 +5705,10 @@ func (s *CreateImageBuilderStreamingURLOutput) SetStreamingURL(v string) *Create
 type CreateStackInput struct {
 	_ struct{} `type:"structure"`
 
+	// The list of interface VPC endpoint (interface endpoint) objects. Users of
+	// the stack can connect to AppStream 2.0 only through the specified endpoints.
+	AccessEndpoints []*AccessEndpoint `min:"1" type:"list"`
+
 	// The persistent application settings for users of a stack. When these settings
 	// are enabled, changes that users make to applications and Windows settings
 	// are automatically saved after each session and applied to the next session.
@@ -5178,6 +5719,11 @@ type CreateStackInput struct {
 
 	// The stack name to display.
 	DisplayName *string `type:"string"`
+
+	// The domains where AppStream 2.0 streaming sessions can be embedded in an
+	// iframe. You must approve the domains that you want to host embedded AppStream
+	// 2.0 streaming sessions.
+	EmbedHostDomains []*string `min:"1" type:"list"`
 
 	// The URL that users are redirected to after they click the Send Feedback link.
 	// If no URL is specified, no Send Feedback link is displayed.
@@ -5194,14 +5740,19 @@ type CreateStackInput struct {
 	// The storage connectors to enable.
 	StorageConnectors []*StorageConnector `type:"list"`
 
-	// The tags to associate with the stack. A tag is a key-value pair (the value
-	// is optional). For example, Environment=Test, or, if you do not specify a
+	// The tags to associate with the stack. A tag is a key-value pair, and the
+	// value is optional. For example, Environment=Test. If you do not specify a
 	// value, Environment=.
 	//
-	// If you do not specify a value, we set the value to an empty string.
+	// If you do not specify a value, the value is set to an empty string.
 	//
-	// For more information about tags, see Tagging Your Resources (http://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
-	// in the Amazon AppStream 2.0 Developer Guide.
+	// Generally allowed characters are: letters, numbers, and spaces representable
+	// in UTF-8, and the following special characters:
+	//
+	// _ . : / = + \ - @
+	//
+	// For more information about tags, see Tagging Your Resources (https://docs.aws.amazon.com/appstream2/latest/developerguide/tagging-basic.html)
+	// in the Amazon AppStream 2.0 Administration Guide.
 	Tags map[string]*string `min:"1" type:"map"`
 
 	// The actions that are enabled or disabled for users during their streaming
@@ -5222,6 +5773,12 @@ func (s CreateStackInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateStackInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateStackInput"}
+	if s.AccessEndpoints != nil && len(s.AccessEndpoints) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccessEndpoints", 1))
+	}
+	if s.EmbedHostDomains != nil && len(s.EmbedHostDomains) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EmbedHostDomains", 1))
+	}
 	if s.Name == nil {
 		invalidParams.Add(request.NewErrParamRequired("Name"))
 	}
@@ -5230,6 +5787,16 @@ func (s *CreateStackInput) Validate() error {
 	}
 	if s.UserSettings != nil && len(s.UserSettings) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("UserSettings", 1))
+	}
+	if s.AccessEndpoints != nil {
+		for i, v := range s.AccessEndpoints {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "AccessEndpoints", i), err.(request.ErrInvalidParams))
+			}
+		}
 	}
 	if s.ApplicationSettings != nil {
 		if err := s.ApplicationSettings.Validate(); err != nil {
@@ -5263,6 +5830,12 @@ func (s *CreateStackInput) Validate() error {
 	return nil
 }
 
+// SetAccessEndpoints sets the AccessEndpoints field's value.
+func (s *CreateStackInput) SetAccessEndpoints(v []*AccessEndpoint) *CreateStackInput {
+	s.AccessEndpoints = v
+	return s
+}
+
 // SetApplicationSettings sets the ApplicationSettings field's value.
 func (s *CreateStackInput) SetApplicationSettings(v *ApplicationSettings) *CreateStackInput {
 	s.ApplicationSettings = v
@@ -5278,6 +5851,12 @@ func (s *CreateStackInput) SetDescription(v string) *CreateStackInput {
 // SetDisplayName sets the DisplayName field's value.
 func (s *CreateStackInput) SetDisplayName(v string) *CreateStackInput {
 	s.DisplayName = &v
+	return s
+}
+
+// SetEmbedHostDomains sets the EmbedHostDomains field's value.
+func (s *CreateStackInput) SetEmbedHostDomains(v []*string) *CreateStackInput {
+	s.EmbedHostDomains = v
 	return s
 }
 
@@ -5352,8 +5931,8 @@ type CreateStreamingURLInput struct {
 	// FleetName is a required field
 	FleetName *string `min:"1" type:"string" required:"true"`
 
-	// The session context. For more information, see Session Context (http://docs.aws.amazon.com/appstream2/latest/developerguide/managing-stacks-fleets.html#managing-stacks-fleets-parameters)
-	// in the Amazon AppStream 2.0 Developer Guide.
+	// The session context. For more information, see Session Context (https://docs.aws.amazon.com/appstream2/latest/developerguide/managing-stacks-fleets.html#managing-stacks-fleets-parameters)
+	// in the Amazon AppStream 2.0 Administration Guide.
 	SessionContext *string `min:"1" type:"string"`
 
 	// The name of the stack.
@@ -5483,6 +6062,59 @@ func (s *CreateStreamingURLOutput) SetStreamingURL(v string) *CreateStreamingURL
 	return s
 }
 
+type CreateUsageReportSubscriptionInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateUsageReportSubscriptionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateUsageReportSubscriptionInput) GoString() string {
+	return s.String()
+}
+
+type CreateUsageReportSubscriptionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon S3 bucket where generated reports are stored.
+	//
+	// If you enabled on-instance session scripts and Amazon S3 logging for your
+	// session script configuration, AppStream 2.0 created an S3 bucket to store
+	// the script output. The bucket is unique to your account and Region. When
+	// you enable usage reporting in this case, AppStream 2.0 uses the same bucket
+	// to store your usage reports. If you haven't already enabled on-instance session
+	// scripts, when you enable usage reports, AppStream 2.0 creates a new S3 bucket.
+	S3BucketName *string `min:"1" type:"string"`
+
+	// The schedule for generating usage reports.
+	Schedule *string `type:"string" enum:"UsageReportSchedule"`
+}
+
+// String returns the string representation
+func (s CreateUsageReportSubscriptionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateUsageReportSubscriptionOutput) GoString() string {
+	return s.String()
+}
+
+// SetS3BucketName sets the S3BucketName field's value.
+func (s *CreateUsageReportSubscriptionOutput) SetS3BucketName(v string) *CreateUsageReportSubscriptionOutput {
+	s.S3BucketName = &v
+	return s
+}
+
+// SetSchedule sets the Schedule field's value.
+func (s *CreateUsageReportSubscriptionOutput) SetSchedule(v string) *CreateUsageReportSubscriptionOutput {
+	s.Schedule = &v
+	return s
+}
+
 type CreateUserInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5503,11 +6135,16 @@ type CreateUserInput struct {
 	// user. If the value is null, the email is sent.
 	//
 	// The temporary password in the welcome email is valid for only 7 days. If
-	// users don’t set their passwords within 7 days, you must send them a new welcome
-	// email.
+	// users don’t set their passwords within 7 days, you must send them a new
+	// welcome email.
 	MessageAction *string `type:"string" enum:"MessageAction"`
 
 	// The email address of the user.
+	//
+	// Users' email addresses are case-sensitive. During login, if they specify
+	// an email address that doesn't use the same capitalization as the email address
+	// specified when their user pool account was created, a "user does not exist"
+	// error message displays.
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true" sensitive:"true"`
@@ -5936,6 +6573,34 @@ func (s DeleteStackOutput) GoString() string {
 	return s.String()
 }
 
+type DeleteUsageReportSubscriptionInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteUsageReportSubscriptionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUsageReportSubscriptionInput) GoString() string {
+	return s.String()
+}
+
+type DeleteUsageReportSubscriptionOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteUsageReportSubscriptionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUsageReportSubscriptionOutput) GoString() string {
+	return s.String()
+}
+
 type DeleteUserInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5945,6 +6610,8 @@ type DeleteUserInput struct {
 	AuthenticationType *string `type:"string" required:"true" enum:"AuthenticationType"`
 
 	// The email address of the user.
+	//
+	// Users' email addresses are case-sensitive.
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true" sensitive:"true"`
@@ -6700,6 +7367,85 @@ func (s *DescribeStacksOutput) SetStacks(v []*Stack) *DescribeStacksOutput {
 	return s
 }
 
+type DescribeUsageReportSubscriptionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum size of each page of results.
+	MaxResults *int64 `type:"integer"`
+
+	// The pagination token to use to retrieve the next page of results for this
+	// operation. If this value is null, it retrieves the first page.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeUsageReportSubscriptionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeUsageReportSubscriptionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeUsageReportSubscriptionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeUsageReportSubscriptionsInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeUsageReportSubscriptionsInput) SetMaxResults(v int64) *DescribeUsageReportSubscriptionsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeUsageReportSubscriptionsInput) SetNextToken(v string) *DescribeUsageReportSubscriptionsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeUsageReportSubscriptionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The pagination token to use to retrieve the next page of results for this
+	// operation. If there are no more pages, this value is null.
+	NextToken *string `min:"1" type:"string"`
+
+	// Information about the usage report subscription.
+	UsageReportSubscriptions []*UsageReportSubscription `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeUsageReportSubscriptionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeUsageReportSubscriptionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeUsageReportSubscriptionsOutput) SetNextToken(v string) *DescribeUsageReportSubscriptionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetUsageReportSubscriptions sets the UsageReportSubscriptions field's value.
+func (s *DescribeUsageReportSubscriptionsOutput) SetUsageReportSubscriptions(v []*UsageReportSubscription) *DescribeUsageReportSubscriptionsOutput {
+	s.UsageReportSubscriptions = v
+	return s
+}
+
 type DescribeUserStackAssociationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6718,6 +7464,8 @@ type DescribeUserStackAssociationsInput struct {
 	StackName *string `min:"1" type:"string"`
 
 	// The email address of the user who is associated with the stack.
+	//
+	// Users' email addresses are case-sensitive.
 	UserName *string `min:"1" type:"string" sensitive:"true"`
 }
 
@@ -6788,7 +7536,7 @@ type DescribeUserStackAssociationsOutput struct {
 	NextToken *string `min:"1" type:"string"`
 
 	// The UserStackAssociation objects.
-	UserStackAssociations []*UserStackAssociation `type:"list"`
+	UserStackAssociations []*UserStackAssociation `min:"1" type:"list"`
 }
 
 // String returns the string representation
@@ -6907,8 +7655,8 @@ func (s *DescribeUsersOutput) SetUsers(v []*User) *DescribeUsersOutput {
 	return s
 }
 
-// Describes the configuration information for the directory used to join a
-// streaming instance to a Microsoft Active Directory domain.
+// Describes the configuration information required to join fleets and image
+// builders to Microsoft Active Directory domains.
 type DirectoryConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -6923,8 +7671,8 @@ type DirectoryConfig struct {
 	// The distinguished names of the organizational units for computer accounts.
 	OrganizationalUnitDistinguishedNames []*string `type:"list"`
 
-	// The credentials for the service account used by the streaming instance to
-	// connect to the directory.
+	// The credentials for the service account used by the fleet or image builder
+	// to connect to the directory.
 	ServiceAccountCredentials *ServiceAccountCredentials `type:"structure"`
 }
 
@@ -6971,6 +7719,8 @@ type DisableUserInput struct {
 	AuthenticationType *string `type:"string" required:"true" enum:"AuthenticationType"`
 
 	// The email address of the user.
+	//
+	// Users' email addresses are case-sensitive.
 	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true" sensitive:"true"`
@@ -7147,6 +7897,11 @@ type EnableUserInput struct {
 
 	// The email address of the user.
 	//
+	// Users' email addresses are case-sensitive. During login, if they specify
+	// an email address that doesn't use the same capitalization as the email address
+	// specified when their user pool account was created, a "user does not exist"
+	// error message displays.
+	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true" sensitive:"true"`
 }
@@ -7261,11 +8016,11 @@ func (s ExpireSessionOutput) GoString() string {
 	return s.String()
 }
 
-// Describes the parameters for a fleet.
+// Describes a fleet.
 type Fleet struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN for the fleet.
+	// The Amazon Resource Name (ARN) for the fleet.
 	//
 	// Arn is a required field
 	Arn *string `type:"string" required:"true"`
@@ -7281,10 +8036,13 @@ type Fleet struct {
 	// The description to display.
 	Description *string `min:"1" type:"string"`
 
-	// The time after disconnection when a session is considered to have ended,
-	// in seconds. If a user who was disconnected reconnects within this time interval,
-	// the user is connected to their previous session. Specify a value between
-	// 60 and 57600.
+	// The amount of time that a streaming session remains active after users disconnect.
+	// If they try to reconnect to the streaming session after a disconnection or
+	// network interruption within this time interval, they are connected to their
+	// previous session. Otherwise, they are connected to a new session with a new
+	// streaming instance.
+	//
+	// Specify a value between 60 and 360000.
 	DisconnectTimeoutInSeconds *int64 `type:"integer"`
 
 	// The fleet name to display.
@@ -7302,14 +8060,53 @@ type Fleet struct {
 
 	// The fleet type.
 	//
-	// ALWAYS_ONProvides users with instant-on access to their apps. You are charged
-	// for all running instances in your fleet, even if no users are streaming apps.
+	// ALWAYS_ON
 	//
-	// ON_DEMANDProvide users with access to applications after they connect, which
-	// takes one to two minutes. You are charged for instance streaming when users
-	// are connected and a small hourly fee for instances that are not streaming
-	// apps.
+	// Provides users with instant-on access to their apps. You are charged for
+	// all running instances in your fleet, even if no users are streaming apps.
+	//
+	// ON_DEMAND
+	//
+	// Provide users with access to applications after they connect, which takes
+	// one to two minutes. You are charged for instance streaming when users are
+	// connected and a small hourly fee for instances that are not streaming apps.
 	FleetType *string `type:"string" enum:"FleetType"`
+
+	// The ARN of the IAM role that is applied to the fleet. To assume a role, the
+	// fleet instance calls the AWS Security Token Service (STS) AssumeRole API
+	// operation and passes the ARN of the role to use. The operation creates a
+	// new session with temporary credentials. AppStream 2.0 retrieves the temporary
+	// credentials and creates the AppStream_Machine_Role credential profile on
+	// the instance.
+	//
+	// For more information, see Using an IAM Role to Grant Permissions to Applications
+	// and Scripts Running on AppStream 2.0 Streaming Instances (https://docs.aws.amazon.com/appstream2/latest/developerguide/using-iam-roles-to-grant-permissions-to-applications-scripts-streaming-instances.html)
+	// in the Amazon AppStream 2.0 Administration Guide.
+	IamRoleArn *string `type:"string"`
+
+	// The amount of time that users can be idle (inactive) before they are disconnected
+	// from their streaming session and the DisconnectTimeoutInSeconds time interval
+	// begins. Users are notified before they are disconnected due to inactivity.
+	// If users try to reconnect to the streaming session before the time interval
+	// specified in DisconnectTimeoutInSeconds elapses, they are connected to their
+	// previous session. Users are considered idle when they stop providing keyboard
+	// or mouse input during their streaming session. File uploads and downloads,
+	// audio in, audio out, and pixels changing do not qualify as user activity.
+	// If users continue to be idle after the time interval in IdleDisconnectTimeoutInSeconds
+	// elapses, they are disconnected.
+	//
+	// To prevent users from being disconnected due to inactivity, specify a value
+	// of 0. Otherwise, specify a value between 60 and 3600. The default value is
+	// 0.
+	//
+	// If you enable this feature, we recommend that you specify a value that corresponds
+	// exactly to a whole number of minutes (for example, 60, 120, and 180). If
+	// you don't do this, the value is rounded to the nearest minute. For example,
+	// if you specify a value of 70, users are disconnected after 1 minute of inactivity.
+	// If you specify a value that is at the midpoint between two different minutes,
+	// the value is rounded up. For example, if you specify a value of 90, users
+	// are disconnected after 2 minutes of inactivity.
+	IdleDisconnectTimeoutInSeconds *int64 `type:"integer"`
 
 	// The ARN for the public, private, or shared image.
 	ImageArn *string `type:"string"`
@@ -7317,13 +8114,59 @@ type Fleet struct {
 	// The name of the image used to create the fleet.
 	ImageName *string `min:"1" type:"string"`
 
-	// The instance type to use when launching fleet instances.
+	// The instance type to use when launching fleet instances. The following instance
+	// types are available:
+	//
+	//    * stream.standard.medium
+	//
+	//    * stream.standard.large
+	//
+	//    * stream.compute.large
+	//
+	//    * stream.compute.xlarge
+	//
+	//    * stream.compute.2xlarge
+	//
+	//    * stream.compute.4xlarge
+	//
+	//    * stream.compute.8xlarge
+	//
+	//    * stream.memory.large
+	//
+	//    * stream.memory.xlarge
+	//
+	//    * stream.memory.2xlarge
+	//
+	//    * stream.memory.4xlarge
+	//
+	//    * stream.memory.8xlarge
+	//
+	//    * stream.graphics-design.large
+	//
+	//    * stream.graphics-design.xlarge
+	//
+	//    * stream.graphics-design.2xlarge
+	//
+	//    * stream.graphics-design.4xlarge
+	//
+	//    * stream.graphics-desktop.2xlarge
+	//
+	//    * stream.graphics-pro.4xlarge
+	//
+	//    * stream.graphics-pro.8xlarge
+	//
+	//    * stream.graphics-pro.16xlarge
 	//
 	// InstanceType is a required field
 	InstanceType *string `min:"1" type:"string" required:"true"`
 
-	// The maximum time that a streaming session can run, in seconds. Specify a
-	// value between 600 and 57600.
+	// The maximum amount of time that a streaming session can remain active, in
+	// seconds. If users are still connected to a streaming instance five minutes
+	// before this limit is reached, they are prompted to save any open documents
+	// before being disconnected. After this time elapses, the instance is terminated
+	// and replaced by a new instance.
+	//
+	// Specify a value between 600 and 360000.
 	MaxUserDurationInSeconds *int64 `type:"integer"`
 
 	// The name of the fleet.
@@ -7407,6 +8250,18 @@ func (s *Fleet) SetFleetErrors(v []*FleetError) *Fleet {
 // SetFleetType sets the FleetType field's value.
 func (s *Fleet) SetFleetType(v string) *Fleet {
 	s.FleetType = &v
+	return s
+}
+
+// SetIamRoleArn sets the IamRoleArn field's value.
+func (s *Fleet) SetIamRoleArn(v string) *Fleet {
+	s.IamRoleArn = &v
+	return s
+}
+
+// SetIdleDisconnectTimeoutInSeconds sets the IdleDisconnectTimeoutInSeconds field's value.
+func (s *Fleet) SetIdleDisconnectTimeoutInSeconds(v int64) *Fleet {
+	s.IdleDisconnectTimeoutInSeconds = &v
 	return s
 }
 
@@ -7511,6 +8366,10 @@ type Image struct {
 	// The image name to display.
 	DisplayName *string `min:"1" type:"string"`
 
+	// The name of the image builder that was used to create the private image.
+	// If the image is shared, this value is null.
+	ImageBuilderName *string `min:"1" type:"string"`
+
 	// Indicates whether an image builder can be launched from this image.
 	ImageBuilderSupported *bool `type:"boolean"`
 
@@ -7593,6 +8452,12 @@ func (s *Image) SetDisplayName(v string) *Image {
 	return s
 }
 
+// SetImageBuilderName sets the ImageBuilderName field's value.
+func (s *Image) SetImageBuilderName(v string) *Image {
+	s.ImageBuilderName = &v
+	return s
+}
+
 // SetImageBuilderSupported sets the ImageBuilderSupported field's value.
 func (s *Image) SetImageBuilderSupported(v bool) *Image {
 	s.ImageBuilderSupported = &v
@@ -7645,6 +8510,10 @@ func (s *Image) SetVisibility(v string) *Image {
 type ImageBuilder struct {
 	_ struct{} `type:"structure"`
 
+	// The list of virtual private cloud (VPC) interface endpoint objects. Administrators
+	// can connect to the image builder only through the specified endpoints.
+	AccessEndpoints []*AccessEndpoint `min:"1" type:"list"`
+
 	// The version of the AppStream 2.0 agent that is currently being used by the
 	// image builder.
 	AppstreamAgentVersion *string `min:"1" type:"string"`
@@ -7668,19 +8537,75 @@ type ImageBuilder struct {
 	// Enables or disables default internet access for the image builder.
 	EnableDefaultInternetAccess *bool `type:"boolean"`
 
+	// The ARN of the IAM role that is applied to the image builder. To assume a
+	// role, the image builder calls the AWS Security Token Service (STS) AssumeRole
+	// API operation and passes the ARN of the role to use. The operation creates
+	// a new session with temporary credentials. AppStream 2.0 retrieves the temporary
+	// credentials and creates the AppStream_Machine_Role credential profile on
+	// the instance.
+	//
+	// For more information, see Using an IAM Role to Grant Permissions to Applications
+	// and Scripts Running on AppStream 2.0 Streaming Instances (https://docs.aws.amazon.com/appstream2/latest/developerguide/using-iam-roles-to-grant-permissions-to-applications-scripts-streaming-instances.html)
+	// in the Amazon AppStream 2.0 Administration Guide.
+	IamRoleArn *string `type:"string"`
+
 	// The ARN of the image from which this builder was created.
 	ImageArn *string `type:"string"`
 
 	// The image builder errors.
 	ImageBuilderErrors []*ResourceError `type:"list"`
 
-	// The instance type for the image builder.
+	// The instance type for the image builder. The following instance types are
+	// available:
+	//
+	//    * stream.standard.medium
+	//
+	//    * stream.standard.large
+	//
+	//    * stream.compute.large
+	//
+	//    * stream.compute.xlarge
+	//
+	//    * stream.compute.2xlarge
+	//
+	//    * stream.compute.4xlarge
+	//
+	//    * stream.compute.8xlarge
+	//
+	//    * stream.memory.large
+	//
+	//    * stream.memory.xlarge
+	//
+	//    * stream.memory.2xlarge
+	//
+	//    * stream.memory.4xlarge
+	//
+	//    * stream.memory.8xlarge
+	//
+	//    * stream.graphics-design.large
+	//
+	//    * stream.graphics-design.xlarge
+	//
+	//    * stream.graphics-design.2xlarge
+	//
+	//    * stream.graphics-design.4xlarge
+	//
+	//    * stream.graphics-desktop.2xlarge
+	//
+	//    * stream.graphics-pro.4xlarge
+	//
+	//    * stream.graphics-pro.8xlarge
+	//
+	//    * stream.graphics-pro.16xlarge
 	InstanceType *string `min:"1" type:"string"`
 
 	// The name of the image builder.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
+
+	// Describes the network details of the fleet or image builder instance.
+	NetworkAccessConfiguration *NetworkAccessConfiguration `type:"structure"`
 
 	// The operating system platform of the image builder.
 	Platform *string `type:"string" enum:"PlatformType"`
@@ -7703,6 +8628,12 @@ func (s ImageBuilder) String() string {
 // GoString returns the string representation
 func (s ImageBuilder) GoString() string {
 	return s.String()
+}
+
+// SetAccessEndpoints sets the AccessEndpoints field's value.
+func (s *ImageBuilder) SetAccessEndpoints(v []*AccessEndpoint) *ImageBuilder {
+	s.AccessEndpoints = v
+	return s
 }
 
 // SetAppstreamAgentVersion sets the AppstreamAgentVersion field's value.
@@ -7747,6 +8678,12 @@ func (s *ImageBuilder) SetEnableDefaultInternetAccess(v bool) *ImageBuilder {
 	return s
 }
 
+// SetIamRoleArn sets the IamRoleArn field's value.
+func (s *ImageBuilder) SetIamRoleArn(v string) *ImageBuilder {
+	s.IamRoleArn = &v
+	return s
+}
+
 // SetImageArn sets the ImageArn field's value.
 func (s *ImageBuilder) SetImageArn(v string) *ImageBuilder {
 	s.ImageArn = &v
@@ -7768,6 +8705,12 @@ func (s *ImageBuilder) SetInstanceType(v string) *ImageBuilder {
 // SetName sets the Name field's value.
 func (s *ImageBuilder) SetName(v string) *ImageBuilder {
 	s.Name = &v
+	return s
+}
+
+// SetNetworkAccessConfiguration sets the NetworkAccessConfiguration field's value.
+func (s *ImageBuilder) SetNetworkAccessConfiguration(v *NetworkAccessConfiguration) *ImageBuilder {
+	s.NetworkAccessConfiguration = v
 	return s
 }
 
@@ -7892,6 +8835,327 @@ func (s *ImageStateChangeReason) SetCode(v string) *ImageStateChangeReason {
 func (s *ImageStateChangeReason) SetMessage(v string) *ImageStateChangeReason {
 	s.Message = &v
 	return s
+}
+
+// The image does not support storage connectors.
+type IncompatibleImageException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s IncompatibleImageException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IncompatibleImageException) GoString() string {
+	return s.String()
+}
+
+func newErrorIncompatibleImageException(v protocol.ResponseMetadata) error {
+	return &IncompatibleImageException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s IncompatibleImageException) Code() string {
+	return "IncompatibleImageException"
+}
+
+// Message returns the exception's message.
+func (s IncompatibleImageException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s IncompatibleImageException) OrigErr() error {
+	return nil
+}
+
+func (s IncompatibleImageException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s IncompatibleImageException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s IncompatibleImageException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The resource cannot be created because your AWS account is suspended. For
+// assistance, contact AWS Support.
+type InvalidAccountStatusException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidAccountStatusException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidAccountStatusException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidAccountStatusException(v protocol.ResponseMetadata) error {
+	return &InvalidAccountStatusException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidAccountStatusException) Code() string {
+	return "InvalidAccountStatusException"
+}
+
+// Message returns the exception's message.
+func (s InvalidAccountStatusException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidAccountStatusException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidAccountStatusException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidAccountStatusException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidAccountStatusException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates an incorrect combination of parameters, or a missing parameter.
+type InvalidParameterCombinationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterCombinationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterCombinationException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterCombinationException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterCombinationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidParameterCombinationException) Code() string {
+	return "InvalidParameterCombinationException"
+}
+
+// Message returns the exception's message.
+func (s InvalidParameterCombinationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidParameterCombinationException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidParameterCombinationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidParameterCombinationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidParameterCombinationException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified role is invalid.
+type InvalidRoleException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidRoleException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidRoleException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidRoleException(v protocol.ResponseMetadata) error {
+	return &InvalidRoleException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidRoleException) Code() string {
+	return "InvalidRoleException"
+}
+
+// Message returns the exception's message.
+func (s InvalidRoleException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidRoleException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidRoleException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidRoleException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidRoleException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Describes the error that is returned when a usage report can't be generated.
+type LastReportGenerationExecutionError struct {
+	_ struct{} `type:"structure"`
+
+	// The error code for the error that is returned when a usage report can't be
+	// generated.
+	ErrorCode *string `type:"string" enum:"UsageReportExecutionErrorCode"`
+
+	// The error message for the error that is returned when a usage report can't
+	// be generated.
+	ErrorMessage *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s LastReportGenerationExecutionError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LastReportGenerationExecutionError) GoString() string {
+	return s.String()
+}
+
+// SetErrorCode sets the ErrorCode field's value.
+func (s *LastReportGenerationExecutionError) SetErrorCode(v string) *LastReportGenerationExecutionError {
+	s.ErrorCode = &v
+	return s
+}
+
+// SetErrorMessage sets the ErrorMessage field's value.
+func (s *LastReportGenerationExecutionError) SetErrorMessage(v string) *LastReportGenerationExecutionError {
+	s.ErrorMessage = &v
+	return s
+}
+
+// The requested limit exceeds the permitted limit for an account.
+type LimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type ListAssociatedFleetsInput struct {
@@ -8129,7 +9393,7 @@ func (s *ListTagsForResourceOutput) SetTags(v map[string]*string) *ListTagsForRe
 	return s
 }
 
-// Describes the network details of the fleet instance for the streaming session.
+// Describes the network details of the fleet or image builder instance.
 type NetworkAccessConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -8163,6 +9427,120 @@ func (s *NetworkAccessConfiguration) SetEniId(v string) *NetworkAccessConfigurat
 func (s *NetworkAccessConfiguration) SetEniPrivateIpAddress(v string) *NetworkAccessConfiguration {
 	s.EniPrivateIpAddress = &v
 	return s
+}
+
+// The attempted operation is not permitted.
+type OperationNotPermittedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s OperationNotPermittedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OperationNotPermittedException) GoString() string {
+	return s.String()
+}
+
+func newErrorOperationNotPermittedException(v protocol.ResponseMetadata) error {
+	return &OperationNotPermittedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s OperationNotPermittedException) Code() string {
+	return "OperationNotPermittedException"
+}
+
+// Message returns the exception's message.
+func (s OperationNotPermittedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s OperationNotPermittedException) OrigErr() error {
+	return nil
+}
+
+func (s OperationNotPermittedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s OperationNotPermittedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s OperationNotPermittedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified resource already exists.
+type ResourceAlreadyExistsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &ResourceAlreadyExistsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceAlreadyExistsException) Code() string {
+	return "ResourceAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s ResourceAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceAlreadyExistsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceAlreadyExistsException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // Describes a resource error.
@@ -8207,8 +9585,179 @@ func (s *ResourceError) SetErrorTimestamp(v time.Time) *ResourceError {
 	return s
 }
 
-// Describes the credentials for the service account used by the streaming instance
-// to connect to the directory.
+// The specified resource is in use.
+type ResourceInUseException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceInUseException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceInUseException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceInUseException(v protocol.ResponseMetadata) error {
+	return &ResourceInUseException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceInUseException) Code() string {
+	return "ResourceInUseException"
+}
+
+// Message returns the exception's message.
+func (s ResourceInUseException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceInUseException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceInUseException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceInUseException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceInUseException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified resource exists and is not in use, but isn't available.
+type ResourceNotAvailableException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotAvailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotAvailableException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotAvailableException(v protocol.ResponseMetadata) error {
+	return &ResourceNotAvailableException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceNotAvailableException) Code() string {
+	return "ResourceNotAvailableException"
+}
+
+// Message returns the exception's message.
+func (s ResourceNotAvailableException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceNotAvailableException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceNotAvailableException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceNotAvailableException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceNotAvailableException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified resource was not found.
+type ResourceNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The error message in the exception.
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Describes the credentials for the service account used by the fleet or image
+// builder to connect to the directory.
 type ServiceAccountCredentials struct {
 	_ struct{} `type:"structure"`
 
@@ -8274,8 +9823,11 @@ type Session struct {
 	_ struct{} `type:"structure"`
 
 	// The authentication method. The user is authenticated using a streaming URL
-	// (API) or SAML federation (SAML).
+	// (API) or SAML 2.0 federation (SAML).
 	AuthenticationType *string `type:"string" enum:"AuthenticationType"`
+
+	// Specifies whether a user is connected to the streaming session.
+	ConnectionState *string `type:"string" enum:"SessionConnectionState"`
 
 	// The name of the fleet for the streaming session.
 	//
@@ -8287,6 +9839,15 @@ type Session struct {
 	// Id is a required field
 	Id *string `min:"1" type:"string" required:"true"`
 
+	// The time when the streaming session is set to expire. This time is based
+	// on the MaxUserDurationinSeconds value, which determines the maximum length
+	// of time that a streaming session can run. A streaming session might end earlier
+	// than the time specified in SessionMaxExpirationTime, when the DisconnectTimeOutInSeconds
+	// elapses or the user chooses to end his or her session. If the DisconnectTimeOutInSeconds
+	// elapses, or the user chooses to end his or her session, the streaming instance
+	// is terminated and the streaming session ends.
+	MaxExpirationTime *time.Time `type:"timestamp"`
+
 	// The network details for the streaming session.
 	NetworkAccessConfiguration *NetworkAccessConfiguration `type:"structure"`
 
@@ -8294,6 +9855,9 @@ type Session struct {
 	//
 	// StackName is a required field
 	StackName *string `min:"1" type:"string" required:"true"`
+
+	// The time when a streaming instance is dedicated for the user.
+	StartTime *time.Time `type:"timestamp"`
 
 	// The current state of the streaming session.
 	//
@@ -8322,6 +9886,12 @@ func (s *Session) SetAuthenticationType(v string) *Session {
 	return s
 }
 
+// SetConnectionState sets the ConnectionState field's value.
+func (s *Session) SetConnectionState(v string) *Session {
+	s.ConnectionState = &v
+	return s
+}
+
 // SetFleetName sets the FleetName field's value.
 func (s *Session) SetFleetName(v string) *Session {
 	s.FleetName = &v
@@ -8334,6 +9904,12 @@ func (s *Session) SetId(v string) *Session {
 	return s
 }
 
+// SetMaxExpirationTime sets the MaxExpirationTime field's value.
+func (s *Session) SetMaxExpirationTime(v time.Time) *Session {
+	s.MaxExpirationTime = &v
+	return s
+}
+
 // SetNetworkAccessConfiguration sets the NetworkAccessConfiguration field's value.
 func (s *Session) SetNetworkAccessConfiguration(v *NetworkAccessConfiguration) *Session {
 	s.NetworkAccessConfiguration = v
@@ -8343,6 +9919,12 @@ func (s *Session) SetNetworkAccessConfiguration(v *NetworkAccessConfiguration) *
 // SetStackName sets the StackName field's value.
 func (s *Session) SetStackName(v string) *Session {
 	s.StackName = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *Session) SetStartTime(v time.Time) *Session {
+	s.StartTime = &v
 	return s
 }
 
@@ -8400,6 +9982,10 @@ func (s *SharedImagePermissions) SetSharedAccountId(v string) *SharedImagePermis
 type Stack struct {
 	_ struct{} `type:"structure"`
 
+	// The list of virtual private cloud (VPC) interface endpoint objects. Users
+	// of the stack can connect to AppStream 2.0 only through the specified endpoints.
+	AccessEndpoints []*AccessEndpoint `min:"1" type:"list"`
+
 	// The persistent application settings for users of the stack.
 	ApplicationSettings *ApplicationSettingsResponse `type:"structure"`
 
@@ -8414,6 +10000,11 @@ type Stack struct {
 
 	// The stack name to display.
 	DisplayName *string `min:"1" type:"string"`
+
+	// The domains where AppStream 2.0 streaming sessions can be embedded in an
+	// iframe. You must approve the domains that you want to host embedded AppStream
+	// 2.0 streaming sessions.
+	EmbedHostDomains []*string `min:"1" type:"list"`
 
 	// The URL that users are redirected to after they click the Send Feedback link.
 	// If no URL is specified, no Send Feedback link is displayed.
@@ -8448,6 +10039,12 @@ func (s Stack) GoString() string {
 	return s.String()
 }
 
+// SetAccessEndpoints sets the AccessEndpoints field's value.
+func (s *Stack) SetAccessEndpoints(v []*AccessEndpoint) *Stack {
+	s.AccessEndpoints = v
+	return s
+}
+
 // SetApplicationSettings sets the ApplicationSettings field's value.
 func (s *Stack) SetApplicationSettings(v *ApplicationSettingsResponse) *Stack {
 	s.ApplicationSettings = v
@@ -8475,6 +10072,12 @@ func (s *Stack) SetDescription(v string) *Stack {
 // SetDisplayName sets the DisplayName field's value.
 func (s *Stack) SetDisplayName(v string) *Stack {
 	s.DisplayName = &v
+	return s
+}
+
+// SetEmbedHostDomains sets the EmbedHostDomains field's value.
+func (s *Stack) SetEmbedHostDomains(v []*string) *Stack {
+	s.EmbedHostDomains = v
 	return s
 }
 
@@ -8798,7 +10401,7 @@ func (s *StopImageBuilderOutput) SetImageBuilder(v *ImageBuilder) *StopImageBuil
 	return s
 }
 
-// Describes a connector to enable persistent storage for users.
+// Describes a connector that enables persistent storage for users.
 type StorageConnector struct {
 	_ struct{} `type:"structure"`
 
@@ -8866,10 +10469,15 @@ type TagResourceInput struct {
 	// ResourceArn is a required field
 	ResourceArn *string `type:"string" required:"true"`
 
-	// The tags to associate. A tag is a key-value pair (the value is optional).
-	// For example, Environment=Test, or, if you do not specify a value, Environment=.
+	// The tags to associate. A tag is a key-value pair, and the value is optional.
+	// For example, Environment=Test. If you do not specify a value, Environment=.
 	//
-	// If you do not specify a value, we set the value to an empty string.
+	// If you do not specify a value, the value is set to an empty string.
+	//
+	// Generally allowed characters are: letters, numbers, and spaces representable
+	// in UTF-8, and the following special characters:
+	//
+	// _ . : / = + \ - @
 	//
 	// Tags is a required field
 	Tags map[string]*string `min:"1" type:"map" required:"true"`
@@ -9010,8 +10618,8 @@ type UpdateDirectoryConfigInput struct {
 	// The distinguished names of the organizational units for computer accounts.
 	OrganizationalUnitDistinguishedNames []*string `type:"list"`
 
-	// The credentials for the service account used by the streaming instance to
-	// connect to the directory.
+	// The credentials for the service account used by the fleet or image builder
+	// to connect to the directory.
 	ServiceAccountCredentials *ServiceAccountCredentials `type:"structure"`
 }
 
@@ -9101,10 +10709,13 @@ type UpdateFleetInput struct {
 	// The description to display.
 	Description *string `type:"string"`
 
-	// The time after disconnection when a session is considered to have ended,
-	// in seconds. If a user who was disconnected reconnects within this time interval,
-	// the user is connected to their previous session. Specify a value between
-	// 60 and 57600.
+	// The amount of time that a streaming session remains active after users disconnect.
+	// If users try to reconnect to the streaming session after a disconnection
+	// or network interruption within this time interval, they are connected to
+	// their previous session. Otherwise, they are connected to a new session with
+	// a new streaming instance.
+	//
+	// Specify a value between 60 and 360000.
 	DisconnectTimeoutInSeconds *int64 `type:"integer"`
 
 	// The fleet name to display.
@@ -9116,6 +10727,42 @@ type UpdateFleetInput struct {
 
 	// Enables or disables default internet access for the fleet.
 	EnableDefaultInternetAccess *bool `type:"boolean"`
+
+	// The Amazon Resource Name (ARN) of the IAM role to apply to the fleet. To
+	// assume a role, a fleet instance calls the AWS Security Token Service (STS)
+	// AssumeRole API operation and passes the ARN of the role to use. The operation
+	// creates a new session with temporary credentials. AppStream 2.0 retrieves
+	// the temporary credentials and creates the AppStream_Machine_Role credential
+	// profile on the instance.
+	//
+	// For more information, see Using an IAM Role to Grant Permissions to Applications
+	// and Scripts Running on AppStream 2.0 Streaming Instances (https://docs.aws.amazon.com/appstream2/latest/developerguide/using-iam-roles-to-grant-permissions-to-applications-scripts-streaming-instances.html)
+	// in the Amazon AppStream 2.0 Administration Guide.
+	IamRoleArn *string `type:"string"`
+
+	// The amount of time that users can be idle (inactive) before they are disconnected
+	// from their streaming session and the DisconnectTimeoutInSeconds time interval
+	// begins. Users are notified before they are disconnected due to inactivity.
+	// If users try to reconnect to the streaming session before the time interval
+	// specified in DisconnectTimeoutInSeconds elapses, they are connected to their
+	// previous session. Users are considered idle when they stop providing keyboard
+	// or mouse input during their streaming session. File uploads and downloads,
+	// audio in, audio out, and pixels changing do not qualify as user activity.
+	// If users continue to be idle after the time interval in IdleDisconnectTimeoutInSeconds
+	// elapses, they are disconnected.
+	//
+	// To prevent users from being disconnected due to inactivity, specify a value
+	// of 0. Otherwise, specify a value between 60 and 3600. The default value is
+	// 0.
+	//
+	// If you enable this feature, we recommend that you specify a value that corresponds
+	// exactly to a whole number of minutes (for example, 60, 120, and 180). If
+	// you don't do this, the value is rounded to the nearest minute. For example,
+	// if you specify a value of 70, users are disconnected after 1 minute of inactivity.
+	// If you specify a value that is at the midpoint between two different minutes,
+	// the value is rounded up. For example, if you specify a value of 90, users
+	// are disconnected after 2 minutes of inactivity.
+	IdleDisconnectTimeoutInSeconds *int64 `type:"integer"`
 
 	// The ARN of the public, private, or shared image to use.
 	ImageArn *string `type:"string"`
@@ -9167,8 +10814,13 @@ type UpdateFleetInput struct {
 	//    * stream.graphics-pro.16xlarge
 	InstanceType *string `min:"1" type:"string"`
 
-	// The maximum time that a streaming session can run, in seconds. Specify a
-	// value between 600 and 57600.
+	// The maximum amount of time that a streaming session can remain active, in
+	// seconds. If users are still connected to a streaming instance five minutes
+	// before this limit is reached, they are prompted to save any open documents
+	// before being disconnected. After this time elapses, the instance is terminated
+	// and replaced by a new instance.
+	//
+	// Specify a value between 600 and 360000.
 	MaxUserDurationInSeconds *int64 `type:"integer"`
 
 	// A unique name for the fleet.
@@ -9257,6 +10909,18 @@ func (s *UpdateFleetInput) SetDomainJoinInfo(v *DomainJoinInfo) *UpdateFleetInpu
 // SetEnableDefaultInternetAccess sets the EnableDefaultInternetAccess field's value.
 func (s *UpdateFleetInput) SetEnableDefaultInternetAccess(v bool) *UpdateFleetInput {
 	s.EnableDefaultInternetAccess = &v
+	return s
+}
+
+// SetIamRoleArn sets the IamRoleArn field's value.
+func (s *UpdateFleetInput) SetIamRoleArn(v string) *UpdateFleetInput {
+	s.IamRoleArn = &v
+	return s
+}
+
+// SetIdleDisconnectTimeoutInSeconds sets the IdleDisconnectTimeoutInSeconds field's value.
+func (s *UpdateFleetInput) SetIdleDisconnectTimeoutInSeconds(v int64) *UpdateFleetInput {
+	s.IdleDisconnectTimeoutInSeconds = &v
 	return s
 }
 
@@ -9403,6 +11067,10 @@ func (s UpdateImagePermissionsOutput) GoString() string {
 type UpdateStackInput struct {
 	_ struct{} `type:"structure"`
 
+	// The list of interface VPC endpoint (interface endpoint) objects. Users of
+	// the stack can connect to AppStream 2.0 only through the specified endpoints.
+	AccessEndpoints []*AccessEndpoint `min:"1" type:"list"`
+
 	// The persistent application settings for users of a stack. When these settings
 	// are enabled, changes that users make to applications and Windows settings
 	// are automatically saved after each session and applied to the next session.
@@ -9421,6 +11089,11 @@ type UpdateStackInput struct {
 
 	// The stack name to display.
 	DisplayName *string `type:"string"`
+
+	// The domains where AppStream 2.0 streaming sessions can be embedded in an
+	// iframe. You must approve the domains that you want to host embedded AppStream
+	// 2.0 streaming sessions.
+	EmbedHostDomains []*string `min:"1" type:"list"`
 
 	// The URL that users are redirected to after they choose the Send Feedback
 	// link. If no URL is specified, no Send Feedback link is displayed.
@@ -9455,6 +11128,12 @@ func (s UpdateStackInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *UpdateStackInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateStackInput"}
+	if s.AccessEndpoints != nil && len(s.AccessEndpoints) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccessEndpoints", 1))
+	}
+	if s.EmbedHostDomains != nil && len(s.EmbedHostDomains) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EmbedHostDomains", 1))
+	}
 	if s.Name == nil {
 		invalidParams.Add(request.NewErrParamRequired("Name"))
 	}
@@ -9463,6 +11142,16 @@ func (s *UpdateStackInput) Validate() error {
 	}
 	if s.UserSettings != nil && len(s.UserSettings) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("UserSettings", 1))
+	}
+	if s.AccessEndpoints != nil {
+		for i, v := range s.AccessEndpoints {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "AccessEndpoints", i), err.(request.ErrInvalidParams))
+			}
+		}
 	}
 	if s.ApplicationSettings != nil {
 		if err := s.ApplicationSettings.Validate(); err != nil {
@@ -9496,6 +11185,12 @@ func (s *UpdateStackInput) Validate() error {
 	return nil
 }
 
+// SetAccessEndpoints sets the AccessEndpoints field's value.
+func (s *UpdateStackInput) SetAccessEndpoints(v []*AccessEndpoint) *UpdateStackInput {
+	s.AccessEndpoints = v
+	return s
+}
+
 // SetApplicationSettings sets the ApplicationSettings field's value.
 func (s *UpdateStackInput) SetApplicationSettings(v *ApplicationSettings) *UpdateStackInput {
 	s.ApplicationSettings = v
@@ -9523,6 +11218,12 @@ func (s *UpdateStackInput) SetDescription(v string) *UpdateStackInput {
 // SetDisplayName sets the DisplayName field's value.
 func (s *UpdateStackInput) SetDisplayName(v string) *UpdateStackInput {
 	s.DisplayName = &v
+	return s
+}
+
+// SetEmbedHostDomains sets the EmbedHostDomains field's value.
+func (s *UpdateStackInput) SetEmbedHostDomains(v []*string) *UpdateStackInput {
+	s.EmbedHostDomains = v
 	return s
 }
 
@@ -9579,6 +11280,64 @@ func (s *UpdateStackOutput) SetStack(v *Stack) *UpdateStackOutput {
 	return s
 }
 
+// Describes information about the usage report subscription.
+type UsageReportSubscription struct {
+	_ struct{} `type:"structure"`
+
+	// The time when the last usage report was generated.
+	LastGeneratedReportDate *time.Time `type:"timestamp"`
+
+	// The Amazon S3 bucket where generated reports are stored.
+	//
+	// If you enabled on-instance session scripts and Amazon S3 logging for your
+	// session script configuration, AppStream 2.0 created an S3 bucket to store
+	// the script output. The bucket is unique to your account and Region. When
+	// you enable usage reporting in this case, AppStream 2.0 uses the same bucket
+	// to store your usage reports. If you haven't already enabled on-instance session
+	// scripts, when you enable usage reports, AppStream 2.0 creates a new S3 bucket.
+	S3BucketName *string `min:"1" type:"string"`
+
+	// The schedule for generating usage reports.
+	Schedule *string `type:"string" enum:"UsageReportSchedule"`
+
+	// The errors that were returned if usage reports couldn't be generated.
+	SubscriptionErrors []*LastReportGenerationExecutionError `type:"list"`
+}
+
+// String returns the string representation
+func (s UsageReportSubscription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UsageReportSubscription) GoString() string {
+	return s.String()
+}
+
+// SetLastGeneratedReportDate sets the LastGeneratedReportDate field's value.
+func (s *UsageReportSubscription) SetLastGeneratedReportDate(v time.Time) *UsageReportSubscription {
+	s.LastGeneratedReportDate = &v
+	return s
+}
+
+// SetS3BucketName sets the S3BucketName field's value.
+func (s *UsageReportSubscription) SetS3BucketName(v string) *UsageReportSubscription {
+	s.S3BucketName = &v
+	return s
+}
+
+// SetSchedule sets the Schedule field's value.
+func (s *UsageReportSubscription) SetSchedule(v string) *UsageReportSubscription {
+	s.Schedule = &v
+	return s
+}
+
+// SetSubscriptionErrors sets the SubscriptionErrors field's value.
+func (s *UsageReportSubscription) SetSubscriptionErrors(v []*LastReportGenerationExecutionError) *UsageReportSubscription {
+	s.SubscriptionErrors = v
+	return s
+}
+
 // Describes a user in the user pool.
 type User struct {
 	_ struct{} `type:"structure"`
@@ -9611,12 +11370,15 @@ type User struct {
 	//
 	//    * ARCHIVED – The user is no longer active.
 	//
-	//    * COMPROMISED – The user is disabled because of a potential security threat.
+	//    * COMPROMISED – The user is disabled because of a potential security
+	//    threat.
 	//
 	//    * UNKNOWN – The user status is not known.
 	Status *string `min:"1" type:"string"`
 
 	// The email address of the user.
+	//
+	// Users' email addresses are case-sensitive.
 	UserName *string `min:"1" type:"string" sensitive:"true"`
 }
 
@@ -9752,6 +11514,8 @@ type UserStackAssociation struct {
 
 	// The email address of the user who is associated with the stack.
 	//
+	// Users' email addresses are case-sensitive.
+	//
 	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true" sensitive:"true"`
 }
@@ -9869,7 +11633,7 @@ type VpcConfig struct {
 
 	// The identifiers of the subnets to which a network interface is attached from
 	// the fleet instance or image builder instance. Fleet instances use one or
-	// two subnets. Image builder instances use one subnet.
+	// more subnets. Image builder instances use one subnet.
 	SubnetIds []*string `type:"list"`
 }
 
@@ -9894,6 +11658,11 @@ func (s *VpcConfig) SetSubnetIds(v []*string) *VpcConfig {
 	s.SubnetIds = v
 	return s
 }
+
+const (
+	// AccessEndpointTypeStreaming is a AccessEndpointType enum value
+	AccessEndpointTypeStreaming = "STREAMING"
+)
 
 const (
 	// ActionClipboardCopyFromLocalDevice is a Action enum value
@@ -9933,6 +11702,9 @@ const (
 
 	// FleetAttributeDomainJoinInfo is a FleetAttribute enum value
 	FleetAttributeDomainJoinInfo = "DOMAIN_JOIN_INFO"
+
+	// FleetAttributeIamRoleArn is a FleetAttribute enum value
+	FleetAttributeIamRoleArn = "IAM_ROLE_ARN"
 )
 
 const (
@@ -9953,6 +11725,12 @@ const (
 
 	// FleetErrorCodeIamServiceRoleIsMissing is a FleetErrorCode enum value
 	FleetErrorCodeIamServiceRoleIsMissing = "IAM_SERVICE_ROLE_IS_MISSING"
+
+	// FleetErrorCodeMachineRoleIsMissing is a FleetErrorCode enum value
+	FleetErrorCodeMachineRoleIsMissing = "MACHINE_ROLE_IS_MISSING"
+
+	// FleetErrorCodeStsDisabledInRegion is a FleetErrorCode enum value
+	FleetErrorCodeStsDisabledInRegion = "STS_DISABLED_IN_REGION"
 
 	// FleetErrorCodeSubnetHasInsufficientIpAddresses is a FleetErrorCode enum value
 	FleetErrorCodeSubnetHasInsufficientIpAddresses = "SUBNET_HAS_INSUFFICIENT_IP_ADDRESSES"
@@ -10121,6 +11899,20 @@ const (
 const (
 	// PlatformTypeWindows is a PlatformType enum value
 	PlatformTypeWindows = "WINDOWS"
+
+	// PlatformTypeWindowsServer2016 is a PlatformType enum value
+	PlatformTypeWindowsServer2016 = "WINDOWS_SERVER_2016"
+
+	// PlatformTypeWindowsServer2019 is a PlatformType enum value
+	PlatformTypeWindowsServer2019 = "WINDOWS_SERVER_2019"
+)
+
+const (
+	// SessionConnectionStateConnected is a SessionConnectionState enum value
+	SessionConnectionStateConnected = "CONNECTED"
+
+	// SessionConnectionStateNotConnected is a SessionConnectionState enum value
+	SessionConnectionStateNotConnected = "NOT_CONNECTED"
 )
 
 // Possible values for the state of a streaming session.
@@ -10159,6 +11951,15 @@ const (
 
 	// StackAttributeUserSettings is a StackAttribute enum value
 	StackAttributeUserSettings = "USER_SETTINGS"
+
+	// StackAttributeEmbedHostDomains is a StackAttribute enum value
+	StackAttributeEmbedHostDomains = "EMBED_HOST_DOMAINS"
+
+	// StackAttributeIamRoleArn is a StackAttribute enum value
+	StackAttributeIamRoleArn = "IAM_ROLE_ARN"
+
+	// StackAttributeAccessEndpoints is a StackAttribute enum value
+	StackAttributeAccessEndpoints = "ACCESS_ENDPOINTS"
 )
 
 const (
@@ -10179,6 +11980,22 @@ const (
 
 	// StorageConnectorTypeOneDrive is a StorageConnectorType enum value
 	StorageConnectorTypeOneDrive = "ONE_DRIVE"
+)
+
+const (
+	// UsageReportExecutionErrorCodeResourceNotFound is a UsageReportExecutionErrorCode enum value
+	UsageReportExecutionErrorCodeResourceNotFound = "RESOURCE_NOT_FOUND"
+
+	// UsageReportExecutionErrorCodeAccessDenied is a UsageReportExecutionErrorCode enum value
+	UsageReportExecutionErrorCodeAccessDenied = "ACCESS_DENIED"
+
+	// UsageReportExecutionErrorCodeInternalServiceError is a UsageReportExecutionErrorCode enum value
+	UsageReportExecutionErrorCodeInternalServiceError = "INTERNAL_SERVICE_ERROR"
+)
+
+const (
+	// UsageReportScheduleDaily is a UsageReportSchedule enum value
+	UsageReportScheduleDaily = "DAILY"
 )
 
 const (

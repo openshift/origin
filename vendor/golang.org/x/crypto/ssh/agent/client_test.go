@@ -13,7 +13,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -35,17 +37,19 @@ func startOpenSSHAgent(t *testing.T) (client ExtendedAgent, socket string, clean
 	}
 
 	cmd := exec.Command(bin, "-s")
+	cmd.Env = []string{} // Do not let the user's environment influence ssh-agent behavior.
+	cmd.Stderr = new(bytes.Buffer)
 	out, err := cmd.Output()
 	if err != nil {
-		t.Fatalf("cmd.Output: %v", err)
+		t.Fatalf("%s failed: %v\n%s", strings.Join(cmd.Args, " "), err, cmd.Stderr)
 	}
 
-	/* Output looks like:
+	// Output looks like:
+	//
+	//	SSH_AUTH_SOCK=/tmp/ssh-P65gpcqArqvH/agent.15541; export SSH_AUTH_SOCK;
+	//	SSH_AGENT_PID=15542; export SSH_AGENT_PID;
+	//	echo Agent pid 15542;
 
-		   SSH_AUTH_SOCK=/tmp/ssh-P65gpcqArqvH/agent.15541; export SSH_AUTH_SOCK;
-	           SSH_AGENT_PID=15542; export SSH_AGENT_PID;
-	           echo Agent pid 15542;
-	*/
 	fields := bytes.Split(out, []byte(";"))
 	line := bytes.SplitN(fields[0], []byte("="), 2)
 	line[0] = bytes.TrimLeft(line[0], "\n")
@@ -314,6 +318,8 @@ func TestServerResponseTooLarge(t *testing.T) {
 	if err != nil {
 		t.Fatalf("netPipe: %v", err)
 	}
+	done := make(chan struct{})
+	defer func() { <-done }()
 
 	defer a.Close()
 	defer b.Close()
@@ -324,9 +330,21 @@ func TestServerResponseTooLarge(t *testing.T) {
 
 	agent := NewClient(a)
 	go func() {
-		n, _ := b.Write(ssh.Marshal(response))
+		defer close(done)
+		n, err := b.Write(ssh.Marshal(response))
 		if n < 4 {
-			t.Fatalf("At least 4 bytes (the response size) should have been successfully written: %d < 4", n)
+			if runtime.GOOS == "plan9" {
+				if e1, ok := err.(*net.OpError); ok {
+					if e2, ok := e1.Err.(*os.PathError); ok {
+						switch e2.Err.Error() {
+						case "Hangup", "i/o on hungup channel":
+							// syscall.Pwrite returns -1 in this case even when some data did get written.
+							return
+						}
+					}
+				}
+			}
+			t.Errorf("At least 4 bytes (the response size) should have been successfully written: %d < 4: %v", n, err)
 		}
 	}()
 	_, err = agent.List()

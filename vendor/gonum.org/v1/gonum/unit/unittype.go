@@ -167,7 +167,7 @@ var (
 type Dimensions map[Dimension]int
 
 func (d Dimensions) clone() Dimensions {
-	if len(d) == 0 {
+	if d == nil {
 		return nil
 	}
 	c := make(Dimensions, len(d))
@@ -332,7 +332,7 @@ func (u *Unit) SetValue(v float64) {
 }
 
 // Format makes Unit satisfy the fmt.Formatter interface. The unit is formatted
-// with dimensions appended. If the power if the dimension is not zero or one,
+// with dimensions appended. If the power of the dimension is not zero or one,
 // symbol^power is appended, if the power is one, just the symbol is appended
 // and if the power is zero, nothing is appended. Dimensions are appended
 // in order by symbol name with positive powers ahead of negative powers.

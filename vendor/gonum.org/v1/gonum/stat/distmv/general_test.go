@@ -71,26 +71,28 @@ func checkMean(t *testing.T, cas int, x *mat.Dense, m Meaner, tol float64) {
 }
 
 type Cover interface {
-	CovarianceMatrix(*mat.SymDense) *mat.SymDense
+	CovarianceMatrix(*mat.SymDense)
 }
 
 func checkCov(t *testing.T, cas int, x *mat.Dense, c Cover, tol float64) {
-	cov := c.CovarianceMatrix(nil)
+	var cov mat.SymDense
+	c.CovarianceMatrix(&cov)
 	n := cov.Symmetric()
 	cov2 := mat.NewSymDense(n, nil)
 	c.CovarianceMatrix(cov2)
-	if !mat.Equal(cov, cov2) {
+	if !mat.Equal(&cov, cov2) {
 		t.Errorf("Cov mismatch when providing nil and matrix. Case %v", cas)
 	}
 	var cov3 mat.SymDense
 	c.CovarianceMatrix(&cov3)
-	if !mat.Equal(cov, &cov3) {
+	if !mat.Equal(&cov, &cov3) {
 		t.Errorf("Cov mismatch when providing zero matrix. Case %v", cas)
 	}
 
 	// Check that the covariance matrix matches the samples
-	covEst := stat.CovarianceMatrix(nil, x, nil)
-	if !mat.EqualApprox(covEst, cov, tol) {
-		t.Errorf("Return cov and sample cov mismatch. Cas %v.\nGot:\n%0.4v\nWant:\n%0.4v", cas, mat.Formatted(cov), mat.Formatted(covEst))
+	var covEst mat.SymDense
+	stat.CovarianceMatrix(&covEst, x, nil)
+	if !mat.EqualApprox(&covEst, &cov, tol) {
+		t.Errorf("Return cov and sample cov mismatch. Cas %v.\nGot:\n%0.4v\nWant:\n%0.4v", cas, mat.Formatted(&cov), mat.Formatted(&covEst))
 	}
 }

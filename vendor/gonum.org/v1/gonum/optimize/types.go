@@ -123,17 +123,13 @@ type Problem struct {
 	// must not modify x.
 	Func func(x []float64) float64
 
-	// Grad evaluates the gradient at x and returns the result. Grad may use
-	// (and return) the provided slice if it is non-nil, or must allocate a new
-	// slice otherwise. Grad must not modify x.
-	Grad func(grad []float64, x []float64) []float64
+	// Grad evaluates the gradient at x and stores the result in grad which will
+	// be the same length as x. Grad must not modify x.
+	Grad func(grad, x []float64)
 
-	// Hess evaluates the Hessian at x and stores the result in-place in hess.
-	// Hess must not modify x. Hess may use (and return) the provided Symmetric
-	// if it is non-nil, or must allocate a new Symmetric otherwise. Minimize
-	// will 'give back' the returned Symmetric where possible, allowing Hess
-	// to use a type assertion on the provided matrix.
-	Hess func(hess mat.Symmetric, x []float64) mat.Symmetric
+	// Hess evaluates the Hessian at x and stores the result in-place in hess which
+	// will have dimensions matching the length of x. Hess must not modify x.
+	Hess func(hess *mat.SymDense, x []float64)
 
 	// Status reports the status of the objective function being optimized and any
 	// error. This can be used to terminate early, for example when the function is

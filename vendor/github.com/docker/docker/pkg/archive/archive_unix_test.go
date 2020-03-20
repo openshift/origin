@@ -7,16 +7,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
 
 	"github.com/docker/docker/pkg/system"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
-	"github.com/gotestyourself/gotestyourself/skip"
+	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"golang.org/x/sys/unix"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+	"gotest.tools/skip"
 )
 
 func TestCanonicalTarNameForPath(t *testing.T) {
@@ -26,10 +28,8 @@ func TestCanonicalTarNameForPath(t *testing.T) {
 		{"foo/dir/", "foo/dir/"},
 	}
 	for _, v := range cases {
-		if out, err := CanonicalTarNameForPath(v.in); err != nil {
-			t.Fatalf("cannot get canonical name for path: %s: %v", v.in, err)
-		} else if out != v.expected {
-			t.Fatalf("wrong canonical tar name. expected:%s got:%s", v.expected, out)
+		if CanonicalTarNameForPath(v.in) != v.expected {
+			t.Fatalf("wrong canonical tar name. expected:%s got:%s", v.expected, CanonicalTarNameForPath(v.in))
 		}
 	}
 }
@@ -46,10 +46,8 @@ func TestCanonicalTarName(t *testing.T) {
 		{"foo/bar", true, "foo/bar/"},
 	}
 	for _, v := range cases {
-		if out, err := canonicalTarName(v.in, v.isDir); err != nil {
-			t.Fatalf("cannot get canonical name for path: %s: %v", v.in, err)
-		} else if out != v.expected {
-			t.Fatalf("wrong canonical tar name. expected:%s got:%s", v.expected, out)
+		if canonicalTarName(v.in, v.isDir) != v.expected {
+			t.Fatalf("wrong canonical tar name. expected:%s got:%s", v.expected, canonicalTarName(v.in, v.isDir))
 		}
 	}
 }
@@ -185,6 +183,7 @@ func getInode(path string) (uint64, error) {
 
 func TestTarWithBlockCharFifo(t *testing.T) {
 	skip.If(t, os.Getuid() != 0, "skipping test that requires root")
+	skip.If(t, rsystem.RunningInUserNS(), "skipping test that requires initial userns")
 	origin, err := ioutil.TempDir("", "docker-test-tar-hardlink")
 	assert.NilError(t, err)
 
@@ -226,6 +225,13 @@ func TestTarWithBlockCharFifo(t *testing.T) {
 // TestTarUntarWithXattr is Unix as Lsetxattr is not supported on Windows
 func TestTarUntarWithXattr(t *testing.T) {
 	skip.If(t, os.Getuid() != 0, "skipping test that requires root")
+	if _, err := exec.LookPath("setcap"); err != nil {
+		t.Skip("setcap not installed")
+	}
+	if _, err := exec.LookPath("getcap"); err != nil {
+		t.Skip("getcap not installed")
+	}
+
 	origin, err := ioutil.TempDir("", "docker-test-untar-origin")
 	assert.NilError(t, err)
 	defer os.RemoveAll(origin)
@@ -236,8 +242,9 @@ func TestTarUntarWithXattr(t *testing.T) {
 	assert.NilError(t, err)
 	err = ioutil.WriteFile(filepath.Join(origin, "3"), []byte("will be ignored"), 0700)
 	assert.NilError(t, err)
-	err = system.Lsetxattr(filepath.Join(origin, "2"), "security.capability", []byte{0x00}, 0)
-	assert.NilError(t, err)
+	// there is no known Go implementation of setcap/getcap with support for v3 file capability
+	out, err := exec.Command("setcap", "cap_block_suspend+ep", filepath.Join(origin, "2")).CombinedOutput()
+	assert.NilError(t, err, string(out))
 
 	for _, c := range []Compression{
 		Uncompressed,
@@ -255,10 +262,9 @@ func TestTarUntarWithXattr(t *testing.T) {
 		if len(changes) != 1 || changes[0].Path != "/3" {
 			t.Fatalf("Unexpected differences after tarUntar: %v", changes)
 		}
-		capability, _ := system.Lgetxattr(filepath.Join(origin, "2"), "security.capability")
-		if capability == nil && capability[0] != 0x00 {
-			t.Fatalf("Untar should have kept the 'security.capability' xattr.")
-		}
+		out, err := exec.Command("getcap", filepath.Join(origin, "2")).CombinedOutput()
+		assert.NilError(t, err, string(out))
+		assert.Check(t, is.Contains(string(out), "= cap_block_suspend+ep"), "untar should have kept the 'security.capability' xattr")
 	}
 }
 

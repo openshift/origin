@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/openshift/api/image/v1"
@@ -22,17 +23,17 @@ type ImageStreamsGetter interface {
 
 // ImageStreamInterface has methods to work with ImageStream resources.
 type ImageStreamInterface interface {
-	Create(*v1.ImageStream) (*v1.ImageStream, error)
-	Update(*v1.ImageStream) (*v1.ImageStream, error)
-	UpdateStatus(*v1.ImageStream) (*v1.ImageStream, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.ImageStream, error)
-	List(opts metav1.ListOptions) (*v1.ImageStreamList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ImageStream, err error)
-	Secrets(imageStreamName string, options metav1.GetOptions) (*corev1.SecretList, error)
-	Layers(imageStreamName string, options metav1.GetOptions) (*v1.ImageStreamLayers, error)
+	Create(ctx context.Context, imageStream *v1.ImageStream, opts metav1.CreateOptions) (*v1.ImageStream, error)
+	Update(ctx context.Context, imageStream *v1.ImageStream, opts metav1.UpdateOptions) (*v1.ImageStream, error)
+	UpdateStatus(ctx context.Context, imageStream *v1.ImageStream, opts metav1.UpdateOptions) (*v1.ImageStream, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ImageStream, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.ImageStreamList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ImageStream, err error)
+	Secrets(ctx context.Context, imageStreamName string, options metav1.GetOptions) (*corev1.SecretList, error)
+	Layers(ctx context.Context, imageStreamName string, options metav1.GetOptions) (*v1.ImageStreamLayers, error)
 
 	ImageStreamExpansion
 }
@@ -52,20 +53,20 @@ func newImageStreams(c *ImageV1Client, namespace string) *imageStreams {
 }
 
 // Get takes name of the imageStream, and returns the corresponding imageStream object, and an error if there is any.
-func (c *imageStreams) Get(name string, options metav1.GetOptions) (result *v1.ImageStream, err error) {
+func (c *imageStreams) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ImageStream, err error) {
 	result = &v1.ImageStream{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of ImageStreams that match those selectors.
-func (c *imageStreams) List(opts metav1.ListOptions) (result *v1.ImageStreamList, err error) {
+func (c *imageStreams) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ImageStreamList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -76,13 +77,13 @@ func (c *imageStreams) List(opts metav1.ListOptions) (result *v1.ImageStreamList
 		Resource("imagestreams").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested imageStreams.
-func (c *imageStreams) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *imageStreams) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -93,93 +94,96 @@ func (c *imageStreams) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 		Resource("imagestreams").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a imageStream and creates it.  Returns the server's representation of the imageStream, and an error, if there is any.
-func (c *imageStreams) Create(imageStream *v1.ImageStream) (result *v1.ImageStream, err error) {
+func (c *imageStreams) Create(ctx context.Context, imageStream *v1.ImageStream, opts metav1.CreateOptions) (result *v1.ImageStream, err error) {
 	result = &v1.ImageStream{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("imagestreams").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(imageStream).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a imageStream and updates it. Returns the server's representation of the imageStream, and an error, if there is any.
-func (c *imageStreams) Update(imageStream *v1.ImageStream) (result *v1.ImageStream, err error) {
+func (c *imageStreams) Update(ctx context.Context, imageStream *v1.ImageStream, opts metav1.UpdateOptions) (result *v1.ImageStream, err error) {
 	result = &v1.ImageStream{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		Name(imageStream.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(imageStream).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *imageStreams) UpdateStatus(imageStream *v1.ImageStream) (result *v1.ImageStream, err error) {
+func (c *imageStreams) UpdateStatus(ctx context.Context, imageStream *v1.ImageStream, opts metav1.UpdateOptions) (result *v1.ImageStream, err error) {
 	result = &v1.ImageStream{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		Name(imageStream.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(imageStream).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the imageStream and deletes it. Returns an error if one occurs.
-func (c *imageStreams) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *imageStreams) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *imageStreams) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (c *imageStreams) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("imagestreams").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched imageStream.
-func (c *imageStreams) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ImageStream, err error) {
+func (c *imageStreams) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ImageStream, err error) {
 	result = &v1.ImageStream{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("imagestreams").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Secrets takes name of the imageStream, and returns the corresponding corev1.SecretList object, and an error if there is any.
-func (c *imageStreams) Secrets(imageStreamName string, options metav1.GetOptions) (result *corev1.SecretList, err error) {
+func (c *imageStreams) Secrets(ctx context.Context, imageStreamName string, options metav1.GetOptions) (result *corev1.SecretList, err error) {
 	result = &corev1.SecretList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -187,13 +191,13 @@ func (c *imageStreams) Secrets(imageStreamName string, options metav1.GetOptions
 		Name(imageStreamName).
 		SubResource("secrets").
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Layers takes name of the imageStream, and returns the corresponding v1.ImageStreamLayers object, and an error if there is any.
-func (c *imageStreams) Layers(imageStreamName string, options metav1.GetOptions) (result *v1.ImageStreamLayers, err error) {
+func (c *imageStreams) Layers(ctx context.Context, imageStreamName string, options metav1.GetOptions) (result *v1.ImageStreamLayers, err error) {
 	result = &v1.ImageStreamLayers{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -201,7 +205,7 @@ func (c *imageStreams) Layers(imageStreamName string, options metav1.GetOptions)
 		Name(imageStreamName).
 		SubResource("layers").
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

@@ -97,16 +97,23 @@ func (c *FakeContext) Value(key interface{}) interface{} {
 
 // StashEnv stashes the current environment variables and returns an array of
 // all environment values as key=val strings.
+//
+// Deprecated: StashEnv exists for backward compatibility and may be removed from the future iterations.
+// It is not `internal` so that if you really need to use its functionality, and understand breaking
+// changes will be made, you are able to.
 func StashEnv() []string {
 	env := os.Environ()
 	os.Clearenv()
-
 	return env
 }
 
 // PopEnv takes the list of the environment values and injects them into the
 // process's environment variable data. Clears any existing environment values
 // that may already exist.
+//
+// Deprecated: PopEnv exists for backward compatibility and may be removed from the future iterations.
+// It is not `internal` so that if you really need to use its functionality, and understand breaking
+// changes will be made, you are able to.
 func PopEnv(env []string) {
 	os.Clearenv()
 

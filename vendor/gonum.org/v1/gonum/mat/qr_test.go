@@ -29,20 +29,21 @@ func TestQR(t *testing.T) {
 			}
 		}
 		var want Dense
-		want.Clone(a)
+		want.CloneFrom(a)
 
 		var qr QR
 		qr.Factorize(a)
-		q := qr.QTo(nil)
+		var q, r Dense
+		qr.QTo(&q)
 
-		if !isOrthonormal(q, 1e-10) {
+		if !isOrthonormal(&q, 1e-10) {
 			t.Errorf("Q is not orthonormal: m = %v, n = %v", m, n)
 		}
 
-		r := qr.RTo(nil)
+		qr.RTo(&r)
 
 		var got Dense
-		got.Mul(q, r)
+		got.Mul(&q, &r)
 		if !EqualApprox(&got, &want, 1e-12) {
 			t.Errorf("QR does not equal original matrix. \nWant: %v\nGot: %v", want, got)
 		}
@@ -105,8 +106,8 @@ func TestQRSolveTo(t *testing.T) {
 			qr.SolveTo(&x, trans, b)
 
 			// Test that the normal equations hold.
-			// A^T * A * x = A^T * b if !trans
-			// A * A^T * x = A * b if trans
+			// Aᵀ * A * x = Aᵀ * b if !trans
+			// A * Aᵀ * x = A * b if trans
 			var lhs Dense
 			var rhs Dense
 			if trans {
@@ -158,8 +159,8 @@ func TestQRSolveVecTo(t *testing.T) {
 			qr.SolveVecTo(&x, trans, b)
 
 			// Test that the normal equations hold.
-			// A^T * A * x = A^T * b if !trans
-			// A * A^T * x = A * b if trans
+			// Aᵀ * A * x = Aᵀ * b if !trans
+			// A * Aᵀ * x = A * b if trans
 			var lhs Dense
 			var rhs Dense
 			if trans {

@@ -131,15 +131,17 @@ try {
   Create-Directories
   Download-HelperScripts
 
-  Create-DockerRegistryKey
-  Configure-Dockerd
+  DownloadAndInstall-Crictl
+  Configure-Crictl
+  Setup-ContainerRuntime
+  DownloadAndInstall-AuthPlugin
   DownloadAndInstall-KubernetesBinaries
   Create-NodePki
   Create-KubeletKubeconfig
   Create-KubeproxyKubeconfig
   Set-PodCidr
   Configure-HostNetworkingService
-  Configure-CniNetworking
+  Prepare-CniNetworking
   Configure-HostDnsConf
   Configure-GcePdTools
   Configure-Kubelet
@@ -156,6 +158,7 @@ try {
   Verify-WorkerServices
 
   $config = New-FileRotationConfig
+  # TODO(random-liu): Generate containerd log into the log directory.
   Schedule-LogRotation -Pattern '.*\.log$' -Path ${env:LOGS_DIR} -RepetitionInterval $(New-Timespan -Hour 1) -Config $config
 
   Pull-InfraContainer

@@ -30,8 +30,8 @@ var orderedEdgesTests = []struct {
 
 func TestOrderedEdgesIterate(t *testing.T) {
 	for _, test := range orderedEdgesTests {
+		it := iterator.NewOrderedEdges(test.edges)
 		for i := 0; i < 2; i++ {
-			it := iterator.NewOrderedEdges(test.edges)
 			if it.Len() != len(test.edges) {
 				t.Errorf("unexpected iterator length for round %d: got:%d want:%d", i, it.Len(), len(test.edges))
 			}
@@ -50,8 +50,8 @@ func TestOrderedEdgesIterate(t *testing.T) {
 
 func TestOrderedEdgesSlice(t *testing.T) {
 	for _, test := range orderedEdgesTests {
+		it := iterator.NewOrderedEdges(test.edges)
 		for i := 0; i < 2; i++ {
-			it := iterator.NewOrderedEdges(test.edges)
 			got := it.EdgeSlice()
 			want := test.edges
 			if !reflect.DeepEqual(got, want) {
@@ -83,8 +83,8 @@ var orderedWeightedEdgesTests = []struct {
 
 func TestOrderedWeightedEdgesIterate(t *testing.T) {
 	for _, test := range orderedWeightedEdgesTests {
+		it := iterator.NewOrderedWeightedEdges(test.edges)
 		for i := 0; i < 2; i++ {
-			it := iterator.NewOrderedWeightedEdges(test.edges)
 			if it.Len() != len(test.edges) {
 				t.Errorf("unexpected iterator length for round %d: got:%d want:%d", i, it.Len(), len(test.edges))
 			}
@@ -103,8 +103,8 @@ func TestOrderedWeightedEdgesIterate(t *testing.T) {
 
 func TestOrderedWeightedEdgesSlice(t *testing.T) {
 	for _, test := range orderedWeightedEdgesTests {
+		it := iterator.NewOrderedWeightedEdges(test.edges)
 		for i := 0; i < 2; i++ {
-			it := iterator.NewOrderedWeightedEdges(test.edges)
 			got := it.WeightedEdgeSlice()
 			want := test.edges
 			if !reflect.DeepEqual(got, want) {

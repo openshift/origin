@@ -42,6 +42,13 @@
           },
           "Timestamp": {
             "shape": "TimestampType"
+          },
+          "BlobHeader": {
+            "shape": "BlobType",
+            "location": "header"
+          },
+          "Blob": {
+            "shape": "BlobType"
           }
         }
       },
@@ -76,6 +83,9 @@
       },
       "TimestampType": {
         "type": "timestamp"
+      },
+      "BlobType": {
+        "type": "blob"
       }
     },
     "cases": [
@@ -97,15 +107,18 @@
           "Double": 1.3,
           "Long": 200,
           "Char": "a",
-          "Timestamp": 1422172800
+          "Timestamp": 1422172800,
+          "BlobHeader": "hello",
+          "Blob": "hello"
         },
         "response": {
           "status_code": 200,
           "headers": {
             "ImaHeader": "test",
+            "BlobHeader": "aGVsbG8=",
             "X-Foo": "abc"
           },
-          "body": "<OperationNameResponse><Str>myname</Str><FooNum>123</FooNum><FalseBool>false</FalseBool><TrueBool>true</TrueBool><Float>1.2</Float><Double>1.3</Double><Long>200</Long><Char>a</Char><Timestamp>2015-01-25T08:00:00Z</Timestamp></OperationNameResponse>"
+          "body": "<OperationNameResponse><Str>myname</Str><FooNum>123</FooNum><FalseBool>false</FalseBool><TrueBool>true</TrueBool><Float>1.2</Float><Double>1.3</Double><Long>200</Long><Char>a</Char><Timestamp>2015-01-25T08:00:00Z</Timestamp><Blob>aGVsbG8=</Blob></OperationNameResponse>"
         }
       },
       {
@@ -804,6 +817,167 @@
             "x-amz-timeformat": "1398796238"
           },
           "body": "<OperationNameResponse><StructMember><foo>2014-04-29T18:30:38Z</foo><bar>1398796238</bar></StructMember><TimeArg>2014-04-29T18:30:38Z</TimeArg><TimeCustom>Tue, 29 Apr 2014 18:30:38 GMT</TimeCustom><TimeFormat>1398796238</TimeFormat><RequestId>requestid</RequestId></OperationNameResponse>"
+        }
+      }
+    ]
+  },
+  {
+    "description": "Enum",
+    "metadata": {
+      "protocol": "rest-xml"
+    },
+    "shapes": {
+      "OutputShape": {
+        "type": "structure",
+        "members": {
+          "HeaderEnum": {
+            "shape": "RESTJSONEnumType",
+            "location": "header",
+            "locationName": "x-amz-enum"
+          },
+          "FooEnum": {
+            "shape": "RESTJSONEnumType"
+          },
+          "ListEnums": {
+            "shape": "EnumList"
+          }
+        }
+      },
+      "RESTJSONEnumType":{
+        "type":"string",
+        "enum":[
+          "foo",
+          "bar",
+          "0",
+          "1"
+        ]
+      },
+      "EnumList":{
+        "type":"list",
+        "member": {"shape": "RESTJSONEnumType"}
+      }
+    },
+    "cases": [
+      {
+        "given": {
+          "output": {
+            "shape": "OutputShape"
+          },
+          "http": {
+            "method": "POST",
+            "requestUri": "/path"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "HeaderEnum": "baz",
+          "FooEnum": "foo",
+          "ListEnums": ["0", "1"]
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {"x-amz-enum": "baz"},
+          "body": "<OperationNameResponse><FooEnum>foo</FooEnum><ListEnums><member>0</member><member>1</member></ListEnums></OperationNameResponse>"
+        }
+      },
+      {
+        "given": {
+          "input": {
+            "shape": "OutputShape"
+          },
+          "http": {
+            "method": "POST",
+            "requestUri": "/path"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {}
+        }
+      }
+    ]
+  },
+  {
+    "description": "XML Attributes",
+    "metadata": {
+      "protocol": "rest-xml"
+    },
+    "shapes": {
+      "OutputShape":{
+        "type":"structure",
+        "members":{
+          "ListItems":{
+            "shape":"ListItemsShape",
+            "locationName":"ItemsList"
+          }
+        }
+      },
+      "ListItemsShape":{
+        "type":"list",
+        "member":{
+          "shape":"ItemShape",
+          "locationName":"Item"
+        }
+      },
+      "ItemShape":{
+        "type":"structure",
+        "members":{
+          "ItemDetail":{"shape":"ItemDetailShape"}
+        }
+      },
+      "ItemDetailShape":{
+        "type":"structure",
+        "required":["Type"],
+        "members":{
+          "ID":{"shape":"StringShape"},
+          "Type":{
+            "shape":"ItemType",
+            "locationName":"xsi:type",
+            "xmlAttribute":true
+          }
+        },
+        "xmlNamespace":{
+          "prefix":"xsi",
+          "uri":"http://www.w3.org/2001/XMLSchema-instance"
+        }
+      },
+      "StringShape":{
+        "type":"string"
+      },
+      "ItemType":{
+        "type":"string",
+        "enum":[
+          "Type1",
+          "Type2",
+          "Type3"
+        ]
+      }
+    },
+    "cases": [
+      {
+        "given": {
+          "output": {
+            "shape": "OutputShape"
+          },
+          "http": {
+            "method": "GET",
+            "requestUri": "/path"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "ListItems": [
+              {"ItemDetail": {"ID": "id1", "Type": "Type1"}},
+              {"ItemDetail": {"ID": "id2", "Type": "Type2"}},
+              {"ItemDetail": {"ID": "id3", "Type": "Type3"}}
+          ]
+        },
+        "response": {
+          "status_code": 200,
+          "body": "<SomeOutputDoc xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><ItemsList><Item><ItemDetail xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"Type1\"><ID>id1</ID></ItemDetail></Item><Item><ItemDetail xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"Type2\"><ID>id2</ID></ItemDetail></Item><Item><ItemDetail xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"Type3\"><ID>id3</ID></ItemDetail></Item></ItemsList></SomeOutputDoc>"
         }
       }
     ]

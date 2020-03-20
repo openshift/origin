@@ -188,7 +188,7 @@ func testDhseqr(t *testing.T, impl Dhseqrer, i int, test dhseqrTest, job lapack.
 		ztz := zeros(n, n, n)
 		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, z, tz, 0, ztz)
 		if !equalApproxGeneral(ztz, hCopy, evTol) {
-			t.Errorf("%v: H != Z T Z^T", prefix)
+			t.Errorf("%v: H != Z T Zᵀ", prefix)
 		}
 	}
 

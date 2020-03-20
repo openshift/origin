@@ -30,17 +30,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/informers"
-	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/events"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/scheduler"
+	"k8s.io/kubernetes/pkg/scheduler/profile"
 	"k8s.io/kubernetes/test/integration/framework"
-
-	// Install "DefaultProvider" algorithprovider
-	_ "k8s.io/kubernetes/pkg/scheduler/algorithmprovider/defaults"
 )
 
 type testContext struct {
@@ -59,7 +55,7 @@ type testContext struct {
 // configuration.
 func initTestMaster(t *testing.T, nsPrefix string, admission admission.Interface) *testContext {
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	context := testContext{
+	testCtx := testContext{
 		ctx:      ctx,
 		cancelFn: cancelFunc,
 	}
@@ -77,16 +73,16 @@ func initTestMaster(t *testing.T, nsPrefix string, admission admission.Interface
 		masterConfig.GenericConfig.AdmissionControl = admission
 	}
 
-	_, context.httpServer, context.closeFn = framework.RunAMasterUsingServer(masterConfig, s, h)
+	_, testCtx.httpServer, testCtx.closeFn = framework.RunAMasterUsingServer(masterConfig, s, h)
 
 	if nsPrefix != "default" {
-		context.ns = framework.CreateTestingNamespace(nsPrefix+string(uuid.NewUUID()), s, t)
+		testCtx.ns = framework.CreateTestingNamespace(nsPrefix+string(uuid.NewUUID()), s, t)
 	} else {
-		context.ns = framework.CreateTestingNamespace("default", s, t)
+		testCtx.ns = framework.CreateTestingNamespace("default", s, t)
 	}
 
 	// 2. Create kubeclient
-	context.clientSet = clientset.NewForConfigOrDie(
+	testCtx.clientSet = clientset.NewForConfigOrDie(
 		&restclient.Config{
 			QPS: -1, Host: s.URL,
 			ContentConfig: restclient.ContentConfig{
@@ -94,71 +90,54 @@ func initTestMaster(t *testing.T, nsPrefix string, admission admission.Interface
 			},
 		},
 	)
-	return &context
+	return &testCtx
 }
 
 // initTestSchedulerWithOptions initializes a test environment and creates a scheduler with default
 // configuration and other options.
 func initTestSchedulerWithOptions(
 	t *testing.T,
-	context *testContext,
+	testCtx *testContext,
 	resyncPeriod time.Duration,
 ) *testContext {
 	// 1. Create scheduler
-	context.informerFactory = informers.NewSharedInformerFactory(context.clientSet, resyncPeriod)
+	testCtx.informerFactory = informers.NewSharedInformerFactory(testCtx.clientSet, resyncPeriod)
 
-	podInformer := context.informerFactory.Core().V1().Pods()
+	podInformer := testCtx.informerFactory.Core().V1().Pods()
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{
-		Interface: context.clientSet.EventsV1beta1().Events(""),
+		Interface: testCtx.clientSet.EventsV1beta1().Events(""),
 	})
-	recorder := eventBroadcaster.NewRecorder(
-		legacyscheme.Scheme,
-		v1.DefaultSchedulerName,
-	)
 
 	var err error
-	context.scheduler, err = createSchedulerWithPodInformer(
-		context.clientSet, podInformer, context.informerFactory, recorder, context.ctx.Done())
+	testCtx.scheduler, err = scheduler.New(
+		testCtx.clientSet,
+		testCtx.informerFactory,
+		podInformer,
+		profile.NewRecorderFactory(eventBroadcaster),
+		testCtx.ctx.Done())
 
 	if err != nil {
 		t.Fatalf("Couldn't create scheduler: %v", err)
 	}
 
-	eventBroadcaster.StartRecordingToSink(context.ctx.Done())
+	eventBroadcaster.StartRecordingToSink(testCtx.ctx.Done())
 
-	context.informerFactory.Start(context.scheduler.StopEverything)
-	context.informerFactory.WaitForCacheSync(context.scheduler.StopEverything)
+	testCtx.informerFactory.Start(testCtx.scheduler.StopEverything)
+	testCtx.informerFactory.WaitForCacheSync(testCtx.scheduler.StopEverything)
 
-	go context.scheduler.Run(context.ctx)
-	return context
-}
-
-// createSchedulerWithPodInformer creates a new scheduler.
-func createSchedulerWithPodInformer(
-	clientSet clientset.Interface,
-	podInformer coreinformers.PodInformer,
-	informerFactory informers.SharedInformerFactory,
-	recorder events.EventRecorder,
-	stopCh <-chan struct{},
-) (*scheduler.Scheduler, error) {
-	return scheduler.New(
-		clientSet,
-		informerFactory,
-		podInformer,
-		recorder,
-		stopCh,
-	)
+	go testCtx.scheduler.Run(testCtx.ctx)
+	return testCtx
 }
 
 // cleanupTest deletes the scheduler and the test namespace. It should be called
 // at the end of a test.
-func cleanupTest(t *testing.T, context *testContext) {
+func cleanupTest(t *testing.T, testCtx *testContext) {
 	// Kill the scheduler.
-	context.cancelFn()
+	testCtx.cancelFn()
 	// Cleanup nodes.
-	context.clientSet.CoreV1().Nodes().DeleteCollection(nil, metav1.ListOptions{})
-	framework.DeleteTestingNamespace(context.ns, context.httpServer, t)
-	context.closeFn()
+	testCtx.clientSet.CoreV1().Nodes().DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{})
+	framework.DeleteTestingNamespace(testCtx.ns, testCtx.httpServer, t)
+	testCtx.closeFn()
 }
 
 // waitForPodToScheduleWithTimeout waits for a pod to get scheduled and returns
@@ -188,7 +167,7 @@ func waitForPodUnschedulable(cs clientset.Interface, pod *v1.Pod) error {
 // podScheduled returns true if a node is assigned to the given pod.
 func podScheduled(c clientset.Interface, podNamespace, podName string) wait.ConditionFunc {
 	return func() (bool, error) {
-		pod, err := c.CoreV1().Pods(podNamespace).Get(podName, metav1.GetOptions{})
+		pod, err := c.CoreV1().Pods(podNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
 		if err != nil {
 			// This could be a connection error so we want to retry.
 			return false, nil
@@ -204,7 +183,7 @@ func podScheduled(c clientset.Interface, podNamespace, podName string) wait.Cond
 // gets unschedulable status.
 func podUnschedulable(c clientset.Interface, podNamespace, podName string) wait.ConditionFunc {
 	return func() (bool, error) {
-		pod, err := c.CoreV1().Pods(podNamespace).Get(podName, metav1.GetOptions{})
+		pod, err := c.CoreV1().Pods(podNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
 		if err != nil {
 			// This could be a connection error so we want to retry.
 			return false, nil

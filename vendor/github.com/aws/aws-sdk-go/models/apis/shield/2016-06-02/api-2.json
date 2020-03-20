@@ -158,6 +158,7 @@
       "output":{"shape":"DescribeProtectionResponse"},
       "errors":[
         {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
         {"shape":"ResourceNotFoundException"}
       ]
     },
@@ -365,7 +366,9 @@
         "SOURCE_ASN",
         "SOURCE_COUNTRY",
         "SOURCE_IP_ADDRESS",
-        "SOURCE_USER_AGENT"
+        "SOURCE_USER_AGENT",
+        "WORDPRESS_PINGBACK_REFLECTOR",
+        "WORDPRESS_PINGBACK_SOURCE"
       ]
     },
     "AttackSummaries":{
@@ -497,9 +500,9 @@
     },
     "DescribeProtectionRequest":{
       "type":"structure",
-      "required":["ProtectionId"],
       "members":{
-        "ProtectionId":{"shape":"ProtectionId"}
+        "ProtectionId":{"shape":"ProtectionId"},
+        "ResourceArn":{"shape":"ResourceArn"}
       }
     },
     "DescribeProtectionResponse":{

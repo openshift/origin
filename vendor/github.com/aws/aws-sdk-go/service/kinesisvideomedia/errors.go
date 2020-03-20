@@ -2,6 +2,10 @@
 
 package kinesisvideomedia
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeClientLimitExceededException for service response error code
@@ -46,3 +50,12 @@ const (
 	// Status Code: 404, The stream with the given name does not exist.
 	ErrCodeResourceNotFoundException = "ResourceNotFoundException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ClientLimitExceededException":     newErrorClientLimitExceededException,
+	"ConnectionLimitExceededException": newErrorConnectionLimitExceededException,
+	"InvalidArgumentException":         newErrorInvalidArgumentException,
+	"InvalidEndpointException":         newErrorInvalidEndpointException,
+	"NotAuthorizedException":           newErrorNotAuthorizedException,
+	"ResourceNotFoundException":        newErrorResourceNotFoundException,
+}

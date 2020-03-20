@@ -107,11 +107,11 @@ func zher2kTest(t *testing.T, impl Zher2ker, uplo blas.Uplo, trans blas.Transpos
 						// Compute the expected result using an internal Zgemm implementation.
 						var want []complex128
 						if trans == blas.NoTrans {
-							//  C = alpha*A*B^H + conj(alpha)*B*A^H + beta*C
+							//  C = alpha*A*Bᴴ + conj(alpha)*B*Aᴴ + beta*C
 							tmp := zmm(blas.NoTrans, blas.ConjTrans, n, n, k, alpha, a, lda, b, ldb, complex(beta, 0), cHer, ldc)
 							want = zmm(blas.NoTrans, blas.ConjTrans, n, n, k, cmplx.Conj(alpha), b, ldb, a, lda, 1, tmp, ldc)
 						} else {
-							//  C = alpha*A^H*B + conj(alpha)*B^H*A + beta*C
+							//  C = alpha*Aᴴ*B + conj(alpha)*Bᴴ*A + beta*C
 							tmp := zmm(blas.ConjTrans, blas.NoTrans, n, n, k, alpha, a, lda, b, ldb, complex(beta, 0), cHer, ldc)
 							want = zmm(blas.ConjTrans, blas.NoTrans, n, n, k, cmplx.Conj(alpha), b, ldb, a, lda, 1, tmp, ldc)
 						}

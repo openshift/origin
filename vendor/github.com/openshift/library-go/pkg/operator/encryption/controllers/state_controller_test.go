@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/controller/factory"
 	encryptiondeployer "github.com/openshift/library-go/pkg/operator/encryption/deployer"
 	"github.com/openshift/library-go/pkg/operator/encryption/encryptionconfig"
 	"github.com/openshift/library-go/pkg/operator/encryption/state"
@@ -714,19 +716,21 @@ func TestStateController(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			provider := newTestProvider(scenario.targetGRs)
+
 			target := NewStateController(
 				scenario.targetNamespace,
+				provider,
 				deployer,
 				fakeOperatorClient,
 				kubeInformers,
 				fakeSecretClient,
 				scenario.encryptionSecretSelector,
 				eventRecorder,
-				scenario.targetGRs,
 			)
 
 			// act
-			err = target.sync()
+			err = target.Sync(context.TODO(), factory.NewSyncContext("test", eventRecorder))
 
 			// validate
 			if err == nil && scenario.expectedError != nil {

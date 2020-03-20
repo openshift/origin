@@ -48,6 +48,15 @@ func TestDirCache(t *testing.T) {
 		t.Error(err)
 	}
 
+	// test put deletes temp file
+	tmp, err := filepath.Glob(name + "?*")
+	if err != nil {
+		t.Error(err)
+	}
+	if tmp != nil {
+		t.Errorf("temp file exists: %s", tmp)
+	}
+
 	// test delete
 	if err := cache.Delete(ctx, "dummy"); err != nil {
 		t.Fatalf("delete: %v", err)

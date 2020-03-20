@@ -14,7 +14,6 @@ import (
 )
 
 type Dtrtrier interface {
-	Dtrconer
 	Dtrtri(uplo blas.Uplo, diag blas.Diag, n int, a []float64, lda int) bool
 }
 

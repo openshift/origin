@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
@@ -21,15 +22,15 @@ type ClusterVersionsGetter interface {
 
 // ClusterVersionInterface has methods to work with ClusterVersion resources.
 type ClusterVersionInterface interface {
-	Create(*v1.ClusterVersion) (*v1.ClusterVersion, error)
-	Update(*v1.ClusterVersion) (*v1.ClusterVersion, error)
-	UpdateStatus(*v1.ClusterVersion) (*v1.ClusterVersion, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.ClusterVersion, error)
-	List(opts metav1.ListOptions) (*v1.ClusterVersionList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ClusterVersion, err error)
+	Create(ctx context.Context, clusterVersion *v1.ClusterVersion, opts metav1.CreateOptions) (*v1.ClusterVersion, error)
+	Update(ctx context.Context, clusterVersion *v1.ClusterVersion, opts metav1.UpdateOptions) (*v1.ClusterVersion, error)
+	UpdateStatus(ctx context.Context, clusterVersion *v1.ClusterVersion, opts metav1.UpdateOptions) (*v1.ClusterVersion, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ClusterVersion, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.ClusterVersionList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ClusterVersion, err error)
 	ClusterVersionExpansion
 }
 
@@ -46,19 +47,19 @@ func newClusterVersions(c *ConfigV1Client) *clusterVersions {
 }
 
 // Get takes name of the clusterVersion, and returns the corresponding clusterVersion object, and an error if there is any.
-func (c *clusterVersions) Get(name string, options metav1.GetOptions) (result *v1.ClusterVersion, err error) {
+func (c *clusterVersions) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ClusterVersion, err error) {
 	result = &v1.ClusterVersion{}
 	err = c.client.Get().
 		Resource("clusterversions").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of ClusterVersions that match those selectors.
-func (c *clusterVersions) List(opts metav1.ListOptions) (result *v1.ClusterVersionList, err error) {
+func (c *clusterVersions) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ClusterVersionList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -68,13 +69,13 @@ func (c *clusterVersions) List(opts metav1.ListOptions) (result *v1.ClusterVersi
 		Resource("clusterversions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested clusterVersions.
-func (c *clusterVersions) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *clusterVersions) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -84,81 +85,84 @@ func (c *clusterVersions) Watch(opts metav1.ListOptions) (watch.Interface, error
 		Resource("clusterversions").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a clusterVersion and creates it.  Returns the server's representation of the clusterVersion, and an error, if there is any.
-func (c *clusterVersions) Create(clusterVersion *v1.ClusterVersion) (result *v1.ClusterVersion, err error) {
+func (c *clusterVersions) Create(ctx context.Context, clusterVersion *v1.ClusterVersion, opts metav1.CreateOptions) (result *v1.ClusterVersion, err error) {
 	result = &v1.ClusterVersion{}
 	err = c.client.Post().
 		Resource("clusterversions").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(clusterVersion).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a clusterVersion and updates it. Returns the server's representation of the clusterVersion, and an error, if there is any.
-func (c *clusterVersions) Update(clusterVersion *v1.ClusterVersion) (result *v1.ClusterVersion, err error) {
+func (c *clusterVersions) Update(ctx context.Context, clusterVersion *v1.ClusterVersion, opts metav1.UpdateOptions) (result *v1.ClusterVersion, err error) {
 	result = &v1.ClusterVersion{}
 	err = c.client.Put().
 		Resource("clusterversions").
 		Name(clusterVersion.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(clusterVersion).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *clusterVersions) UpdateStatus(clusterVersion *v1.ClusterVersion) (result *v1.ClusterVersion, err error) {
+func (c *clusterVersions) UpdateStatus(ctx context.Context, clusterVersion *v1.ClusterVersion, opts metav1.UpdateOptions) (result *v1.ClusterVersion, err error) {
 	result = &v1.ClusterVersion{}
 	err = c.client.Put().
 		Resource("clusterversions").
 		Name(clusterVersion.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(clusterVersion).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the clusterVersion and deletes it. Returns an error if one occurs.
-func (c *clusterVersions) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *clusterVersions) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("clusterversions").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *clusterVersions) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (c *clusterVersions) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("clusterversions").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched clusterVersion.
-func (c *clusterVersions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ClusterVersion, err error) {
+func (c *clusterVersions) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ClusterVersion, err error) {
 	result = &v1.ClusterVersion{}
 	err = c.client.Patch(pt).
 		Resource("clusterversions").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

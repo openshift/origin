@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/openshift/api/apps/v1"
@@ -22,19 +23,19 @@ type DeploymentConfigsGetter interface {
 
 // DeploymentConfigInterface has methods to work with DeploymentConfig resources.
 type DeploymentConfigInterface interface {
-	Create(*v1.DeploymentConfig) (*v1.DeploymentConfig, error)
-	Update(*v1.DeploymentConfig) (*v1.DeploymentConfig, error)
-	UpdateStatus(*v1.DeploymentConfig) (*v1.DeploymentConfig, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.DeploymentConfig, error)
-	List(opts metav1.ListOptions) (*v1.DeploymentConfigList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.DeploymentConfig, err error)
-	Instantiate(deploymentConfigName string, deploymentRequest *v1.DeploymentRequest) (*v1.DeploymentConfig, error)
-	Rollback(deploymentConfigName string, deploymentConfigRollback *v1.DeploymentConfigRollback) (*v1.DeploymentConfig, error)
-	GetScale(deploymentConfigName string, options metav1.GetOptions) (*v1beta1.Scale, error)
-	UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (*v1beta1.Scale, error)
+	Create(ctx context.Context, deploymentConfig *v1.DeploymentConfig, opts metav1.CreateOptions) (*v1.DeploymentConfig, error)
+	Update(ctx context.Context, deploymentConfig *v1.DeploymentConfig, opts metav1.UpdateOptions) (*v1.DeploymentConfig, error)
+	UpdateStatus(ctx context.Context, deploymentConfig *v1.DeploymentConfig, opts metav1.UpdateOptions) (*v1.DeploymentConfig, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.DeploymentConfig, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.DeploymentConfigList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.DeploymentConfig, err error)
+	Instantiate(ctx context.Context, deploymentConfigName string, deploymentRequest *v1.DeploymentRequest, opts metav1.CreateOptions) (*v1.DeploymentConfig, error)
+	Rollback(ctx context.Context, deploymentConfigName string, deploymentConfigRollback *v1.DeploymentConfigRollback, opts metav1.CreateOptions) (*v1.DeploymentConfig, error)
+	GetScale(ctx context.Context, deploymentConfigName string, options metav1.GetOptions) (*v1beta1.Scale, error)
+	UpdateScale(ctx context.Context, deploymentConfigName string, scale *v1beta1.Scale, opts metav1.UpdateOptions) (*v1beta1.Scale, error)
 
 	DeploymentConfigExpansion
 }
@@ -54,20 +55,20 @@ func newDeploymentConfigs(c *AppsV1Client, namespace string) *deploymentConfigs 
 }
 
 // Get takes name of the deploymentConfig, and returns the corresponding deploymentConfig object, and an error if there is any.
-func (c *deploymentConfigs) Get(name string, options metav1.GetOptions) (result *v1.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.DeploymentConfig, err error) {
 	result = &v1.DeploymentConfig{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of DeploymentConfigs that match those selectors.
-func (c *deploymentConfigs) List(opts metav1.ListOptions) (result *v1.DeploymentConfigList, err error) {
+func (c *deploymentConfigs) List(ctx context.Context, opts metav1.ListOptions) (result *v1.DeploymentConfigList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -78,13 +79,13 @@ func (c *deploymentConfigs) List(opts metav1.ListOptions) (result *v1.Deployment
 		Resource("deploymentconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *deploymentConfigs) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -95,121 +96,126 @@ func (c *deploymentConfigs) Watch(opts metav1.ListOptions) (watch.Interface, err
 		Resource("deploymentconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a deploymentConfig and creates it.  Returns the server's representation of the deploymentConfig, and an error, if there is any.
-func (c *deploymentConfigs) Create(deploymentConfig *v1.DeploymentConfig) (result *v1.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Create(ctx context.Context, deploymentConfig *v1.DeploymentConfig, opts metav1.CreateOptions) (result *v1.DeploymentConfig, err error) {
 	result = &v1.DeploymentConfig{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(deploymentConfig).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a deploymentConfig and updates it. Returns the server's representation of the deploymentConfig, and an error, if there is any.
-func (c *deploymentConfigs) Update(deploymentConfig *v1.DeploymentConfig) (result *v1.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Update(ctx context.Context, deploymentConfig *v1.DeploymentConfig, opts metav1.UpdateOptions) (result *v1.DeploymentConfig, err error) {
 	result = &v1.DeploymentConfig{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		Name(deploymentConfig.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(deploymentConfig).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *deploymentConfigs) UpdateStatus(deploymentConfig *v1.DeploymentConfig) (result *v1.DeploymentConfig, err error) {
+func (c *deploymentConfigs) UpdateStatus(ctx context.Context, deploymentConfig *v1.DeploymentConfig, opts metav1.UpdateOptions) (result *v1.DeploymentConfig, err error) {
 	result = &v1.DeploymentConfig{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		Name(deploymentConfig.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(deploymentConfig).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the deploymentConfig and deletes it. Returns an error if one occurs.
-func (c *deploymentConfigs) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *deploymentConfigs) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *deploymentConfigs) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (c *deploymentConfigs) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched deploymentConfig.
-func (c *deploymentConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.DeploymentConfig, err error) {
 	result = &v1.DeploymentConfig{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Instantiate takes the representation of a deploymentRequest and creates it.  Returns the server's representation of the deploymentConfig, and an error, if there is any.
-func (c *deploymentConfigs) Instantiate(deploymentConfigName string, deploymentRequest *v1.DeploymentRequest) (result *v1.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Instantiate(ctx context.Context, deploymentConfigName string, deploymentRequest *v1.DeploymentRequest, opts metav1.CreateOptions) (result *v1.DeploymentConfig, err error) {
 	result = &v1.DeploymentConfig{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		Name(deploymentConfigName).
 		SubResource("instantiate").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(deploymentRequest).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Rollback takes the representation of a deploymentConfigRollback and creates it.  Returns the server's representation of the deploymentConfig, and an error, if there is any.
-func (c *deploymentConfigs) Rollback(deploymentConfigName string, deploymentConfigRollback *v1.DeploymentConfigRollback) (result *v1.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Rollback(ctx context.Context, deploymentConfigName string, deploymentConfigRollback *v1.DeploymentConfigRollback, opts metav1.CreateOptions) (result *v1.DeploymentConfig, err error) {
 	result = &v1.DeploymentConfig{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		Name(deploymentConfigName).
 		SubResource("rollback").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(deploymentConfigRollback).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // GetScale takes name of the deploymentConfig, and returns the corresponding v1beta1.Scale object, and an error if there is any.
-func (c *deploymentConfigs) GetScale(deploymentConfigName string, options metav1.GetOptions) (result *v1beta1.Scale, err error) {
+func (c *deploymentConfigs) GetScale(ctx context.Context, deploymentConfigName string, options metav1.GetOptions) (result *v1beta1.Scale, err error) {
 	result = &v1beta1.Scale{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -217,21 +223,22 @@ func (c *deploymentConfigs) GetScale(deploymentConfigName string, options metav1
 		Name(deploymentConfigName).
 		SubResource("scale").
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateScale takes the top resource name and the representation of a scale and updates it. Returns the server's representation of the scale, and an error, if there is any.
-func (c *deploymentConfigs) UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (result *v1beta1.Scale, err error) {
+func (c *deploymentConfigs) UpdateScale(ctx context.Context, deploymentConfigName string, scale *v1beta1.Scale, opts metav1.UpdateOptions) (result *v1beta1.Scale, err error) {
 	result = &v1beta1.Scale{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		Name(deploymentConfigName).
 		SubResource("scale").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(scale).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

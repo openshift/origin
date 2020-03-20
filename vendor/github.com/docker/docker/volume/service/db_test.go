@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/boltdb/bolt"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	bolt "go.etcd.io/bbolt"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 )
 
 func TestSetGetMeta(t *testing.T) {

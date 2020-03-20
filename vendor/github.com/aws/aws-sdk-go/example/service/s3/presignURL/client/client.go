@@ -172,14 +172,14 @@ func uploadFile(serverURL, key, filename string) error {
 	// to be used with the size of content requested.
 	req, err := getPresignedRequest(serverURL, "PUT", key, size)
 	if err != nil {
-		return fmt.Errorf("failed to get get presigned request, %v", err)
+		return fmt.Errorf("failed to get put presigned request, %v", err)
 	}
 	req.Body = r
 
 	// Upload the file contents to S3.
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to do GET request, %v", err)
+		return fmt.Errorf("failed to do PUT request, %v", err)
 	}
 
 	defer resp.Body.Close()

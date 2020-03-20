@@ -69,22 +69,18 @@ func NewWishart(v mat.Symmetric, nu float64, src rand.Source) (*Wishart, bool) {
 	return w, true
 }
 
-// MeanSym returns the mean matrix of the distribution as a symmetric matrix.
-// If x is nil, a new matrix is allocated and returned. If x is not nil, the
-// result is stored in-place into x and MeanSym will panic if the order of x
-// is not equal to the order of the receiver.
-func (w *Wishart) MeanSym(x *mat.SymDense) *mat.SymDense {
-	if x == nil {
-		x = mat.NewSymDense(w.dim, nil)
-	}
-	d := x.Symmetric()
-	if d != w.dim {
+// MeanSymTo calculates the mean matrix of the distribution in and stores it in dst.
+// If dst is empty, it is resized to be an d×d symmetric matrix where d is the order
+// of the receiver. When dst is non-empty, MeanSymTo panics if dst is not d×d.
+func (w *Wishart) MeanSymTo(dst *mat.SymDense) {
+	if dst.IsEmpty() {
+		dst.ReuseAsSym(w.dim)
+	} else if dst.Symmetric() != w.dim {
 		panic(badDim)
 	}
 	w.setV()
-	x.CopySym(w.v)
-	x.ScaleSym(w.nu, x)
-	return x
+	dst.CopySym(w.v)
+	dst.ScaleSym(w.nu, dst)
 }
 
 // ProbSym returns the probability of the symmetric matrix x. If x is not positive
@@ -127,7 +123,7 @@ func (w *Wishart) logProbSymChol(cholX *mat.Cholesky) float64 {
 	//  (ν-d-1)/2 * log(|X|) - tr(V^-1 * X)/2  - (ν*d/2)*log(2) - ν/2 * log(|V|) - log(Γ_d(ν/2))
 	logdetx := cholX.LogDet()
 
-	// Compute tr(V^-1 * X), using the fact that X = U^T * U.
+	// Compute tr(V^-1 * X), using the fact that X = Uᵀ * U.
 	var u mat.TriDense
 	cholX.UTo(&u)
 
@@ -145,33 +141,33 @@ func (w *Wishart) logProbSymChol(cholX *mat.Cholesky) float64 {
 	return 0.5*((fnu-fdim-1)*logdetx-tr-fnu*fdim*math.Ln2-fnu*w.logdetv) - mathext.MvLgamma(0.5*fnu, w.dim)
 }
 
-// RandSym generates a random symmetric matrix from the distribution.
-func (w *Wishart) RandSym(x *mat.SymDense) *mat.SymDense {
-	if x == nil {
-		x = &mat.SymDense{}
-	}
+// RandSymTo generates a random symmetric matrix from the distribution.
+// If dst is empty, it is resized to be an d×d symmetric matrix where d is the order
+// of the receiver. When dst is non-empty, RandSymTo panics if dst is not d×d.
+func (w *Wishart) RandSymTo(dst *mat.SymDense) {
 	var c mat.Cholesky
-	w.RandChol(&c)
-	c.ToSym(x)
-	return x
+	w.RandCholTo(&c)
+	c.ToSym(dst)
 }
 
-// RandChol generates the Cholesky decomposition of a random matrix from the distribution.
-func (w *Wishart) RandChol(c *mat.Cholesky) *mat.Cholesky {
-	// TODO(btracey): Modify the code if the underlying data from c is exposed
+// RandCholTo generates the Cholesky decomposition of a random matrix from the distribution.
+// If dst is empty, it is resized to be an d×d symmetric matrix where d is the order
+// of the receiver. When dst is non-empty, RandCholTo panics if dst is not d×d.
+func (w *Wishart) RandCholTo(dst *mat.Cholesky) {
+	// TODO(btracey): Modify the code if the underlying data from dst is exposed
 	// to avoid the dim^2 allocation here.
 
 	// Use the Bartlett Decomposition, which says that
-	//  X ~ L A A^T L^T
+	//  X ~ L A Aᵀ Lᵀ
 	// Where A is a lower triangular matrix in which the diagonal of A is
 	// generated from the square roots of χ^2 random variables, and the
 	// off-diagonals are generated from standard normal variables.
 	// The above gives the cholesky decomposition of X, where L_x = L A.
 	//
-	// mat64 works with the upper triagular decomposition, so we would like to do
+	// mat works with the upper triagular decomposition, so we would like to do
 	// the same. We can instead say that
-	//  U_x = L_x^T = (L * A)^T = A^T * L^T = A^T * U
-	// Instead, generate A^T, by using the procedure above, except as an upper
+	//  U_x = L_xᵀ = (L * A)ᵀ = Aᵀ * Lᵀ = Aᵀ * U
+	// Instead, generate Aᵀ, by using the procedure above, except as an upper
 	// triangular matrix.
 	norm := distuv.Normal{
 		Mu:    0,
@@ -194,11 +190,7 @@ func (w *Wishart) RandChol(c *mat.Cholesky) *mat.Cholesky {
 	}
 
 	t.MulTri(t, &w.upper)
-	if c == nil {
-		c = &mat.Cholesky{}
-	}
-	c.SetFromU(t)
-	return c
+	dst.SetFromU(t)
 }
 
 // setV computes and stores the covariance matrix of the distribution.

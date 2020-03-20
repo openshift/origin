@@ -521,7 +521,7 @@ func DgeevTest(t *testing.T, impl Dgeever) {
 						}
 					}
 
-					// Compute A = Q T Q^T where Q is an
+					// Compute A = Q T Qᵀ where Q is an
 					// orthogonal matrix.
 					q := randomOrthogonal(n, rnd)
 					tq := zeros(n, n, n)

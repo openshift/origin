@@ -3220,26 +3220,6 @@ func (c *issue53Conn) SetDeadline(t time.Time) error      { return nil }
 func (c *issue53Conn) SetReadDeadline(t time.Time) error  { return nil }
 func (c *issue53Conn) SetWriteDeadline(t time.Time) error { return nil }
 
-// golang.org/issue/33839
-func TestServeConnOptsNilReceiverBehavior(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("got a panic that should not happen: %v", r)
-		}
-	}()
-
-	var o *ServeConnOpts
-	if o.context() == nil {
-		t.Error("o.context should not return nil")
-	}
-	if o.baseConfig() == nil {
-		t.Error("o.baseConfig should not return nil")
-	}
-	if o.handler() == nil {
-		t.Error("o.handler should not return nil")
-	}
-}
-
 // golang.org/issue/12895
 func TestConfigureServer(t *testing.T) {
 	tests := []struct {

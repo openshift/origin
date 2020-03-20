@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	operatorv1 "github.com/openshift/api/operator/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -22,7 +24,7 @@ var openshiftapiserversResource = schema.GroupVersionResource{Group: "operator.o
 var openshiftapiserversKind = schema.GroupVersionKind{Group: "operator.openshift.io", Version: "v1", Kind: "OpenShiftAPIServer"}
 
 // Get takes name of the openShiftAPIServer, and returns the corresponding openShiftAPIServer object, and an error if there is any.
-func (c *FakeOpenShiftAPIServers) Get(name string, options v1.GetOptions) (result *operatorv1.OpenShiftAPIServer, err error) {
+func (c *FakeOpenShiftAPIServers) Get(ctx context.Context, name string, options v1.GetOptions) (result *operatorv1.OpenShiftAPIServer, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(openshiftapiserversResource, name), &operatorv1.OpenShiftAPIServer{})
 	if obj == nil {
@@ -32,7 +34,7 @@ func (c *FakeOpenShiftAPIServers) Get(name string, options v1.GetOptions) (resul
 }
 
 // List takes label and field selectors, and returns the list of OpenShiftAPIServers that match those selectors.
-func (c *FakeOpenShiftAPIServers) List(opts v1.ListOptions) (result *operatorv1.OpenShiftAPIServerList, err error) {
+func (c *FakeOpenShiftAPIServers) List(ctx context.Context, opts v1.ListOptions) (result *operatorv1.OpenShiftAPIServerList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(openshiftapiserversResource, openshiftapiserversKind, opts), &operatorv1.OpenShiftAPIServerList{})
 	if obj == nil {
@@ -53,13 +55,13 @@ func (c *FakeOpenShiftAPIServers) List(opts v1.ListOptions) (result *operatorv1.
 }
 
 // Watch returns a watch.Interface that watches the requested openShiftAPIServers.
-func (c *FakeOpenShiftAPIServers) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeOpenShiftAPIServers) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(openshiftapiserversResource, opts))
 }
 
 // Create takes the representation of a openShiftAPIServer and creates it.  Returns the server's representation of the openShiftAPIServer, and an error, if there is any.
-func (c *FakeOpenShiftAPIServers) Create(openShiftAPIServer *operatorv1.OpenShiftAPIServer) (result *operatorv1.OpenShiftAPIServer, err error) {
+func (c *FakeOpenShiftAPIServers) Create(ctx context.Context, openShiftAPIServer *operatorv1.OpenShiftAPIServer, opts v1.CreateOptions) (result *operatorv1.OpenShiftAPIServer, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(openshiftapiserversResource, openShiftAPIServer), &operatorv1.OpenShiftAPIServer{})
 	if obj == nil {
@@ -69,7 +71,7 @@ func (c *FakeOpenShiftAPIServers) Create(openShiftAPIServer *operatorv1.OpenShif
 }
 
 // Update takes the representation of a openShiftAPIServer and updates it. Returns the server's representation of the openShiftAPIServer, and an error, if there is any.
-func (c *FakeOpenShiftAPIServers) Update(openShiftAPIServer *operatorv1.OpenShiftAPIServer) (result *operatorv1.OpenShiftAPIServer, err error) {
+func (c *FakeOpenShiftAPIServers) Update(ctx context.Context, openShiftAPIServer *operatorv1.OpenShiftAPIServer, opts v1.UpdateOptions) (result *operatorv1.OpenShiftAPIServer, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(openshiftapiserversResource, openShiftAPIServer), &operatorv1.OpenShiftAPIServer{})
 	if obj == nil {
@@ -80,7 +82,7 @@ func (c *FakeOpenShiftAPIServers) Update(openShiftAPIServer *operatorv1.OpenShif
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeOpenShiftAPIServers) UpdateStatus(openShiftAPIServer *operatorv1.OpenShiftAPIServer) (*operatorv1.OpenShiftAPIServer, error) {
+func (c *FakeOpenShiftAPIServers) UpdateStatus(ctx context.Context, openShiftAPIServer *operatorv1.OpenShiftAPIServer, opts v1.UpdateOptions) (*operatorv1.OpenShiftAPIServer, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateSubresourceAction(openshiftapiserversResource, "status", openShiftAPIServer), &operatorv1.OpenShiftAPIServer{})
 	if obj == nil {
@@ -90,22 +92,22 @@ func (c *FakeOpenShiftAPIServers) UpdateStatus(openShiftAPIServer *operatorv1.Op
 }
 
 // Delete takes name of the openShiftAPIServer and deletes it. Returns an error if one occurs.
-func (c *FakeOpenShiftAPIServers) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeOpenShiftAPIServers) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(openshiftapiserversResource, name), &operatorv1.OpenShiftAPIServer{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeOpenShiftAPIServers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(openshiftapiserversResource, listOptions)
+func (c *FakeOpenShiftAPIServers) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(openshiftapiserversResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &operatorv1.OpenShiftAPIServerList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched openShiftAPIServer.
-func (c *FakeOpenShiftAPIServers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *operatorv1.OpenShiftAPIServer, err error) {
+func (c *FakeOpenShiftAPIServers) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *operatorv1.OpenShiftAPIServer, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(openshiftapiserversResource, name, pt, data, subresources...), &operatorv1.OpenShiftAPIServer{})
 	if obj == nil {

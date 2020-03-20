@@ -37,7 +37,9 @@ type PolicyRule struct {
 	// APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed.
 	// That means that if an action is requested against one of the enumerated resources in either the kubernetes or the origin API group, the request
 	// will be allowed
-	APIGroups []string `json:"apiGroups" protobuf:"bytes,3,rep,name=apiGroups"`
+	// +optional
+	// +nullable
+	APIGroups []string `json:"apiGroups,omitempty" protobuf:"bytes,3,rep,name=apiGroups"`
 	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
 	Resources []string `json:"resources" protobuf:"bytes,4,rep,name=resources"`
 	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.

@@ -15,11 +15,14 @@ var unauthorizedMsg = []byte("407 Proxy Authentication Required")
 func BasicUnauthorized(req *http.Request, realm string) *http.Response {
 	// TODO(elazar): verify realm is well formed
 	return &http.Response{
-		StatusCode:    407,
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		Request:       req,
-		Header:        http.Header{"Proxy-Authenticate": []string{"Basic realm=" + realm}},
+		StatusCode: 407,
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Request:    req,
+		Header: http.Header{
+			"Proxy-Authenticate": []string{"Basic realm=" + realm},
+			"Proxy-Connection":   []string{"close"},
+		},
 		Body:          ioutil.NopCloser(bytes.NewBuffer(unauthorizedMsg)),
 		ContentLength: int64(len(unauthorizedMsg)),
 	}

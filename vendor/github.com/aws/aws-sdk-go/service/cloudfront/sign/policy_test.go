@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha1"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -24,6 +25,22 @@ func TestEpochTimeMarshal(t *testing.T) {
 	if string(b) != expected {
 		t.Errorf("Expected marshaled time to match, expect: %s, actual: %s",
 			expected, string(b))
+	}
+}
+
+func TestEpochTimeUnmarshal(t *testing.T) {
+	now := time.Now().Round(time.Second)
+	data := fmt.Sprintf(`{"AWS:EpochTime":%d}`, now.Unix())
+	var v AWSEpochTime
+	err := json.Unmarshal([]byte(data), &v)
+	if err != nil {
+		t.Fatalf("Unexpected error, %#v", err)
+	}
+
+	expected := now.UTC()
+	if v.Time != expected {
+		t.Errorf("Expected unmarshaled time to match, expect: %s, actual: %s",
+			expected, v.Time)
 	}
 }
 

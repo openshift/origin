@@ -169,6 +169,19 @@
       "input":{"shape":"GetSnowballUsageRequest"},
       "output":{"shape":"GetSnowballUsageResult"}
     },
+    "GetSoftwareUpdates":{
+      "name":"GetSoftwareUpdates",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetSoftwareUpdatesRequest"},
+      "output":{"shape":"GetSoftwareUpdatesResult"},
+      "errors":[
+        {"shape":"InvalidResourceException"},
+        {"shape":"InvalidJobStateException"}
+      ]
+    },
     "ListClusterJobs":{
       "name":"ListClusterJobs",
       "http":{
@@ -571,6 +584,19 @@
       "members":{
         "SnowballLimit":{"shape":"Integer"},
         "SnowballsInUse":{"shape":"Integer"}
+      }
+    },
+    "GetSoftwareUpdatesRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "GetSoftwareUpdatesResult":{
+      "type":"structure",
+      "members":{
+        "UpdatesURI":{"shape":"String"}
       }
     },
     "Integer":{"type":"integer"},

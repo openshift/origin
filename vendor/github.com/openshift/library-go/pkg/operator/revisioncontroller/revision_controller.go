@@ -134,11 +134,11 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 		requiredData := map[string]string{}
 		existingData := map[string]string{}
 
-		required, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(cm.Name, metav1.GetOptions{})
+		required, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(context.TODO(), cm.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) && !cm.Optional {
 			return false, err.Error()
 		}
-		existing, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(nameFor(cm.Name, revision), metav1.GetOptions{})
+		existing, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(context.TODO(), nameFor(cm.Name, revision), metav1.GetOptions{})
 		if apierrors.IsNotFound(err) && !cm.Optional {
 			return false, err.Error()
 		}
@@ -161,11 +161,11 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 		requiredData := map[string][]byte{}
 		existingData := map[string][]byte{}
 
-		required, err := c.secretGetter.Secrets(c.targetNamespace).Get(s.Name, metav1.GetOptions{})
+		required, err := c.secretGetter.Secrets(c.targetNamespace).Get(context.TODO(), s.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) && !s.Optional {
 			return false, err.Error()
 		}
-		existing, err := c.secretGetter.Secrets(c.targetNamespace).Get(nameFor(s.Name, revision), metav1.GetOptions{})
+		existing, err := c.secretGetter.Secrets(c.targetNamespace).Get(context.TODO(), nameFor(s.Name, revision), metav1.GetOptions{})
 		if apierrors.IsNotFound(err) && !s.Optional {
 			return false, err.Error()
 		}
@@ -237,7 +237,7 @@ func (c RevisionController) createNewRevision(recorder events.Recorder, revision
 // getLatestAvailableRevision returns the latest known revision to the operator
 // This is either the LatestAvailableRevision in the status or by checking revision status configmaps
 func (c RevisionController) getLatestAvailableRevision(operatorStatus *operatorv1.OperatorStatus) (int32, error) {
-	configMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
+	configMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return 0, err
 	}

@@ -48,7 +48,7 @@ func testDlarfx(t *testing.T, impl Dlarfxer, side blas.Side, m, n, extra int, rn
 	ldc := n + extra
 	c := randomGeneral(m, n, ldc, rnd)
 
-	// Compute the matrix H explicitly as H := I - tau * v * v^T.
+	// Compute the matrix H explicitly as H := I - tau * v * vᵀ.
 	var h blas64.General
 	if side == blas.Left {
 		h = eye(m, m+extra)

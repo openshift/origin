@@ -17,13 +17,14 @@ limitations under the License.
 package apimachinery
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
@@ -49,11 +50,11 @@ var _ = SIGDescribe("client-go should negotiate", func() {
 			cfg.AcceptContentTypes = accept
 
 			c := kubernetes.NewForConfigOrDie(cfg)
-			svcs, err := c.CoreV1().Services("default").Get("kubernetes", metav1.GetOptions{})
+			svcs, err := c.CoreV1().Services("default").Get(context.TODO(), "kubernetes", metav1.GetOptions{})
 			framework.ExpectNoError(err)
 			rv, err := strconv.Atoi(svcs.ResourceVersion)
 			framework.ExpectNoError(err)
-			w, err := c.CoreV1().Services("default").Watch(metav1.ListOptions{ResourceVersion: strconv.Itoa(rv - 1)})
+			w, err := c.CoreV1().Services("default").Watch(context.TODO(), metav1.ListOptions{ResourceVersion: strconv.Itoa(rv - 1)})
 			framework.ExpectNoError(err)
 			defer w.Stop()
 
@@ -63,12 +64,16 @@ var _ = SIGDescribe("client-go should negotiate", func() {
 			case watch.Added, watch.Modified:
 				// this is allowed
 			case watch.Error:
-				err := errors.FromObject(evt.Object)
-				if errors.IsGone(err) || errors.IsResourceExpired(err) {
+				err := apierrors.FromObject(evt.Object)
+				// In Kubernetes 1.17 and earlier, the api server returns both apierrors.StatusReasonExpired and
+				// apierrors.StatusReasonGone for HTTP 410 (Gone) status code responses. In 1.18 the kube server is more consistent
+				// and always returns apierrors.StatusReasonExpired. For backward compatibility we can only remove the apierrs.IsGone
+				// check when we fully drop support for Kubernetes 1.17 servers from reflectors.
+				if apierrors.IsGone(err) || apierrors.IsResourceExpired(err) {
 					// this is allowed, since the kubernetes object could be very old
 					break
 				}
-				if errors.IsUnexpectedObjectError(err) {
+				if apierrors.IsUnexpectedObjectError(err) {
 					g.Fail(fmt.Sprintf("unexpected object, wanted v1.Status: %#v", evt.Object))
 				}
 				g.Fail(fmt.Sprintf("unexpected error: %#v", evt.Object))

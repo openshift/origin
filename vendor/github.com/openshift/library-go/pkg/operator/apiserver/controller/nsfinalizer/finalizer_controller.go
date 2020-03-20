@@ -57,7 +57,7 @@ func NewFinalizerController(
 }
 
 func (c finalizerController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
-	ns, err := c.namespaceGetter.Namespaces().Get(c.namespaceName, metav1.GetOptions{})
+	ns, err := c.namespaceGetter.Namespaces().Get(ctx, c.namespaceName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
@@ -104,6 +104,6 @@ func (c finalizerController) sync(ctx context.Context, syncCtx factory.SyncConte
 	ns.Spec.Finalizers = newFinalizers
 
 	syncCtx.Recorder().Event("NamespaceFinalization", fmt.Sprintf("clearing namespace finalizer on %q", c.namespaceName))
-	_, err = c.namespaceGetter.Namespaces().Finalize(ns)
+	_, err = c.namespaceGetter.Namespaces().Finalize(ctx, ns, metav1.UpdateOptions{})
 	return err
 }

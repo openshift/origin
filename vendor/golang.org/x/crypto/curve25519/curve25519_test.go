@@ -13,27 +13,58 @@ import (
 
 const expectedHex = "89161fde887b2b53de549af483940106ecc114d6982daa98256de23bdf77661a"
 
-func TestBaseScalarMult(t *testing.T) {
-	var a, b [32]byte
-	in := &a
-	out := &b
-	a[0] = 1
+func TestX25519Basepoint(t *testing.T) {
+	x := make([]byte, 32)
+	x[0] = 1
 
 	for i := 0; i < 200; i++ {
-		ScalarBaseMult(out, in)
-		in, out = out, in
+		var err error
+		x, err = X25519(x, Basepoint)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	result := fmt.Sprintf("%x", in[:])
+	result := fmt.Sprintf("%x", x)
 	if result != expectedHex {
 		t.Errorf("incorrect result: got %s, want %s", result, expectedHex)
 	}
 }
 
+func TestLowOrderPoints(t *testing.T) {
+	scalar := make([]byte, ScalarSize)
+	if _, err := rand.Read(scalar); err != nil {
+		t.Fatal(err)
+	}
+	for i, p := range lowOrderPoints {
+		out, err := X25519(scalar, p)
+		if err == nil {
+			t.Errorf("%d: expected error, got nil", i)
+		}
+		if out != nil {
+			t.Errorf("%d: expected nil output, got %x", i, out)
+		}
+	}
+}
+
 func TestTestVectors(t *testing.T) {
+	t.Run("Generic", func(t *testing.T) { testTestVectors(t, scalarMultGeneric) })
+	t.Run("Native", func(t *testing.T) { testTestVectors(t, ScalarMult) })
+	t.Run("X25519", func(t *testing.T) {
+		testTestVectors(t, func(dst, scalar, point *[32]byte) {
+			out, err := X25519(scalar[:], point[:])
+			if err != nil {
+				t.Fatal(err)
+			}
+			copy(dst[:], out)
+		})
+	})
+}
+
+func testTestVectors(t *testing.T, scalarMult func(dst, scalar, point *[32]byte)) {
 	for _, tv := range testVectors {
 		var got [32]byte
-		ScalarMult(&got, &tv.In, &tv.Base)
+		scalarMult(&got, &tv.In, &tv.Base)
 		if !bytes.Equal(got[:], tv.Expect[:]) {
 			t.Logf("    in = %x", tv.In)
 			t.Logf("  base = %x", tv.Base)

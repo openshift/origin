@@ -130,6 +130,7 @@
         {"shape":"InvalidSampleRateException"},
         {"shape":"InvalidSnsTopicArnException"},
         {"shape":"InvalidSsmlException"},
+        {"shape":"EngineNotSupportedException"},
         {"shape":"LexiconNotFoundException"},
         {"shape":"ServiceFailureException"},
         {"shape":"MarksNotSupportedForFormatException"},
@@ -154,7 +155,8 @@
         {"shape":"ServiceFailureException"},
         {"shape":"MarksNotSupportedForFormatException"},
         {"shape":"SsmlMarksNotSupportedForTextTypeException"},
-        {"shape":"LanguageNotSupportedException"}
+        {"shape":"LanguageNotSupportedException"},
+        {"shape":"EngineNotSupportedException"}
       ]
     }
   },
@@ -185,6 +187,11 @@
     "DescribeVoicesInput":{
       "type":"structure",
       "members":{
+        "Engine":{
+          "shape":"Engine",
+          "location":"querystring",
+          "locationName":"Engine"
+        },
         "LanguageCode":{
           "shape":"LanguageCode",
           "location":"querystring",
@@ -208,6 +215,25 @@
         "Voices":{"shape":"VoiceList"},
         "NextToken":{"shape":"NextToken"}
       }
+    },
+    "Engine":{
+      "type":"string",
+      "enum":[
+        "standard",
+        "neural"
+      ]
+    },
+    "EngineList":{
+      "type":"list",
+      "member":{"shape":"Engine"}
+    },
+    "EngineNotSupportedException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "error":{"httpStatusCode":400},
+      "exception":true
     },
     "ErrorMessage":{"type":"string"},
     "Gender":{
@@ -320,6 +346,7 @@
     "LanguageCode":{
       "type":"string",
       "enum":[
+        "arb",
         "cmn-CN",
         "cy-GB",
         "da-DK",
@@ -495,7 +522,11 @@
       "max":100,
       "min":1
     },
-    "NextToken":{"type":"string"},
+    "NextToken":{
+      "type":"string",
+      "max":4096,
+      "min":0
+    },
     "OutputFormat":{
       "type":"string",
       "enum":[
@@ -548,7 +579,7 @@
     "Size":{"type":"integer"},
     "SnsTopicArn":{
       "type":"string",
-      "pattern":"^arn:aws(-(cn|iso(-b)?|us-gov))?:sns:.*:\\w{12}:.+$"
+      "pattern":"^arn:aws(-(cn|iso(-b)?|us-gov))?:sns:[a-z0-9_-]{1,50}:\\d{12}:[a-zA-Z0-9_-]{1,256}$"
     },
     "SpeechMarkType":{
       "type":"string",
@@ -581,6 +612,8 @@
         "VoiceId"
       ],
       "members":{
+        "Engine":{"shape":"Engine"},
+        "LanguageCode":{"shape":"LanguageCode"},
         "LexiconNames":{"shape":"LexiconNameList"},
         "OutputFormat":{"shape":"OutputFormat"},
         "OutputS3BucketName":{"shape":"OutputS3BucketName"},
@@ -590,8 +623,7 @@
         "SpeechMarkTypes":{"shape":"SpeechMarkTypeList"},
         "Text":{"shape":"Text"},
         "TextType":{"shape":"TextType"},
-        "VoiceId":{"shape":"VoiceId"},
-        "LanguageCode":{"shape":"LanguageCode"}
+        "VoiceId":{"shape":"VoiceId"}
       }
     },
     "StartSpeechSynthesisTaskOutput":{
@@ -603,6 +635,7 @@
     "SynthesisTask":{
       "type":"structure",
       "members":{
+        "Engine":{"shape":"Engine"},
         "TaskId":{"shape":"TaskId"},
         "TaskStatus":{"shape":"TaskStatus"},
         "TaskStatusReason":{"shape":"TaskStatusReason"},
@@ -639,14 +672,15 @@
         "VoiceId"
       ],
       "members":{
+        "Engine":{"shape":"Engine"},
+        "LanguageCode":{"shape":"LanguageCode"},
         "LexiconNames":{"shape":"LexiconNameList"},
         "OutputFormat":{"shape":"OutputFormat"},
         "SampleRate":{"shape":"SampleRate"},
         "SpeechMarkTypes":{"shape":"SpeechMarkTypeList"},
         "Text":{"shape":"Text"},
         "TextType":{"shape":"TextType"},
-        "VoiceId":{"shape":"VoiceId"},
-        "LanguageCode":{"shape":"LanguageCode"}
+        "VoiceId":{"shape":"VoiceId"}
       }
     },
     "SynthesizeSpeechOutput":{
@@ -668,8 +702,7 @@
     },
     "TaskId":{
       "type":"string",
-      "max":128,
-      "min":1
+      "pattern":"^[a-zA-Z0-9_-]{1,100}$"
     },
     "TaskStatus":{
       "type":"string",
@@ -721,69 +754,73 @@
         "LanguageCode":{"shape":"LanguageCode"},
         "LanguageName":{"shape":"LanguageName"},
         "Name":{"shape":"VoiceName"},
-        "AdditionalLanguageCodes":{"shape":"LanguageCodeList"}
+        "AdditionalLanguageCodes":{"shape":"LanguageCodeList"},
+        "SupportedEngines":{"shape":"EngineList"}
       }
     },
     "VoiceId":{
       "type":"string",
       "enum":[
-        "Geraint",
-        "Gwyneth",
-        "Mads",
-        "Naja",
-        "Hans",
-        "Marlene",
-        "Nicole",
-        "Russell",
+        "Aditi",
         "Amy",
+        "Astrid",
+        "Bianca",
         "Brian",
+        "Camila",
+        "Carla",
+        "Carmen",
+        "Celine",
+        "Chantal",
+        "Conchita",
+        "Cristiano",
+        "Dora",
         "Emma",
-        "Raveena",
+        "Enrique",
+        "Ewa",
+        "Filiz",
+        "Geraint",
+        "Giorgio",
+        "Gwyneth",
+        "Hans",
+        "Ines",
         "Ivy",
+        "Jacek",
+        "Jan",
         "Joanna",
         "Joey",
         "Justin",
+        "Karl",
         "Kendra",
         "Kimberly",
-        "Matthew",
-        "Salli",
-        "Conchita",
-        "Enrique",
-        "Miguel",
-        "Penelope",
-        "Chantal",
-        "Celine",
         "Lea",
-        "Mathieu",
-        "Dora",
-        "Karl",
-        "Carla",
-        "Giorgio",
-        "Mizuki",
         "Liv",
         "Lotte",
-        "Ruben",
-        "Ewa",
-        "Jacek",
-        "Jan",
-        "Maja",
-        "Ricardo",
-        "Vitoria",
-        "Cristiano",
-        "Ines",
-        "Carmen",
-        "Maxim",
-        "Tatyana",
-        "Astrid",
-        "Filiz",
-        "Vicki",
-        "Takumi",
-        "Seoyeon",
-        "Aditi",
-        "Zhiyu",
-        "Bianca",
         "Lucia",
-        "Mia"
+        "Lupe",
+        "Mads",
+        "Maja",
+        "Marlene",
+        "Mathieu",
+        "Matthew",
+        "Maxim",
+        "Mia",
+        "Miguel",
+        "Mizuki",
+        "Naja",
+        "Nicole",
+        "Penelope",
+        "Raveena",
+        "Ricardo",
+        "Ruben",
+        "Russell",
+        "Salli",
+        "Seoyeon",
+        "Takumi",
+        "Tatyana",
+        "Vicki",
+        "Vitoria",
+        "Zeina",
+        "Zhiyu"
       ]
     },
     "VoiceList":{

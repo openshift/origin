@@ -939,7 +939,8 @@
         "Tags":{"shape":"TagDescriptionList"},
         "TerminationPolicies":{"shape":"TerminationPolicies"},
         "NewInstancesProtectedFromScaleIn":{"shape":"InstanceProtected"},
-        "ServiceLinkedRoleARN":{"shape":"ResourceName"}
+        "ServiceLinkedRoleARN":{"shape":"ResourceName"},
+        "MaxInstanceLifetime":{"shape":"MaxInstanceLifetime"}
       }
     },
     "AutoScalingGroupDesiredCapacity":{"type":"integer"},
@@ -981,13 +982,15 @@
       ],
       "members":{
         "InstanceId":{"shape":"XmlStringMaxLen19"},
+        "InstanceType":{"shape":"XmlStringMaxLen255"},
         "AutoScalingGroupName":{"shape":"XmlStringMaxLen255"},
         "AvailabilityZone":{"shape":"XmlStringMaxLen255"},
         "LifecycleState":{"shape":"XmlStringMaxLen32"},
         "HealthStatus":{"shape":"XmlStringMaxLen32"},
         "LaunchConfigurationName":{"shape":"XmlStringMaxLen255"},
         "LaunchTemplate":{"shape":"LaunchTemplateSpecification"},
-        "ProtectedFromScaleIn":{"shape":"InstanceProtected"}
+        "ProtectedFromScaleIn":{"shape":"InstanceProtected"},
+        "WeightedCapacity":{"shape":"XmlStringMaxLen32"}
       }
     },
     "AutoScalingInstances":{
@@ -1128,7 +1131,8 @@
         "NewInstancesProtectedFromScaleIn":{"shape":"InstanceProtected"},
         "LifecycleHookSpecificationList":{"shape":"LifecycleHookSpecifications"},
         "Tags":{"shape":"Tags"},
-        "ServiceLinkedRoleARN":{"shape":"ResourceName"}
+        "ServiceLinkedRoleARN":{"shape":"ResourceName"},
+        "MaxInstanceLifetime":{"shape":"MaxInstanceLifetime"}
       }
     },
     "CreateLaunchConfigurationType":{
@@ -1564,12 +1568,14 @@
       ],
       "members":{
         "InstanceId":{"shape":"XmlStringMaxLen19"},
+        "InstanceType":{"shape":"XmlStringMaxLen255"},
         "AvailabilityZone":{"shape":"XmlStringMaxLen255"},
         "LifecycleState":{"shape":"LifecycleState"},
         "HealthStatus":{"shape":"XmlStringMaxLen32"},
         "LaunchConfigurationName":{"shape":"XmlStringMaxLen255"},
         "LaunchTemplate":{"shape":"LaunchTemplateSpecification"},
-        "ProtectedFromScaleIn":{"shape":"InstanceProtected"}
+        "ProtectedFromScaleIn":{"shape":"InstanceProtected"},
+        "WeightedCapacity":{"shape":"XmlStringMaxLen32"}
       }
     },
     "InstanceIds":{
@@ -1595,7 +1601,7 @@
         "OnDemandPercentageAboveBaseCapacity":{"shape":"OnDemandPercentageAboveBaseCapacity"},
         "SpotAllocationStrategy":{"shape":"XmlString"},
         "SpotInstancePools":{"shape":"SpotInstancePools"},
-        "SpotMaxPrice":{"shape":"SpotPrice"}
+        "SpotMaxPrice":{"shape":"MixedInstanceSpotPrice"}
       }
     },
     "InvalidNextToken":{
@@ -1687,7 +1693,8 @@
     "LaunchTemplateOverrides":{
       "type":"structure",
       "members":{
-        "InstanceType":{"shape":"XmlStringMaxLen255"}
+        "InstanceType":{"shape":"XmlStringMaxLen255"},
+        "WeightedCapacity":{"shape":"XmlStringMaxLen32"}
       }
     },
     "LaunchTemplateSpecification":{
@@ -1804,6 +1811,7 @@
       "type":"list",
       "member":{"shape":"LoadBalancerTargetGroupState"}
     },
+    "MaxInstanceLifetime":{"type":"integer"},
     "MaxNumberOfAutoScalingGroups":{"type":"integer"},
     "MaxNumberOfLaunchConfigurations":{"type":"integer"},
     "MaxRecords":{"type":"integer"},
@@ -1875,6 +1883,11 @@
     "MinAdjustmentStep":{
       "type":"integer",
       "deprecated":true
+    },
+    "MixedInstanceSpotPrice":{
+      "type":"string",
+      "max":255,
+      "min":0
     },
     "MixedInstancesPolicy":{
       "type":"structure",
@@ -2382,7 +2395,8 @@
         "VPCZoneIdentifier":{"shape":"XmlStringMaxLen2047"},
         "TerminationPolicies":{"shape":"TerminationPolicies"},
         "NewInstancesProtectedFromScaleIn":{"shape":"InstanceProtected"},
-        "ServiceLinkedRoleARN":{"shape":"ResourceName"}
+        "ServiceLinkedRoleARN":{"shape":"ResourceName"},
+        "MaxInstanceLifetime":{"shape":"MaxInstanceLifetime"}
       }
     },
     "Values":{

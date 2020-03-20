@@ -2,8 +2,10 @@ package resourceread
 
 import (
 	storagev1 "k8s.io/api/storage/v1"
+	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 var (
@@ -12,9 +14,8 @@ var (
 )
 
 func init() {
-	if err := storagev1.AddToScheme(storageScheme); err != nil {
-		panic(err)
-	}
+	utilruntime.Must(storagev1.AddToScheme(storageScheme))
+	utilruntime.Must(storagev1beta1.AddToScheme(storageScheme))
 }
 
 func ReadStorageClassV1OrDie(objBytes []byte) *storagev1.StorageClass {
@@ -23,4 +24,12 @@ func ReadStorageClassV1OrDie(objBytes []byte) *storagev1.StorageClass {
 		panic(err)
 	}
 	return requiredObj.(*storagev1.StorageClass)
+}
+
+func ReadCSIDriverV1Beta1OrDie(objBytes []byte) *storagev1beta1.CSIDriver {
+	requiredObj, err := runtime.Decode(storageCodecs.UniversalDecoder(storagev1beta1.SchemeGroupVersion), objBytes)
+	if err != nil {
+		panic(err)
+	}
+	return requiredObj.(*storagev1beta1.CSIDriver)
 }

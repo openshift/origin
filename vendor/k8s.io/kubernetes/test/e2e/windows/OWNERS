@@ -3,13 +3,17 @@
 approvers:
 - michmike
 - patricklang
+- benmoss
+- ddebroy
 reviewers:
 - adelina-t
 - bclau
-- benmoss
+- chewong
 - dineshgovindasamy
 - feiskyer
+- ksubrmnn
 - madhanrm
+- marosset
 - yujuhong
 emeritus_approvers:
 - dchen1107

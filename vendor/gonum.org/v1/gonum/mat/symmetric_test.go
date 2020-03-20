@@ -735,3 +735,29 @@ func TestPowPSD(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkSymSum1000(b *testing.B) { symSumBench(b, 1000) }
+
+var symSumForBench float64
+
+func symSumBench(b *testing.B, size int) {
+	a := randSymDense(size)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		symSumForBench = Sum(a)
+	}
+}
+
+func randSymDense(size int) *SymDense {
+	backData := make([]float64, size*size)
+	for i := 0; i < size; i++ {
+		backData[i*size+i] = rand.Float64()
+		for j := i + 1; j < size; j++ {
+			v := rand.Float64()
+			backData[i*size+j] = v
+			backData[j*size+i] = v
+		}
+	}
+	s := NewSymDense(size, backData)
+	return s
+}

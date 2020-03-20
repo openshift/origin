@@ -70,7 +70,6 @@ func (l *LBFGS) Init(dim, tasks int) int {
 func (l *LBFGS) Run(operation chan<- Task, result <-chan Task, tasks []Task) {
 	l.status, l.err = localOptimizer{}.run(l, l.GradStopThreshold, operation, result, tasks)
 	close(operation)
-	return
 }
 
 func (l *LBFGS) initLocal(loc *Location) (Operation, error) {

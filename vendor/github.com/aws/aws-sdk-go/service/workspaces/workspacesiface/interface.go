@@ -68,6 +68,10 @@ type WorkSpacesAPI interface {
 	AuthorizeIpRulesWithContext(aws.Context, *workspaces.AuthorizeIpRulesInput, ...request.Option) (*workspaces.AuthorizeIpRulesOutput, error)
 	AuthorizeIpRulesRequest(*workspaces.AuthorizeIpRulesInput) (*request.Request, *workspaces.AuthorizeIpRulesOutput)
 
+	CopyWorkspaceImage(*workspaces.CopyWorkspaceImageInput) (*workspaces.CopyWorkspaceImageOutput, error)
+	CopyWorkspaceImageWithContext(aws.Context, *workspaces.CopyWorkspaceImageInput, ...request.Option) (*workspaces.CopyWorkspaceImageOutput, error)
+	CopyWorkspaceImageRequest(*workspaces.CopyWorkspaceImageInput) (*request.Request, *workspaces.CopyWorkspaceImageOutput)
+
 	CreateIpGroup(*workspaces.CreateIpGroupInput) (*workspaces.CreateIpGroupOutput, error)
 	CreateIpGroupWithContext(aws.Context, *workspaces.CreateIpGroupInput, ...request.Option) (*workspaces.CreateIpGroupOutput, error)
 	CreateIpGroupRequest(*workspaces.CreateIpGroupInput) (*request.Request, *workspaces.CreateIpGroupOutput)
@@ -91,6 +95,10 @@ type WorkSpacesAPI interface {
 	DeleteWorkspaceImage(*workspaces.DeleteWorkspaceImageInput) (*workspaces.DeleteWorkspaceImageOutput, error)
 	DeleteWorkspaceImageWithContext(aws.Context, *workspaces.DeleteWorkspaceImageInput, ...request.Option) (*workspaces.DeleteWorkspaceImageOutput, error)
 	DeleteWorkspaceImageRequest(*workspaces.DeleteWorkspaceImageInput) (*request.Request, *workspaces.DeleteWorkspaceImageOutput)
+
+	DeregisterWorkspaceDirectory(*workspaces.DeregisterWorkspaceDirectoryInput) (*workspaces.DeregisterWorkspaceDirectoryOutput, error)
+	DeregisterWorkspaceDirectoryWithContext(aws.Context, *workspaces.DeregisterWorkspaceDirectoryInput, ...request.Option) (*workspaces.DeregisterWorkspaceDirectoryOutput, error)
+	DeregisterWorkspaceDirectoryRequest(*workspaces.DeregisterWorkspaceDirectoryInput) (*request.Request, *workspaces.DeregisterWorkspaceDirectoryOutput)
 
 	DescribeAccount(*workspaces.DescribeAccountInput) (*workspaces.DescribeAccountOutput, error)
 	DescribeAccountWithContext(aws.Context, *workspaces.DescribeAccountInput, ...request.Option) (*workspaces.DescribeAccountOutput, error)
@@ -130,6 +138,10 @@ type WorkSpacesAPI interface {
 	DescribeWorkspaceImagesWithContext(aws.Context, *workspaces.DescribeWorkspaceImagesInput, ...request.Option) (*workspaces.DescribeWorkspaceImagesOutput, error)
 	DescribeWorkspaceImagesRequest(*workspaces.DescribeWorkspaceImagesInput) (*request.Request, *workspaces.DescribeWorkspaceImagesOutput)
 
+	DescribeWorkspaceSnapshots(*workspaces.DescribeWorkspaceSnapshotsInput) (*workspaces.DescribeWorkspaceSnapshotsOutput, error)
+	DescribeWorkspaceSnapshotsWithContext(aws.Context, *workspaces.DescribeWorkspaceSnapshotsInput, ...request.Option) (*workspaces.DescribeWorkspaceSnapshotsOutput, error)
+	DescribeWorkspaceSnapshotsRequest(*workspaces.DescribeWorkspaceSnapshotsInput) (*request.Request, *workspaces.DescribeWorkspaceSnapshotsOutput)
+
 	DescribeWorkspaces(*workspaces.DescribeWorkspacesInput) (*workspaces.DescribeWorkspacesOutput, error)
 	DescribeWorkspacesWithContext(aws.Context, *workspaces.DescribeWorkspacesInput, ...request.Option) (*workspaces.DescribeWorkspacesOutput, error)
 	DescribeWorkspacesRequest(*workspaces.DescribeWorkspacesInput) (*request.Request, *workspaces.DescribeWorkspacesOutput)
@@ -153,6 +165,10 @@ type WorkSpacesAPI interface {
 	ListAvailableManagementCidrRangesWithContext(aws.Context, *workspaces.ListAvailableManagementCidrRangesInput, ...request.Option) (*workspaces.ListAvailableManagementCidrRangesOutput, error)
 	ListAvailableManagementCidrRangesRequest(*workspaces.ListAvailableManagementCidrRangesInput) (*request.Request, *workspaces.ListAvailableManagementCidrRangesOutput)
 
+	MigrateWorkspace(*workspaces.MigrateWorkspaceInput) (*workspaces.MigrateWorkspaceOutput, error)
+	MigrateWorkspaceWithContext(aws.Context, *workspaces.MigrateWorkspaceInput, ...request.Option) (*workspaces.MigrateWorkspaceOutput, error)
+	MigrateWorkspaceRequest(*workspaces.MigrateWorkspaceInput) (*request.Request, *workspaces.MigrateWorkspaceOutput)
+
 	ModifyAccount(*workspaces.ModifyAccountInput) (*workspaces.ModifyAccountOutput, error)
 	ModifyAccountWithContext(aws.Context, *workspaces.ModifyAccountInput, ...request.Option) (*workspaces.ModifyAccountOutput, error)
 	ModifyAccountRequest(*workspaces.ModifyAccountInput) (*request.Request, *workspaces.ModifyAccountOutput)
@@ -160,6 +176,18 @@ type WorkSpacesAPI interface {
 	ModifyClientProperties(*workspaces.ModifyClientPropertiesInput) (*workspaces.ModifyClientPropertiesOutput, error)
 	ModifyClientPropertiesWithContext(aws.Context, *workspaces.ModifyClientPropertiesInput, ...request.Option) (*workspaces.ModifyClientPropertiesOutput, error)
 	ModifyClientPropertiesRequest(*workspaces.ModifyClientPropertiesInput) (*request.Request, *workspaces.ModifyClientPropertiesOutput)
+
+	ModifySelfservicePermissions(*workspaces.ModifySelfservicePermissionsInput) (*workspaces.ModifySelfservicePermissionsOutput, error)
+	ModifySelfservicePermissionsWithContext(aws.Context, *workspaces.ModifySelfservicePermissionsInput, ...request.Option) (*workspaces.ModifySelfservicePermissionsOutput, error)
+	ModifySelfservicePermissionsRequest(*workspaces.ModifySelfservicePermissionsInput) (*request.Request, *workspaces.ModifySelfservicePermissionsOutput)
+
+	ModifyWorkspaceAccessProperties(*workspaces.ModifyWorkspaceAccessPropertiesInput) (*workspaces.ModifyWorkspaceAccessPropertiesOutput, error)
+	ModifyWorkspaceAccessPropertiesWithContext(aws.Context, *workspaces.ModifyWorkspaceAccessPropertiesInput, ...request.Option) (*workspaces.ModifyWorkspaceAccessPropertiesOutput, error)
+	ModifyWorkspaceAccessPropertiesRequest(*workspaces.ModifyWorkspaceAccessPropertiesInput) (*request.Request, *workspaces.ModifyWorkspaceAccessPropertiesOutput)
+
+	ModifyWorkspaceCreationProperties(*workspaces.ModifyWorkspaceCreationPropertiesInput) (*workspaces.ModifyWorkspaceCreationPropertiesOutput, error)
+	ModifyWorkspaceCreationPropertiesWithContext(aws.Context, *workspaces.ModifyWorkspaceCreationPropertiesInput, ...request.Option) (*workspaces.ModifyWorkspaceCreationPropertiesOutput, error)
+	ModifyWorkspaceCreationPropertiesRequest(*workspaces.ModifyWorkspaceCreationPropertiesInput) (*request.Request, *workspaces.ModifyWorkspaceCreationPropertiesOutput)
 
 	ModifyWorkspaceProperties(*workspaces.ModifyWorkspacePropertiesInput) (*workspaces.ModifyWorkspacePropertiesOutput, error)
 	ModifyWorkspacePropertiesWithContext(aws.Context, *workspaces.ModifyWorkspacePropertiesInput, ...request.Option) (*workspaces.ModifyWorkspacePropertiesOutput, error)
@@ -176,6 +204,14 @@ type WorkSpacesAPI interface {
 	RebuildWorkspaces(*workspaces.RebuildWorkspacesInput) (*workspaces.RebuildWorkspacesOutput, error)
 	RebuildWorkspacesWithContext(aws.Context, *workspaces.RebuildWorkspacesInput, ...request.Option) (*workspaces.RebuildWorkspacesOutput, error)
 	RebuildWorkspacesRequest(*workspaces.RebuildWorkspacesInput) (*request.Request, *workspaces.RebuildWorkspacesOutput)
+
+	RegisterWorkspaceDirectory(*workspaces.RegisterWorkspaceDirectoryInput) (*workspaces.RegisterWorkspaceDirectoryOutput, error)
+	RegisterWorkspaceDirectoryWithContext(aws.Context, *workspaces.RegisterWorkspaceDirectoryInput, ...request.Option) (*workspaces.RegisterWorkspaceDirectoryOutput, error)
+	RegisterWorkspaceDirectoryRequest(*workspaces.RegisterWorkspaceDirectoryInput) (*request.Request, *workspaces.RegisterWorkspaceDirectoryOutput)
+
+	RestoreWorkspace(*workspaces.RestoreWorkspaceInput) (*workspaces.RestoreWorkspaceOutput, error)
+	RestoreWorkspaceWithContext(aws.Context, *workspaces.RestoreWorkspaceInput, ...request.Option) (*workspaces.RestoreWorkspaceOutput, error)
+	RestoreWorkspaceRequest(*workspaces.RestoreWorkspaceInput) (*request.Request, *workspaces.RestoreWorkspaceOutput)
 
 	RevokeIpRules(*workspaces.RevokeIpRulesInput) (*workspaces.RevokeIpRulesOutput, error)
 	RevokeIpRulesWithContext(aws.Context, *workspaces.RevokeIpRulesInput, ...request.Option) (*workspaces.RevokeIpRulesOutput, error)

@@ -17,6 +17,7 @@ limitations under the License.
 package vsphere
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -30,6 +31,7 @@ import (
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
 
@@ -71,7 +73,7 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 	)
 
 	ginkgo.BeforeEach(func() {
-		framework.SkipUnlessProviderIs("vsphere")
+		e2eskipper.SkipUnlessProviderIs("vsphere")
 		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
@@ -82,8 +84,8 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 		volumesPerPod = GetAndExpectIntEnvVar(VCPScaleVolumesPerPod)
 
 		numberOfInstances = GetAndExpectIntEnvVar(VCPScaleInstances)
-		gomega.Expect(numberOfInstances > 5).NotTo(gomega.BeTrue(), "Maximum allowed instances are 5")
-		gomega.Expect(numberOfInstances > volumeCount).NotTo(gomega.BeTrue(), "Number of instances should be less than the total volume count")
+		framework.ExpectNotEqual(numberOfInstances > 5, true, "Maximum allowed instances are 5")
+		framework.ExpectNotEqual(numberOfInstances > volumeCount, true, "Number of instances should be less than the total volume count")
 
 		policyName = GetAndExpectStringEnvVar(SPBMPolicyName)
 		datastoreName = GetAndExpectStringEnvVar(StorageClassDatastoreName)
@@ -92,11 +94,11 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 		nodes, err = e2enode.GetReadySchedulableNodes(client)
 		framework.ExpectNoError(err)
 		if len(nodes.Items) < 2 {
-			framework.Skipf("Requires at least %d nodes (not %d)", 2, len(nodes.Items))
+			e2eskipper.Skipf("Requires at least %d nodes (not %d)", 2, len(nodes.Items))
 		}
 		// Verify volume count specified by the user can be satisfied
 		if volumeCount > volumesPerNode*len(nodes.Items) {
-			framework.Skipf("Cannot attach %d volumes to %d nodes. Maximum volumes that can be attached on %d nodes is %d", volumeCount, len(nodes.Items), len(nodes.Items), volumesPerNode*len(nodes.Items))
+			e2eskipper.Skipf("Cannot attach %d volumes to %d nodes. Maximum volumes that can be attached on %d nodes is %d", volumeCount, len(nodes.Items), len(nodes.Items), volumesPerNode*len(nodes.Items))
 		}
 		nodeSelectorList = createNodeLabels(client, namespace, nodes)
 	})
@@ -128,16 +130,16 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 			case storageclass1:
 				scParams = nil
 			case storageclass2:
-				scParams[Policy_HostFailuresToTolerate] = "1"
+				scParams[PolicyHostFailuresToTolerate] = "1"
 			case storageclass3:
 				scParams[SpbmStoragePolicy] = policyName
 			case storageclass4:
 				scParams[Datastore] = datastoreName
 			}
-			sc, err = client.StorageV1().StorageClasses().Create(getVSphereStorageClassSpec(scname, scParams, nil, ""))
+			sc, err = client.StorageV1().StorageClasses().Create(context.TODO(), getVSphereStorageClassSpec(scname, scParams, nil, ""), metav1.CreateOptions{})
 			gomega.Expect(sc).NotTo(gomega.BeNil(), "Storage class is empty")
 			framework.ExpectNoError(err, "Failed to create storage class")
-			defer client.StorageV1().StorageClasses().Delete(scname, nil)
+			defer client.StorageV1().StorageClasses().Delete(context.TODO(), scname, metav1.DeleteOptions{})
 			scArrays[index] = sc
 		}
 
@@ -156,7 +158,8 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 				nodeVolumeMap[node] = append(nodeVolumeMap[node], volumeList...)
 			}
 		}
-		podList, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+		podList, err := client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+		framework.ExpectNoError(err, "Failed to list pods")
 		for _, pod := range podList.Items {
 			pvcClaimList = append(pvcClaimList, getClaimsForPod(&pod, volumesPerPod)...)
 			ginkgo.By("Deleting pod")

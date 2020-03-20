@@ -220,6 +220,8 @@ message PolicyRule {
   // APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed.
   // That means that if an action is requested against one of the enumerated resources in either the kubernetes or the origin API group, the request
   // will be allowed
+  // +optional
+  // +nullable
   repeated string apiGroups = 3;
 
   // Resources is a list of resources this rule applies to.  ResourceAll represents all resources.

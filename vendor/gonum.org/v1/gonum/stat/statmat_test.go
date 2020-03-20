@@ -61,28 +61,28 @@ func TestCovarianceMatrix(t *testing.T) {
 		if test.weights != nil {
 			copy(w, test.weights)
 		}
-		for _, cov := range []*mat.SymDense{nil, {}} {
-			c := CovarianceMatrix(cov, test.data, test.weights)
-			if !mat.Equal(c, test.ans) {
-				t.Errorf("%d: expected cov %v, found %v", i, test.ans, c)
-			}
-			if !floats.Equal(d, r.Data) {
-				t.Errorf("%d: data was modified during execution", i)
-			}
-			if !floats.Equal(w, test.weights) {
-				t.Errorf("%d: weights was modified during execution", i)
-			}
 
-			// compare with call to Covariance
-			_, cols := c.Dims()
-			for ci := 0; ci < cols; ci++ {
-				for cj := 0; cj < cols; cj++ {
-					x := mat.Col(nil, ci, test.data)
-					y := mat.Col(nil, cj, test.data)
-					cov := Covariance(x, y, test.weights)
-					if math.Abs(cov-c.At(ci, cj)) > 1e-14 {
-						t.Errorf("CovMat does not match at (%v, %v). Want %v, got %v.", ci, cj, cov, c.At(ci, cj))
-					}
+		var cov mat.SymDense
+		CovarianceMatrix(&cov, test.data, test.weights)
+		if !mat.Equal(&cov, test.ans) {
+			t.Errorf("%d: expected cov %v, found %v", i, test.ans, &cov)
+		}
+		if !floats.Equal(d, r.Data) {
+			t.Errorf("%d: data was modified during execution", i)
+		}
+		if !floats.Equal(w, test.weights) {
+			t.Errorf("%d: weights was modified during execution", i)
+		}
+
+		// compare with call to Covariance
+		_, cols := cov.Dims()
+		for ci := 0; ci < cols; ci++ {
+			for cj := 0; cj < cols; cj++ {
+				x := mat.Col(nil, ci, test.data)
+				y := mat.Col(nil, cj, test.data)
+				wc := Covariance(x, y, test.weights)
+				if math.Abs(wc-cov.At(ci, cj)) > 1e-14 {
+					t.Errorf("CovMat does not match at (%v, %v). Want %v, got %v.", ci, cj, wc, cov.At(ci, cj))
 				}
 			}
 		}
@@ -157,28 +157,28 @@ func TestCorrelationMatrix(t *testing.T) {
 		if test.weights != nil {
 			copy(w, test.weights)
 		}
-		for _, corr := range []*mat.SymDense{nil, {}} {
-			c := CorrelationMatrix(corr, test.data, test.weights)
-			if !mat.Equal(c, test.ans) {
-				t.Errorf("%d: expected corr %v, found %v", i, test.ans, c)
-			}
-			if !floats.Equal(d, r.Data) {
-				t.Errorf("%d: data was modified during execution", i)
-			}
-			if !floats.Equal(w, test.weights) {
-				t.Errorf("%d: weights was modified during execution", i)
-			}
 
-			// compare with call to Covariance
-			_, cols := c.Dims()
-			for ci := 0; ci < cols; ci++ {
-				for cj := 0; cj < cols; cj++ {
-					x := mat.Col(nil, ci, test.data)
-					y := mat.Col(nil, cj, test.data)
-					corr := Correlation(x, y, test.weights)
-					if math.Abs(corr-c.At(ci, cj)) > 1e-14 {
-						t.Errorf("CorrMat does not match at (%v, %v). Want %v, got %v.", ci, cj, corr, c.At(ci, cj))
-					}
+		var corr mat.SymDense
+		CorrelationMatrix(&corr, test.data, test.weights)
+		if !mat.Equal(&corr, test.ans) {
+			t.Errorf("%d: expected corr %v, found %v", i, test.ans, &corr)
+		}
+		if !floats.Equal(d, r.Data) {
+			t.Errorf("%d: data was modified during execution", i)
+		}
+		if !floats.Equal(w, test.weights) {
+			t.Errorf("%d: weights was modified during execution", i)
+		}
+
+		// compare with call to Covariance
+		_, cols := corr.Dims()
+		for ci := 0; ci < cols; ci++ {
+			for cj := 0; cj < cols; cj++ {
+				x := mat.Col(nil, ci, test.data)
+				y := mat.Col(nil, cj, test.data)
+				wc := Correlation(x, y, test.weights)
+				if math.Abs(wc-corr.At(ci, cj)) > 1e-14 {
+					t.Errorf("CorrMat does not match at (%v, %v). Want %v, got %v.", ci, cj, wc, corr.At(ci, cj))
 				}
 			}
 		}
@@ -231,8 +231,9 @@ func TestCorrCov(t *testing.T) {
 			},
 		},
 	} {
-		corr := CorrelationMatrix(nil, test.data, test.weights)
-		cov := CovarianceMatrix(nil, test.data, test.weights)
+		var corr, cov mat.SymDense
+		CorrelationMatrix(&corr, test.data, test.weights)
+		CovarianceMatrix(&cov, test.data, test.weights)
 
 		r := cov.Symmetric()
 
@@ -243,17 +244,17 @@ func TestCorrCov(t *testing.T) {
 		}
 
 		covFromCorr := mat.NewSymDense(corr.Symmetric(), nil)
-		covFromCorr.CopySym(corr)
+		covFromCorr.CopySym(&corr)
 		corrToCov(covFromCorr, sigmas)
 
 		corrFromCov := mat.NewSymDense(cov.Symmetric(), nil)
-		corrFromCov.CopySym(cov)
+		corrFromCov.CopySym(&cov)
 		covToCorr(corrFromCov)
 
-		if !mat.EqualApprox(corr, corrFromCov, 1e-14) {
+		if !mat.EqualApprox(&corr, corrFromCov, 1e-14) {
 			t.Errorf("%d: corrToCov did not match direct Correlation calculation.  Want: %v, got: %v. ", i, corr, corrFromCov)
 		}
-		if !mat.EqualApprox(cov, covFromCorr, 1e-14) {
+		if !mat.EqualApprox(&cov, covFromCorr, 1e-14) {
 			t.Errorf("%d: covToCorr did not match direct Covariance calculation.  Want: %v, got: %v. ", i, cov, covFromCorr)
 		}
 
@@ -434,12 +435,13 @@ func BenchmarkCovarianceMatrixHugexSmallInPlace(b *testing.B) {
 func BenchmarkCovToCorr(b *testing.B) {
 	// generate a 10x10 covariance matrix
 	m := randMat(small, small)
-	c := CovarianceMatrix(nil, m, nil)
-	cc := mat.NewSymDense(c.Symmetric(), nil)
+	var cov mat.SymDense
+	CovarianceMatrix(&cov, m, nil)
+	cc := mat.NewSymDense(cov.Symmetric(), nil)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		cc.CopySym(c)
+		cc.CopySym(&cov)
 		b.StartTimer()
 		covToCorr(cc)
 	}
@@ -448,8 +450,9 @@ func BenchmarkCovToCorr(b *testing.B) {
 func BenchmarkCorrToCov(b *testing.B) {
 	// generate a 10x10 correlation matrix
 	m := randMat(small, small)
-	c := CorrelationMatrix(nil, m, nil)
-	cc := mat.NewSymDense(c.Symmetric(), nil)
+	var corr mat.SymDense
+	CorrelationMatrix(&corr, m, nil)
+	cc := mat.NewSymDense(corr.Symmetric(), nil)
 	sigma := make([]float64, small)
 	for i := range sigma {
 		sigma[i] = 2
@@ -457,7 +460,7 @@ func BenchmarkCorrToCov(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		cc.CopySym(c)
+		cc.CopySym(&corr)
 		b.StartTimer()
 		corrToCov(cc, sigma)
 	}

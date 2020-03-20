@@ -16,29 +16,7 @@ import (
 // MagneticFlux represents a magnetic flux in Weber.
 type MagneticFlux float64
 
-const (
-	Yottaweber MagneticFlux = 1e24
-	Zettaweber MagneticFlux = 1e21
-	Exaweber   MagneticFlux = 1e18
-	Petaweber  MagneticFlux = 1e15
-	Teraweber  MagneticFlux = 1e12
-	Gigaweber  MagneticFlux = 1e9
-	Megaweber  MagneticFlux = 1e6
-	Kiloweber  MagneticFlux = 1e3
-	Hectoweber MagneticFlux = 1e2
-	Decaweber  MagneticFlux = 1e1
-	Weber      MagneticFlux = 1.0
-	Deciweber  MagneticFlux = 1e-1
-	Centiweber MagneticFlux = 1e-2
-	Milliweber MagneticFlux = 1e-3
-	Microweber MagneticFlux = 1e-6
-	Nanoweber  MagneticFlux = 1e-9
-	Picoweber  MagneticFlux = 1e-12
-	Femtoweber MagneticFlux = 1e-15
-	Attoweber  MagneticFlux = 1e-18
-	Zeptoweber MagneticFlux = 1e-21
-	Yoctoweber MagneticFlux = 1e-24
-)
+const Weber MagneticFlux = 1
 
 // Unit converts the MagneticFlux to a *Unit
 func (m MagneticFlux) Unit() *Unit {

@@ -13,34 +13,14 @@ import (
 	"unicode/utf8"
 )
 
-// Time represents a time in seconds.
+// Time represents a duration in seconds.
 type Time float64
 
 const (
-	Hour   Time = 3600
-	Minute Time = 60
+	Second Time = 1
 
-	Yottasecond Time = 1e24
-	Zettasecond Time = 1e21
-	Exasecond   Time = 1e18
-	Petasecond  Time = 1e15
-	Terasecond  Time = 1e12
-	Gigasecond  Time = 1e9
-	Megasecond  Time = 1e6
-	Kilosecond  Time = 1e3
-	Hectosecond Time = 1e2
-	Decasecond  Time = 1e1
-	Second      Time = 1.0
-	Decisecond  Time = 1e-1
-	Centisecond Time = 1e-2
-	Millisecond Time = 1e-3
-	Microsecond Time = 1e-6
-	Nanosecond  Time = 1e-9
-	Picosecond  Time = 1e-12
-	Femtosecond Time = 1e-15
-	Attosecond  Time = 1e-18
-	Zeptosecond Time = 1e-21
-	Yoctosecond Time = 1e-24
+	Minute = 60 * Second
+	Hour   = 60 * Minute
 )
 
 // Unit converts the Time to a *Unit

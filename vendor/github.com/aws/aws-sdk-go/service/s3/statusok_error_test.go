@@ -2,13 +2,17 @@ package s3_test
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/corehandlers"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/awstesting/unit"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
@@ -29,7 +33,7 @@ func TestCopyObjectNoError(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Errorf("expected no error, but received %v", err)
+		t.Fatalf("expected no error, but received %v", err)
 	}
 	if e, a := fmt.Sprintf(`%q`, "1da64c7f13d1e8dbeaea40b905fd586c"), *res.CopyObjectResult.ETag; e != a {
 		t.Errorf("expected %s, but received %s", e, a)
@@ -110,6 +114,7 @@ func TestCompleteMultipartUploadSuccess(t *testing.T) {
 	const successMsg = `
 <?xml version="1.0" encoding="UTF-8"?>
 <CompleteMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Location>locationName</Location><Bucket>bucketName</Bucket><Key>keyName</Key><ETag>"etagVal"</ETag></CompleteMultipartUploadResult>`
+
 	res, err := newCopyTestSvc(successMsg).CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
 		Bucket:   aws.String("bucketname"),
 		Key:      aws.String("key"),
@@ -155,12 +160,27 @@ func TestCompleteMultipartUploadError(t *testing.T) {
 }
 
 func newCopyTestSvc(errMsg string) *s3.S3 {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, errMsg, http.StatusOK)
-	}))
-	return s3.New(unit.Session, aws.NewConfig().
-		WithEndpoint(server.URL).
-		WithDisableSSL(true).
-		WithMaxRetries(0).
-		WithS3ForcePathStyle(true))
+	const statusCode = http.StatusOK
+
+	svc := s3.New(unit.Session, &aws.Config{
+		MaxRetries: aws.Int(0),
+		SleepDelay: func(time.Duration) {},
+	})
+
+	svc.Handlers.Send.Swap(corehandlers.SendHandler.Name,
+		request.NamedHandler{
+			Name: "newCopyTestSvc",
+			Fn: func(r *request.Request) {
+				io.Copy(ioutil.Discard, r.HTTPRequest.Body)
+				r.HTTPRequest.Body.Close()
+				r.HTTPResponse = &http.Response{
+					Status:     http.StatusText(statusCode),
+					StatusCode: statusCode,
+					Header:     http.Header{},
+					Body:       ioutil.NopCloser(strings.NewReader(errMsg)),
+				}
+			},
+		})
+
+	return svc
 }

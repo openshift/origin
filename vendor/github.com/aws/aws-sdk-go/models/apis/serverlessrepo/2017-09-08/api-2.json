@@ -358,6 +358,10 @@
           "shape" : "__string",
           "locationName" : "homePageUrl"
         },
+        "IsVerifiedAuthor" : {
+          "shape" : "__boolean",
+          "locationName" : "isVerifiedAuthor"
+        },
         "Labels" : {
           "shape" : "__listOf__string",
           "locationName" : "labels"
@@ -377,6 +381,10 @@
         "SpdxLicenseId" : {
           "shape" : "__string",
           "locationName" : "spdxLicenseId"
+        },
+        "VerifiedAuthorUrl" : {
+          "shape" : "__string",
+          "locationName" : "verifiedAuthorUrl"
         },
         "Version" : {
           "shape" : "Version",
@@ -610,6 +618,10 @@
           "shape" : "__string",
           "locationName" : "semanticVersion"
         },
+        "SourceCodeArchiveUrl" : {
+          "shape" : "__string",
+          "locationName" : "sourceCodeArchiveUrl"
+        },
         "SourceCodeUrl" : {
           "shape" : "__string",
           "locationName" : "sourceCodeUrl"
@@ -672,6 +684,10 @@
           "shape" : "__string",
           "locationName" : "semanticVersion"
         },
+        "SourceCodeArchiveUrl" : {
+          "shape" : "__string",
+          "locationName" : "sourceCodeArchiveUrl"
+        },
         "SourceCodeUrl" : {
           "shape" : "__string",
           "locationName" : "sourceCodeUrl"
@@ -714,6 +730,10 @@
           "shape" : "__string",
           "locationName" : "homePageUrl"
         },
+        "IsVerifiedAuthor" : {
+          "shape" : "__boolean",
+          "locationName" : "isVerifiedAuthor"
+        },
         "Labels" : {
           "shape" : "__listOf__string",
           "locationName" : "labels"
@@ -734,6 +754,10 @@
           "shape" : "__string",
           "locationName" : "spdxLicenseId"
         },
+        "VerifiedAuthorUrl" : {
+          "shape" : "__string",
+          "locationName" : "verifiedAuthorUrl"
+        },
         "Version" : {
           "shape" : "Version",
           "locationName" : "version"
@@ -743,6 +767,10 @@
     "CreateApplicationVersionInput" : {
       "type" : "structure",
       "members" : {
+        "SourceCodeArchiveUrl" : {
+          "shape" : "__string",
+          "locationName" : "sourceCodeArchiveUrl"
+        },
         "SourceCodeUrl" : {
           "shape" : "__string",
           "locationName" : "sourceCodeUrl"
@@ -769,6 +797,10 @@
           "shape" : "__string",
           "location" : "uri",
           "locationName" : "semanticVersion"
+        },
+        "SourceCodeArchiveUrl" : {
+          "shape" : "__string",
+          "locationName" : "sourceCodeArchiveUrl"
         },
         "SourceCodeUrl" : {
           "shape" : "__string",
@@ -811,6 +843,10 @@
         "SemanticVersion" : {
           "shape" : "__string",
           "locationName" : "semanticVersion"
+        },
+        "SourceCodeArchiveUrl" : {
+          "shape" : "__string",
+          "locationName" : "sourceCodeArchiveUrl"
         },
         "SourceCodeUrl" : {
           "shape" : "__string",
@@ -1091,6 +1127,10 @@
           "shape" : "__string",
           "locationName" : "homePageUrl"
         },
+        "IsVerifiedAuthor" : {
+          "shape" : "__boolean",
+          "locationName" : "isVerifiedAuthor"
+        },
         "Labels" : {
           "shape" : "__listOf__string",
           "locationName" : "labels"
@@ -1110,6 +1150,10 @@
         "SpdxLicenseId" : {
           "shape" : "__string",
           "locationName" : "spdxLicenseId"
+        },
+        "VerifiedAuthorUrl" : {
+          "shape" : "__string",
+          "locationName" : "verifiedAuthorUrl"
         },
         "Version" : {
           "shape" : "Version",
@@ -1585,6 +1629,10 @@
           "shape" : "__string",
           "locationName" : "homePageUrl"
         },
+        "IsVerifiedAuthor" : {
+          "shape" : "__boolean",
+          "locationName" : "isVerifiedAuthor"
+        },
         "Labels" : {
           "shape" : "__listOf__string",
           "locationName" : "labels"
@@ -1604,6 +1652,10 @@
         "SpdxLicenseId" : {
           "shape" : "__string",
           "locationName" : "spdxLicenseId"
+        },
+        "VerifiedAuthorUrl" : {
+          "shape" : "__string",
+          "locationName" : "verifiedAuthorUrl"
         },
         "Version" : {
           "shape" : "Version",
@@ -1637,6 +1689,10 @@
         "SemanticVersion" : {
           "shape" : "__string",
           "locationName" : "semanticVersion"
+        },
+        "SourceCodeArchiveUrl" : {
+          "shape" : "__string",
+          "locationName" : "sourceCodeArchiveUrl"
         },
         "SourceCodeUrl" : {
           "shape" : "__string",

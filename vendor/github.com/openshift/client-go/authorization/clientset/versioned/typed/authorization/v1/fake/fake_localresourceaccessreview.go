@@ -3,7 +3,10 @@
 package fake
 
 import (
+	"context"
+
 	v1 "github.com/openshift/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	testing "k8s.io/client-go/testing"
 )
@@ -19,7 +22,7 @@ var localresourceaccessreviewsResource = schema.GroupVersionResource{Group: "aut
 var localresourceaccessreviewsKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "v1", Kind: "LocalResourceAccessReview"}
 
 // Create takes the representation of a localResourceAccessReview and creates it.  Returns the server's representation of the resourceAccessReviewResponse, and an error, if there is any.
-func (c *FakeLocalResourceAccessReviews) Create(localResourceAccessReview *v1.LocalResourceAccessReview) (result *v1.ResourceAccessReviewResponse, err error) {
+func (c *FakeLocalResourceAccessReviews) Create(ctx context.Context, localResourceAccessReview *v1.LocalResourceAccessReview, opts metav1.CreateOptions) (result *v1.ResourceAccessReviewResponse, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(localresourceaccessreviewsResource, c.ns, localResourceAccessReview), &v1.ResourceAccessReviewResponse{})
 

@@ -4,7 +4,6 @@
 # KEEP THIS FILE SORTED. Order is important. Last match takes precedence.
 
 builder/**                              @tonistiigi
-client/**                               @dnephin
 contrib/mkimage/**                      @tianon
 daemon/graphdriver/devmapper/**         @rhvgoyal 
 daemon/graphdriver/lcow/**              @johnstep @jhowardmsft
@@ -14,7 +13,5 @@ daemon/graphdriver/windows/**           @johnstep @jhowardmsft
 daemon/logger/awslogs/**                @samuelkarp  
 hack/**                                 @tianon
 hack/integration-cli-on-swarm/**        @AkihiroSuda
-integration-cli/**                      @vdemeester
-integration/**                          @vdemeester
 plugin/**                               @cpuguy83
 project/**                              @thaJeztah

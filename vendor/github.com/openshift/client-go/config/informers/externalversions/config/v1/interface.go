@@ -34,6 +34,8 @@ type Interface interface {
 	Networks() NetworkInformer
 	// OAuths returns a OAuthInformer.
 	OAuths() OAuthInformer
+	// OperatorHubs returns a OperatorHubInformer.
+	OperatorHubs() OperatorHubInformer
 	// Projects returns a ProjectInformer.
 	Projects() ProjectInformer
 	// Proxies returns a ProxyInformer.
@@ -116,6 +118,11 @@ func (v *version) Networks() NetworkInformer {
 // OAuths returns a OAuthInformer.
 func (v *version) OAuths() OAuthInformer {
 	return &oAuthInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// OperatorHubs returns a OperatorHubInformer.
+func (v *version) OperatorHubs() OperatorHubInformer {
+	return &operatorHubInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Projects returns a ProjectInformer.

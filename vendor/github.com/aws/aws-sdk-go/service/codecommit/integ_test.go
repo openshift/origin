@@ -27,7 +27,9 @@ func TestInteg_00_ListRepositories(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := codecommit.New(sess)
 	params := &codecommit.ListRepositoriesInput{}
-	_, err := svc.ListRepositoriesWithContext(ctx, params)
+	_, err := svc.ListRepositoriesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_ListBranches(t *testing.T) {
 	params := &codecommit.ListBranchesInput{
 		RepositoryName: aws.String("fake-repo"),
 	}
-	_, err := svc.ListBranchesWithContext(ctx, params)
+	_, err := svc.ListBranchesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

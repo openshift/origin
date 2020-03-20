@@ -1,13 +1,13 @@
 {
   "metadata" : {
     "apiVersion" : "2017-11-27",
-    "endpointPrefix": "mq",
+    "endpointPrefix" : "mq",
     "signingName" : "mq",
-    "serviceFullName": "AmazonMQ",
-    "serviceId": "mq",
+    "serviceFullName" : "AmazonMQ",
+    "serviceId" : "mq",
     "protocol" : "rest-json",
     "jsonVersion" : "1.1",
-    "uid": "mq-2017-11-27",
+    "uid" : "mq-2017-11-27",
     "signatureVersion" : "v4"
   },
   "operations" : {
@@ -56,31 +56,26 @@
       }, {
         "shape" : "ConflictException"
       }, {
-        "shape": "ForbiddenException"
-      }
-      ]
+        "shape" : "ForbiddenException"
+      } ]
     },
-    "CreateTags": {
-      "name": "CreateTags",
-      "http": {
-        "method": "POST",
-        "requestUri": "/v1/tags/{resource-arn}",
-        "responseCode": 204
+    "CreateTags" : {
+      "name" : "CreateTags",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/v1/tags/{resource-arn}",
+        "responseCode" : 204
       },
-      "input": {
-        "shape": "CreateTagsRequest"
+      "input" : {
+        "shape" : "CreateTagsRequest"
       },
-      "errors": [
-        {
-          "shape": "NotFoundException"
-        },
-        {
-          "shape": "BadRequestException"
-        },
-        {
-          "shape": "InternalServerErrorException"
-        },
-        {
+      "errors" : [ {
+        "shape" : "NotFoundException"
+      }, {
+        "shape" : "BadRequestException"
+      }, {
+        "shape" : "InternalServerErrorException"
+      }, {
         "shape" : "ForbiddenException"
       } ]
     },
@@ -122,30 +117,25 @@
       "output" : {
         "shape" : "DeleteBrokerResponse"
       },
-      "errors": [
-        {
-          "shape": "NotFoundException"
-        },
-        {
-          "shape": "BadRequestException"
-        },
-        {
-          "shape": "InternalServerErrorException"
-        },
-        {
-          "shape": "ForbiddenException"
-        }
-      ]
+      "errors" : [ {
+        "shape" : "NotFoundException"
+      }, {
+        "shape" : "BadRequestException"
+      }, {
+        "shape" : "InternalServerErrorException"
+      }, {
+        "shape" : "ForbiddenException"
+      } ]
     },
-    "DeleteTags": {
-      "name": "DeleteTags",
-      "http": {
-        "method": "DELETE",
-        "requestUri": "/v1/tags/{resource-arn}",
-        "responseCode": 204
+    "DeleteTags" : {
+      "name" : "DeleteTags",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/v1/tags/{resource-arn}",
+        "responseCode" : 204
       },
-      "input": {
-        "shape": "DeleteTagsRequest"
+      "input" : {
+        "shape" : "DeleteTagsRequest"
       },
       "errors" : [ {
         "shape" : "NotFoundException"
@@ -196,6 +186,48 @@
       "errors" : [ {
         "shape" : "NotFoundException"
       }, {
+        "shape" : "BadRequestException"
+      }, {
+        "shape" : "InternalServerErrorException"
+      }, {
+        "shape" : "ForbiddenException"
+      } ]
+    },
+    "DescribeBrokerEngineTypes" : {
+      "name" : "DescribeBrokerEngineTypes",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/v1/broker-engine-types",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "DescribeBrokerEngineTypesRequest"
+      },
+      "output" : {
+        "shape" : "DescribeBrokerEngineTypesResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException"
+      }, {
+        "shape" : "InternalServerErrorException"
+      }, {
+        "shape" : "ForbiddenException"
+      } ]
+    },
+    "DescribeBrokerInstanceOptions" : {
+      "name" : "DescribeBrokerInstanceOptions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/v1/broker-instance-options",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "DescribeBrokerInstanceOptionsRequest"
+      },
+      "output" : {
+        "shape" : "DescribeBrokerInstanceOptionsResponse"
+      },
+      "errors" : [ {
         "shape" : "BadRequestException"
       }, {
         "shape" : "InternalServerErrorException"
@@ -337,33 +369,28 @@
         "shape" : "ForbiddenException"
       } ]
     },
-    "ListTags": {
-      "name": "ListTags",
-      "http": {
-        "method": "GET",
-        "requestUri": "/v1/tags/{resource-arn}",
-        "responseCode": 200
+    "ListTags" : {
+      "name" : "ListTags",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/v1/tags/{resource-arn}",
+        "responseCode" : 200
       },
-      "input": {
-        "shape": "ListTagsRequest"
+      "input" : {
+        "shape" : "ListTagsRequest"
       },
-      "output": {
-        "shape": "ListTagsResponse"
+      "output" : {
+        "shape" : "ListTagsResponse"
       },
-      "errors": [
-        {
-          "shape": "NotFoundException"
-        },
-        {
-          "shape": "BadRequestException"
-        },
-        {
-          "shape": "InternalServerErrorException"
-        },
-        {
-          "shape": "ForbiddenException"
-        }
-      ]
+      "errors" : [ {
+        "shape" : "NotFoundException"
+      }, {
+        "shape" : "BadRequestException"
+      }, {
+        "shape" : "InternalServerErrorException"
+      }, {
+        "shape" : "ForbiddenException"
+      } ]
     },
     "ListUsers" : {
       "name" : "ListUsers",
@@ -488,6 +515,15 @@
     }
   },
   "shapes" : {
+    "AvailabilityZone" : {
+      "type" : "structure",
+      "members" : {
+        "Name" : {
+          "shape" : "__string",
+          "locationName" : "name"
+        }
+      }
+    },
     "BadRequestException" : {
       "type" : "structure",
       "members" : {
@@ -503,6 +539,36 @@
       "exception" : true,
       "error" : {
         "httpStatusCode" : 400
+      }
+    },
+    "BrokerEngineType" : {
+      "type" : "structure",
+      "members" : {
+        "EngineType" : {
+          "shape" : "EngineType",
+          "locationName" : "engineType"
+        },
+        "EngineVersions" : {
+          "shape" : "__listOfEngineVersion",
+          "locationName" : "engineVersions"
+        }
+      }
+    },
+    "BrokerEngineTypeOutput" : {
+      "type" : "structure",
+      "members" : {
+        "BrokerEngineTypes" : {
+          "shape" : "__listOfBrokerEngineType",
+          "locationName" : "brokerEngineTypes"
+        },
+        "MaxResults" : {
+          "shape" : "__integerMin5Max100",
+          "locationName" : "maxResults"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "locationName" : "nextToken"
+        }
       }
     },
     "BrokerInstance" : {
@@ -522,9 +588,59 @@
         }
       }
     },
+    "BrokerInstanceOption" : {
+      "type" : "structure",
+      "members" : {
+        "AvailabilityZones" : {
+          "shape" : "__listOfAvailabilityZone",
+          "locationName" : "availabilityZones"
+        },
+        "EngineType" : {
+          "shape" : "EngineType",
+          "locationName" : "engineType"
+        },
+        "HostInstanceType" : {
+          "shape" : "__string",
+          "locationName" : "hostInstanceType"
+        },
+        "StorageType" : {
+          "shape" : "BrokerStorageType",
+          "locationName" : "storageType"
+        },
+        "SupportedDeploymentModes" : {
+          "shape" : "__listOfDeploymentMode",
+          "locationName" : "supportedDeploymentModes"
+        },
+        "SupportedEngineVersions" : {
+          "shape" : "__listOf__string",
+          "locationName" : "supportedEngineVersions"
+        }
+      }
+    },
+    "BrokerInstanceOptionsOutput" : {
+      "type" : "structure",
+      "members" : {
+        "BrokerInstanceOptions" : {
+          "shape" : "__listOfBrokerInstanceOption",
+          "locationName" : "brokerInstanceOptions"
+        },
+        "MaxResults" : {
+          "shape" : "__integerMin5Max100",
+          "locationName" : "maxResults"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "locationName" : "nextToken"
+        }
+      }
+    },
     "BrokerState" : {
       "type" : "string",
       "enum" : [ "CREATION_IN_PROGRESS", "CREATION_FAILED", "DELETION_IN_PROGRESS", "RUNNING", "REBOOT_IN_PROGRESS" ]
+    },
+    "BrokerStorageType" : {
+      "type" : "string",
+      "enum" : [ "EBS", "EFS" ]
     },
     "BrokerSummary" : {
       "type" : "structure",
@@ -598,9 +714,9 @@
           "shape" : "__string",
           "locationName" : "name"
         },
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         }
       }
     },
@@ -692,6 +808,10 @@
           "shape" : "DeploymentMode",
           "locationName" : "deploymentMode"
         },
+        "EncryptionOptions" : {
+          "shape" : "EncryptionOptions",
+          "locationName" : "encryptionOptions"
+        },
         "EngineType" : {
           "shape" : "EngineType",
           "locationName" : "engineType"
@@ -720,13 +840,17 @@
           "shape" : "__listOf__string",
           "locationName" : "securityGroups"
         },
+        "StorageType" : {
+          "shape" : "BrokerStorageType",
+          "locationName" : "storageType"
+        },
         "SubnetIds" : {
           "shape" : "__listOf__string",
           "locationName" : "subnetIds"
         },
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         },
         "Users" : {
           "shape" : "__listOfUser",
@@ -771,6 +895,10 @@
           "shape" : "DeploymentMode",
           "locationName" : "deploymentMode"
         },
+        "EncryptionOptions" : {
+          "shape" : "EncryptionOptions",
+          "locationName" : "encryptionOptions"
+        },
         "EngineType" : {
           "shape" : "EngineType",
           "locationName" : "engineType"
@@ -799,13 +927,17 @@
           "shape" : "__listOf__string",
           "locationName" : "securityGroups"
         },
+        "StorageType" : {
+          "shape" : "BrokerStorageType",
+          "locationName" : "storageType"
+        },
         "SubnetIds" : {
           "shape" : "__listOf__string",
           "locationName" : "subnetIds"
         },
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         },
         "Users" : {
           "shape" : "__listOfUser",
@@ -841,9 +973,9 @@
           "shape" : "__string",
           "locationName" : "name"
         },
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         }
       }
     },
@@ -887,9 +1019,9 @@
           "shape" : "__string",
           "locationName" : "name"
         },
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         }
       }
     },
@@ -918,22 +1050,20 @@
         }
       }
     },
-    "CreateTagsRequest": {
-      "type": "structure",
-      "members": {
-        "ResourceArn": {
-          "shape": "__string",
-          "location": "uri",
-          "locationName": "resource-arn"
+    "CreateTagsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "ResourceArn" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "resource-arn"
         },
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         }
       },
-      "required": [
-        "ResourceArn"
-      ]
+      "required" : [ "ResourceArn" ]
     },
     "CreateUserInput" : {
       "type" : "structure",
@@ -1017,24 +1147,21 @@
         }
       }
     },
-    "DeleteTagsRequest": {
-      "type": "structure",
-      "members": {
-        "ResourceArn": {
-          "shape": "__string",
-          "location": "uri",
-          "locationName": "resource-arn"
+    "DeleteTagsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "ResourceArn" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "resource-arn"
         },
-        "TagKeys": {
-          "shape": "__listOf__string",
-          "location": "querystring",
-          "locationName": "tagKeys"
+        "TagKeys" : {
+          "shape" : "__listOf__string",
+          "location" : "querystring",
+          "locationName" : "tagKeys"
         }
       },
-      "required": [
-        "TagKeys",
-        "ResourceArn"
-      ]
+      "required" : [ "TagKeys", "ResourceArn" ]
     },
     "DeleteUserRequest" : {
       "type" : "structure",
@@ -1059,6 +1186,90 @@
     "DeploymentMode" : {
       "type" : "string",
       "enum" : [ "SINGLE_INSTANCE", "ACTIVE_STANDBY_MULTI_AZ" ]
+    },
+    "DescribeBrokerEngineTypesRequest" : {
+      "type" : "structure",
+      "members" : {
+        "EngineType" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "engineType"
+        },
+        "MaxResults" : {
+          "shape" : "MaxResults",
+          "location" : "querystring",
+          "locationName" : "maxResults"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "nextToken"
+        }
+      }
+    },
+    "DescribeBrokerEngineTypesResponse" : {
+      "type" : "structure",
+      "members" : {
+        "BrokerEngineTypes" : {
+          "shape" : "__listOfBrokerEngineType",
+          "locationName" : "brokerEngineTypes"
+        },
+        "MaxResults" : {
+          "shape" : "__integerMin5Max100",
+          "locationName" : "maxResults"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "locationName" : "nextToken"
+        }
+      }
+    },
+    "DescribeBrokerInstanceOptionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "EngineType" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "engineType"
+        },
+        "HostInstanceType" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "hostInstanceType"
+        },
+        "MaxResults" : {
+          "shape" : "MaxResults",
+          "location" : "querystring",
+          "locationName" : "maxResults"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "nextToken"
+        },
+        "StorageType" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "storageType"
+        }
+      }
+    },
+    "DescribeBrokerInstanceOptionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "BrokerInstanceOptions" : {
+          "shape" : "__listOfBrokerInstanceOption",
+          "locationName" : "brokerInstanceOptions"
+        },
+        "MaxResults" : {
+          "shape" : "__integerMin5Max100",
+          "locationName" : "maxResults"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "locationName" : "nextToken"
+        }
+      }
     },
     "DescribeBrokerOutput" : {
       "type" : "structure",
@@ -1099,6 +1310,10 @@
           "shape" : "DeploymentMode",
           "locationName" : "deploymentMode"
         },
+        "EncryptionOptions" : {
+          "shape" : "EncryptionOptions",
+          "locationName" : "encryptionOptions"
+        },
         "EngineType" : {
           "shape" : "EngineType",
           "locationName" : "engineType"
@@ -1123,6 +1338,14 @@
           "shape" : "__string",
           "locationName" : "pendingEngineVersion"
         },
+        "PendingHostInstanceType" : {
+          "shape" : "__string",
+          "locationName" : "pendingHostInstanceType"
+        },
+        "PendingSecurityGroups" : {
+          "shape" : "__listOf__string",
+          "locationName" : "pendingSecurityGroups"
+        },
         "PubliclyAccessible" : {
           "shape" : "__boolean",
           "locationName" : "publiclyAccessible"
@@ -1131,13 +1354,17 @@
           "shape" : "__listOf__string",
           "locationName" : "securityGroups"
         },
+        "StorageType" : {
+          "shape" : "BrokerStorageType",
+          "locationName" : "storageType"
+        },
         "SubnetIds" : {
           "shape" : "__listOf__string",
           "locationName" : "subnetIds"
         },
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         },
         "Users" : {
           "shape" : "__listOfUserSummary",
@@ -1195,6 +1422,10 @@
           "shape" : "DeploymentMode",
           "locationName" : "deploymentMode"
         },
+        "EncryptionOptions" : {
+          "shape" : "EncryptionOptions",
+          "locationName" : "encryptionOptions"
+        },
         "EngineType" : {
           "shape" : "EngineType",
           "locationName" : "engineType"
@@ -1219,6 +1450,14 @@
           "shape" : "__string",
           "locationName" : "pendingEngineVersion"
         },
+        "PendingHostInstanceType" : {
+          "shape" : "__string",
+          "locationName" : "pendingHostInstanceType"
+        },
+        "PendingSecurityGroups" : {
+          "shape" : "__listOf__string",
+          "locationName" : "pendingSecurityGroups"
+        },
         "PubliclyAccessible" : {
           "shape" : "__boolean",
           "locationName" : "publiclyAccessible"
@@ -1227,13 +1466,17 @@
           "shape" : "__listOf__string",
           "locationName" : "securityGroups"
         },
+        "StorageType" : {
+          "shape" : "BrokerStorageType",
+          "locationName" : "storageType"
+        },
         "SubnetIds" : {
           "shape" : "__listOf__string",
           "locationName" : "subnetIds"
         },
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         },
         "Users" : {
           "shape" : "__listOfUserSummary",
@@ -1287,9 +1530,9 @@
           "shape" : "__string",
           "locationName" : "name"
         },
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         }
       }
     },
@@ -1417,9 +1660,32 @@
         }
       }
     },
+    "EncryptionOptions" : {
+      "type" : "structure",
+      "members" : {
+        "KmsKeyId" : {
+          "shape" : "__string",
+          "locationName" : "kmsKeyId"
+        },
+        "UseAwsOwnedKey" : {
+          "shape" : "__boolean",
+          "locationName" : "useAwsOwnedKey"
+        }
+      },
+      "required" : [ "UseAwsOwnedKey" ]
+    },
     "EngineType" : {
       "type" : "string",
       "enum" : [ "ACTIVEMQ" ]
+    },
+    "EngineVersion" : {
+      "type" : "structure",
+      "members" : {
+        "Name" : {
+          "shape" : "__string",
+          "locationName" : "name"
+        }
+      }
     },
     "Error" : {
       "type" : "structure",
@@ -1621,25 +1887,23 @@
         }
       }
     },
-    "ListTagsRequest": {
-      "type": "structure",
-      "members": {
-        "ResourceArn": {
-          "shape": "__string",
-          "location": "uri",
-          "locationName": "resource-arn"
+    "ListTagsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "ResourceArn" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "resource-arn"
         }
       },
-      "required": [
-        "ResourceArn"
-      ]
+      "required" : [ "ResourceArn" ]
     },
-    "ListTagsResponse": {
-      "type": "structure",
-      "members": {
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+    "ListTagsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         }
       }
     },
@@ -1815,12 +2079,12 @@
       "type" : "string",
       "enum" : [ "DISALLOWED_ELEMENT_REMOVED", "DISALLOWED_ATTRIBUTE_REMOVED", "INVALID_ATTRIBUTE_VALUE_REMOVED" ]
     },
-    "Tags": {
-      "type": "structure",
-      "members": {
-        "Tags": {
-          "shape": "__mapOf__string",
-          "locationName": "tags"
+    "Tags" : {
+      "type" : "structure",
+      "members" : {
+        "Tags" : {
+          "shape" : "__mapOf__string",
+          "locationName" : "tags"
         }
       }
     },
@@ -1856,9 +2120,17 @@
           "shape" : "__string",
           "locationName" : "engineVersion"
         },
+        "HostInstanceType" : {
+          "shape" : "__string",
+          "locationName" : "hostInstanceType"
+        },
         "Logs" : {
           "shape" : "Logs",
           "locationName" : "logs"
+        },
+        "SecurityGroups" : {
+          "shape" : "__listOf__string",
+          "locationName" : "securityGroups"
         }
       }
     },
@@ -1881,9 +2153,17 @@
           "shape" : "__string",
           "locationName" : "engineVersion"
         },
+        "HostInstanceType" : {
+          "shape" : "__string",
+          "locationName" : "hostInstanceType"
+        },
         "Logs" : {
           "shape" : "Logs",
           "locationName" : "logs"
+        },
+        "SecurityGroups" : {
+          "shape" : "__listOf__string",
+          "locationName" : "securityGroups"
         }
       }
     },
@@ -1907,9 +2187,17 @@
           "shape" : "__string",
           "locationName" : "engineVersion"
         },
+        "HostInstanceType" : {
+          "shape" : "__string",
+          "locationName" : "hostInstanceType"
+        },
         "Logs" : {
           "shape" : "Logs",
           "locationName" : "logs"
+        },
+        "SecurityGroups" : {
+          "shape" : "__listOf__string",
+          "locationName" : "securityGroups"
         }
       },
       "required" : [ "BrokerId" ]
@@ -1933,9 +2221,17 @@
           "shape" : "__string",
           "locationName" : "engineVersion"
         },
+        "HostInstanceType" : {
+          "shape" : "__string",
+          "locationName" : "hostInstanceType"
+        },
         "Logs" : {
           "shape" : "Logs",
           "locationName" : "logs"
+        },
+        "SecurityGroups" : {
+          "shape" : "__listOf__string",
+          "locationName" : "securityGroups"
         }
       }
     },
@@ -2160,10 +2456,28 @@
       "min" : 5,
       "max" : 100
     },
+    "__listOfAvailabilityZone" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "AvailabilityZone"
+      }
+    },
+    "__listOfBrokerEngineType" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "BrokerEngineType"
+      }
+    },
     "__listOfBrokerInstance" : {
       "type" : "list",
       "member" : {
         "shape" : "BrokerInstance"
+      }
+    },
+    "__listOfBrokerInstanceOption" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "BrokerInstanceOption"
       }
     },
     "__listOfBrokerSummary" : {
@@ -2188,6 +2502,18 @@
       "type" : "list",
       "member" : {
         "shape" : "ConfigurationRevision"
+      }
+    },
+    "__listOfDeploymentMode" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "DeploymentMode"
+      }
+    },
+    "__listOfEngineVersion" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "EngineVersion"
       }
     },
     "__listOfSanitizationWarning" : {
@@ -2217,13 +2543,13 @@
     "__long" : {
       "type" : "long"
     },
-    "__mapOf__string": {
-      "type": "map",
-      "key": {
-        "shape": "__string"
+    "__mapOf__string" : {
+      "type" : "map",
+      "key" : {
+        "shape" : "__string"
       },
-      "value": {
-        "shape": "__string"
+      "value" : {
+        "shape" : "__string"
       }
     },
     "__string" : {
@@ -2236,6 +2562,16 @@
     "__timestampUnix" : {
       "type" : "timestamp",
       "timestampFormat" : "unixTimestamp"
+    }
+  },
+  "authorizers" : {
+    "authorization_strategy" : {
+      "name" : "authorization_strategy",
+      "type" : "provided",
+      "placement" : {
+        "location" : "header",
+        "name" : "Authorization"
+      }
     }
   }
 }

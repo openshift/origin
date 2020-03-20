@@ -436,7 +436,7 @@ func testDlahqr(t *testing.T, impl Dlahqrer, test dlahqrTest) {
 		uhu := eye(n, n)
 		blas64.Gemm(blas.Trans, blas.NoTrans, 1, z, hu, 0, uhu)
 		if !equalApproxGeneral(uhu, h, 10*tol) {
-			t.Errorf("%v: Z^T*(initial H)*Z and (final H) are not equal", prefix)
+			t.Errorf("%v: Zᵀ*(initial H)*Z and (final H) are not equal", prefix)
 		}
 	}
 }

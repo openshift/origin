@@ -70,12 +70,13 @@ func TestWishart(t *testing.T) {
 			}
 		}
 
-		ch := w.RandChol(nil)
-		w.RandChol(ch)
+		var ch mat.Cholesky
+		w.RandCholTo(&ch)
+		w.RandCholTo(&ch)
 
-		s := w.RandSym(nil)
-		w.RandSym(s)
-
+		var s mat.SymDense
+		w.RandSymTo(&s)
+		w.RandSymTo(&s)
 	}
 }
 
@@ -118,13 +119,14 @@ func TestWishartRand(t *testing.T) {
 		mean := mat.NewSymDense(dim, nil)
 		x := mat.NewSymDense(dim, nil)
 		for i := 0; i < test.samples; i++ {
-			w.RandSym(x)
+			w.RandSymTo(x)
 			x.ScaleSym(1/float64(test.samples), x)
 			mean.AddSym(mean, x)
 		}
-		trueMean := w.MeanSym(nil)
-		if !mat.EqualApprox(trueMean, mean, test.tol) {
-			t.Errorf("Case %d: Mismatch between estimated and true mean. Got\n%0.4v\nWant\n%0.4v\n", c, mat.Formatted(mean), mat.Formatted(trueMean))
+		var trueMean mat.SymDense
+		w.MeanSymTo(&trueMean)
+		if !mat.EqualApprox(&trueMean, mean, test.tol) {
+			t.Errorf("Case %d: Mismatch between estimated and true mean. Got\n%0.4v\nWant\n%0.4v\n", c, mat.Formatted(mean), mat.Formatted(&trueMean))
 		}
 	}
 }

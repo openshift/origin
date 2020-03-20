@@ -133,6 +133,8 @@
         {"shape":"DisabledException"},
         {"shape":"InvalidCiphertextException"},
         {"shape":"KeyUnavailableException"},
+        {"shape":"IncorrectKeyException"},
+        {"shape":"InvalidKeyUsageException"},
         {"shape":"DependencyTimeoutException"},
         {"shape":"InvalidGrantTokenException"},
         {"shape":"KMSInternalException"},
@@ -329,6 +331,44 @@
         {"shape":"KMSInvalidStateException"}
       ]
     },
+    "GenerateDataKeyPair":{
+      "name":"GenerateDataKeyPair",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GenerateDataKeyPairRequest"},
+      "output":{"shape":"GenerateDataKeyPairResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"DisabledException"},
+        {"shape":"KeyUnavailableException"},
+        {"shape":"DependencyTimeoutException"},
+        {"shape":"InvalidKeyUsageException"},
+        {"shape":"InvalidGrantTokenException"},
+        {"shape":"KMSInternalException"},
+        {"shape":"KMSInvalidStateException"}
+      ]
+    },
+    "GenerateDataKeyPairWithoutPlaintext":{
+      "name":"GenerateDataKeyPairWithoutPlaintext",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GenerateDataKeyPairWithoutPlaintextRequest"},
+      "output":{"shape":"GenerateDataKeyPairWithoutPlaintextResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"DisabledException"},
+        {"shape":"KeyUnavailableException"},
+        {"shape":"DependencyTimeoutException"},
+        {"shape":"InvalidKeyUsageException"},
+        {"shape":"InvalidGrantTokenException"},
+        {"shape":"KMSInternalException"},
+        {"shape":"KMSInvalidStateException"}
+      ]
+    },
     "GenerateDataKeyWithoutPlaintext":{
       "name":"GenerateDataKeyWithoutPlaintext",
       "http":{
@@ -409,6 +449,27 @@
         {"shape":"UnsupportedOperationException"},
         {"shape":"DependencyTimeoutException"},
         {"shape":"NotFoundException"},
+        {"shape":"KMSInternalException"},
+        {"shape":"KMSInvalidStateException"}
+      ]
+    },
+    "GetPublicKey":{
+      "name":"GetPublicKey",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetPublicKeyRequest"},
+      "output":{"shape":"GetPublicKeyResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"DisabledException"},
+        {"shape":"KeyUnavailableException"},
+        {"shape":"DependencyTimeoutException"},
+        {"shape":"UnsupportedOperationException"},
+        {"shape":"InvalidArnException"},
+        {"shape":"InvalidGrantTokenException"},
+        {"shape":"InvalidKeyUsageException"},
         {"shape":"KMSInternalException"},
         {"shape":"KMSInvalidStateException"}
       ]
@@ -559,6 +620,7 @@
         {"shape":"DisabledException"},
         {"shape":"InvalidCiphertextException"},
         {"shape":"KeyUnavailableException"},
+        {"shape":"IncorrectKeyException"},
         {"shape":"DependencyTimeoutException"},
         {"shape":"InvalidKeyUsageException"},
         {"shape":"InvalidGrantTokenException"},
@@ -611,6 +673,25 @@
         {"shape":"NotFoundException"},
         {"shape":"InvalidArnException"},
         {"shape":"DependencyTimeoutException"},
+        {"shape":"KMSInternalException"},
+        {"shape":"KMSInvalidStateException"}
+      ]
+    },
+    "Sign":{
+      "name":"Sign",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"SignRequest"},
+      "output":{"shape":"SignResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"DisabledException"},
+        {"shape":"KeyUnavailableException"},
+        {"shape":"DependencyTimeoutException"},
+        {"shape":"InvalidKeyUsageException"},
+        {"shape":"InvalidGrantTokenException"},
         {"shape":"KMSInternalException"},
         {"shape":"KMSInvalidStateException"}
       ]
@@ -670,6 +751,7 @@
       "output":{"shape":"UpdateCustomKeyStoreResponse"},
       "errors":[
         {"shape":"CustomKeyStoreNotFoundException"},
+        {"shape":"CustomKeyStoreNameInUseException"},
         {"shape":"CloudHsmClusterNotFoundException"},
         {"shape":"CloudHsmClusterNotRelatedException"},
         {"shape":"CustomKeyStoreInvalidStateException"},
@@ -691,6 +773,26 @@
         {"shape":"DependencyTimeoutException"},
         {"shape":"KMSInternalException"},
         {"shape":"KMSInvalidStateException"}
+      ]
+    },
+    "Verify":{
+      "name":"Verify",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"VerifyRequest"},
+      "output":{"shape":"VerifyResponse"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"DisabledException"},
+        {"shape":"KeyUnavailableException"},
+        {"shape":"DependencyTimeoutException"},
+        {"shape":"InvalidKeyUsageException"},
+        {"shape":"InvalidGrantTokenException"},
+        {"shape":"KMSInternalException"},
+        {"shape":"KMSInvalidStateException"},
+        {"shape":"KMSInvalidSignatureException"}
       ]
     }
   },
@@ -811,6 +913,7 @@
         "INVALID_CREDENTIALS",
         "CLUSTER_NOT_FOUND",
         "NETWORK_ERRORS",
+        "INTERNAL_ERROR",
         "INSUFFICIENT_CLOUDHSM_HSMS",
         "USER_LOCKED_OUT"
       ]
@@ -887,6 +990,7 @@
         "Policy":{"shape":"PolicyType"},
         "Description":{"shape":"DescriptionType"},
         "KeyUsage":{"shape":"KeyUsageType"},
+        "CustomerMasterKeySpec":{"shape":"CustomerMasterKeySpec"},
         "Origin":{"shape":"OriginType"},
         "CustomKeyStoreId":{"shape":"CustomKeyStoreIdType"},
         "BypassPolicyLockoutSafetyCheck":{"shape":"BooleanType"},
@@ -953,6 +1057,31 @@
         "CreationDate":{"shape":"DateType"}
       }
     },
+    "CustomerMasterKeySpec":{
+      "type":"string",
+      "enum":[
+        "RSA_2048",
+        "RSA_3072",
+        "RSA_4096",
+        "ECC_NIST_P256",
+        "ECC_NIST_P384",
+        "ECC_NIST_P521",
+        "ECC_SECG_P256K1",
+        "SYMMETRIC_DEFAULT"
+      ]
+    },
+    "DataKeyPairSpec":{
+      "type":"string",
+      "enum":[
+        "RSA_2048",
+        "RSA_3072",
+        "RSA_4096",
+        "ECC_NIST_P256",
+        "ECC_NIST_P384",
+        "ECC_NIST_P521",
+        "ECC_SECG_P256K1"
+      ]
+    },
     "DataKeySpec":{
       "type":"string",
       "enum":[
@@ -967,14 +1096,17 @@
       "members":{
         "CiphertextBlob":{"shape":"CiphertextType"},
         "EncryptionContext":{"shape":"EncryptionContextType"},
-        "GrantTokens":{"shape":"GrantTokenList"}
+        "GrantTokens":{"shape":"GrantTokenList"},
+        "KeyId":{"shape":"KeyIdType"},
+        "EncryptionAlgorithm":{"shape":"EncryptionAlgorithmSpec"}
       }
     },
     "DecryptResponse":{
       "type":"structure",
       "members":{
         "KeyId":{"shape":"KeyIdType"},
-        "Plaintext":{"shape":"PlaintextType"}
+        "Plaintext":{"shape":"PlaintextType"},
+        "EncryptionAlgorithm":{"shape":"EncryptionAlgorithmSpec"}
       }
     },
     "DeleteAliasRequest":{
@@ -1104,15 +1236,29 @@
         "KeyId":{"shape":"KeyIdType"},
         "Plaintext":{"shape":"PlaintextType"},
         "EncryptionContext":{"shape":"EncryptionContextType"},
-        "GrantTokens":{"shape":"GrantTokenList"}
+        "GrantTokens":{"shape":"GrantTokenList"},
+        "EncryptionAlgorithm":{"shape":"EncryptionAlgorithmSpec"}
       }
     },
     "EncryptResponse":{
       "type":"structure",
       "members":{
         "CiphertextBlob":{"shape":"CiphertextType"},
-        "KeyId":{"shape":"KeyIdType"}
+        "KeyId":{"shape":"KeyIdType"},
+        "EncryptionAlgorithm":{"shape":"EncryptionAlgorithmSpec"}
       }
+    },
+    "EncryptionAlgorithmSpec":{
+      "type":"string",
+      "enum":[
+        "SYMMETRIC_DEFAULT",
+        "RSAES_OAEP_SHA_1",
+        "RSAES_OAEP_SHA_256"
+      ]
+    },
+    "EncryptionAlgorithmSpecList":{
+      "type":"list",
+      "member":{"shape":"EncryptionAlgorithmSpec"}
     },
     "EncryptionContextKey":{"type":"string"},
     "EncryptionContextType":{
@@ -1135,6 +1281,51 @@
         "message":{"shape":"ErrorMessageType"}
       },
       "exception":true
+    },
+    "GenerateDataKeyPairRequest":{
+      "type":"structure",
+      "required":[
+        "KeyId",
+        "KeyPairSpec"
+      ],
+      "members":{
+        "EncryptionContext":{"shape":"EncryptionContextType"},
+        "KeyId":{"shape":"KeyIdType"},
+        "KeyPairSpec":{"shape":"DataKeyPairSpec"},
+        "GrantTokens":{"shape":"GrantTokenList"}
+      }
+    },
+    "GenerateDataKeyPairResponse":{
+      "type":"structure",
+      "members":{
+        "PrivateKeyCiphertextBlob":{"shape":"CiphertextType"},
+        "PrivateKeyPlaintext":{"shape":"PlaintextType"},
+        "PublicKey":{"shape":"PublicKeyType"},
+        "KeyId":{"shape":"KeyIdType"},
+        "KeyPairSpec":{"shape":"DataKeyPairSpec"}
+      }
+    },
+    "GenerateDataKeyPairWithoutPlaintextRequest":{
+      "type":"structure",
+      "required":[
+        "KeyId",
+        "KeyPairSpec"
+      ],
+      "members":{
+        "EncryptionContext":{"shape":"EncryptionContextType"},
+        "KeyId":{"shape":"KeyIdType"},
+        "KeyPairSpec":{"shape":"DataKeyPairSpec"},
+        "GrantTokens":{"shape":"GrantTokenList"}
+      }
+    },
+    "GenerateDataKeyPairWithoutPlaintextResponse":{
+      "type":"structure",
+      "members":{
+        "PrivateKeyCiphertextBlob":{"shape":"CiphertextType"},
+        "PublicKey":{"shape":"PublicKeyType"},
+        "KeyId":{"shape":"KeyIdType"},
+        "KeyPairSpec":{"shape":"DataKeyPairSpec"}
+      }
     },
     "GenerateDataKeyRequest":{
       "type":"structure",
@@ -1238,6 +1429,25 @@
         "ParametersValidTo":{"shape":"DateType"}
       }
     },
+    "GetPublicKeyRequest":{
+      "type":"structure",
+      "required":["KeyId"],
+      "members":{
+        "KeyId":{"shape":"KeyIdType"},
+        "GrantTokens":{"shape":"GrantTokenList"}
+      }
+    },
+    "GetPublicKeyResponse":{
+      "type":"structure",
+      "members":{
+        "KeyId":{"shape":"KeyIdType"},
+        "PublicKey":{"shape":"PublicKeyType"},
+        "CustomerMasterKeySpec":{"shape":"CustomerMasterKeySpec"},
+        "KeyUsage":{"shape":"KeyUsageType"},
+        "EncryptionAlgorithms":{"shape":"EncryptionAlgorithmSpecList"},
+        "SigningAlgorithms":{"shape":"SigningAlgorithmSpecList"}
+      }
+    },
     "GrantConstraints":{
       "type":"structure",
       "members":{
@@ -1283,9 +1493,14 @@
         "GenerateDataKeyWithoutPlaintext",
         "ReEncryptFrom",
         "ReEncryptTo",
+        "Sign",
+        "Verify",
+        "GetPublicKey",
         "CreateGrant",
         "RetireGrant",
-        "DescribeKey"
+        "DescribeKey",
+        "GenerateDataKeyPair",
+        "GenerateDataKeyPairWithoutPlaintext"
       ]
     },
     "GrantOperationList":{
@@ -1322,6 +1537,13 @@
       "type":"structure",
       "members":{
       }
+    },
+    "IncorrectKeyException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessageType"}
+      },
+      "exception":true
     },
     "IncorrectKeyMaterialException":{
       "type":"structure",
@@ -1401,6 +1623,13 @@
       "exception":true,
       "fault":true
     },
+    "KMSInvalidSignatureException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessageType"}
+      },
+      "exception":true
+    },
     "KMSInvalidStateException":{
       "type":"structure",
       "members":{
@@ -1449,7 +1678,10 @@
         "CustomKeyStoreId":{"shape":"CustomKeyStoreIdType"},
         "CloudHsmClusterId":{"shape":"CloudHsmClusterIdType"},
         "ExpirationModel":{"shape":"ExpirationModelType"},
-        "KeyManager":{"shape":"KeyManagerType"}
+        "KeyManager":{"shape":"KeyManagerType"},
+        "CustomerMasterKeySpec":{"shape":"CustomerMasterKeySpec"},
+        "EncryptionAlgorithms":{"shape":"EncryptionAlgorithmSpecList"},
+        "SigningAlgorithms":{"shape":"SigningAlgorithmSpecList"}
       }
     },
     "KeyState":{
@@ -1477,7 +1709,10 @@
     },
     "KeyUsageType":{
       "type":"string",
-      "enum":["ENCRYPT_DECRYPT"]
+      "enum":[
+        "SIGN_VERIFY",
+        "ENCRYPT_DECRYPT"
+      ]
     },
     "LimitExceededException":{
       "type":"structure",
@@ -1595,6 +1830,13 @@
       "min":1,
       "pattern":"[\\u0020-\\u00FF]*"
     },
+    "MessageType":{
+      "type":"string",
+      "enum":[
+        "RAW",
+        "DIGEST"
+      ]
+    },
     "NotFoundException":{
       "type":"structure",
       "members":{
@@ -1648,6 +1890,11 @@
       "min":1,
       "pattern":"^[\\w+=,.@:/-]+$"
     },
+    "PublicKeyType":{
+      "type":"blob",
+      "max":8192,
+      "min":1
+    },
     "PutKeyPolicyRequest":{
       "type":"structure",
       "required":[
@@ -1671,8 +1918,11 @@
       "members":{
         "CiphertextBlob":{"shape":"CiphertextType"},
         "SourceEncryptionContext":{"shape":"EncryptionContextType"},
+        "SourceKeyId":{"shape":"KeyIdType"},
         "DestinationKeyId":{"shape":"KeyIdType"},
         "DestinationEncryptionContext":{"shape":"EncryptionContextType"},
+        "SourceEncryptionAlgorithm":{"shape":"EncryptionAlgorithmSpec"},
+        "DestinationEncryptionAlgorithm":{"shape":"EncryptionAlgorithmSpec"},
         "GrantTokens":{"shape":"GrantTokenList"}
       }
     },
@@ -1681,7 +1931,9 @@
       "members":{
         "CiphertextBlob":{"shape":"CiphertextType"},
         "SourceKeyId":{"shape":"KeyIdType"},
-        "KeyId":{"shape":"KeyIdType"}
+        "KeyId":{"shape":"KeyIdType"},
+        "SourceEncryptionAlgorithm":{"shape":"EncryptionAlgorithmSpec"},
+        "DestinationEncryptionAlgorithm":{"shape":"EncryptionAlgorithmSpec"}
       }
     },
     "RetireGrantRequest":{
@@ -1717,6 +1969,47 @@
         "KeyId":{"shape":"KeyIdType"},
         "DeletionDate":{"shape":"DateType"}
       }
+    },
+    "SignRequest":{
+      "type":"structure",
+      "required":[
+        "KeyId",
+        "Message",
+        "SigningAlgorithm"
+      ],
+      "members":{
+        "KeyId":{"shape":"KeyIdType"},
+        "Message":{"shape":"PlaintextType"},
+        "MessageType":{"shape":"MessageType"},
+        "GrantTokens":{"shape":"GrantTokenList"},
+        "SigningAlgorithm":{"shape":"SigningAlgorithmSpec"}
+      }
+    },
+    "SignResponse":{
+      "type":"structure",
+      "members":{
+        "KeyId":{"shape":"KeyIdType"},
+        "Signature":{"shape":"CiphertextType"},
+        "SigningAlgorithm":{"shape":"SigningAlgorithmSpec"}
+      }
+    },
+    "SigningAlgorithmSpec":{
+      "type":"string",
+      "enum":[
+        "RSASSA_PSS_SHA_256",
+        "RSASSA_PSS_SHA_384",
+        "RSASSA_PSS_SHA_512",
+        "RSASSA_PKCS1_V1_5_SHA_256",
+        "RSASSA_PKCS1_V1_5_SHA_384",
+        "RSASSA_PKCS1_V1_5_SHA_512",
+        "ECDSA_SHA_256",
+        "ECDSA_SHA_384",
+        "ECDSA_SHA_512"
+      ]
+    },
+    "SigningAlgorithmSpecList":{
+      "type":"list",
+      "member":{"shape":"SigningAlgorithmSpec"}
     },
     "Tag":{
       "type":"structure",
@@ -1823,6 +2116,31 @@
       "members":{
         "KeyId":{"shape":"KeyIdType"},
         "Description":{"shape":"DescriptionType"}
+      }
+    },
+    "VerifyRequest":{
+      "type":"structure",
+      "required":[
+        "KeyId",
+        "Message",
+        "Signature",
+        "SigningAlgorithm"
+      ],
+      "members":{
+        "KeyId":{"shape":"KeyIdType"},
+        "Message":{"shape":"PlaintextType"},
+        "MessageType":{"shape":"MessageType"},
+        "Signature":{"shape":"CiphertextType"},
+        "SigningAlgorithm":{"shape":"SigningAlgorithmSpec"},
+        "GrantTokens":{"shape":"GrantTokenList"}
+      }
+    },
+    "VerifyResponse":{
+      "type":"structure",
+      "members":{
+        "KeyId":{"shape":"KeyIdType"},
+        "SignatureValid":{"shape":"BooleanType"},
+        "SigningAlgorithm":{"shape":"SigningAlgorithmSpec"}
       }
     },
     "WrappingKeySpec":{

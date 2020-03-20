@@ -302,7 +302,7 @@ func (o *InstallOptions) copyContent(ctx context.Context) error {
 
 	err := retry.RetryOnConnectionErrors(ctx, func(ctx context.Context) (bool, error) {
 		klog.Infof("Getting pod configmaps/%s -n %s", o.nameFor(o.PodConfigMapNamePrefix), o.Namespace)
-		podConfigMap, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(o.PodConfigMapNamePrefix), metav1.GetOptions{})
+		podConfigMap, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(ctx, o.nameFor(o.PodConfigMapNamePrefix), metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

@@ -17,11 +17,15 @@ limitations under the License.
 package upgrades
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+	clientset "k8s.io/client-go/kubernetes"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2edeploy "k8s.io/kubernetes/test/e2e/framework/deployment"
@@ -33,6 +37,9 @@ import (
 
 const (
 	deploymentName = "dp"
+	// poll is how often to poll pods, nodes and claims.
+	poll            = 2 * time.Second
+	pollLongTimeout = 5 * time.Minute
 )
 
 // TODO: Test that the deployment stays available during master (and maybe
@@ -60,7 +67,7 @@ func (t *DeploymentUpgradeTest) Setup(f *framework.Framework) {
 
 	ginkgo.By(fmt.Sprintf("Creating a deployment %q with 1 replica in namespace %q", deploymentName, ns))
 	d := e2edeploy.NewDeployment(deploymentName, int32(1), map[string]string{"test": "upgrade"}, "nginx", nginxImage, appsv1.RollingUpdateDeploymentStrategyType)
-	deployment, err := deploymentClient.Create(d)
+	deployment, err := deploymentClient.Create(context.TODO(), d, metav1.CreateOptions{})
 	framework.ExpectNoError(err)
 
 	ginkgo.By(fmt.Sprintf("Waiting deployment %q to complete", deploymentName))
@@ -69,7 +76,7 @@ func (t *DeploymentUpgradeTest) Setup(f *framework.Framework) {
 	ginkgo.By(fmt.Sprintf("Getting replicaset revision 1 of deployment %q", deploymentName))
 	rsSelector, err := metav1.LabelSelectorAsSelector(d.Spec.Selector)
 	framework.ExpectNoError(err)
-	rsList, err := rsClient.List(metav1.ListOptions{LabelSelector: rsSelector.String()})
+	rsList, err := rsClient.List(context.TODO(), metav1.ListOptions{LabelSelector: rsSelector.String()})
 	framework.ExpectNoError(err)
 	rss := rsList.Items
 	if len(rss) != 1 {
@@ -78,7 +85,7 @@ func (t *DeploymentUpgradeTest) Setup(f *framework.Framework) {
 	t.oldRSUID = rss[0].UID
 
 	ginkgo.By(fmt.Sprintf("Waiting for revision of the deployment %q to become 1", deploymentName))
-	framework.ExpectNoError(e2edeploy.WaitForDeploymentRevision(c, deployment, "1"))
+	framework.ExpectNoError(waitForDeploymentRevision(c, deployment, "1"))
 
 	// Trigger a new rollout so that we have some history.
 	ginkgo.By(fmt.Sprintf("Triggering a new rollout for deployment %q", deploymentName))
@@ -91,7 +98,7 @@ func (t *DeploymentUpgradeTest) Setup(f *framework.Framework) {
 	framework.ExpectNoError(e2edeploy.WaitForDeploymentComplete(c, deployment))
 
 	ginkgo.By(fmt.Sprintf("Getting replicasets revision 1 and 2 of deployment %q", deploymentName))
-	rsList, err = rsClient.List(metav1.ListOptions{LabelSelector: rsSelector.String()})
+	rsList, err = rsClient.List(context.TODO(), metav1.ListOptions{LabelSelector: rsSelector.String()})
 	framework.ExpectNoError(err)
 	rss = rsList.Items
 	if len(rss) != 2 {
@@ -109,7 +116,7 @@ func (t *DeploymentUpgradeTest) Setup(f *framework.Framework) {
 	}
 
 	ginkgo.By(fmt.Sprintf("Waiting for revision of the deployment %q to become 2", deploymentName))
-	framework.ExpectNoError(e2edeploy.WaitForDeploymentRevision(c, deployment, "2"))
+	framework.ExpectNoError(waitForDeploymentRevision(c, deployment, "2"))
 
 	t.oldDeploymentUID = deployment.UID
 }
@@ -125,7 +132,7 @@ func (t *DeploymentUpgradeTest) Test(f *framework.Framework, done <-chan struct{
 	deploymentClient := c.AppsV1().Deployments(ns)
 	rsClient := c.AppsV1().ReplicaSets(ns)
 
-	deployment, err := deploymentClient.Get(deploymentName, metav1.GetOptions{})
+	deployment, err := deploymentClient.Get(context.TODO(), deploymentName, metav1.GetOptions{})
 	framework.ExpectNoError(err)
 
 	ginkgo.By(fmt.Sprintf("Checking UID to verify deployment %q survives upgrade", deploymentName))
@@ -134,7 +141,7 @@ func (t *DeploymentUpgradeTest) Test(f *framework.Framework, done <-chan struct{
 	ginkgo.By(fmt.Sprintf("Verifying deployment %q does not create new replicasets", deploymentName))
 	rsSelector, err := metav1.LabelSelectorAsSelector(deployment.Spec.Selector)
 	framework.ExpectNoError(err)
-	rsList, err := rsClient.List(metav1.ListOptions{LabelSelector: rsSelector.String()})
+	rsList, err := rsClient.List(context.TODO(), metav1.ListOptions{LabelSelector: rsSelector.String()})
 	framework.ExpectNoError(err)
 	rss := rsList.Items
 	if len(rss) != 2 {
@@ -174,4 +181,20 @@ func (t *DeploymentUpgradeTest) Test(f *framework.Framework, done <-chan struct{
 // Teardown cleans up any remaining resources.
 func (t *DeploymentUpgradeTest) Teardown(f *framework.Framework) {
 	// rely on the namespace deletion to clean up everything
+}
+
+// waitForDeploymentRevision waits for becoming the target revision of a delopyment.
+func waitForDeploymentRevision(c clientset.Interface, d *appsv1.Deployment, targetRevision string) error {
+	err := wait.PollImmediate(poll, pollLongTimeout, func() (bool, error) {
+		deployment, err := c.AppsV1().Deployments(d.Namespace).Get(context.TODO(), d.Name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		revision := deployment.Annotations[deploymentutil.RevisionAnnotation]
+		return revision == targetRevision, nil
+	})
+	if err != nil {
+		return fmt.Errorf("error waiting for revision to become %q for deployment %q: %v", targetRevision, d.Name, err)
+	}
+	return nil
 }

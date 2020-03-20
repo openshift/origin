@@ -12,6 +12,7 @@ import (
 	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/tools/cache"
@@ -153,4 +154,35 @@ func (l *listerInformer) AddEventHandler(cache.ResourceEventHandler) {
 
 func (l *listerInformer) HasSynced() bool {
 	return l.cacheSynced()
+}
+
+// WithPrefix adds a prefix to the path the input observer would otherwise
+// observe into
+func WithPrefix(observer ObserveConfigFunc, prefix ...string) ObserveConfigFunc {
+	if len(prefix) == 0 {
+		return observer
+	}
+
+	return func(listers Listers, recorder events.Recorder, existingConfig map[string]interface{}) (map[string]interface{}, []error) {
+		errs := []error{}
+
+		nestedExistingConfig, _, err := unstructured.NestedMap(existingConfig, prefix...)
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		orig, observerErrs := observer(listers, recorder, nestedExistingConfig)
+		errs = append(errs, observerErrs...)
+
+		if orig == nil {
+			return nil, errs
+		}
+
+		ret := map[string]interface{}{}
+		if err := unstructured.SetNestedField(ret, orig, prefix...); err != nil {
+			errs = append(errs, err)
+		}
+		return ret, errs
+
+	}
 }

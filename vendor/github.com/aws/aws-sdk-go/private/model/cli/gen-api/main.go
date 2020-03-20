@@ -50,8 +50,13 @@ func main() {
 		"The `path` to generate service clients in to.",
 	)
 	flag.StringVar(&svcImportPath, "svc-import-path",
-		"github.com/aws/aws-sdk-go/service",
+		api.SDKImportRoot+"/service",
 		"The Go `import path` to generate client to be under.",
+	)
+	var ignoreUnsupportedAPIs bool
+	flag.BoolVar(&ignoreUnsupportedAPIs, "ignore-unsupported-apis",
+		true,
+		"Ignores API models that use unsupported features",
 	)
 	flag.Usage = usage
 	flag.Parse()
@@ -74,7 +79,12 @@ func main() {
 	}
 	modelPaths, _ = api.TrimModelServiceVersions(modelPaths)
 
-	apis, err := api.LoadAPIs(modelPaths, svcImportPath)
+	loader := api.Loader{
+		BaseImport:            svcImportPath,
+		IgnoreUnsupportedAPIs: ignoreUnsupportedAPIs,
+	}
+
+	apis, err := loader.Load(modelPaths)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "failed to load API models", err)
 		os.Exit(1)
@@ -283,7 +293,7 @@ func writeAPIErrorsFile(g *generateInfo) error {
 func writeAPIEventStreamTestFile(g *generateInfo) error {
 	return writeGoFile(filepath.Join(g.PackageDir, "eventstream_test.go"),
 		codeLayout,
-		"// +build go1.6\n",
+		"// +build go1.10\n",
 		g.API.PackageName(),
 		g.API.APIEventStreamTestGoCode(),
 	)

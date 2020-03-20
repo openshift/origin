@@ -406,14 +406,18 @@ queue:
 // key is a D* Lite priority queue key.
 type key [2]float64
 
+// badKey is a poisoned key. Testing for a bad key uses NaN inequality.
 var badKey = key{math.NaN(), math.NaN()}
+
+//nolint:staticcheck
+func (k key) isBadKey() bool { return k != k }
 
 // less returns whether k is less than other. From ISBN:0-262-51129-0 pp476-483:
 //
 //  k ≤ k' iff k₁ < k'₁ OR (k₁ == k'₁ AND k₂ ≤ k'₂)
 //
 func (k key) less(other key) bool {
-	if k != k || other != other {
+	if k.isBadKey() || other.isBadKey() {
 		panic("D* Lite: poisoned key")
 	}
 	return k[0] < other[0] || (k[0] == other[0] && k[1] < other[1])
