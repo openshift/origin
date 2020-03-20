@@ -178,6 +178,10 @@ func (l *Lifecycle) Admit(ctx context.Context, a admission.Attributes, o admissi
 		if namespace.Status.Phase != v1.NamespaceTerminating {
 			return nil
 		}
+		// allow an eviction within a terminating namespace
+		if namespace.Status.Phase == v1.NamespaceTerminating && a.GetKind().Kind == "Eviction" {
+			return nil
+		}
 
 		err := admission.NewForbidden(a, fmt.Errorf("unable to create new content in namespace %s because it is being terminated", a.GetNamespace()))
 		if apierr, ok := err.(*errors.StatusError); ok {
