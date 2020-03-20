@@ -65,7 +65,7 @@ var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
 		e2e.Logf("first master: %v", firstMaster)
 
 		e2e.Logf("Make etcd backup on first master")
-		expectSSH("sudo -i /bin/bash -x /usr/local/bin/etcd-snapshot-backup.sh /root/assets/backup", firstMaster)
+		expectSSH("sudo -i /bin/bash -x /usr/local/bin/cluster-backup.sh /root/assets/backup", firstMaster)
 		expectSSH("sudo -i /bin/bash -c '/bin/tar -xzf /root/assets/backup/snapshot* -C /root/assets/backup snapshot.db'", firstMaster)
 		expectSSH("sudo -i install -o core -g core /root/assets/backup/snapshot.db /tmp/snapshot.db", firstMaster)
 

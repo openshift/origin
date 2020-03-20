@@ -48528,9 +48528,9 @@ bastion_ssh "core@${FIRST_MASTER}" 'rm -rf /tmp/etcd/connstring && mapfile -t MA
 echo "Restore etcd cluster from snapshot"
 for master in "${MASTERS[@]}"
 do
-  echo "Running /usr/local/bin/etcd-snapshot-restore.sh on ${master}"
+  echo "Running /usr/local/bin/cluster-restore.sh on ${master}"
   bastion_ssh "core@${FIRST_MASTER}" "scp -o StrictHostKeyChecking=no /tmp/etcd/connstring core@${master}:/tmp/etcd_connstring"
-  bastion_ssh "core@${master}" 'sudo -i /bin/bash -x /usr/local/bin/etcd-snapshot-restore.sh /tmp/snapshot.db $(cat /tmp/etcd_connstring)'
+  bastion_ssh "core@${master}" 'sudo -i /bin/bash -x /usr/local/bin/cluster-restore.sh /tmp/snapshot.db $(cat /tmp/etcd_connstring)'
 done
 `)
 

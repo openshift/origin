@@ -136,9 +136,9 @@ var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
 				}
 
 				framework.Logf("Perform etcd backup on remaining machine %s (machine %s)", survivingNodeName, survivingMachineName)
-				expectSSH("sudo -i /bin/bash -c 'rm -f /root/assets/backup/snapshot*'; sudo -i /bin/bash -x /usr/local/bin/etcd-snapshot-backup.sh /root/assets/backup", survivingNode)
+				expectSSH("sudo -i /bin/bash -c 'rm -f /root/assets/backup/snapshot*'; sudo -i /bin/bash -x /usr/local/bin/cluster-backup.sh /root/assets/backup", survivingNode)
 				framework.Logf("Restore etcd on remaining node %s (machine %s)", survivingNodeName, survivingMachineName)
-				expectSSH(fmt.Sprintf("sudo -i /bin/bash -c '/bin/bash -x /usr/local/bin/etcd-snapshot-restore.sh /root/assets/backup/snapshot* %s'", etcdConnectionString), survivingNode)
+				expectSSH(fmt.Sprintf("sudo -i /bin/bash -c '/bin/bash -x /usr/local/bin/cluster-restore.sh /root/assets/backup/snapshot* %s'", etcdConnectionString), survivingNode)
 
 				framework.Logf("Wait for API server to come up")
 				time.Sleep(30 * time.Second)
