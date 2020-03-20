@@ -251,7 +251,7 @@ func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
 		return fn()
 	}
 
-	f, err := os.OpenFile(opt.OutFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0640)
+	f, err := os.OpenFile(opt.OutFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0640)
 	if err != nil {
 		return err
 	}
