@@ -1,9 +1,9 @@
 package scopeauthorizer
 
 import (
+	"context"
 	"strings"
 	"testing"
-	"context"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"

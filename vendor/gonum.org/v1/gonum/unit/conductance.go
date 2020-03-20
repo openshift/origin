@@ -16,29 +16,7 @@ import (
 // Conductance represents an electrical conductance in Siemens.
 type Conductance float64
 
-const (
-	Yottasiemens Conductance = 1e24
-	Zettasiemens Conductance = 1e21
-	Exasiemens   Conductance = 1e18
-	Petasiemens  Conductance = 1e15
-	Terasiemens  Conductance = 1e12
-	Gigasiemens  Conductance = 1e9
-	Megasiemens  Conductance = 1e6
-	Kilosiemens  Conductance = 1e3
-	Hectosiemens Conductance = 1e2
-	Decasiemens  Conductance = 1e1
-	Siemens      Conductance = 1.0
-	Decisiemens  Conductance = 1e-1
-	Centisiemens Conductance = 1e-2
-	Millisiemens Conductance = 1e-3
-	Microsiemens Conductance = 1e-6
-	Nanosiemens  Conductance = 1e-9
-	Picosiemens  Conductance = 1e-12
-	Femtosiemens Conductance = 1e-15
-	Attosiemens  Conductance = 1e-18
-	Zeptosiemens Conductance = 1e-21
-	Yoctosiemens Conductance = 1e-24
-)
+const Siemens Conductance = 1
 
 // Unit converts the Conductance to a *Unit
 func (co Conductance) Unit() *Unit {

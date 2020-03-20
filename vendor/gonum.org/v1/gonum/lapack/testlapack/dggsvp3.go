@@ -122,25 +122,25 @@ func Dggsvp3Test(t *testing.T, impl Dggsvp3er) {
 
 		zeroA, zeroB := constructGSVPresults(n, p, m, k, l, a, b)
 
-		// Check U^T*A*Q = [ 0 RA ].
+		// Check Uᵀ*A*Q = [ 0 RA ].
 		uTmp := nanGeneral(m, n, n)
 		blas64.Gemm(blas.Trans, blas.NoTrans, 1, u, aCopy, 0, uTmp)
 		uAns := nanGeneral(m, n, n)
 		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, uTmp, q, 0, uAns)
 
 		if !equalApproxGeneral(uAns, zeroA, 1e-14) {
-			t.Errorf("test %d: U^T*A*Q != [ 0 RA ]\nU^T*A*Q:\n%+v\n[ 0 RA ]:\n%+v",
+			t.Errorf("test %d: Uᵀ*A*Q != [ 0 RA ]\nUᵀ*A*Q:\n%+v\n[ 0 RA ]:\n%+v",
 				cas, uAns, zeroA)
 		}
 
-		// Check V^T*B*Q = [ 0 RB ].
+		// Check Vᵀ*B*Q = [ 0 RB ].
 		vTmp := nanGeneral(p, n, n)
 		blas64.Gemm(blas.Trans, blas.NoTrans, 1, v, bCopy, 0, vTmp)
 		vAns := nanGeneral(p, n, n)
 		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, vTmp, q, 0, vAns)
 
 		if !equalApproxGeneral(vAns, zeroB, 1e-14) {
-			t.Errorf("test %d: V^T*B*Q != [ 0 RB ]\nV^T*B*Q:\n%+v\n[ 0 RB ]:\n%+v",
+			t.Errorf("test %d: Vᵀ*B*Q != [ 0 RB ]\nVᵀ*B*Q:\n%+v\n[ 0 RB ]:\n%+v",
 				cas, vAns, zeroB)
 		}
 	}

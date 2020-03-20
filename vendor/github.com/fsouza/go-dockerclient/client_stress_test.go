@@ -36,7 +36,7 @@ func TestClientDoConcurrentStress(t *testing.T) {
 		defer cleanup()
 		nativeSrvs = append(nativeSrvs, srv)
 	}
-	var tests = []struct {
+	tests := []struct {
 		testCase      string
 		srv           *httptest.Server
 		scheme        string
@@ -52,6 +52,7 @@ func TestClientDoConcurrentStress(t *testing.T) {
 		{testCase: "native with client-only tls", srv: nativeSrvs[2], scheme: nativeProtocol, withTLSServer: false, withTLSClient: nativeProtocol == unixProtocol}, // TLS client only works with unix protocol
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.testCase, func(t *testing.T) {
 			reqs = nil
 			var client *Client
@@ -89,17 +90,17 @@ func TestClientDoConcurrentStress(t *testing.T) {
 			waiters := make(chan CloseWaiter, n)
 			for i := 0; i < n; i++ {
 				path := fmt.Sprintf("/%05d", i)
-				paths = append(paths, "GET"+path)
-				paths = append(paths, "POST"+path)
+				paths = append(paths, http.MethodGet+path)
+				paths = append(paths, http.MethodPost+path)
 				paths = append(paths, "HEAD"+path)
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					_, clientErr := client.do("GET", path, doOptions{})
+					_, clientErr := client.do(http.MethodGet, path, doOptions{})
 					if clientErr != nil {
 						errsCh <- clientErr
 					}
-					clientErr = client.stream("POST", path, streamOptions{})
+					clientErr = client.stream(http.MethodPost, path, streamOptions{})
 					if clientErr != nil {
 						errsCh <- clientErr
 					}

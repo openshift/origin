@@ -18,6 +18,7 @@ package fuzz
 
 import (
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -469,4 +470,37 @@ func TestFuzz_Maxdepth(t *testing.T) {
 			t.Errorf("Expected obj.S.S.S nil")
 		}
 	}
+}
+
+func TestFuzz_SkipPattern(t *testing.T) {
+	obj := &struct {
+		S1    string
+		S2    string
+		XXX_S string
+		S_XXX string
+		In    struct {
+			Str    string
+			XXX_S1 string
+			S2_XXX string
+		}
+	}{}
+
+	f := New().NilChance(0).SkipFieldsWithPattern(regexp.MustCompile(`^XXX_`))
+	f.Fuzz(obj)
+
+	tryFuzz(t, f, obj, func() (int, bool) {
+		if obj.XXX_S != "" {
+			return 1, false
+		}
+		if obj.S_XXX == "" {
+			return 2, false
+		}
+		if obj.In.XXX_S1 != "" {
+			return 3, false
+		}
+		if obj.In.S2_XXX == "" {
+			return 4, false
+		}
+		return 5, true
+	})
 }

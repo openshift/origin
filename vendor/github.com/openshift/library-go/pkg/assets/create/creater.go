@@ -171,7 +171,7 @@ func create(ctx context.Context, manifests map[string]*unstructured.Unstructured
 		}
 		resourceString := mappings.Resource.Resource + "." + mappings.Resource.Version + "." + mappings.Resource.Group + "/" + manifests[path].GetName() + " -n " + manifests[path].GetNamespace()
 
-		incluster, err := resource.Create(manifests[path], metav1.CreateOptions{})
+		incluster, err := resource.Create(ctx, manifests[path], metav1.CreateOptions{})
 
 		if err == nil && options.Verbose {
 			fmt.Fprintf(options.StdErr, "Created %q %s\n", path, resourceString)
@@ -183,7 +183,7 @@ func create(ctx context.Context, manifests map[string]*unstructured.Unstructured
 			if options.Verbose {
 				fmt.Fprintf(options.StdErr, "Skipped %q %s as it already exists\n", path, resourceString)
 			}
-			incluster, err = resource.Get(manifests[path].GetName(), metav1.GetOptions{})
+			incluster, err = resource.Get(ctx, manifests[path].GetName(), metav1.GetOptions{})
 			if err != nil {
 				if options.Verbose {
 					fmt.Fprintf(options.StdErr, "Failed to get already existing %q %s: %v\n", path, resourceString, err)
@@ -205,7 +205,7 @@ func create(ctx context.Context, manifests map[string]*unstructured.Unstructured
 			_, found := incluster.Object["status"]
 			if !found {
 				incluster.Object["status"] = manifests[path].Object["status"]
-				incluster, err = resource.UpdateStatus(incluster, metav1.UpdateOptions{})
+				incluster, err = resource.UpdateStatus(ctx, incluster, metav1.UpdateOptions{})
 				if err != nil && !kerrors.IsNotFound(err) {
 					if options.Verbose {
 						fmt.Fprintf(options.StdErr, "Failed to update status for the %q %s: %v\n", path, resourceString, err)

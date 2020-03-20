@@ -1,6 +1,7 @@
 package awstesting
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil"
 )
 
 // Match is a testing helper to test for testing error by comparing expected
@@ -112,16 +115,24 @@ func AssertJSON(t *testing.T, expect, actual string, msgAndArgs ...interface{}) 
 }
 
 // AssertXML verifies that the expect xml string matches the actual.
-func AssertXML(t *testing.T, expect, actual string, container interface{}, msgAndArgs ...interface{}) bool {
-	expectVal := container
-	if err := xml.Unmarshal([]byte(expect), &expectVal); err != nil {
-		t.Errorf(errMsg("unable to parse expected XML", err, msgAndArgs...))
+// Elements in actual must match the order they appear in expect to match equally
+func AssertXML(t *testing.T, expect, actual string, msgAndArgs ...interface{}) bool {
+	buffer := bytes.NewReader([]byte(expect))
+	decoder := xml.NewDecoder(buffer)
+
+	expectVal, err := xmlutil.XMLToStruct(decoder, nil)
+	if err != nil {
+		t.Fatalf("failed to umarshal xml to struct: %v", err)
 	}
 
-	actualVal := container
-	if err := xml.Unmarshal([]byte(actual), &actualVal); err != nil {
-		t.Errorf(errMsg("unable to parse actual XML", err, msgAndArgs...))
+	buffer = bytes.NewReader([]byte(actual))
+	decoder = xml.NewDecoder(buffer)
+
+	actualVal, err := xmlutil.XMLToStruct(decoder, nil)
+	if err != nil {
+		t.Fatalf("failed to umarshal xml to struct: %v", err)
 	}
+
 	return equal(t, expectVal, actualVal, msgAndArgs...)
 }
 

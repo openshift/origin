@@ -2,6 +2,7 @@ package s3manager_test
 
 import (
 	"bytes"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -20,7 +21,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/awstesting"
 	"github.com/aws/aws-sdk-go/awstesting/unit"
+	"github.com/aws/aws-sdk-go/internal/sdkio"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/internal/s3testing"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
@@ -88,7 +91,7 @@ func dlLoggingSvcNoChunk(data []byte) (*s3.S3, *[]string) {
 func dlLoggingSvcNoContentRangeLength(data []byte, states []int) (*s3.S3, *[]string) {
 	var m sync.Mutex
 	names := []string{}
-	var index int = 0
+	var index int
 
 	svc := s3.New(unit.Session)
 	svc.Handlers.Send.Clear()
@@ -98,9 +101,19 @@ func dlLoggingSvcNoContentRangeLength(data []byte, states []int) (*s3.S3, *[]str
 
 		names = append(names, r.Operation.Name)
 
+		var body io.Reader
+		if states[index] < 400 {
+			body = bytes.NewReader(data[:])
+		} else {
+			var buffer bytes.Buffer
+			encoder := xml.NewEncoder(&buffer)
+			_ = encoder.Encode(&mockErrorResponse)
+			body = &buffer
+		}
+
 		r.HTTPResponse = &http.Response{
 			StatusCode: states[index],
-			Body:       ioutil.NopCloser(bytes.NewReader(data[:])),
+			Body:       ioutil.NopCloser(body),
 			Header:     http.Header{},
 		}
 		index++
@@ -113,7 +126,7 @@ func dlLoggingSvcContentRangeTotalAny(data []byte, states []int) (*s3.S3, *[]str
 	var m sync.Mutex
 	names := []string{}
 	ranges := []string{}
-	var index int = 0
+	var index int
 
 	svc := s3.New(unit.Session)
 	svc.Handlers.Send.Clear()
@@ -159,7 +172,7 @@ func dlLoggingSvcContentRangeTotalAny(data []byte, states []int) (*s3.S3, *[]str
 func dlLoggingSvcWithErrReader(cases []testErrReader) (*s3.S3, *[]string) {
 	var m sync.Mutex
 	names := []string{}
-	var index int = 0
+	var index int
 
 	svc := s3.New(unit.Session, &aws.Config{
 		MaxRetries: aws.Int(len(cases) - 1),
@@ -193,7 +206,8 @@ func TestDownloadOrder(t *testing.T) {
 	d := s3manager.NewDownloaderWithClient(s, func(d *s3manager.Downloader) {
 		d.Concurrency = 1
 	})
-	w := &aws.WriteAtBuffer{}
+
+	w := aws.NewWriteAtBuffer(make([]byte, len(buf12MB)))
 	n, err := d.Download(w, &s3.GetObjectInput{
 		Bucket: aws.String("bucket"),
 		Key:    aws.String("key"),
@@ -214,14 +228,6 @@ func TestDownloadOrder(t *testing.T) {
 	expectRngs := []string{"bytes=0-5242879", "bytes=5242880-10485759", "bytes=10485760-15728639"}
 	if e, a := expectRngs, *ranges; !reflect.DeepEqual(e, a) {
 		t.Errorf("expect %v ranges, got %v", e, a)
-	}
-
-	count := 0
-	for _, b := range w.Bytes() {
-		count += int(b)
-	}
-	if count != 0 {
-		t.Errorf("expect 0 count, got %d", count)
 	}
 }
 
@@ -642,6 +648,72 @@ func TestDownload_WithFailure(t *testing.T) {
 	}
 }
 
+func TestDownloadBufferStrategy(t *testing.T) {
+	cases := map[string]struct {
+		partSize     int64
+		strategy     *recordedWriterReadFromProvider
+		expectedSize int64
+	}{
+		"no strategy": {
+			partSize:     s3manager.DefaultDownloadPartSize,
+			expectedSize: 10 * sdkio.MebiByte,
+		},
+		"partSize modulo bufferSize == 0": {
+			partSize: 5 * sdkio.MebiByte,
+			strategy: &recordedWriterReadFromProvider{
+				WriterReadFromProvider: s3manager.NewPooledBufferedWriterReadFromProvider(int(sdkio.MebiByte)), // 1 MiB
+			},
+			expectedSize: 10 * sdkio.MebiByte, // 10 MiB
+		},
+		"partSize modulo bufferSize > 0": {
+			partSize: 5 * 1024 * 1204, // 5 MiB
+			strategy: &recordedWriterReadFromProvider{
+				WriterReadFromProvider: s3manager.NewPooledBufferedWriterReadFromProvider(2 * int(sdkio.MebiByte)), // 2 MiB
+			},
+			expectedSize: 10 * sdkio.MebiByte, // 10 MiB
+		},
+	}
+
+	for name, tCase := range cases {
+		t.Logf("starting case: %v", name)
+
+		expected := s3testing.GetTestBytes(int(tCase.expectedSize))
+
+		svc, _, _ := dlLoggingSvc(expected)
+
+		d := s3manager.NewDownloaderWithClient(svc, func(d *s3manager.Downloader) {
+			d.PartSize = tCase.partSize
+			if tCase.strategy != nil {
+				d.BufferProvider = tCase.strategy
+			}
+		})
+
+		buffer := aws.NewWriteAtBuffer(make([]byte, len(expected)))
+
+		n, err := d.Download(buffer, &s3.GetObjectInput{
+			Bucket: aws.String("bucket"),
+			Key:    aws.String("key"),
+		})
+		if err != nil {
+			t.Errorf("failed to download: %v", err)
+		}
+
+		if e, a := len(expected), int(n); e != a {
+			t.Errorf("expected %v, got %v downloaded bytes", e, a)
+		}
+
+		if e, a := expected, buffer.Bytes(); !bytes.Equal(e, a) {
+			t.Errorf("downloaded bytes did not match expected")
+		}
+
+		if tCase.strategy != nil {
+			if e, a := tCase.strategy.callbacksVended, tCase.strategy.callbacksExecuted; e != a {
+				t.Errorf("expected %v, got %v", e, a)
+			}
+		}
+	}
+}
+
 type testErrReader struct {
 	Buf []byte
 	Err error
@@ -662,4 +734,109 @@ func (r *testErrReader) Read(p []byte) (int, error) {
 	}
 
 	return n, nil
+}
+
+func TestDownloadBufferStrategy_Errors(t *testing.T) {
+	expected := s3testing.GetTestBytes(int(10 * sdkio.MebiByte))
+
+	svc, _, _ := dlLoggingSvc(expected)
+	strat := &recordedWriterReadFromProvider{
+		WriterReadFromProvider: s3manager.NewPooledBufferedWriterReadFromProvider(int(2 * sdkio.MebiByte)),
+	}
+
+	d := s3manager.NewDownloaderWithClient(svc, func(d *s3manager.Downloader) {
+		d.PartSize = 5 * sdkio.MebiByte
+		d.BufferProvider = strat
+		d.Concurrency = 1
+	})
+
+	seenOps := make(map[string]struct{})
+	svc.Handlers.Send.PushFront(func(*request.Request) {})
+	svc.Handlers.Send.AfterEachFn = func(item request.HandlerListRunItem) bool {
+		r := item.Request
+
+		if r.Operation.Name != "GetObject" {
+			return true
+		}
+
+		input := r.Params.(*s3.GetObjectInput)
+
+		fingerPrint := fmt.Sprintf("%s/%s/%s/%s", r.Operation.Name, *input.Bucket, *input.Key, *input.Range)
+		if _, ok := seenOps[fingerPrint]; ok {
+			return true
+		}
+		seenOps[fingerPrint] = struct{}{}
+
+		regex := regexp.MustCompile(`bytes=(\d+)-(\d+)`)
+		rng := regex.FindStringSubmatch(*input.Range)
+		start, _ := strconv.ParseInt(rng[1], 10, 64)
+		fin, _ := strconv.ParseInt(rng[2], 10, 64)
+
+		_, _ = io.Copy(ioutil.Discard, r.Body)
+		r.HTTPResponse = &http.Response{
+			StatusCode:    200,
+			Body:          aws.ReadSeekCloser(&badReader{err: io.ErrUnexpectedEOF}),
+			ContentLength: fin - start,
+		}
+
+		return false
+	}
+
+	buffer := aws.NewWriteAtBuffer(make([]byte, len(expected)))
+
+	n, err := d.Download(buffer, &s3.GetObjectInput{
+		Bucket: aws.String("bucket"),
+		Key:    aws.String("key"),
+	})
+	if err != nil {
+		t.Errorf("failed to download: %v", err)
+	}
+
+	if e, a := len(expected), int(n); e != a {
+		t.Errorf("expected %v, got %v downloaded bytes", e, a)
+	}
+
+	if e, a := expected, buffer.Bytes(); !bytes.Equal(e, a) {
+		t.Errorf("downloaded bytes did not match expected")
+	}
+
+	if e, a := strat.callbacksVended, strat.callbacksExecuted; e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
+type recordedWriterReadFromProvider struct {
+	callbacksVended   uint32
+	callbacksExecuted uint32
+	s3manager.WriterReadFromProvider
+}
+
+func (r *recordedWriterReadFromProvider) GetReadFrom(writer io.Writer) (s3manager.WriterReadFrom, func()) {
+	w, cleanup := r.WriterReadFromProvider.GetReadFrom(writer)
+
+	atomic.AddUint32(&r.callbacksVended, 1)
+	return w, func() {
+		atomic.AddUint32(&r.callbacksExecuted, 1)
+		cleanup()
+	}
+}
+
+type badReader struct {
+	err error
+}
+
+func (b *badReader) Read(p []byte) (int, error) {
+	tb := s3testing.GetTestBytes(len(p))
+	copy(p, tb)
+
+	return len(p), b.err
+}
+
+var mockErrorResponse = struct {
+	XMLName xml.Name `xml:"Error"`
+	Code    string   `xml:"Code"`
+	Message string   `xml:"Message"`
+}{
+	Code:    "MOCK_S3_ERROR_CODE",
+	Message: "Mocked S3 Error Message",
 }

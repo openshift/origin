@@ -510,7 +510,7 @@ func constructH(tau []float64, v blas64.General, store lapack.StoreV, direct lap
 		for i := 0; i < m; i++ {
 			hi.Data[i*m+i] = 1
 		}
-		// hi = I - tau * v * v^T
+		// hi = I - tau * v * vᵀ
 		blas64.Ger(-tau[i], vec, vec, hi)
 
 		hcopy := blas64.General{
@@ -613,7 +613,7 @@ func constructQK(kind string, m, n, k int, a []float64, lda int, tau []float64) 
 // decomposition) is input in aCopy.
 //
 // checkBidiagonal constructs the V and U matrices, and from them constructs Q
-// and P. Using these constructions, it checks that Q^T * A * P and checks that
+// and P. Using these constructions, it checks that Qᵀ * A * P and checks that
 // the result is bidiagonal.
 func checkBidiagonal(t *testing.T, m, n, nb int, a []float64, lda int, d, e, tauP, tauQ, aCopy []float64) {
 	// Check the answer.
@@ -621,7 +621,7 @@ func checkBidiagonal(t *testing.T, m, n, nb int, a []float64, lda int, d, e, tau
 	qMat := constructQPBidiagonal(lapack.ApplyQ, m, n, nb, a, lda, tauQ)
 	pMat := constructQPBidiagonal(lapack.ApplyP, m, n, nb, a, lda, tauP)
 
-	// Compute Q^T * A * P.
+	// Compute Qᵀ * A * P.
 	aMat := blas64.General{
 		Rows:   m,
 		Cols:   n,
@@ -1030,101 +1030,53 @@ func equalApproxSymmetric(a, b blas64.Symmetric, tol float64) bool {
 	return true
 }
 
-// randSymBand creates a random symmetric banded matrix, and returns both the
-// random matrix and the equivalent Symmetric matrix for testing. rnder
-// specifies the random number
-func randSymBand(ul blas.Uplo, n, ldab, kb int, rnd *rand.Rand) (blas64.Symmetric, blas64.SymmetricBand) {
-	// A matrix is positive definite if and only if it has a Cholesky
-	// decomposition. Generate a random banded lower triangular matrix
-	// to construct the random symmetric matrix.
-	a := make([]float64, n*n)
-	for i := 0; i < n; i++ {
-		for j := max(0, i-kb); j <= i; j++ {
-			a[i*n+j] = rnd.NormFloat64()
+// randSymBand returns an n×n random symmetric positive definite band matrix
+// with kd diagonals.
+func randSymBand(uplo blas.Uplo, n, kd, ldab int, rnd *rand.Rand) []float64 {
+	// Allocate a triangular band matrix U or L and fill it with random numbers.
+	var ab []float64
+	if n > 0 {
+		ab = make([]float64, (n-1)*ldab+kd+1)
+	}
+	for i := range ab {
+		ab[i] = rnd.NormFloat64()
+	}
+	// Make sure that the matrix U or L has a sufficiently positive diagonal.
+	switch uplo {
+	case blas.Upper:
+		for i := 0; i < n; i++ {
+			ab[i*ldab] = float64(n) + rnd.Float64()
 		}
-		a[i*n+i] = math.Abs(a[i*n+i])
-		// Add an extra amound to the diagonal in order to improve the condition number.
-		a[i*n+i] += 1.5 * rnd.Float64()
+	case blas.Lower:
+		for i := 0; i < n; i++ {
+			ab[i*ldab+kd] = float64(n) + rnd.Float64()
+		}
 	}
-	agen := blas64.General{
-		Rows:   n,
-		Cols:   n,
-		Stride: n,
-		Data:   a,
-	}
-
-	// Construct the SymDense from a*a^T
-	c := make([]float64, n*n)
-	cgen := blas64.General{
-		Rows:   n,
-		Cols:   n,
-		Stride: n,
-		Data:   c,
-	}
-	blas64.Gemm(blas.NoTrans, blas.Trans, 1, agen, agen, 0, cgen)
-	sym := blas64.Symmetric{
-		N:      n,
-		Stride: n,
-		Data:   c,
-		Uplo:   ul,
-	}
-
-	b := symToSymBand(ul, c, n, n, kb, ldab)
-	band := blas64.SymmetricBand{
-		N:      n,
-		K:      kb,
-		Stride: ldab,
-		Data:   b,
-		Uplo:   ul,
-	}
-
-	return sym, band
+	// Compute Uᵀ*U or L*Lᵀ. The resulting (symmetric) matrix A will be
+	// positive definite and well-conditioned.
+	dsbmm(uplo, n, kd, ab, ldab)
+	return ab
 }
 
-// symToSymBand takes the data in a Symmetric matrix and returns a
-// SymmetricBanded matrix.
-func symToSymBand(ul blas.Uplo, a []float64, n, lda, kb, ldab int) []float64 {
-	if ul == blas.Upper {
-		band := make([]float64, (n-1)*ldab+kb+1)
+// distSymBand returns the max-norm distance between the symmetric band matrices
+// A and B.
+func distSymBand(uplo blas.Uplo, n, kd int, a []float64, lda int, b []float64, ldb int) float64 {
+	var dist float64
+	switch uplo {
+	case blas.Upper:
 		for i := 0; i < n; i++ {
-			for j := i; j < min(i+kb+1, n); j++ {
-				band[i*ldab+j-i] = a[i*lda+j]
+			for j := 0; j < min(kd+1, n-i); j++ {
+				dist = math.Max(dist, math.Abs(a[i*lda+j]-b[i*ldb+j]))
 			}
 		}
-		return band
-	}
-	band := make([]float64, (n-1)*ldab+kb+1)
-	for i := 0; i < n; i++ {
-		for j := max(0, i-kb); j <= i; j++ {
-			band[i*ldab+j-i+kb] = a[i*lda+j]
-		}
-	}
-	return band
-}
-
-// symBandToSym takes a banded symmetric matrix and returns the same data as
-// a Symmetric matrix.
-func symBandToSym(ul blas.Uplo, band []float64, n, kb, ldab int) blas64.Symmetric {
-	sym := make([]float64, n*n)
-	if ul == blas.Upper {
+	case blas.Lower:
 		for i := 0; i < n; i++ {
-			for j := 0; j < min(kb+1+i, n)-i; j++ {
-				sym[i*n+i+j] = band[i*ldab+j]
-			}
-		}
-	} else {
-		for i := 0; i < n; i++ {
-			for j := kb - min(i, kb); j < kb+1; j++ {
-				sym[i*n+i-kb+j] = band[i*ldab+j]
+			for j := max(0, kd-i); j < kd+1; j++ {
+				dist = math.Max(dist, math.Abs(a[i*lda+j]-b[i*ldb+j]))
 			}
 		}
 	}
-	return blas64.Symmetric{
-		N:      n,
-		Stride: n,
-		Data:   sym,
-		Uplo:   ul,
-	}
+	return dist
 }
 
 // eye returns an identity matrix of given order and stride.
@@ -1372,9 +1324,9 @@ func isRightEigenvectorOf(a blas64.General, xRe, xIm []float64, lambda complex12
 //
 // A left eigenvector corresponding to a complex eigenvalue λ is a complex
 // non-zero vector y such that
-//  y^H A = λ y^H,
+//  yᴴ A = λ yᴴ,
 // which is equivalent for real A to
-//  A^T y = conj(λ) y,
+//  Aᵀ y = conj(λ) y,
 func isLeftEigenvectorOf(a blas64.General, yRe, yIm []float64, lambda complex128, tol float64) bool {
 	if a.Rows != a.Cols {
 		panic("matrix not square")
@@ -1388,7 +1340,7 @@ func isLeftEigenvectorOf(a blas64.General, yRe, yIm []float64, lambda complex128
 
 	n := a.Rows
 
-	// Compute A^T real(y) and store the result into yReAns.
+	// Compute Aᵀ real(y) and store the result into yReAns.
 	yReAns := make([]float64, n)
 	blas64.Gemv(blas.Trans, 1, a, blas64.Vector{Data: yRe, Inc: 1}, 0, blas64.Vector{Data: yReAns, Inc: 1})
 
@@ -1406,7 +1358,7 @@ func isLeftEigenvectorOf(a blas64.General, yRe, yIm []float64, lambda complex128
 
 	// Complex eigenvector, and real or complex eigenvalue.
 
-	// Compute A^T imag(y) and store the result into yImAns.
+	// Compute Aᵀ imag(y) and store the result into yImAns.
 	yImAns := make([]float64, n)
 	blas64.Gemv(blas.Trans, 1, a, blas64.Vector{Data: yIm, Inc: 1}, 0, blas64.Vector{Data: yImAns, Inc: 1})
 

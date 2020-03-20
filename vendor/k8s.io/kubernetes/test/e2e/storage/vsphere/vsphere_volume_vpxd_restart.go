@@ -17,6 +17,7 @@ limitations under the License.
 package vsphere
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -31,6 +32,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
 
@@ -71,7 +73,7 @@ var _ = utils.SIGDescribe("Verify Volume Attach Through vpxd Restart [Feature:vs
 
 	ginkgo.BeforeEach(func() {
 		// Requires SSH access to vCenter.
-		framework.SkipUnlessProviderIs("vsphere")
+		e2eskipper.SkipUnlessProviderIs("vsphere")
 
 		Bootstrap(f)
 		client = f.ClientSet
@@ -99,7 +101,7 @@ var _ = utils.SIGDescribe("Verify Volume Attach Through vpxd Restart [Feature:vs
 	})
 
 	ginkgo.It("verify volume remains attached through vpxd restart", func() {
-		framework.SkipUnlessSSHKeyPresent()
+		e2eskipper.SkipUnlessSSHKeyPresent()
 
 		for vcHost, nodes := range vcNodesMap {
 			var (
@@ -119,13 +121,13 @@ var _ = utils.SIGDescribe("Verify Volume Attach Through vpxd Restart [Feature:vs
 
 				ginkgo.By(fmt.Sprintf("Creating pod %d on node %v", i, node.name))
 				podspec := getVSpherePodSpecWithVolumePaths([]string{volumePath}, node.kvLabels, nil)
-				pod, err := client.CoreV1().Pods(namespace).Create(podspec)
+				pod, err := client.CoreV1().Pods(namespace).Create(context.TODO(), podspec, metav1.CreateOptions{})
 				framework.ExpectNoError(err)
 
 				ginkgo.By(fmt.Sprintf("Waiting for pod %d to be ready", i))
 				gomega.Expect(e2epod.WaitForPodNameRunningInNamespace(client, pod.Name, namespace)).To(gomega.Succeed())
 
-				pod, err = client.CoreV1().Pods(namespace).Get(pod.Name, metav1.GetOptions{})
+				pod, err = client.CoreV1().Pods(namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 				framework.ExpectNoError(err)
 				pods = append(pods, pod)
 

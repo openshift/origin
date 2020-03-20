@@ -72,24 +72,24 @@ func (c *CognitoSync) BulkPublishRequest(input *BulkPublishInput) (req *request.
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation BulkPublish for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeDuplicateRequestException "DuplicateRequestException"
+//   * DuplicateRequestException
 //   An exception thrown when there is an IN_PROGRESS bulk publish operation for
 //   the given identity pool.
 //
-//   * ErrCodeAlreadyStreamedException "AlreadyStreamedException"
+//   * AlreadyStreamedException
 //   An exception thrown when a bulk publish operation is requested less than
 //   24 hours after a previous bulk publish operation completed successfully.
 //
@@ -174,23 +174,23 @@ func (c *CognitoSync) DeleteDatasetRequest(input *DeleteDatasetInput) (req *requ
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation DeleteDataset for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-//   * ErrCodeResourceConflictException "ResourceConflictException"
+//   * ResourceConflictException
 //   Thrown if an update can't be applied because the resource was changed by
 //   another call and this would result in a conflict.
 //
@@ -275,20 +275,20 @@ func (c *CognitoSync) DescribeDatasetRequest(input *DescribeDatasetInput) (req *
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation DescribeDataset for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeDataset
@@ -370,20 +370,20 @@ func (c *CognitoSync) DescribeIdentityPoolUsageRequest(input *DescribeIdentityPo
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation DescribeIdentityPoolUsage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityPoolUsage
@@ -465,20 +465,20 @@ func (c *CognitoSync) DescribeIdentityUsageRequest(input *DescribeIdentityUsageI
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation DescribeIdentityUsage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityUsage
@@ -559,17 +559,17 @@ func (c *CognitoSync) GetBulkPublishDetailsRequest(input *GetBulkPublishDetailsI
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation GetBulkPublishDetails for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetBulkPublishDetails
@@ -651,20 +651,20 @@ func (c *CognitoSync) GetCognitoEventsRequest(input *GetCognitoEventsInput) (req
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation GetCognitoEvents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetCognitoEvents
@@ -745,20 +745,20 @@ func (c *CognitoSync) GetIdentityPoolConfigurationRequest(input *GetIdentityPool
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation GetIdentityPoolConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetIdentityPoolConfiguration
@@ -842,17 +842,17 @@ func (c *CognitoSync) ListDatasetsRequest(input *ListDatasetsInput) (req *reques
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation ListDatasets for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListDatasets
@@ -934,17 +934,17 @@ func (c *CognitoSync) ListIdentityPoolUsageRequest(input *ListIdentityPoolUsageI
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation ListIdentityPoolUsage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListIdentityPoolUsage
@@ -1029,17 +1029,17 @@ func (c *CognitoSync) ListRecordsRequest(input *ListRecordsInput) (req *request.
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation ListRecords for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListRecords
@@ -1120,22 +1120,22 @@ func (c *CognitoSync) RegisterDeviceRequest(input *RegisterDeviceInput) (req *re
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation RegisterDevice for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeInvalidConfigurationException "InvalidConfigurationException"
+//   * InvalidConfigurationException
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/RegisterDevice
@@ -1220,20 +1220,20 @@ func (c *CognitoSync) SetCognitoEventsRequest(input *SetCognitoEventsInput) (req
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation SetCognitoEvents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetCognitoEvents
@@ -1314,23 +1314,23 @@ func (c *CognitoSync) SetIdentityPoolConfigurationRequest(input *SetIdentityPool
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation SetIdentityPoolConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   Thrown if there are parallel requests to modify a resource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetIdentityPoolConfiguration
@@ -1413,22 +1413,22 @@ func (c *CognitoSync) SubscribeToDatasetRequest(input *SubscribeToDatasetInput) 
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation SubscribeToDataset for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeInvalidConfigurationException "InvalidConfigurationException"
+//   * InvalidConfigurationException
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SubscribeToDataset
@@ -1511,22 +1511,22 @@ func (c *CognitoSync) UnsubscribeFromDatasetRequest(input *UnsubscribeFromDatase
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation UnsubscribeFromDataset for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeInvalidConfigurationException "InvalidConfigurationException"
+//   * InvalidConfigurationException
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UnsubscribeFromDataset
@@ -1619,33 +1619,33 @@ func (c *CognitoSync) UpdateRecordsRequest(input *UpdateRecordsInput) (req *requ
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation UpdateRecords for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Thrown when the limit on the number of objects or operations has been exceeded.
 //
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeResourceConflictException "ResourceConflictException"
+//   * ResourceConflictException
 //   Thrown if an update can't be applied because the resource was changed by
 //   another call and this would result in a conflict.
 //
-//   * ErrCodeInvalidLambdaFunctionOutputException "InvalidLambdaFunctionOutputException"
+//   * InvalidLambdaFunctionOutputException
 //   The AWS Lambda function returned invalid output or an exception.
 //
-//   * ErrCodeLambdaThrottledException "LambdaThrottledException"
+//   * LambdaThrottledException
 //   AWS Lambda throttled your account, please contact AWS Support
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UpdateRecords
@@ -1668,6 +1668,64 @@ func (c *CognitoSync) UpdateRecordsWithContext(ctx aws.Context, input *UpdateRec
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+// An exception thrown when a bulk publish operation is requested less than
+// 24 hours after a previous bulk publish operation completed successfully.
+type AlreadyStreamedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message associated with the AlreadyStreamedException exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AlreadyStreamedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AlreadyStreamedException) GoString() string {
+	return s.String()
+}
+
+func newErrorAlreadyStreamedException(v protocol.ResponseMetadata) error {
+	return &AlreadyStreamedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s AlreadyStreamedException) Code() string {
+	return "AlreadyStreamedException"
+}
+
+// Message returns the exception's message.
+func (s AlreadyStreamedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s AlreadyStreamedException) OrigErr() error {
+	return nil
+}
+
+func (s AlreadyStreamedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s AlreadyStreamedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s AlreadyStreamedException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // The input for the BulkPublish operation.
@@ -1751,8 +1809,8 @@ type CognitoStreams struct {
 	// the developers account and in the same region as the identity pool.
 	StreamName *string `min:"1" type:"string"`
 
-	// Status of the Cognito streams. Valid values are: ENABLED - Streaming of updates
-	// to identity pool is enabled.
+	// Status of the Cognito streams. Valid values are:
+	// ENABLED - Streaming of updates to identity pool is enabled.
 	//
 	// DISABLED - Streaming of updates to identity pool is disabled. Bulk publish
 	// will also fail if StreamingStatus is DISABLED.
@@ -1801,6 +1859,63 @@ func (s *CognitoStreams) SetStreamName(v string) *CognitoStreams {
 func (s *CognitoStreams) SetStreamingStatus(v string) *CognitoStreams {
 	s.StreamingStatus = &v
 	return s
+}
+
+// Thrown if there are parallel requests to modify a resource.
+type ConcurrentModificationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message returned by a ConcurrentModicationException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ConcurrentModificationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConcurrentModificationException) GoString() string {
+	return s.String()
+}
+
+func newErrorConcurrentModificationException(v protocol.ResponseMetadata) error {
+	return &ConcurrentModificationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ConcurrentModificationException) Code() string {
+	return "ConcurrentModificationException"
+}
+
+// Message returns the exception's message.
+func (s ConcurrentModificationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ConcurrentModificationException) OrigErr() error {
+	return nil
+}
+
+func (s ConcurrentModificationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ConcurrentModificationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ConcurrentModificationException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // A collection of data for an identity pool. An identity pool can have multiple
@@ -2254,6 +2369,64 @@ func (s *DescribeIdentityUsageOutput) SetIdentityUsage(v *IdentityUsage) *Descri
 	return s
 }
 
+// An exception thrown when there is an IN_PROGRESS bulk publish operation for
+// the given identity pool.
+type DuplicateRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message associated with the DuplicateRequestException exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s DuplicateRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DuplicateRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorDuplicateRequestException(v protocol.ResponseMetadata) error {
+	return &DuplicateRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DuplicateRequestException) Code() string {
+	return "DuplicateRequestException"
+}
+
+// Message returns the exception's message.
+func (s DuplicateRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DuplicateRequestException) OrigErr() error {
+	return nil
+}
+
+func (s DuplicateRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DuplicateRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DuplicateRequestException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // The input for the GetBulkPublishDetails operation.
 type GetBulkPublishDetailsInput struct {
 	_ struct{} `type:"structure"`
@@ -2308,8 +2481,8 @@ type GetBulkPublishDetailsOutput struct {
 	// The date/time at which the last bulk publish was initiated.
 	BulkPublishStartTime *time.Time `type:"timestamp"`
 
-	// Status of the last bulk publish operation, valid values are: NOT_STARTED
-	// - No bulk publish has been requested for this identity pool
+	// Status of the last bulk publish operation, valid values are:
+	// NOT_STARTED - No bulk publish has been requested for this identity pool
 	//
 	// IN_PROGRESS - Data is being published to the configured stream
 	//
@@ -2634,6 +2807,347 @@ func (s *IdentityUsage) SetIdentityPoolId(v string) *IdentityUsage {
 func (s *IdentityUsage) SetLastModifiedDate(v time.Time) *IdentityUsage {
 	s.LastModifiedDate = &v
 	return s
+}
+
+// Indicates an internal service error.
+type InternalErrorException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// Message returned by InternalErrorException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalErrorException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalErrorException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalErrorException(v protocol.ResponseMetadata) error {
+	return &InternalErrorException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalErrorException) Code() string {
+	return "InternalErrorException"
+}
+
+// Message returns the exception's message.
+func (s InternalErrorException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalErrorException) OrigErr() error {
+	return nil
+}
+
+func (s InternalErrorException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalErrorException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalErrorException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+type InvalidConfigurationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// Message returned by InvalidConfigurationException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidConfigurationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidConfigurationException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidConfigurationException(v protocol.ResponseMetadata) error {
+	return &InvalidConfigurationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidConfigurationException) Code() string {
+	return "InvalidConfigurationException"
+}
+
+// Message returns the exception's message.
+func (s InvalidConfigurationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidConfigurationException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidConfigurationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidConfigurationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidConfigurationException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The AWS Lambda function returned invalid output or an exception.
+type InvalidLambdaFunctionOutputException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// A message returned when an InvalidLambdaFunctionOutputException occurs
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidLambdaFunctionOutputException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidLambdaFunctionOutputException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidLambdaFunctionOutputException(v protocol.ResponseMetadata) error {
+	return &InvalidLambdaFunctionOutputException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidLambdaFunctionOutputException) Code() string {
+	return "InvalidLambdaFunctionOutputException"
+}
+
+// Message returns the exception's message.
+func (s InvalidLambdaFunctionOutputException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidLambdaFunctionOutputException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidLambdaFunctionOutputException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidLambdaFunctionOutputException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidLambdaFunctionOutputException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Thrown when a request parameter does not comply with the associated constraints.
+type InvalidParameterException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// Message returned by InvalidParameterException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidParameterException) Code() string {
+	return "InvalidParameterException"
+}
+
+// Message returns the exception's message.
+func (s InvalidParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidParameterException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidParameterException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidParameterException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// AWS Lambda throttled your account, please contact AWS Support
+type LambdaThrottledException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// A message returned when an LambdaThrottledException is thrown
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LambdaThrottledException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LambdaThrottledException) GoString() string {
+	return s.String()
+}
+
+func newErrorLambdaThrottledException(v protocol.ResponseMetadata) error {
+	return &LambdaThrottledException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LambdaThrottledException) Code() string {
+	return "LambdaThrottledException"
+}
+
+// Message returns the exception's message.
+func (s LambdaThrottledException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LambdaThrottledException) OrigErr() error {
+	return nil
+}
+
+func (s LambdaThrottledException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LambdaThrottledException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LambdaThrottledException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Thrown when the limit on the number of objects or operations has been exceeded.
+type LimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// Message returned by LimitExceededException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // Request for a list of datasets for an identity.
@@ -3052,6 +3566,63 @@ func (s *ListRecordsOutput) SetSyncSessionToken(v string) *ListRecordsOutput {
 	return s
 }
 
+// Thrown when a user is not authorized to access the requested resource.
+type NotAuthorizedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message returned by a NotAuthorizedException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s NotAuthorizedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NotAuthorizedException) GoString() string {
+	return s.String()
+}
+
+func newErrorNotAuthorizedException(v protocol.ResponseMetadata) error {
+	return &NotAuthorizedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s NotAuthorizedException) Code() string {
+	return "NotAuthorizedException"
+}
+
+// Message returns the exception's message.
+func (s NotAuthorizedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s NotAuthorizedException) OrigErr() error {
+	return nil
+}
+
+func (s NotAuthorizedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s NotAuthorizedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s NotAuthorizedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Configuration options to be applied to the identity pool.
 type PushSync struct {
 	_ struct{} `type:"structure"`
@@ -3368,7 +3939,123 @@ func (s *RegisterDeviceOutput) SetDeviceId(v string) *RegisterDeviceOutput {
 	return s
 }
 
+// Thrown if an update can't be applied because the resource was changed by
+// another call and this would result in a conflict.
+type ResourceConflictException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The message returned by a ResourceConflictException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceConflictException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceConflictException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceConflictException(v protocol.ResponseMetadata) error {
+	return &ResourceConflictException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceConflictException) Code() string {
+	return "ResourceConflictException"
+}
+
+// Message returns the exception's message.
+func (s ResourceConflictException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceConflictException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceConflictException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceConflictException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceConflictException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Thrown if the resource doesn't exist.
+type ResourceNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// Message returned by a ResourceNotFoundException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // A request to configure Cognito Events"
+// "
 type SetCognitoEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3659,6 +4346,63 @@ func (s SubscribeToDatasetOutput) String() string {
 // GoString returns the string representation
 func (s SubscribeToDatasetOutput) GoString() string {
 	return s.String()
+}
+
+// Thrown if the request is throttled.
+type TooManyRequestsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// Message returned by a TooManyRequestsException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s TooManyRequestsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TooManyRequestsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTooManyRequestsException(v protocol.ResponseMetadata) error {
+	return &TooManyRequestsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TooManyRequestsException) Code() string {
+	return "TooManyRequestsException"
+}
+
+// Message returns the exception's message.
+func (s TooManyRequestsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TooManyRequestsException) OrigErr() error {
+	return nil
+}
+
+func (s TooManyRequestsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TooManyRequestsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TooManyRequestsException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // A request to UnsubscribeFromDataset.

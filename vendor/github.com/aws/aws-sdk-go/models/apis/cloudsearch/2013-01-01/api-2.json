@@ -3,11 +3,12 @@
   "metadata":{
     "apiVersion":"2013-01-01",
     "endpointPrefix":"cloudsearch",
-    "serviceFullName":"Amazon CloudSearch",
-    "signatureVersion":"v4",
-    "xmlNamespace":"http://cloudsearch.amazonaws.com/doc/2013-01-01/",
     "protocol":"query",
-    "uid":"cloudsearch-2013-01-01"
+    "serviceFullName":"Amazon CloudSearch",
+    "serviceId":"CloudSearch",
+    "signatureVersion":"v4",
+    "uid":"cloudsearch-2013-01-01",
+    "xmlNamespace":"http://cloudsearch.amazonaws.com/doc/2013-01-01/"
   },
   "operations":{
     "BuildSuggesters":{
@@ -22,27 +23,9 @@
         "resultWrapper":"BuildSuggestersResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "CreateDomain":{
@@ -57,27 +40,9 @@
         "resultWrapper":"CreateDomainResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"LimitExceededException",
-          "error":{
-            "code":"LimitExceeded",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"LimitExceededException"}
       ]
     },
     "DefineAnalysisScheme":{
@@ -92,45 +57,11 @@
         "resultWrapper":"DefineAnalysisSchemeResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"LimitExceededException",
-          "error":{
-            "code":"LimitExceeded",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DefineExpression":{
@@ -145,45 +76,11 @@
         "resultWrapper":"DefineExpressionResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"LimitExceededException",
-          "error":{
-            "code":"LimitExceeded",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DefineIndexField":{
@@ -198,45 +95,11 @@
         "resultWrapper":"DefineIndexFieldResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"LimitExceededException",
-          "error":{
-            "code":"LimitExceeded",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DefineSuggester":{
@@ -251,45 +114,11 @@
         "resultWrapper":"DefineSuggesterResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"LimitExceededException",
-          "error":{
-            "code":"LimitExceeded",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DeleteAnalysisScheme":{
@@ -304,36 +133,10 @@
         "resultWrapper":"DeleteAnalysisSchemeResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DeleteDomain":{
@@ -348,18 +151,8 @@
         "resultWrapper":"DeleteDomainResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"}
       ]
     },
     "DeleteExpression":{
@@ -374,36 +167,10 @@
         "resultWrapper":"DeleteExpressionResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DeleteIndexField":{
@@ -418,36 +185,10 @@
         "resultWrapper":"DeleteIndexFieldResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DeleteSuggester":{
@@ -462,36 +203,10 @@
         "resultWrapper":"DeleteSuggesterResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DescribeAnalysisSchemes":{
@@ -506,27 +221,9 @@
         "resultWrapper":"DescribeAnalysisSchemesResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DescribeAvailabilityOptions":{
@@ -541,54 +238,31 @@
         "resultWrapper":"DescribeAvailabilityOptionsResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"LimitExceededException",
-          "error":{
-            "code":"LimitExceeded",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"DisabledOperationException",
-          "error":{
-            "code":"DisabledAction",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"DisabledOperationException"}
+      ]
+    },
+    "DescribeDomainEndpointOptions":{
+      "name":"DescribeDomainEndpointOptions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeDomainEndpointOptionsRequest"},
+      "output":{
+        "shape":"DescribeDomainEndpointOptionsResponse",
+        "resultWrapper":"DescribeDomainEndpointOptionsResult"
+      },
+      "errors":[
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"DisabledOperationException"}
       ]
     },
     "DescribeDomains":{
@@ -603,18 +277,8 @@
         "resultWrapper":"DescribeDomainsResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"}
       ]
     },
     "DescribeExpressions":{
@@ -629,27 +293,9 @@
         "resultWrapper":"DescribeExpressionsResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DescribeIndexFields":{
@@ -664,27 +310,9 @@
         "resultWrapper":"DescribeIndexFieldsResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DescribeScalingParameters":{
@@ -699,27 +327,9 @@
         "resultWrapper":"DescribeScalingParametersResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DescribeServiceAccessPolicies":{
@@ -734,27 +344,9 @@
         "resultWrapper":"DescribeServiceAccessPoliciesResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "DescribeSuggesters":{
@@ -769,27 +361,9 @@
         "resultWrapper":"DescribeSuggestersResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "IndexDocuments":{
@@ -804,27 +378,9 @@
         "resultWrapper":"IndexDocumentsResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "ListDomainNames":{
@@ -838,10 +394,7 @@
         "resultWrapper":"ListDomainNamesResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        }
+        {"shape":"BaseException"}
       ]
     },
     "UpdateAvailabilityOptions":{
@@ -856,54 +409,34 @@
         "resultWrapper":"UpdateAvailabilityOptionsResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"LimitExceededException",
-          "error":{
-            "code":"LimitExceeded",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"DisabledOperationException",
-          "error":{
-            "code":"DisabledAction",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"DisabledOperationException"},
+        {"shape":"ValidationException"}
+      ]
+    },
+    "UpdateDomainEndpointOptions":{
+      "name":"UpdateDomainEndpointOptions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateDomainEndpointOptionsRequest"},
+      "output":{
+        "shape":"UpdateDomainEndpointOptionsResponse",
+        "resultWrapper":"UpdateDomainEndpointOptionsResult"
+      },
+      "errors":[
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"InvalidTypeException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"DisabledOperationException"},
+        {"shape":"ValidationException"}
       ]
     },
     "UpdateScalingParameters":{
@@ -918,45 +451,11 @@
         "resultWrapper":"UpdateScalingParametersResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"LimitExceededException",
-          "error":{
-            "code":"LimitExceeded",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidTypeException"}
       ]
     },
     "UpdateServiceAccessPolicies":{
@@ -971,45 +470,11 @@
         "resultWrapper":"UpdateServiceAccessPoliciesResult"
       },
       "errors":[
-        {
-          "shape":"BaseException",
-          "exception":true
-        },
-        {
-          "shape":"InternalException",
-          "error":{
-            "code":"InternalException",
-            "httpStatusCode":500
-          },
-          "exception":true
-        },
-        {
-          "shape":"LimitExceededException",
-          "error":{
-            "code":"LimitExceeded",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"ResourceNotFoundException",
-          "error":{
-            "code":"ResourceNotFound",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        },
-        {
-          "shape":"InvalidTypeException",
-          "error":{
-            "code":"InvalidType",
-            "httpStatusCode":409,
-            "senderFault":true
-          },
-          "exception":true
-        }
+        {"shape":"BaseException"},
+        {"shape":"InternalException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidTypeException"}
       ]
     }
   },
@@ -1367,6 +832,20 @@
         "AvailabilityOptions":{"shape":"AvailabilityOptionsStatus"}
       }
     },
+    "DescribeDomainEndpointOptionsRequest":{
+      "type":"structure",
+      "required":["DomainName"],
+      "members":{
+        "DomainName":{"shape":"DomainName"},
+        "Deployed":{"shape":"Boolean"}
+      }
+    },
+    "DescribeDomainEndpointOptionsResponse":{
+      "type":"structure",
+      "members":{
+        "DomainEndpointOptions":{"shape":"DomainEndpointOptionsStatus"}
+      }
+    },
     "DescribeDomainsRequest":{
       "type":"structure",
       "members":{
@@ -1477,15 +956,33 @@
         "SortExpression":{"shape":"String"}
       }
     },
+    "DomainEndpointOptions":{
+      "type":"structure",
+      "members":{
+        "EnforceHTTPS":{"shape":"Boolean"},
+        "TLSSecurityPolicy":{"shape":"TLSSecurityPolicy"}
+      }
+    },
+    "DomainEndpointOptionsStatus":{
+      "type":"structure",
+      "required":[
+        "Options",
+        "Status"
+      ],
+      "members":{
+        "Options":{"shape":"DomainEndpointOptions"},
+        "Status":{"shape":"OptionStatus"}
+      }
+    },
     "DomainId":{
       "type":"string",
-      "min":1,
-      "max":64
+      "max":64,
+      "min":1
     },
     "DomainName":{
       "type":"string",
-      "min":3,
       "max":28,
+      "min":3,
       "pattern":"[a-z][a-z0-9\\-]+"
     },
     "DomainNameList":{
@@ -1548,8 +1045,8 @@
     },
     "DynamicFieldName":{
       "type":"string",
-      "min":1,
       "max":64,
+      "min":1,
       "pattern":"([a-z][a-z0-9_]*\\*?|\\*[a-z0-9_]*)"
     },
     "DynamicFieldNameList":{
@@ -1586,13 +1083,13 @@
     },
     "ExpressionValue":{
       "type":"string",
-      "min":1,
-      "max":10240
+      "max":10240,
+      "min":1
     },
     "FieldName":{
       "type":"string",
-      "min":1,
       "max":64,
+      "min":1,
       "pattern":"[a-z][a-z0-9_]*"
     },
     "FieldNameCommaList":{
@@ -1605,8 +1102,8 @@
     },
     "FieldValue":{
       "type":"string",
-      "min":0,
-      "max":1024
+      "max":1024,
+      "min":0
     },
     "IndexDocumentsRequest":{
       "type":"structure",
@@ -1872,8 +1369,8 @@
     "ServiceUrl":{"type":"string"},
     "StandardName":{
       "type":"string",
-      "min":1,
       "max":64,
+      "min":1,
       "pattern":"[a-z][a-z0-9_]*"
     },
     "StandardNameList":{
@@ -1914,6 +1411,13 @@
     "SuggesterStatusList":{
       "type":"list",
       "member":{"shape":"SuggesterStatus"}
+    },
+    "TLSSecurityPolicy":{
+      "type":"string",
+      "enum":[
+        "Policy-Min-TLS-1-0-2019-07",
+        "Policy-Min-TLS-1-2-2019-07"
+      ]
     },
     "TextArrayOptions":{
       "type":"structure",
@@ -1957,6 +1461,23 @@
         "AvailabilityOptions":{"shape":"AvailabilityOptionsStatus"}
       }
     },
+    "UpdateDomainEndpointOptionsRequest":{
+      "type":"structure",
+      "required":[
+        "DomainName",
+        "DomainEndpointOptions"
+      ],
+      "members":{
+        "DomainName":{"shape":"DomainName"},
+        "DomainEndpointOptions":{"shape":"DomainEndpointOptions"}
+      }
+    },
+    "UpdateDomainEndpointOptionsResponse":{
+      "type":"structure",
+      "members":{
+        "DomainEndpointOptions":{"shape":"DomainEndpointOptionsStatus"}
+      }
+    },
     "UpdateScalingParametersRequest":{
       "type":"structure",
       "required":[
@@ -1994,6 +1515,12 @@
       }
     },
     "UpdateTimestamp":{"type":"timestamp"},
+    "ValidationException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "Word":{
       "type":"string",
       "pattern":"[\\S]+"

@@ -27,7 +27,9 @@ func TestInteg_00_ListAliases(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := kms.New(sess)
 	params := &kms.ListAliasesInput{}
-	_, err := svc.ListAliasesWithContext(ctx, params)
+	_, err := svc.ListAliasesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -42,7 +44,9 @@ func TestInteg_01_GetKeyPolicy(t *testing.T) {
 		KeyId:      aws.String("12345678-1234-1234-1234-123456789012"),
 		PolicyName: aws.String("fakePolicy"),
 	}
-	_, err := svc.GetKeyPolicyWithContext(ctx, params)
+	_, err := svc.GetKeyPolicyWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

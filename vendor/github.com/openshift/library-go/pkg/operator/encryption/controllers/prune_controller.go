@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"time"
@@ -119,7 +120,7 @@ func (c *pruneController) deleteOldMigratedSecrets() error {
 		allUsedKeys = append(allUsedKeys, grKeys.ReadKeys...)
 	}
 
-	allSecrets, err := c.secretClient.Secrets("openshift-config-managed").List(c.encryptionSecretSelector)
+	allSecrets, err := c.secretClient.Secrets("openshift-config-managed").List(context.TODO(), c.encryptionSecretSelector)
 	if err != nil {
 		return err
 	}
@@ -165,7 +166,7 @@ NextEncryptionSecret:
 			delete(finalizers, secrets.EncryptionSecretFinalizer)
 			secret.Finalizers = finalizers.List()
 			var updateErr error
-			secret, updateErr = c.secretClient.Secrets("openshift-config-managed").Update(secret)
+			secret, updateErr = c.secretClient.Secrets("openshift-config-managed").Update(context.TODO(), secret, metav1.UpdateOptions{})
 			deleteErrs = append(deleteErrs, updateErr)
 			if updateErr != nil {
 				continue
@@ -173,7 +174,7 @@ NextEncryptionSecret:
 		}
 
 		// remove the actual secret
-		if err := c.secretClient.Secrets("openshift-config-managed").Delete(secret.Name, nil); err != nil {
+		if err := c.secretClient.Secrets("openshift-config-managed").Delete(context.TODO(), secret.Name, metav1.DeleteOptions{}); err != nil {
 			deleteErrs = append(deleteErrs, err)
 		} else {
 			deletedKeys++

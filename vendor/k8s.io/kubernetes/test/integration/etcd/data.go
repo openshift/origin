@@ -101,52 +101,6 @@ func GetEtcdStorageDataForNamespace(namespace string) map[schema.GroupVersionRes
 		},
 		// --
 
-		// k8s.io/kubernetes/pkg/apis/apps/v1beta1
-		gvr("apps", "v1beta1", "statefulsets"): {
-			Stub:             `{"metadata": {"name": "ss1"}, "spec": {"selector": {"matchLabels": {"a": "b"}}, "template": {"metadata": {"labels": {"a": "b"}}}}}`,
-			ExpectedEtcdPath: "/registry/statefulsets/" + namespace + "/ss1",
-			ExpectedGVK:      gvkP("apps", "v1", "StatefulSet"),
-		},
-		gvr("apps", "v1beta1", "deployments"): {
-			Stub:             `{"metadata": {"name": "deployment2"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
-			ExpectedEtcdPath: "/registry/deployments/" + namespace + "/deployment2",
-			ExpectedGVK:      gvkP("apps", "v1", "Deployment"),
-		},
-		gvr("apps", "v1beta1", "controllerrevisions"): {
-			Stub:             `{"metadata":{"name":"crs1"},"data":{"name":"abc","namespace":"default","creationTimestamp":null,"Spec":{"Replicas":0,"Selector":{"matchLabels":{"foo":"bar"}},"Template":{"creationTimestamp":null,"labels":{"foo":"bar"},"Spec":{"Volumes":null,"InitContainers":null,"Containers":null,"RestartPolicy":"Always","TerminationGracePeriodSeconds":null,"ActiveDeadlineSeconds":null,"DNSPolicy":"ClusterFirst","NodeSelector":null,"ServiceAccountName":"","AutomountServiceAccountToken":null,"NodeName":"","SecurityContext":null,"ImagePullSecrets":null,"Hostname":"","Subdomain":"","Affinity":null,"SchedulerName":"","Tolerations":null,"HostAliases":null}},"VolumeClaimTemplates":null,"ServiceName":""},"Status":{"ObservedGeneration":null,"Replicas":0}},"revision":0}`,
-			ExpectedEtcdPath: "/registry/controllerrevisions/" + namespace + "/crs1",
-			ExpectedGVK:      gvkP("apps", "v1", "ControllerRevision"),
-		},
-		// --
-
-		// k8s.io/kubernetes/pkg/apis/apps/v1beta2
-		gvr("apps", "v1beta2", "statefulsets"): {
-			Stub:             `{"metadata": {"name": "ss2"}, "spec": {"selector": {"matchLabels": {"a": "b"}}, "template": {"metadata": {"labels": {"a": "b"}}}}}`,
-			ExpectedEtcdPath: "/registry/statefulsets/" + namespace + "/ss2",
-			ExpectedGVK:      gvkP("apps", "v1", "StatefulSet"),
-		},
-		gvr("apps", "v1beta2", "deployments"): {
-			Stub:             `{"metadata": {"name": "deployment3"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
-			ExpectedEtcdPath: "/registry/deployments/" + namespace + "/deployment3",
-			ExpectedGVK:      gvkP("apps", "v1", "Deployment"),
-		},
-		gvr("apps", "v1beta2", "daemonsets"): {
-			Stub:             `{"metadata": {"name": "ds5"}, "spec": {"selector": {"matchLabels": {"a": "b"}}, "template": {"metadata": {"labels": {"a": "b"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
-			ExpectedEtcdPath: "/registry/daemonsets/" + namespace + "/ds5",
-			ExpectedGVK:      gvkP("apps", "v1", "DaemonSet"),
-		},
-		gvr("apps", "v1beta2", "replicasets"): {
-			Stub:             `{"metadata": {"name": "rs2"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
-			ExpectedEtcdPath: "/registry/replicasets/" + namespace + "/rs2",
-			ExpectedGVK:      gvkP("apps", "v1", "ReplicaSet"),
-		},
-		gvr("apps", "v1beta2", "controllerrevisions"): {
-			Stub:             `{"metadata":{"name":"crs2"},"data":{"name":"abc","namespace":"default","creationTimestamp":null,"Spec":{"Replicas":0,"Selector":{"matchLabels":{"foo":"bar"}},"Template":{"creationTimestamp":null,"labels":{"foo":"bar"},"Spec":{"Volumes":null,"InitContainers":null,"Containers":null,"RestartPolicy":"Always","TerminationGracePeriodSeconds":null,"ActiveDeadlineSeconds":null,"DNSPolicy":"ClusterFirst","NodeSelector":null,"ServiceAccountName":"","AutomountServiceAccountToken":null,"NodeName":"","SecurityContext":null,"ImagePullSecrets":null,"Hostname":"","Subdomain":"","Affinity":null,"SchedulerName":"","Tolerations":null,"HostAliases":null}},"VolumeClaimTemplates":null,"ServiceName":""},"Status":{"ObservedGeneration":null,"Replicas":0}},"revision":0}`,
-			ExpectedEtcdPath: "/registry/controllerrevisions/" + namespace + "/crs2",
-			ExpectedGVK:      gvkP("apps", "v1", "ControllerRevision"),
-		},
-		// --
-
 		// k8s.io/kubernetes/pkg/apis/apps/v1
 		gvr("apps", "v1", "daemonsets"): {
 			Stub:             `{"metadata": {"name": "ds6"}, "spec": {"selector": {"matchLabels": {"a": "b"}}, "template": {"metadata": {"labels": {"a": "b"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
@@ -253,35 +207,10 @@ func GetEtcdStorageDataForNamespace(namespace string) map[schema.GroupVersionRes
 		// --
 
 		// k8s.io/kubernetes/pkg/apis/extensions/v1beta1
-		gvr("extensions", "v1beta1", "daemonsets"): {
-			Stub:             `{"metadata": {"name": "ds1"}, "spec": {"selector": {"matchLabels": {"u": "t"}}, "template": {"metadata": {"labels": {"u": "t"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container5"}]}}}}`,
-			ExpectedEtcdPath: "/registry/daemonsets/" + namespace + "/ds1",
-			ExpectedGVK:      gvkP("apps", "v1", "DaemonSet"),
-		},
-		gvr("extensions", "v1beta1", "podsecuritypolicies"): {
-			Stub:             `{"metadata": {"name": "psp1"}, "spec": {"fsGroup": {"rule": "RunAsAny"}, "privileged": true, "runAsUser": {"rule": "RunAsAny"}, "seLinux": {"rule": "MustRunAs"}, "supplementalGroups": {"rule": "RunAsAny"}}}`,
-			ExpectedEtcdPath: "/registry/podsecuritypolicy/psp1",
-			ExpectedGVK:      gvkP("policy", "v1beta1", "PodSecurityPolicy"),
-		},
 		gvr("extensions", "v1beta1", "ingresses"): {
 			Stub:             `{"metadata": {"name": "ingress1"}, "spec": {"backend": {"serviceName": "service", "servicePort": 5000}}}`,
 			ExpectedEtcdPath: "/registry/ingress/" + namespace + "/ingress1",
 			ExpectedGVK:      gvkP("networking.k8s.io", "v1beta1", "Ingress"),
-		},
-		gvr("extensions", "v1beta1", "networkpolicies"): {
-			Stub:             `{"metadata": {"name": "np1"}, "spec": {"podSelector": {"matchLabels": {"e": "f"}}}}`,
-			ExpectedEtcdPath: "/registry/networkpolicies/" + namespace + "/np1",
-			ExpectedGVK:      gvkP("networking.k8s.io", "v1", "NetworkPolicy"),
-		},
-		gvr("extensions", "v1beta1", "deployments"): {
-			Stub:             `{"metadata": {"name": "deployment1"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
-			ExpectedEtcdPath: "/registry/deployments/" + namespace + "/deployment1",
-			ExpectedGVK:      gvkP("apps", "v1", "Deployment"),
-		},
-		gvr("extensions", "v1beta1", "replicasets"): {
-			Stub:             `{"metadata": {"name": "rs1"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
-			ExpectedEtcdPath: "/registry/replicasets/" + namespace + "/rs1",
-			ExpectedGVK:      gvkP("apps", "v1", "ReplicaSet"),
 		},
 		// --
 
@@ -289,6 +218,10 @@ func GetEtcdStorageDataForNamespace(namespace string) map[schema.GroupVersionRes
 		gvr("networking.k8s.io", "v1beta1", "ingresses"): {
 			Stub:             `{"metadata": {"name": "ingress2"}, "spec": {"backend": {"serviceName": "service", "servicePort": 5000}}}`,
 			ExpectedEtcdPath: "/registry/ingress/" + namespace + "/ingress2",
+		},
+		gvr("networking.k8s.io", "v1beta1", "ingressclasses"): {
+			Stub:             `{"metadata": {"name": "ingressclass2"}, "spec": {"controller": "example.com/controller"}}`,
+			ExpectedEtcdPath: "/registry/ingressclasses/ingressclass2",
 		},
 		// --
 
@@ -315,6 +248,20 @@ func GetEtcdStorageDataForNamespace(namespace string) map[schema.GroupVersionRes
 			Stub:             `{"metadata": {"name": "va1"}, "spec": {"attacher": "gce", "nodeName": "localhost", "source": {"persistentVolumeName": "pv1"}}}`,
 			ExpectedEtcdPath: "/registry/volumeattachments/va1",
 			ExpectedGVK:      gvkP("storage.k8s.io", "v1", "VolumeAttachment"),
+		},
+		// --
+
+		// k8s.io/kubernetes/pkg/apis/flowcontrol/v1alpha1
+		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"): {
+			Stub:             `{"metadata": {"name": "va1"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
+			ExpectedEtcdPath: "/registry/flowschemas/va1",
+		},
+		// --
+
+		// k8s.io/kubernetes/pkg/apis/flowcontrol/v1alpha1
+		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"): {
+			Stub:             `{"metadata": {"name": "conf1"}, "spec": {"type": "Limited", "limited": {"assuredConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
+			ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf1",
 		},
 		// --
 
@@ -550,23 +497,29 @@ func GetEtcdStorageDataForNamespace(namespace string) map[schema.GroupVersionRes
 		etcdStorageData[gvr("storage.k8s.io", "v1beta1", "csinodes")] = StorageData{
 			Stub:             `{"metadata": {"name": "csini1"}, "spec": {"drivers": [{"name": "test-driver", "nodeID": "localhost", "topologyKeys": ["company.com/zone1", "company.com/zone2"]}]}}`,
 			ExpectedEtcdPath: "/registry/csinodes/csini1",
+			ExpectedGVK:      gvkP("storage.k8s.io", "v1", "CSINode"),
 		}
 
 		// k8s.io/kubernetes/pkg/apis/storage/v1
 		etcdStorageData[gvr("storage.k8s.io", "v1", "csinodes")] = StorageData{
 			Stub:             `{"metadata": {"name": "csini2"}, "spec": {"drivers": [{"name": "test-driver", "nodeID": "localhost", "topologyKeys": ["company.com/zone1", "company.com/zone2"]}]}}`,
 			ExpectedEtcdPath: "/registry/csinodes/csini2",
-			ExpectedGVK:      gvkP("storage.k8s.io", "v1beta1", "CSINode"),
 		}
 	}
 
+	// add csidrivers
 	// k8s.io/kubernetes/pkg/apis/storage/v1beta1
-	// add csidrivers if CSIDriverRegistry feature gate is enabled
-	if utilfeature.DefaultFeatureGate.Enabled(features.CSIDriverRegistry) {
-		etcdStorageData[gvr("storage.k8s.io", "v1beta1", "csidrivers")] = StorageData{
-			Stub:             `{"metadata": {"name": "csid1"}, "spec": {"attachRequired": true, "podInfoOnMount": true}}`,
-			ExpectedEtcdPath: "/registry/csidrivers/csid1",
-		}
+	etcdStorageData[gvr("storage.k8s.io", "v1beta1", "csidrivers")] = StorageData{
+		Stub:             `{"metadata": {"name": "csid1"}, "spec": {"attachRequired": true, "podInfoOnMount": true}}`,
+		ExpectedEtcdPath: "/registry/csidrivers/csid1",
+	}
+
+	// k8s.io/kubernetes/pkg/apis/storage/v1
+	// TODO: Remove ExpectedGVK in next release
+	etcdStorageData[gvr("storage.k8s.io", "v1", "csidrivers")] = StorageData{
+		Stub:             `{"metadata": {"name": "csid2"}, "spec": {"attachRequired": true, "podInfoOnMount": true}}`,
+		ExpectedEtcdPath: "/registry/csidrivers/csid2",
+		ExpectedGVK:      gvkP("storage.k8s.io", "v1beta1", "CSIDriver"),
 	}
 
 	return etcdStorageData

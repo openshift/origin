@@ -18,8 +18,11 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+
+	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/pkg/errors"
 
@@ -27,15 +30,13 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	storagev1beta1 "k8s.io/api/storage/v1beta1"
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 )
 
@@ -155,7 +156,7 @@ func CreateItems(f *framework.Framework, items ...interface{}) (func(), error) {
 		// command line flags, because they would also start to apply
 		// to non-namespaced items.
 		for _, destructor := range destructors {
-			if err := destructor(); err != nil && !apierrs.IsNotFound(err) {
+			if err := destructor(); err != nil && !apierrors.IsNotFound(err) {
 				framework.Logf("deleting failed: %s", err)
 			}
 		}
@@ -330,7 +331,7 @@ func patchItemRecursively(f *framework.Framework, item interface{}) error {
 		PatchName(f, &item.Name)
 	case *storagev1.StorageClass:
 		PatchName(f, &item.Name)
-	case *storagev1beta1.CSIDriver:
+	case *storagev1.CSIDriver:
 		PatchName(f, &item.Name)
 	case *v1.ServiceAccount:
 		PatchNamespace(f, &item.ObjectMeta.Namespace)
@@ -360,18 +361,18 @@ func patchItemRecursively(f *framework.Framework, item interface{}) error {
 		PatchNamespace(f, &item.ObjectMeta.Namespace)
 	case *appsv1.StatefulSet:
 		PatchNamespace(f, &item.ObjectMeta.Namespace)
-		if err := e2epod.PatchContainerImages(item.Spec.Template.Spec.Containers); err != nil {
+		if err := patchContainerImages(item.Spec.Template.Spec.Containers); err != nil {
 			return err
 		}
-		if err := e2epod.PatchContainerImages(item.Spec.Template.Spec.InitContainers); err != nil {
+		if err := patchContainerImages(item.Spec.Template.Spec.InitContainers); err != nil {
 			return err
 		}
 	case *appsv1.DaemonSet:
 		PatchNamespace(f, &item.ObjectMeta.Namespace)
-		if err := e2epod.PatchContainerImages(item.Spec.Template.Spec.Containers); err != nil {
+		if err := patchContainerImages(item.Spec.Template.Spec.Containers); err != nil {
 			return err
 		}
-		if err := e2epod.PatchContainerImages(item.Spec.Template.Spec.InitContainers); err != nil {
+		if err := patchContainerImages(item.Spec.Template.Spec.InitContainers); err != nil {
 			return err
 		}
 	default:
@@ -397,11 +398,11 @@ func (*serviceAccountFactory) Create(f *framework.Framework, i interface{}) (fun
 		return nil, errorItemNotSupported
 	}
 	client := f.ClientSet.CoreV1().ServiceAccounts(f.Namespace.GetName())
-	if _, err := client.Create(item); err != nil {
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create ServiceAccount")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -419,11 +420,11 @@ func (*clusterRoleFactory) Create(f *framework.Framework, i interface{}) (func()
 
 	framework.Logf("Define cluster role %v", item.GetName())
 	client := f.ClientSet.RbacV1().ClusterRoles()
-	if _, err := client.Create(item); err != nil {
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create ClusterRole")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -440,11 +441,11 @@ func (*clusterRoleBindingFactory) Create(f *framework.Framework, i interface{}) 
 	}
 
 	client := f.ClientSet.RbacV1().ClusterRoleBindings()
-	if _, err := client.Create(item); err != nil {
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create ClusterRoleBinding")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -461,11 +462,11 @@ func (*roleFactory) Create(f *framework.Framework, i interface{}) (func() error,
 	}
 
 	client := f.ClientSet.RbacV1().Roles(f.Namespace.GetName())
-	if _, err := client.Create(item); err != nil {
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create Role")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -482,11 +483,11 @@ func (*roleBindingFactory) Create(f *framework.Framework, i interface{}) (func()
 	}
 
 	client := f.ClientSet.RbacV1().RoleBindings(f.Namespace.GetName())
-	if _, err := client.Create(item); err != nil {
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create RoleBinding")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -503,11 +504,11 @@ func (*serviceFactory) Create(f *framework.Framework, i interface{}) (func() err
 	}
 
 	client := f.ClientSet.CoreV1().Services(f.Namespace.GetName())
-	if _, err := client.Create(item); err != nil {
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create Service")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -524,11 +525,11 @@ func (*statefulSetFactory) Create(f *framework.Framework, i interface{}) (func()
 	}
 
 	client := f.ClientSet.AppsV1().StatefulSets(f.Namespace.GetName())
-	if _, err := client.Create(item); err != nil {
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create StatefulSet")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -545,11 +546,11 @@ func (*daemonSetFactory) Create(f *framework.Framework, i interface{}) (func() e
 	}
 
 	client := f.ClientSet.AppsV1().DaemonSets(f.Namespace.GetName())
-	if _, err := client.Create(item); err != nil {
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create DaemonSet")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -566,32 +567,32 @@ func (*storageClassFactory) Create(f *framework.Framework, i interface{}) (func(
 	}
 
 	client := f.ClientSet.StorageV1().StorageClasses()
-	if _, err := client.Create(item); err != nil {
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create StorageClass")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
 type csiDriverFactory struct{}
 
 func (f *csiDriverFactory) New() runtime.Object {
-	return &storagev1beta1.CSIDriver{}
+	return &storagev1.CSIDriver{}
 }
 
 func (*csiDriverFactory) Create(f *framework.Framework, i interface{}) (func() error, error) {
-	item, ok := i.(*storagev1beta1.CSIDriver)
+	item, ok := i.(*storagev1.CSIDriver)
 	if !ok {
 		return nil, errorItemNotSupported
 	}
 
-	client := f.ClientSet.StorageV1beta1().CSIDrivers()
-	if _, err := client.Create(item); err != nil {
+	client := f.ClientSet.StorageV1().CSIDrivers()
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create CSIDriver")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -608,11 +609,11 @@ func (*secretFactory) Create(f *framework.Framework, i interface{}) (func() erro
 	}
 
 	client := f.ClientSet.CoreV1().Secrets(f.Namespace.GetName())
-	if _, err := client.Create(item); err != nil {
+	if _, err := client.Create(context.TODO(), item, metav1.CreateOptions{}); err != nil {
 		return nil, errors.Wrap(err, "create Secret")
 	}
 	return func() error {
-		return client.Delete(item.GetName(), &metav1.DeleteOptions{})
+		return client.Delete(context.TODO(), item.GetName(), metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -623,4 +624,18 @@ func PrettyPrint(item interface{}) string {
 		return string(data)
 	}
 	return fmt.Sprintf("%+v", item)
+}
+
+// patchContainerImages replaces the specified Container Registry with a custom
+// one provided via the KUBE_TEST_REPO_LIST env variable
+func patchContainerImages(containers []v1.Container) error {
+	var err error
+	for i, c := range containers {
+		containers[i].Image, err = imageutils.ReplaceRegistryInImageURL(c.Image)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

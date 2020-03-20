@@ -37,6 +37,21 @@
       "input_token": "NextToken",
       "output_token": "NextToken",
       "result_key": "StackSummaries"
+    },
+    "ListTypeRegistrations": {
+      "input_token": "NextToken",
+      "limit_key": "MaxResults",
+      "output_token": "NextToken"
+    },
+    "ListTypeVersions": {
+      "input_token": "NextToken",
+      "limit_key": "MaxResults",
+      "output_token": "NextToken"
+    },
+    "ListTypes": {
+      "input_token": "NextToken",
+      "limit_key": "MaxResults",
+      "output_token": "NextToken"
     }
   }
 }

@@ -66,7 +66,7 @@ MIG_WAIT_UNTIL_STABLE_TIMEOUT=${MIG_WAIT_UNTIL_STABLE_TIMEOUT:-1800}
 
 MASTER_OS_DISTRIBUTION=${KUBE_MASTER_OS_DISTRIBUTION:-${KUBE_OS_DISTRIBUTION:-gci}}
 NODE_OS_DISTRIBUTION=${KUBE_NODE_OS_DISTRIBUTION:-${KUBE_OS_DISTRIBUTION:-gci}}
-WINDOWS_NODE_OS_DISTRIBUTION=${WINDOWS_NODE_OS_DISTRIBUTION:-win1809}
+WINDOWS_NODE_OS_DISTRIBUTION=${WINDOWS_NODE_OS_DISTRIBUTION:-win2019}
 
 if [[ "${MASTER_OS_DISTRIBUTION}" == "cos" ]]; then
     MASTER_OS_DISTRIBUTION="gci"
@@ -90,7 +90,7 @@ ALLOWED_NOTREADY_NODES="${ALLOWED_NOTREADY_NODES:-$(($(get-num-nodes) / 100))}"
 # you are updating the os image versions, update this variable.
 # Also please update corresponding image for node e2e at:
 # https://github.com/kubernetes/kubernetes/blob/master/test/e2e_node/jenkins/image-config.yaml
-GCI_VERSION=${KUBE_GCI_VERSION:-cos-77-12371-89-0}
+GCI_VERSION=${KUBE_GCI_VERSION:-cos-77-12371-175-0}
 MASTER_IMAGE=${KUBE_GCE_MASTER_IMAGE:-}
 MASTER_IMAGE_PROJECT=${KUBE_GCE_MASTER_PROJECT:-cos-cloud}
 NODE_IMAGE=${KUBE_GCE_NODE_IMAGE:-${GCI_VERSION}}
@@ -104,10 +104,15 @@ LOAD_IMAGE_COMMAND=${KUBE_LOAD_IMAGE_COMMAND:-}
 GCI_DOCKER_VERSION=${KUBE_GCI_DOCKER_VERSION:-}
 if [[ "${CONTAINER_RUNTIME}" == "containerd" ]]; then
   CONTAINER_RUNTIME_NAME=${KUBE_CONTAINER_RUNTIME_NAME:-containerd}
-  CONTAINER_RUNTIME_ENDPOINT=${KUBE_CONTAINER_RUNTIME_ENDPOINT:-unix:///run/containerd/containerd.sock}
   LOAD_IMAGE_COMMAND=${KUBE_LOAD_IMAGE_COMMAND:-ctr -n=k8s.io images import}
-  KUBELET_TEST_ARGS="${KUBELET_TEST_ARGS:-} --runtime-cgroups=/system.slice/containerd.service"
 fi
+
+# Ability to inject custom versions (Ubuntu OS images ONLY)
+# if KUBE_UBUNTU_INSTALL_CONTAINERD_VERSION or KUBE_UBUNTU_INSTALL_RUNC_VERSION
+# is set to empty then we do not override the version(s) and just
+# use whatever is in the default installation of containerd package
+UBUNTU_INSTALL_CONTAINERD_VERSION=${KUBE_UBUNTU_INSTALL_CONTAINERD_VERSION:-}
+UBUNTU_INSTALL_RUNC_VERSION=${KUBE_UBUNTU_INSTALL_RUNC_VERSION:-}
 
 # MASTER_EXTRA_METADATA is the extra instance metadata on master instance separated by commas.
 MASTER_EXTRA_METADATA=${KUBE_MASTER_EXTRA_METADATA:-${KUBE_EXTRA_METADATA:-}}
@@ -162,15 +167,6 @@ ENABLE_DOCKER_REGISTRY_CACHE=true
 # Optional: Deploy a L7 loadbalancer controller to fulfill Ingress requests:
 #   glbc           - CE L7 Load Balancer Controller
 ENABLE_L7_LOADBALANCING="${KUBE_ENABLE_L7_LOADBALANCING:-glbc}"
-
-# Optional: Cluster monitoring to setup as part of the cluster bring up:
-#   none           - No cluster monitoring setup
-#   influxdb       - Heapster, InfluxDB, and Grafana
-#   google         - Heapster, Google Cloud Monitoring, and Google Cloud Logging
-#   stackdriver    - Heapster, Google Cloud Monitoring (schema container), and Google Cloud Logging
-#   googleinfluxdb - Enable influxdb and google (except GCM)
-#   standalone     - Heapster only. Metrics available via Heapster REST API.
-ENABLE_CLUSTER_MONITORING="${KUBE_ENABLE_CLUSTER_MONITORING:-standalone}"
 
 # Optional: Enable Metrics Server. Metrics Server should be enable everywhere,
 # since it's a critical component, but in the first release we need a way to disable
@@ -332,9 +328,9 @@ NODE_PROBLEM_DETECTOR_TAR_HASH="${NODE_PROBLEM_DETECTOR_TAR_HASH:-}"
 NODE_PROBLEM_DETECTOR_RELEASE_PATH="${NODE_PROBLEM_DETECTOR_RELEASE_PATH:-}"
 NODE_PROBLEM_DETECTOR_CUSTOM_FLAGS="${NODE_PROBLEM_DETECTOR_CUSTOM_FLAGS:-}"
 
-CNI_STORAGE_PATH="${CNI_STORAGE_PATH:-https://storage.googleapis.com/kubernetes-release/network-plugins}"
-CNI_VERSION="${CNI_VERSION:-}"
 CNI_SHA1="${CNI_SHA1:-}"
+CNI_TAR_PREFIX="${CNI_TAR_PREFIX:-cni-plugins-linux-amd64-}"
+CNI_STORAGE_URL_BASE="${CNI_STORAGE_URL_BASE:-https://storage.googleapis.com/k8s-artifacts-cni/release}"
 
 # Optional: Create autoscaler for cluster's nodes.
 ENABLE_CLUSTER_AUTOSCALER="${KUBE_ENABLE_CLUSTER_AUTOSCALER:-false}"
@@ -521,7 +517,9 @@ ROTATE_CERTIFICATES="${ROTATE_CERTIFICATES:-}"
 # into kube-controller-manager via `--concurrent-service-syncs`
 CONCURRENT_SERVICE_SYNCS="${CONCURRENT_SERVICE_SYNCS:-}"
 
-SERVICEACCOUNT_ISSUER="https://kubernetes.io/${CLUSTER_NAME}"
+# The value kubernetes.default.svc is only usable in Pods and should only be
+# set for tests. DO NOT COPY THIS VALUE FOR PRODUCTION CLUSTERS.
+SERVICEACCOUNT_ISSUER="https://kubernetes.default.svc"
 
 # Optional: Enable Node termination Handler for Preemptible and GPU VMs.
 # https://github.com/GoogleCloudPlatform/k8s-node-termination-handler

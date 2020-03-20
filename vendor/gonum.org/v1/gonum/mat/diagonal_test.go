@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"testing"
 
+	"golang.org/x/exp/rand"
+
 	"gonum.org/v1/gonum/blas/blas64"
 )
 
@@ -457,4 +459,12 @@ func TestDiagonalAtSet(t *testing.T) {
 			}
 		}
 	}
+}
+
+func randDiagDense(size int, rnd *rand.Rand) *DiagDense {
+	t := NewDiagDense(size, nil)
+	for i := 0; i < size; i++ {
+		t.SetDiag(i, rnd.Float64())
+	}
+	return t
 }

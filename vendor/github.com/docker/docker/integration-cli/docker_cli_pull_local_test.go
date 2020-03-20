@@ -16,8 +16,8 @@ import (
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli/build"
 	"github.com/go-check/check"
-	"github.com/gotestyourself/gotestyourself/icmd"
 	"github.com/opencontainers/go-digest"
+	"gotest.tools/icmd"
 )
 
 // testPullImageWithAliases pulls a specific image tag and verifies that any aliases (i.e., other
@@ -52,10 +52,6 @@ func testPullImageWithAliases(c *check.C) {
 }
 
 func (s *DockerRegistrySuite) TestPullImageWithAliases(c *check.C) {
-	testPullImageWithAliases(c)
-}
-
-func (s *DockerSchema1RegistrySuite) TestPullImageWithAliases(c *check.C) {
 	testPullImageWithAliases(c)
 }
 
@@ -111,10 +107,6 @@ func (s *DockerRegistrySuite) testConcurrentPullWholeRepo(c *check.C) {
 	testConcurrentPullWholeRepo(c)
 }
 
-func (s *DockerSchema1RegistrySuite) testConcurrentPullWholeRepo(c *check.C) {
-	testConcurrentPullWholeRepo(c)
-}
-
 // testConcurrentFailingPull tries a concurrent pull that doesn't succeed.
 func testConcurrentFailingPull(c *check.C) {
 	repoName := fmt.Sprintf("%v/dockercli/busybox", privateRegistryURL)
@@ -139,10 +131,6 @@ func testConcurrentFailingPull(c *check.C) {
 }
 
 func (s *DockerRegistrySuite) testConcurrentFailingPull(c *check.C) {
-	testConcurrentFailingPull(c)
-}
-
-func (s *DockerSchema1RegistrySuite) testConcurrentFailingPull(c *check.C) {
 	testConcurrentFailingPull(c)
 }
 
@@ -195,10 +183,6 @@ func testConcurrentPullMultipleTags(c *check.C) {
 }
 
 func (s *DockerRegistrySuite) TestConcurrentPullMultipleTags(c *check.C) {
-	testConcurrentPullMultipleTags(c)
-}
-
-func (s *DockerSchema1RegistrySuite) TestConcurrentPullMultipleTags(c *check.C) {
 	testConcurrentPullMultipleTags(c)
 }
 
@@ -259,10 +243,6 @@ func (s *DockerRegistrySuite) TestPullIDStability(c *check.C) {
 	testPullIDStability(c)
 }
 
-func (s *DockerSchema1RegistrySuite) TestPullIDStability(c *check.C) {
-	testPullIDStability(c)
-}
-
 // #21213
 func testPullNoLayers(c *check.C) {
 	repoName := fmt.Sprintf("%v/dockercli/scratch", privateRegistryURL)
@@ -276,10 +256,6 @@ func testPullNoLayers(c *check.C) {
 }
 
 func (s *DockerRegistrySuite) TestPullNoLayers(c *check.C) {
-	testPullNoLayers(c)
-}
-
-func (s *DockerSchema1RegistrySuite) TestPullNoLayers(c *check.C) {
 	testPullNoLayers(c)
 }
 

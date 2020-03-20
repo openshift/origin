@@ -124,9 +124,15 @@ type CognitoIdentityProviderAPI interface {
 	AdminListGroupsForUserWithContext(aws.Context, *cognitoidentityprovider.AdminListGroupsForUserInput, ...request.Option) (*cognitoidentityprovider.AdminListGroupsForUserOutput, error)
 	AdminListGroupsForUserRequest(*cognitoidentityprovider.AdminListGroupsForUserInput) (*request.Request, *cognitoidentityprovider.AdminListGroupsForUserOutput)
 
+	AdminListGroupsForUserPages(*cognitoidentityprovider.AdminListGroupsForUserInput, func(*cognitoidentityprovider.AdminListGroupsForUserOutput, bool) bool) error
+	AdminListGroupsForUserPagesWithContext(aws.Context, *cognitoidentityprovider.AdminListGroupsForUserInput, func(*cognitoidentityprovider.AdminListGroupsForUserOutput, bool) bool, ...request.Option) error
+
 	AdminListUserAuthEvents(*cognitoidentityprovider.AdminListUserAuthEventsInput) (*cognitoidentityprovider.AdminListUserAuthEventsOutput, error)
 	AdminListUserAuthEventsWithContext(aws.Context, *cognitoidentityprovider.AdminListUserAuthEventsInput, ...request.Option) (*cognitoidentityprovider.AdminListUserAuthEventsOutput, error)
 	AdminListUserAuthEventsRequest(*cognitoidentityprovider.AdminListUserAuthEventsInput) (*request.Request, *cognitoidentityprovider.AdminListUserAuthEventsOutput)
+
+	AdminListUserAuthEventsPages(*cognitoidentityprovider.AdminListUserAuthEventsInput, func(*cognitoidentityprovider.AdminListUserAuthEventsOutput, bool) bool) error
+	AdminListUserAuthEventsPagesWithContext(aws.Context, *cognitoidentityprovider.AdminListUserAuthEventsInput, func(*cognitoidentityprovider.AdminListUserAuthEventsOutput, bool) bool, ...request.Option) error
 
 	AdminRemoveUserFromGroup(*cognitoidentityprovider.AdminRemoveUserFromGroupInput) (*cognitoidentityprovider.AdminRemoveUserFromGroupOutput, error)
 	AdminRemoveUserFromGroupWithContext(aws.Context, *cognitoidentityprovider.AdminRemoveUserFromGroupInput, ...request.Option) (*cognitoidentityprovider.AdminRemoveUserFromGroupOutput, error)
@@ -143,6 +149,10 @@ type CognitoIdentityProviderAPI interface {
 	AdminSetUserMFAPreference(*cognitoidentityprovider.AdminSetUserMFAPreferenceInput) (*cognitoidentityprovider.AdminSetUserMFAPreferenceOutput, error)
 	AdminSetUserMFAPreferenceWithContext(aws.Context, *cognitoidentityprovider.AdminSetUserMFAPreferenceInput, ...request.Option) (*cognitoidentityprovider.AdminSetUserMFAPreferenceOutput, error)
 	AdminSetUserMFAPreferenceRequest(*cognitoidentityprovider.AdminSetUserMFAPreferenceInput) (*request.Request, *cognitoidentityprovider.AdminSetUserMFAPreferenceOutput)
+
+	AdminSetUserPassword(*cognitoidentityprovider.AdminSetUserPasswordInput) (*cognitoidentityprovider.AdminSetUserPasswordOutput, error)
+	AdminSetUserPasswordWithContext(aws.Context, *cognitoidentityprovider.AdminSetUserPasswordInput, ...request.Option) (*cognitoidentityprovider.AdminSetUserPasswordOutput, error)
+	AdminSetUserPasswordRequest(*cognitoidentityprovider.AdminSetUserPasswordInput) (*request.Request, *cognitoidentityprovider.AdminSetUserPasswordOutput)
 
 	AdminSetUserSettings(*cognitoidentityprovider.AdminSetUserSettingsInput) (*cognitoidentityprovider.AdminSetUserSettingsOutput, error)
 	AdminSetUserSettingsWithContext(aws.Context, *cognitoidentityprovider.AdminSetUserSettingsInput, ...request.Option) (*cognitoidentityprovider.AdminSetUserSettingsOutput, error)
@@ -332,13 +342,26 @@ type CognitoIdentityProviderAPI interface {
 	ListGroupsWithContext(aws.Context, *cognitoidentityprovider.ListGroupsInput, ...request.Option) (*cognitoidentityprovider.ListGroupsOutput, error)
 	ListGroupsRequest(*cognitoidentityprovider.ListGroupsInput) (*request.Request, *cognitoidentityprovider.ListGroupsOutput)
 
+	ListGroupsPages(*cognitoidentityprovider.ListGroupsInput, func(*cognitoidentityprovider.ListGroupsOutput, bool) bool) error
+	ListGroupsPagesWithContext(aws.Context, *cognitoidentityprovider.ListGroupsInput, func(*cognitoidentityprovider.ListGroupsOutput, bool) bool, ...request.Option) error
+
 	ListIdentityProviders(*cognitoidentityprovider.ListIdentityProvidersInput) (*cognitoidentityprovider.ListIdentityProvidersOutput, error)
 	ListIdentityProvidersWithContext(aws.Context, *cognitoidentityprovider.ListIdentityProvidersInput, ...request.Option) (*cognitoidentityprovider.ListIdentityProvidersOutput, error)
 	ListIdentityProvidersRequest(*cognitoidentityprovider.ListIdentityProvidersInput) (*request.Request, *cognitoidentityprovider.ListIdentityProvidersOutput)
 
+	ListIdentityProvidersPages(*cognitoidentityprovider.ListIdentityProvidersInput, func(*cognitoidentityprovider.ListIdentityProvidersOutput, bool) bool) error
+	ListIdentityProvidersPagesWithContext(aws.Context, *cognitoidentityprovider.ListIdentityProvidersInput, func(*cognitoidentityprovider.ListIdentityProvidersOutput, bool) bool, ...request.Option) error
+
 	ListResourceServers(*cognitoidentityprovider.ListResourceServersInput) (*cognitoidentityprovider.ListResourceServersOutput, error)
 	ListResourceServersWithContext(aws.Context, *cognitoidentityprovider.ListResourceServersInput, ...request.Option) (*cognitoidentityprovider.ListResourceServersOutput, error)
 	ListResourceServersRequest(*cognitoidentityprovider.ListResourceServersInput) (*request.Request, *cognitoidentityprovider.ListResourceServersOutput)
+
+	ListResourceServersPages(*cognitoidentityprovider.ListResourceServersInput, func(*cognitoidentityprovider.ListResourceServersOutput, bool) bool) error
+	ListResourceServersPagesWithContext(aws.Context, *cognitoidentityprovider.ListResourceServersInput, func(*cognitoidentityprovider.ListResourceServersOutput, bool) bool, ...request.Option) error
+
+	ListTagsForResource(*cognitoidentityprovider.ListTagsForResourceInput) (*cognitoidentityprovider.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *cognitoidentityprovider.ListTagsForResourceInput, ...request.Option) (*cognitoidentityprovider.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*cognitoidentityprovider.ListTagsForResourceInput) (*request.Request, *cognitoidentityprovider.ListTagsForResourceOutput)
 
 	ListUserImportJobs(*cognitoidentityprovider.ListUserImportJobsInput) (*cognitoidentityprovider.ListUserImportJobsOutput, error)
 	ListUserImportJobsWithContext(aws.Context, *cognitoidentityprovider.ListUserImportJobsInput, ...request.Option) (*cognitoidentityprovider.ListUserImportJobsOutput, error)
@@ -348,17 +371,29 @@ type CognitoIdentityProviderAPI interface {
 	ListUserPoolClientsWithContext(aws.Context, *cognitoidentityprovider.ListUserPoolClientsInput, ...request.Option) (*cognitoidentityprovider.ListUserPoolClientsOutput, error)
 	ListUserPoolClientsRequest(*cognitoidentityprovider.ListUserPoolClientsInput) (*request.Request, *cognitoidentityprovider.ListUserPoolClientsOutput)
 
+	ListUserPoolClientsPages(*cognitoidentityprovider.ListUserPoolClientsInput, func(*cognitoidentityprovider.ListUserPoolClientsOutput, bool) bool) error
+	ListUserPoolClientsPagesWithContext(aws.Context, *cognitoidentityprovider.ListUserPoolClientsInput, func(*cognitoidentityprovider.ListUserPoolClientsOutput, bool) bool, ...request.Option) error
+
 	ListUserPools(*cognitoidentityprovider.ListUserPoolsInput) (*cognitoidentityprovider.ListUserPoolsOutput, error)
 	ListUserPoolsWithContext(aws.Context, *cognitoidentityprovider.ListUserPoolsInput, ...request.Option) (*cognitoidentityprovider.ListUserPoolsOutput, error)
 	ListUserPoolsRequest(*cognitoidentityprovider.ListUserPoolsInput) (*request.Request, *cognitoidentityprovider.ListUserPoolsOutput)
+
+	ListUserPoolsPages(*cognitoidentityprovider.ListUserPoolsInput, func(*cognitoidentityprovider.ListUserPoolsOutput, bool) bool) error
+	ListUserPoolsPagesWithContext(aws.Context, *cognitoidentityprovider.ListUserPoolsInput, func(*cognitoidentityprovider.ListUserPoolsOutput, bool) bool, ...request.Option) error
 
 	ListUsers(*cognitoidentityprovider.ListUsersInput) (*cognitoidentityprovider.ListUsersOutput, error)
 	ListUsersWithContext(aws.Context, *cognitoidentityprovider.ListUsersInput, ...request.Option) (*cognitoidentityprovider.ListUsersOutput, error)
 	ListUsersRequest(*cognitoidentityprovider.ListUsersInput) (*request.Request, *cognitoidentityprovider.ListUsersOutput)
 
+	ListUsersPages(*cognitoidentityprovider.ListUsersInput, func(*cognitoidentityprovider.ListUsersOutput, bool) bool) error
+	ListUsersPagesWithContext(aws.Context, *cognitoidentityprovider.ListUsersInput, func(*cognitoidentityprovider.ListUsersOutput, bool) bool, ...request.Option) error
+
 	ListUsersInGroup(*cognitoidentityprovider.ListUsersInGroupInput) (*cognitoidentityprovider.ListUsersInGroupOutput, error)
 	ListUsersInGroupWithContext(aws.Context, *cognitoidentityprovider.ListUsersInGroupInput, ...request.Option) (*cognitoidentityprovider.ListUsersInGroupOutput, error)
 	ListUsersInGroupRequest(*cognitoidentityprovider.ListUsersInGroupInput) (*request.Request, *cognitoidentityprovider.ListUsersInGroupOutput)
+
+	ListUsersInGroupPages(*cognitoidentityprovider.ListUsersInGroupInput, func(*cognitoidentityprovider.ListUsersInGroupOutput, bool) bool) error
+	ListUsersInGroupPagesWithContext(aws.Context, *cognitoidentityprovider.ListUsersInGroupInput, func(*cognitoidentityprovider.ListUsersInGroupOutput, bool) bool, ...request.Option) error
 
 	ResendConfirmationCode(*cognitoidentityprovider.ResendConfirmationCodeInput) (*cognitoidentityprovider.ResendConfirmationCodeOutput, error)
 	ResendConfirmationCodeWithContext(aws.Context, *cognitoidentityprovider.ResendConfirmationCodeInput, ...request.Option) (*cognitoidentityprovider.ResendConfirmationCodeOutput, error)
@@ -399,6 +434,14 @@ type CognitoIdentityProviderAPI interface {
 	StopUserImportJob(*cognitoidentityprovider.StopUserImportJobInput) (*cognitoidentityprovider.StopUserImportJobOutput, error)
 	StopUserImportJobWithContext(aws.Context, *cognitoidentityprovider.StopUserImportJobInput, ...request.Option) (*cognitoidentityprovider.StopUserImportJobOutput, error)
 	StopUserImportJobRequest(*cognitoidentityprovider.StopUserImportJobInput) (*request.Request, *cognitoidentityprovider.StopUserImportJobOutput)
+
+	TagResource(*cognitoidentityprovider.TagResourceInput) (*cognitoidentityprovider.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *cognitoidentityprovider.TagResourceInput, ...request.Option) (*cognitoidentityprovider.TagResourceOutput, error)
+	TagResourceRequest(*cognitoidentityprovider.TagResourceInput) (*request.Request, *cognitoidentityprovider.TagResourceOutput)
+
+	UntagResource(*cognitoidentityprovider.UntagResourceInput) (*cognitoidentityprovider.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *cognitoidentityprovider.UntagResourceInput, ...request.Option) (*cognitoidentityprovider.UntagResourceOutput, error)
+	UntagResourceRequest(*cognitoidentityprovider.UntagResourceInput) (*request.Request, *cognitoidentityprovider.UntagResourceOutput)
 
 	UpdateAuthEventFeedback(*cognitoidentityprovider.UpdateAuthEventFeedbackInput) (*cognitoidentityprovider.UpdateAuthEventFeedbackOutput, error)
 	UpdateAuthEventFeedbackWithContext(aws.Context, *cognitoidentityprovider.UpdateAuthEventFeedbackInput, ...request.Option) (*cognitoidentityprovider.UpdateAuthEventFeedbackOutput, error)

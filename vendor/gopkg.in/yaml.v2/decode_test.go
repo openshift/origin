@@ -722,6 +722,18 @@ var unmarshalTests = []struct {
 		"a: 5.5\n",
 		&struct{ A jsonNumberT }{"5.5"},
 	},
+	{
+		`
+a:
+  b
+b:
+  ? a
+  : a`,
+		&M{"a": "b",
+			"b": M{
+				"a": "a",
+			}},
+	},
 }
 
 type M map[interface{}]interface{}
@@ -848,12 +860,14 @@ var unmarshalErrorTests = []struct {
 	{"a:\n- b: *,", "yaml: line 2: did not find expected alphabetic or numeric character"},
 	{"a: *b\n", "yaml: unknown anchor 'b' referenced"},
 	{"a: &a\n  b: *a\n", "yaml: anchor 'a' value contains itself"},
+	{"a: &x null\n<<:\n- *x\nb: &x {}\n", `yaml: map merge requires map or sequence of maps as the value`}, // Issue #529.
 	{"value: -", "yaml: block sequence entries are not allowed in this context"},
 	{"a: !!binary ==", "yaml: !!binary value contains invalid base64 data"},
 	{"{[.]}", `yaml: invalid map key: \[\]interface \{\}\{"\."\}`},
 	{"{{.}}", `yaml: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
 	{"b: *a\na: &a {c: 1}", `yaml: unknown anchor 'a' referenced`},
 	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
+	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'"},
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
 		"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
@@ -874,6 +888,13 @@ func (s *S) TestUnmarshalErrors(c *C) {
 		var value interface{}
 		err := yaml.Unmarshal([]byte(item.data), &value)
 		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
+
+		if strings.Contains(item.data, ":") {
+			// Repeat test with typed value.
+			var value map[string]interface{}
+			err := yaml.Unmarshal([]byte(item.data), &value)
+			c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
+		}
 	}
 }
 

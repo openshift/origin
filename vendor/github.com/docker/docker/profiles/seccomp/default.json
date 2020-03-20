@@ -162,6 +162,7 @@
 				"ioctl",
 				"io_destroy",
 				"io_getevents",
+				"io_pgetevents",
 				"ioprio_get",
 				"ioprio_set",
 				"io_setup",
@@ -329,7 +330,6 @@
 				"sync_file_range",
 				"syncfs",
 				"sysinfo",
-				"syslog",
 				"tee",
 				"tgkill",
 				"time",
@@ -365,6 +365,18 @@
 			"args": [],
 			"comment": "",
 			"includes": {},
+			"excludes": {}
+		},
+		{
+			"names": [
+				"ptrace"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": null,
+			"comment": "",
+			"includes": {
+				"minKernel": "4.8"
+			},
 			"excludes": {}
 		},
 		{
@@ -561,6 +573,7 @@
 				"setdomainname",
 				"sethostname",
 				"setns",
+				"syslog",
 				"umount",
 				"umount2",
 				"unshare"
@@ -743,6 +756,36 @@
 			"includes": {
 				"caps": [
 					"CAP_SYS_TTY_CONFIG"
+				]
+			},
+			"excludes": {}
+		},
+		{
+			"names": [
+				"get_mempolicy",
+				"mbind",
+				"set_mempolicy"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": [],
+			"comment": "",
+			"includes": {
+				"caps": [
+					"CAP_SYS_NICE"
+				]
+			},
+			"excludes": {}
+		},
+		{
+			"names": [
+				"syslog"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": [],
+			"comment": "",
+			"includes": {
+				"caps": [
+					"CAP_SYSLOG"
 				]
 			},
 			"excludes": {}

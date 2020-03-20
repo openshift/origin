@@ -18,12 +18,13 @@ import (
 
 // pkg contains the type information needed by the source package.
 type pkg struct {
+	view *view
+
 	// ID and package path have their own types to avoid being used interchangeably.
 	id      packageID
 	pkgPath packagePath
 
-	files      []string
-	syntax     map[string]*astFile
+	files      []source.ParseGoHandle
 	errors     []packages.Error
 	imports    map[packagePath]*pkg
 	types      *types.Package
@@ -38,7 +39,7 @@ type pkg struct {
 	analyses map[*analysis.Analyzer]*analysisEntry
 
 	diagMu      sync.Mutex
-	diagnostics []analysis.Diagnostic
+	diagnostics []source.Diagnostic
 }
 
 // packageID is a type that abstracts a package ID.
@@ -54,10 +55,6 @@ type analysisEntry struct {
 }
 
 func (pkg *pkg) GetActionGraph(ctx context.Context, a *analysis.Analyzer) (*source.Action, error) {
-	if ctx.Err() != nil {
-		return nil, ctx.Err()
-	}
-
 	pkg.mu.Lock()
 	e, ok := pkg.analyses[a]
 	if ok {
@@ -124,9 +121,9 @@ func (pkg *pkg) GetActionGraph(ctx context.Context, a *analysis.Analyzer) (*sour
 			}
 			sort.Strings(importPaths) // for determinism
 			for _, importPath := range importPaths {
-				dep, ok := pkg.imports[packagePath(importPath)]
-				if !ok {
-					continue
+				dep, err := pkg.GetImport(ctx, importPath)
+				if err != nil {
+					return nil, err
 				}
 				act, err := dep.GetActionGraph(ctx, a)
 				if err != nil {
@@ -148,14 +145,17 @@ func (pkg *pkg) PkgPath() string {
 	return string(pkg.pkgPath)
 }
 
-func (pkg *pkg) GetFilenames() []string {
+func (pkg *pkg) GetHandles() []source.ParseGoHandle {
 	return pkg.files
 }
 
-func (pkg *pkg) GetSyntax() []*ast.File {
-	syntax := make([]*ast.File, 0, len(pkg.syntax))
-	for _, astFile := range pkg.syntax {
-		syntax = append(syntax, astFile.file)
+func (pkg *pkg) GetSyntax(ctx context.Context) []*ast.File {
+	var syntax []*ast.File
+	for _, ph := range pkg.files {
+		file, _ := ph.Cached(ctx)
+		if file != nil {
+			syntax = append(syntax, file)
+		}
 	}
 	return syntax
 }
@@ -180,21 +180,13 @@ func (pkg *pkg) IsIllTyped() bool {
 	return pkg.types == nil && pkg.typesInfo == nil
 }
 
-func (pkg *pkg) GetImport(pkgPath string) source.Package {
-	if imp := pkg.imports[packagePath(pkgPath)]; imp != nil {
-		return imp
-	}
-	// Don't return a nil pointer because that still satisfies the interface.
-	return nil
-}
-
-func (pkg *pkg) SetDiagnostics(diags []analysis.Diagnostic) {
+func (pkg *pkg) SetDiagnostics(diags []source.Diagnostic) {
 	pkg.diagMu.Lock()
 	defer pkg.diagMu.Unlock()
 	pkg.diagnostics = diags
 }
 
-func (pkg *pkg) GetDiagnostics() []analysis.Diagnostic {
+func (pkg *pkg) GetDiagnostics() []source.Diagnostic {
 	pkg.diagMu.Lock()
 	defer pkg.diagMu.Unlock()
 	return pkg.diagnostics

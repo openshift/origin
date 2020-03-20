@@ -17,6 +17,7 @@ limitations under the License.
 package storage
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"time"
@@ -34,6 +35,7 @@ import (
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
@@ -60,10 +62,10 @@ var _ = utils.SIGDescribe("Mounted flexvolume expand[Slow]", func() {
 
 	f := framework.NewDefaultFramework("mounted-flexvolume-expand")
 	ginkgo.BeforeEach(func() {
-		framework.SkipUnlessProviderIs("aws", "gce", "local")
-		framework.SkipUnlessMasterOSDistroIs("debian", "ubuntu", "gci", "custom")
-		framework.SkipUnlessNodeOSDistroIs("debian", "ubuntu", "gci", "custom")
-		framework.SkipUnlessSSHKeyPresent()
+		e2eskipper.SkipUnlessProviderIs("aws", "gce", "local")
+		e2eskipper.SkipUnlessMasterOSDistroIs("debian", "ubuntu", "gci", "custom")
+		e2eskipper.SkipUnlessNodeOSDistroIs("debian", "ubuntu", "gci", "custom")
+		e2eskipper.SkipUnlessSSHKeyPresent()
 		c = f.ClientSet
 		ns = f.Namespace.Name
 		framework.ExpectNoError(framework.WaitForAllNodesSchedulable(c, framework.TestContext.NodeSchedulableTimeout))
@@ -89,18 +91,18 @@ var _ = utils.SIGDescribe("Mounted flexvolume expand[Slow]", func() {
 			Provisioner:          "flex-expand",
 		}
 
-		resizableSc, err = c.StorageV1().StorageClasses().Create(newStorageClass(test, ns, "resizing"))
+		resizableSc, err = c.StorageV1().StorageClasses().Create(context.TODO(), newStorageClass(test, ns, "resizing"), metav1.CreateOptions{})
 		if err != nil {
 			fmt.Printf("storage class creation error: %v\n", err)
 		}
 		framework.ExpectNoError(err, "Error creating resizable storage class")
-		gomega.Expect(*resizableSc.AllowVolumeExpansion).To(gomega.BeTrue())
+		framework.ExpectEqual(*resizableSc.AllowVolumeExpansion, true)
 
 		pvc = e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
 			StorageClassName: &(resizableSc.Name),
 			ClaimSize:        "2Gi",
 		}, ns)
-		pvc, err = c.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(pvc)
+		pvc, err = c.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(context.TODO(), pvc, metav1.CreateOptions{})
 		framework.ExpectNoError(err, "Error creating pvc")
 	})
 
@@ -139,7 +141,7 @@ var _ = utils.SIGDescribe("Mounted flexvolume expand[Slow]", func() {
 			VolumeMode:       pvc.Spec.VolumeMode,
 		})
 
-		pv, err = e2epv.CreatePV(c, pv)
+		_, err = e2epv.CreatePV(c, pv)
 		framework.ExpectNoError(err, "Error creating pv %v", err)
 
 		ginkgo.By("Waiting for PVC to be in bound phase")
@@ -153,7 +155,7 @@ var _ = utils.SIGDescribe("Mounted flexvolume expand[Slow]", func() {
 		ginkgo.By("Creating a deployment with the provisioned volume")
 		deployment, err := e2edeploy.CreateDeployment(c, int32(1), map[string]string{"test": "app"}, nodeKeyValueLabel, ns, pvcClaims, "")
 		framework.ExpectNoError(err, "Failed creating deployment %v", err)
-		defer c.AppsV1().Deployments(ns).Delete(deployment.Name, &metav1.DeleteOptions{})
+		defer c.AppsV1().Deployments(ns).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{})
 
 		ginkgo.By("Expanding current pvc")
 		newSize := resource.MustParse("6Gi")
@@ -173,6 +175,7 @@ var _ = utils.SIGDescribe("Mounted flexvolume expand[Slow]", func() {
 
 		ginkgo.By("Getting a pod from deployment")
 		podList, err := e2edeploy.GetPodsForDeployment(c, deployment)
+		framework.ExpectNoError(err, "While getting pods from deployment")
 		gomega.Expect(podList.Items).NotTo(gomega.BeEmpty())
 		pod := podList.Items[0]
 

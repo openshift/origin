@@ -1,6 +1,7 @@
 package clusterresourcequota
 
 import (
+	"context"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -8,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	etcd "k8s.io/apiserver/pkg/storage/etcd3"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -86,7 +88,7 @@ func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *corev1.ResourceQuota)
 		Status:    newNamespaceTotals,
 	})
 
-	updatedQuota, err := e.clusterQuotaClient.ClusterResourceQuotas().UpdateStatus(clusterQuota)
+	updatedQuota, err := e.clusterQuotaClient.ClusterResourceQuotas().UpdateStatus(context.TODO(), clusterQuota, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}

@@ -64,6 +64,10 @@ type RoboMakerAPI interface {
 	BatchDescribeSimulationJobWithContext(aws.Context, *robomaker.BatchDescribeSimulationJobInput, ...request.Option) (*robomaker.BatchDescribeSimulationJobOutput, error)
 	BatchDescribeSimulationJobRequest(*robomaker.BatchDescribeSimulationJobInput) (*request.Request, *robomaker.BatchDescribeSimulationJobOutput)
 
+	CancelDeploymentJob(*robomaker.CancelDeploymentJobInput) (*robomaker.CancelDeploymentJobOutput, error)
+	CancelDeploymentJobWithContext(aws.Context, *robomaker.CancelDeploymentJobInput, ...request.Option) (*robomaker.CancelDeploymentJobOutput, error)
+	CancelDeploymentJobRequest(*robomaker.CancelDeploymentJobInput) (*request.Request, *robomaker.CancelDeploymentJobOutput)
+
 	CancelSimulationJob(*robomaker.CancelSimulationJobInput) (*robomaker.CancelSimulationJobOutput, error)
 	CancelSimulationJobWithContext(aws.Context, *robomaker.CancelSimulationJobInput, ...request.Option) (*robomaker.CancelSimulationJobOutput, error)
 	CancelSimulationJobRequest(*robomaker.CancelSimulationJobInput) (*request.Request, *robomaker.CancelSimulationJobOutput)
@@ -148,25 +152,47 @@ type RoboMakerAPI interface {
 	ListDeploymentJobsWithContext(aws.Context, *robomaker.ListDeploymentJobsInput, ...request.Option) (*robomaker.ListDeploymentJobsOutput, error)
 	ListDeploymentJobsRequest(*robomaker.ListDeploymentJobsInput) (*request.Request, *robomaker.ListDeploymentJobsOutput)
 
+	ListDeploymentJobsPages(*robomaker.ListDeploymentJobsInput, func(*robomaker.ListDeploymentJobsOutput, bool) bool) error
+	ListDeploymentJobsPagesWithContext(aws.Context, *robomaker.ListDeploymentJobsInput, func(*robomaker.ListDeploymentJobsOutput, bool) bool, ...request.Option) error
+
 	ListFleets(*robomaker.ListFleetsInput) (*robomaker.ListFleetsOutput, error)
 	ListFleetsWithContext(aws.Context, *robomaker.ListFleetsInput, ...request.Option) (*robomaker.ListFleetsOutput, error)
 	ListFleetsRequest(*robomaker.ListFleetsInput) (*request.Request, *robomaker.ListFleetsOutput)
+
+	ListFleetsPages(*robomaker.ListFleetsInput, func(*robomaker.ListFleetsOutput, bool) bool) error
+	ListFleetsPagesWithContext(aws.Context, *robomaker.ListFleetsInput, func(*robomaker.ListFleetsOutput, bool) bool, ...request.Option) error
 
 	ListRobotApplications(*robomaker.ListRobotApplicationsInput) (*robomaker.ListRobotApplicationsOutput, error)
 	ListRobotApplicationsWithContext(aws.Context, *robomaker.ListRobotApplicationsInput, ...request.Option) (*robomaker.ListRobotApplicationsOutput, error)
 	ListRobotApplicationsRequest(*robomaker.ListRobotApplicationsInput) (*request.Request, *robomaker.ListRobotApplicationsOutput)
 
+	ListRobotApplicationsPages(*robomaker.ListRobotApplicationsInput, func(*robomaker.ListRobotApplicationsOutput, bool) bool) error
+	ListRobotApplicationsPagesWithContext(aws.Context, *robomaker.ListRobotApplicationsInput, func(*robomaker.ListRobotApplicationsOutput, bool) bool, ...request.Option) error
+
 	ListRobots(*robomaker.ListRobotsInput) (*robomaker.ListRobotsOutput, error)
 	ListRobotsWithContext(aws.Context, *robomaker.ListRobotsInput, ...request.Option) (*robomaker.ListRobotsOutput, error)
 	ListRobotsRequest(*robomaker.ListRobotsInput) (*request.Request, *robomaker.ListRobotsOutput)
+
+	ListRobotsPages(*robomaker.ListRobotsInput, func(*robomaker.ListRobotsOutput, bool) bool) error
+	ListRobotsPagesWithContext(aws.Context, *robomaker.ListRobotsInput, func(*robomaker.ListRobotsOutput, bool) bool, ...request.Option) error
 
 	ListSimulationApplications(*robomaker.ListSimulationApplicationsInput) (*robomaker.ListSimulationApplicationsOutput, error)
 	ListSimulationApplicationsWithContext(aws.Context, *robomaker.ListSimulationApplicationsInput, ...request.Option) (*robomaker.ListSimulationApplicationsOutput, error)
 	ListSimulationApplicationsRequest(*robomaker.ListSimulationApplicationsInput) (*request.Request, *robomaker.ListSimulationApplicationsOutput)
 
+	ListSimulationApplicationsPages(*robomaker.ListSimulationApplicationsInput, func(*robomaker.ListSimulationApplicationsOutput, bool) bool) error
+	ListSimulationApplicationsPagesWithContext(aws.Context, *robomaker.ListSimulationApplicationsInput, func(*robomaker.ListSimulationApplicationsOutput, bool) bool, ...request.Option) error
+
 	ListSimulationJobs(*robomaker.ListSimulationJobsInput) (*robomaker.ListSimulationJobsOutput, error)
 	ListSimulationJobsWithContext(aws.Context, *robomaker.ListSimulationJobsInput, ...request.Option) (*robomaker.ListSimulationJobsOutput, error)
 	ListSimulationJobsRequest(*robomaker.ListSimulationJobsInput) (*request.Request, *robomaker.ListSimulationJobsOutput)
+
+	ListSimulationJobsPages(*robomaker.ListSimulationJobsInput, func(*robomaker.ListSimulationJobsOutput, bool) bool) error
+	ListSimulationJobsPagesWithContext(aws.Context, *robomaker.ListSimulationJobsInput, func(*robomaker.ListSimulationJobsOutput, bool) bool, ...request.Option) error
+
+	ListTagsForResource(*robomaker.ListTagsForResourceInput) (*robomaker.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *robomaker.ListTagsForResourceInput, ...request.Option) (*robomaker.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*robomaker.ListTagsForResourceInput) (*request.Request, *robomaker.ListTagsForResourceOutput)
 
 	RegisterRobot(*robomaker.RegisterRobotInput) (*robomaker.RegisterRobotOutput, error)
 	RegisterRobotWithContext(aws.Context, *robomaker.RegisterRobotInput, ...request.Option) (*robomaker.RegisterRobotOutput, error)
@@ -179,6 +205,14 @@ type RoboMakerAPI interface {
 	SyncDeploymentJob(*robomaker.SyncDeploymentJobInput) (*robomaker.SyncDeploymentJobOutput, error)
 	SyncDeploymentJobWithContext(aws.Context, *robomaker.SyncDeploymentJobInput, ...request.Option) (*robomaker.SyncDeploymentJobOutput, error)
 	SyncDeploymentJobRequest(*robomaker.SyncDeploymentJobInput) (*request.Request, *robomaker.SyncDeploymentJobOutput)
+
+	TagResource(*robomaker.TagResourceInput) (*robomaker.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *robomaker.TagResourceInput, ...request.Option) (*robomaker.TagResourceOutput, error)
+	TagResourceRequest(*robomaker.TagResourceInput) (*request.Request, *robomaker.TagResourceOutput)
+
+	UntagResource(*robomaker.UntagResourceInput) (*robomaker.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *robomaker.UntagResourceInput, ...request.Option) (*robomaker.UntagResourceOutput, error)
+	UntagResourceRequest(*robomaker.UntagResourceInput) (*request.Request, *robomaker.UntagResourceOutput)
 
 	UpdateRobotApplication(*robomaker.UpdateRobotApplicationInput) (*robomaker.UpdateRobotApplicationOutput, error)
 	UpdateRobotApplicationWithContext(aws.Context, *robomaker.UpdateRobotApplicationInput, ...request.Option) (*robomaker.UpdateRobotApplicationOutput, error)

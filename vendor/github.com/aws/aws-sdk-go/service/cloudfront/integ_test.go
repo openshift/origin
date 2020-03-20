@@ -29,7 +29,9 @@ func TestInteg_00_ListCloudFrontOriginAccessIdentities(t *testing.T) {
 	params := &cloudfront.ListCloudFrontOriginAccessIdentitiesInput{
 		MaxItems: aws.Int64(1),
 	}
-	_, err := svc.ListCloudFrontOriginAccessIdentitiesWithContext(ctx, params)
+	_, err := svc.ListCloudFrontOriginAccessIdentitiesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -43,7 +45,9 @@ func TestInteg_01_GetDistribution(t *testing.T) {
 	params := &cloudfront.GetDistributionInput{
 		Id: aws.String("fake-id"),
 	}
-	_, err := svc.GetDistributionWithContext(ctx, params)
+	_, err := svc.GetDistributionWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

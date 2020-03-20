@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	serializertesting "k8s.io/apimachinery/pkg/runtime/serializer/testing"
 	"k8s.io/apimachinery/pkg/util/diff"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	fuzz "github.com/google/gofuzz"
 	flag "github.com/spf13/pflag"
@@ -86,6 +87,8 @@ func GetTestScheme() (*runtime.Scheme, runtime.Codec) {
 	s.AddKnownTypeWithName(externalGV2.WithKind("TestType1"), &serializertesting.ExternalTestType1{})
 
 	s.AddUnversionedTypes(externalGV, &metav1.Status{})
+
+	utilruntime.Must(serializertesting.RegisterConversions(s))
 
 	cf := newCodecFactory(s, newSerializersForScheme(s, testMetaFactory{}, CodecFactoryOptions{Pretty: true, Strict: true}))
 	codec := cf.LegacyCodec(schema.GroupVersion{Version: "v1"})
@@ -224,6 +227,9 @@ func TestConvertTypesWhenDefaultNamesMatch(t *testing.T) {
 	// create two names externally, with TestType1 being preferred
 	s.AddKnownTypeWithName(externalGV.WithKind("TestType1"), &serializertesting.ExternalTestType1{})
 	s.AddKnownTypeWithName(externalGV.WithKind("OtherType1"), &serializertesting.ExternalTestType1{})
+	if err := serializertesting.RegisterConversions(s); err != nil {
+		t.Fatalf("unexpected error; %v", err)
+	}
 
 	ext := &serializertesting.ExternalTestType1{}
 	ext.APIVersion = "v1"
@@ -323,6 +329,8 @@ func GetDirectCodecTestScheme() *runtime.Scheme {
 	s.AddKnownTypes(externalGV, &serializertesting.ExternalTestType1{})
 
 	s.AddUnversionedTypes(externalGV, &metav1.Status{})
+
+	utilruntime.Must(serializertesting.RegisterConversions(s))
 	return s
 }
 
@@ -346,6 +354,9 @@ func TestDirectCodec(t *testing.T) {
 		t.Fatal(string(out))
 	}
 	a, _, err := directDecoder.Decode(out, nil, nil)
+	if err != nil {
+		t.Fatalf("error on Decode: %v", err)
+	}
 	e := &serializertesting.ExternalTestType1{
 		MyWeirdCustomEmbeddedVersionKindField: serializertesting.MyWeirdCustomEmbeddedVersionKindField{
 			APIVersion: "v1",

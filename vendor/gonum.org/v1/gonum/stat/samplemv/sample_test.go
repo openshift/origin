@@ -10,9 +10,9 @@ import (
 
 	"golang.org/x/exp/rand"
 
-	"gonum.org/v1/gonum/bound"
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/mat"
+	"gonum.org/v1/gonum/spatial/r1"
 	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/gonum/stat/distmv"
 )
@@ -27,8 +27,8 @@ func TestLatinHypercube(t *testing.T) {
 	src := rand.New(rand.NewSource(1))
 	for _, nSamples := range []int{1, 2, 5, 10, 20} {
 		for _, dist := range []lhDist{
-			distmv.NewUniform([]bound.Bound{{Min: 0, Max: 3}}, src),
-			distmv.NewUniform([]bound.Bound{{Min: 0, Max: 3}, {Min: -1, Max: 5}, {Min: -4, Max: -1}}, src),
+			distmv.NewUniform([]r1.Interval{{Min: 0, Max: 3}}, src),
+			distmv.NewUniform([]r1.Interval{{Min: 0, Max: 3}, {Min: -1, Max: 5}, {Min: -4, Max: -1}}, src),
 		} {
 			dim := dist.Dim()
 			batch := mat.NewDense(nSamples, dim, nil)
@@ -93,7 +93,7 @@ func TestRejection(t *testing.T) {
 	src := rand.New(rand.NewSource(1))
 	// Test by finding the expected value of a uniform.
 	dim := 3
-	bounds := make([]bound.Bound, dim)
+	bounds := make([]r1.Interval, dim)
 	for i := 0; i < dim; i++ {
 		min := src.NormFloat64()
 		max := src.NormFloat64()
@@ -182,7 +182,8 @@ func randomNormal(dim int, src *rand.Rand) (*distmv.Normal, bool) {
 func compareNormal(t *testing.T, want *distmv.Normal, batch *mat.Dense, weights []float64, meanTol, covTol float64) {
 	dim := want.Dim()
 	mu := want.Mean(nil)
-	sigma := want.CovarianceMatrix(nil)
+	var sigma mat.SymDense
+	want.CovarianceMatrix(&sigma)
 	n, _ := batch.Dims()
 	if weights == nil {
 		weights = make([]float64, n)
@@ -198,8 +199,9 @@ func compareNormal(t *testing.T, want *distmv.Normal, batch *mat.Dense, weights 
 		}
 	}
 
-	cov := stat.CovarianceMatrix(nil, batch, weights)
-	if !mat.EqualApprox(cov, sigma, covTol) {
+	var cov mat.SymDense
+	stat.CovarianceMatrix(&cov, batch, weights)
+	if !mat.EqualApprox(&cov, &sigma, covTol) {
 		t.Errorf("Covariance matrix mismatch")
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	containerddefaults "github.com/containerd/containerd/defaults"
 	"github.com/docker/distribution/uuid"
 	"github.com/docker/docker/api"
 	apiserver "github.com/docker/docker/api/server"
@@ -27,6 +28,7 @@ import (
 	swarmrouter "github.com/docker/docker/api/server/router/swarm"
 	systemrouter "github.com/docker/docker/api/server/router/system"
 	"github.com/docker/docker/api/server/router/volume"
+	buildkit "github.com/docker/docker/builder/builder-next"
 	"github.com/docker/docker/builder/dockerfile"
 	"github.com/docker/docker/builder/fscache"
 	"github.com/docker/docker/cli/debug"
@@ -35,16 +37,17 @@ import (
 	"github.com/docker/docker/daemon/config"
 	"github.com/docker/docker/daemon/listeners"
 	"github.com/docker/docker/dockerversion"
-	"github.com/docker/docker/libcontainerd"
+	"github.com/docker/docker/libcontainerd/supervisor"
 	dopts "github.com/docker/docker/opts"
 	"github.com/docker/docker/pkg/authorization"
+	"github.com/docker/docker/pkg/homedir"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/pidfile"
 	"github.com/docker/docker/pkg/plugingetter"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/system"
 	"github.com/docker/docker/plugin"
-	"github.com/docker/docker/registry"
+	"github.com/docker/docker/rootless"
 	"github.com/docker/docker/runconfig"
 	"github.com/docker/go-connections/tlsconfig"
 	swarmapi "github.com/docker/swarmkit/api"
@@ -82,6 +85,11 @@ func (cli *DaemonCli) start(opts *daemonOptions) (err error) {
 	if cli.Config, err = loadDaemonCliConfig(opts); err != nil {
 		return err
 	}
+
+	if err := configureDaemonLogs(cli.Config); err != nil {
+		return err
+	}
+
 	cli.configFile = &opts.configFile
 	cli.flags = opts.flags
 
@@ -91,18 +99,23 @@ func (cli *DaemonCli) start(opts *daemonOptions) (err error) {
 
 	if cli.Config.Experimental {
 		logrus.Warn("Running experimental build")
+		if cli.Config.IsRootless() {
+			logrus.Warn("Running in rootless mode. Cgroups, AppArmor, and CRIU are disabled.")
+		}
+	} else {
+		if cli.Config.IsRootless() {
+			return fmt.Errorf("rootless mode is supported only when running in experimental mode")
+		}
 	}
-
-	logrus.SetFormatter(&logrus.TextFormatter{
-		TimestampFormat: jsonmessage.RFC3339NanoFixed,
-		DisableColors:   cli.Config.RawLogs,
-		FullTimestamp:   true,
-	})
+	// return human-friendly error before creating files
+	if runtime.GOOS == "linux" && os.Geteuid() != 0 {
+		return fmt.Errorf("dockerd needs to be started with root. To see how to run dockerd in rootless mode with unprivileged user, see the documentation")
+	}
 
 	system.InitLCOW(cli.Config.Experimental)
 
 	if err := setDefaultUmask(); err != nil {
-		return fmt.Errorf("Failed to set umask: %v", err)
+		return err
 	}
 
 	// Create the daemon root before we create ANY other files (PID, or migrate keys)
@@ -111,11 +124,18 @@ func (cli *DaemonCli) start(opts *daemonOptions) (err error) {
 		return err
 	}
 
+	if err := system.MkdirAll(cli.Config.ExecRoot, 0700, ""); err != nil {
+		return err
+	}
+
+	potentiallyUnderRuntimeDir := []string{cli.Config.ExecRoot}
+
 	if cli.Pidfile != "" {
 		pf, err := pidfile.New(cli.Pidfile)
 		if err != nil {
-			return fmt.Errorf("Error starting daemon: %v", err)
+			return errors.Wrap(err, "failed to start daemon")
 		}
+		potentiallyUnderRuntimeDir = append(potentiallyUnderRuntimeDir, cli.Pidfile)
 		defer func() {
 			if err := pf.Remove(); err != nil {
 				logrus.Error(err)
@@ -123,30 +143,32 @@ func (cli *DaemonCli) start(opts *daemonOptions) (err error) {
 		}()
 	}
 
+	if cli.Config.IsRootless() {
+		// Set sticky bit if XDG_RUNTIME_DIR is set && the file is actually under XDG_RUNTIME_DIR
+		if _, err := homedir.StickRuntimeDirContents(potentiallyUnderRuntimeDir); err != nil {
+			// StickRuntimeDirContents returns nil error if XDG_RUNTIME_DIR is just unset
+			logrus.WithError(err).Warn("cannot set sticky bit on files under XDG_RUNTIME_DIR")
+		}
+	}
+
 	serverConfig, err := newAPIServerConfig(cli)
 	if err != nil {
-		return fmt.Errorf("Failed to create API server: %v", err)
+		return errors.Wrap(err, "failed to create API server")
 	}
 	cli.api = apiserver.New(serverConfig)
 
 	hosts, err := loadListeners(cli, serverConfig)
 	if err != nil {
-		return fmt.Errorf("Failed to load listeners: %v", err)
+		return errors.Wrap(err, "failed to load listeners")
 	}
 
-	registryService, err := registry.NewService(cli.Config.ServiceOptions)
-	if err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	if err := cli.initContainerD(ctx); err != nil {
+		cancel()
 		return err
 	}
+	defer cancel()
 
-	rOpts, err := cli.getRemoteOptions()
-	if err != nil {
-		return fmt.Errorf("Failed to generate containerd options: %v", err)
-	}
-	containerdRemote, err := libcontainerd.New(filepath.Join(cli.Config.Root, "containerd"), filepath.Join(cli.Config.ExecRoot, "containerd"), rOpts...)
-	if err != nil {
-		return err
-	}
 	signal.Trap(func() {
 		cli.stop()
 		<-stopc // wait for daemonCli.start() to return
@@ -161,22 +183,22 @@ func (cli *DaemonCli) start(opts *daemonOptions) (err error) {
 		logrus.Fatalf("Error creating middlewares: %v", err)
 	}
 
-	d, err := daemon.NewDaemon(cli.Config, registryService, containerdRemote, pluginStore)
+	d, err := daemon.NewDaemon(ctx, cli.Config, pluginStore)
 	if err != nil {
-		return fmt.Errorf("Error starting daemon: %v", err)
+		return errors.Wrap(err, "failed to start daemon")
 	}
 
 	d.StoreHosts(hosts)
 
-	// validate after NewDaemon has restored enabled plugins. Dont change order.
+	// validate after NewDaemon has restored enabled plugins. Don't change order.
 	if err := validateAuthzPlugins(cli.Config.AuthorizationPlugins, pluginStore); err != nil {
-		return fmt.Errorf("Error validating authorization plugin: %v", err)
+		return errors.Wrap(err, "failed to validate authorization plugin")
 	}
 
 	// TODO: move into startMetricsServer()
 	if cli.Config.MetricsAddress != "" {
 		if !d.HasExperimental() {
-			return fmt.Errorf("metrics-addr is only supported when experimental is enabled")
+			return errors.Wrap(err, "metrics-addr is only supported when experimental is enabled")
 		}
 		if err := startMetricsServer(cli.Config.MetricsAddress); err != nil {
 			return err
@@ -206,10 +228,7 @@ func (cli *DaemonCli) start(opts *daemonOptions) (err error) {
 
 	initRouter(routerOptions)
 
-	// process cluster change notifications
-	watchCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go d.ProcessClusterNotifications(watchCtx, c.GetWatchStream())
+	go d.ProcessClusterNotifications(ctx, c.GetWatchStream())
 
 	cli.setupConfigReloadTrap()
 
@@ -226,10 +245,14 @@ func (cli *DaemonCli) start(opts *daemonOptions) (err error) {
 	// Wait for serve API to complete
 	errAPI := <-serveAPIWait
 	c.Cleanup()
+
 	shutdownDaemon(d)
-	containerdRemote.Cleanup()
+
+	// Stop notification processing and any background processes
+	cancel()
+
 	if errAPI != nil {
-		return fmt.Errorf("Shutting down due to ServeAPI error: %v", errAPI)
+		return errors.Wrap(errAPI, "shutting down due to ServeAPI error")
 	}
 
 	return nil
@@ -238,13 +261,15 @@ func (cli *DaemonCli) start(opts *daemonOptions) (err error) {
 type routerOptions struct {
 	sessionManager *session.Manager
 	buildBackend   *buildbackend.Backend
-	buildCache     *fscache.FSCache
+	buildCache     *fscache.FSCache // legacy
+	features       *map[string]bool
+	buildkit       *buildkit.Builder
 	daemon         *daemon.Daemon
 	api            *apiserver.Server
 	cluster        *cluster.Cluster
 }
 
-func newRouterOptions(config *config.Config, daemon *daemon.Daemon) (routerOptions, error) {
+func newRouterOptions(config *config.Config, d *daemon.Daemon) (routerOptions, error) {
 	opts := routerOptions{}
 	sm, err := session.NewManager()
 	if err != nil {
@@ -265,21 +290,36 @@ func newRouterOptions(config *config.Config, daemon *daemon.Daemon) (routerOptio
 		return opts, errors.Wrap(err, "failed to create fscache")
 	}
 
-	manager, err := dockerfile.NewBuildManager(daemon.BuilderBackend(), sm, buildCache, daemon.IDMappings())
+	manager, err := dockerfile.NewBuildManager(d.BuilderBackend(), sm, buildCache, d.IdentityMapping())
+	if err != nil {
+		return opts, err
+	}
+	cgroupParent := newCgroupParent(config)
+	bk, err := buildkit.New(buildkit.Opt{
+		SessionManager:      sm,
+		Root:                filepath.Join(config.Root, "buildkit"),
+		Dist:                d.DistributionServices(),
+		NetworkController:   d.NetworkController(),
+		DefaultCgroupParent: cgroupParent,
+		ResolverOpt:         d.NewResolveOptionsFunc(),
+		BuilderConfig:       config.Builder,
+		Rootless:            d.Rootless(),
+	})
 	if err != nil {
 		return opts, err
 	}
 
-	bb, err := buildbackend.NewBackend(daemon.ImageService(), manager, buildCache)
+	bb, err := buildbackend.NewBackend(d.ImageService(), manager, buildCache, bk)
 	if err != nil {
 		return opts, errors.Wrap(err, "failed to create buildmanager")
 	}
-
 	return routerOptions{
 		sessionManager: sm,
 		buildBackend:   bb,
 		buildCache:     buildCache,
-		daemon:         daemon,
+		buildkit:       bk,
+		features:       d.Features(),
+		daemon:         d,
 	}, nil
 }
 
@@ -370,21 +410,15 @@ func loadDaemonCliConfig(opts *daemonOptions) (*config.Config, error) {
 		conf.CommonTLSOptions.KeyFile = opts.TLSOptions.KeyFile
 	}
 
-	if conf.TrustKeyPath == "" {
-		conf.TrustKeyPath = filepath.Join(
-			getDaemonConfDir(conf.Root),
-			defaultTrustKeyFile)
-	}
-
 	if flags.Changed("graph") && flags.Changed("data-root") {
-		return nil, fmt.Errorf(`cannot specify both "--graph" and "--data-root" option`)
+		return nil, errors.New(`cannot specify both "--graph" and "--data-root" option`)
 	}
 
 	if opts.configFile != "" {
 		c, err := config.MergeDaemonConfigurations(conf, flags, opts.configFile)
 		if err != nil {
 			if flags.Changed("config-file") || !os.IsNotExist(err) {
-				return nil, fmt.Errorf("unable to configure the Docker daemon with file %s: %v", opts.configFile, err)
+				return nil, errors.Wrapf(err, "unable to configure the Docker daemon with file %s", opts.configFile)
 			}
 		}
 		// the merged configuration can be nil if the config file didn't exist.
@@ -396,17 +430,6 @@ func loadDaemonCliConfig(opts *daemonOptions) (*config.Config, error) {
 
 	if err := config.Validate(conf); err != nil {
 		return nil, err
-	}
-
-	if runtime.GOOS != "windows" {
-		if flags.Changed("disable-legacy-registry") {
-			// TODO: Remove this error after 3 release cycles (18.03)
-			return nil, errors.New("ERROR: The '--disable-legacy-registry' flag has been removed. Interacting with legacy (v1) registries is no longer supported")
-		}
-		if !conf.V2Only {
-			// TODO: Remove this error after 3 release cycles (18.03)
-			return nil, errors.New("ERROR: The 'disable-legacy-registry' configuration option has been removed. Interacting with legacy (v1) registries is no longer supported")
-		}
 	}
 
 	if flags.Changed("graph") {
@@ -438,9 +461,6 @@ func loadDaemonCliConfig(opts *daemonOptions) (*config.Config, error) {
 		conf.TLS = true
 	}
 
-	// ensure that the log level is the one set after merging configurations
-	setLogLevel(conf.LogLevel)
-
 	return conf, nil
 }
 
@@ -452,9 +472,9 @@ func initRouter(opts routerOptions) {
 		checkpointrouter.NewRouter(opts.daemon, decoder),
 		container.NewRouter(opts.daemon, decoder),
 		image.NewRouter(opts.daemon.ImageService()),
-		systemrouter.NewRouter(opts.daemon, opts.cluster, opts.buildCache),
+		systemrouter.NewRouter(opts.daemon, opts.cluster, opts.buildCache, opts.buildkit, opts.features),
 		volume.NewRouter(opts.daemon.VolumesService()),
-		build.NewRouter(opts.buildBackend, opts.daemon),
+		build.NewRouter(opts.buildBackend, opts.daemon, opts.features),
 		sessionrouter.NewRouter(opts.sessionManager),
 		swarmrouter.NewRouter(opts.cluster),
 		pluginrouter.NewRouter(opts.daemon.PluginManager()),
@@ -499,14 +519,22 @@ func (cli *DaemonCli) initMiddlewares(s *apiserver.Server, cfg *apiserver.Config
 	return nil
 }
 
-func (cli *DaemonCli) getRemoteOptions() ([]libcontainerd.RemoteOption, error) {
-	opts := []libcontainerd.RemoteOption{}
-
-	pOpts, err := cli.getPlatformRemoteOptions()
+func (cli *DaemonCli) getContainerdDaemonOpts() ([]supervisor.DaemonOpt, error) {
+	opts, err := cli.getPlatformContainerdDaemonOpts()
 	if err != nil {
 		return nil, err
 	}
-	opts = append(opts, pOpts...)
+
+	if cli.Config.Debug {
+		opts = append(opts, supervisor.WithLogLevel("debug"))
+	} else if cli.Config.LogLevel != "" {
+		opts = append(opts, supervisor.WithLogLevel(cli.Config.LogLevel))
+	}
+
+	if !cli.Config.CriContainerd {
+		opts = append(opts, supervisor.WithPlugin("cri", nil))
+	}
+
 	return opts, nil
 }
 
@@ -548,8 +576,8 @@ func loadListeners(cli *DaemonCli, serverConfig *apiserver.Config) ([]string, er
 	var hosts []string
 	for i := 0; i < len(cli.Config.Hosts); i++ {
 		var err error
-		if cli.Config.Hosts[i], err = dopts.ParseHost(cli.Config.TLS, cli.Config.Hosts[i]); err != nil {
-			return nil, fmt.Errorf("error parsing -H %s : %v", cli.Config.Hosts[i], err)
+		if cli.Config.Hosts[i], err = dopts.ParseHost(cli.Config.TLS, rootless.RunningWithNonRootUsername(), cli.Config.Hosts[i]); err != nil {
+			return nil, errors.Wrapf(err, "error parsing -H %s", cli.Config.Hosts[i])
 		}
 
 		protoAddr := cli.Config.Hosts[i]
@@ -622,5 +650,37 @@ func validateAuthzPlugins(requestedPlugins []string, pg plugingetter.PluginGette
 			return err
 		}
 	}
+	return nil
+}
+
+func systemContainerdRunning(isRootless bool) (string, bool, error) {
+	addr := containerddefaults.DefaultAddress
+	if isRootless {
+		runtimeDir, err := homedir.GetRuntimeDir()
+		if err != nil {
+			return "", false, err
+		}
+		addr = filepath.Join(runtimeDir, "containerd", "containerd.sock")
+	}
+	_, err := os.Lstat(addr)
+	return addr, err == nil, nil
+}
+
+// configureDaemonLogs sets the logrus logging level and formatting
+func configureDaemonLogs(conf *config.Config) error {
+	if conf.LogLevel != "" {
+		lvl, err := logrus.ParseLevel(conf.LogLevel)
+		if err != nil {
+			return fmt.Errorf("unable to parse logging level: %s", conf.LogLevel)
+		}
+		logrus.SetLevel(lvl)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+	logrus.SetFormatter(&logrus.TextFormatter{
+		TimestampFormat: jsonmessage.RFC3339NanoFixed,
+		DisableColors:   conf.RawLogs,
+		FullTimestamp:   true,
+	})
 	return nil
 }

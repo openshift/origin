@@ -17,6 +17,7 @@ limitations under the License.
 package status
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -544,7 +545,7 @@ func (m *manager) syncPod(uid types.UID, status versionedPodStatus) {
 	}
 
 	// TODO: make me easier to express from client code
-	pod, err := m.kubeClient.CoreV1().Pods(status.podNamespace).Get(status.podName, metav1.GetOptions{})
+	pod, err := m.kubeClient.CoreV1().Pods(status.podNamespace).Get(context.TODO(), status.podName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		klog.V(3).Infof("Pod %q does not exist on the server", format.PodDesc(status.podName, status.podNamespace, uid))
 		// If the Pod is deleted the status will be cleared in
@@ -582,10 +583,13 @@ func (m *manager) syncPod(uid types.UID, status versionedPodStatus) {
 
 	// We don't handle graceful deletion of mirror pods.
 	if m.canBeDeleted(pod, status.status) {
-		deleteOptions := metav1.NewDeleteOptions(0)
-		// Use the pod UID as the precondition for deletion to prevent deleting a newly created pod with the same name and namespace.
-		deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(pod.UID))
-		err = m.kubeClient.CoreV1().Pods(pod.Namespace).Delete(pod.Name, deleteOptions)
+		deleteOptions := metav1.DeleteOptions{
+			GracePeriodSeconds: new(int64),
+			// Use the pod UID as the precondition for deletion to prevent deleting a
+			// newly created pod with the same name and namespace.
+			Preconditions: metav1.NewUIDPreconditions(string(pod.UID)),
+		}
+		err = m.kubeClient.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, deleteOptions)
 		if err != nil {
 			klog.Warningf("Failed to delete status for pod %q: %v", format.Pod(pod), err)
 			return
@@ -650,8 +654,8 @@ func (m *manager) needsReconcile(uid types.UID, status v1.PodStatus) bool {
 		// reconcile is not needed. Just return.
 		return false
 	}
-	klog.V(3).Infof("Pod status is inconsistent with cached status for pod %q, a reconciliation should be triggered:\n %+v", format.Pod(pod),
-		diff.ObjectDiff(podStatus, status))
+	klog.V(3).Infof("Pod status is inconsistent with cached status for pod %q, a reconciliation should be triggered:\n %s", format.Pod(pod),
+		diff.ObjectDiff(podStatus, &status))
 
 	return true
 }

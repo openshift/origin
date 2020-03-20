@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	userv1 "github.com/openshift/api/user/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -22,7 +24,7 @@ var identitiesResource = schema.GroupVersionResource{Group: "user.openshift.io",
 var identitiesKind = schema.GroupVersionKind{Group: "user.openshift.io", Version: "v1", Kind: "Identity"}
 
 // Get takes name of the identity, and returns the corresponding identity object, and an error if there is any.
-func (c *FakeIdentities) Get(name string, options v1.GetOptions) (result *userv1.Identity, err error) {
+func (c *FakeIdentities) Get(ctx context.Context, name string, options v1.GetOptions) (result *userv1.Identity, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(identitiesResource, name), &userv1.Identity{})
 	if obj == nil {
@@ -32,7 +34,7 @@ func (c *FakeIdentities) Get(name string, options v1.GetOptions) (result *userv1
 }
 
 // List takes label and field selectors, and returns the list of Identities that match those selectors.
-func (c *FakeIdentities) List(opts v1.ListOptions) (result *userv1.IdentityList, err error) {
+func (c *FakeIdentities) List(ctx context.Context, opts v1.ListOptions) (result *userv1.IdentityList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(identitiesResource, identitiesKind, opts), &userv1.IdentityList{})
 	if obj == nil {
@@ -53,13 +55,13 @@ func (c *FakeIdentities) List(opts v1.ListOptions) (result *userv1.IdentityList,
 }
 
 // Watch returns a watch.Interface that watches the requested identities.
-func (c *FakeIdentities) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeIdentities) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(identitiesResource, opts))
 }
 
 // Create takes the representation of a identity and creates it.  Returns the server's representation of the identity, and an error, if there is any.
-func (c *FakeIdentities) Create(identity *userv1.Identity) (result *userv1.Identity, err error) {
+func (c *FakeIdentities) Create(ctx context.Context, identity *userv1.Identity, opts v1.CreateOptions) (result *userv1.Identity, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(identitiesResource, identity), &userv1.Identity{})
 	if obj == nil {
@@ -69,7 +71,7 @@ func (c *FakeIdentities) Create(identity *userv1.Identity) (result *userv1.Ident
 }
 
 // Update takes the representation of a identity and updates it. Returns the server's representation of the identity, and an error, if there is any.
-func (c *FakeIdentities) Update(identity *userv1.Identity) (result *userv1.Identity, err error) {
+func (c *FakeIdentities) Update(ctx context.Context, identity *userv1.Identity, opts v1.UpdateOptions) (result *userv1.Identity, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(identitiesResource, identity), &userv1.Identity{})
 	if obj == nil {
@@ -79,22 +81,22 @@ func (c *FakeIdentities) Update(identity *userv1.Identity) (result *userv1.Ident
 }
 
 // Delete takes name of the identity and deletes it. Returns an error if one occurs.
-func (c *FakeIdentities) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeIdentities) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(identitiesResource, name), &userv1.Identity{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeIdentities) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(identitiesResource, listOptions)
+func (c *FakeIdentities) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(identitiesResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &userv1.IdentityList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched identity.
-func (c *FakeIdentities) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *userv1.Identity, err error) {
+func (c *FakeIdentities) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *userv1.Identity, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(identitiesResource, name, pt, data, subresources...), &userv1.Identity{})
 	if obj == nil {

@@ -159,7 +159,7 @@ func Dlahr2Test(t *testing.T, impl Dlahr2er) {
 				if !isOrthogonal(q) {
 					t.Errorf("%v: Q is not orthogonal", prefix)
 				}
-				// Construct Q as the product Q = I - V*T*V^T.
+				// Construct Q as the product Q = I - V*T*Vᵀ.
 				qwant := blas64.General{
 					Rows:   n - k + 1,
 					Cols:   n - k + 1,
@@ -171,7 +171,7 @@ func Dlahr2Test(t *testing.T, impl Dlahr2er) {
 				}
 				blas64.Gemm(blas.NoTrans, blas.Trans, -1, vt, v, 1, qwant)
 				if !isOrthogonal(qwant) {
-					t.Errorf("%v: Q = I - V*T*V^T is not orthogonal", prefix)
+					t.Errorf("%v: Q = I - V*T*Vᵀ is not orthogonal", prefix)
 				}
 
 				// Compare Q and QWant. Note that since Q is

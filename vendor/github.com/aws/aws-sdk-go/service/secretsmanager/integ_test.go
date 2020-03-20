@@ -27,7 +27,9 @@ func TestInteg_00_ListSecrets(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := secretsmanager.New(sess)
 	params := &secretsmanager.ListSecretsInput{}
-	_, err := svc.ListSecretsWithContext(ctx, params)
+	_, err := svc.ListSecretsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeSecret(t *testing.T) {
 	params := &secretsmanager.DescribeSecretInput{
 		SecretId: aws.String("fake-secret-id"),
 	}
-	_, err := svc.DescribeSecretWithContext(ctx, params)
+	_, err := svc.DescribeSecretWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

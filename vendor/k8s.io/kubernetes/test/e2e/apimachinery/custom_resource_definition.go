@@ -17,6 +17,7 @@ limitations under the License.
 package apimachinery
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -109,7 +110,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 			}()
 
 			selectorListOpts := metav1.ListOptions{LabelSelector: "e2e-list-test-uuid=" + testUUID}
-			list, err := apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().List(selectorListOpts)
+			list, err := apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().List(context.TODO(), selectorListOpts)
 			framework.ExpectNoError(err, "listing CustomResourceDefinitions")
 			framework.ExpectEqual(len(list.Items), testListSize)
 			for _, actual := range list.Items {
@@ -129,7 +130,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 			// Use delete collection to remove the CRDs
 			err = fixtures.DeleteV1CustomResourceDefinitions(selectorListOpts, apiExtensionClient)
 			framework.ExpectNoError(err, "deleting CustomResourceDefinitions")
-			_, err = apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Get(crd.Name, metav1.GetOptions{})
+			_, err = apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), crd.Name, metav1.GetOptions{})
 			framework.ExpectNoError(err, "getting remaining CustomResourceDefinition")
 		})
 
@@ -162,24 +163,23 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 			updateCondition := v1.CustomResourceDefinitionCondition{Message: "updated"}
 			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				// Use dynamic client to read the status sub-resource since typed client does not expose it.
-				u, err := resourceClient.Get(crd.GetName(), metav1.GetOptions{}, "status")
+				u, err := resourceClient.Get(context.TODO(), crd.GetName(), metav1.GetOptions{}, "status")
 				framework.ExpectNoError(err, "getting CustomResourceDefinition status")
 				status := unstructuredToCRD(u)
 				if !equality.Semantic.DeepEqual(status.Spec, crd.Spec) {
 					framework.Failf("Expected CustomResourceDefinition Spec to match status sub-resource Spec, but got:\n%s", diff.ObjectReflectDiff(status.Spec, crd.Spec))
 				}
 				status.Status.Conditions = append(status.Status.Conditions, updateCondition)
-				updated, err = apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().UpdateStatus(status)
+				updated, err = apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().UpdateStatus(context.TODO(), status, metav1.UpdateOptions{})
 				return err
 			})
 			framework.ExpectNoError(err, "updating CustomResourceDefinition status")
 			expectCondition(updated.Status.Conditions, updateCondition)
 
 			patchCondition := v1.CustomResourceDefinitionCondition{Message: "patched"}
-			patched, err := apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Patch(
-				crd.GetName(),
+			patched, err := apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Patch(context.TODO(), crd.GetName(),
 				types.JSONPatchType,
-				[]byte(`[{"op": "add", "path": "/status/conditions", "value": [{"message": "patched"}]}]`),
+				[]byte(`[{"op": "add", "path": "/status/conditions", "value": [{"message": "patched"}]}]`), metav1.PatchOptions{},
 				"status")
 			framework.ExpectNoError(err, "patching CustomResourceDefinition status")
 			expectCondition(updated.Status.Conditions, updateCondition)
@@ -197,7 +197,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 		{
 			ginkgo.By("fetching the /apis discovery document")
 			apiGroupList := &metav1.APIGroupList{}
-			err := f.ClientSet.Discovery().RESTClient().Get().AbsPath("/apis").Do().Into(apiGroupList)
+			err := f.ClientSet.Discovery().RESTClient().Get().AbsPath("/apis").Do(context.TODO()).Into(apiGroupList)
 			framework.ExpectNoError(err, "fetching /apis")
 
 			ginkgo.By("finding the apiextensions.k8s.io API group in the /apis discovery document")
@@ -224,7 +224,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 		{
 			ginkgo.By("fetching the /apis/apiextensions.k8s.io discovery document")
 			group := &metav1.APIGroup{}
-			err := f.ClientSet.Discovery().RESTClient().Get().AbsPath("/apis/apiextensions.k8s.io").Do().Into(group)
+			err := f.ClientSet.Discovery().RESTClient().Get().AbsPath("/apis/apiextensions.k8s.io").Do(context.TODO()).Into(group)
 			framework.ExpectNoError(err, "fetching /apis/apiextensions.k8s.io")
 			framework.ExpectEqual(group.Name, v1.GroupName, "verifying API group name in /apis/apiextensions.k8s.io discovery document")
 
@@ -242,7 +242,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 		{
 			ginkgo.By("fetching the /apis/apiextensions.k8s.io/v1 discovery document")
 			apiResourceList := &metav1.APIResourceList{}
-			err := f.ClientSet.Discovery().RESTClient().Get().AbsPath("/apis/apiextensions.k8s.io/v1").Do().Into(apiResourceList)
+			err := f.ClientSet.Discovery().RESTClient().Get().AbsPath("/apis/apiextensions.k8s.io/v1").Do(context.TODO()).Into(apiResourceList)
 			framework.ExpectNoError(err, "fetching /apis/apiextensions.k8s.io/v1")
 			framework.ExpectEqual(apiResourceList.GroupVersion, v1.SchemeGroupVersion.String(), "verifying API group/version in /apis/apiextensions.k8s.io/v1 discovery document")
 
@@ -294,7 +294,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 			Resource: crd.Spec.Names.Plural,
 		}
 		crClient := dynamicClient.Resource(gvr)
-		_, err = crClient.Create(&unstructured.Unstructured{Object: map[string]interface{}{
+		_, err = crClient.Create(context.TODO(), &unstructured.Unstructured{Object: map[string]interface{}{
 			"apiVersion": gvr.Group + "/" + gvr.Version,
 			"kind":       crd.Spec.Names.Kind,
 			"metadata": map[string]interface{}{
@@ -304,13 +304,13 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 		framework.ExpectNoError(err, "creating CR")
 
 		// Setting default for a to "A" and waiting for the CR to get defaulted on read
-		crd, err = apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Patch(crd.Name, types.JSONPatchType, []byte(`[
+		crd, err = apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Patch(context.TODO(), crd.Name, types.JSONPatchType, []byte(`[
 			{"op":"add","path":"/spec/versions/0/schema/openAPIV3Schema/properties/a/default", "value": "A"}
-		]`))
+		]`), metav1.PatchOptions{})
 		framework.ExpectNoError(err, "setting default for a to \"A\" in schema")
 
 		err = wait.PollImmediate(time.Millisecond*100, wait.ForeverTestTimeout, func() (bool, error) {
-			u1, err := crClient.Get(name1, metav1.GetOptions{})
+			u1, err := crClient.Get(context.TODO(), name1, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -330,7 +330,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 
 		// create CR with default in storage
 		name2 := names.SimpleNameGenerator.GenerateName("cr-2")
-		u2, err := crClient.Create(&unstructured.Unstructured{Object: map[string]interface{}{
+		u2, err := crClient.Create(context.TODO(), &unstructured.Unstructured{Object: map[string]interface{}{
 			"apiVersion": gvr.Group + "/" + gvr.Version,
 			"kind":       crd.Spec.Names.Kind,
 			"metadata": map[string]interface{}{
@@ -343,14 +343,14 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 		framework.ExpectEqual(v, "A", "\"a\" is defaulted to \"A\"")
 
 		// Deleting default for a, adding default "B" for b and waiting for the CR to get defaulted on read for b
-		crd, err = apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Patch(crd.Name, types.JSONPatchType, []byte(`[
+		crd, err = apiExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Patch(context.TODO(), crd.Name, types.JSONPatchType, []byte(`[
 			{"op":"remove","path":"/spec/versions/0/schema/openAPIV3Schema/properties/a/default"},
 			{"op":"add","path":"/spec/versions/0/schema/openAPIV3Schema/properties/b/default", "value": "B"}
-		]`))
+		]`), metav1.PatchOptions{})
 		framework.ExpectNoError(err, "setting default for b to \"B\" and remove default for a")
 
 		err = wait.PollImmediate(time.Millisecond*100, wait.ForeverTestTimeout, func() (bool, error) {
-			u2, err := crClient.Get(name2, metav1.GetOptions{})
+			u2, err := crClient.Get(context.TODO(), name2, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}

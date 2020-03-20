@@ -3,6 +3,8 @@
 package v1
 
 import (
+	"context"
+
 	v1 "github.com/openshift/api/user/v1"
 	scheme "github.com/openshift/client-go/user/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,10 +19,10 @@ type UserIdentityMappingsGetter interface {
 
 // UserIdentityMappingInterface has methods to work with UserIdentityMapping resources.
 type UserIdentityMappingInterface interface {
-	Create(*v1.UserIdentityMapping) (*v1.UserIdentityMapping, error)
-	Update(*v1.UserIdentityMapping) (*v1.UserIdentityMapping, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.UserIdentityMapping, error)
+	Create(ctx context.Context, userIdentityMapping *v1.UserIdentityMapping, opts metav1.CreateOptions) (*v1.UserIdentityMapping, error)
+	Update(ctx context.Context, userIdentityMapping *v1.UserIdentityMapping, opts metav1.UpdateOptions) (*v1.UserIdentityMapping, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.UserIdentityMapping, error)
 	UserIdentityMappingExpansion
 }
 
@@ -37,46 +39,48 @@ func newUserIdentityMappings(c *UserV1Client) *userIdentityMappings {
 }
 
 // Get takes name of the userIdentityMapping, and returns the corresponding userIdentityMapping object, and an error if there is any.
-func (c *userIdentityMappings) Get(name string, options metav1.GetOptions) (result *v1.UserIdentityMapping, err error) {
+func (c *userIdentityMappings) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.UserIdentityMapping, err error) {
 	result = &v1.UserIdentityMapping{}
 	err = c.client.Get().
 		Resource("useridentitymappings").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Create takes the representation of a userIdentityMapping and creates it.  Returns the server's representation of the userIdentityMapping, and an error, if there is any.
-func (c *userIdentityMappings) Create(userIdentityMapping *v1.UserIdentityMapping) (result *v1.UserIdentityMapping, err error) {
+func (c *userIdentityMappings) Create(ctx context.Context, userIdentityMapping *v1.UserIdentityMapping, opts metav1.CreateOptions) (result *v1.UserIdentityMapping, err error) {
 	result = &v1.UserIdentityMapping{}
 	err = c.client.Post().
 		Resource("useridentitymappings").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(userIdentityMapping).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a userIdentityMapping and updates it. Returns the server's representation of the userIdentityMapping, and an error, if there is any.
-func (c *userIdentityMappings) Update(userIdentityMapping *v1.UserIdentityMapping) (result *v1.UserIdentityMapping, err error) {
+func (c *userIdentityMappings) Update(ctx context.Context, userIdentityMapping *v1.UserIdentityMapping, opts metav1.UpdateOptions) (result *v1.UserIdentityMapping, err error) {
 	result = &v1.UserIdentityMapping{}
 	err = c.client.Put().
 		Resource("useridentitymappings").
 		Name(userIdentityMapping.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(userIdentityMapping).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the userIdentityMapping and deletes it. Returns an error if one occurs.
-func (c *userIdentityMappings) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *userIdentityMappings) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("useridentitymappings").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }

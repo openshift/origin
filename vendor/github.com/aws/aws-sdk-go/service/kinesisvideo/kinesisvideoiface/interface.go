@@ -26,7 +26,7 @@ import (
 //    // myFunc uses an SDK service client to make a request to
 //    // Amazon Kinesis Video Streams.
 //    func myFunc(svc kinesisvideoiface.KinesisVideoAPI) bool {
-//        // Make svc.CreateStream request
+//        // Make svc.CreateSignalingChannel request
 //    }
 //
 //    func main() {
@@ -42,7 +42,7 @@ import (
 //    type mockKinesisVideoClient struct {
 //        kinesisvideoiface.KinesisVideoAPI
 //    }
-//    func (m *mockKinesisVideoClient) CreateStream(input *kinesisvideo.CreateStreamInput) (*kinesisvideo.CreateStreamOutput, error) {
+//    func (m *mockKinesisVideoClient) CreateSignalingChannel(input *kinesisvideo.CreateSignalingChannelInput) (*kinesisvideo.CreateSignalingChannelOutput, error) {
 //        // mock response/functionality
 //    }
 //
@@ -60,13 +60,25 @@ import (
 // and waiters. Its suggested to use the pattern above for testing, or using
 // tooling to generate mocks to satisfy the interfaces.
 type KinesisVideoAPI interface {
+	CreateSignalingChannel(*kinesisvideo.CreateSignalingChannelInput) (*kinesisvideo.CreateSignalingChannelOutput, error)
+	CreateSignalingChannelWithContext(aws.Context, *kinesisvideo.CreateSignalingChannelInput, ...request.Option) (*kinesisvideo.CreateSignalingChannelOutput, error)
+	CreateSignalingChannelRequest(*kinesisvideo.CreateSignalingChannelInput) (*request.Request, *kinesisvideo.CreateSignalingChannelOutput)
+
 	CreateStream(*kinesisvideo.CreateStreamInput) (*kinesisvideo.CreateStreamOutput, error)
 	CreateStreamWithContext(aws.Context, *kinesisvideo.CreateStreamInput, ...request.Option) (*kinesisvideo.CreateStreamOutput, error)
 	CreateStreamRequest(*kinesisvideo.CreateStreamInput) (*request.Request, *kinesisvideo.CreateStreamOutput)
 
+	DeleteSignalingChannel(*kinesisvideo.DeleteSignalingChannelInput) (*kinesisvideo.DeleteSignalingChannelOutput, error)
+	DeleteSignalingChannelWithContext(aws.Context, *kinesisvideo.DeleteSignalingChannelInput, ...request.Option) (*kinesisvideo.DeleteSignalingChannelOutput, error)
+	DeleteSignalingChannelRequest(*kinesisvideo.DeleteSignalingChannelInput) (*request.Request, *kinesisvideo.DeleteSignalingChannelOutput)
+
 	DeleteStream(*kinesisvideo.DeleteStreamInput) (*kinesisvideo.DeleteStreamOutput, error)
 	DeleteStreamWithContext(aws.Context, *kinesisvideo.DeleteStreamInput, ...request.Option) (*kinesisvideo.DeleteStreamOutput, error)
 	DeleteStreamRequest(*kinesisvideo.DeleteStreamInput) (*request.Request, *kinesisvideo.DeleteStreamOutput)
+
+	DescribeSignalingChannel(*kinesisvideo.DescribeSignalingChannelInput) (*kinesisvideo.DescribeSignalingChannelOutput, error)
+	DescribeSignalingChannelWithContext(aws.Context, *kinesisvideo.DescribeSignalingChannelInput, ...request.Option) (*kinesisvideo.DescribeSignalingChannelOutput, error)
+	DescribeSignalingChannelRequest(*kinesisvideo.DescribeSignalingChannelInput) (*request.Request, *kinesisvideo.DescribeSignalingChannelOutput)
 
 	DescribeStream(*kinesisvideo.DescribeStreamInput) (*kinesisvideo.DescribeStreamOutput, error)
 	DescribeStreamWithContext(aws.Context, *kinesisvideo.DescribeStreamInput, ...request.Option) (*kinesisvideo.DescribeStreamOutput, error)
@@ -76,17 +88,43 @@ type KinesisVideoAPI interface {
 	GetDataEndpointWithContext(aws.Context, *kinesisvideo.GetDataEndpointInput, ...request.Option) (*kinesisvideo.GetDataEndpointOutput, error)
 	GetDataEndpointRequest(*kinesisvideo.GetDataEndpointInput) (*request.Request, *kinesisvideo.GetDataEndpointOutput)
 
+	GetSignalingChannelEndpoint(*kinesisvideo.GetSignalingChannelEndpointInput) (*kinesisvideo.GetSignalingChannelEndpointOutput, error)
+	GetSignalingChannelEndpointWithContext(aws.Context, *kinesisvideo.GetSignalingChannelEndpointInput, ...request.Option) (*kinesisvideo.GetSignalingChannelEndpointOutput, error)
+	GetSignalingChannelEndpointRequest(*kinesisvideo.GetSignalingChannelEndpointInput) (*request.Request, *kinesisvideo.GetSignalingChannelEndpointOutput)
+
+	ListSignalingChannels(*kinesisvideo.ListSignalingChannelsInput) (*kinesisvideo.ListSignalingChannelsOutput, error)
+	ListSignalingChannelsWithContext(aws.Context, *kinesisvideo.ListSignalingChannelsInput, ...request.Option) (*kinesisvideo.ListSignalingChannelsOutput, error)
+	ListSignalingChannelsRequest(*kinesisvideo.ListSignalingChannelsInput) (*request.Request, *kinesisvideo.ListSignalingChannelsOutput)
+
+	ListSignalingChannelsPages(*kinesisvideo.ListSignalingChannelsInput, func(*kinesisvideo.ListSignalingChannelsOutput, bool) bool) error
+	ListSignalingChannelsPagesWithContext(aws.Context, *kinesisvideo.ListSignalingChannelsInput, func(*kinesisvideo.ListSignalingChannelsOutput, bool) bool, ...request.Option) error
+
 	ListStreams(*kinesisvideo.ListStreamsInput) (*kinesisvideo.ListStreamsOutput, error)
 	ListStreamsWithContext(aws.Context, *kinesisvideo.ListStreamsInput, ...request.Option) (*kinesisvideo.ListStreamsOutput, error)
 	ListStreamsRequest(*kinesisvideo.ListStreamsInput) (*request.Request, *kinesisvideo.ListStreamsOutput)
+
+	ListStreamsPages(*kinesisvideo.ListStreamsInput, func(*kinesisvideo.ListStreamsOutput, bool) bool) error
+	ListStreamsPagesWithContext(aws.Context, *kinesisvideo.ListStreamsInput, func(*kinesisvideo.ListStreamsOutput, bool) bool, ...request.Option) error
+
+	ListTagsForResource(*kinesisvideo.ListTagsForResourceInput) (*kinesisvideo.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *kinesisvideo.ListTagsForResourceInput, ...request.Option) (*kinesisvideo.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*kinesisvideo.ListTagsForResourceInput) (*request.Request, *kinesisvideo.ListTagsForResourceOutput)
 
 	ListTagsForStream(*kinesisvideo.ListTagsForStreamInput) (*kinesisvideo.ListTagsForStreamOutput, error)
 	ListTagsForStreamWithContext(aws.Context, *kinesisvideo.ListTagsForStreamInput, ...request.Option) (*kinesisvideo.ListTagsForStreamOutput, error)
 	ListTagsForStreamRequest(*kinesisvideo.ListTagsForStreamInput) (*request.Request, *kinesisvideo.ListTagsForStreamOutput)
 
+	TagResource(*kinesisvideo.TagResourceInput) (*kinesisvideo.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *kinesisvideo.TagResourceInput, ...request.Option) (*kinesisvideo.TagResourceOutput, error)
+	TagResourceRequest(*kinesisvideo.TagResourceInput) (*request.Request, *kinesisvideo.TagResourceOutput)
+
 	TagStream(*kinesisvideo.TagStreamInput) (*kinesisvideo.TagStreamOutput, error)
 	TagStreamWithContext(aws.Context, *kinesisvideo.TagStreamInput, ...request.Option) (*kinesisvideo.TagStreamOutput, error)
 	TagStreamRequest(*kinesisvideo.TagStreamInput) (*request.Request, *kinesisvideo.TagStreamOutput)
+
+	UntagResource(*kinesisvideo.UntagResourceInput) (*kinesisvideo.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *kinesisvideo.UntagResourceInput, ...request.Option) (*kinesisvideo.UntagResourceOutput, error)
+	UntagResourceRequest(*kinesisvideo.UntagResourceInput) (*request.Request, *kinesisvideo.UntagResourceOutput)
 
 	UntagStream(*kinesisvideo.UntagStreamInput) (*kinesisvideo.UntagStreamOutput, error)
 	UntagStreamWithContext(aws.Context, *kinesisvideo.UntagStreamInput, ...request.Option) (*kinesisvideo.UntagStreamOutput, error)
@@ -95,6 +133,10 @@ type KinesisVideoAPI interface {
 	UpdateDataRetention(*kinesisvideo.UpdateDataRetentionInput) (*kinesisvideo.UpdateDataRetentionOutput, error)
 	UpdateDataRetentionWithContext(aws.Context, *kinesisvideo.UpdateDataRetentionInput, ...request.Option) (*kinesisvideo.UpdateDataRetentionOutput, error)
 	UpdateDataRetentionRequest(*kinesisvideo.UpdateDataRetentionInput) (*request.Request, *kinesisvideo.UpdateDataRetentionOutput)
+
+	UpdateSignalingChannel(*kinesisvideo.UpdateSignalingChannelInput) (*kinesisvideo.UpdateSignalingChannelOutput, error)
+	UpdateSignalingChannelWithContext(aws.Context, *kinesisvideo.UpdateSignalingChannelInput, ...request.Option) (*kinesisvideo.UpdateSignalingChannelOutput, error)
+	UpdateSignalingChannelRequest(*kinesisvideo.UpdateSignalingChannelInput) (*request.Request, *kinesisvideo.UpdateSignalingChannelOutput)
 
 	UpdateStream(*kinesisvideo.UpdateStreamInput) (*kinesisvideo.UpdateStreamOutput, error)
 	UpdateStreamWithContext(aws.Context, *kinesisvideo.UpdateStreamInput, ...request.Option) (*kinesisvideo.UpdateStreamOutput, error)

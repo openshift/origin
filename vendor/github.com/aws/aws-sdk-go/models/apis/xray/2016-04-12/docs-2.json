@@ -13,12 +13,13 @@
     "GetSamplingRules": "<p>Retrieves all sampling rules.</p>",
     "GetSamplingStatisticSummaries": "<p>Retrieves information about recent sampling results for all sampling rules.</p>",
     "GetSamplingTargets": "<p>Requests a sampling quota for rules that the service is using to sample requests. </p>",
-    "GetServiceGraph": "<p>Retrieves a document that describes services that process incoming requests, and downstream services that they call as a result. Root services process incoming requests and make calls to downstream services. Root services are applications that use the AWS X-Ray SDK. Downstream services can be other applications, AWS resources, HTTP web APIs, or SQL databases.</p>",
+    "GetServiceGraph": "<p>Retrieves a document that describes services that process incoming requests, and downstream services that they call as a result. Root services process incoming requests and make calls to downstream services. Root services are applications that use the <a href=\"https://docs.aws.amazon.com/xray/index.html\">AWS X-Ray SDK</a>. Downstream services can be other applications, AWS resources, HTTP web APIs, or SQL databases.</p>",
+    "GetTimeSeriesServiceStatistics": "<p>Get an aggregation of service statistics defined by a specific time range.</p>",
     "GetTraceGraph": "<p>Retrieves a service graph for one or more specific trace IDs.</p>",
-    "GetTraceSummaries": "<p>Retrieves IDs and metadata for traces available for a specified time frame using an optional filter. To get the full traces, pass the trace IDs to <code>BatchGetTraces</code>.</p> <p>A filter expression can target traced requests that hit specific service nodes or edges, have errors, or come from a known user. For example, the following filter expression targets traces that pass through <code>api.example.com</code>:</p> <p> <code>service(\"api.example.com\")</code> </p> <p>This filter expression finds traces that have an annotation named <code>account</code> with the value <code>12345</code>:</p> <p> <code>annotation.account = \"12345\"</code> </p> <p>For a full list of indexed fields and keywords that you can use in filter expressions, see <a href=\"http://docs.aws.amazon.com/xray/latest/devguide/xray-console-filters.html\">Using Filter Expressions</a> in the <i>AWS X-Ray Developer Guide</i>.</p>",
+    "GetTraceSummaries": "<p>Retrieves IDs and annotations for traces available for a specified time frame using an optional filter. To get the full traces, pass the trace IDs to <code>BatchGetTraces</code>.</p> <p>A filter expression can target traced requests that hit specific service nodes or edges, have errors, or come from a known user. For example, the following filter expression targets traces that pass through <code>api.example.com</code>:</p> <p> <code>service(\"api.example.com\")</code> </p> <p>This filter expression finds traces that have an annotation named <code>account</code> with the value <code>12345</code>:</p> <p> <code>annotation.account = \"12345\"</code> </p> <p>For a full list of indexed fields and keywords that you can use in filter expressions, see <a href=\"https://docs.aws.amazon.com/xray/latest/devguide/xray-console-filters.html\">Using Filter Expressions</a> in the <i>AWS X-Ray Developer Guide</i>.</p>",
     "PutEncryptionConfig": "<p>Updates the encryption configuration for X-Ray data.</p>",
     "PutTelemetryRecords": "<p>Used by the AWS X-Ray daemon to upload telemetry.</p>",
-    "PutTraceSegments": "<p>Uploads segment documents to AWS X-Ray. The X-Ray SDK generates segment documents and sends them to the X-Ray daemon, which uploads them in batches. A segment document can be a completed segment, an in-progress segment, or an array of subsegments.</p> <p>Segments must include the following fields. For the full segment document schema, see <a href=\"https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html\">AWS X-Ray Segment Documents</a> in the <i>AWS X-Ray Developer Guide</i>.</p> <p class=\"title\"> <b>Required Segment Document Fields</b> </p> <ul> <li> <p> <code>name</code> - The name of the service that handled the request.</p> </li> <li> <p> <code>id</code> - A 64-bit identifier for the segment, unique among segments in the same trace, in 16 hexadecimal digits.</p> </li> <li> <p> <code>trace_id</code> - A unique identifier that connects all segments and subsegments originating from a single client request.</p> </li> <li> <p> <code>start_time</code> - Time the segment or subsegment was created, in floating point seconds in epoch time, accurate to milliseconds. For example, <code>1480615200.010</code> or <code>1.480615200010E9</code>.</p> </li> <li> <p> <code>end_time</code> - Time the segment or subsegment was closed. For example, <code>1480615200.090</code> or <code>1.480615200090E9</code>. Specify either an <code>end_time</code> or <code>in_progress</code>.</p> </li> <li> <p> <code>in_progress</code> - Set to <code>true</code> instead of specifying an <code>end_time</code> to record that a segment has been started, but is not complete. Send an in progress segment when your application receives a request that will take a long time to serve, to trace the fact that the request was received. When the response is sent, send the complete segment to overwrite the in-progress segment.</p> </li> </ul> <p>A <code>trace_id</code> consists of three numbers separated by hyphens. For example, 1-58406520-a006649127e371903a2de979. This includes:</p> <p class=\"title\"> <b>Trace ID Format</b> </p> <ul> <li> <p>The version number, i.e. <code>1</code>.</p> </li> <li> <p>The time of the original request, in Unix epoch time, in 8 hexadecimal digits. For example, 10:00AM December 2nd, 2016 PST in epoch time is <code>1480615200</code> seconds, or <code>58406520</code> in hexadecimal.</p> </li> <li> <p>A 96-bit identifier for the trace, globally unique, in 24 hexadecimal digits.</p> </li> </ul>",
+    "PutTraceSegments": "<p>Uploads segment documents to AWS X-Ray. The <a href=\"https://docs.aws.amazon.com/xray/index.html\">X-Ray SDK</a> generates segment documents and sends them to the X-Ray daemon, which uploads them in batches. A segment document can be a completed segment, an in-progress segment, or an array of subsegments.</p> <p>Segments must include the following fields. For the full segment document schema, see <a href=\"https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html\">AWS X-Ray Segment Documents</a> in the <i>AWS X-Ray Developer Guide</i>.</p> <p class=\"title\"> <b>Required Segment Document Fields</b> </p> <ul> <li> <p> <code>name</code> - The name of the service that handled the request.</p> </li> <li> <p> <code>id</code> - A 64-bit identifier for the segment, unique among segments in the same trace, in 16 hexadecimal digits.</p> </li> <li> <p> <code>trace_id</code> - A unique identifier that connects all segments and subsegments originating from a single client request.</p> </li> <li> <p> <code>start_time</code> - Time the segment or subsegment was created, in floating point seconds in epoch time, accurate to milliseconds. For example, <code>1480615200.010</code> or <code>1.480615200010E9</code>.</p> </li> <li> <p> <code>end_time</code> - Time the segment or subsegment was closed. For example, <code>1480615200.090</code> or <code>1.480615200090E9</code>. Specify either an <code>end_time</code> or <code>in_progress</code>.</p> </li> <li> <p> <code>in_progress</code> - Set to <code>true</code> instead of specifying an <code>end_time</code> to record that a segment has been started, but is not complete. Send an in progress segment when your application receives a request that will take a long time to serve, to trace the fact that the request was received. When the response is sent, send the complete segment to overwrite the in-progress segment.</p> </li> </ul> <p>A <code>trace_id</code> consists of three numbers separated by hyphens. For example, 1-58406520-a006649127e371903a2de979. This includes:</p> <p class=\"title\"> <b>Trace ID Format</b> </p> <ul> <li> <p>The version number, i.e. <code>1</code>.</p> </li> <li> <p>The time of the original request, in Unix epoch time, in 8 hexadecimal digits. For example, 10:00AM December 2nd, 2016 PST in epoch time is <code>1480615200</code> seconds, or <code>58406520</code> in hexadecimal.</p> </li> <li> <p>A 96-bit identifier for the trace, globally unique, in 24 hexadecimal digits.</p> </li> </ul>",
     "UpdateGroup": "<p>Updates a group resource.</p>",
     "UpdateSamplingRule": "<p>Modifies a sampling rule's configuration.</p>"
   },
@@ -103,7 +104,8 @@
     "Boolean": {
       "base": null,
       "refs": {
-        "GetServiceGraphResult$ContainsOldGroupVersions": "<p>A flag indicating whether the group's filter expression has been consistent, or if the returned service graph may show traces from an older version of the group's filter expression.</p>"
+        "GetServiceGraphResult$ContainsOldGroupVersions": "<p>A flag indicating whether the group's filter expression has been consistent, or if the returned service graph may show traces from an older version of the group's filter expression.</p>",
+        "GetTimeSeriesServiceStatisticsResult$ContainsOldGroupVersions": "<p>A flag indicating whether or not a group's filter expression has been consistent, or if a returned aggregation may show statistics from an older version of the group's filter expression.</p>"
       }
     },
     "BorrowCount": {
@@ -186,7 +188,8 @@
     "EdgeStatistics": {
       "base": "<p>Response statistics for an edge.</p>",
       "refs": {
-        "Edge$SummaryStatistics": "<p>Response statistics for segments on the edge.</p>"
+        "Edge$SummaryStatistics": "<p>Response statistics for segments on the edge.</p>",
+        "TimeSeriesServiceStatistics$EdgeSummaryStatistics": null
       }
     },
     "EncryptionConfig": {
@@ -199,7 +202,7 @@
     "EncryptionKeyId": {
       "base": null,
       "refs": {
-        "PutEncryptionConfigRequest$KeyId": "<p>An AWS KMS customer master key (CMK) in one of the following formats:</p> <ul> <li> <p> <b>Alias</b> - The name of the key. For example, <code>alias/MyKey</code>.</p> </li> <li> <p> <b>Key ID</b> - The KMS key ID of the key. For example, <code>ae4aa6d49-a4d8-9df9-a475-4ff6d7898456</code>.</p> </li> <li> <p> <b>ARN</b> - The full Amazon Resource Name of the key ID or alias. For example, <code>arn:aws:kms:us-east-2:123456789012:key/ae4aa6d49-a4d8-9df9-a475-4ff6d7898456</code>. Use this format to specify a key in a different account.</p> </li> </ul> <p>Omit this key if you set <code>Type</code> to <code>NONE</code>.</p>"
+        "PutEncryptionConfigRequest$KeyId": "<p>An AWS KMS customer master key (CMK) in one of the following formats:</p> <ul> <li> <p> <b>Alias</b> - The name of the key. For example, <code>alias/MyKey</code>.</p> </li> <li> <p> <b>Key ID</b> - The KMS key ID of the key. For example, <code>ae4aa6d49-a4d8-9df9-a475-4ff6d7898456</code>. AWS X-Ray does not support asymmetric CMKs.</p> </li> <li> <p> <b>ARN</b> - The full Amazon Resource Name of the key ID or alias. For example, <code>arn:aws:kms:us-east-2:123456789012:key/ae4aa6d49-a4d8-9df9-a475-4ff6d7898456</code>. Use this format to specify a key in a different account.</p> </li> </ul> <p>Omit this key if you set <code>Type</code> to <code>NONE</code>.</p>"
       }
     },
     "EncryptionStatus": {
@@ -213,6 +216,12 @@
       "refs": {
         "EncryptionConfig$Type": "<p>The type of encryption. Set to <code>KMS</code> for encryption with CMKs. Set to <code>NONE</code> for default encryption.</p>",
         "PutEncryptionConfigRequest$Type": "<p>The type of encryption. Set to <code>KMS</code> to use your own key for encryption. Set to <code>NONE</code> for default encryption.</p>"
+      }
+    },
+    "EntitySelectorExpression": {
+      "base": null,
+      "refs": {
+        "GetTimeSeriesServiceStatisticsRequest$EntitySelectorExpression": "<p>A filter expression defining entities that will be aggregated for statistics. Supports ID, service, and edge functions. If no selector expression is specified, edge statistics are returned. </p>"
       }
     },
     "ErrorMessage": {
@@ -346,7 +355,7 @@
     "GetGroupsNextToken": {
       "base": null,
       "refs": {
-        "GetGroupsRequest$NextToken": "<p>Pagination token. Not used.</p>"
+        "GetGroupsRequest$NextToken": "<p>Pagination token.</p>"
       }
     },
     "GetGroupsRequest": {
@@ -399,6 +408,16 @@
       "refs": {
       }
     },
+    "GetTimeSeriesServiceStatisticsRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "GetTimeSeriesServiceStatisticsResult": {
+      "base": null,
+      "refs": {
+      }
+    },
     "GetTraceGraphRequest": {
       "base": null,
       "refs": {
@@ -433,6 +452,7 @@
         "DeleteGroupRequest$GroupARN": "<p>The ARN of the group that was generated on creation.</p>",
         "GetGroupRequest$GroupARN": "<p>The ARN of the group that was generated on creation.</p>",
         "GetServiceGraphRequest$GroupARN": "<p>The ARN of a group to generate a graph based on.</p>",
+        "GetTimeSeriesServiceStatisticsRequest$GroupARN": "<p>The ARN of the group for which to pull statistics from.</p>",
         "UpdateGroupRequest$GroupARN": "<p>The ARN that was generated upon creation.</p>"
       }
     },
@@ -443,6 +463,7 @@
         "DeleteGroupRequest$GroupName": "<p>The case-sensitive name of the group.</p>",
         "GetGroupRequest$GroupName": "<p>The case-sensitive name of the group.</p>",
         "GetServiceGraphRequest$GroupName": "<p>The name of a group to generate a graph based on.</p>",
+        "GetTimeSeriesServiceStatisticsRequest$GroupName": "<p>The case-sensitive name of the group for which to pull statistics from.</p>",
         "UpdateGroupRequest$GroupName": "<p>The case-sensitive name of the group.</p>"
       }
     },
@@ -470,7 +491,8 @@
       "refs": {
         "Edge$ResponseTimeHistogram": "<p>A histogram that maps the spread of client response times on an edge.</p>",
         "Service$DurationHistogram": "<p>A histogram that maps the spread of service durations.</p>",
-        "Service$ResponseTimeHistogram": "<p>A histogram that maps the spread of service response times.</p>"
+        "Service$ResponseTimeHistogram": "<p>A histogram that maps the spread of service response times.</p>",
+        "TimeSeriesServiceStatistics$ResponseTimeHistogram": "<p>The response time histogram for the selected entities.</p>"
       }
     },
     "HistogramEntry": {
@@ -531,8 +553,8 @@
         "ResponseTimeRootCauseEntity$Remote": "<p>A flag that denotes a remote subsegment.</p>",
         "ResponseTimeRootCauseService$Inferred": "<p>A Boolean value indicating if the service is inferred from the trace.</p>",
         "Service$Root": "<p>Indicates that the service was the first service to process a request.</p>",
-        "TraceSummary$HasFault": "<p>One or more of the segment documents has a 500 series error.</p>",
-        "TraceSummary$HasError": "<p>One or more of the segment documents has a 400 series error.</p>",
+        "TraceSummary$HasFault": "<p>The root segment document has a 500 series error.</p>",
+        "TraceSummary$HasError": "<p>The root segment document has a 400 series error.</p>",
         "TraceSummary$HasThrottle": "<p>One or more of the segment documents has a 429 throttling error.</p>",
         "TraceSummary$IsPartial": "<p>One or more of the segment documents is in progress.</p>"
       }
@@ -544,6 +566,7 @@
         "EdgeStatistics$TotalResponseTime": "<p>The aggregate response time of completed requests.</p>",
         "ResponseTimeRootCauseEntity$Coverage": "<p>The types and messages of the exceptions.</p>",
         "SamplingRuleUpdate$FixedRate": "<p>The percentage of matching requests to instrument, after the reservoir is exhausted.</p>",
+        "SamplingStrategy$Value": "<p>The value of a sampling rule.</p>",
         "ServiceStatistics$TotalResponseTime": "<p>The aggregate response time of completed requests.</p>",
         "Trace$Duration": "<p>The length of time in seconds between the start time of the root segment and the end time of the last segment that completed.</p>",
         "TraceSummary$Duration": "<p>The length of time in seconds between the start time of the root segment and the end time of the last segment that completed.</p>",
@@ -560,6 +583,7 @@
         "BackendConnectionErrors$UnknownHostCount": "<p/>",
         "BackendConnectionErrors$OtherCount": "<p/>",
         "Edge$ReferenceId": "<p>Identifier of the edge. Unique within a service map.</p>",
+        "GetTimeSeriesServiceStatisticsRequest$Period": "<p>Aggregation period in seconds.</p>",
         "Http$HttpStatus": "<p>The response status.</p>",
         "SamplingRuleUpdate$Priority": "<p>The priority of the sampling rule.</p>",
         "SamplingRuleUpdate$ReservoirSize": "<p>A fixed number of matching requests to instrument per second, prior to applying the fixed rate. The reservoir is not used directly by services, but applies to all services using the rule collectively.</p>",
@@ -769,6 +793,18 @@
         "GetSamplingTargetsRequest$SamplingStatisticsDocuments": "<p>Information about rules that the service is using to sample requests.</p>"
       }
     },
+    "SamplingStrategy": {
+      "base": "<p>The name and value of a sampling rule to apply to a trace summary.</p>",
+      "refs": {
+        "GetTraceSummariesRequest$SamplingStrategy": "<p>A paramater to indicate whether to enable sampling on trace summaries. Input parameters are Name and Value.</p>"
+      }
+    },
+    "SamplingStrategyName": {
+      "base": null,
+      "refs": {
+        "SamplingStrategy$Name": "<p>The name of a sampling rule.</p>"
+      }
+    },
     "SamplingTargetDocument": {
       "base": "<p>Temporary changes to a sampling rule configuration. To meet the global sampling target for a rule, X-Ray calculates a new reservoir for each service based on the recent sampling results of all services that called <a>GetSamplingTargets</a>.</p>",
       "refs": {
@@ -853,7 +889,8 @@
     "ServiceStatistics": {
       "base": "<p>Response statistics for a service.</p>",
       "refs": {
-        "Service$SummaryStatistics": "<p>Aggregated statistics for the service.</p>"
+        "Service$SummaryStatistics": "<p>Aggregated statistics for the service.</p>",
+        "TimeSeriesServiceStatistics$ServiceSummaryStatistics": null
       }
     },
     "ServiceType": {
@@ -871,8 +908,8 @@
         "AliasNames$member": null,
         "AnnotationValue$StringValue": "<p>Value for a String annotation.</p>",
         "AvailabilityZoneDetail$Name": "<p>The name of a corresponding availability zone.</p>",
-        "BatchGetTracesRequest$NextToken": "<p>Pagination token. Not used.</p>",
-        "BatchGetTracesResult$NextToken": "<p>Pagination token. Not used.</p>",
+        "BatchGetTracesRequest$NextToken": "<p>Pagination token.</p>",
+        "BatchGetTracesResult$NextToken": "<p>Pagination token.</p>",
         "DeleteSamplingRuleRequest$RuleName": "<p>The name of the sampling rule. Specify a rule by either name or ARN, but not both.</p>",
         "DeleteSamplingRuleRequest$RuleARN": "<p>The ARN of the sampling rule. Specify a rule by either name or ARN, but not both.</p>",
         "EncryptionConfig$KeyId": "<p>The ID of the customer master key (CMK) used for encryption, if applicable.</p>",
@@ -884,15 +921,17 @@
         "FaultRootCauseService$Name": "<p>The service name.</p>",
         "FaultRootCauseService$Type": "<p>The type associated to the service.</p>",
         "FaultRootCauseService$AccountId": "<p>The account ID associated to the service.</p>",
-        "GetGroupsResult$NextToken": "<p>Pagination token. Not used.</p>",
-        "GetSamplingRulesRequest$NextToken": "<p>Pagination token. Not used.</p>",
-        "GetSamplingRulesResult$NextToken": "<p>Pagination token. Not used.</p>",
-        "GetSamplingStatisticSummariesRequest$NextToken": "<p>Pagination token. Not used.</p>",
-        "GetSamplingStatisticSummariesResult$NextToken": "<p>Pagination token. Not used.</p>",
-        "GetServiceGraphRequest$NextToken": "<p>Pagination token. Not used.</p>",
-        "GetServiceGraphResult$NextToken": "<p>Pagination token. Not used.</p>",
-        "GetTraceGraphRequest$NextToken": "<p>Pagination token. Not used.</p>",
-        "GetTraceGraphResult$NextToken": "<p>Pagination token. Not used.</p>",
+        "GetGroupsResult$NextToken": "<p>Pagination token.</p>",
+        "GetSamplingRulesRequest$NextToken": "<p>Pagination token.</p>",
+        "GetSamplingRulesResult$NextToken": "<p>Pagination token.</p>",
+        "GetSamplingStatisticSummariesRequest$NextToken": "<p>Pagination token.</p>",
+        "GetSamplingStatisticSummariesResult$NextToken": "<p>Pagination token.</p>",
+        "GetServiceGraphRequest$NextToken": "<p>Pagination token.</p>",
+        "GetServiceGraphResult$NextToken": "<p>Pagination token.</p>",
+        "GetTimeSeriesServiceStatisticsRequest$NextToken": "<p>Pagination token.</p>",
+        "GetTimeSeriesServiceStatisticsResult$NextToken": "<p>Pagination token.</p>",
+        "GetTraceGraphRequest$NextToken": "<p>Pagination token.</p>",
+        "GetTraceGraphResult$NextToken": "<p>Pagination token.</p>",
         "GetTraceSummariesRequest$NextToken": "<p>Specify the pagination token returned by a previous request to retrieve the next page of results.</p>",
         "GetTraceSummariesResult$NextToken": "<p>If the requested time frame contained more than one page of results, you can use this token to retrieve the next page. The first page contains the most most recent results, closest to the end of the time frame.</p>",
         "Group$GroupName": "<p>The unique case-sensitive name of the group.</p>",
@@ -951,6 +990,24 @@
       "refs": {
       }
     },
+    "TimeRangeType": {
+      "base": null,
+      "refs": {
+        "GetTraceSummariesRequest$TimeRangeType": "<p>A parameter to indicate whether to query trace summaries by TraceId or Event time.</p>"
+      }
+    },
+    "TimeSeriesServiceStatistics": {
+      "base": "<p>A list of TimeSeriesStatistic structures.</p>",
+      "refs": {
+        "TimeSeriesServiceStatisticsList$member": null
+      }
+    },
+    "TimeSeriesServiceStatisticsList": {
+      "base": null,
+      "refs": {
+        "GetTimeSeriesServiceStatisticsResult$TimeSeriesServiceStatistics": "<p>The collection of statistics.</p>"
+      }
+    },
     "Timestamp": {
       "base": null,
       "refs": {
@@ -961,6 +1018,8 @@
         "GetServiceGraphRequest$EndTime": "<p>The end of the timeframe for which to generate a graph.</p>",
         "GetServiceGraphResult$StartTime": "<p>The start of the time frame for which the graph was generated.</p>",
         "GetServiceGraphResult$EndTime": "<p>The end of the time frame for which the graph was generated.</p>",
+        "GetTimeSeriesServiceStatisticsRequest$StartTime": "<p>The start of the time frame for which to aggregate statistics.</p>",
+        "GetTimeSeriesServiceStatisticsRequest$EndTime": "<p>The end of the time frame for which to aggregate statistics.</p>",
         "GetTraceSummariesRequest$StartTime": "<p>The start of the time frame for which to retrieve traces.</p>",
         "GetTraceSummariesRequest$EndTime": "<p>The end of the time frame for which to retrieve traces.</p>",
         "GetTraceSummariesResult$ApproximateTime": "<p>The start time of this page of results.</p>",
@@ -971,7 +1030,9 @@
         "SamplingTargetDocument$ReservoirQuotaTTL": "<p>When the reservoir quota expires.</p>",
         "Service$StartTime": "<p>The start time of the first segment that the service generated.</p>",
         "Service$EndTime": "<p>The end time of the last segment that the service generated.</p>",
-        "TelemetryRecord$Timestamp": "<p/>"
+        "TelemetryRecord$Timestamp": "<p/>",
+        "TimeSeriesServiceStatistics$Timestamp": "<p>Timestamp of the window for which statistics are aggregated.</p>",
+        "TraceSummary$MatchedEventTime": "<p>The matched time stamp of a defined event.</p>"
       }
     },
     "Trace": {
@@ -1041,7 +1102,7 @@
     "TraceSummaryList": {
       "base": null,
       "refs": {
-        "GetTraceSummariesResult$TraceSummaries": "<p>Trace IDs and metadata for traces that were found in the specified time frame.</p>"
+        "GetTraceSummariesResult$TraceSummaries": "<p>Trace IDs and annotations for traces that were found in the specified time frame.</p>"
       }
     },
     "TraceUser": {

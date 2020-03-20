@@ -8,7 +8,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
-	"github.com/gotestyourself/gotestyourself/assert"
+	"gotest.tools/assert"
 )
 
 // TestContainerConfig holds container configuration struct that
@@ -21,6 +21,7 @@ type TestContainerConfig struct {
 }
 
 // Create creates a container with the specified options
+// nolint: golint
 func Create(t *testing.T, ctx context.Context, client client.APIClient, ops ...func(*TestContainerConfig)) string { // nolint: golint
 	t.Helper()
 	config := &TestContainerConfig{
@@ -43,6 +44,7 @@ func Create(t *testing.T, ctx context.Context, client client.APIClient, ops ...f
 }
 
 // Run creates and start a container with the specified options
+// nolint: golint
 func Run(t *testing.T, ctx context.Context, client client.APIClient, ops ...func(*TestContainerConfig)) string { // nolint: golint
 	t.Helper()
 	id := Create(t, ctx, client, ops...)

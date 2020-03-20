@@ -13,8 +13,8 @@ import (
 )
 
 // Boltzmann is the Boltzmann constant (k), it relates the average relative kinetic energy of particles in a gas with the temperature of the gas.
-// The dimensions of Boltzmann are kg m^2 K^-1 s^-2. The standard uncertainty of the constant is 7.9e-30 kg m^2 K^-1 s^-2.
-const Boltzmann = boltzmannUnits(1.38064852e-23)
+// The dimensions of Boltzmann are kg m^2 K^-1 s^-2. The constant is exact.
+const Boltzmann = boltzmannUnits(1.380649e-23)
 
 type boltzmannUnits float64
 

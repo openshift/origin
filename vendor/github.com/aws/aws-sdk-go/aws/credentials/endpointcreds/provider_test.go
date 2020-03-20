@@ -37,6 +37,7 @@ func TestRetrieveRefreshableCredentials(t *testing.T) {
 			fmt.Println("failed to write out creds", err)
 		}
 	}))
+	defer server.Close()
 
 	client := endpointcreds.NewProviderClient(*unit.Session.Config,
 		unit.Session.Handlers,
@@ -82,6 +83,7 @@ func TestRetrieveStaticCredentials(t *testing.T) {
 			fmt.Println("failed to write out creds", err)
 		}
 	}))
+	defer server.Close()
 
 	client := endpointcreds.NewProviderClient(*unit.Session.Config, unit.Session.Handlers, server.URL)
 	creds, err := client.Retrieve()
@@ -117,6 +119,7 @@ func TestFailedRetrieveCredentials(t *testing.T) {
 			fmt.Println("failed to write error", err)
 		}
 	}))
+	defer server.Close()
 
 	client := endpointcreds.NewProviderClient(*unit.Session.Config, unit.Session.Handlers, server.URL)
 	creds, err := client.Retrieve()
@@ -181,6 +184,7 @@ func TestAuthorizationToken(t *testing.T) {
 			fmt.Println("failed to write out creds", err)
 		}
 	}))
+	defer server.Close()
 
 	client := endpointcreds.NewProviderClient(*unit.Session.Config,
 		unit.Session.Handlers,

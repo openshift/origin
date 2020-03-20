@@ -26,6 +26,20 @@
         {"shape":"InternalServerException"}
       ]
     },
+    "DescribeTextTranslationJob":{
+      "name":"DescribeTextTranslationJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeTextTranslationJobRequest"},
+      "output":{"shape":"DescribeTextTranslationJobResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
     "GetTerminology":{
       "name":"GetTerminology",
       "http":{
@@ -70,6 +84,51 @@
         {"shape":"InternalServerException"}
       ]
     },
+    "ListTextTranslationJobs":{
+      "name":"ListTextTranslationJobs",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTextTranslationJobsRequest"},
+      "output":{"shape":"ListTextTranslationJobsResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InvalidFilterException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "StartTextTranslationJob":{
+      "name":"StartTextTranslationJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartTextTranslationJobRequest"},
+      "output":{"shape":"StartTextTranslationJobResponse"},
+      "errors":[
+        {"shape":"TooManyRequestsException"},
+        {"shape":"UnsupportedLanguagePairException"},
+        {"shape":"InvalidRequestException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "StopTextTranslationJob":{
+      "name":"StopTextTranslationJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopTextTranslationJobRequest"},
+      "output":{"shape":"StopTextTranslationJobResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
     "TranslateText":{
       "name":"TranslateText",
       "http":{
@@ -108,11 +167,35 @@
       "min":1,
       "pattern":"[\\P{M}\\p{M}]{1,5000}"
     },
+    "ClientTokenString":{
+      "type":"string",
+      "max":64,
+      "min":1,
+      "pattern":"^[a-zA-Z0-9-]+$"
+    },
+    "ContentType":{
+      "type":"string",
+      "max":256,
+      "pattern":"^[-\\w.]+\\/[-\\w.+]+$"
+    },
     "DeleteTerminologyRequest":{
       "type":"structure",
       "required":["Name"],
       "members":{
         "Name":{"shape":"ResourceName"}
+      }
+    },
+    "DescribeTextTranslationJobRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "DescribeTextTranslationJobResponse":{
+      "type":"structure",
+      "members":{
+        "TextTranslationJobProperties":{"shape":"TextTranslationJobProperties"}
       }
     },
     "Description":{
@@ -143,7 +226,7 @@
       "type":"string",
       "max":400,
       "min":1,
-      "pattern":"(arn:aws((-us-gov)|(-cn))?:kms:)?([a-z]{2}-[a-z]+-\\d:)?(\\d{12}:)?(((key/)?[a-zA-Z0-9-_]+)|(alias/[a-zA-Z0-9:/_-]+))"
+      "pattern":"(arn:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?:kms:)?([a-z]{2}-[a-z]+(-[a-z]+)?-\\d:)?(\\d{12}:)?(((key/)?[a-zA-Z0-9-_]+)|(alias/[a-zA-Z0-9:/_-]+))"
     },
     "EncryptionKeyType":{
       "type":"string",
@@ -167,6 +250,12 @@
         "TerminologyDataLocation":{"shape":"TerminologyDataLocation"}
       }
     },
+    "IamRoleArn":{
+      "type":"string",
+      "max":2048,
+      "min":20,
+      "pattern":"arn:aws(-[^:]+)?:iam::[0-9]{12}:role/.+"
+    },
     "ImportTerminologyRequest":{
       "type":"structure",
       "required":[
@@ -188,6 +277,17 @@
         "TerminologyProperties":{"shape":"TerminologyProperties"}
       }
     },
+    "InputDataConfig":{
+      "type":"structure",
+      "required":[
+        "S3Uri",
+        "ContentType"
+      ],
+      "members":{
+        "S3Uri":{"shape":"S3Uri"},
+        "ContentType":{"shape":"ContentType"}
+      }
+    },
     "Integer":{"type":"integer"},
     "InternalServerException":{
       "type":"structure",
@@ -196,6 +296,13 @@
       },
       "exception":true,
       "fault":true
+    },
+    "InvalidFilterException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"String"}
+      },
+      "exception":true
     },
     "InvalidParameterValueException":{
       "type":"structure",
@@ -210,6 +317,38 @@
         "Message":{"shape":"String"}
       },
       "exception":true
+    },
+    "JobDetails":{
+      "type":"structure",
+      "members":{
+        "TranslatedDocumentsCount":{"shape":"Integer"},
+        "DocumentsWithErrorsCount":{"shape":"Integer"},
+        "InputDocumentsCount":{"shape":"Integer"}
+      }
+    },
+    "JobId":{
+      "type":"string",
+      "max":32,
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-%@]*)$"
+    },
+    "JobName":{
+      "type":"string",
+      "max":256,
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-%@]*)$"
+    },
+    "JobStatus":{
+      "type":"string",
+      "enum":[
+        "SUBMITTED",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "COMPLETED_WITH_ERROR",
+        "FAILED",
+        "STOP_REQUESTED",
+        "STOPPED"
+      ]
     },
     "LanguageCodeString":{
       "type":"string",
@@ -241,6 +380,21 @@
         "NextToken":{"shape":"NextToken"}
       }
     },
+    "ListTextTranslationJobsRequest":{
+      "type":"structure",
+      "members":{
+        "Filter":{"shape":"TextTranslationJobFilter"},
+        "NextToken":{"shape":"NextToken"},
+        "MaxResults":{"shape":"MaxResultsInteger"}
+      }
+    },
+    "ListTextTranslationJobsResponse":{
+      "type":"structure",
+      "members":{
+        "TextTranslationJobPropertiesList":{"shape":"TextTranslationJobPropertiesList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
     "MaxResultsInteger":{
       "type":"integer",
       "max":500,
@@ -254,6 +408,13 @@
       "type":"string",
       "max":8192,
       "pattern":"\\p{ASCII}{0,8192}"
+    },
+    "OutputDataConfig":{
+      "type":"structure",
+      "required":["S3Uri"],
+      "members":{
+        "S3Uri":{"shape":"S3Uri"}
+      }
     },
     "ResourceName":{
       "type":"string",
@@ -272,17 +433,74 @@
       },
       "exception":true
     },
+    "S3Uri":{
+      "type":"string",
+      "max":1024,
+      "pattern":"s3://[a-z0-9][\\.\\-a-z0-9]{1,61}[a-z0-9](/.*)?"
+    },
     "ServiceUnavailableException":{
       "type":"structure",
       "members":{
         "Message":{"shape":"String"}
       },
-      "exception":true
+      "exception":true,
+      "fault":true
+    },
+    "StartTextTranslationJobRequest":{
+      "type":"structure",
+      "required":[
+        "InputDataConfig",
+        "OutputDataConfig",
+        "DataAccessRoleArn",
+        "SourceLanguageCode",
+        "TargetLanguageCodes",
+        "ClientToken"
+      ],
+      "members":{
+        "JobName":{"shape":"JobName"},
+        "InputDataConfig":{"shape":"InputDataConfig"},
+        "OutputDataConfig":{"shape":"OutputDataConfig"},
+        "DataAccessRoleArn":{"shape":"IamRoleArn"},
+        "SourceLanguageCode":{"shape":"LanguageCodeString"},
+        "TargetLanguageCodes":{"shape":"TargetLanguageCodeStringList"},
+        "TerminologyNames":{"shape":"ResourceNameList"},
+        "ClientToken":{
+          "shape":"ClientTokenString",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "StartTextTranslationJobResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobStatus":{"shape":"JobStatus"}
+      }
+    },
+    "StopTextTranslationJobRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "StopTextTranslationJobResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobStatus":{"shape":"JobStatus"}
+      }
     },
     "String":{
       "type":"string",
       "max":10000,
       "pattern":"[\\P{M}\\p{M}]{0,10000}"
+    },
+    "TargetLanguageCodeStringList":{
+      "type":"list",
+      "member":{"shape":"LanguageCodeString"},
+      "max":1,
+      "min":1
     },
     "Term":{
       "type":"structure",
@@ -297,7 +515,7 @@
     },
     "TerminologyArn":{
       "type":"string",
-      "pattern":"^arn:aws((-us-gov)|(-cn))?:translate:[a-zA-Z0-9-]+:[0-9]{12}:terminology/.+?/.+?$"
+      "pattern":"^arn:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?:translate:[a-zA-Z0-9-]+:[0-9]{12}:terminology/.+?/.+?$"
     },
     "TerminologyData":{
       "type":"structure",
@@ -359,6 +577,37 @@
       },
       "exception":true
     },
+    "TextTranslationJobFilter":{
+      "type":"structure",
+      "members":{
+        "JobName":{"shape":"JobName"},
+        "JobStatus":{"shape":"JobStatus"},
+        "SubmittedBeforeTime":{"shape":"Timestamp"},
+        "SubmittedAfterTime":{"shape":"Timestamp"}
+      }
+    },
+    "TextTranslationJobProperties":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobName":{"shape":"JobName"},
+        "JobStatus":{"shape":"JobStatus"},
+        "JobDetails":{"shape":"JobDetails"},
+        "SourceLanguageCode":{"shape":"LanguageCodeString"},
+        "TargetLanguageCodes":{"shape":"TargetLanguageCodeStringList"},
+        "TerminologyNames":{"shape":"ResourceNameList"},
+        "Message":{"shape":"UnboundedLengthString"},
+        "SubmittedTime":{"shape":"Timestamp"},
+        "EndTime":{"shape":"Timestamp"},
+        "InputDataConfig":{"shape":"InputDataConfig"},
+        "OutputDataConfig":{"shape":"OutputDataConfig"},
+        "DataAccessRoleArn":{"shape":"IamRoleArn"}
+      }
+    },
+    "TextTranslationJobPropertiesList":{
+      "type":"list",
+      "member":{"shape":"TextTranslationJobProperties"}
+    },
     "Timestamp":{"type":"timestamp"},
     "TooManyRequestsException":{
       "type":"structure",
@@ -395,6 +644,7 @@
         "AppliedTerminologies":{"shape":"AppliedTerminologyList"}
       }
     },
+    "UnboundedLengthString":{"type":"string"},
     "UnsupportedLanguagePairException":{
       "type":"structure",
       "members":{

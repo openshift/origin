@@ -11,13 +11,13 @@
     "DeleteSubnetGroup": "<p>Deletes a subnet group.</p> <note> <p>You cannot delete a subnet group if it is associated with any DAX clusters.</p> </note>",
     "DescribeClusters": "<p>Returns information about all provisioned DAX clusters if no cluster identifier is specified, or about a specific DAX cluster if a cluster identifier is supplied.</p> <p>If the cluster is in the CREATING state, only cluster level information will be displayed until all of the nodes are successfully provisioned.</p> <p>If the cluster is in the DELETING state, only cluster level information will be displayed.</p> <p>If nodes are currently being added to the DAX cluster, node endpoint information and creation time for the additional nodes will not be displayed until they are completely provisioned. When the DAX cluster state is <i>available</i>, the cluster is ready for use.</p> <p>If nodes are currently being removed from the DAX cluster, no endpoint information for the removed nodes is displayed.</p>",
     "DescribeDefaultParameters": "<p>Returns the default system parameter information for the DAX caching software.</p>",
-    "DescribeEvents": "<p>Returns events related to DAX clusters and parameter groups. You can obtain events specific to a particular DAX cluster or parameter group by providing the name as a parameter.</p> <p>By default, only the events occurring within the last hour are returned; however, you can retrieve up to 14 days' worth of events if necessary.</p>",
+    "DescribeEvents": "<p>Returns events related to DAX clusters and parameter groups. You can obtain events specific to a particular DAX cluster or parameter group by providing the name as a parameter.</p> <p>By default, only the events occurring within the last 24 hours are returned; however, you can retrieve up to 14 days' worth of events if necessary.</p>",
     "DescribeParameterGroups": "<p>Returns a list of parameter group descriptions. If a parameter group name is specified, the list will contain only the descriptions for that group.</p>",
     "DescribeParameters": "<p>Returns the detailed parameter list for a particular parameter group.</p>",
     "DescribeSubnetGroups": "<p>Returns a list of subnet group descriptions. If a subnet group name is specified, the list will contain only the description of that group.</p>",
     "IncreaseReplicationFactor": "<p>Adds one or more nodes to a DAX cluster.</p>",
     "ListTags": "<p>List all of the tags for a DAX cluster. You can call <code>ListTags</code> up to 10 times per second, per account.</p>",
-    "RebootNode": "<p>Reboots a single node of a DAX cluster. The reboot action takes place as soon as possible. During the reboot, the node status is set to REBOOTING.</p>",
+    "RebootNode": "<p>Reboots a single node of a DAX cluster. The reboot action takes place as soon as possible. During the reboot, the node status is set to REBOOTING.</p> <note> <p> <code>RebootNode</code> restarts the DAX engine process and does not remove the contents of the cache. </p> </note>",
     "TagResource": "<p>Associates a set of tags with a DAX resource. You can call <code>TagResource</code> up to 5 times per second, per account. </p>",
     "UntagResource": "<p>Removes the association of tags from a DAX resource. You can call <code>UntagResource</code> up to 5 times per second, per account. </p>",
     "UpdateCluster": "<p>Modifies the settings for a DAX cluster. You can use this action to change one or more cluster configuration parameters by specifying the parameters and the new values.</p>",
@@ -28,7 +28,7 @@
     "AvailabilityZoneList": {
       "base": null,
       "refs": {
-        "CreateClusterRequest$AvailabilityZones": "<p>The Availability Zones (AZs) in which the cluster nodes will be created. All nodes belonging to the cluster are placed in these Availability Zones. Use this parameter if you want to distribute the nodes across multiple AZs.</p>",
+        "CreateClusterRequest$AvailabilityZones": "<p>The Availability Zones (AZs) in which the cluster nodes will reside after the cluster has been created or updated. If provided, the length of this list must equal the <code>ReplicationFactor</code> parameter. If you omit this parameter, DAX will spread the nodes across Availability Zones for the highest availability.</p>",
         "DecreaseReplicationFactorRequest$AvailabilityZones": "<p>The Availability Zone(s) from which to remove nodes.</p>",
         "IncreaseReplicationFactorRequest$AvailabilityZones": "<p>The Availability Zones (AZs) in which the cluster nodes will be created. All nodes belonging to the cluster are placed in these Availability Zones. Use this parameter if you want to distribute the nodes across multiple AZs.</p>"
       }
@@ -252,7 +252,7 @@
     "Integer": {
       "base": null,
       "refs": {
-        "CreateClusterRequest$ReplicationFactor": "<p>The number of nodes in the DAX cluster. A replication factor of 1 will create a single-node cluster, without any read replicas. For additional fault tolerance, you can create a multiple node cluster with one or more read replicas. To do this, set <i>ReplicationFactor</i> to 2 or more.</p> <note> <p>AWS recommends that you have at least two read replicas per cluster.</p> </note>",
+        "CreateClusterRequest$ReplicationFactor": "<p>The number of nodes in the DAX cluster. A replication factor of 1 will create a single-node cluster, without any read replicas. For additional fault tolerance, you can create a multiple node cluster with one or more read replicas. To do this, set <code>ReplicationFactor</code> to a number between 3 (one primary and two read replicas) and 10 (one primary and nine read replicas). <code>If the AvailabilityZones</code> parameter is provided, its length must equal the <code>ReplicationFactor</code>.</p> <note> <p>AWS recommends that you have at least two read replicas per cluster.</p> </note>",
         "DecreaseReplicationFactorRequest$NewReplicationFactor": "<p>The new number of nodes for the DAX cluster.</p>",
         "Endpoint$Port": "<p>The port number that applications should use to connect to the endpoint.</p>",
         "IncreaseReplicationFactorRequest$NewReplicationFactor": "<p>The new number of nodes for the DAX cluster.</p>"
@@ -508,7 +508,7 @@
       }
     },
     "ServiceLinkedRoleNotFoundFault": {
-      "base": null,
+      "base": "<p>The specified service linked role (SLR) was not found.</p>",
       "refs": {
       }
     },
@@ -601,7 +601,7 @@
         "SecurityGroupMembership$SecurityGroupIdentifier": "<p>The unique ID for this security group.</p>",
         "SecurityGroupMembership$Status": "<p>The status of this security group.</p>",
         "Subnet$SubnetIdentifier": "<p>The system-assigned identifier for the subnet.</p>",
-        "Subnet$SubnetAvailabilityZone": "<p>The Availability Zone (AZ) for subnet subnet.</p>",
+        "Subnet$SubnetAvailabilityZone": "<p>The Availability Zone (AZ) for the subnet.</p>",
         "SubnetGroup$SubnetGroupName": "<p>The name of the subnet group.</p>",
         "SubnetGroup$Description": "<p>The description of the subnet group.</p>",
         "SubnetGroup$VpcId": "<p>The Amazon Virtual Private Cloud identifier (VPC ID) of the subnet group.</p>",

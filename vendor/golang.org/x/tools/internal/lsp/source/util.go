@@ -5,12 +5,108 @@
 package source
 
 import (
+	"context"
 	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"path/filepath"
+	"regexp"
 	"strings"
+
+	"golang.org/x/tools/internal/lsp/protocol"
+	"golang.org/x/tools/internal/span"
 )
+
+type mappedRange struct {
+	spanRange span.Range
+	m         *protocol.ColumnMapper
+
+	// protocolRange is the result of converting the spanRange using the mapper.
+	// It is computed on-demand.
+	protocolRange *protocol.Range
+}
+
+func (s mappedRange) Range() (protocol.Range, error) {
+	if s.protocolRange == nil {
+		spn, err := s.spanRange.Span()
+		if err != nil {
+			return protocol.Range{}, err
+		}
+		prng, err := s.m.Range(spn)
+		if err != nil {
+			return protocol.Range{}, err
+		}
+		s.protocolRange = &prng
+	}
+	return *s.protocolRange, nil
+}
+
+func (s mappedRange) URI() span.URI {
+	return s.m.URI
+}
+
+func IsGenerated(ctx context.Context, view View, uri span.URI) bool {
+	f, err := view.GetFile(ctx, uri)
+	if err != nil {
+		return false
+	}
+	ph := view.Session().Cache().ParseGoHandle(f.Handle(ctx), ParseHeader)
+	parsed, err := ph.Parse(ctx)
+	if parsed == nil {
+		return false
+	}
+	tok := view.Session().Cache().FileSet().File(parsed.Pos())
+	if tok == nil {
+		return false
+	}
+	for _, commentGroup := range parsed.Comments {
+		for _, comment := range commentGroup.List {
+			if matched := generatedRx.MatchString(comment.Text); matched {
+				// Check if comment is at the beginning of the line in source.
+				if pos := tok.Position(comment.Slash); pos.Column == 1 {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// Matches cgo generated comment as well as the proposed standard:
+//	https://golang.org/s/generatedcode
+var generatedRx = regexp.MustCompile(`// .*DO NOT EDIT\.?`)
+
+func DetectLanguage(langID, filename string) FileKind {
+	switch langID {
+	case "go":
+		return Go
+	case "go.mod":
+		return Mod
+	case "go.sum":
+		return Sum
+	}
+	// Fallback to detecting the language based on the file extension.
+	switch filepath.Ext(filename) {
+	case ".mod":
+		return Mod
+	case ".sum":
+		return Sum
+	default: // fallback to Go
+		return Go
+	}
+}
+
+func (k FileKind) String() string {
+	switch k {
+	case Mod:
+		return "go.mod"
+	case Sum:
+		return "go.sum"
+	default:
+		return "go"
+	}
+}
 
 // indexExprAtPos returns the index of the expression containing pos.
 func indexExprAtPos(pos token.Pos, args []ast.Expr) int {
@@ -38,18 +134,20 @@ func fieldSelections(T types.Type) (fields []*types.Var) {
 	// selections that match more than one field/method.
 	// types.NewSelectionSet should do that for us.
 
-	seen := make(map[types.Type]bool) // for termination on recursive types
+	seen := make(map[*types.Var]bool) // for termination on recursive types
+
 	var visit func(T types.Type)
 	visit = func(T types.Type) {
-		if !seen[T] {
-			seen[T] = true
-			if T, ok := deref(T).Underlying().(*types.Struct); ok {
-				for i := 0; i < T.NumFields(); i++ {
-					f := T.Field(i)
-					fields = append(fields, f)
-					if f.Anonymous() {
-						visit(f.Type())
-					}
+		if T, ok := deref(T).Underlying().(*types.Struct); ok {
+			for i := 0; i < T.NumFields(); i++ {
+				f := T.Field(i)
+				if seen[f] {
+					continue
+				}
+				seen[f] = true
+				fields = append(fields, f)
+				if f.Anonymous() {
+					visit(f.Type())
 				}
 			}
 		}
@@ -137,6 +235,27 @@ func isFunc(obj types.Object) bool {
 	return ok
 }
 
+// typeConversion returns the type being converted to if call is a type
+// conversion expression.
+func typeConversion(call *ast.CallExpr, info *types.Info) types.Type {
+	var ident *ast.Ident
+	switch expr := call.Fun.(type) {
+	case *ast.Ident:
+		ident = expr
+	case *ast.SelectorExpr:
+		ident = expr.Sel
+	default:
+		return nil
+	}
+
+	// Type conversion (e.g. "float64(foo)").
+	if fun, _ := info.ObjectOf(ident).(*types.TypeName); fun != nil {
+		return fun.Type()
+	}
+
+	return nil
+}
+
 func formatParams(tup *types.Tuple, variadic bool, qf types.Qualifier) []string {
 	params := make([]string, 0, tup.Len())
 	for i := 0; i < tup.Len(); i++ {
@@ -196,17 +315,22 @@ func formatType(typ types.Type, qf types.Qualifier) (detail string, kind Complet
 	return detail, kind
 }
 
-func formatFunction(name string, params []string, results []string, writeResultParens bool) (string, string) {
-	var label, detail strings.Builder
-	label.WriteString(name)
-	label.WriteByte('(')
+func formatFunction(params []string, results []string, writeResultParens bool) string {
+	var detail strings.Builder
+
+	detail.WriteByte('(')
 	for i, p := range params {
 		if i > 0 {
-			label.WriteString(", ")
+			detail.WriteString(", ")
 		}
-		label.WriteString(p)
+		detail.WriteString(p)
 	}
-	label.WriteByte(')')
+	detail.WriteByte(')')
+
+	// Add space between parameters and results.
+	if len(results) > 0 {
+		detail.WriteByte(' ')
+	}
 
 	if writeResultParens {
 		detail.WriteByte('(')
@@ -221,5 +345,5 @@ func formatFunction(name string, params []string, results []string, writeResultP
 		detail.WriteByte(')')
 	}
 
-	return label.String(), detail.String()
+	return detail.String()
 }

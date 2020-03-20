@@ -7,7 +7,7 @@ die() {
     exit 1
 }
 
-cd /home/travis
+cd ${HOME}
 
 case "$PROTOBUF_VERSION" in
 2*)
@@ -15,7 +15,7 @@ case "$PROTOBUF_VERSION" in
     wget https://github.com/google/protobuf/releases/download/v$PROTOBUF_VERSION/$basename.tar.gz
     tar xzf $basename.tar.gz
     cd protobuf-$PROTOBUF_VERSION
-    ./configure --prefix=/home/travis && make -j2 && make install
+    ./configure --prefix=${HOME} && make -j2 && make install
     ;;
 3*)
     basename=protoc-$PROTOBUF_VERSION-linux-x86_64

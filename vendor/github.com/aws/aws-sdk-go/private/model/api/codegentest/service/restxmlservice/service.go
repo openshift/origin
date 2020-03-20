@@ -31,7 +31,7 @@ var initRequest func(*request.Request)
 const (
 	ServiceName = "RESTXMLService" // Name of service.
 	EndpointsID = "restxmlservice" // ID to lookup a service endpoint with.
-	ServiceID   = "RESTXMLService" // ServiceID is a unique identifer of a specific service.
+	ServiceID   = "RESTXMLService" // ServiceID is a unique identifier of a specific service.
 )
 
 // New creates a new instance of the RESTXMLService client with a session.
@@ -39,6 +39,8 @@ const (
 // aws.Config parameter to add your extra config.
 //
 // Example:
+//     mySession := session.Must(session.NewSession())
+//
 //     // Create a RESTXMLService client from just a session.
 //     svc := restxmlservice.New(mySession)
 //
@@ -46,11 +48,11 @@ const (
 //     svc := restxmlservice.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *RESTXMLService {
 	c := p.ClientConfig(EndpointsID, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
+	return newClient(*c.Config, c.Handlers, c.PartitionID, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *RESTXMLService {
+func newClient(cfg aws.Config, handlers request.Handlers, partitionID, endpoint, signingRegion, signingName string) *RESTXMLService {
 	svc := &RESTXMLService{
 		Client: client.New(
 			cfg,
@@ -59,10 +61,9 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 				ServiceID:     ServiceID,
 				SigningName:   signingName,
 				SigningRegion: signingRegion,
+				PartitionID:   partitionID,
 				Endpoint:      endpoint,
 				APIVersion:    "0000-00-00",
-				JSONVersion:   "1.1",
-				TargetPrefix:  "RESTXMLService_00000000",
 			},
 			handlers,
 		),
@@ -75,6 +76,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	svc.Handlers.UnmarshalMeta.PushBackNamed(restxml.UnmarshalMetaHandler)
 	svc.Handlers.UnmarshalError.PushBackNamed(restxml.UnmarshalErrorHandler)
 
+	svc.Handlers.BuildStream.PushBackNamed(restxml.BuildHandler)
 	svc.Handlers.UnmarshalStream.PushBackNamed(restxml.UnmarshalHandler)
 
 	// Run custom client initialization if present

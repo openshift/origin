@@ -5,6 +5,16 @@ import (
 	"github.com/docker/docker/pkg/sysinfo"
 )
 
-// FillPlatformInfo fills the platform related info.
-func (daemon *Daemon) FillPlatformInfo(v *types.Info, sysInfo *sysinfo.SysInfo) {
+// fillPlatformInfo fills the platform related info.
+func (daemon *Daemon) fillPlatformInfo(v *types.Info, sysInfo *sysinfo.SysInfo) {
+}
+
+func (daemon *Daemon) fillPlatformVersion(v *types.Version) {}
+
+func fillDriverWarnings(v *types.Info) {
+}
+
+// Rootless returns true if daemon is running in rootless mode
+func (daemon *Daemon) Rootless() bool {
+	return false
 }

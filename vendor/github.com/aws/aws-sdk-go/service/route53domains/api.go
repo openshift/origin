@@ -68,13 +68,13 @@ func (c *Route53Domains) CheckDomainAvailabilityRequest(input *CheckDomainAvaila
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation CheckDomainAvailability for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/CheckDomainAvailability
@@ -152,13 +152,13 @@ func (c *Route53Domains) CheckDomainTransferabilityRequest(input *CheckDomainTra
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation CheckDomainTransferability for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/CheckDomainTransferability
@@ -240,17 +240,17 @@ func (c *Route53Domains) DeleteTagsForDomainRequest(input *DeleteTagsForDomainIn
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation DeleteTagsForDomain for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DeleteTagsForDomain
@@ -330,13 +330,13 @@ func (c *Route53Domains) DisableDomainAutoRenewRequest(input *DisableDomainAutoR
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation DisableDomainAutoRenew for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DisableDomainAutoRenew
@@ -420,23 +420,23 @@ func (c *Route53Domains) DisableDomainTransferLockRequest(input *DisableDomainTr
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation DisableDomainTransferLock for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeDuplicateRequest "DuplicateRequest"
+//   * DuplicateRequest
 //   The request is already in progress for the domain.
 //
-//   * ErrCodeTLDRulesViolation "TLDRulesViolation"
+//   * TLDRulesViolation
 //   The top-level domain does not support this operation.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DisableDomainTransferLock
@@ -524,16 +524,16 @@ func (c *Route53Domains) EnableDomainAutoRenewRequest(input *EnableDomainAutoRen
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation EnableDomainAutoRenew for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
-//   * ErrCodeTLDRulesViolation "TLDRulesViolation"
+//   * TLDRulesViolation
 //   The top-level domain does not support this operation.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/EnableDomainAutoRenew
@@ -615,23 +615,23 @@ func (c *Route53Domains) EnableDomainTransferLockRequest(input *EnableDomainTran
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation EnableDomainTransferLock for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeDuplicateRequest "DuplicateRequest"
+//   * DuplicateRequest
 //   The request is already in progress for the domain.
 //
-//   * ErrCodeTLDRulesViolation "TLDRulesViolation"
+//   * TLDRulesViolation
 //   The top-level domain does not support this operation.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/EnableDomainTransferLock
@@ -714,17 +714,17 @@ func (c *Route53Domains) GetContactReachabilityStatusRequest(input *GetContactRe
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation GetContactReachabilityStatus for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetContactReachabilityStatus
@@ -804,13 +804,13 @@ func (c *Route53Domains) GetDomainDetailRequest(input *GetDomainDetailInput) (re
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation GetDomainDetail for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetDomainDetail
@@ -890,13 +890,13 @@ func (c *Route53Domains) GetDomainSuggestionsRequest(input *GetDomainSuggestions
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation GetDomainSuggestions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetDomainSuggestions
@@ -974,8 +974,8 @@ func (c *Route53Domains) GetOperationDetailRequest(input *GetOperationDetailInpu
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation GetOperationDetail for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
@@ -1062,8 +1062,8 @@ func (c *Route53Domains) ListDomainsRequest(input *ListDomainsInput) (req *reque
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation ListDomains for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
@@ -1101,7 +1101,7 @@ func (c *Route53Domains) ListDomainsWithContext(ctx aws.Context, input *ListDoma
 //    // Example iterating over at most 3 pages of a ListDomains operation.
 //    pageNum := 0
 //    err := client.ListDomainsPages(params,
-//        func(page *ListDomainsOutput, lastPage bool) bool {
+//        func(page *route53domains.ListDomainsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1133,10 +1133,12 @@ func (c *Route53Domains) ListDomainsPagesWithContext(ctx aws.Context, input *Lis
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListDomainsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListDomainsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1199,8 +1201,8 @@ func (c *Route53Domains) ListOperationsRequest(input *ListOperationsInput) (req 
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation ListOperations for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
@@ -1238,7 +1240,7 @@ func (c *Route53Domains) ListOperationsWithContext(ctx aws.Context, input *ListO
 //    // Example iterating over at most 3 pages of a ListOperations operation.
 //    pageNum := 0
 //    err := client.ListOperationsPages(params,
-//        func(page *ListOperationsOutput, lastPage bool) bool {
+//        func(page *route53domains.ListOperationsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1270,10 +1272,12 @@ func (c *Route53Domains) ListOperationsPagesWithContext(ctx aws.Context, input *
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListOperationsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListOperationsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1334,17 +1338,17 @@ func (c *Route53Domains) ListTagsForDomainRequest(input *ListTagsForDomainInput)
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation ListTagsForDomain for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListTagsForDomain
@@ -1449,25 +1453,25 @@ func (c *Route53Domains) RegisterDomainRequest(input *RegisterDomainInput) (req 
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation RegisterDomain for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
-//   * ErrCodeDuplicateRequest "DuplicateRequest"
+//   * DuplicateRequest
 //   The request is already in progress for the domain.
 //
-//   * ErrCodeTLDRulesViolation "TLDRulesViolation"
+//   * TLDRulesViolation
 //   The top-level domain does not support this operation.
 //
-//   * ErrCodeDomainLimitExceeded "DomainLimitExceeded"
+//   * DomainLimitExceeded
 //   The number of domains has exceeded the allowed threshold for the account.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
@@ -1553,22 +1557,22 @@ func (c *Route53Domains) RenewDomainRequest(input *RenewDomainInput) (req *reque
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation RenewDomain for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
-//   * ErrCodeDuplicateRequest "DuplicateRequest"
+//   * DuplicateRequest
 //   The request is already in progress for the domain.
 //
-//   * ErrCodeTLDRulesViolation "TLDRulesViolation"
+//   * TLDRulesViolation
 //   The top-level domain does not support this operation.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
@@ -1649,17 +1653,17 @@ func (c *Route53Domains) ResendContactReachabilityEmailRequest(input *ResendCont
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation ResendContactReachabilityEmail for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ResendContactReachabilityEmail
@@ -1738,13 +1742,13 @@ func (c *Route53Domains) RetrieveDomainAuthCodeRequest(input *RetrieveDomainAuth
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation RetrieveDomainAuthCode for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RetrieveDomainAuthCode
@@ -1847,25 +1851,25 @@ func (c *Route53Domains) TransferDomainRequest(input *TransferDomainInput) (req 
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation TransferDomain for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
-//   * ErrCodeDuplicateRequest "DuplicateRequest"
+//   * DuplicateRequest
 //   The request is already in progress for the domain.
 //
-//   * ErrCodeTLDRulesViolation "TLDRulesViolation"
+//   * TLDRulesViolation
 //   The top-level domain does not support this operation.
 //
-//   * ErrCodeDomainLimitExceeded "DomainLimitExceeded"
+//   * DomainLimitExceeded
 //   The number of domains has exceeded the allowed threshold for the account.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
@@ -1951,23 +1955,23 @@ func (c *Route53Domains) UpdateDomainContactRequest(input *UpdateDomainContactIn
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation UpdateDomainContact for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeDuplicateRequest "DuplicateRequest"
+//   * DuplicateRequest
 //   The request is already in progress for the domain.
 //
-//   * ErrCodeTLDRulesViolation "TLDRulesViolation"
+//   * TLDRulesViolation
 //   The top-level domain does not support this operation.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainContact
@@ -2055,23 +2059,23 @@ func (c *Route53Domains) UpdateDomainContactPrivacyRequest(input *UpdateDomainCo
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation UpdateDomainContactPrivacy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeDuplicateRequest "DuplicateRequest"
+//   * DuplicateRequest
 //   The request is already in progress for the domain.
 //
-//   * ErrCodeTLDRulesViolation "TLDRulesViolation"
+//   * TLDRulesViolation
 //   The top-level domain does not support this operation.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainContactPrivacy
@@ -2156,23 +2160,23 @@ func (c *Route53Domains) UpdateDomainNameserversRequest(input *UpdateDomainNames
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation UpdateDomainNameservers for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeDuplicateRequest "DuplicateRequest"
+//   * DuplicateRequest
 //   The request is already in progress for the domain.
 //
-//   * ErrCodeTLDRulesViolation "TLDRulesViolation"
+//   * TLDRulesViolation
 //   The top-level domain does not support this operation.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainNameservers
@@ -2254,17 +2258,17 @@ func (c *Route53Domains) UpdateTagsForDomainRequest(input *UpdateTagsForDomainIn
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation UpdateTagsForDomain for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
 //
-//   * ErrCodeOperationLimitExceeded "OperationLimitExceeded"
+//   * OperationLimitExceeded
 //   The number of operations or jobs running exceeded the allowed threshold for
 //   the account.
 //
-//   * ErrCodeUnsupportedTLD "UnsupportedTLD"
+//   * UnsupportedTLD
 //   Amazon Route 53 does not support this top-level domain (TLD).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateTagsForDomain
@@ -2343,8 +2347,8 @@ func (c *Route53Domains) ViewBillingRequest(input *ViewBillingInput) (req *reque
 // See the AWS API reference guide for Amazon Route 53 Domains's
 // API operation ViewBilling for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidInput "InvalidInput"
+// Returned Error Types:
+//   * InvalidInput
 //   The requested item is not acceptable. For example, for an OperationId it
 //   might refer to the ID of an operation that is already completed. For a domain
 //   name, it might not be a valid domain name or belong to the requester account.
@@ -2499,28 +2503,46 @@ type CheckDomainAvailabilityOutput struct {
 	//
 	// Valid values:
 	//
-	// AVAILABLEThe domain name is available.
+	// AVAILABLE
 	//
-	// AVAILABLE_RESERVEDThe domain name is reserved under specific conditions.
+	// The domain name is available.
 	//
-	// AVAILABLE_PREORDERThe domain name is available and can be preordered.
+	// AVAILABLE_RESERVED
 	//
-	// DONT_KNOWThe TLD registry didn't reply with a definitive answer about whether
-	// the domain name is available. Amazon Route 53 can return this response for
-	// a variety of reasons, for example, the registry is performing maintenance.
+	// The domain name is reserved under specific conditions.
+	//
+	// AVAILABLE_PREORDER
+	//
+	// The domain name is available and can be preordered.
+	//
+	// DONT_KNOW
+	//
+	// The TLD registry didn't reply with a definitive answer about whether the
+	// domain name is available. Amazon Route 53 can return this response for a
+	// variety of reasons, for example, the registry is performing maintenance.
 	// Try again later.
 	//
-	// PENDINGThe TLD registry didn't return a response in the expected amount of
-	// time. When the response is delayed, it usually takes just a few extra seconds.
+	// PENDING
+	//
+	// The TLD registry didn't return a response in the expected amount of time.
+	// When the response is delayed, it usually takes just a few extra seconds.
 	// You can resubmit the request immediately.
 	//
-	// RESERVEDThe domain name has been reserved for another person or organization.
+	// RESERVED
 	//
-	// UNAVAILABLEThe domain name is not available.
+	// The domain name has been reserved for another person or organization.
 	//
-	// UNAVAILABLE_PREMIUMThe domain name is not available.
+	// UNAVAILABLE
 	//
-	// UNAVAILABLE_RESTRICTEDThe domain name is forbidden.
+	// The domain name is not available.
+	//
+	// UNAVAILABLE_PREMIUM
+	//
+	// The domain name is not available.
+	//
+	// UNAVAILABLE_RESTRICTED
+	//
+	// The domain name is forbidden.
 	//
 	// Availability is a required field
 	Availability *string `type:"string" required:"true" enum:"DomainAvailability"`
@@ -2979,6 +3001,63 @@ func (s *DisableDomainTransferLockOutput) SetOperationId(v string) *DisableDomai
 	return s
 }
 
+// The number of domains has exceeded the allowed threshold for the account.
+type DomainLimitExceeded struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The number of domains has exceeded the allowed threshold for the account.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s DomainLimitExceeded) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DomainLimitExceeded) GoString() string {
+	return s.String()
+}
+
+func newErrorDomainLimitExceeded(v protocol.ResponseMetadata) error {
+	return &DomainLimitExceeded{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DomainLimitExceeded) Code() string {
+	return "DomainLimitExceeded"
+}
+
+// Message returns the exception's message.
+func (s DomainLimitExceeded) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DomainLimitExceeded) OrigErr() error {
+	return nil
+}
+
+func (s DomainLimitExceeded) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DomainLimitExceeded) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DomainLimitExceeded) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Information about one suggested domain name.
 type DomainSuggestion struct {
 	_ struct{} `type:"structure"`
@@ -2989,28 +3068,46 @@ type DomainSuggestion struct {
 	//
 	// Valid values:
 	//
-	// AVAILABLEThe domain name is available.
+	// AVAILABLE
 	//
-	// AVAILABLE_RESERVEDThe domain name is reserved under specific conditions.
+	// The domain name is available.
 	//
-	// AVAILABLE_PREORDERThe domain name is available and can be preordered.
+	// AVAILABLE_RESERVED
 	//
-	// DONT_KNOWThe TLD registry didn't reply with a definitive answer about whether
-	// the domain name is available. Amazon Route 53 can return this response for
-	// a variety of reasons, for example, the registry is performing maintenance.
+	// The domain name is reserved under specific conditions.
+	//
+	// AVAILABLE_PREORDER
+	//
+	// The domain name is available and can be preordered.
+	//
+	// DONT_KNOW
+	//
+	// The TLD registry didn't reply with a definitive answer about whether the
+	// domain name is available. Amazon Route 53 can return this response for a
+	// variety of reasons, for example, the registry is performing maintenance.
 	// Try again later.
 	//
-	// PENDINGThe TLD registry didn't return a response in the expected amount of
-	// time. When the response is delayed, it usually takes just a few extra seconds.
+	// PENDING
+	//
+	// The TLD registry didn't return a response in the expected amount of time.
+	// When the response is delayed, it usually takes just a few extra seconds.
 	// You can resubmit the request immediately.
 	//
-	// RESERVEDThe domain name has been reserved for another person or organization.
+	// RESERVED
 	//
-	// UNAVAILABLEThe domain name is not available.
+	// The domain name has been reserved for another person or organization.
 	//
-	// UNAVAILABLE_PREMIUMThe domain name is not available.
+	// UNAVAILABLE
 	//
-	// UNAVAILABLE_RESTRICTEDThe domain name is forbidden.
+	// The domain name is not available.
+	//
+	// UNAVAILABLE_PREMIUM
+	//
+	// The domain name is not available.
+	//
+	// UNAVAILABLE_RESTRICTED
+	//
+	// The domain name is forbidden.
 	Availability *string `type:"string"`
 
 	// A suggested domain name.
@@ -3104,11 +3201,17 @@ type DomainTransferability struct {
 	//
 	// Valid values:
 	//
-	// TRANSFERABLEThe domain name can be transferred to Amazon Route 53.
+	// TRANSFERABLE
 	//
-	// UNTRANSFERRABLEThe domain name can't be transferred to Amazon Route 53.
+	// The domain name can be transferred to Amazon Route 53.
 	//
-	// DONT_KNOWReserved for future use.
+	// UNTRANSFERRABLE
+	//
+	// The domain name can't be transferred to Amazon Route 53.
+	//
+	// DONT_KNOW
+	//
+	// Reserved for future use.
 	Transferable *string `type:"string" enum:"Transferable"`
 }
 
@@ -3126,6 +3229,63 @@ func (s DomainTransferability) GoString() string {
 func (s *DomainTransferability) SetTransferable(v string) *DomainTransferability {
 	s.Transferable = &v
 	return s
+}
+
+// The request is already in progress for the domain.
+type DuplicateRequest struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The request is already in progress for the domain.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s DuplicateRequest) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DuplicateRequest) GoString() string {
+	return s.String()
+}
+
+func newErrorDuplicateRequest(v protocol.ResponseMetadata) error {
+	return &DuplicateRequest{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DuplicateRequest) Code() string {
+	return "DuplicateRequest"
+}
+
+// Message returns the exception's message.
+func (s DuplicateRequest) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DuplicateRequest) OrigErr() error {
+	return nil
+}
+
+func (s DuplicateRequest) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DuplicateRequest) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DuplicateRequest) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type EnableDomainAutoRenewInput struct {
@@ -3254,27 +3414,27 @@ type ExtraParam struct {
 	// the top-level domains that require additional parameters and which parameters
 	// they require:
 	//
-	//    * .com.au and .net.au:AU_ID_NUMBER and AU_ID_TYPE
+	//    * .com.au and .net.au: AU_ID_NUMBER and AU_ID_TYPE
 	//
-	//    * .ca:BRAND_NUMBER, CA_LEGAL_TYPE, and CA_BUSINESS_ENTITY_TYPE
+	//    * .ca: BRAND_NUMBER, CA_LEGAL_TYPE, and CA_BUSINESS_ENTITY_TYPE
 	//
-	//    * .es:ES_IDENTIFICATION, ES_IDENTIFICATION_TYPE, and ES_LEGAL_FORM
+	//    * .es: ES_IDENTIFICATION, ES_IDENTIFICATION_TYPE, and ES_LEGAL_FORM
 	//
-	//    * .fi:BIRTH_DATE_IN_YYYY_MM_DD, FI_BUSINESS_NUMBER, FI_ID_NUMBER, FI_NATIONALITY,
+	//    * .fi: BIRTH_DATE_IN_YYYY_MM_DD, FI_BUSINESS_NUMBER, FI_ID_NUMBER, FI_NATIONALITY,
 	//    and FI_ORGANIZATION_TYPE
 	//
-	//    * .fr:BRAND_NUMBER, BIRTH_DEPARTMENT, BIRTH_DATE_IN_YYYY_MM_DD, BIRTH_COUNTRY,
+	//    * .fr: BRAND_NUMBER, BIRTH_DEPARTMENT, BIRTH_DATE_IN_YYYY_MM_DD, BIRTH_COUNTRY,
 	//    and BIRTH_CITY
 	//
-	//    * .it:BIRTH_COUNTRY, IT_PIN, and IT_REGISTRANT_ENTITY_TYPE
+	//    * .it: BIRTH_COUNTRY, IT_PIN, and IT_REGISTRANT_ENTITY_TYPE
 	//
-	//    * .ru:BIRTH_DATE_IN_YYYY_MM_DD and RU_PASSPORT_DATA
+	//    * .ru: BIRTH_DATE_IN_YYYY_MM_DD and RU_PASSPORT_DATA
 	//
-	//    * .se:BIRTH_COUNTRY and SE_ID_NUMBER
+	//    * .se: BIRTH_COUNTRY and SE_ID_NUMBER
 	//
-	//    * .sg:SG_ID_NUMBER
+	//    * .sg: SG_ID_NUMBER
 	//
-	//    * .co.uk, .me.uk, and .org.uk:UK_CONTACT_TYPE and UK_COMPANY_NUMBER
+	//    * .co.uk, .me.uk, and .org.uk: UK_CONTACT_TYPE and UK_COMPANY_NUMBER
 	//
 	// In addition, many TLDs require VAT_NUMBER.
 	//
@@ -3358,11 +3518,17 @@ type GetContactReachabilityStatusOutput struct {
 
 	// Whether the registrant contact has responded. Values include the following:
 	//
-	// PENDINGWe sent the confirmation email and haven't received a response yet.
+	// PENDING
 	//
-	// DONEWe sent the email and got confirmation from the registrant contact.
+	// We sent the confirmation email and haven't received a response yet.
 	//
-	// EXPIREDThe time limit expired before the registrant contact responded.
+	// DONE
+	//
+	// We sent the email and got confirmation from the registrant contact.
+	//
+	// EXPIRED
+	//
+	// The time limit expired before the registrant contact responded.
 	Status *string `locationName:"status" type:"string" enum:"ReachabilityStatus"`
 }
 
@@ -3884,6 +4050,67 @@ func (s *GetOperationDetailOutput) SetType(v string) *GetOperationDetailOutput {
 	return s
 }
 
+// The requested item is not acceptable. For example, for an OperationId it
+// might refer to the ID of an operation that is already completed. For a domain
+// name, it might not be a valid domain name or belong to the requester account.
+type InvalidInput struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The requested item is not acceptable. For example, for an OperationId it
+	// might refer to the ID of an operation that is already completed. For a domain
+	// name, it might not be a valid domain name or belong to the requester account.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidInput) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidInput(v protocol.ResponseMetadata) error {
+	return &InvalidInput{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidInput) Code() string {
+	return "InvalidInput"
+}
+
+// Message returns the exception's message.
+func (s InvalidInput) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidInput) OrigErr() error {
+	return nil
+}
+
+func (s InvalidInput) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidInput) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidInput) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // The ListDomains request includes the following elements.
 type ListDomainsInput struct {
 	_ struct{} `type:"structure"`
@@ -4169,6 +4396,65 @@ func (s *Nameserver) SetGlueIps(v []*string) *Nameserver {
 func (s *Nameserver) SetName(v string) *Nameserver {
 	s.Name = &v
 	return s
+}
+
+// The number of operations or jobs running exceeded the allowed threshold for
+// the account.
+type OperationLimitExceeded struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The number of operations or jobs running exceeded the allowed threshold for
+	// the account.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s OperationLimitExceeded) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OperationLimitExceeded) GoString() string {
+	return s.String()
+}
+
+func newErrorOperationLimitExceeded(v protocol.ResponseMetadata) error {
+	return &OperationLimitExceeded{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s OperationLimitExceeded) Code() string {
+	return "OperationLimitExceeded"
+}
+
+// Message returns the exception's message.
+func (s OperationLimitExceeded) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s OperationLimitExceeded) OrigErr() error {
+	return nil
+}
+
+func (s OperationLimitExceeded) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s OperationLimitExceeded) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s OperationLimitExceeded) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // OperationSummary includes the following elements.
@@ -4679,6 +4965,63 @@ func (s *RetrieveDomainAuthCodeOutput) SetAuthCode(v string) *RetrieveDomainAuth
 	return s
 }
 
+// The top-level domain does not support this operation.
+type TLDRulesViolation struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// The top-level domain does not support this operation.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s TLDRulesViolation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TLDRulesViolation) GoString() string {
+	return s.String()
+}
+
+func newErrorTLDRulesViolation(v protocol.ResponseMetadata) error {
+	return &TLDRulesViolation{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TLDRulesViolation) Code() string {
+	return "TLDRulesViolation"
+}
+
+// Message returns the exception's message.
+func (s TLDRulesViolation) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TLDRulesViolation) OrigErr() error {
+	return nil
+}
+
+func (s TLDRulesViolation) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TLDRulesViolation) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TLDRulesViolation) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Each tag includes the following elements.
 type Tag struct {
 	_ struct{} `type:"structure"`
@@ -4962,6 +5305,63 @@ func (s TransferDomainOutput) GoString() string {
 func (s *TransferDomainOutput) SetOperationId(v string) *TransferDomainOutput {
 	s.OperationId = &v
 	return s
+}
+
+// Amazon Route 53 does not support this top-level domain (TLD).
+type UnsupportedTLD struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// Amazon Route 53 does not support this top-level domain (TLD).
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnsupportedTLD) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnsupportedTLD) GoString() string {
+	return s.String()
+}
+
+func newErrorUnsupportedTLD(v protocol.ResponseMetadata) error {
+	return &UnsupportedTLD{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnsupportedTLD) Code() string {
+	return "UnsupportedTLD"
+}
+
+// Message returns the exception's message.
+func (s UnsupportedTLD) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnsupportedTLD) OrigErr() error {
+	return nil
+}
+
+func (s UnsupportedTLD) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnsupportedTLD) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnsupportedTLD) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // The UpdateDomainContact request includes the following elements.
@@ -6343,11 +6743,17 @@ const (
 //
 // Valid values:
 //
-// TRANSFERABLEThe domain name can be transferred to Amazon Route 53.
+// TRANSFERABLE
 //
-// UNTRANSFERRABLEThe domain name can't be transferred to Amazon Route 53.
+// The domain name can be transferred to Amazon Route 53.
 //
-// DONT_KNOWReserved for future use.
+// UNTRANSFERRABLE
+//
+// The domain name can't be transferred to Amazon Route 53.
+//
+// DONT_KNOW
+//
+// Reserved for future use.
 const (
 	// TransferableTransferable is a Transferable enum value
 	TransferableTransferable = "TRANSFERABLE"

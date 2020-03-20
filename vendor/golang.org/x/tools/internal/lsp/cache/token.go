@@ -1,12 +1,16 @@
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package cache
 
 import (
 	"context"
-	"fmt"
 	"go/token"
 
 	"golang.org/x/tools/internal/lsp/source"
 	"golang.org/x/tools/internal/memoize"
+	errors "golang.org/x/xerrors"
 )
 
 type tokenKey struct {
@@ -36,6 +40,7 @@ func (c *cache) TokenHandle(fh source.FileHandle) source.TokenHandle {
 	})
 	return &tokenHandle{
 		handle: h,
+		file:   fh,
 	}
 }
 
@@ -82,7 +87,7 @@ func tokenFile(ctx context.Context, c *cache, fh source.FileHandle) (*token.File
 	}
 	tok := c.FileSet().AddFile(fh.Identity().URI.Filename(), -1, len(buf))
 	if tok == nil {
-		return nil, fmt.Errorf("no token.File for %s", fh.Identity().URI)
+		return nil, errors.Errorf("no token.File for %s", fh.Identity().URI)
 	}
 	tok.SetLinesForContent(buf)
 	return tok, nil

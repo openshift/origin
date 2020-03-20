@@ -27,7 +27,9 @@ func TestInteg_00_ListPresets(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := elastictranscoder.New(sess)
 	params := &elastictranscoder.ListPresetsInput{}
-	_, err := svc.ListPresetsWithContext(ctx, params)
+	_, err := svc.ListPresetsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_ReadJob(t *testing.T) {
 	params := &elastictranscoder.ReadJobInput{
 		Id: aws.String("fake_job"),
 	}
-	_, err := svc.ReadJobWithContext(ctx, params)
+	_, err := svc.ReadJobWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

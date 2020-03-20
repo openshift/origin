@@ -3,6 +3,8 @@
 package greengrass
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -65,11 +67,11 @@ func (c *Greengrass) AssociateRoleToGroupRequest(input *AssociateRoleToGroupInpu
 // See the AWS API reference guide for AWS Greengrass's
 // API operation AssociateRoleToGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/AssociateRoleToGroup
@@ -150,11 +152,11 @@ func (c *Greengrass) AssociateServiceRoleToAccountRequest(input *AssociateServic
 // See the AWS API reference guide for AWS Greengrass's
 // API operation AssociateServiceRoleToAccount for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/AssociateServiceRoleToAccount
@@ -234,8 +236,8 @@ func (c *Greengrass) CreateConnectorDefinitionRequest(input *CreateConnectorDefi
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateConnectorDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateConnectorDefinition
@@ -313,8 +315,8 @@ func (c *Greengrass) CreateConnectorDefinitionVersionRequest(input *CreateConnec
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateConnectorDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateConnectorDefinitionVersion
@@ -394,8 +396,8 @@ func (c *Greengrass) CreateCoreDefinitionRequest(input *CreateCoreDefinitionInpu
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateCoreDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateCoreDefinition
@@ -474,8 +476,8 @@ func (c *Greengrass) CreateCoreDefinitionVersionRequest(input *CreateCoreDefinit
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateCoreDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateCoreDefinitionVersion
@@ -554,8 +556,8 @@ func (c *Greengrass) CreateDeploymentRequest(input *CreateDeploymentInput) (req 
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateDeployment for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateDeployment
@@ -634,8 +636,8 @@ func (c *Greengrass) CreateDeviceDefinitionRequest(input *CreateDeviceDefinition
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateDeviceDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateDeviceDefinition
@@ -713,8 +715,8 @@ func (c *Greengrass) CreateDeviceDefinitionVersionRequest(input *CreateDeviceDef
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateDeviceDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateDeviceDefinitionVersion
@@ -795,8 +797,8 @@ func (c *Greengrass) CreateFunctionDefinitionRequest(input *CreateFunctionDefini
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateFunctionDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateFunctionDefinition
@@ -874,8 +876,8 @@ func (c *Greengrass) CreateFunctionDefinitionVersionRequest(input *CreateFunctio
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateFunctionDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateFunctionDefinitionVersion
@@ -956,8 +958,8 @@ func (c *Greengrass) CreateGroupRequest(input *CreateGroupInput) (req *request.R
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateGroup
@@ -1036,11 +1038,11 @@ func (c *Greengrass) CreateGroupCertificateAuthorityRequest(input *CreateGroupCe
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateGroupCertificateAuthority for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateGroupCertificateAuthority
@@ -1118,8 +1120,8 @@ func (c *Greengrass) CreateGroupVersionRequest(input *CreateGroupVersionInput) (
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateGroupVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateGroupVersion
@@ -1198,8 +1200,8 @@ func (c *Greengrass) CreateLoggerDefinitionRequest(input *CreateLoggerDefinition
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateLoggerDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateLoggerDefinition
@@ -1277,8 +1279,8 @@ func (c *Greengrass) CreateLoggerDefinitionVersionRequest(input *CreateLoggerDef
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateLoggerDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateLoggerDefinitionVersion
@@ -1358,8 +1360,8 @@ func (c *Greengrass) CreateResourceDefinitionRequest(input *CreateResourceDefini
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateResourceDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateResourceDefinition
@@ -1437,8 +1439,8 @@ func (c *Greengrass) CreateResourceDefinitionVersionRequest(input *CreateResourc
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateResourceDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateResourceDefinitionVersion
@@ -1519,11 +1521,11 @@ func (c *Greengrass) CreateSoftwareUpdateJobRequest(input *CreateSoftwareUpdateJ
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateSoftwareUpdateJob for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateSoftwareUpdateJob
@@ -1603,8 +1605,8 @@ func (c *Greengrass) CreateSubscriptionDefinitionRequest(input *CreateSubscripti
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateSubscriptionDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateSubscriptionDefinition
@@ -1682,8 +1684,8 @@ func (c *Greengrass) CreateSubscriptionDefinitionVersionRequest(input *CreateSub
 // See the AWS API reference guide for AWS Greengrass's
 // API operation CreateSubscriptionDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/CreateSubscriptionDefinitionVersion
@@ -1762,8 +1764,8 @@ func (c *Greengrass) DeleteConnectorDefinitionRequest(input *DeleteConnectorDefi
 // See the AWS API reference guide for AWS Greengrass's
 // API operation DeleteConnectorDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/DeleteConnectorDefinition
@@ -1842,8 +1844,8 @@ func (c *Greengrass) DeleteCoreDefinitionRequest(input *DeleteCoreDefinitionInpu
 // See the AWS API reference guide for AWS Greengrass's
 // API operation DeleteCoreDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/DeleteCoreDefinition
@@ -1922,8 +1924,8 @@ func (c *Greengrass) DeleteDeviceDefinitionRequest(input *DeleteDeviceDefinition
 // See the AWS API reference guide for AWS Greengrass's
 // API operation DeleteDeviceDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/DeleteDeviceDefinition
@@ -2002,8 +2004,8 @@ func (c *Greengrass) DeleteFunctionDefinitionRequest(input *DeleteFunctionDefini
 // See the AWS API reference guide for AWS Greengrass's
 // API operation DeleteFunctionDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/DeleteFunctionDefinition
@@ -2082,8 +2084,8 @@ func (c *Greengrass) DeleteGroupRequest(input *DeleteGroupInput) (req *request.R
 // See the AWS API reference guide for AWS Greengrass's
 // API operation DeleteGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/DeleteGroup
@@ -2162,8 +2164,8 @@ func (c *Greengrass) DeleteLoggerDefinitionRequest(input *DeleteLoggerDefinition
 // See the AWS API reference guide for AWS Greengrass's
 // API operation DeleteLoggerDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/DeleteLoggerDefinition
@@ -2242,8 +2244,8 @@ func (c *Greengrass) DeleteResourceDefinitionRequest(input *DeleteResourceDefini
 // See the AWS API reference guide for AWS Greengrass's
 // API operation DeleteResourceDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/DeleteResourceDefinition
@@ -2322,8 +2324,8 @@ func (c *Greengrass) DeleteSubscriptionDefinitionRequest(input *DeleteSubscripti
 // See the AWS API reference guide for AWS Greengrass's
 // API operation DeleteSubscriptionDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/DeleteSubscriptionDefinition
@@ -2401,11 +2403,11 @@ func (c *Greengrass) DisassociateRoleFromGroupRequest(input *DisassociateRoleFro
 // See the AWS API reference guide for AWS Greengrass's
 // API operation DisassociateRoleFromGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/DisassociateRoleFromGroup
@@ -2484,8 +2486,8 @@ func (c *Greengrass) DisassociateServiceRoleFromAccountRequest(input *Disassocia
 // See the AWS API reference guide for AWS Greengrass's
 // API operation DisassociateServiceRoleFromAccount for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+// Returned Error Types:
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/DisassociateServiceRoleFromAccount
@@ -2563,11 +2565,11 @@ func (c *Greengrass) GetAssociatedRoleRequest(input *GetAssociatedRoleInput) (re
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetAssociatedRole for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetAssociatedRole
@@ -2645,8 +2647,8 @@ func (c *Greengrass) GetBulkDeploymentStatusRequest(input *GetBulkDeploymentStat
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetBulkDeploymentStatus for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetBulkDeploymentStatus
@@ -2724,11 +2726,11 @@ func (c *Greengrass) GetConnectivityInfoRequest(input *GetConnectivityInfoInput)
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetConnectivityInfo for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetConnectivityInfo
@@ -2806,8 +2808,8 @@ func (c *Greengrass) GetConnectorDefinitionRequest(input *GetConnectorDefinition
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetConnectorDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetConnectorDefinition
@@ -2888,8 +2890,8 @@ func (c *Greengrass) GetConnectorDefinitionVersionRequest(input *GetConnectorDef
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetConnectorDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetConnectorDefinitionVersion
@@ -2967,8 +2969,8 @@ func (c *Greengrass) GetCoreDefinitionRequest(input *GetCoreDefinitionInput) (re
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetCoreDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetCoreDefinition
@@ -3046,8 +3048,8 @@ func (c *Greengrass) GetCoreDefinitionVersionRequest(input *GetCoreDefinitionVer
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetCoreDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetCoreDefinitionVersion
@@ -3125,8 +3127,8 @@ func (c *Greengrass) GetDeploymentStatusRequest(input *GetDeploymentStatusInput)
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetDeploymentStatus for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetDeploymentStatus
@@ -3204,8 +3206,8 @@ func (c *Greengrass) GetDeviceDefinitionRequest(input *GetDeviceDefinitionInput)
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetDeviceDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetDeviceDefinition
@@ -3283,8 +3285,8 @@ func (c *Greengrass) GetDeviceDefinitionVersionRequest(input *GetDeviceDefinitio
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetDeviceDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetDeviceDefinitionVersion
@@ -3363,8 +3365,8 @@ func (c *Greengrass) GetFunctionDefinitionRequest(input *GetFunctionDefinitionIn
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetFunctionDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetFunctionDefinition
@@ -3443,8 +3445,8 @@ func (c *Greengrass) GetFunctionDefinitionVersionRequest(input *GetFunctionDefin
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetFunctionDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetFunctionDefinitionVersion
@@ -3522,8 +3524,8 @@ func (c *Greengrass) GetGroupRequest(input *GetGroupInput) (req *request.Request
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetGroup
@@ -3601,11 +3603,11 @@ func (c *Greengrass) GetGroupCertificateAuthorityRequest(input *GetGroupCertific
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetGroupCertificateAuthority for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetGroupCertificateAuthority
@@ -3683,11 +3685,11 @@ func (c *Greengrass) GetGroupCertificateConfigurationRequest(input *GetGroupCert
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetGroupCertificateConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetGroupCertificateConfiguration
@@ -3765,8 +3767,8 @@ func (c *Greengrass) GetGroupVersionRequest(input *GetGroupVersionInput) (req *r
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetGroupVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetGroupVersion
@@ -3844,8 +3846,8 @@ func (c *Greengrass) GetLoggerDefinitionRequest(input *GetLoggerDefinitionInput)
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetLoggerDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetLoggerDefinition
@@ -3923,8 +3925,8 @@ func (c *Greengrass) GetLoggerDefinitionVersionRequest(input *GetLoggerDefinitio
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetLoggerDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetLoggerDefinitionVersion
@@ -4003,8 +4005,8 @@ func (c *Greengrass) GetResourceDefinitionRequest(input *GetResourceDefinitionIn
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetResourceDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetResourceDefinition
@@ -4083,8 +4085,8 @@ func (c *Greengrass) GetResourceDefinitionVersionRequest(input *GetResourceDefin
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetResourceDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetResourceDefinitionVersion
@@ -4162,8 +4164,8 @@ func (c *Greengrass) GetServiceRoleForAccountRequest(input *GetServiceRoleForAcc
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetServiceRoleForAccount for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+// Returned Error Types:
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetServiceRoleForAccount
@@ -4241,8 +4243,8 @@ func (c *Greengrass) GetSubscriptionDefinitionRequest(input *GetSubscriptionDefi
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetSubscriptionDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetSubscriptionDefinition
@@ -4320,8 +4322,8 @@ func (c *Greengrass) GetSubscriptionDefinitionVersionRequest(input *GetSubscript
 // See the AWS API reference guide for AWS Greengrass's
 // API operation GetSubscriptionDefinitionVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/GetSubscriptionDefinitionVersion
@@ -4400,8 +4402,8 @@ func (c *Greengrass) ListBulkDeploymentDetailedReportsRequest(input *ListBulkDep
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListBulkDeploymentDetailedReports for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListBulkDeploymentDetailedReports
@@ -4479,8 +4481,8 @@ func (c *Greengrass) ListBulkDeploymentsRequest(input *ListBulkDeploymentsInput)
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListBulkDeployments for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListBulkDeployments
@@ -4560,8 +4562,8 @@ func (c *Greengrass) ListConnectorDefinitionVersionsRequest(input *ListConnector
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListConnectorDefinitionVersions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListConnectorDefinitionVersions
@@ -4713,8 +4715,8 @@ func (c *Greengrass) ListCoreDefinitionVersionsRequest(input *ListCoreDefinition
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListCoreDefinitionVersions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListCoreDefinitionVersions
@@ -4866,8 +4868,8 @@ func (c *Greengrass) ListDeploymentsRequest(input *ListDeploymentsInput) (req *r
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListDeployments for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListDeployments
@@ -4945,8 +4947,8 @@ func (c *Greengrass) ListDeviceDefinitionVersionsRequest(input *ListDeviceDefini
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListDeviceDefinitionVersions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListDeviceDefinitionVersions
@@ -5098,8 +5100,8 @@ func (c *Greengrass) ListFunctionDefinitionVersionsRequest(input *ListFunctionDe
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListFunctionDefinitionVersions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListFunctionDefinitionVersions
@@ -5251,11 +5253,11 @@ func (c *Greengrass) ListGroupCertificateAuthoritiesRequest(input *ListGroupCert
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListGroupCertificateAuthorities for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListGroupCertificateAuthorities
@@ -5333,8 +5335,8 @@ func (c *Greengrass) ListGroupVersionsRequest(input *ListGroupVersionsInput) (re
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListGroupVersions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListGroupVersions
@@ -5486,8 +5488,8 @@ func (c *Greengrass) ListLoggerDefinitionVersionsRequest(input *ListLoggerDefini
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListLoggerDefinitionVersions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListLoggerDefinitionVersions
@@ -5639,8 +5641,8 @@ func (c *Greengrass) ListResourceDefinitionVersionsRequest(input *ListResourceDe
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListResourceDefinitionVersions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListResourceDefinitionVersions
@@ -5792,8 +5794,8 @@ func (c *Greengrass) ListSubscriptionDefinitionVersionsRequest(input *ListSubscr
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ListSubscriptionDefinitionVersions for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListSubscriptionDefinitionVersions
@@ -5892,6 +5894,85 @@ func (c *Greengrass) ListSubscriptionDefinitionsWithContext(ctx aws.Context, inp
 	return out, req.Send()
 }
 
+const opListTagsForResource = "ListTagsForResource"
+
+// ListTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListTagsForResourceRequest method.
+//    req, resp := client.ListTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListTagsForResource
+func (c *Greengrass) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
+	op := &request.Operation{
+		Name:       opListTagsForResource,
+		HTTPMethod: "GET",
+		HTTPPath:   "/tags/{resource-arn}",
+	}
+
+	if input == nil {
+		input = &ListTagsForResourceInput{}
+	}
+
+	output = &ListTagsForResourceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTagsForResource API operation for AWS Greengrass.
+//
+// Retrieves a list of resource tags for a resource arn.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Greengrass's
+// API operation ListTagsForResource for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   General error information.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ListTagsForResource
+func (c *Greengrass) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	return out, req.Send()
+}
+
+// ListTagsForResourceWithContext is the same as ListTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Greengrass) ListTagsForResourceWithContext(ctx aws.Context, input *ListTagsForResourceInput, opts ...request.Option) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opResetDeployments = "ResetDeployments"
 
 // ResetDeploymentsRequest generates a "aws/request.Request" representing the
@@ -5945,8 +6026,8 @@ func (c *Greengrass) ResetDeploymentsRequest(input *ResetDeploymentsInput) (req 
 // See the AWS API reference guide for AWS Greengrass's
 // API operation ResetDeployments for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/ResetDeployments
@@ -6029,8 +6110,8 @@ func (c *Greengrass) StartBulkDeploymentRequest(input *StartBulkDeploymentInput)
 // See the AWS API reference guide for AWS Greengrass's
 // API operation StartBulkDeployment for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/StartBulkDeployment
@@ -6112,8 +6193,8 @@ func (c *Greengrass) StopBulkDeploymentRequest(input *StopBulkDeploymentInput) (
 // See the AWS API reference guide for AWS Greengrass's
 // API operation StopBulkDeployment for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/StopBulkDeployment
@@ -6133,6 +6214,168 @@ func (c *Greengrass) StopBulkDeployment(input *StopBulkDeploymentInput) (*StopBu
 // for more information on using Contexts.
 func (c *Greengrass) StopBulkDeploymentWithContext(ctx aws.Context, input *StopBulkDeploymentInput, opts ...request.Option) (*StopBulkDeploymentOutput, error) {
 	req, out := c.StopBulkDeploymentRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagResource = "TagResource"
+
+// TagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the TagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagResource for more information on using the TagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagResourceRequest method.
+//    req, resp := client.TagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/TagResource
+func (c *Greengrass) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
+	op := &request.Operation{
+		Name:       opTagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/tags/{resource-arn}",
+	}
+
+	if input == nil {
+		input = &TagResourceInput{}
+	}
+
+	output = &TagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagResource API operation for AWS Greengrass.
+//
+// Adds tags to a Greengrass resource. Valid resources are 'Group', 'ConnectorDefinition',
+// 'CoreDefinition', 'DeviceDefinition', 'FunctionDefinition', 'LoggerDefinition',
+// 'SubscriptionDefinition', 'ResourceDefinition', and 'BulkDeployment'.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Greengrass's
+// API operation TagResource for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   General error information.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/TagResource
+func (c *Greengrass) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	return out, req.Send()
+}
+
+// TagResourceWithContext is the same as TagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Greengrass) TagResourceWithContext(ctx aws.Context, input *TagResourceInput, opts ...request.Option) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagResource = "UntagResource"
+
+// UntagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UntagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagResource for more information on using the UntagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagResourceRequest method.
+//    req, resp := client.UntagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UntagResource
+func (c *Greengrass) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
+	op := &request.Operation{
+		Name:       opUntagResource,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/tags/{resource-arn}",
+	}
+
+	if input == nil {
+		input = &UntagResourceInput{}
+	}
+
+	output = &UntagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagResource API operation for AWS Greengrass.
+//
+// Remove resource tags from a Greengrass Resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Greengrass's
+// API operation UntagResource for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   General error information.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UntagResource
+func (c *Greengrass) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	return out, req.Send()
+}
+
+// UntagResourceWithContext is the same as UntagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Greengrass) UntagResourceWithContext(ctx aws.Context, input *UntagResourceInput, opts ...request.Option) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -6193,11 +6436,11 @@ func (c *Greengrass) UpdateConnectivityInfoRequest(input *UpdateConnectivityInfo
 // See the AWS API reference guide for AWS Greengrass's
 // API operation UpdateConnectivityInfo for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UpdateConnectivityInfo
@@ -6276,8 +6519,8 @@ func (c *Greengrass) UpdateConnectorDefinitionRequest(input *UpdateConnectorDefi
 // See the AWS API reference guide for AWS Greengrass's
 // API operation UpdateConnectorDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UpdateConnectorDefinition
@@ -6356,8 +6599,8 @@ func (c *Greengrass) UpdateCoreDefinitionRequest(input *UpdateCoreDefinitionInpu
 // See the AWS API reference guide for AWS Greengrass's
 // API operation UpdateCoreDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UpdateCoreDefinition
@@ -6436,8 +6679,8 @@ func (c *Greengrass) UpdateDeviceDefinitionRequest(input *UpdateDeviceDefinition
 // See the AWS API reference guide for AWS Greengrass's
 // API operation UpdateDeviceDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UpdateDeviceDefinition
@@ -6516,8 +6759,8 @@ func (c *Greengrass) UpdateFunctionDefinitionRequest(input *UpdateFunctionDefini
 // See the AWS API reference guide for AWS Greengrass's
 // API operation UpdateFunctionDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UpdateFunctionDefinition
@@ -6596,8 +6839,8 @@ func (c *Greengrass) UpdateGroupRequest(input *UpdateGroupInput) (req *request.R
 // See the AWS API reference guide for AWS Greengrass's
 // API operation UpdateGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UpdateGroup
@@ -6675,11 +6918,11 @@ func (c *Greengrass) UpdateGroupCertificateConfigurationRequest(input *UpdateGro
 // See the AWS API reference guide for AWS Greengrass's
 // API operation UpdateGroupCertificateConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
-//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//   * InternalServerErrorException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UpdateGroupCertificateConfiguration
@@ -6758,8 +7001,8 @@ func (c *Greengrass) UpdateLoggerDefinitionRequest(input *UpdateLoggerDefinition
 // See the AWS API reference guide for AWS Greengrass's
 // API operation UpdateLoggerDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UpdateLoggerDefinition
@@ -6838,8 +7081,8 @@ func (c *Greengrass) UpdateResourceDefinitionRequest(input *UpdateResourceDefini
 // See the AWS API reference guide for AWS Greengrass's
 // API operation UpdateResourceDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UpdateResourceDefinition
@@ -6918,8 +7161,8 @@ func (c *Greengrass) UpdateSubscriptionDefinitionRequest(input *UpdateSubscripti
 // See the AWS API reference guide for AWS Greengrass's
 // API operation UpdateSubscriptionDefinition for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   General error information.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/greengrass-2017-06-07/UpdateSubscriptionDefinition
@@ -6950,8 +7193,11 @@ type AssociateRoleToGroupInput struct {
 	// GroupId is a required field
 	GroupId *string `location:"uri" locationName:"GroupId" type:"string" required:"true"`
 
-	// The ARN of the role you wish to associate with this group.
-	RoleArn *string `type:"string"`
+	// The ARN of the role you wish to associate with this group. The existence
+	// of the role is not validated.
+	//
+	// RoleArn is a required field
+	RoleArn *string `type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -6972,6 +7218,9 @@ func (s *AssociateRoleToGroupInput) Validate() error {
 	}
 	if s.GroupId != nil && len(*s.GroupId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("GroupId", 1))
+	}
+	if s.RoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7020,7 +7269,9 @@ type AssociateServiceRoleToAccountInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the service role you wish to associate with your account.
-	RoleArn *string `type:"string"`
+	//
+	// RoleArn is a required field
+	RoleArn *string `type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -7031,6 +7282,19 @@ func (s AssociateServiceRoleToAccountInput) String() string {
 // GoString returns the string representation
 func (s AssociateServiceRoleToAccountInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateServiceRoleToAccountInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateServiceRoleToAccountInput"}
+	if s.RoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetRoleArn sets the RoleArn field's value.
@@ -7060,6 +7324,65 @@ func (s AssociateServiceRoleToAccountOutput) GoString() string {
 func (s *AssociateServiceRoleToAccountOutput) SetAssociatedAt(v string) *AssociateServiceRoleToAccountOutput {
 	s.AssociatedAt = &v
 	return s
+}
+
+// General error information.
+type BadRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// A list of error details.
+	ErrorDetails []*ErrorDetail `type:"list"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s BadRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BadRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorBadRequestException(v protocol.ResponseMetadata) error {
+	return &BadRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s BadRequestException) Code() string {
+	return "BadRequestException"
+}
+
+// Message returns the exception's message.
+func (s BadRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s BadRequestException) OrigErr() error {
+	return nil
+}
+
+func (s BadRequestException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s BadRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s BadRequestException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // Information about a bulk deployment. You cannot start a new bulk deployment
@@ -7167,7 +7490,7 @@ type BulkDeploymentResult struct {
 	// The ID of the group deployment.
 	DeploymentId *string `type:"string"`
 
-	// The current status of the group deployment: ''Pending'', ''InProgress'',
+	// The current status of the group deployment: ''InProgress'', ''Building'',
 	// ''Success'', or ''Failure''.
 	DeploymentStatus *string `type:"string"`
 
@@ -7300,12 +7623,16 @@ type Connector struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the connector.
-	ConnectorArn *string `type:"string"`
+	//
+	// ConnectorArn is a required field
+	ConnectorArn *string `type:"string" required:"true"`
 
 	// A descriptive or arbitrary ID for the connector. This value must be unique
 	// within the connector definition version. Max length is 128 characters with
 	// pattern [a-zA-Z0-9:_-]+.
-	Id *string `type:"string"`
+	//
+	// Id is a required field
+	Id *string `type:"string" required:"true"`
 
 	// The parameters or configuration that the connector uses.
 	Parameters map[string]*string `type:"map"`
@@ -7319,6 +7646,22 @@ func (s Connector) String() string {
 // GoString returns the string representation
 func (s Connector) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Connector) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Connector"}
+	if s.ConnectorArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConnectorArn"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetConnectorArn sets the ConnectorArn field's value.
@@ -7359,6 +7702,26 @@ func (s ConnectorDefinitionVersion) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConnectorDefinitionVersion) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConnectorDefinitionVersion"}
+	if s.Connectors != nil {
+		for i, v := range s.Connectors {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Connectors", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // SetConnectors sets the Connectors field's value.
 func (s *ConnectorDefinitionVersion) SetConnectors(v []*Connector) *ConnectorDefinitionVersion {
 	s.Connectors = v
@@ -7370,17 +7733,23 @@ type Core struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the certificate associated with the core.
-	CertificateArn *string `type:"string"`
+	//
+	// CertificateArn is a required field
+	CertificateArn *string `type:"string" required:"true"`
 
 	// A descriptive or arbitrary ID for the core. This value must be unique within
 	// the core definition version. Max length is 128 characters with pattern ''[a-zA-Z0-9:_-]+''.
-	Id *string `type:"string"`
+	//
+	// Id is a required field
+	Id *string `type:"string" required:"true"`
 
 	// If true, the core's local shadow is automatically synced with the cloud.
 	SyncShadow *bool `type:"boolean"`
 
 	// The ARN of the thing which is the core.
-	ThingArn *string `type:"string"`
+	//
+	// ThingArn is a required field
+	ThingArn *string `type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -7391,6 +7760,25 @@ func (s Core) String() string {
 // GoString returns the string representation
 func (s Core) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Core) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Core"}
+	if s.CertificateArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("CertificateArn"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.ThingArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ThingArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetCertificateArn sets the CertificateArn field's value.
@@ -7435,6 +7823,26 @@ func (s CoreDefinitionVersion) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CoreDefinitionVersion) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CoreDefinitionVersion"}
+	if s.Cores != nil {
+		for i, v := range s.Cores {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Cores", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // SetCores sets the Cores field's value.
 func (s *CoreDefinitionVersion) SetCores(v []*Core) *CoreDefinitionVersion {
 	s.Cores = v
@@ -7451,6 +7859,9 @@ type CreateConnectorDefinitionInput struct {
 	InitialVersion *ConnectorDefinitionVersion `type:"structure"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -7461,6 +7872,21 @@ func (s CreateConnectorDefinitionInput) String() string {
 // GoString returns the string representation
 func (s CreateConnectorDefinitionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateConnectorDefinitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateConnectorDefinitionInput"}
+	if s.InitialVersion != nil {
+		if err := s.InitialVersion.Validate(); err != nil {
+			invalidParams.AddNested("InitialVersion", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAmznClientToken sets the AmznClientToken field's value.
@@ -7478,6 +7904,12 @@ func (s *CreateConnectorDefinitionInput) SetInitialVersion(v *ConnectorDefinitio
 // SetName sets the Name field's value.
 func (s *CreateConnectorDefinitionInput) SetName(v string) *CreateConnectorDefinitionInput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateConnectorDefinitionInput) SetTags(v map[string]*string) *CreateConnectorDefinitionInput {
+	s.Tags = v
 	return s
 }
 
@@ -7581,6 +8013,16 @@ func (s *CreateConnectorDefinitionVersionInput) Validate() error {
 	if s.ConnectorDefinitionId != nil && len(*s.ConnectorDefinitionId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ConnectorDefinitionId", 1))
 	}
+	if s.Connectors != nil {
+		for i, v := range s.Connectors {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Connectors", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7661,6 +8103,9 @@ type CreateCoreDefinitionInput struct {
 	InitialVersion *CoreDefinitionVersion `type:"structure"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -7671,6 +8116,21 @@ func (s CreateCoreDefinitionInput) String() string {
 // GoString returns the string representation
 func (s CreateCoreDefinitionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateCoreDefinitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateCoreDefinitionInput"}
+	if s.InitialVersion != nil {
+		if err := s.InitialVersion.Validate(); err != nil {
+			invalidParams.AddNested("InitialVersion", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAmznClientToken sets the AmznClientToken field's value.
@@ -7688,6 +8148,12 @@ func (s *CreateCoreDefinitionInput) SetInitialVersion(v *CoreDefinitionVersion) 
 // SetName sets the Name field's value.
 func (s *CreateCoreDefinitionInput) SetName(v string) *CreateCoreDefinitionInput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateCoreDefinitionInput) SetTags(v map[string]*string) *CreateCoreDefinitionInput {
+	s.Tags = v
 	return s
 }
 
@@ -7791,6 +8257,16 @@ func (s *CreateCoreDefinitionVersionInput) Validate() error {
 	if s.CoreDefinitionId != nil && len(*s.CoreDefinitionId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("CoreDefinitionId", 1))
 	}
+	if s.Cores != nil {
+		for i, v := range s.Cores {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Cores", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7871,9 +8347,11 @@ type CreateDeploymentInput struct {
 	// The ID of the deployment if you wish to redeploy a previous deployment.
 	DeploymentId *string `type:"string"`
 
-	// The type of deployment. When used in ''CreateDeployment'', only ''NewDeployment''
+	// The type of deployment. When used for ''CreateDeployment'', only ''NewDeployment''
 	// and ''Redeployment'' are valid.
-	DeploymentType *string `type:"string" enum:"DeploymentType"`
+	//
+	// DeploymentType is a required field
+	DeploymentType *string `type:"string" required:"true" enum:"DeploymentType"`
 
 	// GroupId is a required field
 	GroupId *string `location:"uri" locationName:"GroupId" type:"string" required:"true"`
@@ -7895,6 +8373,9 @@ func (s CreateDeploymentInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateDeploymentInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateDeploymentInput"}
+	if s.DeploymentType == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentType"))
+	}
 	if s.GroupId == nil {
 		invalidParams.Add(request.NewErrParamRequired("GroupId"))
 	}
@@ -7979,6 +8460,9 @@ type CreateDeviceDefinitionInput struct {
 	InitialVersion *DeviceDefinitionVersion `type:"structure"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -7989,6 +8473,21 @@ func (s CreateDeviceDefinitionInput) String() string {
 // GoString returns the string representation
 func (s CreateDeviceDefinitionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDeviceDefinitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDeviceDefinitionInput"}
+	if s.InitialVersion != nil {
+		if err := s.InitialVersion.Validate(); err != nil {
+			invalidParams.AddNested("InitialVersion", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAmznClientToken sets the AmznClientToken field's value.
@@ -8006,6 +8505,12 @@ func (s *CreateDeviceDefinitionInput) SetInitialVersion(v *DeviceDefinitionVersi
 // SetName sets the Name field's value.
 func (s *CreateDeviceDefinitionInput) SetName(v string) *CreateDeviceDefinitionInput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateDeviceDefinitionInput) SetTags(v map[string]*string) *CreateDeviceDefinitionInput {
+	s.Tags = v
 	return s
 }
 
@@ -8109,6 +8614,16 @@ func (s *CreateDeviceDefinitionVersionInput) Validate() error {
 	if s.DeviceDefinitionId != nil && len(*s.DeviceDefinitionId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("DeviceDefinitionId", 1))
 	}
+	if s.Devices != nil {
+		for i, v := range s.Devices {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Devices", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -8189,6 +8704,9 @@ type CreateFunctionDefinitionInput struct {
 	InitialVersion *FunctionDefinitionVersion `type:"structure"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -8199,6 +8717,21 @@ func (s CreateFunctionDefinitionInput) String() string {
 // GoString returns the string representation
 func (s CreateFunctionDefinitionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateFunctionDefinitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateFunctionDefinitionInput"}
+	if s.InitialVersion != nil {
+		if err := s.InitialVersion.Validate(); err != nil {
+			invalidParams.AddNested("InitialVersion", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAmznClientToken sets the AmznClientToken field's value.
@@ -8216,6 +8749,12 @@ func (s *CreateFunctionDefinitionInput) SetInitialVersion(v *FunctionDefinitionV
 // SetName sets the Name field's value.
 func (s *CreateFunctionDefinitionInput) SetName(v string) *CreateFunctionDefinitionInput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateFunctionDefinitionInput) SetTags(v map[string]*string) *CreateFunctionDefinitionInput {
+	s.Tags = v
 	return s
 }
 
@@ -8294,7 +8833,8 @@ type CreateFunctionDefinitionVersionInput struct {
 
 	AmznClientToken *string `location:"header" locationName:"X-Amzn-Client-Token" type:"string"`
 
-	// Default configuration that will apply to all Lambda functions in the group.
+	// The default configuration that applies to all Lambda functions in the group.
+	// Individual Lambda functions can override these settings.
 	DefaultConfig *FunctionDefaultConfig `type:"structure"`
 
 	// FunctionDefinitionId is a required field
@@ -8321,6 +8861,16 @@ func (s *CreateFunctionDefinitionVersionInput) Validate() error {
 	}
 	if s.FunctionDefinitionId != nil && len(*s.FunctionDefinitionId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("FunctionDefinitionId", 1))
+	}
+	if s.Functions != nil {
+		for i, v := range s.Functions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Functions", i), err.(request.ErrInvalidParams))
+			}
+		}
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8478,6 +9028,9 @@ type CreateGroupInput struct {
 	InitialVersion *GroupVersion `type:"structure"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -8505,6 +9058,12 @@ func (s *CreateGroupInput) SetInitialVersion(v *GroupVersion) *CreateGroupInput 
 // SetName sets the Name field's value.
 func (s *CreateGroupInput) SetName(v string) *CreateGroupInput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateGroupInput) SetTags(v map[string]*string) *CreateGroupInput {
+	s.Tags = v
 	return s
 }
 
@@ -8736,6 +9295,9 @@ type CreateLoggerDefinitionInput struct {
 	InitialVersion *LoggerDefinitionVersion `type:"structure"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -8746,6 +9308,21 @@ func (s CreateLoggerDefinitionInput) String() string {
 // GoString returns the string representation
 func (s CreateLoggerDefinitionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateLoggerDefinitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateLoggerDefinitionInput"}
+	if s.InitialVersion != nil {
+		if err := s.InitialVersion.Validate(); err != nil {
+			invalidParams.AddNested("InitialVersion", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAmznClientToken sets the AmznClientToken field's value.
@@ -8763,6 +9340,12 @@ func (s *CreateLoggerDefinitionInput) SetInitialVersion(v *LoggerDefinitionVersi
 // SetName sets the Name field's value.
 func (s *CreateLoggerDefinitionInput) SetName(v string) *CreateLoggerDefinitionInput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateLoggerDefinitionInput) SetTags(v map[string]*string) *CreateLoggerDefinitionInput {
+	s.Tags = v
 	return s
 }
 
@@ -8866,6 +9449,16 @@ func (s *CreateLoggerDefinitionVersionInput) Validate() error {
 	if s.LoggerDefinitionId != nil && len(*s.LoggerDefinitionId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("LoggerDefinitionId", 1))
 	}
+	if s.Loggers != nil {
+		for i, v := range s.Loggers {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Loggers", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -8946,6 +9539,9 @@ type CreateResourceDefinitionInput struct {
 	InitialVersion *ResourceDefinitionVersion `type:"structure"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -8956,6 +9552,21 @@ func (s CreateResourceDefinitionInput) String() string {
 // GoString returns the string representation
 func (s CreateResourceDefinitionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateResourceDefinitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateResourceDefinitionInput"}
+	if s.InitialVersion != nil {
+		if err := s.InitialVersion.Validate(); err != nil {
+			invalidParams.AddNested("InitialVersion", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAmznClientToken sets the AmznClientToken field's value.
@@ -8973,6 +9584,12 @@ func (s *CreateResourceDefinitionInput) SetInitialVersion(v *ResourceDefinitionV
 // SetName sets the Name field's value.
 func (s *CreateResourceDefinitionInput) SetName(v string) *CreateResourceDefinitionInput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateResourceDefinitionInput) SetTags(v map[string]*string) *CreateResourceDefinitionInput {
+	s.Tags = v
 	return s
 }
 
@@ -9076,6 +9693,16 @@ func (s *CreateResourceDefinitionVersionInput) Validate() error {
 	if s.ResourceDefinitionId != nil && len(*s.ResourceDefinitionId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ResourceDefinitionId", 1))
 	}
+	if s.Resources != nil {
+		for i, v := range s.Resources {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Resources", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -9155,10 +9782,14 @@ type CreateSoftwareUpdateJobInput struct {
 
 	// The IAM Role that Greengrass will use to create pre-signed URLs pointing
 	// towards the update artifact.
-	S3UrlSignerRole *string `type:"string"`
+	//
+	// S3UrlSignerRole is a required field
+	S3UrlSignerRole *string `type:"string" required:"true"`
 
 	// The piece of software on the Greengrass core that will be updated.
-	SoftwareToUpdate *string `type:"string" enum:"SoftwareToUpdate"`
+	//
+	// SoftwareToUpdate is a required field
+	SoftwareToUpdate *string `type:"string" required:"true" enum:"SoftwareToUpdate"`
 
 	// The minimum level of log statements that should be logged by the OTA Agent
 	// during an update.
@@ -9166,13 +9797,19 @@ type CreateSoftwareUpdateJobInput struct {
 
 	// The ARNs of the targets (IoT things or IoT thing groups) that this update
 	// will be applied to.
-	UpdateTargets []*string `type:"list"`
+	//
+	// UpdateTargets is a required field
+	UpdateTargets []*string `type:"list" required:"true"`
 
 	// The architecture of the cores which are the targets of an update.
-	UpdateTargetsArchitecture *string `type:"string" enum:"UpdateTargetsArchitecture"`
+	//
+	// UpdateTargetsArchitecture is a required field
+	UpdateTargetsArchitecture *string `type:"string" required:"true" enum:"UpdateTargetsArchitecture"`
 
 	// The operating system of the cores which are the targets of an update.
-	UpdateTargetsOperatingSystem *string `type:"string" enum:"UpdateTargetsOperatingSystem"`
+	//
+	// UpdateTargetsOperatingSystem is a required field
+	UpdateTargetsOperatingSystem *string `type:"string" required:"true" enum:"UpdateTargetsOperatingSystem"`
 }
 
 // String returns the string representation
@@ -9183,6 +9820,31 @@ func (s CreateSoftwareUpdateJobInput) String() string {
 // GoString returns the string representation
 func (s CreateSoftwareUpdateJobInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateSoftwareUpdateJobInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateSoftwareUpdateJobInput"}
+	if s.S3UrlSignerRole == nil {
+		invalidParams.Add(request.NewErrParamRequired("S3UrlSignerRole"))
+	}
+	if s.SoftwareToUpdate == nil {
+		invalidParams.Add(request.NewErrParamRequired("SoftwareToUpdate"))
+	}
+	if s.UpdateTargets == nil {
+		invalidParams.Add(request.NewErrParamRequired("UpdateTargets"))
+	}
+	if s.UpdateTargetsArchitecture == nil {
+		invalidParams.Add(request.NewErrParamRequired("UpdateTargetsArchitecture"))
+	}
+	if s.UpdateTargetsOperatingSystem == nil {
+		invalidParams.Add(request.NewErrParamRequired("UpdateTargetsOperatingSystem"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAmznClientToken sets the AmznClientToken field's value.
@@ -9235,6 +9897,9 @@ type CreateSoftwareUpdateJobOutput struct {
 
 	// The IoT Job Id corresponding to this update.
 	IotJobId *string `type:"string"`
+
+	// The software version installed on the device or devices after the update.
+	PlatformSoftwareVersion *string `type:"string"`
 }
 
 // String returns the string representation
@@ -9259,6 +9924,12 @@ func (s *CreateSoftwareUpdateJobOutput) SetIotJobId(v string) *CreateSoftwareUpd
 	return s
 }
 
+// SetPlatformSoftwareVersion sets the PlatformSoftwareVersion field's value.
+func (s *CreateSoftwareUpdateJobOutput) SetPlatformSoftwareVersion(v string) *CreateSoftwareUpdateJobOutput {
+	s.PlatformSoftwareVersion = &v
+	return s
+}
+
 type CreateSubscriptionDefinitionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -9268,6 +9939,9 @@ type CreateSubscriptionDefinitionInput struct {
 	InitialVersion *SubscriptionDefinitionVersion `type:"structure"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -9278,6 +9952,21 @@ func (s CreateSubscriptionDefinitionInput) String() string {
 // GoString returns the string representation
 func (s CreateSubscriptionDefinitionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateSubscriptionDefinitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateSubscriptionDefinitionInput"}
+	if s.InitialVersion != nil {
+		if err := s.InitialVersion.Validate(); err != nil {
+			invalidParams.AddNested("InitialVersion", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAmznClientToken sets the AmznClientToken field's value.
@@ -9295,6 +9984,12 @@ func (s *CreateSubscriptionDefinitionInput) SetInitialVersion(v *SubscriptionDef
 // SetName sets the Name field's value.
 func (s *CreateSubscriptionDefinitionInput) SetName(v string) *CreateSubscriptionDefinitionInput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateSubscriptionDefinitionInput) SetTags(v map[string]*string) *CreateSubscriptionDefinitionInput {
+	s.Tags = v
 	return s
 }
 
@@ -9398,6 +10093,16 @@ func (s *CreateSubscriptionDefinitionVersionInput) Validate() error {
 	if s.SubscriptionDefinitionId != nil && len(*s.SubscriptionDefinitionId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("SubscriptionDefinitionId", 1))
 	}
+	if s.Subscriptions != nil {
+		for i, v := range s.Subscriptions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Subscriptions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -9485,14 +10190,17 @@ type DefinitionInformation struct {
 	// The time, in milliseconds since the epoch, when the definition was last updated.
 	LastUpdatedTimestamp *string `type:"string"`
 
-	// The latest version of the definition.
+	// The ID of the latest version associated with the definition.
 	LatestVersion *string `type:"string"`
 
-	// The ARN of the latest version of the definition.
+	// The ARN of the latest version associated with the definition.
 	LatestVersionArn *string `type:"string"`
 
 	// The name of the definition.
 	Name *string `type:"string"`
+
+	// Tag(s) attached to the resource arn.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -9544,6 +10252,12 @@ func (s *DefinitionInformation) SetLatestVersionArn(v string) *DefinitionInforma
 // SetName sets the Name field's value.
 func (s *DefinitionInformation) SetName(v string) *DefinitionInformation {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *DefinitionInformation) SetTags(v map[string]*string) *DefinitionInformation {
+	s.Tags = v
 	return s
 }
 
@@ -10036,19 +10750,25 @@ type Device struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the certificate associated with the device.
-	CertificateArn *string `type:"string"`
+	//
+	// CertificateArn is a required field
+	CertificateArn *string `type:"string" required:"true"`
 
 	// A descriptive or arbitrary ID for the device. This value must be unique within
 	// the device definition version. Max length is 128 characters with pattern
 	// ''[a-zA-Z0-9:_-]+''.
-	Id *string `type:"string"`
+	//
+	// Id is a required field
+	Id *string `type:"string" required:"true"`
 
 	// If true, the device's local shadow will be automatically synced with the
 	// cloud.
 	SyncShadow *bool `type:"boolean"`
 
 	// The thing ARN of the device.
-	ThingArn *string `type:"string"`
+	//
+	// ThingArn is a required field
+	ThingArn *string `type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -10059,6 +10779,25 @@ func (s Device) String() string {
 // GoString returns the string representation
 func (s Device) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Device) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Device"}
+	if s.CertificateArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("CertificateArn"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.ThingArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ThingArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetCertificateArn sets the CertificateArn field's value.
@@ -10101,6 +10840,26 @@ func (s DeviceDefinitionVersion) String() string {
 // GoString returns the string representation
 func (s DeviceDefinitionVersion) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeviceDefinitionVersion) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeviceDefinitionVersion"}
+	if s.Devices != nil {
+		for i, v := range s.Devices {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Devices", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetDevices sets the Devices field's value.
@@ -10255,7 +11014,9 @@ type Function struct {
 	// A descriptive or arbitrary ID for the function. This value must be unique
 	// within the function definition version. Max length is 128 characters with
 	// pattern ''[a-zA-Z0-9:_-]+''.
-	Id *string `type:"string"`
+	//
+	// Id is a required field
+	Id *string `type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -10266,6 +11027,24 @@ func (s Function) String() string {
 // GoString returns the string representation
 func (s Function) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Function) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Function"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.FunctionConfiguration != nil {
+		if err := s.FunctionConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("FunctionConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetFunctionArn sets the FunctionArn field's value.
@@ -10326,6 +11105,21 @@ func (s FunctionConfiguration) String() string {
 // GoString returns the string representation
 func (s FunctionConfiguration) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *FunctionConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "FunctionConfiguration"}
+	if s.Environment != nil {
+		if err := s.Environment.Validate(); err != nil {
+			invalidParams.AddNested("Environment", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetEncodingType sets the EncodingType field's value.
@@ -10403,6 +11197,26 @@ func (s FunctionConfigurationEnvironment) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *FunctionConfigurationEnvironment) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "FunctionConfigurationEnvironment"}
+	if s.ResourceAccessPolicies != nil {
+		for i, v := range s.ResourceAccessPolicies {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ResourceAccessPolicies", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // SetAccessSysfs sets the AccessSysfs field's value.
 func (s *FunctionConfigurationEnvironment) SetAccessSysfs(v bool) *FunctionConfigurationEnvironment {
 	s.AccessSysfs = &v
@@ -10427,13 +11241,12 @@ func (s *FunctionConfigurationEnvironment) SetVariables(v map[string]*string) *F
 	return s
 }
 
-// Default configuration that will apply to all Lambda functions in the group.
+// The default configuration that applies to all Lambda functions in the group.
+// Individual Lambda functions can override these settings.
 type FunctionDefaultConfig struct {
 	_ struct{} `type:"structure"`
 
-	// Configuration that defines the default containerization used for when running
-	// Lambda functions in the group. Individual Lambda functions can be override
-	// this setting.
+	// Configuration information that specifies how a Lambda function runs.
 	Execution *FunctionDefaultExecutionConfig `type:"structure"`
 }
 
@@ -10453,9 +11266,7 @@ func (s *FunctionDefaultConfig) SetExecution(v *FunctionDefaultExecutionConfig) 
 	return s
 }
 
-// Configuration that defines the default containerization used for when running
-// Lambda functions in the group. Individual Lambda functions can be override
-// this setting.
+// Configuration information that specifies how a Lambda function runs.
 type FunctionDefaultExecutionConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -10465,6 +11276,14 @@ type FunctionDefaultExecutionConfig struct {
 	// this value to run the Lambda function with the default containerization for
 	// the group.
 	IsolationMode *string `type:"string" enum:"FunctionIsolationMode"`
+
+	// Specifies the user and group whose permissions are used when running the
+	// Lambda function. You can specify one or both values to override the default
+	// values. We recommend that you avoid running as root unless absolutely necessary
+	// to minimize the risk of unintended changes or malicious attacks. To run as
+	// root, you must set ''IsolationMode'' to ''NoContainer'' and update config.json
+	// in ''greengrass-root/config'' to set ''allowFunctionsToRunAsRoot'' to ''yes''.
+	RunAs *FunctionRunAsConfig `type:"structure"`
 }
 
 // String returns the string representation
@@ -10483,12 +11302,18 @@ func (s *FunctionDefaultExecutionConfig) SetIsolationMode(v string) *FunctionDef
 	return s
 }
 
+// SetRunAs sets the RunAs field's value.
+func (s *FunctionDefaultExecutionConfig) SetRunAs(v *FunctionRunAsConfig) *FunctionDefaultExecutionConfig {
+	s.RunAs = v
+	return s
+}
+
 // Information about a function definition version.
 type FunctionDefinitionVersion struct {
 	_ struct{} `type:"structure"`
 
-	// Default configuration that will apply to all Lambda functions in this function
-	// definition version
+	// The default configuration that applies to all Lambda functions in this function
+	// definition version. Individual Lambda functions can override these settings.
 	DefaultConfig *FunctionDefaultConfig `type:"structure"`
 
 	// A list of Lambda functions in this function definition version.
@@ -10505,6 +11330,26 @@ func (s FunctionDefinitionVersion) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *FunctionDefinitionVersion) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "FunctionDefinitionVersion"}
+	if s.Functions != nil {
+		for i, v := range s.Functions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Functions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // SetDefaultConfig sets the DefaultConfig field's value.
 func (s *FunctionDefinitionVersion) SetDefaultConfig(v *FunctionDefaultConfig) *FunctionDefinitionVersion {
 	s.DefaultConfig = v
@@ -10517,7 +11362,7 @@ func (s *FunctionDefinitionVersion) SetFunctions(v []*Function) *FunctionDefinit
 	return s
 }
 
-// Configuration information that specifies how the Lambda function runs.
+// Configuration information that specifies how a Lambda function runs.
 type FunctionExecutionConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -10528,13 +11373,12 @@ type FunctionExecutionConfig struct {
 	// the group.
 	IsolationMode *string `type:"string" enum:"FunctionIsolationMode"`
 
-	// Specifies the user and/or group whose permissions are used when running the
+	// Specifies the user and group whose permissions are used when running the
 	// Lambda function. You can specify one or both values to override the default
-	// values (ggc_user/ggc_group). We recommend that you avoid running as root
-	// unless absolutely necessary to minimize the risk of unintended changes or
-	// malicious attacks. To run as root, you must set IsolationMode to NoContainer
-	// and you must update config.json in greengrass-root/config to set allowFunctionsToRunAsRoot
-	// to yes.
+	// values. We recommend that you avoid running as root unless absolutely necessary
+	// to minimize the risk of unintended changes or malicious attacks. To run as
+	// root, you must set ''IsolationMode'' to ''NoContainer'' and update config.json
+	// in ''greengrass-root/config'' to set ''allowFunctionsToRunAsRoot'' to ''yes''.
 	RunAs *FunctionRunAsConfig `type:"structure"`
 }
 
@@ -10560,20 +11404,19 @@ func (s *FunctionExecutionConfig) SetRunAs(v *FunctionRunAsConfig) *FunctionExec
 	return s
 }
 
-// Specifies the user and/or group whose permissions are used when running the
+// Specifies the user and group whose permissions are used when running the
 // Lambda function. You can specify one or both values to override the default
-// values (ggc_user/ggc_group). We recommend that you avoid running as root
-// unless absolutely necessary to minimize the risk of unintended changes or
-// malicious attacks. To run as root, you must set IsolationMode to NoContainer
-// and you must update config.json in greengrass-root/config to set allowFunctionsToRunAsRoot
-// to yes.
+// values. We recommend that you avoid running as root unless absolutely necessary
+// to minimize the risk of unintended changes or malicious attacks. To run as
+// root, you must set ''IsolationMode'' to ''NoContainer'' and update config.json
+// in ''greengrass-root/config'' to set ''allowFunctionsToRunAsRoot'' to ''yes''.
 type FunctionRunAsConfig struct {
 	_ struct{} `type:"structure"`
 
-	// The Group ID whose permissions are used to run a Lambda function.
+	// The group ID whose permissions are used to run a Lambda function.
 	Gid *int64 `type:"integer"`
 
-	// The User ID whose permissions are used to run a Lambda function.
+	// The user ID whose permissions are used to run a Lambda function.
 	Uid *int64 `type:"integer"`
 }
 
@@ -10727,6 +11570,9 @@ type GetBulkDeploymentStatusOutput struct {
 
 	// Error message
 	ErrorMessage *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -10766,6 +11612,12 @@ func (s *GetBulkDeploymentStatusOutput) SetErrorDetails(v []*ErrorDetail) *GetBu
 // SetErrorMessage sets the ErrorMessage field's value.
 func (s *GetBulkDeploymentStatusOutput) SetErrorMessage(v string) *GetBulkDeploymentStatusOutput {
 	s.ErrorMessage = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetBulkDeploymentStatusOutput) SetTags(v map[string]*string) *GetBulkDeploymentStatusOutput {
+	s.Tags = v
 	return s
 }
 
@@ -10896,6 +11748,9 @@ type GetConnectorDefinitionOutput struct {
 	LatestVersionArn *string `type:"string"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -10947,6 +11802,12 @@ func (s *GetConnectorDefinitionOutput) SetLatestVersionArn(v string) *GetConnect
 // SetName sets the Name field's value.
 func (s *GetConnectorDefinitionOutput) SetName(v string) *GetConnectorDefinitionOutput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetConnectorDefinitionOutput) SetTags(v map[string]*string) *GetConnectorDefinitionOutput {
+	s.Tags = v
 	return s
 }
 
@@ -11138,6 +11999,9 @@ type GetCoreDefinitionOutput struct {
 	LatestVersionArn *string `type:"string"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -11189,6 +12053,12 @@ func (s *GetCoreDefinitionOutput) SetLatestVersionArn(v string) *GetCoreDefiniti
 // SetName sets the Name field's value.
 func (s *GetCoreDefinitionOutput) SetName(v string) *GetCoreDefinitionOutput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetCoreDefinitionOutput) SetTags(v map[string]*string) *GetCoreDefinitionOutput {
+	s.Tags = v
 	return s
 }
 
@@ -11374,8 +12244,8 @@ func (s *GetDeploymentStatusInput) SetGroupId(v string) *GetDeploymentStatusInpu
 type GetDeploymentStatusOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The status of the deployment: ''Pending'', ''InProgress'', ''Success'', or
-	// ''Failure''.
+	// The status of the deployment: ''InProgress'', ''Building'', ''Success'',
+	// or ''Failure''.
 	DeploymentStatus *string `type:"string"`
 
 	// The type of the deployment.
@@ -11487,6 +12357,9 @@ type GetDeviceDefinitionOutput struct {
 	LatestVersionArn *string `type:"string"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -11538,6 +12411,12 @@ func (s *GetDeviceDefinitionOutput) SetLatestVersionArn(v string) *GetDeviceDefi
 // SetName sets the Name field's value.
 func (s *GetDeviceDefinitionOutput) SetName(v string) *GetDeviceDefinitionOutput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetDeviceDefinitionOutput) SetTags(v map[string]*string) *GetDeviceDefinitionOutput {
+	s.Tags = v
 	return s
 }
 
@@ -11728,6 +12607,9 @@ type GetFunctionDefinitionOutput struct {
 	LatestVersionArn *string `type:"string"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -11779,6 +12661,12 @@ func (s *GetFunctionDefinitionOutput) SetLatestVersionArn(v string) *GetFunction
 // SetName sets the Name field's value.
 func (s *GetFunctionDefinitionOutput) SetName(v string) *GetFunctionDefinitionOutput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetFunctionDefinitionOutput) SetTags(v map[string]*string) *GetFunctionDefinitionOutput {
+	s.Tags = v
 	return s
 }
 
@@ -12143,6 +13031,9 @@ type GetGroupOutput struct {
 	LatestVersionArn *string `type:"string"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -12194,6 +13085,12 @@ func (s *GetGroupOutput) SetLatestVersionArn(v string) *GetGroupOutput {
 // SetName sets the Name field's value.
 func (s *GetGroupOutput) SetName(v string) *GetGroupOutput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetGroupOutput) SetTags(v map[string]*string) *GetGroupOutput {
+	s.Tags = v
 	return s
 }
 
@@ -12264,10 +13161,10 @@ type GetGroupVersionOutput struct {
 	// Information about the group version definition.
 	Definition *GroupVersion `type:"structure"`
 
-	// The ID of the group version.
+	// The ID of the group that the version is associated with.
 	Id *string `type:"string"`
 
-	// The unique ID for the version of the group.
+	// The ID of the group version.
 	Version *string `type:"string"`
 }
 
@@ -12366,6 +13263,9 @@ type GetLoggerDefinitionOutput struct {
 	LatestVersionArn *string `type:"string"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -12417,6 +13317,12 @@ func (s *GetLoggerDefinitionOutput) SetLatestVersionArn(v string) *GetLoggerDefi
 // SetName sets the Name field's value.
 func (s *GetLoggerDefinitionOutput) SetName(v string) *GetLoggerDefinitionOutput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetLoggerDefinitionOutput) SetTags(v map[string]*string) *GetLoggerDefinitionOutput {
+	s.Tags = v
 	return s
 }
 
@@ -12598,6 +13504,9 @@ type GetResourceDefinitionOutput struct {
 	LatestVersionArn *string `type:"string"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -12649,6 +13558,12 @@ func (s *GetResourceDefinitionOutput) SetLatestVersionArn(v string) *GetResource
 // SetName sets the Name field's value.
 func (s *GetResourceDefinitionOutput) SetName(v string) *GetResourceDefinitionOutput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetResourceDefinitionOutput) SetTags(v map[string]*string) *GetResourceDefinitionOutput {
+	s.Tags = v
 	return s
 }
 
@@ -12868,6 +13783,9 @@ type GetSubscriptionDefinitionOutput struct {
 	LatestVersionArn *string `type:"string"`
 
 	Name *string `type:"string"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -12919,6 +13837,12 @@ func (s *GetSubscriptionDefinitionOutput) SetLatestVersionArn(v string) *GetSubs
 // SetName sets the Name field's value.
 func (s *GetSubscriptionDefinitionOutput) SetName(v string) *GetSubscriptionDefinitionOutput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetSubscriptionDefinitionOutput) SetTags(v map[string]*string) *GetSubscriptionDefinitionOutput {
+	s.Tags = v
 	return s
 }
 
@@ -13104,10 +14028,10 @@ type GroupInformation struct {
 	// The time, in milliseconds since the epoch, when the group was last updated.
 	LastUpdatedTimestamp *string `type:"string"`
 
-	// The latest version of the group.
+	// The ID of the latest version associated with the group.
 	LatestVersion *string `type:"string"`
 
-	// The ARN of the latest version of the group.
+	// The ARN of the latest version associated with the group.
 	LatestVersionArn *string `type:"string"`
 
 	// The name of the group.
@@ -13278,6 +14202,65 @@ func (s *GroupVersion) SetResourceDefinitionVersionArn(v string) *GroupVersion {
 func (s *GroupVersion) SetSubscriptionDefinitionVersionArn(v string) *GroupVersion {
 	s.SubscriptionDefinitionVersionArn = &v
 	return s
+}
+
+// General error information.
+type InternalServerErrorException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// A list of error details.
+	ErrorDetails []*ErrorDetail `type:"list"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalServerErrorException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalServerErrorException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServerErrorException(v protocol.ResponseMetadata) error {
+	return &InternalServerErrorException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalServerErrorException) Code() string {
+	return "InternalServerErrorException"
+}
+
+// Message returns the exception's message.
+func (s InternalServerErrorException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalServerErrorException) OrigErr() error {
+	return nil
+}
+
+func (s InternalServerErrorException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalServerErrorException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalServerErrorException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type ListBulkDeploymentDetailedReportsInput struct {
@@ -14744,6 +15727,68 @@ func (s *ListSubscriptionDefinitionsOutput) SetNextToken(v string) *ListSubscrip
 	return s
 }
 
+type ListTagsForResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resource-arn" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *ListTagsForResourceInput) SetResourceArn(v string) *ListTagsForResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+type ListTagsForResourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsForResourceOutput) SetTags(v map[string]*string) *ListTagsForResourceOutput {
+	s.Tags = v
+	return s
+}
+
 // Attributes that define a local device resource.
 type LocalDeviceResourceData struct {
 	_ struct{} `type:"structure"`
@@ -14827,22 +15872,30 @@ type Logger struct {
 	_ struct{} `type:"structure"`
 
 	// The component that will be subject to logging.
-	Component *string `type:"string" enum:"LoggerComponent"`
+	//
+	// Component is a required field
+	Component *string `type:"string" required:"true" enum:"LoggerComponent"`
 
 	// A descriptive or arbitrary ID for the logger. This value must be unique within
 	// the logger definition version. Max length is 128 characters with pattern
 	// ''[a-zA-Z0-9:_-]+''.
-	Id *string `type:"string"`
+	//
+	// Id is a required field
+	Id *string `type:"string" required:"true"`
 
 	// The level of the logs.
-	Level *string `type:"string" enum:"LoggerLevel"`
+	//
+	// Level is a required field
+	Level *string `type:"string" required:"true" enum:"LoggerLevel"`
 
 	// The amount of file space, in KB, to use if the local file system is used
 	// for logging purposes.
 	Space *int64 `type:"integer"`
 
 	// The type of log output which will be used.
-	Type *string `type:"string" enum:"LoggerType"`
+	//
+	// Type is a required field
+	Type *string `type:"string" required:"true" enum:"LoggerType"`
 }
 
 // String returns the string representation
@@ -14853,6 +15906,28 @@ func (s Logger) String() string {
 // GoString returns the string representation
 func (s Logger) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Logger) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Logger"}
+	if s.Component == nil {
+		invalidParams.Add(request.NewErrParamRequired("Component"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Level == nil {
+		invalidParams.Add(request.NewErrParamRequired("Level"))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetComponent sets the Component field's value.
@@ -14901,6 +15976,26 @@ func (s LoggerDefinitionVersion) String() string {
 // GoString returns the string representation
 func (s LoggerDefinitionVersion) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *LoggerDefinitionVersion) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "LoggerDefinitionVersion"}
+	if s.Loggers != nil {
+		for i, v := range s.Loggers {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Loggers", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetLoggers sets the Loggers field's value.
@@ -15005,15 +16100,21 @@ type Resource struct {
 	// The resource ID, used to refer to a resource in the Lambda function configuration.
 	// Max length is 128 characters with pattern ''[a-zA-Z0-9:_-]+''. This must
 	// be unique within a Greengrass group.
-	Id *string `type:"string"`
+	//
+	// Id is a required field
+	Id *string `type:"string" required:"true"`
 
 	// The descriptive resource name, which is displayed on the AWS IoT Greengrass
 	// console. Max length 128 characters with pattern ''[a-zA-Z0-9:_-]+''. This
 	// must be unique within a Greengrass group.
-	Name *string `type:"string"`
+	//
+	// Name is a required field
+	Name *string `type:"string" required:"true"`
 
 	// A container of data for all resource types.
-	ResourceDataContainer *ResourceDataContainer `type:"structure"`
+	//
+	// ResourceDataContainer is a required field
+	ResourceDataContainer *ResourceDataContainer `type:"structure" required:"true"`
 }
 
 // String returns the string representation
@@ -15024,6 +16125,30 @@ func (s Resource) String() string {
 // GoString returns the string representation
 func (s Resource) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Resource) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Resource"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.ResourceDataContainer == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceDataContainer"))
+	}
+	if s.ResourceDataContainer != nil {
+		if err := s.ResourceDataContainer.Validate(); err != nil {
+			invalidParams.AddNested("ResourceDataContainer", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetId sets the Id field's value.
@@ -15054,7 +16179,9 @@ type ResourceAccessPolicy struct {
 
 	// The ID of the resource. (This ID is assigned to the resource when you create
 	// the resource definiton.)
-	ResourceId *string `type:"string"`
+	//
+	// ResourceId is a required field
+	ResourceId *string `type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -15065,6 +16192,19 @@ func (s ResourceAccessPolicy) String() string {
 // GoString returns the string representation
 func (s ResourceAccessPolicy) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceAccessPolicy) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceAccessPolicy"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetPermission sets the Permission field's value.
@@ -15111,6 +16251,26 @@ func (s ResourceDataContainer) String() string {
 // GoString returns the string representation
 func (s ResourceDataContainer) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceDataContainer) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceDataContainer"}
+	if s.S3MachineLearningModelResourceData != nil {
+		if err := s.S3MachineLearningModelResourceData.Validate(); err != nil {
+			invalidParams.AddNested("S3MachineLearningModelResourceData", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.SageMakerMachineLearningModelResourceData != nil {
+		if err := s.SageMakerMachineLearningModelResourceData.Validate(); err != nil {
+			invalidParams.AddNested("SageMakerMachineLearningModelResourceData", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetLocalDeviceResourceData sets the LocalDeviceResourceData field's value.
@@ -15161,9 +16321,85 @@ func (s ResourceDefinitionVersion) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceDefinitionVersion) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceDefinitionVersion"}
+	if s.Resources != nil {
+		for i, v := range s.Resources {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Resources", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // SetResources sets the Resources field's value.
 func (s *ResourceDefinitionVersion) SetResources(v []*Resource) *ResourceDefinitionVersion {
 	s.Resources = v
+	return s
+}
+
+// The owner setting for downloaded machine learning resources.
+type ResourceDownloadOwnerSetting struct {
+	_ struct{} `type:"structure"`
+
+	// The group owner of the resource. This is the name of an existing Linux OS
+	// group on the system or a GID. The group's permissions are added to the Lambda
+	// process.
+	//
+	// GroupOwner is a required field
+	GroupOwner *string `type:"string" required:"true"`
+
+	// The permissions that the group owner has to the resource. Valid values are
+	// ''rw'' (read/write) or ''ro'' (read-only).
+	//
+	// GroupPermission is a required field
+	GroupPermission *string `type:"string" required:"true" enum:"Permission"`
+}
+
+// String returns the string representation
+func (s ResourceDownloadOwnerSetting) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceDownloadOwnerSetting) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceDownloadOwnerSetting) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceDownloadOwnerSetting"}
+	if s.GroupOwner == nil {
+		invalidParams.Add(request.NewErrParamRequired("GroupOwner"))
+	}
+	if s.GroupPermission == nil {
+		invalidParams.Add(request.NewErrParamRequired("GroupPermission"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetGroupOwner sets the GroupOwner field's value.
+func (s *ResourceDownloadOwnerSetting) SetGroupOwner(v string) *ResourceDownloadOwnerSetting {
+	s.GroupOwner = &v
+	return s
+}
+
+// SetGroupPermission sets the GroupPermission field's value.
+func (s *ResourceDownloadOwnerSetting) SetGroupPermission(v string) *ResourceDownloadOwnerSetting {
+	s.GroupPermission = &v
 	return s
 }
 
@@ -15173,6 +16409,9 @@ type S3MachineLearningModelResourceData struct {
 
 	// The absolute local path of the resource inside the Lambda environment.
 	DestinationPath *string `type:"string"`
+
+	// The owner setting for downloaded machine learning resources.
+	OwnerSetting *ResourceDownloadOwnerSetting `type:"structure"`
 
 	// The URI of the source model in an S3 bucket. The model package must be in
 	// tar.gz or .zip format.
@@ -15189,9 +16428,30 @@ func (s S3MachineLearningModelResourceData) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *S3MachineLearningModelResourceData) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "S3MachineLearningModelResourceData"}
+	if s.OwnerSetting != nil {
+		if err := s.OwnerSetting.Validate(); err != nil {
+			invalidParams.AddNested("OwnerSetting", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // SetDestinationPath sets the DestinationPath field's value.
 func (s *S3MachineLearningModelResourceData) SetDestinationPath(v string) *S3MachineLearningModelResourceData {
 	s.DestinationPath = &v
+	return s
+}
+
+// SetOwnerSetting sets the OwnerSetting field's value.
+func (s *S3MachineLearningModelResourceData) SetOwnerSetting(v *ResourceDownloadOwnerSetting) *S3MachineLearningModelResourceData {
+	s.OwnerSetting = v
 	return s
 }
 
@@ -15208,6 +16468,9 @@ type SageMakerMachineLearningModelResourceData struct {
 	// The absolute local path of the resource inside the Lambda environment.
 	DestinationPath *string `type:"string"`
 
+	// The owner setting for downloaded machine learning resources.
+	OwnerSetting *ResourceDownloadOwnerSetting `type:"structure"`
+
 	// The ARN of the Amazon SageMaker training job that represents the source model.
 	SageMakerJobArn *string `type:"string"`
 }
@@ -15222,9 +16485,30 @@ func (s SageMakerMachineLearningModelResourceData) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SageMakerMachineLearningModelResourceData) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SageMakerMachineLearningModelResourceData"}
+	if s.OwnerSetting != nil {
+		if err := s.OwnerSetting.Validate(); err != nil {
+			invalidParams.AddNested("OwnerSetting", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // SetDestinationPath sets the DestinationPath field's value.
 func (s *SageMakerMachineLearningModelResourceData) SetDestinationPath(v string) *SageMakerMachineLearningModelResourceData {
 	s.DestinationPath = &v
+	return s
+}
+
+// SetOwnerSetting sets the OwnerSetting field's value.
+func (s *SageMakerMachineLearningModelResourceData) SetOwnerSetting(v *ResourceDownloadOwnerSetting) *SageMakerMachineLearningModelResourceData {
+	s.OwnerSetting = v
 	return s
 }
 
@@ -15284,7 +16568,9 @@ type StartBulkDeploymentInput struct {
 	// This IAM role must allow the ''greengrass:CreateDeployment'' action for all
 	// group versions that are listed in the input file. This IAM role must have
 	// access to the S3 bucket containing the input file.
-	ExecutionRoleArn *string `type:"string"`
+	//
+	// ExecutionRoleArn is a required field
+	ExecutionRoleArn *string `type:"string" required:"true"`
 
 	// The URI of the input file contained in the S3 bucket. The execution role
 	// must have ''getObject'' permissions on this bucket to access the input file.
@@ -15292,7 +16578,12 @@ type StartBulkDeploymentInput struct {
 	// that provides a list of group and version IDs and the deployment type. This
 	// file must be less than 100 MB. Currently, AWS IoT Greengrass supports only
 	// ''NewDeployment'' deployment types.
-	InputFileUri *string `type:"string"`
+	//
+	// InputFileUri is a required field
+	InputFileUri *string `type:"string" required:"true"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -15303,6 +16594,22 @@ func (s StartBulkDeploymentInput) String() string {
 // GoString returns the string representation
 func (s StartBulkDeploymentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartBulkDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartBulkDeploymentInput"}
+	if s.ExecutionRoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ExecutionRoleArn"))
+	}
+	if s.InputFileUri == nil {
+		invalidParams.Add(request.NewErrParamRequired("InputFileUri"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAmznClientToken sets the AmznClientToken field's value.
@@ -15320,6 +16627,12 @@ func (s *StartBulkDeploymentInput) SetExecutionRoleArn(v string) *StartBulkDeplo
 // SetInputFileUri sets the InputFileUri field's value.
 func (s *StartBulkDeploymentInput) SetInputFileUri(v string) *StartBulkDeploymentInput {
 	s.InputFileUri = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *StartBulkDeploymentInput) SetTags(v map[string]*string) *StartBulkDeploymentInput {
+	s.Tags = v
 	return s
 }
 
@@ -15415,18 +16728,26 @@ type Subscription struct {
 	// A descriptive or arbitrary ID for the subscription. This value must be unique
 	// within the subscription definition version. Max length is 128 characters
 	// with pattern ''[a-zA-Z0-9:_-]+''.
-	Id *string `type:"string"`
+	//
+	// Id is a required field
+	Id *string `type:"string" required:"true"`
 
 	// The source of the subscription. Can be a thing ARN, a Lambda function ARN,
 	// a connector ARN, 'cloud' (which represents the AWS IoT cloud), or 'GGShadowService'.
-	Source *string `type:"string"`
+	//
+	// Source is a required field
+	Source *string `type:"string" required:"true"`
 
-	// The subject of the message.
-	Subject *string `type:"string"`
+	// The MQTT topic used to route the message.
+	//
+	// Subject is a required field
+	Subject *string `type:"string" required:"true"`
 
 	// Where the message is sent to. Can be a thing ARN, a Lambda function ARN,
 	// a connector ARN, 'cloud' (which represents the AWS IoT cloud), or 'GGShadowService'.
-	Target *string `type:"string"`
+	//
+	// Target is a required field
+	Target *string `type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -15437,6 +16758,28 @@ func (s Subscription) String() string {
 // GoString returns the string representation
 func (s Subscription) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Subscription) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Subscription"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Source == nil {
+		invalidParams.Add(request.NewErrParamRequired("Source"))
+	}
+	if s.Subject == nil {
+		invalidParams.Add(request.NewErrParamRequired("Subject"))
+	}
+	if s.Target == nil {
+		invalidParams.Add(request.NewErrParamRequired("Target"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetId sets the Id field's value.
@@ -15481,10 +16824,157 @@ func (s SubscriptionDefinitionVersion) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SubscriptionDefinitionVersion) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SubscriptionDefinitionVersion"}
+	if s.Subscriptions != nil {
+		for i, v := range s.Subscriptions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Subscriptions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // SetSubscriptions sets the Subscriptions field's value.
 func (s *SubscriptionDefinitionVersion) SetSubscriptions(v []*Subscription) *SubscriptionDefinitionVersion {
 	s.Subscriptions = v
 	return s
+}
+
+type TagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resource-arn" type:"string" required:"true"`
+
+	// The key-value pair for the resource tag.
+	Tags map[string]*string `locationName:"tags" type:"map"`
+}
+
+// String returns the string representation
+func (s TagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *TagResourceInput) SetResourceArn(v string) *TagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagResourceInput) SetTags(v map[string]*string) *TagResourceInput {
+	s.Tags = v
+	return s
+}
+
+type TagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceOutput) GoString() string {
+	return s.String()
+}
+
+type UntagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resource-arn" type:"string" required:"true"`
+
+	// TagKeys is a required field
+	TagKeys []*string `location:"querystring" locationName:"tagKeys" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *UntagResourceInput) SetResourceArn(v string) *UntagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceOutput) GoString() string {
+	return s.String()
 }
 
 // Information required to update a Greengrass core's connectivity.
@@ -16152,10 +17642,10 @@ type VersionInformation struct {
 	// The time, in milliseconds since the epoch, when the version was created.
 	CreationTimestamp *string `type:"string"`
 
-	// The ID of the version.
+	// The ID of the parent definition that the version is associated with.
 	Id *string `type:"string"`
 
-	// The unique ID of the version.
+	// The ID of the version.
 	Version *string `type:"string"`
 }
 
@@ -16214,7 +17704,8 @@ const (
 	BulkDeploymentStatusFailed = "Failed"
 )
 
-// The type of deployment.
+// The type of deployment. When used for ''CreateDeployment'', only ''NewDeployment''
+// and ''Redeployment'' are valid.
 const (
 	// DeploymentTypeNewDeployment is a DeploymentType enum value
 	DeploymentTypeNewDeployment = "NewDeployment"
@@ -16331,6 +17822,9 @@ const (
 
 // The architecture of the cores which are the targets of an update.
 const (
+	// UpdateTargetsArchitectureArmv6l is a UpdateTargetsArchitecture enum value
+	UpdateTargetsArchitectureArmv6l = "armv6l"
+
 	// UpdateTargetsArchitectureArmv7l is a UpdateTargetsArchitecture enum value
 	UpdateTargetsArchitectureArmv7l = "armv7l"
 
@@ -16351,4 +17845,7 @@ const (
 
 	// UpdateTargetsOperatingSystemAmazonLinux is a UpdateTargetsOperatingSystem enum value
 	UpdateTargetsOperatingSystemAmazonLinux = "amazon_linux"
+
+	// UpdateTargetsOperatingSystemOpenwrt is a UpdateTargetsOperatingSystem enum value
+	UpdateTargetsOperatingSystemOpenwrt = "openwrt"
 )

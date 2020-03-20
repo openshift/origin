@@ -16,9 +16,9 @@ import (
 	volumesservice "github.com/docker/docker/volume/service"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/libnetwork"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
 	"github.com/pkg/errors"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 )
 
 //
@@ -118,7 +118,7 @@ func initDaemonWithVolumeStore(tmp string) (*Daemon, error) {
 		repository: tmp,
 		root:       tmp,
 	}
-	daemon.volumes, err = volumesservice.NewVolumeService(tmp, nil, idtools.IDPair{UID: 0, GID: 0}, daemon)
+	daemon.volumes, err = volumesservice.NewVolumeService(tmp, nil, idtools.Identity{UID: 0, GID: 0}, daemon)
 	if err != nil {
 		return nil, err
 	}

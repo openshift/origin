@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 	"k8s.io/kubernetes/test/images/agnhost/net/nat"
 	imageutils "k8s.io/kubernetes/test/utils/image"
@@ -54,7 +56,7 @@ var _ = SIGDescribe("Network", func() {
 		nodes, err := e2enode.GetBoundedReadySchedulableNodes(fr.ClientSet, 2)
 		framework.ExpectNoError(err)
 		if len(nodes.Items) < 2 {
-			framework.Skipf(
+			e2eskipper.Skipf(
 				"Test requires >= 2 Ready nodes, but there are only %v nodes",
 				len(nodes.Items))
 		}
@@ -87,7 +89,7 @@ var _ = SIGDescribe("Network", func() {
 			framework.TestContext.Provider,
 			clientNodeInfo.node)
 		if err != nil && strings.Contains(err.Error(), "No such file or directory") {
-			framework.Skipf("The node %s does not support /proc/net/nf_conntrack", clientNodeInfo.name)
+			e2eskipper.Skipf("The node %s does not support /proc/net/nf_conntrack", clientNodeInfo.name)
 		}
 		framework.ExpectNoError(err)
 
@@ -172,6 +174,8 @@ var _ = SIGDescribe("Network", func() {
 		}
 
 		jsonBytes, err := json.Marshal(options)
+		framework.ExpectNoError(err, "could not marshal")
+
 		cmd := fmt.Sprintf(
 			`curl -X POST http://localhost:%v/run/nat-closewait-client -d `+
 				`'%v' 2>/dev/null`,
@@ -264,7 +268,7 @@ var _ = SIGDescribe("Network", func() {
 				},
 			},
 		}
-		_, err := fr.ClientSet.CoreV1().Pods(fr.Namespace.Name).Create(serverPod)
+		_, err := fr.ClientSet.CoreV1().Pods(fr.Namespace.Name).Create(context.TODO(), serverPod, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 
 		err = e2epod.WaitForPodsRunningReady(fr.ClientSet, fr.Namespace.Name, 1, 0, framework.PodReadyBeforeTimeout, map[string]string{})
@@ -286,7 +290,7 @@ var _ = SIGDescribe("Network", func() {
 				},
 			},
 		}
-		_, err = fr.ClientSet.CoreV1().Services(fr.Namespace.Name).Create(svc)
+		_, err = fr.ClientSet.CoreV1().Services(fr.Namespace.Name).Create(context.TODO(), svc, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Server service created")
@@ -321,14 +325,14 @@ var _ = SIGDescribe("Network", func() {
 				RestartPolicy: v1.RestartPolicyNever,
 			},
 		}
-		_, err = fr.ClientSet.CoreV1().Pods(fr.Namespace.Name).Create(pod)
+		_, err = fr.ClientSet.CoreV1().Pods(fr.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Client pod created")
 
 		for i := 0; i < 20; i++ {
 			time.Sleep(3 * time.Second)
-			resultPod, err := fr.ClientSet.CoreV1().Pods(fr.Namespace.Name).Get(serverPod.Name, metav1.GetOptions{})
+			resultPod, err := fr.ClientSet.CoreV1().Pods(fr.Namespace.Name).Get(context.TODO(), serverPod.Name, metav1.GetOptions{})
 			framework.ExpectNoError(err)
 			gomega.Expect(resultPod.Status.ContainerStatuses[0].LastTerminationState.Terminated).Should(gomega.BeNil())
 		}

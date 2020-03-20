@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/endpoints/handlers/fieldmanager"
-	"sigs.k8s.io/structured-merge-diff/fieldpath"
+	"sigs.k8s.io/structured-merge-diff/v3/fieldpath"
 )
 
 type fakeManager struct{}
@@ -41,7 +41,7 @@ func (*fakeManager) Update(_, newObj runtime.Object, managed fieldmanager.Manage
 	return newObj, managed, nil
 }
 
-func (*fakeManager) Apply(_ runtime.Object, _ []byte, _ fieldmanager.Managed, _ string, force bool) (runtime.Object, fieldmanager.Managed, error) {
+func (*fakeManager) Apply(_, _ runtime.Object, _ fieldmanager.Managed, _ string, force bool) (runtime.Object, fieldmanager.Managed, error) {
 	panic("not implemented")
 	return nil, nil, nil
 }

@@ -9,5 +9,5 @@ package constant
 import "gonum.org/v1/gonum/unit"
 
 // ElementaryCharge, is the elementary charge constant (e), the magnitude of electric charge carried by a single proton or electron.
-// The dimensions of ElementaryCharge are A s. The standard uncertainty of the constant is 9.8e-28 A s.
-const ElementaryCharge = unit.Charge(1.6021766208e-19)
+// The dimensions of ElementaryCharge are A s. The constant is exact.
+const ElementaryCharge = unit.Charge(1.602176634e-19)

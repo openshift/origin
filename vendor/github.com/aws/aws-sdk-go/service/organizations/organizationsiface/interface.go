@@ -76,6 +76,10 @@ type OrganizationsAPI interface {
 	CreateAccountWithContext(aws.Context, *organizations.CreateAccountInput, ...request.Option) (*organizations.CreateAccountOutput, error)
 	CreateAccountRequest(*organizations.CreateAccountInput) (*request.Request, *organizations.CreateAccountOutput)
 
+	CreateGovCloudAccount(*organizations.CreateGovCloudAccountInput) (*organizations.CreateGovCloudAccountOutput, error)
+	CreateGovCloudAccountWithContext(aws.Context, *organizations.CreateGovCloudAccountInput, ...request.Option) (*organizations.CreateGovCloudAccountOutput, error)
+	CreateGovCloudAccountRequest(*organizations.CreateGovCloudAccountInput) (*request.Request, *organizations.CreateGovCloudAccountOutput)
+
 	CreateOrganization(*organizations.CreateOrganizationInput) (*organizations.CreateOrganizationOutput, error)
 	CreateOrganizationWithContext(aws.Context, *organizations.CreateOrganizationInput, ...request.Option) (*organizations.CreateOrganizationOutput, error)
 	CreateOrganizationRequest(*organizations.CreateOrganizationInput) (*request.Request, *organizations.CreateOrganizationOutput)
@@ -111,6 +115,10 @@ type OrganizationsAPI interface {
 	DescribeCreateAccountStatus(*organizations.DescribeCreateAccountStatusInput) (*organizations.DescribeCreateAccountStatusOutput, error)
 	DescribeCreateAccountStatusWithContext(aws.Context, *organizations.DescribeCreateAccountStatusInput, ...request.Option) (*organizations.DescribeCreateAccountStatusOutput, error)
 	DescribeCreateAccountStatusRequest(*organizations.DescribeCreateAccountStatusInput) (*request.Request, *organizations.DescribeCreateAccountStatusOutput)
+
+	DescribeEffectivePolicy(*organizations.DescribeEffectivePolicyInput) (*organizations.DescribeEffectivePolicyOutput, error)
+	DescribeEffectivePolicyWithContext(aws.Context, *organizations.DescribeEffectivePolicyInput, ...request.Option) (*organizations.DescribeEffectivePolicyOutput, error)
+	DescribeEffectivePolicyRequest(*organizations.DescribeEffectivePolicyInput) (*request.Request, *organizations.DescribeEffectivePolicyOutput)
 
 	DescribeHandshake(*organizations.DescribeHandshakeInput) (*organizations.DescribeHandshakeOutput, error)
 	DescribeHandshakeWithContext(aws.Context, *organizations.DescribeHandshakeInput, ...request.Option) (*organizations.DescribeHandshakeOutput, error)
@@ -244,6 +252,13 @@ type OrganizationsAPI interface {
 	ListRootsPages(*organizations.ListRootsInput, func(*organizations.ListRootsOutput, bool) bool) error
 	ListRootsPagesWithContext(aws.Context, *organizations.ListRootsInput, func(*organizations.ListRootsOutput, bool) bool, ...request.Option) error
 
+	ListTagsForResource(*organizations.ListTagsForResourceInput) (*organizations.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *organizations.ListTagsForResourceInput, ...request.Option) (*organizations.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*organizations.ListTagsForResourceInput) (*request.Request, *organizations.ListTagsForResourceOutput)
+
+	ListTagsForResourcePages(*organizations.ListTagsForResourceInput, func(*organizations.ListTagsForResourceOutput, bool) bool) error
+	ListTagsForResourcePagesWithContext(aws.Context, *organizations.ListTagsForResourceInput, func(*organizations.ListTagsForResourceOutput, bool) bool, ...request.Option) error
+
 	ListTargetsForPolicy(*organizations.ListTargetsForPolicyInput) (*organizations.ListTargetsForPolicyOutput, error)
 	ListTargetsForPolicyWithContext(aws.Context, *organizations.ListTargetsForPolicyInput, ...request.Option) (*organizations.ListTargetsForPolicyOutput, error)
 	ListTargetsForPolicyRequest(*organizations.ListTargetsForPolicyInput) (*request.Request, *organizations.ListTargetsForPolicyOutput)
@@ -258,6 +273,14 @@ type OrganizationsAPI interface {
 	RemoveAccountFromOrganization(*organizations.RemoveAccountFromOrganizationInput) (*organizations.RemoveAccountFromOrganizationOutput, error)
 	RemoveAccountFromOrganizationWithContext(aws.Context, *organizations.RemoveAccountFromOrganizationInput, ...request.Option) (*organizations.RemoveAccountFromOrganizationOutput, error)
 	RemoveAccountFromOrganizationRequest(*organizations.RemoveAccountFromOrganizationInput) (*request.Request, *organizations.RemoveAccountFromOrganizationOutput)
+
+	TagResource(*organizations.TagResourceInput) (*organizations.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *organizations.TagResourceInput, ...request.Option) (*organizations.TagResourceOutput, error)
+	TagResourceRequest(*organizations.TagResourceInput) (*request.Request, *organizations.TagResourceOutput)
+
+	UntagResource(*organizations.UntagResourceInput) (*organizations.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *organizations.UntagResourceInput, ...request.Option) (*organizations.UntagResourceOutput, error)
+	UntagResourceRequest(*organizations.UntagResourceInput) (*request.Request, *organizations.UntagResourceOutput)
 
 	UpdateOrganizationalUnit(*organizations.UpdateOrganizationalUnitInput) (*organizations.UpdateOrganizationalUnitOutput, error)
 	UpdateOrganizationalUnitWithContext(aws.Context, *organizations.UpdateOrganizationalUnitInput, ...request.Option) (*organizations.UpdateOrganizationalUnitOutput, error)

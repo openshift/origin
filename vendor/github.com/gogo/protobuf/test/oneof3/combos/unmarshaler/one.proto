@@ -54,6 +54,8 @@ option (gogoproto.enum_stringer_all) = true;
 option (gogoproto.unsafe_marshaler_all) = false;
 option (gogoproto.unsafe_unmarshaler_all) = false;
 
+option (gogoproto.compare_all) = true;
+
 message Subby {
 	string sub = 1;
 }

@@ -27,7 +27,9 @@ func TestInteg_00_DescribeStacks(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := appstream.New(sess)
 	params := &appstream.DescribeStacksInput{}
-	_, err := svc.DescribeStacksWithContext(ctx, params)
+	_, err := svc.DescribeStacksWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

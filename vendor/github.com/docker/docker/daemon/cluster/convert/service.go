@@ -208,7 +208,7 @@ func ServiceSpecToGRPC(s types.ServiceSpec) (swarmapi.ServiceSpec, error) {
 		}
 	case types.RuntimeNetworkAttachment:
 		// NOTE(dperny) I'm leaving this case here for completeness. The actual
-		// code is left out out deliberately, as we should refuse to parse a
+		// code is left out deliberately, as we should refuse to parse a
 		// Network Attachment runtime; it will cause weird behavior all over
 		// the system if we do. Instead, fallthrough and return
 		// ErrUnsupportedRuntime if we get one.
@@ -246,6 +246,7 @@ func ServiceSpecToGRPC(s types.ServiceSpec) (swarmapi.ServiceSpec, error) {
 		spec.Task.Placement = &swarmapi.Placement{
 			Constraints: s.TaskTemplate.Placement.Constraints,
 			Preferences: preferences,
+			MaxReplicas: s.TaskTemplate.Placement.MaxReplicas,
 			Platforms:   platforms,
 		}
 	}
@@ -472,6 +473,7 @@ func placementFromGRPC(p *swarmapi.Placement) *types.Placement {
 	}
 	r := &types.Placement{
 		Constraints: p.Constraints,
+		MaxReplicas: p.MaxReplicas,
 	}
 
 	for _, pref := range p.Preferences {

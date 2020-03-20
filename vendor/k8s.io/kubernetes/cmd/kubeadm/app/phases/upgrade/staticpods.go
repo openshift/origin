@@ -24,16 +24,18 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	certsphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs"
 	"k8s.io/kubernetes/cmd/kubeadm/app/phases/certs/renewal"
 	"k8s.io/kubernetes/cmd/kubeadm/app/phases/controlplane"
 	etcdphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/etcd"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util"
+	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
 	dryrunutil "k8s.io/kubernetes/cmd/kubeadm/app/util/dryrun"
 	etcdutil "k8s.io/kubernetes/cmd/kubeadm/app/util/etcd"
@@ -276,14 +278,17 @@ func performEtcdStaticPodUpgrade(certsRenewMgr *renewal.Manager, client clientse
 	// Backing up etcd data store
 	backupEtcdDir := pathMgr.BackupEtcdDir()
 	runningEtcdDir := cfg.Etcd.Local.DataDir
-	if err := util.CopyDir(runningEtcdDir, backupEtcdDir); err != nil {
+	if err := kubeadmutil.CopyDir(runningEtcdDir, backupEtcdDir); err != nil {
 		return true, errors.Wrap(err, "failed to back up etcd data")
 	}
 
 	// Need to check currently used version and version from constants, if differs then upgrade
-	desiredEtcdVersion, err := constants.EtcdSupportedVersion(cfg.KubernetesVersion)
+	desiredEtcdVersion, warning, err := constants.EtcdSupportedVersion(constants.SupportedEtcdVersion, cfg.KubernetesVersion)
 	if err != nil {
 		return true, errors.Wrap(err, "failed to retrieve an etcd version for the target Kubernetes version")
+	}
+	if warning != nil {
+		klog.Warningf("[upgrade/etcd] %v", warning)
 	}
 
 	// gets the etcd version of the local/stacked etcd member running on the current machine
@@ -522,7 +527,7 @@ func rollbackEtcdData(cfg *kubeadmapi.InitConfiguration, pathMgr StaticPodPathMa
 	backupEtcdDir := pathMgr.BackupEtcdDir()
 	runningEtcdDir := cfg.Etcd.Local.DataDir
 
-	if err := util.CopyDir(backupEtcdDir, runningEtcdDir); err != nil {
+	if err := kubeadmutil.CopyDir(backupEtcdDir, runningEtcdDir); err != nil {
 		// Let the user know there we're problems, but we tried to reçover
 		return errors.Wrapf(err, "couldn't recover etcd database with error, the location of etcd backup: %s ", backupEtcdDir)
 	}
@@ -591,8 +596,8 @@ func renewCertsByComponent(cfg *kubeadmapi.InitConfiguration, component string, 
 
 // GetPathManagerForUpgrade returns a path manager properly configured for the given InitConfiguration.
 func GetPathManagerForUpgrade(kubernetesDir, kustomizeDir string, internalcfg *kubeadmapi.InitConfiguration, etcdUpgrade bool) (StaticPodPathManager, error) {
-	isHAEtcd := etcdutil.CheckConfigurationIsHA(&internalcfg.Etcd)
-	return NewKubeStaticPodPathManagerUsingTempDirs(kubernetesDir, kustomizeDir, true, etcdUpgrade && !isHAEtcd)
+	isExternalEtcd := internalcfg.Etcd.External != nil
+	return NewKubeStaticPodPathManagerUsingTempDirs(kubernetesDir, kustomizeDir, true, etcdUpgrade && !isExternalEtcd)
 }
 
 // PerformStaticPodUpgrade performs the upgrade of the control plane components for a static pod hosted cluster

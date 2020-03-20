@@ -17,17 +17,17 @@ limitations under the License.
 package storage
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -63,7 +63,6 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 		registerDriver      bool
 		podInfo             *bool
 		scName              string
-		nodeSelectorKey     string
 		enableResizing      bool // enable resizing for both CSI mock driver and storageClass.
 		enableNodeExpansion bool // enable node expansion for CSI mock driver
 		// just disable resizing on driver it overrides enableResizing flag for CSI mock driver
@@ -78,7 +77,6 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 		pvcs         []*v1.PersistentVolumeClaim
 		sc           map[string]*storagev1.StorageClass
 		driver       testsuites.TestDriver
-		nodeLabel    map[string]string
 		provisioner  string
 		tp           testParameters
 	}
@@ -115,13 +113,6 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 		m.config = config
 		m.provisioner = config.GetUniqueDriverName()
 
-		if tp.nodeSelectorKey != "" {
-			framework.AddOrUpdateLabelOnNode(m.cs, m.config.ClientNodeName, tp.nodeSelectorKey, f.Namespace.Name)
-			m.nodeLabel = map[string]string{
-				tp.nodeSelectorKey: f.Namespace.Name,
-			}
-		}
-
 		if tp.registerDriver {
 			err = waitForCSIDriver(cs, m.config.GetUniqueDriverName())
 			framework.ExpectNoError(err, "Failed to get CSIDriver : %v", err)
@@ -137,7 +128,6 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 		if dDriver, ok := m.driver.(testsuites.DynamicPVTestDriver); ok {
 			sc = dDriver.GetDynamicProvisionStorageClass(m.config, "")
 		}
-		nodeName := m.config.ClientNodeName
 		scTest := testsuites.StorageClassTest{
 			Name:         m.driver.GetDriverInfo().Name,
 			Provisioner:  sc.Provisioner,
@@ -153,15 +143,8 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 			scTest.AllowVolumeExpansion = true
 		}
 
-		nodeSelection := e2epod.NodeSelection{
-			// The mock driver only works when everything runs on a single node.
-			Name: nodeName,
-		}
-		if len(m.nodeLabel) > 0 {
-			nodeSelection = e2epod.NodeSelection{
-				Selector: m.nodeLabel,
-			}
-		}
+		// The mock driver only works when everything runs on a single node.
+		nodeSelection := m.config.ClientNodeSelection
 		if ephemeral {
 			pod = startPausePodInline(f.ClientSet, scTest, nodeSelection, f.Namespace.Name)
 			if pod != nil {
@@ -183,15 +166,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 	}
 
 	createPodWithPVC := func(pvc *v1.PersistentVolumeClaim) (*v1.Pod, error) {
-		nodeName := m.config.ClientNodeName
-		nodeSelection := e2epod.NodeSelection{
-			Name: nodeName,
-		}
-		if len(m.nodeLabel) > 0 {
-			nodeSelection = e2epod.NodeSelection{
-				Selector: m.nodeLabel,
-			}
-		}
+		nodeSelection := m.config.ClientNodeSelection
 		pod, err := startPausePodWithClaim(m.cs, pvc, nodeSelection, f.Namespace.Name)
 		if pod != nil {
 			m.pods = append(m.pods, pod)
@@ -210,9 +185,9 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 
 		for _, claim := range m.pvcs {
 			ginkgo.By(fmt.Sprintf("Deleting claim %s", claim.Name))
-			claim, err := cs.CoreV1().PersistentVolumeClaims(claim.Namespace).Get(claim.Name, metav1.GetOptions{})
+			claim, err := cs.CoreV1().PersistentVolumeClaims(claim.Namespace).Get(context.TODO(), claim.Name, metav1.GetOptions{})
 			if err == nil {
-				cs.CoreV1().PersistentVolumeClaims(claim.Namespace).Delete(claim.Name, nil)
+				cs.CoreV1().PersistentVolumeClaims(claim.Namespace).Delete(context.TODO(), claim.Name, metav1.DeleteOptions{})
 				framework.WaitForPersistentVolumeDeleted(cs, claim.Spec.VolumeName, framework.Poll, 2*time.Minute)
 			}
 
@@ -220,16 +195,12 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 
 		for _, sc := range m.sc {
 			ginkgo.By(fmt.Sprintf("Deleting storageclass %s", sc.Name))
-			cs.StorageV1().StorageClasses().Delete(sc.Name, nil)
+			cs.StorageV1().StorageClasses().Delete(context.TODO(), sc.Name, metav1.DeleteOptions{})
 		}
 
 		ginkgo.By("Cleaning up resources")
 		for _, cleanupFunc := range m.testCleanups {
 			cleanupFunc()
-		}
-
-		if len(m.nodeLabel) > 0 && len(m.tp.nodeSelectorKey) > 0 {
-			framework.RemoveLabelOffNode(m.cs, m.config.ClientNodeName, m.tp.nodeSelectorKey)
 		}
 
 		err := utilerrors.NewAggregate(errs)
@@ -273,11 +244,11 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 
 				ginkgo.By("Checking if VolumeAttachment was created for the pod")
 				handle := getVolumeHandle(m.cs, claim)
-				attachmentHash := sha256.Sum256([]byte(fmt.Sprintf("%s%s%s", handle, m.provisioner, m.config.ClientNodeName)))
+				attachmentHash := sha256.Sum256([]byte(fmt.Sprintf("%s%s%s", handle, m.provisioner, m.config.ClientNodeSelection.Name)))
 				attachmentName := fmt.Sprintf("csi-%x", attachmentHash)
-				_, err = m.cs.StorageV1().VolumeAttachments().Get(attachmentName, metav1.GetOptions{})
+				_, err = m.cs.StorageV1().VolumeAttachments().Get(context.TODO(), attachmentName, metav1.GetOptions{})
 				if err != nil {
-					if errors.IsNotFound(err) {
+					if apierrors.IsNotFound(err) {
 						if !test.disableAttach {
 							framework.ExpectNoError(err, "Expected VolumeAttachment but none was found")
 						}
@@ -384,12 +355,10 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 	ginkgo.Context("CSI volume limit information using mock driver", func() {
 		ginkgo.It("should report attach limit when limit is bigger than 0 [Slow]", func() {
 			// define volume limit to be 2 for this test
-
 			var err error
-			nodeSelectorKey := fmt.Sprintf("attach-limit-csi-%s", f.Namespace.Name)
-			init(testParameters{nodeSelectorKey: nodeSelectorKey, attachLimit: 2})
+			init(testParameters{attachLimit: 2})
 			defer cleanup()
-			nodeName := m.config.ClientNodeName
+			nodeName := m.config.ClientNodeSelection.Name
 			driverName := m.config.GetUniqueDriverName()
 
 			csiNodeAttachLimit, err := checkCSINodeForLimits(nodeName, driverName, m.cs)
@@ -461,11 +430,10 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 				init(tp)
 				defer cleanup()
 
-				ns := f.Namespace.Name
 				sc, pvc, pod := createPod(false)
 				gomega.Expect(pod).NotTo(gomega.BeNil(), "while creating pod for resizing")
 
-				gomega.Expect(*sc.AllowVolumeExpansion).To(gomega.BeTrue(), "failed creating sc with allowed expansion")
+				framework.ExpectEqual(*sc.AllowVolumeExpansion, true, "failed creating sc with allowed expansion")
 
 				err = e2epod.WaitForPodNameRunningInNamespace(m.cs, pod.Name, pod.Namespace)
 				framework.ExpectNoError(err, "Failed to start pod1: %v", err)
@@ -505,8 +473,9 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 					checkPVCSize()
 				} else {
 					ginkgo.By("Checking for conditions on pvc")
-					pvc, err = m.cs.CoreV1().PersistentVolumeClaims(ns).Get(pvc.Name, metav1.GetOptions{})
-					framework.ExpectNoError(err, "While fetching pvc after controller resize")
+					npvc, err := testsuites.WaitForPendingFSResizeCondition(pvc, m.cs)
+					framework.ExpectNoError(err, "While waiting for pvc to have fs resizing condition")
+					pvc = npvc
 
 					inProgressConditions := pvc.Status.Conditions
 					if len(inProgressConditions) > 0 {
@@ -557,7 +526,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 				sc, pvc, pod := createPod(false)
 				gomega.Expect(pod).NotTo(gomega.BeNil(), "while creating pod for resizing")
 
-				gomega.Expect(*sc.AllowVolumeExpansion).To(gomega.BeTrue(), "failed creating sc with allowed expansion")
+				framework.ExpectEqual(*sc.AllowVolumeExpansion, true, "failed creating sc with allowed expansion")
 
 				err = e2epod.WaitForPodNameRunningInNamespace(m.cs, pod.Name, pod.Namespace)
 				framework.ExpectNoError(err, "Failed to start pod1: %v", err)
@@ -592,31 +561,32 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 })
 
 func waitForMaxVolumeCondition(pod *v1.Pod, cs clientset.Interface) error {
-	var err error
 	waitErr := wait.PollImmediate(10*time.Second, csiPodUnschedulableTimeout, func() (bool, error) {
-		pod, err = cs.CoreV1().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{})
+		pod, err := cs.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
-		conditions := pod.Status.Conditions
-		for _, condition := range conditions {
-			matched, _ := regexp.MatchString("max.+volume.+count", condition.Message)
-			if condition.Reason == v1.PodReasonUnschedulable && matched {
+		for _, c := range pod.Status.Conditions {
+			// Conformance tests cannot rely on specific output of optional fields (e.g., Reason
+			// and Message) because these fields are not suject to the deprecation policy.
+			if c.Type == v1.PodScheduled && c.Status == v1.ConditionFalse && c.Reason != "" && c.Message != "" {
 				return true, nil
 			}
-
 		}
 		return false, nil
 	})
-	return waitErr
+	if waitErr != nil {
+		return fmt.Errorf("error waiting for pod %s/%s to have max volume condition: %v", pod.Namespace, pod.Name, waitErr)
+	}
+	return nil
 }
 
 func checkCSINodeForLimits(nodeName string, driverName string, cs clientset.Interface) (int32, error) {
 	var attachLimit int32
 
 	waitErr := wait.PollImmediate(10*time.Second, csiNodeLimitUpdateTimeout, func() (bool, error) {
-		csiNode, err := cs.StorageV1().CSINodes().Get(nodeName, metav1.GetOptions{})
-		if err != nil && !errors.IsNotFound(err) {
+		csiNode, err := cs.StorageV1().CSINodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
 			return false, err
 		}
 		attachLimit = getVolumeLimitFromCSINode(csiNode, driverName)
@@ -625,15 +595,18 @@ func checkCSINodeForLimits(nodeName string, driverName string, cs clientset.Inte
 		}
 		return false, nil
 	})
-	return attachLimit, waitErr
+	if waitErr != nil {
+		return 0, fmt.Errorf("error waiting for non-zero volume limit of driver %s on node %s: %v", driverName, nodeName, waitErr)
+	}
+	return attachLimit, nil
 }
 
 func startPausePod(cs clientset.Interface, t testsuites.StorageClassTest, node e2epod.NodeSelection, ns string) (*storagev1.StorageClass, *v1.PersistentVolumeClaim, *v1.Pod) {
 	class := newStorageClass(t, ns, "")
 	var err error
-	_, err = cs.StorageV1().StorageClasses().Get(class.Name, metav1.GetOptions{})
+	_, err = cs.StorageV1().StorageClasses().Get(context.TODO(), class.Name, metav1.GetOptions{})
 	if err != nil {
-		class, err = cs.StorageV1().StorageClasses().Create(class)
+		class, err = cs.StorageV1().StorageClasses().Create(context.TODO(), class, metav1.CreateOptions{})
 		framework.ExpectNoError(err, "Failed to create class : %v", err)
 	}
 
@@ -642,7 +615,7 @@ func startPausePod(cs clientset.Interface, t testsuites.StorageClassTest, node e
 		StorageClassName: &(class.Name),
 		VolumeMode:       &t.VolumeMode,
 	}, ns)
-	claim, err = cs.CoreV1().PersistentVolumeClaims(ns).Create(claim)
+	claim, err = cs.CoreV1().PersistentVolumeClaims(ns).Create(context.TODO(), claim, metav1.CreateOptions{})
 	framework.ExpectNoError(err, "Failed to create claim: %v", err)
 
 	pvcClaims := []*v1.PersistentVolumeClaim{claim}
@@ -710,15 +683,8 @@ func startPausePodWithVolumeSource(cs clientset.Interface, volumeSource v1.Volum
 			},
 		},
 	}
-
-	if node.Name != "" {
-		pod.Spec.NodeName = node.Name
-	}
-	if len(node.Selector) != 0 {
-		pod.Spec.NodeSelector = node.Selector
-	}
-
-	return cs.CoreV1().Pods(ns).Create(pod)
+	e2epod.SetNodeSelection(&pod.Spec, node)
+	return cs.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
 }
 
 // checkPodLogs tests that NodePublish was called with expected volume_context and (for ephemeral inline volumes)
@@ -782,6 +748,13 @@ func checkPodLogs(cs clientset.Interface, namespace, driverPodName, driverContai
 			numNodeUnpublishVolume++
 		}
 	}
+	if numNodePublishVolume == 0 {
+		return fmt.Errorf("NodePublish was never called")
+	}
+
+	if numNodeUnpublishVolume == 0 {
+		return fmt.Errorf("NodeUnpublish was never called")
+	}
 	if expectPodInfo {
 		if foundAttributes.Len() != len(expectedAttributes) {
 			return fmt.Errorf("number of found volume attributes does not match, expected %d, got %d", len(expectedAttributes), foundAttributes.Len())
@@ -791,9 +764,7 @@ func checkPodLogs(cs clientset.Interface, namespace, driverPodName, driverContai
 	if foundAttributes.Len() != 0 {
 		return fmt.Errorf("some unexpected volume attributes were found: %+v", foundAttributes.List())
 	}
-	if numNodePublishVolume != numNodeUnpublishVolume {
-		return fmt.Errorf("number of NodePublishVolume %d != number of NodeUnpublishVolume %d", numNodePublishVolume, numNodeUnpublishVolume)
-	}
+
 	return nil
 }
 
@@ -802,8 +773,8 @@ func waitForCSIDriver(cs clientset.Interface, driverName string) error {
 
 	framework.Logf("waiting up to %v for CSIDriver %q", timeout, driverName)
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(framework.Poll) {
-		_, err := cs.StorageV1beta1().CSIDrivers().Get(driverName, metav1.GetOptions{})
-		if !errors.IsNotFound(err) {
+		_, err := cs.StorageV1().CSIDrivers().Get(context.TODO(), driverName, metav1.GetOptions{})
+		if !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -811,24 +782,24 @@ func waitForCSIDriver(cs clientset.Interface, driverName string) error {
 }
 
 func destroyCSIDriver(cs clientset.Interface, driverName string) {
-	driverGet, err := cs.StorageV1beta1().CSIDrivers().Get(driverName, metav1.GetOptions{})
+	driverGet, err := cs.StorageV1().CSIDrivers().Get(context.TODO(), driverName, metav1.GetOptions{})
 	if err == nil {
 		framework.Logf("deleting %s.%s: %s", driverGet.TypeMeta.APIVersion, driverGet.TypeMeta.Kind, driverGet.ObjectMeta.Name)
 		// Uncomment the following line to get full dump of CSIDriver object
 		// framework.Logf("%s", framework.PrettyPrint(driverGet))
-		cs.StorageV1beta1().CSIDrivers().Delete(driverName, nil)
+		cs.StorageV1().CSIDrivers().Delete(context.TODO(), driverName, metav1.DeleteOptions{})
 	}
 }
 
 func getVolumeHandle(cs clientset.Interface, claim *v1.PersistentVolumeClaim) string {
 	// re-get the claim to the latest state with bound volume
-	claim, err := cs.CoreV1().PersistentVolumeClaims(claim.Namespace).Get(claim.Name, metav1.GetOptions{})
+	claim, err := cs.CoreV1().PersistentVolumeClaims(claim.Namespace).Get(context.TODO(), claim.Name, metav1.GetOptions{})
 	if err != nil {
 		framework.ExpectNoError(err, "Cannot get PVC")
 		return ""
 	}
 	pvName := claim.Spec.VolumeName
-	pv, err := cs.CoreV1().PersistentVolumes().Get(pvName, metav1.GetOptions{})
+	pv, err := cs.CoreV1().PersistentVolumes().Get(context.TODO(), pvName, metav1.GetOptions{})
 	if err != nil {
 		framework.ExpectNoError(err, "Cannot get PV")
 		return ""

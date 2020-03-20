@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
@@ -45,13 +46,13 @@ func NewFilteredRoleBindingInformer(client versioned.Interface, namespace string
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AuthorizationV1().RoleBindings(namespace).List(options)
+				return client.AuthorizationV1().RoleBindings(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.AuthorizationV1().RoleBindings(namespace).Watch(options)
+				return client.AuthorizationV1().RoleBindings(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&authorizationv1.RoleBinding{},

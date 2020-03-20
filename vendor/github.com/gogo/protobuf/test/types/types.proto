@@ -34,7 +34,7 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 //import "google/protobuf/any.proto";
 import "google/protobuf/duration.proto";
-//import "google/protobuf/struct.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
@@ -64,7 +64,7 @@ message KnownTypes {
   google.protobuf.BytesValue bytes = 11;
 
   // TODO uncomment this once https://github.com/gogo/protobuf/issues/197 is fixed
-  // google.protobuf.Struct st = 12;
+  google.protobuf.Struct st = 12;
   // google.protobuf.Any an = 14;
 }
 
@@ -134,7 +134,7 @@ message RepProtoTypes {
 
   repeated google.protobuf.FloatValue nullableFloat = 7;
   repeated google.protobuf.FloatValue nonnullFloat = 8 [(gogoproto.nullable) = false];
-  
+
   repeated google.protobuf.Int64Value nullableInt64 = 9;
   repeated google.protobuf.Int64Value nonnullInt64 = 10 [(gogoproto.nullable) = false];
 

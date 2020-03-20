@@ -51,7 +51,7 @@ func dlauuTest(t *testing.T, dlauu func(blas.Uplo, int, []float64, int), uplo bl
 			aCopy := make([]float64, len(a))
 			copy(aCopy, a)
 
-			// Compute U*U^T or L^T*L using Dlauu?.
+			// Compute U*Uᵀ or Lᵀ*L using Dlauu?.
 			dlauu(uplo, n, a, lda)
 
 			if n == 0 {
@@ -85,7 +85,7 @@ func dlauuTest(t *testing.T, dlauu func(blas.Uplo, int, []float64, int), uplo bl
 				}
 			}
 
-			// Compute U*U^T or L^T*L using Dgemm with U and L
+			// Compute U*Uᵀ or Lᵀ*L using Dgemm with U and L
 			// represented as dense triangular matrices.
 			ldwant := n
 			want := make([]float64, n*ldwant)
@@ -93,14 +93,14 @@ func dlauuTest(t *testing.T, dlauu func(blas.Uplo, int, []float64, int), uplo bl
 				// Use aCopy as a dense representation of the upper triangular U.
 				u := aCopy
 				ldu := lda
-				// Compute U * U^T and store the result into want.
+				// Compute U * Uᵀ and store the result into want.
 				bi.Dgemm(blas.NoTrans, blas.Trans, n, n, n,
 					1, u, ldu, u, ldu, 0, want, ldwant)
 			} else {
 				// Use aCopy as a dense representation of the lower triangular L.
 				l := aCopy
 				ldl := lda
-				// Compute L^T * L and store the result into want.
+				// Compute Lᵀ * L and store the result into want.
 				bi.Dgemm(blas.Trans, blas.NoTrans, n, n, n,
 					1, l, ldl, l, ldl, 0, want, ldwant)
 			}

@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	networkv1 "github.com/openshift/api/network/v1"
@@ -45,13 +46,13 @@ func NewFilteredEgressNetworkPolicyInformer(client versioned.Interface, namespac
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.NetworkV1().EgressNetworkPolicies(namespace).List(options)
+				return client.NetworkV1().EgressNetworkPolicies(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.NetworkV1().EgressNetworkPolicies(namespace).Watch(options)
+				return client.NetworkV1().EgressNetworkPolicies(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&networkv1.EgressNetworkPolicy{},

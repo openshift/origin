@@ -689,7 +689,7 @@
     "AgentIdList":{
       "type":"list",
       "member":{"shape":"AgentId"},
-      "max":500,
+      "max":99,
       "min":0
     },
     "AgentPreview":{

@@ -20,6 +20,11 @@
       "output_token": "NextToken",
       "limit_key": "PageSize"
     },
+    "ListDomainDeliverabilityCampaigns": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "PageSize"
+    },
     "ListEmailIdentities": {
       "input_token": "NextToken",
       "output_token": "NextToken",

@@ -17,6 +17,7 @@ limitations under the License.
 package upgrades
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,7 +27,6 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -62,11 +62,11 @@ func (MySQLUpgradeTest) Skip(upgCtx UpgradeContext) bool {
 
 func mysqlKubectlCreate(ns, file string) {
 	input := string(testfiles.ReadOrDie(filepath.Join(mysqlManifestPath, file)))
-	framework.RunKubectlOrDieInput(input, "create", "-f", "-", fmt.Sprintf("--namespace=%s", ns))
+	framework.RunKubectlOrDieInput(ns, input, "create", "-f", "-", fmt.Sprintf("--namespace=%s", ns))
 }
 
 func (t *MySQLUpgradeTest) getServiceIP(f *framework.Framework, ns, svcName string) string {
-	svc, err := f.ClientSet.CoreV1().Services(ns).Get(svcName, metav1.GetOptions{})
+	svc, err := f.ClientSet.CoreV1().Services(ns).Get(context.TODO(), svcName, metav1.GetOptions{})
 	framework.ExpectNoError(err)
 	ingress := svc.Status.LoadBalancer.Ingress
 	if len(ingress) == 0 {
@@ -168,7 +168,7 @@ func (t *MySQLUpgradeTest) Test(f *framework.Framework, done <-chan struct{}, up
 func (t *MySQLUpgradeTest) Teardown(f *framework.Framework) {
 	count, err := t.countNames()
 	framework.ExpectNoError(err)
-	gomega.Expect(count >= t.successfulWrites).To(gomega.BeTrue())
+	framework.ExpectEqual(count >= t.successfulWrites, true)
 }
 
 // addName adds a new value to the db.

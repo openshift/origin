@@ -64,6 +64,10 @@ type DatabaseMigrationServiceAPI interface {
 	AddTagsToResourceWithContext(aws.Context, *databasemigrationservice.AddTagsToResourceInput, ...request.Option) (*databasemigrationservice.AddTagsToResourceOutput, error)
 	AddTagsToResourceRequest(*databasemigrationservice.AddTagsToResourceInput) (*request.Request, *databasemigrationservice.AddTagsToResourceOutput)
 
+	ApplyPendingMaintenanceAction(*databasemigrationservice.ApplyPendingMaintenanceActionInput) (*databasemigrationservice.ApplyPendingMaintenanceActionOutput, error)
+	ApplyPendingMaintenanceActionWithContext(aws.Context, *databasemigrationservice.ApplyPendingMaintenanceActionInput, ...request.Option) (*databasemigrationservice.ApplyPendingMaintenanceActionOutput, error)
+	ApplyPendingMaintenanceActionRequest(*databasemigrationservice.ApplyPendingMaintenanceActionInput) (*request.Request, *databasemigrationservice.ApplyPendingMaintenanceActionOutput)
+
 	CreateEndpoint(*databasemigrationservice.CreateEndpointInput) (*databasemigrationservice.CreateEndpointOutput, error)
 	CreateEndpointWithContext(aws.Context, *databasemigrationservice.CreateEndpointInput, ...request.Option) (*databasemigrationservice.CreateEndpointOutput, error)
 	CreateEndpointRequest(*databasemigrationservice.CreateEndpointInput) (*request.Request, *databasemigrationservice.CreateEndpointOutput)
@@ -87,6 +91,10 @@ type DatabaseMigrationServiceAPI interface {
 	DeleteCertificate(*databasemigrationservice.DeleteCertificateInput) (*databasemigrationservice.DeleteCertificateOutput, error)
 	DeleteCertificateWithContext(aws.Context, *databasemigrationservice.DeleteCertificateInput, ...request.Option) (*databasemigrationservice.DeleteCertificateOutput, error)
 	DeleteCertificateRequest(*databasemigrationservice.DeleteCertificateInput) (*request.Request, *databasemigrationservice.DeleteCertificateOutput)
+
+	DeleteConnection(*databasemigrationservice.DeleteConnectionInput) (*databasemigrationservice.DeleteConnectionOutput, error)
+	DeleteConnectionWithContext(aws.Context, *databasemigrationservice.DeleteConnectionInput, ...request.Option) (*databasemigrationservice.DeleteConnectionOutput, error)
+	DeleteConnectionRequest(*databasemigrationservice.DeleteConnectionInput) (*request.Request, *databasemigrationservice.DeleteConnectionOutput)
 
 	DeleteEndpoint(*databasemigrationservice.DeleteEndpointInput) (*databasemigrationservice.DeleteEndpointOutput, error)
 	DeleteEndpointWithContext(aws.Context, *databasemigrationservice.DeleteEndpointInput, ...request.Option) (*databasemigrationservice.DeleteEndpointOutput, error)
@@ -164,6 +172,13 @@ type DatabaseMigrationServiceAPI interface {
 
 	DescribeOrderableReplicationInstancesPages(*databasemigrationservice.DescribeOrderableReplicationInstancesInput, func(*databasemigrationservice.DescribeOrderableReplicationInstancesOutput, bool) bool) error
 	DescribeOrderableReplicationInstancesPagesWithContext(aws.Context, *databasemigrationservice.DescribeOrderableReplicationInstancesInput, func(*databasemigrationservice.DescribeOrderableReplicationInstancesOutput, bool) bool, ...request.Option) error
+
+	DescribePendingMaintenanceActions(*databasemigrationservice.DescribePendingMaintenanceActionsInput) (*databasemigrationservice.DescribePendingMaintenanceActionsOutput, error)
+	DescribePendingMaintenanceActionsWithContext(aws.Context, *databasemigrationservice.DescribePendingMaintenanceActionsInput, ...request.Option) (*databasemigrationservice.DescribePendingMaintenanceActionsOutput, error)
+	DescribePendingMaintenanceActionsRequest(*databasemigrationservice.DescribePendingMaintenanceActionsInput) (*request.Request, *databasemigrationservice.DescribePendingMaintenanceActionsOutput)
+
+	DescribePendingMaintenanceActionsPages(*databasemigrationservice.DescribePendingMaintenanceActionsInput, func(*databasemigrationservice.DescribePendingMaintenanceActionsOutput, bool) bool) error
+	DescribePendingMaintenanceActionsPagesWithContext(aws.Context, *databasemigrationservice.DescribePendingMaintenanceActionsInput, func(*databasemigrationservice.DescribePendingMaintenanceActionsOutput, bool) bool, ...request.Option) error
 
 	DescribeRefreshSchemasStatus(*databasemigrationservice.DescribeRefreshSchemasStatusInput) (*databasemigrationservice.DescribeRefreshSchemasStatusOutput, error)
 	DescribeRefreshSchemasStatusWithContext(aws.Context, *databasemigrationservice.DescribeRefreshSchemasStatusInput, ...request.Option) (*databasemigrationservice.DescribeRefreshSchemasStatusOutput, error)

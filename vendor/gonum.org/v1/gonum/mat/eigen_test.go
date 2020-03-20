@@ -75,10 +75,14 @@ func TestEigen(t *testing.T) {
 		if !cmplxEqualTol(v1, test.values, 1e-14) {
 			t.Errorf("eigenvalue mismatch. Case %v", i)
 		}
-		if !CEqualApprox(e1.LeftVectorsTo(nil), test.left, 1e-14) {
+		var left CDense
+		e1.LeftVectorsTo(&left)
+		if !CEqualApprox(&left, test.left, 1e-14) {
 			t.Errorf("left eigenvector mismatch. Case %v", i)
 		}
-		if !CEqualApprox(e1.VectorsTo(nil), test.right, 1e-14) {
+		var right CDense
+		e1.VectorsTo(&right)
+		if !CEqualApprox(&right, test.right, 1e-14) {
 			t.Errorf("right eigenvector mismatch. Case %v", i)
 		}
 
@@ -92,10 +96,14 @@ func TestEigen(t *testing.T) {
 		if !cmplxEqual(v1, e4.Values(nil)) {
 			t.Errorf("eigenvector mismatch. Case %v", i)
 		}
-		if !CEqual(e1.VectorsTo(nil), e2.VectorsTo(nil)) {
+		var right2 CDense
+		e2.VectorsTo(&right2)
+		if !CEqual(&right, &right2) {
 			t.Errorf("right eigenvector mismatch. Case %v", i)
 		}
-		if !CEqual(e1.LeftVectorsTo(nil), e3.LeftVectorsTo(nil)) {
+		var left3 CDense
+		e3.LeftVectorsTo(&left3)
+		if !CEqual(&left, &left3) {
 			t.Errorf("left eigenvector mismatch. Case %v", i)
 		}
 

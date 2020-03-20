@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	quotav1 "github.com/openshift/api/quota/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -21,7 +23,7 @@ var appliedclusterresourcequotasResource = schema.GroupVersionResource{Group: "q
 var appliedclusterresourcequotasKind = schema.GroupVersionKind{Group: "quota.openshift.io", Version: "v1", Kind: "AppliedClusterResourceQuota"}
 
 // Get takes name of the appliedClusterResourceQuota, and returns the corresponding appliedClusterResourceQuota object, and an error if there is any.
-func (c *FakeAppliedClusterResourceQuotas) Get(name string, options v1.GetOptions) (result *quotav1.AppliedClusterResourceQuota, err error) {
+func (c *FakeAppliedClusterResourceQuotas) Get(ctx context.Context, name string, options v1.GetOptions) (result *quotav1.AppliedClusterResourceQuota, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(appliedclusterresourcequotasResource, c.ns, name), &quotav1.AppliedClusterResourceQuota{})
 
@@ -32,7 +34,7 @@ func (c *FakeAppliedClusterResourceQuotas) Get(name string, options v1.GetOption
 }
 
 // List takes label and field selectors, and returns the list of AppliedClusterResourceQuotas that match those selectors.
-func (c *FakeAppliedClusterResourceQuotas) List(opts v1.ListOptions) (result *quotav1.AppliedClusterResourceQuotaList, err error) {
+func (c *FakeAppliedClusterResourceQuotas) List(ctx context.Context, opts v1.ListOptions) (result *quotav1.AppliedClusterResourceQuotaList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(appliedclusterresourcequotasResource, appliedclusterresourcequotasKind, c.ns, opts), &quotav1.AppliedClusterResourceQuotaList{})
 

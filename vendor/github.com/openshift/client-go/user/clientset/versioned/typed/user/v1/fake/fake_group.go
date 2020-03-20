@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	userv1 "github.com/openshift/api/user/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -22,7 +24,7 @@ var groupsResource = schema.GroupVersionResource{Group: "user.openshift.io", Ver
 var groupsKind = schema.GroupVersionKind{Group: "user.openshift.io", Version: "v1", Kind: "Group"}
 
 // Get takes name of the group, and returns the corresponding group object, and an error if there is any.
-func (c *FakeGroups) Get(name string, options v1.GetOptions) (result *userv1.Group, err error) {
+func (c *FakeGroups) Get(ctx context.Context, name string, options v1.GetOptions) (result *userv1.Group, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(groupsResource, name), &userv1.Group{})
 	if obj == nil {
@@ -32,7 +34,7 @@ func (c *FakeGroups) Get(name string, options v1.GetOptions) (result *userv1.Gro
 }
 
 // List takes label and field selectors, and returns the list of Groups that match those selectors.
-func (c *FakeGroups) List(opts v1.ListOptions) (result *userv1.GroupList, err error) {
+func (c *FakeGroups) List(ctx context.Context, opts v1.ListOptions) (result *userv1.GroupList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(groupsResource, groupsKind, opts), &userv1.GroupList{})
 	if obj == nil {
@@ -53,13 +55,13 @@ func (c *FakeGroups) List(opts v1.ListOptions) (result *userv1.GroupList, err er
 }
 
 // Watch returns a watch.Interface that watches the requested groups.
-func (c *FakeGroups) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeGroups) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(groupsResource, opts))
 }
 
 // Create takes the representation of a group and creates it.  Returns the server's representation of the group, and an error, if there is any.
-func (c *FakeGroups) Create(group *userv1.Group) (result *userv1.Group, err error) {
+func (c *FakeGroups) Create(ctx context.Context, group *userv1.Group, opts v1.CreateOptions) (result *userv1.Group, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(groupsResource, group), &userv1.Group{})
 	if obj == nil {
@@ -69,7 +71,7 @@ func (c *FakeGroups) Create(group *userv1.Group) (result *userv1.Group, err erro
 }
 
 // Update takes the representation of a group and updates it. Returns the server's representation of the group, and an error, if there is any.
-func (c *FakeGroups) Update(group *userv1.Group) (result *userv1.Group, err error) {
+func (c *FakeGroups) Update(ctx context.Context, group *userv1.Group, opts v1.UpdateOptions) (result *userv1.Group, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(groupsResource, group), &userv1.Group{})
 	if obj == nil {
@@ -79,22 +81,22 @@ func (c *FakeGroups) Update(group *userv1.Group) (result *userv1.Group, err erro
 }
 
 // Delete takes name of the group and deletes it. Returns an error if one occurs.
-func (c *FakeGroups) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeGroups) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(groupsResource, name), &userv1.Group{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeGroups) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(groupsResource, listOptions)
+func (c *FakeGroups) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(groupsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &userv1.GroupList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched group.
-func (c *FakeGroups) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *userv1.Group, err error) {
+func (c *FakeGroups) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *userv1.Group, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(groupsResource, name, pt, data, subresources...), &userv1.Group{})
 	if obj == nil {

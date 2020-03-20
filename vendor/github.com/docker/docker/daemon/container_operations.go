@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"path"
-	"runtime"
 	"strings"
 	"time"
 
@@ -63,21 +62,13 @@ func (daemon *Daemon) buildSandboxOptions(container *container.Container) ([]lib
 
 	if container.HostConfig.NetworkMode.IsHost() {
 		sboxOptions = append(sboxOptions, libnetwork.OptionUseDefaultSandbox())
-		if len(container.HostConfig.ExtraHosts) == 0 {
-			sboxOptions = append(sboxOptions, libnetwork.OptionOriginHostsPath("/etc/hosts"))
-		}
-		if len(container.HostConfig.DNS) == 0 && len(daemon.configStore.DNS) == 0 &&
-			len(container.HostConfig.DNSSearch) == 0 && len(daemon.configStore.DNSSearch) == 0 &&
-			len(container.HostConfig.DNSOptions) == 0 && len(daemon.configStore.DNSOptions) == 0 {
-			sboxOptions = append(sboxOptions, libnetwork.OptionOriginResolvConfPath("/etc/resolv.conf"))
-		}
 	} else {
 		// OptionUseExternalKey is mandatory for userns support.
 		// But optional for non-userns support
 		sboxOptions = append(sboxOptions, libnetwork.OptionUseExternalKey())
 	}
 
-	if err = setupPathsAndSandboxOptions(container, &sboxOptions); err != nil {
+	if err = daemon.setupPathsAndSandboxOptions(container, &sboxOptions); err != nil {
 		return nil, err
 	}
 
@@ -601,9 +592,9 @@ func (daemon *Daemon) getNetworkSandbox(container *container.Container) libnetwo
 	return sb
 }
 
-// hasUserDefinedIPAddress returns whether the passed endpoint configuration contains IP address configuration
-func hasUserDefinedIPAddress(epConfig *networktypes.EndpointSettings) bool {
-	return epConfig != nil && epConfig.IPAMConfig != nil && (len(epConfig.IPAMConfig.IPv4Address) > 0 || len(epConfig.IPAMConfig.IPv6Address) > 0)
+// hasUserDefinedIPAddress returns whether the passed IPAM configuration contains IP address configuration
+func hasUserDefinedIPAddress(ipamConfig *networktypes.EndpointIPAMConfig) bool {
+	return ipamConfig != nil && (len(ipamConfig.IPv4Address) > 0 || len(ipamConfig.IPv6Address) > 0)
 }
 
 // User specified ip address is acceptable only for networks with user specified subnets.
@@ -611,9 +602,18 @@ func validateNetworkingConfig(n libnetwork.Network, epConfig *networktypes.Endpo
 	if n == nil || epConfig == nil {
 		return nil
 	}
-	if !hasUserDefinedIPAddress(epConfig) {
+	if !containertypes.NetworkMode(n.Name()).IsUserDefined() {
+		if hasUserDefinedIPAddress(epConfig.IPAMConfig) && !enableIPOnPredefinedNetwork() {
+			return runconfig.ErrUnsupportedNetworkAndIP
+		}
+		if len(epConfig.Aliases) > 0 && !serviceDiscoveryOnDefaultNetwork() {
+			return runconfig.ErrUnsupportedNetworkAndAlias
+		}
+	}
+	if !hasUserDefinedIPAddress(epConfig.IPAMConfig) {
 		return nil
 	}
+
 	_, _, nwIPv4Configs, nwIPv6Configs := n.Info().IpamConfig()
 	for _, s := range []struct {
 		ipConfigured  bool
@@ -662,14 +662,7 @@ func cleanOperationalData(es *network.EndpointSettings) {
 
 func (daemon *Daemon) updateNetworkConfig(container *container.Container, n libnetwork.Network, endpointConfig *networktypes.EndpointSettings, updateSettings bool) error {
 
-	if !containertypes.NetworkMode(n.Name()).IsUserDefined() {
-		if hasUserDefinedIPAddress(endpointConfig) && !enableIPOnPredefinedNetwork() {
-			return runconfig.ErrUnsupportedNetworkAndIP
-		}
-		if endpointConfig != nil && len(endpointConfig.Aliases) > 0 && !container.EnableServiceDiscoveryOnDefaultNetwork() {
-			return runconfig.ErrUnsupportedNetworkAndAlias
-		}
-	} else {
+	if containertypes.NetworkMode(n.Name()).IsUserDefined() {
 		addShortID := true
 		shortID := stringid.TruncateID(container.ID)
 		for _, alias := range endpointConfig.Aliases {
@@ -733,8 +726,7 @@ func (daemon *Daemon) connectToNetwork(container *container.Container, idOrName 
 		}
 	}
 
-	err = daemon.updateNetworkConfig(container, n, endpointConfig, updateSettings)
-	if err != nil {
+	if err := daemon.updateNetworkConfig(container, n, endpointConfig, updateSettings); err != nil {
 		return err
 	}
 
@@ -1048,8 +1040,6 @@ func (daemon *Daemon) ConnectToNetwork(container *container.Container, idOrName 
 				EndpointSettings: endpointConfig,
 			}
 		}
-	} else if !daemon.isNetworkHotPluggable() {
-		return fmt.Errorf(runtime.GOOS + " does not support connecting a running container to a network")
 	} else {
 		if err := daemon.connectToNetwork(container, idOrName, endpointConfig, true); err != nil {
 			return err
@@ -1078,8 +1068,6 @@ func (daemon *Daemon) DisconnectFromNetwork(container *container.Container, netw
 			return fmt.Errorf("container %s is not connected to the network %s", container.ID, networkName)
 		}
 		delete(container.NetworkSettings.Networks, networkName)
-	} else if err == nil && !daemon.isNetworkHotPluggable() {
-		return fmt.Errorf(runtime.GOOS + " does not support connecting a running container to a network")
 	} else if err == nil {
 		if container.HostConfig.NetworkMode.IsHost() && containertypes.NetworkMode(n.Type()).IsHost() {
 			return runconfig.ErrConflictHostNetwork

@@ -17,11 +17,13 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
@@ -32,6 +34,7 @@ import (
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	"k8s.io/kubernetes/test/e2e/framework/providers/gce"
 	e2eservice "k8s.io/kubernetes/test/e2e/framework/service"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	gcecloud "k8s.io/legacy-cloud-providers/gce"
 
 	"github.com/onsi/ginkgo"
@@ -53,7 +56,7 @@ var _ = SIGDescribe("Firewall rule", func() {
 	var gceCloud *gcecloud.Cloud
 
 	ginkgo.BeforeEach(func() {
-		framework.SkipUnlessProviderIs("gce")
+		e2eskipper.SkipUnlessProviderIs("gce")
 
 		var err error
 		cs = f.ClientSet
@@ -96,7 +99,7 @@ var _ = SIGDescribe("Firewall rule", func() {
 				svc.Spec.LoadBalancerSourceRanges = nil
 			})
 			framework.ExpectNoError(err)
-			err = cs.CoreV1().Services(svc.Namespace).Delete(svc.Name, nil)
+			err = cs.CoreV1().Services(svc.Namespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
 			framework.ExpectNoError(err)
 			ginkgo.By("Waiting for the local traffic health check firewall rule to be deleted")
 			localHCFwName := gce.MakeHealthCheckFirewallNameForLBService(clusterID, cloudprovider.DefaultLoadBalancerName(svc), false)
@@ -149,14 +152,14 @@ var _ = SIGDescribe("Firewall rule", func() {
 			pod.ObjectMeta.Labels = jig.Labels
 			pod.Spec.NodeName = nodeName
 			pod.Spec.HostNetwork = true
-			_, err := cs.CoreV1().Pods(ns).Create(pod)
+			_, err := cs.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 			framework.ExpectNoError(f.WaitForPodReady(podName))
 			framework.Logf("Netexec pod %q in namespace %q running", podName, ns)
 
 			defer func() {
 				framework.Logf("Cleaning up the netexec pod: %v", podName)
-				err = cs.CoreV1().Pods(ns).Delete(podName, nil)
+				err = cs.CoreV1().Pods(ns).Delete(context.TODO(), podName, metav1.DeleteOptions{})
 				framework.ExpectNoError(err)
 			}()
 		}
@@ -206,8 +209,8 @@ var _ = SIGDescribe("Firewall rule", func() {
 		}
 
 		ginkgo.By("Checking well known ports on master and nodes are not exposed externally")
-		nodeAddrs := e2enode.FirstAddress(nodes, v1.NodeExternalIP)
-		if len(nodeAddrs) == 0 {
+		nodeAddr := e2enode.FirstAddress(nodes, v1.NodeExternalIP)
+		if nodeAddr == "" {
 			framework.Failf("did not find any node addresses")
 		}
 
@@ -216,9 +219,9 @@ var _ = SIGDescribe("Firewall rule", func() {
 			assertNotReachableHTTPTimeout(masterAddress, ports.InsecureKubeControllerManagerPort, firewallTestTCPTimeout)
 			assertNotReachableHTTPTimeout(masterAddress, ports.InsecureSchedulerPort, firewallTestTCPTimeout)
 		}
-		assertNotReachableHTTPTimeout(nodeAddrs[0], ports.KubeletPort, firewallTestTCPTimeout)
-		assertNotReachableHTTPTimeout(nodeAddrs[0], ports.KubeletReadOnlyPort, firewallTestTCPTimeout)
-		assertNotReachableHTTPTimeout(nodeAddrs[0], ports.ProxyStatusPort, firewallTestTCPTimeout)
+		assertNotReachableHTTPTimeout(nodeAddr, ports.KubeletPort, firewallTestTCPTimeout)
+		assertNotReachableHTTPTimeout(nodeAddr, ports.KubeletReadOnlyPort, firewallTestTCPTimeout)
+		assertNotReachableHTTPTimeout(nodeAddr, ports.ProxyStatusPort, firewallTestTCPTimeout)
 	})
 })
 

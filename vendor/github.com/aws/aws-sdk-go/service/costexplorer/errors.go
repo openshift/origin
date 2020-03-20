@@ -2,6 +2,10 @@
 
 package costexplorer
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeBillExpirationException for service response error code
@@ -34,4 +38,35 @@ const (
 	// Your request parameters changed between pages. Try again with the old parameters
 	// or without a pagination token.
 	ErrCodeRequestChangedException = "RequestChangedException"
+
+	// ErrCodeResourceNotFoundException for service response error code
+	// "ResourceNotFoundException".
+	//
+	// The specified ARN in the request doesn't exist.
+	ErrCodeResourceNotFoundException = "ResourceNotFoundException"
+
+	// ErrCodeServiceQuotaExceededException for service response error code
+	// "ServiceQuotaExceededException".
+	//
+	// You've reached the limit on the number of resources you can create, or exceeded
+	// the size of an individual resources.
+	ErrCodeServiceQuotaExceededException = "ServiceQuotaExceededException"
+
+	// ErrCodeUnresolvableUsageUnitException for service response error code
+	// "UnresolvableUsageUnitException".
+	//
+	// Cost Explorer was unable to identify the usage unit. Provide UsageType/UsageTypeGroup
+	// filter selections that contain matching units, for example: hours.
+	ErrCodeUnresolvableUsageUnitException = "UnresolvableUsageUnitException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"BillExpirationException":        newErrorBillExpirationException,
+	"DataUnavailableException":       newErrorDataUnavailableException,
+	"InvalidNextTokenException":      newErrorInvalidNextTokenException,
+	"LimitExceededException":         newErrorLimitExceededException,
+	"RequestChangedException":        newErrorRequestChangedException,
+	"ResourceNotFoundException":      newErrorResourceNotFoundException,
+	"ServiceQuotaExceededException":  newErrorServiceQuotaExceededException,
+	"UnresolvableUsageUnitException": newErrorUnresolvableUsageUnitException,
+}

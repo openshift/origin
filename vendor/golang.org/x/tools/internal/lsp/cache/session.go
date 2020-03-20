@@ -6,8 +6,8 @@ package cache
 
 import (
 	"context"
-	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -16,15 +16,17 @@ import (
 
 	"golang.org/x/tools/internal/lsp/debug"
 	"golang.org/x/tools/internal/lsp/source"
-	"golang.org/x/tools/internal/lsp/xlog"
+	"golang.org/x/tools/internal/lsp/telemetry"
 	"golang.org/x/tools/internal/span"
+	"golang.org/x/tools/internal/telemetry/log"
+	"golang.org/x/tools/internal/telemetry/trace"
+	"golang.org/x/tools/internal/xcontext"
+	errors "golang.org/x/xerrors"
 )
 
 type session struct {
 	cache *cache
 	id    string
-	// the logger to use to communicate back with the client
-	log xlog.Logger
 
 	viewMu  sync.Mutex
 	views   []*view
@@ -42,10 +44,14 @@ type overlay struct {
 	uri     span.URI
 	data    []byte
 	hash    string
+	kind    source.FileKind
 
-	// onDisk is true if a file has been saved on disk,
+	// sameContentOnDisk is true if a file has been saved on disk,
 	// and therefore does not need to be part of the overlay sent to go/packages.
-	onDisk bool
+	sameContentOnDisk bool
+
+	// unchanged is true if a file has not yet been edited.
+	unchanged bool
 }
 
 func (s *session) Shutdown(ctx context.Context) {
@@ -63,16 +69,18 @@ func (s *session) Cache() source.Cache {
 	return s.cache
 }
 
-func (s *session) NewView(name string, folder span.URI) source.View {
+func (s *session) NewView(ctx context.Context, name string, folder span.URI) source.View {
 	index := atomic.AddInt64(&viewIndex, 1)
 	s.viewMu.Lock()
 	defer s.viewMu.Unlock()
-	ctx := context.Background()
-	backgroundCtx, cancel := context.WithCancel(ctx)
+	// We want a true background context and not a detatched context here
+	// the spans need to be unrelated and no tag values should pollute it.
+	baseCtx := trace.Detach(xcontext.Detach(ctx))
+	backgroundCtx, cancel := context.WithCancel(baseCtx)
 	v := &view{
 		session:       s,
 		id:            strconv.FormatInt(index, 10),
-		baseCtx:       ctx,
+		baseCtx:       baseCtx,
 		backgroundCtx: backgroundCtx,
 		cancel:        cancel,
 		name:          name,
@@ -84,14 +92,11 @@ func (s *session) NewView(name string, folder span.URI) source.View {
 			packages: make(map[packageID]*metadata),
 			ids:      make(map[packagePath]packageID),
 		},
-		pcache: &packageCache{
-			packages: make(map[packageID]*entry),
-		},
 		ignoredURIs: make(map[span.URI]struct{}),
 	}
 	// Preemptively build the builtin package,
 	// so we immediately add builtin.go to the list of ignored files.
-	v.buildBuiltinPkg()
+	v.buildBuiltinPkg(ctx)
 
 	s.views = append(s.views, v)
 	// we always need to drop the view map
@@ -174,15 +179,51 @@ func (s *session) removeView(ctx context.Context, view *view) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("view %s for %v not found", view.Name(), view.Folder())
+	return errors.Errorf("view %s for %v not found", view.Name(), view.Folder())
 }
 
-func (s *session) Logger() xlog.Logger {
-	return s.log
-}
+// TODO: Propagate the language ID through to the view.
+func (s *session) DidOpen(ctx context.Context, uri span.URI, _ source.FileKind, text []byte) {
+	ctx = telemetry.File.With(ctx, uri)
 
-func (s *session) DidOpen(uri span.URI) {
+	// Files with _ prefixes are ignored.
+	if strings.HasPrefix(filepath.Base(uri.Filename()), "_") {
+		for _, view := range s.views {
+			view.ignoredURIsMu.Lock()
+			view.ignoredURIs[uri] = struct{}{}
+			view.ignoredURIsMu.Unlock()
+		}
+		return
+	}
+
+	// Mark the file as open.
 	s.openFiles.Store(uri, true)
+
+	// Read the file on disk and compare it to the text provided.
+	// If it is the same as on disk, we can avoid sending it as an overlay to go/packages.
+	s.openOverlay(ctx, uri, text)
+
+	// Mark the file as just opened so that we know to re-run packages.Load on it.
+	// We do this because we may not be aware of all of the packages the file belongs to.
+	// A file may be in multiple views.
+	for _, view := range s.views {
+		if strings.HasPrefix(string(uri), string(view.Folder())) {
+			f, err := view.GetFile(ctx, uri)
+			if err != nil {
+				log.Error(ctx, "error getting file", nil, telemetry.File)
+				return
+			}
+			gof, ok := f.(*goFile)
+			if !ok {
+				log.Error(ctx, "not a Go file", nil, telemetry.File)
+				return
+			}
+			// Mark file as open.
+			gof.mu.Lock()
+			gof.justOpened = true
+			gof.mu.Unlock()
+		}
+	}
 }
 
 func (s *session) DidSave(uri span.URI) {
@@ -190,7 +231,7 @@ func (s *session) DidSave(uri span.URI) {
 	defer s.overlayMu.Unlock()
 
 	if overlay, ok := s.overlays[uri]; ok {
-		overlay.onDisk = true
+		overlay.sameContentOnDisk = true
 	}
 }
 
@@ -211,7 +252,7 @@ func (s *session) GetFile(uri span.URI) source.FileHandle {
 	return s.Cache().GetFile(uri)
 }
 
-func (s *session) SetOverlay(uri span.URI, data []byte) {
+func (s *session) SetOverlay(uri span.URI, data []byte) bool {
 	s.overlayMu.Lock()
 	defer func() {
 		s.overlayMu.Unlock()
@@ -220,13 +261,44 @@ func (s *session) SetOverlay(uri span.URI, data []byte) {
 
 	if data == nil {
 		delete(s.overlays, uri)
+		return false
+	}
+
+	o := s.overlays[uri]
+	firstChange := o != nil && o.unchanged
+
+	s.overlays[uri] = &overlay{
+		session:   s,
+		uri:       uri,
+		data:      data,
+		hash:      hashContents(data),
+		unchanged: o == nil,
+	}
+	return firstChange
+}
+
+// openOverlay adds the file content to the overlay.
+// It also checks if the provided content is equivalent to the file's content on disk.
+func (s *session) openOverlay(ctx context.Context, uri span.URI, data []byte) {
+	s.overlayMu.Lock()
+	defer func() {
+		s.overlayMu.Unlock()
+		s.filesWatchMap.Notify(uri)
+	}()
+	s.overlays[uri] = &overlay{
+		session:   s,
+		uri:       uri,
+		data:      data,
+		hash:      hashContents(data),
+		unchanged: true,
+	}
+	_, hash, err := s.cache.GetFile(uri).Read(ctx)
+	if err != nil {
+		log.Error(ctx, "failed to read", err, telemetry.File)
 		return
 	}
-	s.overlays[uri] = &overlay{
-		session: s,
-		uri:     uri,
-		data:    data,
-		hash:    hashContents(data),
+	if hash == s.overlays[uri].hash {
+		s.overlays[uri].sameContentOnDisk = true
 	}
 }
 
@@ -247,7 +319,7 @@ func (s *session) buildOverlay() map[string][]byte {
 
 	overlays := make(map[string][]byte)
 	for uri, overlay := range s.overlays {
-		if overlay.onDisk {
+		if overlay.sameContentOnDisk {
 			continue
 		}
 		overlays[uri.Filename()] = overlay.data
@@ -264,6 +336,11 @@ func (o *overlay) Identity() source.FileIdentity {
 		URI:     o.uri,
 		Version: o.hash,
 	}
+}
+
+func (o *overlay) Kind() source.FileKind {
+	// TODO: Determine the file kind using textDocument.languageId.
+	return source.Go
 }
 
 func (o *overlay) Read(ctx context.Context) ([]byte, string, error) {

@@ -3,7 +3,10 @@
 package v1
 
 import (
+	"context"
+
 	v1 "github.com/openshift/api/image/v1"
+	scheme "github.com/openshift/client-go/image/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rest "k8s.io/client-go/rest"
 )
@@ -16,8 +19,8 @@ type ImageSignaturesGetter interface {
 
 // ImageSignatureInterface has methods to work with ImageSignature resources.
 type ImageSignatureInterface interface {
-	Create(*v1.ImageSignature) (*v1.ImageSignature, error)
-	Delete(name string, options *metav1.DeleteOptions) error
+	Create(ctx context.Context, imageSignature *v1.ImageSignature, opts metav1.CreateOptions) (*v1.ImageSignature, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	ImageSignatureExpansion
 }
 
@@ -34,22 +37,23 @@ func newImageSignatures(c *ImageV1Client) *imageSignatures {
 }
 
 // Create takes the representation of a imageSignature and creates it.  Returns the server's representation of the imageSignature, and an error, if there is any.
-func (c *imageSignatures) Create(imageSignature *v1.ImageSignature) (result *v1.ImageSignature, err error) {
+func (c *imageSignatures) Create(ctx context.Context, imageSignature *v1.ImageSignature, opts metav1.CreateOptions) (result *v1.ImageSignature, err error) {
 	result = &v1.ImageSignature{}
 	err = c.client.Post().
 		Resource("imagesignatures").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(imageSignature).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the imageSignature and deletes it. Returns an error if one occurs.
-func (c *imageSignatures) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *imageSignatures) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("imagesignatures").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }

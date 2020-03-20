@@ -27,7 +27,9 @@ func TestInteg_00_DescribeTrails(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := cloudtrail.New(sess)
 	params := &cloudtrail.DescribeTrailsInput{}
-	_, err := svc.DescribeTrailsWithContext(ctx, params)
+	_, err := svc.DescribeTrailsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DeleteTrail(t *testing.T) {
 	params := &cloudtrail.DeleteTrailInput{
 		Name: aws.String("faketrail"),
 	}
-	_, err := svc.DeleteTrailWithContext(ctx, params)
+	_, err := svc.DeleteTrailWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

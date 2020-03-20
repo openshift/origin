@@ -2,6 +2,10 @@
 
 package connect
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeContactNotFoundException for service response error code
@@ -19,7 +23,7 @@ const (
 	// ErrCodeDuplicateResourceException for service response error code
 	// "DuplicateResourceException".
 	//
-	// A resource with that name already exists.
+	// A resource with the specified name already exists.
 	ErrCodeDuplicateResourceException = "DuplicateResourceException"
 
 	// ErrCodeInternalServiceException for service response error code
@@ -31,7 +35,7 @@ const (
 	// ErrCodeInvalidParameterException for service response error code
 	// "InvalidParameterException".
 	//
-	// One or more of the parameters provided to the operation are not valid.
+	// One or more of the specified parameters are not valid.
 	ErrCodeInvalidParameterException = "InvalidParameterException"
 
 	// ErrCodeInvalidRequestException for service response error code
@@ -43,7 +47,7 @@ const (
 	// ErrCodeLimitExceededException for service response error code
 	// "LimitExceededException".
 	//
-	// The allowed limit for the resource has been reached.
+	// The allowed limit for the resource has been exceeded.
 	ErrCodeLimitExceededException = "LimitExceededException"
 
 	// ErrCodeOutboundContactNotPermittedException for service response error code
@@ -70,3 +74,17 @@ const (
 	// No user with the specified credentials was found in the Amazon Connect instance.
 	ErrCodeUserNotFoundException = "UserNotFoundException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ContactNotFoundException":             newErrorContactNotFoundException,
+	"DestinationNotAllowedException":       newErrorDestinationNotAllowedException,
+	"DuplicateResourceException":           newErrorDuplicateResourceException,
+	"InternalServiceException":             newErrorInternalServiceException,
+	"InvalidParameterException":            newErrorInvalidParameterException,
+	"InvalidRequestException":              newErrorInvalidRequestException,
+	"LimitExceededException":               newErrorLimitExceededException,
+	"OutboundContactNotPermittedException": newErrorOutboundContactNotPermittedException,
+	"ResourceNotFoundException":            newErrorResourceNotFoundException,
+	"ThrottlingException":                  newErrorThrottlingException,
+	"UserNotFoundException":                newErrorUserNotFoundException,
+}

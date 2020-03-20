@@ -17,7 +17,8 @@
       "name":"AbortMultipartUpload",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}/{Key+}"
+        "requestUri":"/{Bucket}/{Key+}",
+        "responseCode":204
       },
       "input":{"shape":"AbortMultipartUploadRequest"},
       "output":{"shape":"AbortMultipartUploadOutput"},
@@ -80,7 +81,8 @@
       "name":"DeleteBucket",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}"
+        "requestUri":"/{Bucket}",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketRequest"},
       "documentationUrl":"http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketDELETE.html"
@@ -89,7 +91,8 @@
       "name":"DeleteBucketAnalyticsConfiguration",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?analytics"
+        "requestUri":"/{Bucket}?analytics",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketAnalyticsConfigurationRequest"}
     },
@@ -97,7 +100,8 @@
       "name":"DeleteBucketCors",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?cors"
+        "requestUri":"/{Bucket}?cors",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketCorsRequest"},
       "documentationUrl":"http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketDELETEcors.html"
@@ -106,7 +110,8 @@
       "name":"DeleteBucketEncryption",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?encryption"
+        "requestUri":"/{Bucket}?encryption",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketEncryptionRequest"}
     },
@@ -114,7 +119,8 @@
       "name":"DeleteBucketInventoryConfiguration",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?inventory"
+        "requestUri":"/{Bucket}?inventory",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketInventoryConfigurationRequest"}
     },
@@ -122,7 +128,8 @@
       "name":"DeleteBucketLifecycle",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?lifecycle"
+        "requestUri":"/{Bucket}?lifecycle",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketLifecycleRequest"},
       "documentationUrl":"http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketDELETElifecycle.html"
@@ -131,7 +138,8 @@
       "name":"DeleteBucketMetricsConfiguration",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?metrics"
+        "requestUri":"/{Bucket}?metrics",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketMetricsConfigurationRequest"}
     },
@@ -139,7 +147,8 @@
       "name":"DeleteBucketPolicy",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?policy"
+        "requestUri":"/{Bucket}?policy",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketPolicyRequest"},
       "documentationUrl":"http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketDELETEpolicy.html"
@@ -148,7 +157,8 @@
       "name":"DeleteBucketReplication",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?replication"
+        "requestUri":"/{Bucket}?replication",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketReplicationRequest"}
     },
@@ -156,7 +166,8 @@
       "name":"DeleteBucketTagging",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?tagging"
+        "requestUri":"/{Bucket}?tagging",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketTaggingRequest"},
       "documentationUrl":"http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketDELETEtagging.html"
@@ -165,7 +176,8 @@
       "name":"DeleteBucketWebsite",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?website"
+        "requestUri":"/{Bucket}?website",
+        "responseCode":204
       },
       "input":{"shape":"DeleteBucketWebsiteRequest"},
       "documentationUrl":"http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTBucketDELETEwebsite.html"
@@ -174,7 +186,8 @@
       "name":"DeleteObject",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}/{Key+}"
+        "requestUri":"/{Bucket}/{Key+}",
+        "responseCode":204
       },
       "input":{"shape":"DeleteObjectRequest"},
       "output":{"shape":"DeleteObjectOutput"},
@@ -184,7 +197,8 @@
       "name":"DeleteObjectTagging",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}/{Key+}?tagging"
+        "requestUri":"/{Bucket}/{Key+}?tagging",
+        "responseCode":204
       },
       "input":{"shape":"DeleteObjectTaggingRequest"},
       "output":{"shape":"DeleteObjectTaggingOutput"}
@@ -204,7 +218,8 @@
       "name":"DeletePublicAccessBlock",
       "http":{
         "method":"DELETE",
-        "requestUri":"/{Bucket}?publicAccessBlock"
+        "requestUri":"/{Bucket}?publicAccessBlock",
+        "responseCode":204
       },
       "input":{"shape":"DeletePublicAccessBlockRequest"}
     },
@@ -1375,6 +1390,11 @@
           "location":"header",
           "locationName":"x-amz-server-side-encryption-aws-kms-key-id"
         },
+        "SSEKMSEncryptionContext":{
+          "shape":"SSEKMSEncryptionContext",
+          "location":"header",
+          "locationName":"x-amz-server-side-encryption-context"
+        },
         "RequestCharged":{
           "shape":"RequestCharged",
           "location":"header",
@@ -1530,6 +1550,11 @@
           "shape":"SSEKMSKeyId",
           "location":"header",
           "locationName":"x-amz-server-side-encryption-aws-kms-key-id"
+        },
+        "SSEKMSEncryptionContext":{
+          "shape":"SSEKMSEncryptionContext",
+          "location":"header",
+          "locationName":"x-amz-server-side-encryption-context"
         },
         "CopySourceSSECustomerAlgorithm":{
           "shape":"CopySourceSSECustomerAlgorithm",
@@ -1710,6 +1735,11 @@
           "location":"header",
           "locationName":"x-amz-server-side-encryption-aws-kms-key-id"
         },
+        "SSEKMSEncryptionContext":{
+          "shape":"SSEKMSEncryptionContext",
+          "location":"header",
+          "locationName":"x-amz-server-side-encryption-context"
+        },
         "RequestCharged":{
           "shape":"RequestCharged",
           "location":"header",
@@ -1828,6 +1858,11 @@
           "shape":"SSEKMSKeyId",
           "location":"header",
           "locationName":"x-amz-server-side-encryption-aws-kms-key-id"
+        },
+        "SSEKMSEncryptionContext":{
+          "shape":"SSEKMSEncryptionContext",
+          "location":"header",
+          "locationName":"x-amz-server-side-encryption-context"
         },
         "RequestPayer":{
           "shape":"RequestPayer",
@@ -2235,7 +2270,9 @@
         "Account":{"shape":"AccountId"},
         "StorageClass":{"shape":"StorageClass"},
         "AccessControlTranslation":{"shape":"AccessControlTranslation"},
-        "EncryptionConfiguration":{"shape":"EncryptionConfiguration"}
+        "EncryptionConfiguration":{"shape":"EncryptionConfiguration"},
+        "ReplicationTime":{"shape":"ReplicationTime"},
+        "Metrics":{"shape":"Metrics"}
       }
     },
     "DisplayName":{"type":"string"},
@@ -2261,6 +2298,7 @@
         "ReplicaKmsKeyID":{"shape":"ReplicaKmsKeyID"}
       }
     },
+    "End":{"type":"long"},
     "EndEvent":{
       "type":"structure",
       "members":{
@@ -2300,14 +2338,34 @@
         "s3:ObjectRemoved:*",
         "s3:ObjectRemoved:Delete",
         "s3:ObjectRemoved:DeleteMarkerCreated",
+        "s3:ObjectRestore:*",
         "s3:ObjectRestore:Post",
-        "s3:ObjectRestore:Completed"
+        "s3:ObjectRestore:Completed",
+        "s3:Replication:*",
+        "s3:Replication:OperationFailedReplication",
+        "s3:Replication:OperationNotTracked",
+        "s3:Replication:OperationMissedThreshold",
+        "s3:Replication:OperationReplicatedAfterThreshold"
       ]
     },
     "EventList":{
       "type":"list",
       "member":{"shape":"Event"},
       "flattened":true
+    },
+    "ExistingObjectReplication":{
+      "type":"structure",
+      "required":["Status"],
+      "members":{
+        "Status":{"shape":"ExistingObjectReplicationStatus"}
+      }
+    },
+    "ExistingObjectReplicationStatus":{
+      "type":"string",
+      "enum":[
+        "Enabled",
+        "Disabled"
+      ]
     },
     "Expiration":{"type":"string"},
     "ExpirationStatus":{
@@ -3613,7 +3671,8 @@
         "EncryptionStatus",
         "ObjectLockRetainUntilDate",
         "ObjectLockMode",
-        "ObjectLockLegalHoldStatus"
+        "ObjectLockLegalHoldStatus",
+        "IntelligentTieringAccessTier"
       ]
     },
     "InventoryOptionalFields":{
@@ -4234,6 +4293,17 @@
     },
     "MetadataKey":{"type":"string"},
     "MetadataValue":{"type":"string"},
+    "Metrics":{
+      "type":"structure",
+      "required":[
+        "Status",
+        "EventThreshold"
+      ],
+      "members":{
+        "Status":{"shape":"MetricsStatus"},
+        "EventThreshold":{"shape":"ReplicationTimeValue"}
+      }
+    },
     "MetricsAndOperator":{
       "type":"structure",
       "members":{
@@ -4267,6 +4337,14 @@
       }
     },
     "MetricsId":{"type":"string"},
+    "MetricsStatus":{
+      "type":"string",
+      "enum":[
+        "Enabled",
+        "Disabled"
+      ]
+    },
+    "Minutes":{"type":"integer"},
     "MissingMeta":{"type":"integer"},
     "MultipartUpload":{
       "type":"structure",
@@ -4484,7 +4562,8 @@
         "GLACIER",
         "STANDARD_IA",
         "ONEZONE_IA",
-        "INTELLIGENT_TIERING"
+        "INTELLIGENT_TIERING",
+        "DEEP_ARCHIVE"
       ]
     },
     "ObjectVersion":{
@@ -4987,6 +5066,11 @@
           "shape":"ReplicationConfiguration",
           "locationName":"ReplicationConfiguration",
           "xmlNamespace":{"uri":"http://s3.amazonaws.com/doc/2006-03-01/"}
+        },
+        "Token":{
+          "shape":"ObjectLockToken",
+          "location":"header",
+          "locationName":"x-amz-bucket-object-lock-token"
         }
       },
       "payload":"ReplicationConfiguration"
@@ -5306,6 +5390,11 @@
           "location":"header",
           "locationName":"x-amz-server-side-encryption-aws-kms-key-id"
         },
+        "SSEKMSEncryptionContext":{
+          "shape":"SSEKMSEncryptionContext",
+          "location":"header",
+          "locationName":"x-amz-server-side-encryption-context"
+        },
         "RequestCharged":{
           "shape":"RequestCharged",
           "location":"header",
@@ -5438,6 +5527,11 @@
           "shape":"SSEKMSKeyId",
           "location":"header",
           "locationName":"x-amz-server-side-encryption-aws-kms-key-id"
+        },
+        "SSEKMSEncryptionContext":{
+          "shape":"SSEKMSEncryptionContext",
+          "location":"header",
+          "locationName":"x-amz-server-side-encryption-context"
         },
         "RequestPayer":{
           "shape":"RequestPayer",
@@ -5706,6 +5800,7 @@
         "Filter":{"shape":"ReplicationRuleFilter"},
         "Status":{"shape":"ReplicationRuleStatus"},
         "SourceSelectionCriteria":{"shape":"SourceSelectionCriteria"},
+        "ExistingObjectReplication":{"shape":"ExistingObjectReplication"},
         "Destination":{"shape":"Destination"},
         "DeleteMarkerReplication":{"shape":"DeleteMarkerReplication"}
       }
@@ -5749,6 +5844,30 @@
         "FAILED",
         "REPLICA"
       ]
+    },
+    "ReplicationTime":{
+      "type":"structure",
+      "required":[
+        "Status",
+        "Time"
+      ],
+      "members":{
+        "Status":{"shape":"ReplicationTimeStatus"},
+        "Time":{"shape":"ReplicationTimeValue"}
+      }
+    },
+    "ReplicationTimeStatus":{
+      "type":"string",
+      "enum":[
+        "Enabled",
+        "Disabled"
+      ]
+    },
+    "ReplicationTimeValue":{
+      "type":"structure",
+      "members":{
+        "Minutes":{"shape":"Minutes"}
+      }
     },
     "RequestCharged":{
       "type":"string",
@@ -5923,6 +6042,10 @@
       },
       "locationName":"SSE-KMS"
     },
+    "SSEKMSEncryptionContext":{
+      "type":"string",
+      "sensitive":true
+    },
     "SSEKMSKeyId":{
       "type":"string",
       "sensitive":true
@@ -5932,6 +6055,13 @@
       "members":{
       },
       "locationName":"SSE-S3"
+    },
+    "ScanRange":{
+      "type":"structure",
+      "members":{
+        "Start":{"shape":"Start"},
+        "End":{"shape":"End"}
+      }
     },
     "SelectObjectContentEventStream":{
       "type":"structure",
@@ -5991,7 +6121,8 @@
         "ExpressionType":{"shape":"ExpressionType"},
         "RequestProgress":{"shape":"RequestProgress"},
         "InputSerialization":{"shape":"InputSerialization"},
-        "OutputSerialization":{"shape":"OutputSerialization"}
+        "OutputSerialization":{"shape":"OutputSerialization"},
+        "ScanRange":{"shape":"ScanRange"}
       }
     },
     "SelectParameters":{
@@ -6067,6 +6198,7 @@
         "Disabled"
       ]
     },
+    "Start":{"type":"long"},
     "StartAfter":{"type":"string"},
     "Stats":{
       "type":"structure",
@@ -6094,7 +6226,8 @@
         "STANDARD_IA",
         "ONEZONE_IA",
         "INTELLIGENT_TIERING",
-        "GLACIER"
+        "GLACIER",
+        "DEEP_ARCHIVE"
       ]
     },
     "StorageClassAnalysis":{
@@ -6237,7 +6370,8 @@
         "GLACIER",
         "STANDARD_IA",
         "ONEZONE_IA",
-        "INTELLIGENT_TIERING"
+        "INTELLIGENT_TIERING",
+        "DEEP_ARCHIVE"
       ]
     },
     "Type":{

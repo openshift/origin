@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -40,7 +41,6 @@ import (
 	fakecloud "k8s.io/cloud-provider/fake"
 	servicehelper "k8s.io/cloud-provider/service/helpers"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
-	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/controller"
 )
 
@@ -52,7 +52,7 @@ func newService(name string, uid types.UID, serviceType v1.ServiceType) *v1.Serv
 			Name:      name,
 			Namespace: "default",
 			UID:       uid,
-			SelfLink:  testapi.Default.SelfLink("services", name),
+			SelfLink:  "/api/v1/namespaces/default/services/" + name,
 		},
 		Spec: v1.ServiceSpec{
 			Type: serviceType,
@@ -144,7 +144,7 @@ func TestSyncLoadBalancerIfNeeded(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "udp-service",
 					Namespace: "default",
-					SelfLink:  testapi.Default.SelfLink("services", "udp-service"),
+					SelfLink:  "/api/v1/namespaces/default/services/udp-service",
 				},
 				Spec: v1.ServiceSpec{
 					Ports: []v1.ServicePort{{
@@ -165,7 +165,7 @@ func TestSyncLoadBalancerIfNeeded(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "basic-service1",
 					Namespace: "default",
-					SelfLink:  testapi.Default.SelfLink("services", "basic-service1"),
+					SelfLink:  "/api/v1/namespaces/default/services/basic-service1",
 				},
 				Spec: v1.ServiceSpec{
 					Ports: []v1.ServicePort{{
@@ -186,7 +186,7 @@ func TestSyncLoadBalancerIfNeeded(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sctp-service",
 					Namespace: "default",
-					SelfLink:  testapi.Default.SelfLink("services", "sctp-service"),
+					SelfLink:  "/api/v1/namespaces/default/services/sctp-service",
 				},
 				Spec: v1.ServiceSpec{
 					Ports: []v1.ServicePort{{
@@ -233,7 +233,7 @@ func TestSyncLoadBalancerIfNeeded(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "basic-service1",
 					Namespace: "default",
-					SelfLink:  testapi.Default.SelfLink("services", "basic-service1"),
+					SelfLink:  "/api/v1/namespaces/default/services/basic-service1",
 					DeletionTimestamp: &metav1.Time{
 						Time: time.Now(),
 					},
@@ -266,7 +266,7 @@ func TestSyncLoadBalancerIfNeeded(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "basic-service1",
 					Namespace: "default",
-					SelfLink:  testapi.Default.SelfLink("services", "basic-service1"),
+					SelfLink:  "/api/v1/namespaces/default/services/basic-service1",
 				},
 				Spec: v1.ServiceSpec{
 					Ports: []v1.ServicePort{{
@@ -287,7 +287,7 @@ func TestSyncLoadBalancerIfNeeded(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "basic-service1",
 					Namespace:  "default",
-					SelfLink:   testapi.Default.SelfLink("services", "basic-service1"),
+					SelfLink:   "/api/v1/namespaces/default/services/basic-service1",
 					Finalizers: []string{servicehelper.LoadBalancerCleanupFinalizer},
 				},
 				Spec: v1.ServiceSpec{
@@ -310,7 +310,7 @@ func TestSyncLoadBalancerIfNeeded(t *testing.T) {
 			controller, cloud, client := newController()
 			cloud.Exists = tc.lbExists
 			key := fmt.Sprintf("%s/%s", tc.service.Namespace, tc.service.Name)
-			if _, err := client.CoreV1().Services(tc.service.Namespace).Create(tc.service); err != nil {
+			if _, err := client.CoreV1().Services(tc.service.Namespace).Create(context.TODO(), tc.service, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("Failed to prepare service %s for testing: %v", key, err)
 			}
 			client.ClearActions()
@@ -603,7 +603,7 @@ func TestProcessServiceCreateOrUpdate(t *testing.T) {
 
 	for _, tc := range testCases {
 		newSvc := tc.updateFn(tc.svc)
-		if _, err := client.CoreV1().Services(tc.svc.Namespace).Create(tc.svc); err != nil {
+		if _, err := client.CoreV1().Services(tc.svc.Namespace).Create(context.TODO(), tc.svc, metav1.CreateOptions{}); err != nil {
 			t.Fatalf("Failed to prepare service %s for testing: %v", tc.key, err)
 		}
 		obtErr := controller.processServiceCreateOrUpdate(newSvc, tc.key)
@@ -952,7 +952,7 @@ func TestNeedsUpdate(t *testing.T) {
 			expectedNeedsUpdate: true,
 		},
 		{
-			testName: "If externel ip counts are different",
+			testName: "If external ip counts are different",
 			updateFn: func() {
 				oldSvc = defaultExternalService()
 				newSvc = defaultExternalService()
@@ -962,7 +962,7 @@ func TestNeedsUpdate(t *testing.T) {
 			expectedNeedsUpdate: true,
 		},
 		{
-			testName: "If externel ips are different",
+			testName: "If external ips are different",
 			updateFn: func() {
 				oldSvc = defaultExternalService()
 				newSvc = defaultExternalService()
@@ -1222,7 +1222,7 @@ func TestAddFinalizer(t *testing.T) {
 			s := &Controller{
 				kubeClient: c,
 			}
-			if _, err := s.kubeClient.CoreV1().Services(tc.svc.Namespace).Create(tc.svc); err != nil {
+			if _, err := s.kubeClient.CoreV1().Services(tc.svc.Namespace).Create(context.TODO(), tc.svc, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("Failed to prepare service for testing: %v", err)
 			}
 			if err := s.addFinalizer(tc.svc); err != nil {
@@ -1276,7 +1276,7 @@ func TestRemoveFinalizer(t *testing.T) {
 			s := &Controller{
 				kubeClient: c,
 			}
-			if _, err := s.kubeClient.CoreV1().Services(tc.svc.Namespace).Create(tc.svc); err != nil {
+			if _, err := s.kubeClient.CoreV1().Services(tc.svc.Namespace).Create(context.TODO(), tc.svc, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("Failed to prepare service for testing: %v", err)
 			}
 			if err := s.removeFinalizer(tc.svc); err != nil {
@@ -1376,7 +1376,7 @@ func TestPatchStatus(t *testing.T) {
 			s := &Controller{
 				kubeClient: c,
 			}
-			if _, err := s.kubeClient.CoreV1().Services(tc.svc.Namespace).Create(tc.svc); err != nil {
+			if _, err := s.kubeClient.CoreV1().Services(tc.svc.Namespace).Create(context.TODO(), tc.svc, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("Failed to prepare service for testing: %v", err)
 			}
 			if err := s.patchStatus(tc.svc, &tc.svc.Status.LoadBalancer, tc.newStatus); err != nil {
@@ -1424,6 +1424,70 @@ func Test_getNodeConditionPredicate(t *testing.T) {
 
 			if result := getNodeConditionPredicate()(tt.input); result != tt.want {
 				t.Errorf("getNodeConditionPredicate() = %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func TestListWithPredicate(t *testing.T) {
+	fakeInformerFactory := informers.NewSharedInformerFactory(&fake.Clientset{}, 0*time.Second)
+	var nodes []*v1.Node
+	for i := 0; i < 5; i++ {
+		var phase v1.NodePhase
+		if i%2 == 0 {
+			phase = v1.NodePending
+		} else {
+			phase = v1.NodeRunning
+		}
+		node := &v1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fmt.Sprintf("node-%d", i),
+			},
+			Status: v1.NodeStatus{
+				Phase: phase,
+			},
+		}
+		nodes = append(nodes, node)
+		fakeInformerFactory.Core().V1().Nodes().Informer().GetStore().Add(node)
+	}
+
+	tests := []struct {
+		name      string
+		predicate NodeConditionPredicate
+		expect    []*v1.Node
+	}{
+		{
+			name: "ListWithPredicate filter Running node",
+			predicate: func(node *v1.Node) bool {
+				return node.Status.Phase == v1.NodeRunning
+			},
+			expect: []*v1.Node{nodes[1], nodes[3]},
+		},
+		{
+			name: "ListWithPredicate filter Pending node",
+			predicate: func(node *v1.Node) bool {
+				return node.Status.Phase == v1.NodePending
+			},
+			expect: []*v1.Node{nodes[0], nodes[2], nodes[4]},
+		},
+		{
+			name: "ListWithPredicate filter Terminated node",
+			predicate: func(node *v1.Node) bool {
+				return node.Status.Phase == v1.NodeTerminated
+			},
+			expect: nil,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			get, err := listWithPredicate(fakeInformerFactory.Core().V1().Nodes().Lister(), test.predicate)
+			sort.Slice(get, func(i, j int) bool {
+				return get[i].Name < get[j].Name
+			})
+			if err != nil {
+				t.Errorf("Error from ListWithPredicate: %v", err)
+			} else if !reflect.DeepEqual(get, test.expect) {
+				t.Errorf("Expect nodes %v, but got %v", test.expect, get)
 			}
 		})
 	}

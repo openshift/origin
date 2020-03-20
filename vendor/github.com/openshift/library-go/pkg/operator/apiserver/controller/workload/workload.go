@@ -237,7 +237,7 @@ func (c *Controller) shouldSync(operatorSpec *operatorv1.OperatorSpec) (bool, er
 	case operatorv1.Unmanaged:
 		return false, nil
 	case operatorv1.Removed:
-		if err := c.kubeClient.CoreV1().Namespaces().Delete(c.targetNamespace, nil); err != nil && !apierrors.IsNotFound(err) {
+		if err := c.kubeClient.CoreV1().Namespaces().Delete(context.TODO(), c.targetNamespace, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 			return false, err
 		}
 		return false, nil
@@ -249,7 +249,7 @@ func (c *Controller) shouldSync(operatorSpec *operatorv1.OperatorSpec) (bool, er
 
 // preconditionFulfilled checks if kube-apiserver is present and available
 func (c *Controller) preconditionFulfilled(operatorSpec *operatorv1.OperatorSpec) (bool, error) {
-	kubeAPIServerClusterOperator, err := c.openshiftClusterConfigClient.Get("kube-apiserver", metav1.GetOptions{})
+	kubeAPIServerClusterOperator, err := c.openshiftClusterConfigClient.Get(context.TODO(), "kube-apiserver", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		message := "clusteroperator/kube-apiserver not found"
 		c.eventRecorder.Warning("PrereqNotReady", message)

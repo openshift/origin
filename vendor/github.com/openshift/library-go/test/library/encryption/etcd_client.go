@@ -80,11 +80,11 @@ func (e *etcdWrapper) newEtcdClientInternal() (EtcdClient, func(), error) {
 	}
 
 	coreV1 := e.kubeClient.CoreV1()
-	etcdConfigMap, err := coreV1.ConfigMaps("openshift-config").Get("etcd-ca-bundle", metav1.GetOptions{})
+	etcdConfigMap, err := coreV1.ConfigMaps("openshift-config").Get(ctx, "etcd-ca-bundle", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
-	etcdSecret, err := coreV1.Secrets("openshift-config").Get("etcd-client", metav1.GetOptions{})
+	etcdSecret, err := coreV1.Secrets("openshift-config").Get(ctx, "etcd-client", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}

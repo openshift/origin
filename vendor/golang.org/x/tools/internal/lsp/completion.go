@@ -8,71 +8,72 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 
 	"golang.org/x/tools/internal/lsp/protocol"
 	"golang.org/x/tools/internal/lsp/source"
 	"golang.org/x/tools/internal/span"
+	"golang.org/x/tools/internal/telemetry/log"
+	"golang.org/x/tools/internal/telemetry/tag"
 )
 
 func (s *Server) completion(ctx context.Context, params *protocol.CompletionParams) (*protocol.CompletionList, error) {
 	uri := span.NewURI(params.TextDocument.URI)
 	view := s.session.ViewOf(uri)
-	f, m, err := getGoFile(ctx, view, uri)
+	f, err := getGoFile(ctx, view, uri)
 	if err != nil {
 		return nil, err
 	}
-	spn, err := m.PointSpan(params.Position)
+	candidates, surrounding, err := source.Completion(ctx, view, f, params.Position, source.CompletionOptions{
+		DeepComplete:          s.useDeepCompletions,
+		WantDocumentaton:      s.wantCompletionDocumentation,
+		WantFullDocumentation: s.hoverKind == fullDocumentation,
+		WantUnimported:        s.wantUnimportedCompletions,
+	})
 	if err != nil {
-		return nil, err
+		log.Print(ctx, "no completions found", tag.Of("At", params.Position), tag.Of("Failure", err))
 	}
-	rng, err := spn.Range(m.Converter)
-	if err != nil {
-		return nil, err
-	}
-	items, surrounding, err := source.Completion(ctx, f, rng.Start)
-	if err != nil {
-		s.session.Logger().Infof(ctx, "no completions found for %s:%v:%v: %v", uri, int(params.Position.Line), int(params.Position.Character), err)
+	if candidates == nil {
+		return &protocol.CompletionList{
+			Items: []protocol.CompletionItem{},
+		}, nil
 	}
 	// We might need to adjust the position to account for the prefix.
-	insertionRng := protocol.Range{
-		Start: params.Position,
-		End:   params.Position,
+	rng, err := surrounding.Range()
+	if err != nil {
+		return nil, err
 	}
-	var prefix string
-	if surrounding != nil {
-		prefix = surrounding.Prefix()
-		spn, err := surrounding.Range.Span()
-		if err != nil {
-			s.session.Logger().Infof(ctx, "failed to get span for surrounding position: %s:%v:%v: %v", uri, int(params.Position.Line), int(params.Position.Character), err)
-		} else {
-			rng, err := m.Range(spn)
-			if err != nil {
-				s.session.Logger().Infof(ctx, "failed to convert surrounding position: %s:%v:%v: %v", uri, int(params.Position.Line), int(params.Position.Character), err)
-			} else {
-				insertionRng = rng
-			}
-		}
-	}
-	return &protocol.CompletionList{
-		IsIncomplete: false,
-		Items:        toProtocolCompletionItems(items, prefix, insertionRng, s.insertTextFormat, s.usePlaceholders),
-	}, nil
-}
-
-func toProtocolCompletionItems(candidates []source.CompletionItem, prefix string, rng protocol.Range, insertTextFormat protocol.InsertTextFormat, usePlaceholders bool) []protocol.CompletionItem {
+	// Sort the candidates by score, since that is not supported by LSP yet.
 	sort.SliceStable(candidates, func(i, j int) bool {
 		return candidates[i].Score > candidates[j].Score
 	})
-	items := make([]protocol.CompletionItem, 0, len(candidates))
+	return &protocol.CompletionList{
+		// When using deep completions/fuzzy matching, report results as incomplete so
+		// client fetches updated completions after every key stroke.
+		IsIncomplete: s.useDeepCompletions,
+		Items:        s.toProtocolCompletionItems(candidates, rng),
+	}, nil
+}
+
+func (s *Server) toProtocolCompletionItems(candidates []source.CompletionItem, rng protocol.Range) []protocol.CompletionItem {
+	var (
+		items                  = make([]protocol.CompletionItem, 0, len(candidates))
+		numDeepCompletionsSeen int
+	)
 	for i, candidate := range candidates {
-		// Match against the label.
-		if !strings.HasPrefix(candidate.Label, prefix) {
-			continue
+		// Limit the number of deep completions to not overwhelm the user in cases
+		// with dozens of deep completion matches.
+		if candidate.Depth > 0 {
+			if !s.useDeepCompletions {
+				continue
+			}
+			if numDeepCompletionsSeen >= source.MaxDeepCompletions {
+				continue
+			}
+			numDeepCompletionsSeen++
 		}
 		insertText := candidate.InsertText
-		if insertTextFormat == protocol.SnippetTextFormat {
-			insertText = candidate.Snippet(usePlaceholders)
+		if s.insertTextFormat == protocol.SnippetTextFormat {
+			insertText = candidate.Snippet(s.usePlaceholders)
 		}
 		item := protocol.CompletionItem{
 			Label:  candidate.Label,
@@ -82,13 +83,15 @@ func toProtocolCompletionItems(candidates []source.CompletionItem, prefix string
 				NewText: insertText,
 				Range:   rng,
 			},
-			InsertTextFormat: insertTextFormat,
+			InsertTextFormat:    s.insertTextFormat,
+			AdditionalTextEdits: candidate.AdditionalTextEdits,
 			// This is a hack so that the client sorts completion results in the order
 			// according to their score. This can be removed upon the resolution of
 			// https://github.com/Microsoft/language-server-protocol/issues/348.
-			SortText:   fmt.Sprintf("%05d", i),
-			FilterText: candidate.InsertText,
-			Preselect:  i == 0,
+			SortText:      fmt.Sprintf("%05d", i),
+			FilterText:    candidate.InsertText,
+			Preselect:     i == 0,
+			Documentation: candidate.Documentation,
 		}
 		// Trigger signature help for any function or method completion.
 		// This is helpful even if a function does not have parameters,

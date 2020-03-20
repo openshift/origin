@@ -17,6 +17,7 @@ limitations under the License.
 package service
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"regexp"
@@ -27,7 +28,7 @@ import (
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -45,6 +46,7 @@ import (
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2erc "k8s.io/kubernetes/test/e2e/framework/rc"
 	testutils "k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
@@ -104,7 +106,7 @@ func (j *TestJig) CreateTCPServiceWithPort(tweak func(svc *v1.Service), port int
 	if tweak != nil {
 		tweak(svc)
 	}
-	result, err := j.Client.CoreV1().Services(j.Namespace).Create(svc)
+	result, err := j.Client.CoreV1().Services(j.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TCP Service %q: %v", svc.Name, err)
 	}
@@ -115,15 +117,7 @@ func (j *TestJig) CreateTCPServiceWithPort(tweak func(svc *v1.Service), port int
 // defaults.  Callers can provide a function to tweak the Service object before
 // it is created.
 func (j *TestJig) CreateTCPService(tweak func(svc *v1.Service)) (*v1.Service, error) {
-	svc := j.newServiceTemplate(v1.ProtocolTCP, 80)
-	if tweak != nil {
-		tweak(svc)
-	}
-	result, err := j.Client.CoreV1().Services(j.Namespace).Create(svc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create TCP Service %q: %v", svc.Name, err)
-	}
-	return j.sanityCheckService(result, svc.Spec.Type)
+	return j.CreateTCPServiceWithPort(tweak, 80)
 }
 
 // CreateUDPService creates a new UDP Service based on the j's
@@ -134,7 +128,7 @@ func (j *TestJig) CreateUDPService(tweak func(svc *v1.Service)) (*v1.Service, er
 	if tweak != nil {
 		tweak(svc)
 	}
-	result, err := j.Client.CoreV1().Services(j.Namespace).Create(svc)
+	result, err := j.Client.CoreV1().Services(j.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create UDP Service %q: %v", svc.Name, err)
 	}
@@ -159,7 +153,7 @@ func (j *TestJig) CreateExternalNameService(tweak func(svc *v1.Service)) (*v1.Se
 	if tweak != nil {
 		tweak(svc)
 	}
-	result, err := j.Client.CoreV1().Services(j.Namespace).Create(svc)
+	result, err := j.Client.CoreV1().Services(j.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ExternalName Service %q: %v", svc.Name, err)
 	}
@@ -251,7 +245,7 @@ func (j *TestJig) CreateLoadBalancerService(timeout time.Duration, tweak func(sv
 	if tweak != nil {
 		tweak(svc)
 	}
-	_, err := j.Client.CoreV1().Services(j.Namespace).Create(svc)
+	_, err := j.Client.CoreV1().Services(j.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create LoadBalancer Service %q: %v", svc.Name, err)
 	}
@@ -283,7 +277,7 @@ func (j *TestJig) GetEndpointNodes() (map[string][]string, error) {
 // GetEndpointNodeNames returns a string set of node names on which the
 // endpoints of the given Service are running.
 func (j *TestJig) GetEndpointNodeNames() (sets.String, error) {
-	endpoints, err := j.Client.CoreV1().Endpoints(j.Namespace).Get(j.Name, metav1.GetOptions{})
+	endpoints, err := j.Client.CoreV1().Endpoints(j.Namespace).Get(context.TODO(), j.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("get endpoints for service %s/%s failed (%s)", j.Namespace, j.Name, err)
 	}
@@ -304,7 +298,7 @@ func (j *TestJig) GetEndpointNodeNames() (sets.String, error) {
 // WaitForEndpointOnNode waits for a service endpoint on the given node.
 func (j *TestJig) WaitForEndpointOnNode(nodeName string) error {
 	return wait.PollImmediate(framework.Poll, LoadBalancerPropagationTimeoutDefault, func() (bool, error) {
-		endpoints, err := j.Client.CoreV1().Endpoints(j.Namespace).Get(j.Name, metav1.GetOptions{})
+		endpoints, err := j.Client.CoreV1().Endpoints(j.Namespace).Get(context.TODO(), j.Name, metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("Get endpoints for service %s/%s failed (%s)", j.Namespace, j.Name, err)
 			return false, nil
@@ -339,12 +333,12 @@ func (j *TestJig) WaitForAvailableEndpoint(timeout time.Duration) error {
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = endpointSelector.String()
-				obj, err := j.Client.CoreV1().Endpoints(j.Namespace).List(options)
+				obj, err := j.Client.CoreV1().Endpoints(j.Namespace).List(context.TODO(), options)
 				return runtime.Object(obj), err
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = endpointSelector.String()
-				return j.Client.CoreV1().Endpoints(j.Namespace).Watch(options)
+				return j.Client.CoreV1().Endpoints(j.Namespace).Watch(context.TODO(), options)
 			},
 		},
 		&v1.Endpoints{},
@@ -436,16 +430,16 @@ func (j *TestJig) sanityCheckService(svc *v1.Service, svcType v1.ServiceType) (*
 // face of timeouts and conflicts.
 func (j *TestJig) UpdateService(update func(*v1.Service)) (*v1.Service, error) {
 	for i := 0; i < 3; i++ {
-		service, err := j.Client.CoreV1().Services(j.Namespace).Get(j.Name, metav1.GetOptions{})
+		service, err := j.Client.CoreV1().Services(j.Namespace).Get(context.TODO(), j.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get Service %q: %v", j.Name, err)
 		}
 		update(service)
-		result, err := j.Client.CoreV1().Services(j.Namespace).Update(service)
+		result, err := j.Client.CoreV1().Services(j.Namespace).Update(context.TODO(), service, metav1.UpdateOptions{})
 		if err == nil {
 			return j.sanityCheckService(result, service.Spec.Type)
 		}
-		if !errors.IsConflict(err) && !errors.IsServerTimeout(err) {
+		if !apierrors.IsConflict(err) && !apierrors.IsServerTimeout(err) {
 			return nil, fmt.Errorf("failed to update Service %q: %v", j.Name, err)
 		}
 	}
@@ -533,7 +527,7 @@ func (j *TestJig) WaitForLoadBalancerDestroy(ip string, port int, timeout time.D
 func (j *TestJig) waitForCondition(timeout time.Duration, message string, conditionFn func(*v1.Service) bool) (*v1.Service, error) {
 	var service *v1.Service
 	pollFunc := func() (bool, error) {
-		svc, err := j.Client.CoreV1().Services(j.Namespace).Get(j.Name, metav1.GetOptions{})
+		svc, err := j.Client.CoreV1().Services(j.Namespace).Get(context.TODO(), j.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -617,7 +611,7 @@ func (j *TestJig) AddRCAntiAffinity(rc *v1.ReplicationController) {
 // CreatePDB returns a PodDisruptionBudget for the given ReplicationController, or returns an error if a PodDisruptionBudget isn't ready
 func (j *TestJig) CreatePDB(rc *v1.ReplicationController) (*policyv1beta1.PodDisruptionBudget, error) {
 	pdb := j.newPDBTemplate(rc)
-	newPdb, err := j.Client.PolicyV1beta1().PodDisruptionBudgets(j.Namespace).Create(pdb)
+	newPdb, err := j.Client.PolicyV1beta1().PodDisruptionBudgets(j.Namespace).Create(context.TODO(), pdb, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create PDB %q %v", pdb.Name, err)
 	}
@@ -657,7 +651,7 @@ func (j *TestJig) Run(tweak func(rc *v1.ReplicationController)) (*v1.Replication
 	if tweak != nil {
 		tweak(rc)
 	}
-	result, err := j.Client.CoreV1().ReplicationControllers(j.Namespace).Create(rc)
+	result, err := j.Client.CoreV1().ReplicationControllers(j.Namespace).Create(context.TODO(), rc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RC %q: %v", rc.Name, err)
 	}
@@ -674,13 +668,14 @@ func (j *TestJig) Run(tweak func(rc *v1.ReplicationController)) (*v1.Replication
 // Scale scales pods to the given replicas
 func (j *TestJig) Scale(replicas int) error {
 	rc := j.Name
-	scale, err := j.Client.CoreV1().ReplicationControllers(j.Namespace).GetScale(rc, metav1.GetOptions{})
+	scale, err := j.Client.CoreV1().ReplicationControllers(j.Namespace).GetScale(context.TODO(), rc, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get scale for RC %q: %v", rc, err)
 	}
 
+	scale.ResourceVersion = "" // indicate the scale update should be unconditional
 	scale.Spec.Replicas = int32(replicas)
-	_, err = j.Client.CoreV1().ReplicationControllers(j.Namespace).UpdateScale(rc, scale)
+	_, err = j.Client.CoreV1().ReplicationControllers(j.Namespace).UpdateScale(context.TODO(), rc, scale, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to scale RC %q: %v", rc, err)
 	}
@@ -697,11 +692,11 @@ func (j *TestJig) Scale(replicas int) error {
 func (j *TestJig) waitForPdbReady() error {
 	timeout := 2 * time.Minute
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2 * time.Second) {
-		pdb, err := j.Client.PolicyV1beta1().PodDisruptionBudgets(j.Namespace).Get(j.Name, metav1.GetOptions{})
+		pdb, err := j.Client.PolicyV1beta1().PodDisruptionBudgets(j.Namespace).Get(context.TODO(), j.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		if pdb.Status.PodDisruptionsAllowed > 0 {
+		if pdb.Status.DisruptionsAllowed > 0 {
 			return nil
 		}
 	}
@@ -716,7 +711,7 @@ func (j *TestJig) waitForPodsCreated(replicas int) ([]string, error) {
 	framework.Logf("Waiting up to %v for %d pods to be created", timeout, replicas)
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2 * time.Second) {
 		options := metav1.ListOptions{LabelSelector: label.String()}
-		pods, err := j.Client.CoreV1().Pods(j.Namespace).List(options)
+		pods, err := j.Client.CoreV1().Pods(j.Namespace).List(context.TODO(), options)
 		if err != nil {
 			return nil, err
 		}
@@ -761,9 +756,11 @@ func testReachabilityOverClusterIP(clusterIP string, sp v1.ServicePort, execPod 
 	return nil
 }
 
-func testReachabilityOverNodePorts(nodes *v1.NodeList, sp v1.ServicePort, pod *v1.Pod) error {
+func testReachabilityOverNodePorts(nodes *v1.NodeList, sp v1.ServicePort, pod *v1.Pod, clusterIP string) error {
 	internalAddrs := e2enode.CollectAddresses(nodes, v1.NodeInternalIP)
 	externalAddrs := e2enode.CollectAddresses(nodes, v1.NodeExternalIP)
+	isClusterIPV4 := net.ParseIP(clusterIP).To4() != nil
+
 	for _, internalAddr := range internalAddrs {
 		// If the node's internal address points to localhost, then we are not
 		// able to test the service reachability via that address
@@ -771,12 +768,25 @@ func testReachabilityOverNodePorts(nodes *v1.NodeList, sp v1.ServicePort, pod *v
 			framework.Logf("skipping testEndpointReachability() for internal adddress %s", internalAddr)
 			continue
 		}
+		isNodeInternalIPV4 := net.ParseIP(internalAddr).To4() != nil
+		// Check service reachability on the node internalIP which is same family
+		// as clusterIP
+		if isClusterIPV4 != isNodeInternalIPV4 {
+			framework.Logf("skipping testEndpointReachability() for internal adddress %s as it does not match clusterIP (%s) family", internalAddr, clusterIP)
+			continue
+		}
+
 		err := testEndpointReachability(internalAddr, sp.NodePort, sp.Protocol, pod)
 		if err != nil {
 			return err
 		}
 	}
 	for _, externalAddr := range externalAddrs {
+		isNodeExternalIPV4 := net.ParseIP(externalAddr).To4() != nil
+		if isClusterIPV4 != isNodeExternalIPV4 {
+			framework.Logf("skipping testEndpointReachability() for external adddress %s as it does not match clusterIP (%s) family", externalAddr, clusterIP)
+			continue
+		}
 		err := testEndpointReachability(externalAddr, sp.NodePort, sp.Protocol, pod)
 		if err != nil {
 			return err
@@ -876,7 +886,7 @@ func (j *TestJig) checkNodePortServiceReachability(svc *v1.Service, pod *v1.Pod)
 		if err != nil {
 			return err
 		}
-		err = testReachabilityOverNodePorts(nodes, servicePort, pod)
+		err = testReachabilityOverNodePorts(nodes, servicePort, pod, clusterIP)
 		if err != nil {
 			return err
 		}
@@ -931,7 +941,7 @@ func (j *TestJig) CreateServicePods(replica int) error {
 		Timeout:      framework.PodReadyBeforeTimeout,
 		Replicas:     replica,
 	}
-	return framework.RunRC(config)
+	return e2erc.RunRC(config)
 }
 
 // CreateTCPUDPServicePods creates a replication controller with the label same as service. Service listens to TCP and UDP.
@@ -947,5 +957,5 @@ func (j *TestJig) CreateTCPUDPServicePods(replica int) error {
 		Timeout:      framework.PodReadyBeforeTimeout,
 		Replicas:     replica,
 	}
-	return framework.RunRC(config)
+	return e2erc.RunRC(config)
 }

@@ -326,7 +326,7 @@ func (c *imageResolutionCache) resolveImageReference(ref reference.DockerImageRe
 				return &rules.ImagePolicyAttributes{Name: ref, Image: cached.image}, nil
 			}
 		}
-		image, err := c.imageClient.Images().Get(ref.ID, metav1.GetOptions{})
+		image, err := c.imageClient.Images().Get(context.TODO(), ref.ID, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -362,7 +362,7 @@ func (c *imageResolutionCache) resolveImageReference(ref reference.DockerImageRe
 // or returns an error.
 func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string, partial, forceResolveLocalNames bool) (*rules.ImagePolicyAttributes, error) {
 	attrs := &rules.ImagePolicyAttributes{IntegratedRegistry: true}
-	resolved, err := c.imageClient.ImageStreamTags(namespace).Get(imageutil.JoinImageStreamTag(name, tag), metav1.GetOptions{})
+	resolved, err := c.imageClient.ImageStreamTags(namespace).Get(context.TODO(), imageutil.JoinImageStreamTag(name, tag), metav1.GetOptions{})
 	if err != nil {
 		if partial {
 			attrs.IntegratedRegistry = false
@@ -371,7 +371,7 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 		// to the internal registry. This prevents the lookup from going to the original location, which is consistent
 		// with the intent of resolving local names.
 		if isImageStreamTagNotFound(err) {
-			if stream, err := c.imageClient.ImageStreams(namespace).Get(name, metav1.GetOptions{}); err == nil && (forceResolveLocalNames || stream.Spec.LookupPolicy.Local) && len(stream.Status.DockerImageRepository) > 0 {
+			if stream, err := c.imageClient.ImageStreams(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil && (forceResolveLocalNames || stream.Spec.LookupPolicy.Local) && len(stream.Status.DockerImageRepository) > 0 {
 				if ref, err := reference.Parse(stream.Status.DockerImageRepository); err == nil {
 					klog.V(4).Infof("%s/%s:%s points to a local name resolving stream, but the tag does not exist", namespace, name, tag)
 					ref.Tag = tag
@@ -408,7 +408,7 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 // resolveImageStreamImage loads an image stream image if it exists, or returns an error.
 func (c *imageResolutionCache) resolveImageStreamImage(namespace, name, id string) (*rules.ImagePolicyAttributes, error) {
 	attrs := &rules.ImagePolicyAttributes{IntegratedRegistry: true}
-	resolved, err := c.imageClient.ImageStreamImages(namespace).Get(imageutil.JoinImageStreamImage(name, id), metav1.GetOptions{})
+	resolved, err := c.imageClient.ImageStreamImages(namespace).Get(context.TODO(), imageutil.JoinImageStreamImage(name, id), metav1.GetOptions{})
 	if err != nil {
 		return attrs, err
 	}

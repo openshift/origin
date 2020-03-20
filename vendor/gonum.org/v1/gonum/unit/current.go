@@ -16,29 +16,7 @@ import (
 // Current represents a current in Amperes.
 type Current float64
 
-const (
-	Yottaampere Current = 1e24
-	Zettaampere Current = 1e21
-	Exaampere   Current = 1e18
-	Petaampere  Current = 1e15
-	Teraampere  Current = 1e12
-	Gigaampere  Current = 1e9
-	Megaampere  Current = 1e6
-	Kiloampere  Current = 1e3
-	Hectoampere Current = 1e2
-	Decaampere  Current = 1e1
-	Ampere      Current = 1.0
-	Deciampere  Current = 1e-1
-	Centiampere Current = 1e-2
-	Milliampere Current = 1e-3
-	Microampere Current = 1e-6
-	Nanoampere  Current = 1e-9
-	Picoampere  Current = 1e-12
-	Femtoampere Current = 1e-15
-	Attoampere  Current = 1e-18
-	Zeptoampere Current = 1e-21
-	Yoctoampere Current = 1e-24
-)
+const Ampere Current = 1
 
 // Unit converts the Current to a *Unit
 func (i Current) Unit() *Unit {

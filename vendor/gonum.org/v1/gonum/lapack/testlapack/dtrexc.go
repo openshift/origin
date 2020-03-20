@@ -209,12 +209,12 @@ func testDtrexc(t *testing.T, impl Dtrexcer, compq lapack.UpdateSchurComp, tmat 
 			}
 		}
 	}
-	// Check that Q^T TOrig Q == T.
+	// Check that Qᵀ TOrig Q == T.
 	tq := eye(n, n)
 	blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, tmatCopy, q, 0, tq)
 	qtq := eye(n, n)
 	blas64.Gemm(blas.Trans, blas.NoTrans, 1, q, tq, 0, qtq)
 	if !equalApproxGeneral(qtq, tmat, tol) {
-		t.Errorf("%v: Q^T (initial T) Q and (final T) are not equal", prefix)
+		t.Errorf("%v: Qᵀ (initial T) Q and (final T) are not equal", prefix)
 	}
 }

@@ -18,7 +18,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type E int32
 
@@ -176,10 +176,10 @@ type isM_OneofField interface {
 }
 
 type M_OneofInt32 struct {
-	OneofInt32 int32 `protobuf:"varint,2,opt,name=oneof_int32,json=oneofInt32,oneof"`
+	OneofInt32 int32 `protobuf:"varint,2,opt,name=oneof_int32,json=oneofInt32,oneof" json:"oneof_int32,omitempty"`
 }
 type M_OneofInt64 struct {
-	OneofInt64 int64 `protobuf:"varint,3,opt,name=oneof_int64,json=oneofInt64,oneof"`
+	OneofInt64 int64 `protobuf:"varint,3,opt,name=oneof_int64,json=oneofInt64,oneof" json:"oneof_int64,omitempty"`
 }
 
 func (*M_OneofInt32) isM_OneofField() {}
@@ -227,68 +227,12 @@ func (m *M) GetDefaultField() string {
 	return Default_M_DefaultField
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*M) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _M_OneofMarshaler, _M_OneofUnmarshaler, _M_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*M) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*M_OneofInt32)(nil),
 		(*M_OneofInt64)(nil),
 	}
-}
-
-func _M_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*M)
-	// oneof_field
-	switch x := m.OneofField.(type) {
-	case *M_OneofInt32:
-		_ = b.EncodeVarint(2<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(uint64(x.OneofInt32))
-	case *M_OneofInt64:
-		_ = b.EncodeVarint(3<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(uint64(x.OneofInt64))
-	case nil:
-	default:
-		return fmt.Errorf("M.OneofField has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _M_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*M)
-	switch tag {
-	case 2: // oneof_field.oneof_int32
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.OneofField = &M_OneofInt32{int32(x)}
-		return true, err
-	case 3: // oneof_field.oneof_int64
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.OneofField = &M_OneofInt64{int64(x)}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _M_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*M)
-	// oneof_field
-	switch x := m.OneofField.(type) {
-	case *M_OneofInt32:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.OneofInt32))
-	case *M_OneofInt64:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.OneofInt64))
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type M_Grouping struct {
@@ -368,10 +312,10 @@ type isM_Submessage_SubmessageOneofField interface {
 }
 
 type M_Submessage_SubmessageOneofInt32 struct {
-	SubmessageOneofInt32 int32 `protobuf:"varint,1,opt,name=submessage_oneof_int32,json=submessageOneofInt32,oneof"`
+	SubmessageOneofInt32 int32 `protobuf:"varint,1,opt,name=submessage_oneof_int32,json=submessageOneofInt32,oneof" json:"submessage_oneof_int32,omitempty"`
 }
 type M_Submessage_SubmessageOneofInt64 struct {
-	SubmessageOneofInt64 int64 `protobuf:"varint,2,opt,name=submessage_oneof_int64,json=submessageOneofInt64,oneof"`
+	SubmessageOneofInt64 int64 `protobuf:"varint,2,opt,name=submessage_oneof_int64,json=submessageOneofInt64,oneof" json:"submessage_oneof_int64,omitempty"`
 }
 
 func (*M_Submessage_SubmessageOneofInt32) isM_Submessage_SubmessageOneofField() {}
@@ -398,68 +342,12 @@ func (m *M_Submessage) GetSubmessageOneofInt64() int64 {
 	return 0
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*M_Submessage) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _M_Submessage_OneofMarshaler, _M_Submessage_OneofUnmarshaler, _M_Submessage_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*M_Submessage) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*M_Submessage_SubmessageOneofInt32)(nil),
 		(*M_Submessage_SubmessageOneofInt64)(nil),
 	}
-}
-
-func _M_Submessage_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*M_Submessage)
-	// submessage_oneof_field
-	switch x := m.SubmessageOneofField.(type) {
-	case *M_Submessage_SubmessageOneofInt32:
-		_ = b.EncodeVarint(1<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(uint64(x.SubmessageOneofInt32))
-	case *M_Submessage_SubmessageOneofInt64:
-		_ = b.EncodeVarint(2<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(uint64(x.SubmessageOneofInt64))
-	case nil:
-	default:
-		return fmt.Errorf("M_Submessage.SubmessageOneofField has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _M_Submessage_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*M_Submessage)
-	switch tag {
-	case 1: // submessage_oneof_field.submessage_oneof_int32
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.SubmessageOneofField = &M_Submessage_SubmessageOneofInt32{int32(x)}
-		return true, err
-	case 2: // submessage_oneof_field.submessage_oneof_int64
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.SubmessageOneofField = &M_Submessage_SubmessageOneofInt64{int64(x)}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _M_Submessage_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*M_Submessage)
-	// submessage_oneof_field
-	switch x := m.SubmessageOneofField.(type) {
-	case *M_Submessage_SubmessageOneofInt32:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.SubmessageOneofInt32))
-	case *M_Submessage_SubmessageOneofInt64:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.SubmessageOneofInt64))
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 var E_ExtensionField = &proto.ExtensionDesc{

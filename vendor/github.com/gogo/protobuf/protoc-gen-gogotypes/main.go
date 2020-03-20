@@ -57,7 +57,7 @@ func main() {
 		if strings.HasSuffix(file.GetName(), "struct.proto") {
 			// TODO struct can also get a compare method when
 			// https://github.com/gogo/protobuf/issues/221 is fixed
-			continue
+			//continue
 		}
 		vanity.TurnOnCompareAll(file)
 	}

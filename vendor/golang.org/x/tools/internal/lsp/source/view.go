@@ -6,15 +6,14 @@ package source
 
 import (
 	"context"
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
-	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/packages"
-	"golang.org/x/tools/internal/lsp/diff"
-	"golang.org/x/tools/internal/lsp/xlog"
+	"golang.org/x/tools/internal/imports"
 	"golang.org/x/tools/internal/span"
 )
 
@@ -24,14 +23,21 @@ type FileIdentity struct {
 	Version string
 }
 
+func (identity FileIdentity) String() string {
+	return fmt.Sprintf("%s%s", identity.URI, identity.Version)
+}
+
 // FileHandle represents a handle to a specific version of a single file from
 // a specific file system.
 type FileHandle interface {
 	// FileSystem returns the file system this handle was acquired from.
 	FileSystem() FileSystem
 
-	// Return the Identity for the file.
+	// Identity returns the FileIdentity for the file.
 	Identity() FileIdentity
+
+	// Kind returns the FileKind for the file.
+	Kind() FileKind
 
 	// Read reads the contents of a file and returns it along with its hash value.
 	// If the file is not available, returns a nil slice and an error.
@@ -43,6 +49,16 @@ type FileSystem interface {
 	// GetFile returns a handle for the specified file.
 	GetFile(uri span.URI) FileHandle
 }
+
+// FileKind describes the kind of the file in question.
+// It can be one of Go, mod, or sum.
+type FileKind int
+
+const (
+	Go = FileKind(iota)
+	Mod
+	Sum
+)
 
 // TokenHandle represents a handle to the *token.File for a file.
 type TokenHandle interface {
@@ -64,6 +80,9 @@ type ParseGoHandle interface {
 	// Parse returns the parsed AST for the file.
 	// If the file is not available, returns nil and an error.
 	Parse(ctx context.Context) (*ast.File, error)
+
+	// Cached returns the AST for this handle, if it has already been stored.
+	Cached(ctx context.Context) (*ast.File, error)
 }
 
 // ParseMode controls the content of the AST produced when parsing a source file.
@@ -86,6 +105,22 @@ const (
 	ParseFull
 )
 
+// CheckPackageHandle represents a handle to a specific version of a package.
+// It is uniquely defined by the file handles that make up the package.
+type CheckPackageHandle interface {
+	// ParseGoHandle returns a ParseGoHandle for which to get the package.
+	Files() []ParseGoHandle
+
+	// Config is the *packages.Config that the package metadata was loaded with.
+	Config() *packages.Config
+
+	// Check returns the type-checked Package for the CheckPackageHandle.
+	Check(ctx context.Context) (Package, error)
+
+	// Cached returns the Package for the CheckPackageHandle if it has already been stored.
+	Cached(ctx context.Context) (Package, error)
+}
+
 // Cache abstracts the core logic of dealing with the environment from the
 // higher level logic that processes the information to produce results.
 // The cache provides access to files and their contents, so the source
@@ -98,16 +133,16 @@ type Cache interface {
 	FileSystem
 
 	// NewSession creates a new Session manager and returns it.
-	NewSession(log xlog.Logger) Session
+	NewSession(ctx context.Context) Session
 
 	// FileSet returns the shared fileset used by all files in the system.
 	FileSet() *token.FileSet
 
-	// Token returns a TokenHandle for the given file handle.
-	TokenHandle(FileHandle) TokenHandle
+	// TokenHandle returns a TokenHandle for the given file handle.
+	TokenHandle(fh FileHandle) TokenHandle
 
-	// ParseGo returns a ParseGoHandle for the given file handle.
-	ParseGoHandle(FileHandle, ParseMode) ParseGoHandle
+	// ParseGoHandle returns a ParseGoHandle for the given file handle.
+	ParseGoHandle(fh FileHandle, mode ParseMode) ParseGoHandle
 }
 
 // Session represents a single connection from a client.
@@ -116,13 +151,10 @@ type Cache interface {
 // A session may have many active views at any given time.
 type Session interface {
 	// NewView creates a new View and returns it.
-	NewView(name string, folder span.URI) View
+	NewView(ctx context.Context, name string, folder span.URI) View
 
 	// Cache returns the cache that created this session.
 	Cache() Cache
-
-	// Returns the logger in use for this session.
-	Logger() xlog.Logger
 
 	// View returns a view with a mathing name, if the session has one.
 	View(name string) View
@@ -141,7 +173,7 @@ type Session interface {
 	FileSystem
 
 	// DidOpen is invoked each time a file is opened in the editor.
-	DidOpen(uri span.URI)
+	DidOpen(ctx context.Context, uri span.URI, kind FileKind, text []byte)
 
 	// DidSave is invoked each time an open file is saved in the editor.
 	DidSave(uri span.URI)
@@ -153,7 +185,7 @@ type Session interface {
 	IsOpen(uri span.URI) bool
 
 	// Called to set the effective contents of a file from this session.
-	SetOverlay(uri span.URI, data []byte)
+	SetOverlay(uri span.URI, data []byte) (wasFirstChange bool)
 }
 
 // View represents a single workspace.
@@ -176,7 +208,7 @@ type View interface {
 	GetFile(ctx context.Context, uri span.URI) (File, error)
 
 	// Called to set the effective contents of a file from this view.
-	SetContent(ctx context.Context, uri span.URI, content []byte) error
+	SetContent(ctx context.Context, uri span.URI, content []byte) (wasFirstChange bool, err error)
 
 	// BackgroundContext returns a context used for all background processing
 	// on behalf of this view.
@@ -196,6 +228,12 @@ type View interface {
 
 	// Ignore returns true if this file should be ignored by this view.
 	Ignore(span.URI) bool
+
+	Config(ctx context.Context) *packages.Config
+
+	// RunProcessEnvFunc runs fn with the process env for this view inserted into opts.
+	// Note: the process env contains cached module and filesystem state.
+	RunProcessEnvFunc(ctx context.Context, fn func(*imports.Options) error, opts *imports.Options) error
 }
 
 // File represents a source file of any type.
@@ -204,22 +242,30 @@ type File interface {
 	View() View
 	Handle(ctx context.Context) FileHandle
 	FileSet() *token.FileSet
-	GetToken(ctx context.Context) *token.File
+	GetToken(ctx context.Context) (*token.File, error)
 }
 
 // GoFile represents a Go source file that has been type-checked.
 type GoFile interface {
 	File
 
-	// GetAnyAST returns an AST that may or may not contain function bodies.
-	// It should be used in scenarios where function bodies are not necessary.
-	GetAnyAST(ctx context.Context) *ast.File
+	// GetAST returns the AST for the file, at or above the given mode.
+	GetAST(ctx context.Context, mode ParseMode) (*ast.File, error)
 
-	// GetAST returns the full AST for the file.
-	GetAST(ctx context.Context) *ast.File
+	// GetCachedPackage returns the cached package for the file, if any.
+	GetCachedPackage(ctx context.Context) (Package, error)
 
-	// GetPackage returns the package that this file belongs to.
-	GetPackage(ctx context.Context) Package
+	// GetPackage returns the CheckPackageHandle for the package that this file belongs to.
+	GetCheckPackageHandle(ctx context.Context) (CheckPackageHandle, error)
+
+	// GetPackages returns the CheckPackageHandles of the packages that this file belongs to.
+	GetCheckPackageHandles(ctx context.Context) ([]CheckPackageHandle, error)
+
+	// GetPackage returns the CheckPackageHandle for the package that this file belongs to.
+	GetPackage(ctx context.Context) (Package, error)
+
+	// GetPackages returns the CheckPackageHandles of the packages that this file belongs to.
+	GetPackages(ctx context.Context) ([]Package, error)
 
 	// GetActiveReverseDeps returns the active files belonging to the reverse
 	// dependencies of this file's package.
@@ -239,68 +285,19 @@ type SumFile interface {
 type Package interface {
 	ID() string
 	PkgPath() string
-	GetFilenames() []string
-	GetSyntax() []*ast.File
+	GetHandles() []ParseGoHandle
+	GetSyntax(context.Context) []*ast.File
 	GetErrors() []packages.Error
 	GetTypes() *types.Package
 	GetTypesInfo() *types.Info
 	GetTypesSizes() types.Sizes
 	IsIllTyped() bool
+	GetDiagnostics() []Diagnostic
+	SetDiagnostics(diags []Diagnostic)
+
+	// GetImport returns the CheckPackageHandle for a package imported by this package.
+	GetImport(ctx context.Context, pkgPath string) (Package, error)
+
+	// GetActionGraph returns the action graph for the given package.
 	GetActionGraph(ctx context.Context, a *analysis.Analyzer) (*Action, error)
-	GetImport(pkgPath string) Package
-	GetDiagnostics() []analysis.Diagnostic
-	SetDiagnostics(diags []analysis.Diagnostic)
-}
-
-// TextEdit represents a change to a section of a document.
-// The text within the specified span should be replaced by the supplied new text.
-type TextEdit struct {
-	Span    span.Span
-	NewText string
-}
-
-// DiffToEdits converts from a sequence of diff operations to a sequence of
-// source.TextEdit
-func DiffToEdits(uri span.URI, ops []*diff.Op) []TextEdit {
-	edits := make([]TextEdit, 0, len(ops))
-	for _, op := range ops {
-		s := span.New(uri, span.NewPoint(op.I1+1, 1, 0), span.NewPoint(op.I2+1, 1, 0))
-		switch op.Kind {
-		case diff.Delete:
-			// Delete: unformatted[i1:i2] is deleted.
-			edits = append(edits, TextEdit{Span: s})
-		case diff.Insert:
-			// Insert: formatted[j1:j2] is inserted at unformatted[i1:i1].
-			if content := strings.Join(op.Content, ""); content != "" {
-				edits = append(edits, TextEdit{Span: s, NewText: content})
-			}
-		}
-	}
-	return edits
-}
-
-func EditsToDiff(edits []TextEdit) []*diff.Op {
-	iToJ := 0
-	ops := make([]*diff.Op, len(edits))
-	for i, edit := range edits {
-		i1 := edit.Span.Start().Line() - 1
-		i2 := edit.Span.End().Line() - 1
-		kind := diff.Insert
-		if edit.NewText == "" {
-			kind = diff.Delete
-		}
-		ops[i] = &diff.Op{
-			Kind:    kind,
-			Content: diff.SplitLines(edit.NewText),
-			I1:      i1,
-			I2:      i2,
-			J1:      i1 + iToJ,
-		}
-		if kind == diff.Insert {
-			iToJ += len(ops[i].Content)
-		} else {
-			iToJ -= i2 - i1
-		}
-	}
-	return ops
 }

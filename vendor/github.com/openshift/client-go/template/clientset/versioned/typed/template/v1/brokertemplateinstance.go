@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/openshift/api/template/v1"
@@ -21,14 +22,14 @@ type BrokerTemplateInstancesGetter interface {
 
 // BrokerTemplateInstanceInterface has methods to work with BrokerTemplateInstance resources.
 type BrokerTemplateInstanceInterface interface {
-	Create(*v1.BrokerTemplateInstance) (*v1.BrokerTemplateInstance, error)
-	Update(*v1.BrokerTemplateInstance) (*v1.BrokerTemplateInstance, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.BrokerTemplateInstance, error)
-	List(opts metav1.ListOptions) (*v1.BrokerTemplateInstanceList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.BrokerTemplateInstance, err error)
+	Create(ctx context.Context, brokerTemplateInstance *v1.BrokerTemplateInstance, opts metav1.CreateOptions) (*v1.BrokerTemplateInstance, error)
+	Update(ctx context.Context, brokerTemplateInstance *v1.BrokerTemplateInstance, opts metav1.UpdateOptions) (*v1.BrokerTemplateInstance, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.BrokerTemplateInstance, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.BrokerTemplateInstanceList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.BrokerTemplateInstance, err error)
 	BrokerTemplateInstanceExpansion
 }
 
@@ -45,19 +46,19 @@ func newBrokerTemplateInstances(c *TemplateV1Client) *brokerTemplateInstances {
 }
 
 // Get takes name of the brokerTemplateInstance, and returns the corresponding brokerTemplateInstance object, and an error if there is any.
-func (c *brokerTemplateInstances) Get(name string, options metav1.GetOptions) (result *v1.BrokerTemplateInstance, err error) {
+func (c *brokerTemplateInstances) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.BrokerTemplateInstance, err error) {
 	result = &v1.BrokerTemplateInstance{}
 	err = c.client.Get().
 		Resource("brokertemplateinstances").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of BrokerTemplateInstances that match those selectors.
-func (c *brokerTemplateInstances) List(opts metav1.ListOptions) (result *v1.BrokerTemplateInstanceList, err error) {
+func (c *brokerTemplateInstances) List(ctx context.Context, opts metav1.ListOptions) (result *v1.BrokerTemplateInstanceList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -67,13 +68,13 @@ func (c *brokerTemplateInstances) List(opts metav1.ListOptions) (result *v1.Brok
 		Resource("brokertemplateinstances").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested brokerTemplateInstances.
-func (c *brokerTemplateInstances) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *brokerTemplateInstances) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,66 +84,69 @@ func (c *brokerTemplateInstances) Watch(opts metav1.ListOptions) (watch.Interfac
 		Resource("brokertemplateinstances").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a brokerTemplateInstance and creates it.  Returns the server's representation of the brokerTemplateInstance, and an error, if there is any.
-func (c *brokerTemplateInstances) Create(brokerTemplateInstance *v1.BrokerTemplateInstance) (result *v1.BrokerTemplateInstance, err error) {
+func (c *brokerTemplateInstances) Create(ctx context.Context, brokerTemplateInstance *v1.BrokerTemplateInstance, opts metav1.CreateOptions) (result *v1.BrokerTemplateInstance, err error) {
 	result = &v1.BrokerTemplateInstance{}
 	err = c.client.Post().
 		Resource("brokertemplateinstances").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(brokerTemplateInstance).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a brokerTemplateInstance and updates it. Returns the server's representation of the brokerTemplateInstance, and an error, if there is any.
-func (c *brokerTemplateInstances) Update(brokerTemplateInstance *v1.BrokerTemplateInstance) (result *v1.BrokerTemplateInstance, err error) {
+func (c *brokerTemplateInstances) Update(ctx context.Context, brokerTemplateInstance *v1.BrokerTemplateInstance, opts metav1.UpdateOptions) (result *v1.BrokerTemplateInstance, err error) {
 	result = &v1.BrokerTemplateInstance{}
 	err = c.client.Put().
 		Resource("brokertemplateinstances").
 		Name(brokerTemplateInstance.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(brokerTemplateInstance).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the brokerTemplateInstance and deletes it. Returns an error if one occurs.
-func (c *brokerTemplateInstances) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *brokerTemplateInstances) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("brokertemplateinstances").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *brokerTemplateInstances) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (c *brokerTemplateInstances) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("brokertemplateinstances").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched brokerTemplateInstance.
-func (c *brokerTemplateInstances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.BrokerTemplateInstance, err error) {
+func (c *brokerTemplateInstances) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.BrokerTemplateInstance, err error) {
 	result = &v1.BrokerTemplateInstance{}
 	err = c.client.Patch(pt).
 		Resource("brokertemplateinstances").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

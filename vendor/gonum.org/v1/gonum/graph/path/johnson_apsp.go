@@ -19,46 +19,41 @@ import (
 //
 // The time complexity of JohnsonAllPaths is O(|V|.|E|+|V|^2.log|V|).
 func JohnsonAllPaths(g graph.Graph) (paths AllShortest, ok bool) {
-	jg := johnsonWeightAdjuster{
-		g:      g,
-		from:   g.From,
-		edgeTo: g.Edge,
-	}
+	adjusted := johnsonWeightAdjuster{Graph: g}
 	if wg, ok := g.(Weighted); ok {
-		jg.weight = wg.Weight
+		adjusted.weight = wg.Weight
 	} else {
-		jg.weight = UniformCost(g)
+		adjusted.weight = UniformCost(g)
 	}
 
 	paths = newAllShortest(graph.NodesOf(g.Nodes()), false)
 
+	var q int64
 	sign := int64(-1)
 	for {
 		// Choose a random node ID until we find
 		// one that is not in g.
-		jg.q = sign * rand.Int63()
-		if _, exists := paths.indexOf[jg.q]; !exists {
+		q = sign * rand.Int63()
+		if _, exists := paths.indexOf[q]; !exists {
 			break
 		}
 		sign *= -1
 	}
 
-	jg.bellmanFord = true
-	jg.adjustBy, ok = BellmanFordFrom(johnsonGraphNode(jg.q), jg)
+	adjusted.adjustBy, ok = BellmanFordFrom(johnsonGraphNode(q), johnsonReWeight{adjusted, q})
 	if !ok {
 		return paths, false
 	}
 
-	jg.bellmanFord = false
-	dijkstraAllPaths(jg, paths)
+	dijkstraAllPaths(adjusted, paths)
 
 	for i, u := range paths.nodes {
-		hu := jg.adjustBy.WeightTo(u.ID())
+		hu := adjusted.adjustBy.WeightTo(u.ID())
 		for j, v := range paths.nodes {
 			if i == j {
 				continue
 			}
-			hv := jg.adjustBy.WeightTo(v.ID())
+			hv := adjusted.adjustBy.WeightTo(v.ID())
 			paths.dist.Set(i, j, paths.dist.At(i, j)-hu+hv)
 		}
 	}
@@ -66,76 +61,77 @@ func JohnsonAllPaths(g graph.Graph) (paths AllShortest, ok bool) {
 	return paths, ok
 }
 
+// johnsonWeightAdjuster is an edge re-weighted graph constructed
+// by the first phase of the Johnson algorithm such that no negative
+// edge weights exist in the graph.
 type johnsonWeightAdjuster struct {
-	q int64
-	g graph.Graph
-
-	from   func(id int64) graph.Nodes
-	edgeTo func(uid, vid int64) graph.Edge
+	graph.Graph
 	weight Weighting
 
-	bellmanFord bool
-	adjustBy    Shortest
+	adjustBy Shortest
 }
 
-var (
-	// johnsonWeightAdjuster has the behaviour
-	// of a directed graph, but we don't need
-	// to be explicit with the type since it
-	// is not exported.
-	_ graph.Graph    = johnsonWeightAdjuster{}
-	_ graph.Weighted = johnsonWeightAdjuster{}
-)
+var _ graph.Weighted = johnsonWeightAdjuster{}
 
 func (g johnsonWeightAdjuster) Node(id int64) graph.Node {
-	if g.bellmanFord && id == g.q {
-		return simple.Node(id)
-	}
 	panic("path: unintended use of johnsonWeightAdjuster")
-}
-
-func (g johnsonWeightAdjuster) Nodes() graph.Nodes {
-	if g.bellmanFord {
-		return newJohnsonNodeIterator(g.q, g.g.Nodes())
-	}
-	return g.g.Nodes()
-}
-
-func (g johnsonWeightAdjuster) From(id int64) graph.Nodes {
-	if g.bellmanFord && id == g.q {
-		return g.g.Nodes()
-	}
-	return g.from(id)
 }
 
 func (g johnsonWeightAdjuster) WeightedEdge(_, _ int64) graph.WeightedEdge {
 	panic("path: unintended use of johnsonWeightAdjuster")
 }
 
-func (g johnsonWeightAdjuster) Edge(uid, vid int64) graph.Edge {
-	if g.bellmanFord && uid == g.q && g.g.Node(vid) != nil {
-		return simple.Edge{F: johnsonGraphNode(g.q), T: simple.Node(vid)}
-	}
-	return g.edgeTo(uid, vid)
-}
-
 func (g johnsonWeightAdjuster) Weight(xid, yid int64) (w float64, ok bool) {
-	if g.bellmanFord {
-		switch g.q {
-		case xid:
-			return 0, true
-		case yid:
-			return math.Inf(1), false
-		default:
-			return g.weight(xid, yid)
-		}
-	}
 	w, ok = g.weight(xid, yid)
 	return w + g.adjustBy.WeightTo(xid) - g.adjustBy.WeightTo(yid), ok
 }
 
 func (johnsonWeightAdjuster) HasEdgeBetween(_, _ int64) bool {
 	panic("path: unintended use of johnsonWeightAdjuster")
+}
+
+// johnsonReWeight provides a query node to allow edge re-weighting
+// using the Bellman-Ford algorithm for the first phase of the
+// Johnson algorithm.
+type johnsonReWeight struct {
+	johnsonWeightAdjuster
+	q int64
+}
+
+func (g johnsonReWeight) Node(id int64) graph.Node {
+	if id != g.q {
+		panic("path: unintended use of johnsonReWeight")
+	}
+	return simple.Node(id)
+}
+
+func (g johnsonReWeight) Nodes() graph.Nodes {
+	return newJohnsonNodeIterator(g.q, g.Graph.Nodes())
+}
+
+func (g johnsonReWeight) From(id int64) graph.Nodes {
+	if id == g.q {
+		return g.Graph.Nodes()
+	}
+	return g.Graph.From(id)
+}
+
+func (g johnsonReWeight) Edge(uid, vid int64) graph.Edge {
+	if uid == g.q && g.Graph.Node(vid) != nil {
+		return simple.Edge{F: johnsonGraphNode(g.q), T: simple.Node(vid)}
+	}
+	return g.Graph.Edge(uid, vid)
+}
+
+func (g johnsonReWeight) Weight(xid, yid int64) (w float64, ok bool) {
+	switch g.q {
+	case xid:
+		return 0, true
+	case yid:
+		return math.Inf(1), false
+	default:
+		return g.weight(xid, yid)
+	}
 }
 
 type johnsonGraphNode int64

@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	userv1 "github.com/openshift/api/user/v1"
@@ -44,13 +45,13 @@ func NewFilteredIdentityInformer(client versioned.Interface, resyncPeriod time.D
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.UserV1().Identities().List(options)
+				return client.UserV1().Identities().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.UserV1().Identities().Watch(options)
+				return client.UserV1().Identities().Watch(context.TODO(), options)
 			},
 		},
 		&userv1.Identity{},

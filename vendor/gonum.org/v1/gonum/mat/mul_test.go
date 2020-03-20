@@ -127,7 +127,7 @@ func TestMulTypes(t *testing.T) {
 		// Do normal multiply with empty dense
 		d := &Dense{}
 
-		testMul(t, a, b, d, acomp, bcomp, ccomp, false, "zero receiver")
+		testMul(t, a, b, d, acomp, bcomp, ccomp, false, "empty receiver")
 
 		// Normal multiply with existing receiver
 		c := NewDense(ar, bc, cvec)
@@ -138,11 +138,11 @@ func TestMulTypes(t *testing.T) {
 		am := (*basicMatrix)(a)
 		bm := (*basicMatrix)(b)
 		d.Reset()
-		testMul(t, am, b, d, acomp, bcomp, ccomp, true, "a is basic, receiver is zero")
+		testMul(t, am, b, d, acomp, bcomp, ccomp, true, "a is basic, receiver is empty")
 		d.Reset()
-		testMul(t, a, bm, d, acomp, bcomp, ccomp, true, "b is basic, receiver is zero")
+		testMul(t, a, bm, d, acomp, bcomp, ccomp, true, "b is basic, receiver is empty")
 		d.Reset()
-		testMul(t, am, bm, d, acomp, bcomp, ccomp, true, "both basic, receiver is zero")
+		testMul(t, am, bm, d, acomp, bcomp, ccomp, true, "both basic, receiver is empty")
 		randomSlice(cvec)
 		testMul(t, am, b, d, acomp, bcomp, ccomp, true, "a is basic, receiver is full")
 		randomSlice(cvec)

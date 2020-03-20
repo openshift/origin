@@ -151,13 +151,13 @@ func (c *ResourceSyncController) Sync(ctx context.Context, syncCtx factory.SyncC
 	for destination, source := range c.configMapSyncRules {
 		if source == emptyResourceLocation {
 			// use the cache to check whether the configmap exists in target namespace, if not skip the extra delete call.
-			if _, err := c.configMapGetter.ConfigMaps(destination.Namespace).Get(destination.Name, metav1.GetOptions{}); err != nil {
+			if _, err := c.configMapGetter.ConfigMaps(destination.Namespace).Get(ctx, destination.Name, metav1.GetOptions{}); err != nil {
 				if !apierrors.IsNotFound(err) {
 					errors = append(errors, err)
 				}
 				continue
 			}
-			if err := c.configMapGetter.ConfigMaps(destination.Namespace).Delete(destination.Name, nil); err != nil && !apierrors.IsNotFound(err) {
+			if err := c.configMapGetter.ConfigMaps(destination.Namespace).Delete(ctx, destination.Name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 				errors = append(errors, err)
 			}
 			continue
@@ -171,13 +171,13 @@ func (c *ResourceSyncController) Sync(ctx context.Context, syncCtx factory.SyncC
 	for destination, source := range c.secretSyncRules {
 		if source == emptyResourceLocation {
 			// use the cache to check whether the secret exists in target namespace, if not skip the extra delete call.
-			if _, err := c.secretGetter.Secrets(destination.Namespace).Get(destination.Name, metav1.GetOptions{}); err != nil {
+			if _, err := c.secretGetter.Secrets(destination.Namespace).Get(ctx, destination.Name, metav1.GetOptions{}); err != nil {
 				if !apierrors.IsNotFound(err) {
 					errors = append(errors, err)
 				}
 				continue
 			}
-			if err := c.secretGetter.Secrets(destination.Namespace).Delete(destination.Name, nil); err != nil && !apierrors.IsNotFound(err) {
+			if err := c.secretGetter.Secrets(destination.Namespace).Delete(ctx, destination.Name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 				errors = append(errors, err)
 			}
 			continue

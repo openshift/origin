@@ -2,6 +2,7 @@ package daemon // import "github.com/docker/docker/daemon"
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"runtime"
 	"strings"
@@ -25,69 +26,8 @@ import (
 
 // SystemInfo returns information about the host server the daemon is running on.
 func (daemon *Daemon) SystemInfo() (*types.Info, error) {
-	kernelVersion := "<unknown>"
-	if kv, err := kernel.GetKernelVersion(); err != nil {
-		logrus.Warnf("Could not get kernel version: %v", err)
-	} else {
-		kernelVersion = kv.String()
-	}
-
-	operatingSystem := "<unknown>"
-	if s, err := operatingsystem.GetOperatingSystem(); err != nil {
-		logrus.Warnf("Could not get operating system name: %v", err)
-	} else {
-		operatingSystem = s
-	}
-
-	// Don't do containerized check on Windows
-	if runtime.GOOS != "windows" {
-		if inContainer, err := operatingsystem.IsContainerized(); err != nil {
-			logrus.Errorf("Could not determine if daemon is containerized: %v", err)
-			operatingSystem += " (error determining if containerized)"
-		} else if inContainer {
-			operatingSystem += " (containerized)"
-		}
-	}
-
-	meminfo, err := system.ReadMemInfo()
-	if err != nil {
-		logrus.Errorf("Could not read system memory info: %v", err)
-		meminfo = &system.MemInfo{}
-	}
-
 	sysInfo := sysinfo.New(true)
 	cRunning, cPaused, cStopped := stateCtr.get()
-
-	securityOptions := []string{}
-	if sysInfo.AppArmor {
-		securityOptions = append(securityOptions, "name=apparmor")
-	}
-	if sysInfo.Seccomp && supportsSeccomp {
-		profile := daemon.seccompProfilePath
-		if profile == "" {
-			profile = "default"
-		}
-		securityOptions = append(securityOptions, fmt.Sprintf("name=seccomp,profile=%s", profile))
-	}
-	if selinuxEnabled() {
-		securityOptions = append(securityOptions, "name=selinux")
-	}
-	rootIDs := daemon.idMappings.RootPair()
-	if rootIDs.UID != 0 || rootIDs.GID != 0 {
-		securityOptions = append(securityOptions, "name=userns")
-	}
-
-	var ds [][2]string
-	drivers := ""
-	statuses := daemon.imageService.LayerStoreStatus()
-	for os, gd := range daemon.graphDrivers {
-		ds = append(ds, statuses[os]...)
-		drivers += gd
-		if len(daemon.graphDrivers) > 1 {
-			drivers += fmt.Sprintf(" (%s) ", os)
-		}
-	}
-	drivers = strings.TrimSpace(drivers)
 
 	v := &types.Info{
 		ID:                 daemon.ID,
@@ -96,27 +36,25 @@ func (daemon *Daemon) SystemInfo() (*types.Info, error) {
 		ContainersPaused:   cPaused,
 		ContainersStopped:  cStopped,
 		Images:             daemon.imageService.CountImages(),
-		Driver:             drivers,
-		DriverStatus:       ds,
-		Plugins:            daemon.showPluginsInfo(),
 		IPv4Forwarding:     !sysInfo.IPv4ForwardingDisabled,
 		BridgeNfIptables:   !sysInfo.BridgeNFCallIPTablesDisabled,
 		BridgeNfIP6tables:  !sysInfo.BridgeNFCallIP6TablesDisabled,
 		Debug:              debug.IsEnabled(),
+		Name:               hostName(),
 		NFd:                fileutils.GetTotalUsedFds(),
 		NGoroutines:        runtime.NumGoroutine(),
 		SystemTime:         time.Now().Format(time.RFC3339Nano),
 		LoggingDriver:      daemon.defaultLogConfig.Type,
 		CgroupDriver:       daemon.getCgroupDriver(),
 		NEventsListener:    daemon.EventsService.SubscribersCount(),
-		KernelVersion:      kernelVersion,
-		OperatingSystem:    operatingSystem,
+		KernelVersion:      kernelVersion(),
+		OperatingSystem:    operatingSystem(),
 		IndexServerAddress: registry.IndexServer,
 		OSType:             platform.OSType,
 		Architecture:       platform.Architecture,
 		RegistryConfig:     daemon.RegistryService.ServiceConfig(),
 		NCPU:               sysinfo.NumCPU(),
-		MemTotal:           meminfo.MemTotal,
+		MemTotal:           memInfo().MemTotal,
 		GenericResources:   daemon.genericResources,
 		DockerRootDir:      daemon.configStore.Root,
 		Labels:             daemon.configStore.Labels,
@@ -124,36 +62,27 @@ func (daemon *Daemon) SystemInfo() (*types.Info, error) {
 		ServerVersion:      dockerversion.Version,
 		ClusterStore:       daemon.configStore.ClusterStore,
 		ClusterAdvertise:   daemon.configStore.ClusterAdvertise,
-		HTTPProxy:          sockets.GetProxyEnv("http_proxy"),
-		HTTPSProxy:         sockets.GetProxyEnv("https_proxy"),
+		HTTPProxy:          maskCredentials(sockets.GetProxyEnv("http_proxy")),
+		HTTPSProxy:         maskCredentials(sockets.GetProxyEnv("https_proxy")),
 		NoProxy:            sockets.GetProxyEnv("no_proxy"),
 		LiveRestoreEnabled: daemon.configStore.LiveRestoreEnabled,
-		SecurityOptions:    securityOptions,
 		Isolation:          daemon.defaultIsolation,
 	}
 
+	daemon.fillAPIInfo(v)
 	// Retrieve platform specific info
-	daemon.FillPlatformInfo(v, sysInfo)
-
-	hostname := ""
-	if hn, err := os.Hostname(); err != nil {
-		logrus.Warnf("Could not get hostname: %v", err)
-	} else {
-		hostname = hn
-	}
-	v.Name = hostname
+	daemon.fillPlatformInfo(v, sysInfo)
+	daemon.fillDriverInfo(v)
+	daemon.fillPluginsInfo(v)
+	daemon.fillSecurityOptions(v, sysInfo)
+	daemon.fillLicense(v)
 
 	return v, nil
 }
 
 // SystemVersion returns version information about the daemon.
 func (daemon *Daemon) SystemVersion() types.Version {
-	kernelVersion := "<unknown>"
-	if kv, err := kernel.GetKernelVersion(); err != nil {
-		logrus.Warnf("Could not get kernel version: %v", err)
-	} else {
-		kernelVersion = kv.String()
-	}
+	kernelVersion := kernelVersion()
 
 	v := types.Version{
 		Components: []types.ComponentVersion{
@@ -189,18 +118,149 @@ func (daemon *Daemon) SystemVersion() types.Version {
 
 	v.Platform.Name = dockerversion.PlatformName
 
+	daemon.fillPlatformVersion(&v)
 	return v
 }
 
-func (daemon *Daemon) showPluginsInfo() types.PluginsInfo {
-	var pluginsInfo types.PluginsInfo
+func (daemon *Daemon) fillDriverInfo(v *types.Info) {
+	var ds [][2]string
+	drivers := ""
+	statuses := daemon.imageService.LayerStoreStatus()
+	for os, gd := range daemon.graphDrivers {
+		ds = append(ds, statuses[os]...)
+		drivers += gd
+		if len(daemon.graphDrivers) > 1 {
+			drivers += fmt.Sprintf(" (%s) ", os)
+		}
+		switch gd {
+		case "aufs", "devicemapper", "overlay":
+			v.Warnings = append(v.Warnings, fmt.Sprintf("WARNING: the %s storage-driver is deprecated, and will be removed in a future release.", gd))
+		}
+	}
+	drivers = strings.TrimSpace(drivers)
 
-	pluginsInfo.Volume = daemon.volumes.GetDriverList()
-	pluginsInfo.Network = daemon.GetNetworkDriverList()
-	// The authorization plugins are returned in the order they are
-	// used as they constitute a request/response modification chain.
-	pluginsInfo.Authorization = daemon.configStore.AuthorizationPlugins
-	pluginsInfo.Log = logger.ListDrivers()
+	v.Driver = drivers
+	v.DriverStatus = ds
 
-	return pluginsInfo
+	fillDriverWarnings(v)
+}
+
+func (daemon *Daemon) fillPluginsInfo(v *types.Info) {
+	v.Plugins = types.PluginsInfo{
+		Volume:  daemon.volumes.GetDriverList(),
+		Network: daemon.GetNetworkDriverList(),
+
+		// The authorization plugins are returned in the order they are
+		// used as they constitute a request/response modification chain.
+		Authorization: daemon.configStore.AuthorizationPlugins,
+		Log:           logger.ListDrivers(),
+	}
+}
+
+func (daemon *Daemon) fillSecurityOptions(v *types.Info, sysInfo *sysinfo.SysInfo) {
+	var securityOptions []string
+	if sysInfo.AppArmor {
+		securityOptions = append(securityOptions, "name=apparmor")
+	}
+	if sysInfo.Seccomp && supportsSeccomp {
+		profile := daemon.seccompProfilePath
+		if profile == "" {
+			profile = "default"
+		}
+		securityOptions = append(securityOptions, fmt.Sprintf("name=seccomp,profile=%s", profile))
+	}
+	if selinuxEnabled() {
+		securityOptions = append(securityOptions, "name=selinux")
+	}
+	if rootIDs := daemon.idMapping.RootPair(); rootIDs.UID != 0 || rootIDs.GID != 0 {
+		securityOptions = append(securityOptions, "name=userns")
+	}
+	if daemon.Rootless() {
+		securityOptions = append(securityOptions, "name=rootless")
+	}
+	v.SecurityOptions = securityOptions
+}
+
+func (daemon *Daemon) fillAPIInfo(v *types.Info) {
+	const warn string = `
+         Access to the remote API is equivalent to root access on the host. Refer
+         to the 'Docker daemon attack surface' section in the documentation for
+         more information: https://docs.docker.com/engine/security/security/#docker-daemon-attack-surface`
+
+	cfg := daemon.configStore
+	for _, host := range cfg.Hosts {
+		// cnf.Hosts is normalized during startup, so should always have a scheme/proto
+		h := strings.SplitN(host, "://", 2)
+		proto := h[0]
+		addr := h[1]
+		if proto != "tcp" {
+			continue
+		}
+		if !cfg.TLS {
+			v.Warnings = append(v.Warnings, fmt.Sprintf("WARNING: API is accessible on http://%s without encryption.%s", addr, warn))
+			continue
+		}
+		if !cfg.TLSVerify {
+			v.Warnings = append(v.Warnings, fmt.Sprintf("WARNING: API is accessible on https://%s without TLS client verification.%s", addr, warn))
+			continue
+		}
+	}
+}
+
+func hostName() string {
+	hostname := ""
+	if hn, err := os.Hostname(); err != nil {
+		logrus.Warnf("Could not get hostname: %v", err)
+	} else {
+		hostname = hn
+	}
+	return hostname
+}
+
+func kernelVersion() string {
+	var kernelVersion string
+	if kv, err := kernel.GetKernelVersion(); err != nil {
+		logrus.Warnf("Could not get kernel version: %v", err)
+	} else {
+		kernelVersion = kv.String()
+	}
+	return kernelVersion
+}
+
+func memInfo() *system.MemInfo {
+	memInfo, err := system.ReadMemInfo()
+	if err != nil {
+		logrus.Errorf("Could not read system memory info: %v", err)
+		memInfo = &system.MemInfo{}
+	}
+	return memInfo
+}
+
+func operatingSystem() string {
+	var operatingSystem string
+	if s, err := operatingsystem.GetOperatingSystem(); err != nil {
+		logrus.Warnf("Could not get operating system name: %v", err)
+	} else {
+		operatingSystem = s
+	}
+	// Don't do containerized check on Windows
+	if runtime.GOOS != "windows" {
+		if inContainer, err := operatingsystem.IsContainerized(); err != nil {
+			logrus.Errorf("Could not determine if daemon is containerized: %v", err)
+			operatingSystem += " (error determining if containerized)"
+		} else if inContainer {
+			operatingSystem += " (containerized)"
+		}
+	}
+	return operatingSystem
+}
+
+func maskCredentials(rawURL string) string {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil || parsedURL.User == nil {
+		return rawURL
+	}
+	parsedURL.User = url.UserPassword("xxxxx", "xxxxx")
+	maskedURL := parsedURL.String()
+	return maskedURL
 }

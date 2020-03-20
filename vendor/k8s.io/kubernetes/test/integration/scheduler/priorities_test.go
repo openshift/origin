@@ -17,20 +17,21 @@ limitations under the License.
 package scheduler
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
 
-	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/kubernetes/pkg/features"
-	"k8s.io/kubernetes/pkg/scheduler/algorithmprovider"
 	st "k8s.io/kubernetes/pkg/scheduler/testing"
-	testutils "k8s.io/kubernetes/test/utils"
+	testutils "k8s.io/kubernetes/test/integration/util"
+	"k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
@@ -39,10 +40,10 @@ import (
 // TestNodeAffinity verifies that scheduler's node affinity priority function
 // works correctly.
 func TestNodeAffinity(t *testing.T) {
-	context := initTest(t, "node-affinity")
-	defer cleanupTest(t, context)
+	testCtx := initTest(t, "node-affinity")
+	defer testutils.CleanupTest(t, testCtx)
 	// Add a few nodes.
-	nodes, err := createNodes(context.clientSet, "testnode", nil, 5)
+	nodes, err := createNodes(testCtx.ClientSet, "testnode", nil, 5)
 	if err != nil {
 		t.Fatalf("Cannot create nodes: %v", err)
 	}
@@ -53,17 +54,17 @@ func TestNodeAffinity(t *testing.T) {
 	labels := map[string]string{
 		labelKey: labelValue,
 	}
-	if err = testutils.AddLabelsToNode(context.clientSet, labeledNode.Name, labels); err != nil {
+	if err = utils.AddLabelsToNode(testCtx.ClientSet, labeledNode.Name, labels); err != nil {
 		t.Fatalf("Cannot add labels to node: %v", err)
 	}
-	if err = waitForNodeLabels(context.clientSet, labeledNode.Name, labels); err != nil {
+	if err = waitForNodeLabels(testCtx.ClientSet, labeledNode.Name, labels); err != nil {
 		t.Fatalf("Adding labels to node didn't succeed: %v", err)
 	}
 	// Create a pod with node affinity.
 	podName := "pod-with-node-affinity"
-	pod, err := runPausePod(context.clientSet, initPausePod(context.clientSet, &pausePodConfig{
+	pod, err := runPausePod(testCtx.ClientSet, initPausePod(testCtx.ClientSet, &pausePodConfig{
 		Name:      podName,
-		Namespace: context.ns.Name,
+		Namespace: testCtx.NS.Name,
 		Affinity: &v1.Affinity{
 			NodeAffinity: &v1.NodeAffinity{
 				PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
@@ -96,10 +97,10 @@ func TestNodeAffinity(t *testing.T) {
 // TestPodAffinity verifies that scheduler's pod affinity priority function
 // works correctly.
 func TestPodAffinity(t *testing.T) {
-	context := initTest(t, "pod-affinity")
-	defer cleanupTest(t, context)
+	testCtx := initTest(t, "pod-affinity")
+	defer testutils.CleanupTest(t, testCtx)
 	// Add a few nodes.
-	nodesInTopology, err := createNodes(context.clientSet, "in-topology", nil, 5)
+	nodesInTopology, err := createNodes(testCtx.ClientSet, "in-topology", nil, 5)
 	if err != nil {
 		t.Fatalf("Cannot create nodes: %v", err)
 	}
@@ -110,34 +111,34 @@ func TestPodAffinity(t *testing.T) {
 	}
 	for _, node := range nodesInTopology {
 		// Add topology key to all the nodes.
-		if err = testutils.AddLabelsToNode(context.clientSet, node.Name, nodeLabels); err != nil {
+		if err = utils.AddLabelsToNode(testCtx.ClientSet, node.Name, nodeLabels); err != nil {
 			t.Fatalf("Cannot add labels to node %v: %v", node.Name, err)
 		}
-		if err = waitForNodeLabels(context.clientSet, node.Name, nodeLabels); err != nil {
+		if err = waitForNodeLabels(testCtx.ClientSet, node.Name, nodeLabels); err != nil {
 			t.Fatalf("Adding labels to node %v didn't succeed: %v", node.Name, err)
 		}
 	}
 	// Add a pod with a label and wait for it to schedule.
 	labelKey := "service"
 	labelValue := "S1"
-	_, err = runPausePod(context.clientSet, initPausePod(context.clientSet, &pausePodConfig{
+	_, err = runPausePod(testCtx.ClientSet, initPausePod(testCtx.ClientSet, &pausePodConfig{
 		Name:      "attractor-pod",
-		Namespace: context.ns.Name,
+		Namespace: testCtx.NS.Name,
 		Labels:    map[string]string{labelKey: labelValue},
 	}))
 	if err != nil {
 		t.Fatalf("Error running the attractor pod: %v", err)
 	}
 	// Add a few more nodes without the topology label.
-	_, err = createNodes(context.clientSet, "other-node", nil, 5)
+	_, err = createNodes(testCtx.ClientSet, "other-node", nil, 5)
 	if err != nil {
 		t.Fatalf("Cannot create the second set of nodes: %v", err)
 	}
 	// Add a new pod with affinity to the attractor pod.
 	podName := "pod-with-podaffinity"
-	pod, err := runPausePod(context.clientSet, initPausePod(context.clientSet, &pausePodConfig{
+	pod, err := runPausePod(testCtx.ClientSet, initPausePod(testCtx.ClientSet, &pausePodConfig{
 		Name:      podName,
-		Namespace: context.ns.Name,
+		Namespace: testCtx.NS.Name,
 		Affinity: &v1.Affinity{
 			PodAffinity: &v1.PodAffinity{
 				PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
@@ -161,7 +162,7 @@ func TestPodAffinity(t *testing.T) {
 								},
 							},
 							TopologyKey: topologyKey,
-							Namespaces:  []string{context.ns.Name},
+							Namespaces:  []string{testCtx.NS.Name},
 						},
 						Weight: 50,
 					},
@@ -186,8 +187,8 @@ func TestPodAffinity(t *testing.T) {
 // TestImageLocality verifies that the scheduler's image locality priority function
 // works correctly, i.e., the pod gets scheduled to the node where its container images are ready.
 func TestImageLocality(t *testing.T) {
-	context := initTest(t, "image-locality")
-	defer cleanupTest(t, context)
+	testCtx := initTest(t, "image-locality")
+	defer testutils.CleanupTest(t, testCtx)
 
 	// We use a fake large image as the test image used by the pod, which has relatively large image size.
 	image := v1.ContainerImage{
@@ -198,22 +199,22 @@ func TestImageLocality(t *testing.T) {
 	}
 
 	// Create a node with the large image.
-	nodeWithLargeImage, err := createNodeWithImages(context.clientSet, "testnode-large-image", nil, []v1.ContainerImage{image})
+	nodeWithLargeImage, err := createNodeWithImages(testCtx.ClientSet, "testnode-large-image", nil, []v1.ContainerImage{image})
 	if err != nil {
 		t.Fatalf("cannot create node with a large image: %v", err)
 	}
 
 	// Add a few nodes.
-	_, err = createNodes(context.clientSet, "testnode", nil, 10)
+	_, err = createNodes(testCtx.ClientSet, "testnode", nil, 10)
 	if err != nil {
 		t.Fatalf("cannot create nodes: %v", err)
 	}
 
 	// Create a pod with containers each having the specified image.
 	podName := "pod-using-large-image"
-	pod, err := runPodWithContainers(context.clientSet, initPodWithContainers(context.clientSet, &podWithContainersConfig{
+	pod, err := runPodWithContainers(testCtx.ClientSet, initPodWithContainers(testCtx.ClientSet, &podWithContainersConfig{
 		Name:       podName,
-		Namespace:  context.ns.Name,
+		Namespace:  testCtx.NS.Name,
 		Containers: makeContainersWithImages(image.Names),
 	}))
 	if err != nil {
@@ -247,13 +248,11 @@ func makeContainersWithImages(images []string) []v1.Container {
 // TestEvenPodsSpreadPriority verifies that EvenPodsSpread priority functions well.
 func TestEvenPodsSpreadPriority(t *testing.T) {
 	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.EvenPodsSpread, true)()
-	// Apply feature gates to enable EvenPodsSpread
-	defer algorithmprovider.ApplyFeatureGates()()
 
-	context := initTest(t, "eps-priority")
-	cs := context.clientSet
-	ns := context.ns.Name
-	defer cleanupTest(t, context)
+	testCtx := initTest(t, "eps-priority")
+	cs := testCtx.ClientSet
+	ns := testCtx.NS.Name
+	defer testutils.CleanupTest(t, testCtx)
 	// Add 4 nodes.
 	nodes, err := createNodes(cs, "node", nil, 4)
 	if err != nil {
@@ -265,7 +264,7 @@ func TestEvenPodsSpreadPriority(t *testing.T) {
 			"zone": fmt.Sprintf("zone-%d", i/2),
 			"node": node.Name,
 		}
-		if err = testutils.AddLabelsToNode(cs, node.Name, labels); err != nil {
+		if err = utils.AddLabelsToNode(cs, node.Name, labels); err != nil {
 			t.Fatalf("Cannot add labels to node: %v", err)
 		}
 		if err = waitForNodeLabels(cs, node.Name, labels); err != nil {
@@ -279,10 +278,10 @@ func TestEvenPodsSpreadPriority(t *testing.T) {
 		Value:  "v1",
 		Effect: v1.TaintEffectNoSchedule,
 	}
-	if err = addTaintToNode(cs, nodes[0].Name, taint); err != nil {
+	if err = testutils.AddTaintToNode(cs, nodes[0].Name, taint); err != nil {
 		t.Fatalf("Adding taint to node failed: %v", err)
 	}
-	if err = waitForNodeTaints(cs, nodes[0], []v1.Taint{taint}); err != nil {
+	if err = testutils.WaitForNodeTaints(cs, nodes[0], []v1.Taint{taint}); err != nil {
 		t.Fatalf("Taint not seen on node: %v", err)
 	}
 
@@ -334,19 +333,19 @@ func TestEvenPodsSpreadPriority(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			allPods := append(tt.existingPods, tt.incomingPod)
-			defer cleanupPods(cs, t, allPods)
+			defer testutils.CleanupPods(cs, t, allPods)
 			for _, pod := range tt.existingPods {
-				createdPod, err := cs.CoreV1().Pods(pod.Namespace).Create(pod)
+				createdPod, err := cs.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 				if err != nil {
 					t.Fatalf("Test Failed: error while creating pod during test: %v", err)
 				}
-				err = wait.Poll(pollInterval, wait.ForeverTestTimeout, podScheduled(cs, createdPod.Namespace, createdPod.Name))
+				err = wait.Poll(pollInterval, wait.ForeverTestTimeout, testutils.PodScheduled(cs, createdPod.Namespace, createdPod.Name))
 				if err != nil {
 					t.Errorf("Test Failed: error while waiting for pod during test: %v", err)
 				}
 			}
-			testPod, err := cs.CoreV1().Pods(tt.incomingPod.Namespace).Create(tt.incomingPod)
-			if err != nil && !errors.IsInvalid(err) {
+			testPod, err := cs.CoreV1().Pods(tt.incomingPod.Namespace).Create(context.TODO(), tt.incomingPod, metav1.CreateOptions{})
+			if err != nil && !apierrors.IsInvalid(err) {
 				t.Fatalf("Test Failed: error while creating pod during test: %v", err)
 			}
 

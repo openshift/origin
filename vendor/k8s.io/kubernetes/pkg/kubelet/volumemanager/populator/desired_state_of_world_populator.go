@@ -21,6 +21,7 @@ caches in sync with the "ground truth".
 package populator
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -564,14 +565,12 @@ func (dswp *desiredStateOfWorldPopulator) createVolumeSpec(
 				podVolume.Name,
 				volumeMode)
 		}
-		if utilfeature.DefaultFeatureGate.Enabled(features.BlockVolume) {
-			// Error if a container has volumeDevices but the volumeMode of PVC isn't Block
-			if devices.Has(podVolume.Name) && volumeMode != v1.PersistentVolumeBlock {
-				return nil, nil, "", fmt.Errorf(
-					"volume %s has volumeMode %s, but is specified in volumeDevices",
-					podVolume.Name,
-					volumeMode)
-			}
+		// Error if a container has volumeDevices but the volumeMode of PVC isn't Block
+		if devices.Has(podVolume.Name) && volumeMode != v1.PersistentVolumeBlock {
+			return nil, nil, "", fmt.Errorf(
+				"volume %s has volumeMode %s, but is specified in volumeDevices",
+				podVolume.Name,
+				volumeMode)
 		}
 		return pvc, volumeSpec, volumeGidValue, nil
 	}
@@ -600,7 +599,7 @@ func (dswp *desiredStateOfWorldPopulator) createVolumeSpec(
 func (dswp *desiredStateOfWorldPopulator) getPVCExtractPV(
 	namespace string, claimName string) (*v1.PersistentVolumeClaim, error) {
 	pvc, err :=
-		dswp.kubeClient.CoreV1().PersistentVolumeClaims(namespace).Get(claimName, metav1.GetOptions{})
+		dswp.kubeClient.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), claimName, metav1.GetOptions{})
 	if err != nil || pvc == nil {
 		return nil, fmt.Errorf("failed to fetch PVC from API server: %v", err)
 	}
@@ -636,7 +635,7 @@ func (dswp *desiredStateOfWorldPopulator) getPVSpec(
 	name string,
 	pvcReadOnly bool,
 	expectedClaimUID types.UID) (*volume.Spec, string, error) {
-	pv, err := dswp.kubeClient.CoreV1().PersistentVolumes().Get(name, metav1.GetOptions{})
+	pv, err := dswp.kubeClient.CoreV1().PersistentVolumes().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil || pv == nil {
 		return nil, "", fmt.Errorf(
 			"failed to fetch PV %s from API server: %v", name, err)

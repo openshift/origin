@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 )
 
 func TestParseArgs(t *testing.T) {
@@ -420,4 +420,12 @@ func TestFuzzyMatch(t *testing.T) {
 			t.Fatalf("Expected %v, got %v: %s", match, got, source)
 		}
 	}
+}
+
+func TestClone(t *testing.T) {
+	f := NewArgs()
+	f.Add("foo", "bar")
+	f2 := f.Clone()
+	f2.Add("baz", "qux")
+	assert.Check(t, is.Len(f.Get("baz"), 0))
 }

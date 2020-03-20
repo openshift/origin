@@ -3,13 +3,11 @@ package config // import "github.com/docker/docker/daemon/config"
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 
@@ -19,6 +17,7 @@ import (
 	"github.com/docker/docker/pkg/discovery"
 	"github.com/docker/docker/registry"
 	"github.com/imdario/mergo"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 )
@@ -54,6 +53,26 @@ var flatOptions = map[string]bool{
 	"log-opts":           true,
 	"runtimes":           true,
 	"default-ulimits":    true,
+	"features":           true,
+	"builder":            true,
+}
+
+// skipValidateOptions contains configuration keys
+// that will be skipped from findConfigurationConflicts
+// for unknown flag validation.
+var skipValidateOptions = map[string]bool{
+	"features": true,
+	"builder":  true,
+}
+
+// skipDuplicates contains configuration keys that
+// will be skipped when checking duplicated
+// configuration field defined in both daemon
+// config file and from dockerd cli flags.
+// This allows some configurations to be merged
+// during the parsing.
+var skipDuplicates = map[string]bool{
+	"runtimes": true,
 }
 
 // LogConfig represents the default log configuration.
@@ -75,6 +94,8 @@ type commonBridgeConfig struct {
 type NetworkConfig struct {
 	// Default address pools for docker networks
 	DefaultAddressPools opts.PoolsOpt `json:"default-address-pools,omitempty"`
+	// NetworkControlPlaneMTU allows to specify the control plane MTU, this will allow to optimize the network use in some components
+	NetworkControlPlaneMTU int `json:"network-control-plane-mtu,omitempty"`
 }
 
 // CommonTLSOptions defines TLS configuration for the daemon server.
@@ -112,12 +133,6 @@ type CommonConfig struct {
 	ExecRoot              string                    `json:"exec-root,omitempty"`
 	SocketGroup           string                    `json:"group,omitempty"`
 	CorsHeaders           string                    `json:"api-cors-header,omitempty"`
-
-	// TrustKeyPath is used to generate the daemon ID and for signing schema 1 manifests
-	// when pushing to a registry which does not support schema 2. This field is marked as
-	// deprecated because schema 1 manifests are deprecated in favor of schema 2 and the
-	// daemon ID will use a dedicated identifier not shared with exported signatures.
-	TrustKeyPath string `json:"deprecated-key-path,omitempty"`
 
 	// LiveRestoreEnabled determines whether we should keep containers
 	// alive upon daemon shutdown/start
@@ -192,12 +207,21 @@ type CommonConfig struct {
 	// Exposed node Generic Resources
 	// e.g: ["orange=red", "orange=green", "orange=blue", "apple=3"]
 	NodeGenericResources []string `json:"node-generic-resources,omitempty"`
-	// NetworkControlPlaneMTU allows to specify the control plane MTU, this will allow to optimize the network use in some components
-	NetworkControlPlaneMTU int `json:"network-control-plane-mtu,omitempty"`
 
 	// ContainerAddr is the address used to connect to containerd if we're
 	// not starting it ourselves
 	ContainerdAddr string `json:"containerd,omitempty"`
+
+	// CriContainerd determines whether a supervised containerd instance
+	// should be configured with the CRI plugin enabled. This allows using
+	// Docker's containerd instance directly with a Kubernetes kubelet.
+	CriContainerd bool `json:"cri-containerd,omitempty"`
+
+	// Features contains a list of feature key value pairs indicating what features are enabled or disabled.
+	// If a certain feature doesn't appear in this list then it's unset (i.e. neither true nor false).
+	Features map[string]bool `json:"features,omitempty"`
+
+	Builder BuilderConfig `json:"builder,omitempty"`
 }
 
 // IsValueSet returns true if a configuration value
@@ -216,9 +240,6 @@ func New() *Config {
 	config.LogConfig.Config = make(map[string]string)
 	config.ClusterOpts = make(map[string]string)
 
-	if runtime.GOOS != "linux" {
-		config.V2Only = true
-	}
 	return &config
 }
 
@@ -233,7 +254,7 @@ func ParseClusterAdvertiseSettings(clusterStore, clusterAdvertise string) (strin
 
 	advertise, err := discovery.ParseAdvertise(clusterAdvertise)
 	if err != nil {
-		return "", fmt.Errorf("discovery advertise parsing failed (%v)", err)
+		return "", errors.Wrap(err, "discovery advertise parsing failed")
 	}
 	return advertise, nil
 }
@@ -287,13 +308,13 @@ func Reload(configFile string, flags *pflag.FlagSet, reload func(*Config)) error
 	newConfig, err := getConflictFreeConfiguration(configFile, flags)
 	if err != nil {
 		if flags.Changed("config-file") || !os.IsNotExist(err) {
-			return fmt.Errorf("unable to configure the Docker daemon with file %s: %v", configFile, err)
+			return errors.Wrapf(err, "unable to configure the Docker daemon with file %s", configFile)
 		}
 		newConfig = New()
 	}
 
 	if err := Validate(newConfig); err != nil {
-		return fmt.Errorf("file configuration validation failed (%v)", err)
+		return errors.Wrap(err, "file configuration validation failed")
 	}
 
 	// Check if duplicate label-keys with different values are found
@@ -324,7 +345,7 @@ func MergeDaemonConfigurations(flagsConfig *Config, flags *pflag.FlagSet, config
 	}
 
 	if err := Validate(fileConfig); err != nil {
-		return nil, fmt.Errorf("configuration validation from file failed (%v)", err)
+		return nil, errors.Wrap(err, "configuration validation from file failed")
 	}
 
 	// merge flags configuration on top of the file configuration
@@ -335,7 +356,7 @@ func MergeDaemonConfigurations(flagsConfig *Config, flags *pflag.FlagSet, config
 	// We need to validate again once both fileConfig and flagsConfig
 	// have been merged
 	if err := Validate(fileConfig); err != nil {
-		return nil, fmt.Errorf("merged configuration validation from file and command line flags failed (%v)", err)
+		return nil, errors.Wrap(err, "merged configuration validation from file and command line flags failed")
 	}
 
 	return fileConfig, nil
@@ -407,7 +428,7 @@ func getConflictFreeConfiguration(configFile string, flags *pflag.FlagSet) (*Con
 		logrus.Warn(`The "graph" config file option is deprecated. Please use "data-root" instead.`)
 
 		if config.Root != "" {
-			return nil, fmt.Errorf(`cannot specify both "graph" and "data-root" config file options`)
+			return nil, errors.New(`cannot specify both "graph" and "data-root" config file options`)
 		}
 
 		config.Root = config.RootDeprecated
@@ -439,7 +460,7 @@ func findConfigurationConflicts(config map[string]interface{}, flags *pflag.Flag
 	// 1. Search keys from the file that we don't recognize as flags.
 	unknownKeys := make(map[string]interface{})
 	for key, value := range config {
-		if flag := flags.Lookup(key); flag == nil {
+		if flag := flags.Lookup(key); flag == nil && !skipValidateOptions[key] {
 			unknownKeys[key] = value
 		}
 	}
@@ -474,13 +495,13 @@ func findConfigurationConflicts(config map[string]interface{}, flags *pflag.Flag
 	duplicatedConflicts := func(f *pflag.Flag) {
 		// search option name in the json configuration payload if the value is a named option
 		if namedOption, ok := f.Value.(opts.NamedOption); ok {
-			if optsValue, ok := config[namedOption.Name()]; ok {
+			if optsValue, ok := config[namedOption.Name()]; ok && !skipDuplicates[namedOption.Name()] {
 				conflicts = append(conflicts, printConflict(namedOption.Name(), f.Value.String(), optsValue))
 			}
 		} else {
 			// search flag name in the json configuration payload
 			for _, name := range []string{f.Name, f.Shorthand} {
-				if value, ok := config[name]; ok {
+				if value, ok := config[name]; ok && !skipDuplicates[name] {
 					conflicts = append(conflicts, printConflict(name, f.Value.String(), value))
 					break
 				}

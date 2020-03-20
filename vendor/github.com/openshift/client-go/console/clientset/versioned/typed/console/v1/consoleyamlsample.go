@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/openshift/api/console/v1"
@@ -21,14 +22,14 @@ type ConsoleYAMLSamplesGetter interface {
 
 // ConsoleYAMLSampleInterface has methods to work with ConsoleYAMLSample resources.
 type ConsoleYAMLSampleInterface interface {
-	Create(*v1.ConsoleYAMLSample) (*v1.ConsoleYAMLSample, error)
-	Update(*v1.ConsoleYAMLSample) (*v1.ConsoleYAMLSample, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.ConsoleYAMLSample, error)
-	List(opts metav1.ListOptions) (*v1.ConsoleYAMLSampleList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ConsoleYAMLSample, err error)
+	Create(ctx context.Context, consoleYAMLSample *v1.ConsoleYAMLSample, opts metav1.CreateOptions) (*v1.ConsoleYAMLSample, error)
+	Update(ctx context.Context, consoleYAMLSample *v1.ConsoleYAMLSample, opts metav1.UpdateOptions) (*v1.ConsoleYAMLSample, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ConsoleYAMLSample, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.ConsoleYAMLSampleList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConsoleYAMLSample, err error)
 	ConsoleYAMLSampleExpansion
 }
 
@@ -45,19 +46,19 @@ func newConsoleYAMLSamples(c *ConsoleV1Client) *consoleYAMLSamples {
 }
 
 // Get takes name of the consoleYAMLSample, and returns the corresponding consoleYAMLSample object, and an error if there is any.
-func (c *consoleYAMLSamples) Get(name string, options metav1.GetOptions) (result *v1.ConsoleYAMLSample, err error) {
+func (c *consoleYAMLSamples) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ConsoleYAMLSample, err error) {
 	result = &v1.ConsoleYAMLSample{}
 	err = c.client.Get().
 		Resource("consoleyamlsamples").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of ConsoleYAMLSamples that match those selectors.
-func (c *consoleYAMLSamples) List(opts metav1.ListOptions) (result *v1.ConsoleYAMLSampleList, err error) {
+func (c *consoleYAMLSamples) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ConsoleYAMLSampleList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -67,13 +68,13 @@ func (c *consoleYAMLSamples) List(opts metav1.ListOptions) (result *v1.ConsoleYA
 		Resource("consoleyamlsamples").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested consoleYAMLSamples.
-func (c *consoleYAMLSamples) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *consoleYAMLSamples) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,66 +84,69 @@ func (c *consoleYAMLSamples) Watch(opts metav1.ListOptions) (watch.Interface, er
 		Resource("consoleyamlsamples").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a consoleYAMLSample and creates it.  Returns the server's representation of the consoleYAMLSample, and an error, if there is any.
-func (c *consoleYAMLSamples) Create(consoleYAMLSample *v1.ConsoleYAMLSample) (result *v1.ConsoleYAMLSample, err error) {
+func (c *consoleYAMLSamples) Create(ctx context.Context, consoleYAMLSample *v1.ConsoleYAMLSample, opts metav1.CreateOptions) (result *v1.ConsoleYAMLSample, err error) {
 	result = &v1.ConsoleYAMLSample{}
 	err = c.client.Post().
 		Resource("consoleyamlsamples").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(consoleYAMLSample).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a consoleYAMLSample and updates it. Returns the server's representation of the consoleYAMLSample, and an error, if there is any.
-func (c *consoleYAMLSamples) Update(consoleYAMLSample *v1.ConsoleYAMLSample) (result *v1.ConsoleYAMLSample, err error) {
+func (c *consoleYAMLSamples) Update(ctx context.Context, consoleYAMLSample *v1.ConsoleYAMLSample, opts metav1.UpdateOptions) (result *v1.ConsoleYAMLSample, err error) {
 	result = &v1.ConsoleYAMLSample{}
 	err = c.client.Put().
 		Resource("consoleyamlsamples").
 		Name(consoleYAMLSample.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(consoleYAMLSample).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the consoleYAMLSample and deletes it. Returns an error if one occurs.
-func (c *consoleYAMLSamples) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *consoleYAMLSamples) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("consoleyamlsamples").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *consoleYAMLSamples) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (c *consoleYAMLSamples) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("consoleyamlsamples").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched consoleYAMLSample.
-func (c *consoleYAMLSamples) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ConsoleYAMLSample, err error) {
+func (c *consoleYAMLSamples) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConsoleYAMLSample, err error) {
 	result = &v1.ConsoleYAMLSample{}
 	err = c.client.Patch(pt).
 		Resource("consoleyamlsamples").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

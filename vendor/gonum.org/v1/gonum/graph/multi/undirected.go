@@ -51,7 +51,6 @@ func (g *UndirectedGraph) AddNode(n graph.Node) {
 		panic(fmt.Sprintf("simple: node ID collision: %d", n.ID()))
 	}
 	g.nodes[n.ID()] = n
-	g.lines[n.ID()] = make(map[int64]map[int64]graph.Line)
 	g.nodeIDs.Use(n.ID())
 }
 
@@ -242,19 +241,28 @@ func (g *UndirectedGraph) SetLine(l graph.Line) {
 	} else {
 		g.nodes[fid] = from
 	}
-	if g.lines[fid][tid] == nil {
-		g.lines[fid][tid] = make(map[int64]graph.Line)
-	}
 	if _, ok := g.nodes[tid]; !ok {
 		g.AddNode(to)
 	} else {
 		g.nodes[tid] = to
 	}
-	if g.lines[tid][fid] == nil {
-		g.lines[tid][fid] = make(map[int64]graph.Line)
+
+	switch {
+	case g.lines[fid] == nil:
+		g.lines[fid] = map[int64]map[int64]graph.Line{tid: {lid: l}}
+	case g.lines[fid][tid] == nil:
+		g.lines[fid][tid] = map[int64]graph.Line{lid: l}
+	default:
+		g.lines[fid][tid][lid] = l
+	}
+	switch {
+	case g.lines[tid] == nil:
+		g.lines[tid] = map[int64]map[int64]graph.Line{fid: {lid: l}}
+	case g.lines[tid][fid] == nil:
+		g.lines[tid][fid] = map[int64]graph.Line{lid: l}
+	default:
+		g.lines[tid][fid][lid] = l
 	}
 
-	g.lines[fid][tid][lid] = l
-	g.lines[tid][fid][lid] = l
 	g.lineIDs.Use(lid)
 }

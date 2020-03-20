@@ -2,7 +2,7 @@
 
 ## Installation
 
-The core packages of the gonum suite are written in pure Go with some assembly.
+The core packages of the Gonum suite are written in pure Go with some assembly.
 Installation is done using `go get`.
 ```
 go get -u gonum.org/v1/gonum/...
@@ -10,13 +10,23 @@ go get -u gonum.org/v1/gonum/...
 
 ## Supported Go versions
 
-Gonum supports and tests on the three most recent minor versions of Go on [Linux](https://github.com/gonum/gonum/blob/master/.travis.yml#L6-L11) and [Windows](https://github.com/gonum/gonum/blob/master/appveyor.yml#L13-L18).
+Gonum supports and tests on the [two most recent Go releases](https://github.com/gonum/gonum/blob/master/.travis.yml#L6-L10) on Linux, macOS and Windows.
 
+## Release schedule
+
+The Gonum modules are released on a six-month release schedule, aligned with the Go releases.
+_i.e.:_ when `Go-1.x` is released, `Gonum-v0.n.0` is released around the same time.
+Six months after, `Go-1.x+1` is released, and `Gonum-v0.n+1.0` as well.
+
+The release schedule, based on the current Go release schedule is thus:
+
+- `Gonum-v0.n.0`: February
+- `Gonum-v0.n+1.0`: August
 
 ## Build tags
 
-The gonum packages use a variety of build tags to set non-standard build conditions.
-Building gonum applications will work without knowing how to use these tags, but they can be used during testing and to control the use of assembly and CGO code.
+The Gonum packages use a variety of build tags to set non-standard build conditions.
+Building Gonum applications will work without knowing how to use these tags, but they can be used during testing and to control the use of assembly and CGO code.
 
 The current list of non-internal tags is as follows:
 

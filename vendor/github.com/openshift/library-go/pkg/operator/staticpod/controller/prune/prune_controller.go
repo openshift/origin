@@ -90,10 +90,10 @@ func getRevisionLimits(operatorSpec *operatorv1.StaticPodOperatorSpec) (int32, i
 	return failedRevisionLimit, succeededRevisionLimit
 }
 
-func (c *PruneController) excludedRevisionHistory(recorder events.Recorder, failedRevisionLimit, succeededRevisionLimit int32) ([]int, error) {
+func (c *PruneController) excludedRevisionHistory(ctx context.Context, recorder events.Recorder, failedRevisionLimit, succeededRevisionLimit int32) ([]int, error) {
 	var succeededRevisions, failedRevisions, inProgressRevisions, unknownStatusRevisions []int
 
-	configMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
+	configMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return []int{}, err
 	}
@@ -161,9 +161,9 @@ func (c *PruneController) pruneDiskResources(recorder events.Recorder, operatorS
 	return nil
 }
 
-func (c *PruneController) pruneAPIResources(excludedRevisions []int, maxEligibleRevision int) error {
+func (c *PruneController) pruneAPIResources(ctx context.Context, excludedRevisions []int, maxEligibleRevision int) error {
 	protectedRevisions := sets.NewInt(excludedRevisions...)
-	statusConfigMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
+	statusConfigMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -183,7 +183,7 @@ func (c *PruneController) pruneAPIResources(excludedRevisions []int, maxEligible
 		if revision > maxEligibleRevision {
 			continue
 		}
-		if err := c.configMapGetter.ConfigMaps(c.targetNamespace).Delete(cm.Name, &metav1.DeleteOptions{}); err != nil {
+		if err := c.configMapGetter.ConfigMaps(c.targetNamespace).Delete(ctx, cm.Name, metav1.DeleteOptions{}); err != nil {
 			return err
 		}
 	}
@@ -234,7 +234,7 @@ func (c *PruneController) ensurePrunePod(recorder events.Recorder, nodeName stri
 
 func (c *PruneController) setOwnerRefs(revision int32) ([]metav1.OwnerReference, error) {
 	ownerReferences := []metav1.OwnerReference{}
-	statusConfigMap, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(fmt.Sprintf("revision-status-%d", revision), metav1.GetOptions{})
+	statusConfigMap, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(context.TODO(), fmt.Sprintf("revision-status-%d", revision), metav1.GetOptions{})
 	if err == nil {
 		ownerReferences = append(ownerReferences, metav1.OwnerReference{
 			APIVersion: "v1",
@@ -271,7 +271,7 @@ func (c *PruneController) sync(ctx context.Context, syncCtx factory.SyncContext)
 	}
 	failedLimit, succeededLimit := getRevisionLimits(operatorSpec)
 
-	excludedRevisions, err := c.excludedRevisionHistory(syncCtx.Recorder(), failedLimit, succeededLimit)
+	excludedRevisions, err := c.excludedRevisionHistory(ctx, syncCtx.Recorder(), failedLimit, succeededLimit)
 	if err != nil {
 		return err
 	}
@@ -285,7 +285,7 @@ func (c *PruneController) sync(ctx context.Context, syncCtx factory.SyncContext)
 	if diskErr := c.pruneDiskResources(syncCtx.Recorder(), operatorStatus, excludedRevisions, excludedRevisions[len(excludedRevisions)-1]); diskErr != nil {
 		errs = append(errs, diskErr)
 	}
-	if apiErr := c.pruneAPIResources(excludedRevisions, excludedRevisions[len(excludedRevisions)-1]); apiErr != nil {
+	if apiErr := c.pruneAPIResources(ctx, excludedRevisions, excludedRevisions[len(excludedRevisions)-1]); apiErr != nil {
 		errs = append(errs, apiErr)
 	}
 	return v1helpers.NewMultiLineAggregate(errs)

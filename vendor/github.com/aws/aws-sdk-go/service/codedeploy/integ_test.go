@@ -27,7 +27,9 @@ func TestInteg_00_ListApplications(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := codedeploy.New(sess)
 	params := &codedeploy.ListApplicationsInput{}
-	_, err := svc.ListApplicationsWithContext(ctx, params)
+	_, err := svc.ListApplicationsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_GetDeployment(t *testing.T) {
 	params := &codedeploy.GetDeploymentInput{
 		DeploymentId: aws.String("d-USUAELQEX"),
 	}
-	_, err := svc.GetDeploymentWithContext(ctx, params)
+	_, err := svc.GetDeploymentWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

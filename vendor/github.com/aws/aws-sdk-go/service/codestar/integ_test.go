@@ -27,7 +27,9 @@ func TestInteg_00_ListProjects(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := codestar.New(sess)
 	params := &codestar.ListProjectsInput{}
-	_, err := svc.ListProjectsWithContext(ctx, params)
+	_, err := svc.ListProjectsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

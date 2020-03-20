@@ -1,13 +1,17 @@
 package kinesis
 
 import (
+	"bytes"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/corehandlers"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/awstesting/unit"
 )
@@ -85,5 +89,47 @@ func TestKinesisGetRecordsNoTimeout(t *testing.T) {
 	err := req.Send()
 	if err != nil {
 		t.Errorf("Expected no error, but received %v", err)
+	}
+}
+
+func TestKinesisCustomRetryErrorCodes(t *testing.T) {
+	svc := New(unit.Session, &aws.Config{
+		MaxRetries: aws.Int(1),
+		LogLevel:   aws.LogLevel(aws.LogDebugWithHTTPBody),
+	})
+	svc.Handlers.Validate.Clear()
+
+	const jsonErr = `{"__type":%q, "message":"some error message"}`
+	var reqCount int
+	resps := []*http.Response{
+		{
+			StatusCode: 400,
+			Header:     http.Header{},
+			Body: ioutil.NopCloser(bytes.NewReader(
+				[]byte(fmt.Sprintf(jsonErr, ErrCodeLimitExceededException)),
+			)),
+		},
+		{
+			StatusCode: 200,
+			Header:     http.Header{},
+			Body:       ioutil.NopCloser(bytes.NewReader([]byte{})),
+		},
+	}
+
+	req, _ := svc.GetRecordsRequest(&GetRecordsInput{})
+	req.Handlers.Send.Swap(corehandlers.SendHandler.Name, request.NamedHandler{
+		Name: "custom send handler",
+		Fn: func(r *request.Request) {
+			r.HTTPResponse = resps[reqCount]
+			reqCount++
+		},
+	})
+
+	if err := req.Send(); err != nil {
+		t.Fatalf("expect no error, got %v", err)
+	}
+
+	if e, a := 2, reqCount; e != a {
+		t.Errorf("expect %v requests, got %v", e, a)
 	}
 }

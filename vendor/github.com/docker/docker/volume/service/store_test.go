@@ -15,8 +15,8 @@ import (
 	"github.com/docker/docker/volume/service/opts"
 	volumetestutils "github.com/docker/docker/volume/testutils"
 	"github.com/google/go-cmp/cmp"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 )
 
 func TestCreate(t *testing.T) {
@@ -179,12 +179,12 @@ func TestFindByReferenced(t *testing.T) {
 	}
 
 	dangling, _, err := s.Find(ctx, ByReferenced(false))
-	assert.Assert(t, err)
+	assert.NilError(t, err)
 	assert.Assert(t, len(dangling) == 1)
 	assert.Check(t, dangling[0].Name() == "fake2")
 
 	used, _, err := s.Find(ctx, ByReferenced(true))
-	assert.Assert(t, err)
+	assert.NilError(t, err)
 	assert.Assert(t, len(used) == 1)
 	assert.Check(t, used[0].Name() == "fake1")
 }

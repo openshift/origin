@@ -85,16 +85,17 @@ func ExampleCC() {
 	}
 
 	// Unpack cc.
+	var pVecs, qVecs, phiVs, psiVs mat.Dense
 	ccors := cc.CorrsTo(nil)
-	pVecs := cc.LeftTo(nil, true)
-	qVecs := cc.RightTo(nil, true)
-	phiVs := cc.LeftTo(nil, false)
-	psiVs := cc.RightTo(nil, false)
+	cc.LeftTo(&pVecs, true)
+	cc.RightTo(&qVecs, true)
+	cc.LeftTo(&phiVs, false)
+	cc.RightTo(&psiVs, false)
 
 	// Canonical Correlation Matrix, or the correlations between the sphered
 	// data.
 	var corSph mat.Dense
-	corSph.Clone(pVecs)
+	corSph.CloneFrom(&pVecs)
 	col := make([]float64, xd)
 	for j := 0; j < yd; j++ {
 		mat.Col(col, j, &corSph)
@@ -110,13 +111,13 @@ func ExampleCC() {
 	fmt.Printf("\n\nccors = %.4f", ccors)
 
 	// Left and right eigenvectors of the canonical correlation matrix.
-	fmt.Printf("\n\npVecs = %.4f", mat.Formatted(pVecs, mat.Prefix("        ")))
-	fmt.Printf("\n\nqVecs = %.4f", mat.Formatted(qVecs, mat.Prefix("        ")))
+	fmt.Printf("\n\npVecs = %.4f", mat.Formatted(&pVecs, mat.Prefix("        ")))
+	fmt.Printf("\n\nqVecs = %.4f", mat.Formatted(&qVecs, mat.Prefix("        ")))
 
 	// Canonical Correlation Transforms. These can be useful as they represent
 	// the canonical variables as linear combinations of the original variables.
-	fmt.Printf("\n\nphiVs = %.4f", mat.Formatted(phiVs, mat.Prefix("        ")))
-	fmt.Printf("\n\npsiVs = %.4f", mat.Formatted(psiVs, mat.Prefix("        ")))
+	fmt.Printf("\n\nphiVs = %.4f", mat.Formatted(&phiVs, mat.Prefix("        ")))
+	fmt.Printf("\n\npsiVs = %.4f", mat.Formatted(&psiVs, mat.Prefix("        ")))
 
 	// Output:
 	// corRaw = ⎡-0.2192   0.3527   0.5828  -0.3883⎤

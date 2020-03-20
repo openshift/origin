@@ -966,7 +966,11 @@
         "filterPattern":{"shape":"FilterPattern"},
         "nextToken":{"shape":"NextToken"},
         "limit":{"shape":"EventsLimit"},
-        "interleaved":{"shape":"Interleaved"}
+        "interleaved":{
+          "shape":"Interleaved",
+          "deprecated":true,
+          "deprecatedMessage":"Starting on June 17, 2019, this parameter will be ignored and the value will be assumed to be true. The response from this operation will always interleave events from multiple log streams within a log group."
+        }
       }
     },
     "FilterLogEventsResponse":{
@@ -1164,6 +1168,10 @@
       "min":1,
       "pattern":"[\\.\\-_/#A-Za-z0-9]+"
     },
+    "LogGroupNames":{
+      "type":"list",
+      "member":{"shape":"LogGroupName"}
+    },
     "LogGroups":{
       "type":"list",
       "member":{"shape":"LogGroup"}
@@ -1184,7 +1192,11 @@
         "lastIngestionTime":{"shape":"Timestamp"},
         "uploadSequenceToken":{"shape":"SequenceToken"},
         "arn":{"shape":"Arn"},
-        "storedBytes":{"shape":"StoredBytes"}
+        "storedBytes":{
+          "shape":"StoredBytes",
+          "deprecated":true,
+          "deprecatedMessage":"Starting on June 17, 2019, this parameter will be deprecated for log streams, and will be reported as zero. This change applies only to log streams. The storedBytes parameter for log groups is not affected."
+        }
       }
     },
     "LogStreamName":{
@@ -1547,13 +1559,13 @@
     "StartQueryRequest":{
       "type":"structure",
       "required":[
-        "logGroupName",
         "startTime",
         "endTime",
         "queryString"
       ],
       "members":{
         "logGroupName":{"shape":"LogGroupName"},
+        "logGroupNames":{"shape":"LogGroupNames"},
         "startTime":{"shape":"Timestamp"},
         "endTime":{"shape":"Timestamp"},
         "queryString":{"shape":"QueryString"},

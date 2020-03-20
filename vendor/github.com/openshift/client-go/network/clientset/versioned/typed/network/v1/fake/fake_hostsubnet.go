@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	networkv1 "github.com/openshift/api/network/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -22,7 +24,7 @@ var hostsubnetsResource = schema.GroupVersionResource{Group: "network.openshift.
 var hostsubnetsKind = schema.GroupVersionKind{Group: "network.openshift.io", Version: "v1", Kind: "HostSubnet"}
 
 // Get takes name of the hostSubnet, and returns the corresponding hostSubnet object, and an error if there is any.
-func (c *FakeHostSubnets) Get(name string, options v1.GetOptions) (result *networkv1.HostSubnet, err error) {
+func (c *FakeHostSubnets) Get(ctx context.Context, name string, options v1.GetOptions) (result *networkv1.HostSubnet, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(hostsubnetsResource, name), &networkv1.HostSubnet{})
 	if obj == nil {
@@ -32,7 +34,7 @@ func (c *FakeHostSubnets) Get(name string, options v1.GetOptions) (result *netwo
 }
 
 // List takes label and field selectors, and returns the list of HostSubnets that match those selectors.
-func (c *FakeHostSubnets) List(opts v1.ListOptions) (result *networkv1.HostSubnetList, err error) {
+func (c *FakeHostSubnets) List(ctx context.Context, opts v1.ListOptions) (result *networkv1.HostSubnetList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(hostsubnetsResource, hostsubnetsKind, opts), &networkv1.HostSubnetList{})
 	if obj == nil {
@@ -53,13 +55,13 @@ func (c *FakeHostSubnets) List(opts v1.ListOptions) (result *networkv1.HostSubne
 }
 
 // Watch returns a watch.Interface that watches the requested hostSubnets.
-func (c *FakeHostSubnets) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeHostSubnets) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(hostsubnetsResource, opts))
 }
 
 // Create takes the representation of a hostSubnet and creates it.  Returns the server's representation of the hostSubnet, and an error, if there is any.
-func (c *FakeHostSubnets) Create(hostSubnet *networkv1.HostSubnet) (result *networkv1.HostSubnet, err error) {
+func (c *FakeHostSubnets) Create(ctx context.Context, hostSubnet *networkv1.HostSubnet, opts v1.CreateOptions) (result *networkv1.HostSubnet, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(hostsubnetsResource, hostSubnet), &networkv1.HostSubnet{})
 	if obj == nil {
@@ -69,7 +71,7 @@ func (c *FakeHostSubnets) Create(hostSubnet *networkv1.HostSubnet) (result *netw
 }
 
 // Update takes the representation of a hostSubnet and updates it. Returns the server's representation of the hostSubnet, and an error, if there is any.
-func (c *FakeHostSubnets) Update(hostSubnet *networkv1.HostSubnet) (result *networkv1.HostSubnet, err error) {
+func (c *FakeHostSubnets) Update(ctx context.Context, hostSubnet *networkv1.HostSubnet, opts v1.UpdateOptions) (result *networkv1.HostSubnet, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(hostsubnetsResource, hostSubnet), &networkv1.HostSubnet{})
 	if obj == nil {
@@ -79,22 +81,22 @@ func (c *FakeHostSubnets) Update(hostSubnet *networkv1.HostSubnet) (result *netw
 }
 
 // Delete takes name of the hostSubnet and deletes it. Returns an error if one occurs.
-func (c *FakeHostSubnets) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeHostSubnets) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(hostsubnetsResource, name), &networkv1.HostSubnet{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeHostSubnets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(hostsubnetsResource, listOptions)
+func (c *FakeHostSubnets) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(hostsubnetsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &networkv1.HostSubnetList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched hostSubnet.
-func (c *FakeHostSubnets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *networkv1.HostSubnet, err error) {
+func (c *FakeHostSubnets) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *networkv1.HostSubnet, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(hostsubnetsResource, name, pt, data, subresources...), &networkv1.HostSubnet{})
 	if obj == nil {

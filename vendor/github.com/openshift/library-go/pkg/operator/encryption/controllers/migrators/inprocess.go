@@ -127,7 +127,7 @@ func (m *InProcessMigrator) runMigration(gvr schema.GroupVersionResource, writeK
 
 	listProcessor := newListProcessor(ctx, m.dynamicClient, func(obj *unstructured.Unstructured) error {
 		for {
-			_, updateErr := d.Namespace(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
+			_, updateErr := d.Namespace(obj.GetNamespace()).Update(ctx, obj, metav1.UpdateOptions{})
 			if updateErr == nil || errors.IsNotFound(updateErr) || errors.IsConflict(updateErr) {
 				return nil
 			}

@@ -12,8 +12,9 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"github.com/docker/docker/errdefs"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 )
 
 func TestSecretCreateUnsupported(t *testing.T) {
@@ -33,6 +34,9 @@ func TestSecretCreateError(t *testing.T) {
 	_, err := client.SecretCreate(context.Background(), swarm.SecretSpec{})
 	if err == nil || err.Error() != "Error response from daemon: Server error" {
 		t.Fatalf("expected a Server Error, got %v", err)
+	}
+	if !errdefs.IsSystem(err) {
+		t.Fatalf("expected a Server Error, got %T", err)
 	}
 }
 

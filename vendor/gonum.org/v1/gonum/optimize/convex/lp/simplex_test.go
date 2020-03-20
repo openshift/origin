@@ -207,17 +207,17 @@ func testSimplex(t *testing.T, initialBasic []int, c []float64, a mat.Matrix, b 
 
 	// Construct and solve the dual LP.
 	// Standard Form:
-	//  minimize c^T * x
+	//  minimize cᵀ * x
 	//    subject to  A * x = b, x >= 0
 	// The dual of this problem is
-	//  maximize -b^T * nu
-	//   subject to A^T * nu + c >= 0
+	//  maximize -bᵀ * nu
+	//   subject to Aᵀ * nu + c >= 0
 	// Which is
-	//   minimize b^T * nu
-	//   subject to -A^T * nu <= c
+	//   minimize bᵀ * nu
+	//   subject to -Aᵀ * nu <= c
 
 	negAT := &mat.Dense{}
-	negAT.Clone(a.T())
+	negAT.CloneFrom(a.T())
 	negAT.Scale(-1, negAT)
 	cNew, aNew, bNew := Convert(b, negAT, c, nil, nil)
 
@@ -238,7 +238,7 @@ func testSimplex(t *testing.T, initialBasic []int, c []float64, a mat.Matrix, b 
 
 	// If the primal problem is feasible, then the primal and the dual should
 	// be the same answer. We have flopped the sign in the dual (minimizing
-	// b^T *nu instead of maximizing -b^T*nu), so flip it back.
+	// bᵀ * nu instead of maximizing -bᵀ * nu), so flip it back.
 	if errPrimal == nil {
 		if errDual != nil {
 			t.Errorf("Primal feasible but dual errored: %s", errDual)

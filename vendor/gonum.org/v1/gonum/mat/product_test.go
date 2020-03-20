@@ -118,7 +118,7 @@ func TestProduct(t *testing.T) {
 			var a *Dense
 			for i, b := range factors {
 				if i == 0 {
-					want.Clone(b)
+					want.CloneFrom(b)
 					continue
 				}
 				a, want = want, &Dense{}
