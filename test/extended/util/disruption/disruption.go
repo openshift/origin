@@ -60,6 +60,7 @@ func Run(description, testname string, adapter TestData, invariants []upgrades.T
 	cm := chaosmonkey.New(func() {
 		start := time.Now()
 		defer finalizeTest(start, test, nil)
+		defer g.GinkgoRecover()
 		fn()
 	})
 	runChaosmonkey(cm, adapter, invariants, testSuite)
@@ -160,6 +161,7 @@ func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
 		}
 		return
 	}
+	framework.Logf("recover: %v", r)
 
 	switch r := r.(type) {
 	case ginkgowrapper.FailurePanic:
@@ -180,6 +182,14 @@ func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
 				Value:   fmt.Sprintf("%v\n\n%s", r, debug.Stack()),
 			},
 		}
+	}
+	// if we have a panic but it hasn't been recorded by ginkgo, panic now
+	if !g.CurrentGinkgoTestDescription().Failed {
+		framework.Logf("%q: panic: %v", tc.Name, r)
+		func() {
+			defer g.GinkgoRecover()
+			panic(r)
+		}()
 	}
 }
 
