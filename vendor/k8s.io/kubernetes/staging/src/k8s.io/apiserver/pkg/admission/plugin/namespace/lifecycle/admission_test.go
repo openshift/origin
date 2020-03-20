@@ -216,6 +216,12 @@ func TestAdmissionNamespaceTerminating(t *testing.T) {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
 
+	// verify create operation for evictions can proceed
+	err = handler.Admit(context.TODO(), admission.NewAttributesRecord(nil, nil, v1.SchemeGroupVersion.WithKind("Eviction").GroupKind().WithVersion("version"), pod.Namespace, pod.Name, v1.Resource("pods").WithVersion("version"), "", admission.Create, &metav1.CreateOptions{}, false, nil), nil)
+	if err != nil {
+		t.Errorf("Unexpected error returned from admission handler: %v", err)
+	}
+
 	// verify delete of namespace default can never proceed
 	err = handler.Admit(context.TODO(), admission.NewAttributesRecord(nil, nil, v1.SchemeGroupVersion.WithKind("Namespace").GroupKind().WithVersion("version"), "", metav1.NamespaceDefault, v1.Resource("namespaces").WithVersion("version"), "", admission.Delete, &metav1.DeleteOptions{}, false, nil), nil)
 	if err == nil {
