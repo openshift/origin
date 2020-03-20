@@ -48,20 +48,10 @@ import (
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
-	utilversion "k8s.io/kubernetes/pkg/util/version"
 	utilexec "k8s.io/utils/exec"
 )
 
 const (
-	// iptablesMinVersion is the minimum version of iptables for which we will use the Proxier
-	// from this package instead of the userspace Proxier.  While most of the
-	// features we need were available earlier, the '-C' flag was added more
-	// recently.  We use that indirectly in Ensure* functions, and if we don't
-	// have it, we have to be extra careful about the exact args we feed in being
-	// the same as the args we read back (iptables itself normalizes some args).
-	// This is the "new" Proxier, so we require "new" versions of tools.
-	iptablesMinVersion = utiliptables.MinCheckVersion
-
 	// the services chain
 	kubeServicesChain utiliptables.Chain = "KUBE-SERVICES"
 
@@ -84,12 +74,6 @@ const (
 	kubeForwardChain utiliptables.Chain = "KUBE-FORWARD"
 )
 
-// IPTablesVersioner can query the current iptables version.
-type IPTablesVersioner interface {
-	// returns "X.Y.Z"
-	GetVersion() (string, error)
-}
-
 // KernelCompatTester tests whether the required kernel capabilities are
 // present to run the iptables proxier.
 type KernelCompatTester interface {
@@ -97,27 +81,7 @@ type KernelCompatTester interface {
 }
 
 // CanUseIPTablesProxier returns true if we should use the iptables Proxier
-// instead of the "classic" userspace Proxier.  This is determined by checking
-// the iptables version and for the existence of kernel features. It may return
-// an error if it fails to get the iptables version without error, in which
-// case it will also return false.
-func CanUseIPTablesProxier(iptver IPTablesVersioner, kcompat KernelCompatTester) (bool, error) {
-	minVersion, err := utilversion.ParseGeneric(iptablesMinVersion)
-	if err != nil {
-		return false, err
-	}
-	versionString, err := iptver.GetVersion()
-	if err != nil {
-		return false, err
-	}
-	version, err := utilversion.ParseGeneric(versionString)
-	if err != nil {
-		return false, err
-	}
-	if version.LessThan(minVersion) {
-		return false, nil
-	}
-
+func CanUseIPTablesProxier(kcompat KernelCompatTester) (bool, error) {
 	// Check that the kernel supports what we need.
 	if err := kcompat.IsCompatible(); err != nil {
 		return false, err
@@ -128,9 +92,6 @@ func CanUseIPTablesProxier(iptver IPTablesVersioner, kcompat KernelCompatTester)
 type LinuxKernelCompatTester struct{}
 
 func (lkct LinuxKernelCompatTester) IsCompatible() error {
-	// Check for the required sysctls.  We don't care about the value, just
-	// that it exists.  If this Proxier is chosen, we'll initialize it as we
-	// need.
 	_, err := utilsysctl.New().GetSysctl(sysctlRouteLocalnet)
 	return err
 }
