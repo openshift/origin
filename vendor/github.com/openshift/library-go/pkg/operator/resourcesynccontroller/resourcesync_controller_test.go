@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	ktesting "k8s.io/client-go/testing"
 
-	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
@@ -37,8 +37,10 @@ func TestSyncSecret(t *testing.T) {
 	)
 
 	destinationSecretCreated := make(chan struct{})
-	destinationSecretBarChecked := make(chan struct{})
-	destinationSecretEmptySourceChecked := make(chan struct{})
+	destinationSecretBarChecked := false
+	destinationSecretBarCheckedMutex := sync.Mutex{}
+	destinationSecretEmptySourceChecked := false
+	destinationSecretEmptySourceCheckedMutex := sync.Mutex{}
 
 	kubeClient.PrependReactor("create", "secrets", func(action ktesting.Action) (bool, runtime.Object, error) {
 		actual, isCreate := action.(ktesting.CreateAction)
@@ -73,9 +75,13 @@ func TestSyncSecret(t *testing.T) {
 		if actual.GetNamespace() == "operator" {
 			switch actual.GetName() {
 			case "bar":
-				destinationSecretBarChecked <- struct{}{}
+				destinationSecretBarCheckedMutex.Lock()
+				destinationSecretBarChecked = true
+				destinationSecretBarCheckedMutex.Unlock()
 			case "empty-source":
-				destinationSecretEmptySourceChecked <- struct{}{}
+				destinationSecretBarCheckedMutex.Lock()
+				destinationSecretEmptySourceChecked = true
+				destinationSecretBarCheckedMutex.Unlock()
 			}
 		}
 		return false, nil, nil
@@ -102,7 +108,6 @@ func TestSyncSecret(t *testing.T) {
 		eventRecorder,
 	)
 
-	c.controllerFactory.ResyncEvery(0)
 	c.configMapGetter = kubeClient.CoreV1()
 	c.secretGetter = kubeClient.CoreV1()
 
@@ -130,32 +135,38 @@ func TestSyncSecret(t *testing.T) {
 	}
 
 	// The source resource location is not set and the destination does not exists. This should close the "destinationSecretEmptySourceChecked" and
-	// should not increase the deleteSecretCounter (this is special case in resource sync controllerFactory.
+	// should not increase the deleteSecretCounter (this is special case in resource sync controller.
 	if err := c.SyncSecret(ResourceLocation{Namespace: "operator", Name: "empty-source"}, ResourceLocation{}); err != nil {
 		t.Fatal(err)
 	}
 
 	select {
 	case <-destinationSecretCreated:
-	case <-time.After(10 * time.Second):
+	case <-time.After(20 * time.Second):
 		t.Fatal("timeout while waiting for destination secret to be created")
 	}
 
-	select {
-	case <-destinationSecretBarChecked:
-	case <-time.After(10 * time.Second):
+	if err := wait.PollImmediate(10*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		destinationSecretBarCheckedMutex.Lock()
+		defer destinationSecretBarCheckedMutex.Unlock()
+		return destinationSecretBarChecked, nil
+	}); err != nil {
 		t.Fatal("timeout while waiting for destination secret 'bar' to be checked for existence")
 	}
 
-	select {
-	case <-destinationSecretEmptySourceChecked:
-	case <-time.After(10 * time.Second):
+	if err := wait.PollImmediate(10*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		destinationSecretEmptySourceCheckedMutex.Lock()
+		defer destinationSecretEmptySourceCheckedMutex.Unlock()
+		return destinationSecretEmptySourceChecked, nil
+	}); err != nil {
 		t.Fatal("timeout while waiting for destination secret 'empty-source' to be checked for existence")
 	}
 
-	deleteSecretCounterMutex.Lock()
-	defer deleteSecretCounterMutex.Unlock()
-	if deleteSecretCounter != 1 {
+	if err := wait.PollImmediate(10*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		deleteSecretCounterMutex.Lock()
+		defer deleteSecretCounterMutex.Unlock()
+		return deleteSecretCounter == 1, nil
+	}); err != nil {
 		t.Fatalf("expected exactly 1 delete call for this test, got %d", deleteSecretCounter)
 	}
 }
@@ -191,8 +202,6 @@ func TestSyncConfigMap(t *testing.T) {
 
 	kubeInformersForNamespaces := v1helpers.NewFakeKubeInformersForNamespaces(map[string]informers.SharedInformerFactory{"other": configInformers})
 
-	syncCtx := factory.NewSyncContext("ResourceSyncController", eventRecorder)
-
 	c := NewResourceSyncController(
 		fakeStaticPodOperatorClient,
 		v1helpers.NewFakeKubeInformersForNamespaces(map[string]informers.SharedInformerFactory{
@@ -204,8 +213,6 @@ func TestSyncConfigMap(t *testing.T) {
 		v1helpers.CachedConfigMapGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
 		eventRecorder,
 	)
-	c.queue = syncCtx.Queue()
-	c.controllerFactory.ResyncEvery(0) // disable time based resyncs as they might conflict with tests
 	c.configMapGetter = kubeClient.CoreV1()
 	c.secretGetter = kubeClient.CoreV1()
 
@@ -231,7 +238,7 @@ func TestSyncConfigMap(t *testing.T) {
 	if err := c.SyncConfigMap(ResourceLocation{Namespace: "operator", Name: "apple"}, ResourceLocation{Namespace: "config-managed", Name: "pear"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.Sync(context.TODO(), syncCtx); err != nil {
+	if err := c.Sync(context.TODO(), c.syncCtx); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := kubeClient.CoreV1().Secrets("operator").Get("foo", metav1.GetOptions{}); err != nil {
@@ -249,7 +256,7 @@ func TestSyncConfigMap(t *testing.T) {
 	if err := c.SyncConfigMap(ResourceLocation{Namespace: "operator", Name: "apple"}, ResourceLocation{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.Sync(context.TODO(), syncCtx); err != nil {
+	if err := c.Sync(context.TODO(), c.syncCtx); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := kubeClient.CoreV1().Secrets("operator").Get("foo", metav1.GetOptions{}); !apierrors.IsNotFound(err) {

@@ -77,7 +77,8 @@ func (c CertRotationController) Sync(ctx context.Context, syncCtx factory.SyncCo
 	syncErr := c.syncWorker()
 
 	// running this function with RunOnceContextKey value context will make this "run-once" without updating status.
-	if ctx.Value(RunOnceContextKey).(bool) == true {
+	isRunOnce, ok := ctx.Value(RunOnceContextKey).(bool)
+	if ok && isRunOnce {
 		return syncErr
 	}
 

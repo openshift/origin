@@ -9,8 +9,8 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
-// LogLevelToKlog transforms operator log level to a klog numeric verbosity level.
-func LogLevelToKlog(logLevel operatorv1.LogLevel) int {
+// LogLevelToVerbosity transforms operator log level to a klog numeric verbosity level.
+func LogLevelToVerbosity(logLevel operatorv1.LogLevel) int {
 	switch logLevel {
 	case operatorv1.Normal:
 		return 2
@@ -25,34 +25,35 @@ func LogLevelToKlog(logLevel operatorv1.LogLevel) int {
 	}
 }
 
-// CurrentLogLevel attempts to guess the current log level that is used by klog.
+// verbosityFn is exported so it can be unit tested
+var verbosityFn = klog.V
+
+// GetLogLevel attempts to guess the current log level that is used by klog.
+// The bool value returned determine whether we were able to determine the current log level or not.
 // We can use flags here as well, but this is less ugly ano more programmatically correct than flags.
-func CurrentLogLevel() operatorv1.LogLevel {
+func GetLogLevel() (operatorv1.LogLevel, bool) {
 	switch {
-	case klog.V(8) == true:
-		return operatorv1.TraceAll
-	case klog.V(6) == true:
-		return operatorv1.Trace
-	case klog.V(4) == true:
-		return operatorv1.Debug
-	case klog.V(2) == true:
-		return operatorv1.Normal
+	case verbosityFn(8) == true:
+		return operatorv1.TraceAll, false
+	case verbosityFn(6) == true:
+		return operatorv1.Trace, false
+	case verbosityFn(4) == true:
+		return operatorv1.Debug, false
+	case verbosityFn(2) == true:
+		return operatorv1.Normal, false
 	default:
-		return operatorv1.Normal
+		// this is the default log level that will be set if the operator operatorSpec does not specify one (2).
+		return operatorv1.Normal, true
 	}
 }
 
-// SetVerbosityValue is a nasty hack and attempt to manipulate the global flags as klog does not expose
+// SetLogLEvel is a nasty hack and attempt to manipulate the global flags as klog does not expose
 // a way to dynamically change the loglevel in runtime.
-func SetVerbosityValue(logLevel operatorv1.LogLevel) error {
-	if logLevel == CurrentLogLevel() {
-		return nil
-	}
-
+func SetLogLEvel(targetLevel operatorv1.LogLevel) error {
 	var level *klog.Level
 
 	// Convert operator loglevel to klog numeric string
-	desiredLevelValue := fmt.Sprintf("%d", LogLevelToKlog(logLevel))
+	verbosity := fmt.Sprintf("%d", LogLevelToVerbosity(targetLevel))
 
 	// First, if the '-v' was specified in command line, attempt to acquire the level pointer from it.
 	if f := flag.CommandLine.Lookup("v"); f != nil {
@@ -75,14 +76,14 @@ func SetVerbosityValue(logLevel operatorv1.LogLevel) error {
 	}
 
 	if level != nil {
-		return level.Set(desiredLevelValue)
+		return level.Set(verbosity)
 	}
 
 	// Third, if modifying the flag value (which is recommended by klog) fails, then fallback to modifying
 	// the internal state of klog using the empty new level.
 	var newLevel klog.Level
-	if err := newLevel.Set(desiredLevelValue); err != nil {
-		return fmt.Errorf("failed set klog.logging.verbosity %s: %v", desiredLevelValue, err)
+	if err := newLevel.Set(verbosity); err != nil {
+		return fmt.Errorf("failed set klog.logging.verbosity %s: %v", verbosity, err)
 	}
 
 	return nil

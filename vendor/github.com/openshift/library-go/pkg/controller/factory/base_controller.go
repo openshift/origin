@@ -139,11 +139,12 @@ func (c *baseController) processNextWorkItem(queueCtx context.Context) {
 	var ok bool
 	syncCtx.queueKey, ok = key.(string)
 	if !ok {
-		klog.Warningf("Queue key is not string: %+v", key)
+		utilruntime.HandleError(fmt.Errorf("%q controller failed to process key %q (not a string)", c.name, key))
+		return
 	}
 
 	if err := c.sync(queueCtx, syncCtx); err != nil {
-		utilruntime.HandleError(fmt.Errorf("%s controller failed to sync %+v with: %w", c.name, key, err))
+		utilruntime.HandleError(fmt.Errorf("%q controller failed to sync %q, err: %w", c.name, key, err))
 		c.syncContext.Queue().AddRateLimited(key)
 		return
 	}

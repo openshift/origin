@@ -233,6 +233,7 @@ func TestListTasks(t *testing.T) {
 	if !reflect.DeepEqual(tasks, expected) {
 		t.Errorf("ListTasks: Expected %#v. Got %#v.", expected, tasks)
 	}
+
 }
 
 func TestInspectTask(t *testing.T) {
@@ -358,6 +359,7 @@ func TestInspectTask(t *testing.T) {
 	if gotPath := fakeRT.requests[0].URL.Path; gotPath != expectedURL.Path {
 		t.Errorf("InspectTask(%q): Wrong path in request. Want %q. Got %q.", id, expectedURL.Path, gotPath)
 	}
+
 }
 
 func TestInspectTaskNotFound(t *testing.T) {

@@ -45,30 +45,13 @@ type cloudProviderObserver struct {
 }
 
 // ObserveCloudProviderNames observes the cloud provider from the global cluster infrastructure resource.
-func (c *cloudProviderObserver) ObserveCloudProviderNames(genericListers configobserver.Listers, recorder events.Recorder, existingConfig map[string]interface{}) (map[string]interface{}, []error) {
+func (c *cloudProviderObserver) ObserveCloudProviderNames(genericListers configobserver.Listers, recorder events.Recorder, existingConfig map[string]interface{}) (ret map[string]interface{}, _ []error) {
+	defer func() {
+		ret = configobserver.Pruned(ret, c.cloudProviderConfigPath, c.cloudProviderNamePath)
+	}()
+
 	listers := genericListers.(InfrastructureLister)
 	var errs []error
-	cloudProvidersPath := c.cloudProviderNamePath
-	cloudProviderConfPath := c.cloudProviderConfigPath
-	previouslyObservedConfig := map[string]interface{}{}
-
-	existingCloudConfig, _, err := unstructured.NestedStringSlice(existingConfig, cloudProviderConfPath...)
-	if err != nil {
-		return previouslyObservedConfig, append(errs, err)
-	}
-
-	if currentCloudProvider, _, _ := unstructured.NestedStringSlice(existingConfig, cloudProvidersPath...); len(currentCloudProvider) > 0 {
-		if err := unstructured.SetNestedStringSlice(previouslyObservedConfig, currentCloudProvider, cloudProvidersPath...); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	if len(existingCloudConfig) > 0 {
-		if err := unstructured.SetNestedStringSlice(previouslyObservedConfig, existingCloudConfig, cloudProviderConfPath...); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
 	observedConfig := map[string]interface{}{}
 
 	infrastructure, err := listers.InfrastructureLister().Get("cluster")
@@ -77,13 +60,12 @@ func (c *cloudProviderObserver) ObserveCloudProviderNames(genericListers configo
 		return observedConfig, errs
 	}
 	if err != nil {
-		errs = append(errs, err)
-		return previouslyObservedConfig, errs
+		return existingConfig, append(errs, err)
 	}
 
 	cloudProvider := getPlatformName(infrastructure.Status.Platform, recorder)
 	if len(cloudProvider) > 0 {
-		if err := unstructured.SetNestedStringSlice(observedConfig, []string{cloudProvider}, cloudProvidersPath...); err != nil {
+		if err := unstructured.SetNestedStringSlice(observedConfig, []string{cloudProvider}, c.cloudProviderNamePath...); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -105,16 +87,13 @@ func (c *cloudProviderObserver) ObserveCloudProviderNames(genericListers configo
 		sourceLocation = resourcesynccontroller.ResourceLocation{}
 	}
 
-	err = listers.ResourceSyncer().SyncConfigMap(
+	if err := listers.ResourceSyncer().SyncConfigMap(
 		resourcesynccontroller.ResourceLocation{
 			Namespace: c.targetNamespaceName,
 			Name:      "cloud-config",
 		},
-		sourceLocation)
-
-	if err != nil {
-		errs = append(errs, err)
-		return observedConfig, errs
+		sourceLocation); err != nil {
+		return existingConfig, append(errs, err)
 	}
 
 	if len(sourceCloudConfigMap) == 0 {
@@ -124,9 +103,15 @@ func (c *cloudProviderObserver) ObserveCloudProviderNames(genericListers configo
 	// usually key will be simply config but we should refer it just in case
 	staticCloudConfFile := fmt.Sprintf(cloudProviderConfFilePath, infrastructure.Spec.CloudConfig.Key)
 
-	if err := unstructured.SetNestedStringSlice(observedConfig, []string{staticCloudConfFile}, cloudProviderConfPath...); err != nil {
+	if err := unstructured.SetNestedStringSlice(observedConfig, []string{staticCloudConfFile}, c.cloudProviderConfigPath...); err != nil {
 		recorder.Warningf("ObserveCloudProviderNames", "Failed setting cloud-config : %v", err)
+		return existingConfig, append(errs, err)
+	}
+
+	existingCloudConfig, _, err := unstructured.NestedStringSlice(existingConfig, c.cloudProviderConfigPath...)
+	if err != nil {
 		errs = append(errs, err)
+		// keep going on read error from existing config
 	}
 
 	if !equality.Semantic.DeepEqual(existingCloudConfig, []string{staticCloudConfFile}) {

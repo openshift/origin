@@ -8,20 +8,31 @@ package docker
 
 import (
 	"bytes"
-	"reflect"
-	"runtime"
-	"strings"
+	"os"
 	"testing"
 )
 
+var dockerEndpoint string
+
+func init() {
+	dockerEndpoint = os.Getenv("DOCKER_HOST")
+	if dockerEndpoint == "" {
+		dockerEndpoint = "unix:///var/run/docker.sock"
+	}
+}
+
 func TestIntegrationPullCreateStartLogs(t *testing.T) {
 	imageName := pullImage(t)
-	client, err := NewClientFromEnv()
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := getClient()
 	hostConfig := HostConfig{PublishAllPorts: true}
-	createOpts := integrationCreateContainerOpts(imageName, &hostConfig)
+	createOpts := CreateContainerOptions{
+		Config: &Config{
+			Image: imageName,
+			Cmd:   []string{"cat", "/home/gopher/file.txt"},
+			User:  "gopher",
+		},
+		HostConfig: &hostConfig,
+	}
 	container, err := client.CreateContainer(createOpts)
 	if err != nil {
 		t.Fatal(err)
@@ -52,52 +63,32 @@ func TestIntegrationPullCreateStartLogs(t *testing.T) {
 	if stderr.String() != "" {
 		t.Errorf("Got unexpected stderr from logs: %q", stderr.String())
 	}
-	// split stdout by lines to make sure the test is the same on Windows
-	// and Linux. Life is hard.
-	expected := []string{
-		"Welcome to reality, wake up and rejoice",
-		"Welcome to reality, you've made the right choice",
-		"Welcome to reality, and let them hear your voice, shout it out!",
+	expected := `Welcome to reality, wake up and rejoice
+Welcome to reality, you've made the right choice
+Welcome to reality, and let them hear your voice, shout it out!
+`
+	if stdout.String() != expected {
+		t.Errorf("Got wrong stdout from logs.\nWant:\n%#v.\n\nGot:\n%#v.", expected, stdout.String())
 	}
-	if stdoutLines := getLines(&stdout); !reflect.DeepEqual(stdoutLines, expected) {
-		t.Errorf("Got wrong stdout from logs.\nWant:\n%#v.\n\nGot:\n%#v.", expected, stdoutLines)
-	}
-}
-
-func getLines(buf *bytes.Buffer) []string {
-	var lines []string
-	for _, line := range strings.Split(buf.String(), "\n") {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			lines = append(lines, line)
-		}
-	}
-	return lines
 }
 
 func pullImage(t *testing.T) string {
-	os := runtime.GOOS
-	platform := runtime.GOOS + "/" + runtime.GOARCH
-	if os != "windows" {
-		os = "linux"
-	} else {
-		platform = runtime.GOOS
-	}
-	imageName := "fsouza/go-dockerclient-integration:" + os
+	imageName := "fsouza/go-dockerclient-integration:latest"
 	var buf bytes.Buffer
 	pullOpts := PullImageOptions{
 		Repository:   imageName,
 		OutputStream: &buf,
-		Platform:     platform,
 	}
-	client, err := NewClientFromEnv()
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = client.PullImage(pullOpts, AuthConfiguration{})
+	client := getClient()
+	err := client.PullImage(pullOpts, AuthConfiguration{})
 	if err != nil {
 		t.Logf("Pull output: %s", buf.String())
 		t.Fatal(err)
 	}
 	return imageName
+}
+
+func getClient() *Client {
+	client, _ := NewClient(dockerEndpoint)
+	return client
 }

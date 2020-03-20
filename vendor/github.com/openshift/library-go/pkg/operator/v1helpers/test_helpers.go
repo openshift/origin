@@ -43,7 +43,7 @@ func (fakeSharedIndexInformer) Run(stopCh <-chan struct{}) {
 }
 
 func (fakeSharedIndexInformer) HasSynced() bool {
-	panic("implement me")
+	return true
 }
 
 func (fakeSharedIndexInformer) LastSyncResourceVersion() string {

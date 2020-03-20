@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	operatorv1 "github.com/openshift/api/operator/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/util/workqueue"
+
+	operatorv1 "github.com/openshift/api/operator/v1"
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/condition"
@@ -28,6 +28,7 @@ import (
 // ResourceSyncController is a controller that will copy source configmaps and secrets to their destinations.
 // It will also mirror deletions by deleting destinations.
 type ResourceSyncController struct {
+	name string
 	// syncRuleLock is used to ensure we avoid races on changes to syncing rules
 	syncRuleLock sync.RWMutex
 	// configMapSyncRules is a map from destination location to source location
@@ -43,12 +44,12 @@ type ResourceSyncController struct {
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces
 	operatorConfigClient       v1helpers.OperatorClient
 
-	recorder          events.Recorder
-	queue             workqueue.RateLimitingInterface
-	controllerFactory *factory.Factory
+	runFn   func(ctx context.Context, workers int)
+	syncCtx factory.SyncContext
 }
 
 var _ ResourceSyncer = &ResourceSyncController{}
+var _ factory.Controller = &ResourceSyncController{}
 
 // NewResourceSyncController creates ResourceSyncController.
 func NewResourceSyncController(
@@ -59,6 +60,7 @@ func NewResourceSyncController(
 	eventRecorder events.Recorder,
 ) *ResourceSyncController {
 	c := &ResourceSyncController{
+		name:                 "ResourceSyncController",
 		operatorConfigClient: operatorConfigClient,
 
 		configMapSyncRules:         map[ResourceLocation]ResourceLocation{},
@@ -68,27 +70,33 @@ func NewResourceSyncController(
 
 		configMapGetter: configMapsGetter,
 		secretGetter:    secretsGetter,
-		recorder:        eventRecorder,
+		syncCtx:         factory.NewSyncContext("ResourceSyncController", eventRecorder.WithComponentSuffix("resource-sync-controller")),
 	}
 
-	syncCtx := factory.NewSyncContext(c.Name(), eventRecorder.WithComponentSuffix("resource-sync-controller"))
-	c.controllerFactory = factory.New().ResyncEvery(time.Second).WithInformers(operatorConfigClient.Informer()).WithSyncContext(syncCtx)
-
-	// we need queue for ResourceSyncer interface so SyncConfigMap and SyncSecret can be called outside the controller.
-	c.queue = syncCtx.Queue()
-
+	informers := []factory.Informer{
+		operatorConfigClient.Informer(),
+	}
 	for namespace := range kubeInformersForNamespaces.Namespaces() {
 		if len(namespace) == 0 {
 			continue
 		}
-		informers := kubeInformersForNamespaces.InformersFor(namespace)
-		c.controllerFactory.WithInformers(
-			informers.Core().V1().ConfigMaps().Informer(),
-			informers.Core().V1().Secrets().Informer(),
-		)
+		informer := kubeInformersForNamespaces.InformersFor(namespace)
+		informers = append(informers, informer.Core().V1().ConfigMaps().Informer())
+		informers = append(informers, informer.Core().V1().Secrets().Informer())
 	}
 
+	f := factory.New().WithSync(c.Sync).WithSyncContext(c.syncCtx).WithInformers(informers...).ResyncEvery(time.Second).ToController(c.name, eventRecorder.WithComponentSuffix("resource-sync-controller"))
+	c.runFn = f.Run
+
 	return c
+}
+
+func (c *ResourceSyncController) Run(ctx context.Context, workers int) {
+	c.runFn(ctx, workers)
+}
+
+func (c *ResourceSyncController) Name() string {
+	return c.name
 }
 
 func (c *ResourceSyncController) SyncConfigMap(destination, source ResourceLocation) error {
@@ -104,7 +112,7 @@ func (c *ResourceSyncController) SyncConfigMap(destination, source ResourceLocat
 	c.configMapSyncRules[destination] = source
 
 	// make sure the new rule is picked up
-	c.queue.Add(factory.DefaultQueueKey)
+	c.syncCtx.Queue().Add(c.syncCtx.QueueKey())
 	return nil
 }
 
@@ -121,17 +129,8 @@ func (c *ResourceSyncController) SyncSecret(destination, source ResourceLocation
 	c.secretSyncRules[destination] = source
 
 	// make sure the new rule is picked up
-	c.queue.Add(factory.DefaultQueueKey)
+	c.syncCtx.Queue().Add(c.syncCtx.QueueKey())
 	return nil
-}
-
-// Run is used for unit testing
-func (c *ResourceSyncController) Run(ctx context.Context, workers int) {
-	c.controllerFactory.WithSync(c.Sync).ToController(c.Name(), c.recorder.WithComponentSuffix("resource-sync-controller")).Run(ctx, workers)
-}
-
-func (c *ResourceSyncController) Name() string {
-	return "ResourceSyncController"
 }
 
 func (c *ResourceSyncController) Sync(ctx context.Context, syncCtx factory.SyncContext) error {
@@ -248,7 +247,7 @@ type ControllerSyncRules struct {
 	Configs ResourceSyncRuleList `json:"configs"`
 }
 
-// ServeSyncRules provides a handler function to return the Sync rules of the controller
+// ServeSyncRules provides a handler function to return the sync rules of the controller
 func (h *debugHTTPHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	syncRules := ControllerSyncRules{ResourceSyncRuleList{}, ResourceSyncRuleList{}}
 
