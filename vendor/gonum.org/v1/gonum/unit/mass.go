@@ -17,27 +17,9 @@ import (
 type Mass float64
 
 const (
-	Yottagram Mass = 1e21
-	Zettagram Mass = 1e18
-	Exagram   Mass = 1e15
-	Petagram  Mass = 1e12
-	Teragram  Mass = 1e9
-	Gigagram  Mass = 1e6
-	Megagram  Mass = 1e3
-	Kilogram  Mass = 1.0
-	Hectogram Mass = 1e-1
-	Decagram  Mass = 1e-2
-	Gram      Mass = 1e-3
-	Decigram  Mass = 1e-4
-	Centigram Mass = 1e-5
-	Milligram Mass = 1e-6
-	Microgram Mass = 1e-9
-	Nanogram  Mass = 1e-12
-	Picogram  Mass = 1e-15
-	Femtogram Mass = 1e-18
-	Attogram  Mass = 1e-21
-	Zeptogram Mass = 1e-24
-	Yoctogram Mass = 1e-27
+	Gram Mass = 1e-3
+
+	Kilogram = Kilo * Gram
 )
 
 // Unit converts the Mass to a *Unit

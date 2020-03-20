@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,7 +21,7 @@ import (
 	"github.com/docker/docker/integration-cli/cli"
 	"github.com/docker/docker/integration-cli/cli/build"
 	"github.com/go-check/check"
-	"github.com/gotestyourself/gotestyourself/icmd"
+	"gotest.tools/icmd"
 )
 
 func (s *DockerSuite) TestEventsTimestampFormats(c *check.C) {
@@ -50,11 +51,11 @@ func (s *DockerSuite) TestEventsTimestampFormats(c *check.C) {
 		containerEvents := eventActionsByIDAndType(c, events, name, "container")
 		c.Assert(containerEvents, checker.HasLen, 5, check.Commentf("events: %v", events))
 
-		c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf(out))
-		c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf(out))
-		c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf(out))
-		c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf(out))
-		c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf(out))
+		c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf("%s", out))
+		c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf("%s", out))
+		c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf("%s", out))
+		c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf("%s", out))
+		c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf("%s", out))
 	}
 }
 
@@ -93,11 +94,11 @@ func (s *DockerSuite) TestEventsContainerEvents(c *check.C) {
 	containerEvents := eventActionsByIDAndType(c, events, "container-events-test", "container")
 	c.Assert(containerEvents, checker.HasLen, 5, check.Commentf("events: %v", events))
 
-	c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf(out))
-	c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf(out))
-	c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf(out))
-	c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf(out))
-	c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf(out))
+	c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf("%s", out))
+	c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf("%s", out))
+	c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf("%s", out))
+	c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf("%s", out))
+	c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestEventsContainerEventsAttrSort(c *check.C) {
@@ -136,11 +137,11 @@ func (s *DockerSuite) TestEventsContainerEventsSinceUnixEpoch(c *check.C) {
 	containerEvents := eventActionsByIDAndType(c, events, "since-epoch-test", "container")
 	c.Assert(containerEvents, checker.HasLen, 5, check.Commentf("events: %v", events))
 
-	c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf(out))
-	c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf(out))
-	c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf(out))
-	c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf(out))
-	c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf(out))
+	c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf("%s", out))
+	c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf("%s", out))
+	c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf("%s", out))
+	c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf("%s", out))
+	c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestEventsImageTag(c *check.C) {
@@ -262,10 +263,10 @@ func (s *DockerSuite) TestEventsPluginOps(c *check.C) {
 	pluginEvents := eventActionsByIDAndType(c, events, pNameWithTag, "plugin")
 	c.Assert(pluginEvents, checker.HasLen, 4, check.Commentf("events: %v", events))
 
-	c.Assert(pluginEvents[0], checker.Equals, "pull", check.Commentf(out))
-	c.Assert(pluginEvents[1], checker.Equals, "enable", check.Commentf(out))
-	c.Assert(pluginEvents[2], checker.Equals, "disable", check.Commentf(out))
-	c.Assert(pluginEvents[3], checker.Equals, "remove", check.Commentf(out))
+	c.Assert(pluginEvents[0], checker.Equals, "pull", check.Commentf("%s", out))
+	c.Assert(pluginEvents[1], checker.Equals, "enable", check.Commentf("%s", out))
+	c.Assert(pluginEvents[2], checker.Equals, "disable", check.Commentf("%s", out))
+	c.Assert(pluginEvents[3], checker.Equals, "remove", check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestEventsFilters(c *check.C) {
@@ -314,29 +315,38 @@ func (s *DockerSuite) TestEventsFilterImageName(c *check.C) {
 }
 
 func (s *DockerSuite) TestEventsFilterLabels(c *check.C) {
-	since := daemonUnixTime(c)
+	since := strconv.FormatUint(uint64(daemonTime(c).Unix()), 10)
 	label := "io.docker.testing=foo"
 
-	out, _ := dockerCmd(c, "run", "-d", "-l", label, "busybox:latest", "true")
+	out, exit := dockerCmd(c, "create", "-l", label, "busybox")
+	c.Assert(exit, checker.Equals, 0)
 	container1 := strings.TrimSpace(out)
 
-	out, _ = dockerCmd(c, "run", "-d", "busybox", "true")
+	out, exit = dockerCmd(c, "create", "busybox")
+	c.Assert(exit, checker.Equals, 0)
 	container2 := strings.TrimSpace(out)
 
+	// fetch events with `--until`, so that the client detaches after a second
+	// instead of staying attached, waiting for more events to arrive.
 	out, _ = dockerCmd(
 		c,
 		"events",
 		"--since", since,
-		"--until", daemonUnixTime(c),
-		"--filter", fmt.Sprintf("label=%s", label))
+		"--until", strconv.FormatUint(uint64(daemonTime(c).Add(time.Second).Unix()), 10),
+		"--filter", "label="+label,
+	)
 
 	events := strings.Split(strings.TrimSpace(out), "\n")
-	c.Assert(len(events), checker.Equals, 3)
+	c.Assert(len(events), checker.GreaterThan, 0)
 
+	var found bool
 	for _, e := range events {
-		c.Assert(e, checker.Contains, container1)
+		if strings.Contains(e, container1) {
+			found = true
+		}
 		c.Assert(e, checker.Not(checker.Contains), container2)
 	}
+	c.Assert(found, checker.Equals, true)
 }
 
 func (s *DockerSuite) TestEventsFilterImageLabels(c *check.C) {
@@ -458,7 +468,7 @@ func (s *DockerSuite) TestEventsResize(c *check.C) {
 	cID := strings.TrimSpace(out)
 	c.Assert(waitRun(cID), checker.IsNil)
 
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 
@@ -564,7 +574,7 @@ func (s *DockerRegistrySuite) TestEventsImageFilterPush(c *check.C) {
 
 func (s *DockerSuite) TestEventsFilterType(c *check.C) {
 	// FIXME(vdemeester) fails on e2e run
-	testRequires(c, SameHostDaemon)
+	testRequires(c, testEnv.IsLocalDaemon)
 	since := daemonUnixTime(c)
 	name := "labelfiltertest"
 	label := "io.docker.testing=image"
@@ -633,7 +643,7 @@ func (s *DockerSuite) TestEventsSpecialFiltersWithExecCreate(c *check.C) {
 	)
 
 	events := strings.Split(strings.TrimSpace(out), "\n")
-	c.Assert(len(events), checker.Equals, 1, check.Commentf(out))
+	c.Assert(len(events), checker.Equals, 1, check.Commentf("%s", out))
 
 	out, _ = dockerCmd(
 		c,
@@ -643,7 +653,7 @@ func (s *DockerSuite) TestEventsSpecialFiltersWithExecCreate(c *check.C) {
 		"--filter",
 		"event=exec_create",
 	)
-	c.Assert(len(events), checker.Equals, 1, check.Commentf(out))
+	c.Assert(len(events), checker.Equals, 1, check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestEventsFilterImageInContainerAction(c *check.C) {
@@ -653,7 +663,7 @@ func (s *DockerSuite) TestEventsFilterImageInContainerAction(c *check.C) {
 
 	out, _ := dockerCmd(c, "events", "--filter", "image=busybox", "--since", since, "--until", daemonUnixTime(c))
 	events := strings.Split(strings.TrimSpace(out), "\n")
-	c.Assert(len(events), checker.GreaterThan, 1, check.Commentf(out))
+	c.Assert(len(events), checker.GreaterThan, 1, check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestEventsContainerRestart(c *check.C) {

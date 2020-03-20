@@ -34,7 +34,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type TheTestEnum int32
 
@@ -20799,16 +20799,16 @@ func (this *NidRepStruct) GoString() string {
 		s = append(s, "Field2: "+fmt.Sprintf("%#v", this.Field2)+",\n")
 	}
 	if this.Field3 != nil {
-		vs := make([]*NidOptNative, len(this.Field3))
+		vs := make([]NidOptNative, len(this.Field3))
 		for i := range vs {
-			vs[i] = &this.Field3[i]
+			vs[i] = this.Field3[i]
 		}
 		s = append(s, "Field3: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
 	if this.Field4 != nil {
-		vs := make([]*NinOptNative, len(this.Field4))
+		vs := make([]NinOptNative, len(this.Field4))
 		for i := range vs {
-			vs[i] = &this.Field4[i]
+			vs[i] = this.Field4[i]
 		}
 		s = append(s, "Field4: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
@@ -20819,9 +20819,9 @@ func (this *NidRepStruct) GoString() string {
 		s = append(s, "Field7: "+fmt.Sprintf("%#v", this.Field7)+",\n")
 	}
 	if this.Field8 != nil {
-		vs := make([]*NidOptNative, len(this.Field8))
+		vs := make([]NidOptNative, len(this.Field8))
 		for i := range vs {
-			vs[i] = &this.Field8[i]
+			vs[i] = this.Field8[i]
 		}
 		s = append(s, "Field8: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
@@ -20928,9 +20928,9 @@ func (this *NidNestedStruct) GoString() string {
 	s = append(s, "&test.NidNestedStruct{")
 	s = append(s, "Field1: "+strings.Replace(this.Field1.GoString(), `&`, ``, 1)+",\n")
 	if this.Field2 != nil {
-		vs := make([]*NidRepStruct, len(this.Field2))
+		vs := make([]NidRepStruct, len(this.Field2))
 		for i := range vs {
-			vs[i] = &this.Field2[i]
+			vs[i] = this.Field2[i]
 		}
 		s = append(s, "Field2: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
@@ -47322,6 +47322,7 @@ func (m *ProtoType) Unmarshal(dAtA []byte) error {
 func skipThetest(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -47353,10 +47354,8 @@ func skipThetest(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -47377,55 +47376,30 @@ func skipThetest(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthThetest
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthThetest
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowThetest
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipThetest(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthThetest
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupThetest
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthThetest
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthThetest = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowThetest   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthThetest        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowThetest          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupThetest = fmt.Errorf("proto: unexpected end of group")
 )

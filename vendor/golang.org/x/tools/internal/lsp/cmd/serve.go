@@ -20,7 +20,10 @@ import (
 	"golang.org/x/tools/internal/jsonrpc2"
 	"golang.org/x/tools/internal/lsp"
 	"golang.org/x/tools/internal/lsp/debug"
+	"golang.org/x/tools/internal/lsp/telemetry"
+	"golang.org/x/tools/internal/telemetry/trace"
 	"golang.org/x/tools/internal/tool"
+	errors "golang.org/x/xerrors"
 )
 
 // Serve is a struct that exposes the configurable parts of the LSP server as
@@ -65,7 +68,7 @@ func (s *Serve) Run(ctx context.Context, args ...string) error {
 		}
 		f, err := os.Create(filename)
 		if err != nil {
-			return fmt.Errorf("Unable to create log file: %v", err)
+			return errors.Errorf("Unable to create log file: %v", err)
 		}
 		defer f.Close()
 		log.SetOutput(io.MultiWriter(os.Stderr, f))
@@ -79,8 +82,8 @@ func (s *Serve) Run(ctx context.Context, args ...string) error {
 	}
 
 	// For debugging purposes only.
-	run := func(srv *lsp.Server) {
-		srv.Conn.Logger = logger(s.Trace, out)
+	run := func(ctx context.Context, srv *lsp.Server) {
+		srv.Conn.AddHandler(&handler{loggingRPCs: s.Trace, out: out})
 		go srv.Run(ctx)
 	}
 	if s.Address != "" {
@@ -90,8 +93,8 @@ func (s *Serve) Run(ctx context.Context, args ...string) error {
 		return lsp.RunServerOnPort(ctx, s.app.cache, s.Port, run)
 	}
 	stream := jsonrpc2.NewHeaderStream(os.Stdin, os.Stdout)
-	srv := lsp.NewServer(s.app.cache, stream)
-	srv.Conn.Logger = logger(s.Trace, out)
+	ctx, srv := lsp.NewServer(ctx, s.app.cache, stream)
+	srv.Conn.AddHandler(&handler{loggingRPCs: s.Trace, out: out})
 	return srv.Run(ctx)
 }
 
@@ -115,55 +118,161 @@ func (s *Serve) forward() error {
 	return <-errc
 }
 
-func logger(trace bool, out io.Writer) jsonrpc2.Logger {
-	return func(direction jsonrpc2.Direction, id *jsonrpc2.ID, elapsed time.Duration, method string, payload *json.RawMessage, err *jsonrpc2.Error) {
-		if !trace {
-			return
-		}
-		const eol = "\r\n\r\n\r\n"
-		if err != nil {
-			fmt.Fprintf(out, "[Error - %v] %s %s%s %v%s", time.Now().Format("3:04:05 PM"),
-				direction, method, id, err, eol)
-			return
-		}
-		outx := new(strings.Builder)
-		fmt.Fprintf(outx, "[Trace - %v] ", time.Now().Format("3:04:05 PM"))
-		switch direction {
-		case jsonrpc2.Send:
-			fmt.Fprint(outx, "Received ")
-		case jsonrpc2.Receive:
-			fmt.Fprint(outx, "Sending ")
-		}
-		switch {
-		case id == nil:
-			fmt.Fprint(outx, "notification ")
-		case elapsed >= 0:
-			fmt.Fprint(outx, "response ")
-		default:
-			fmt.Fprint(outx, "request ")
-		}
-		fmt.Fprintf(outx, "'%s", method)
-		switch {
-		case id == nil:
-			// do nothing
-		case id.Name != "":
-			fmt.Fprintf(outx, " - (%s)", id.Name)
-		default:
-			fmt.Fprintf(outx, " - (%d)", id.Number)
-		}
-		fmt.Fprint(outx, "'")
-		if elapsed >= 0 {
-			msec := int(elapsed.Round(time.Millisecond) / time.Millisecond)
-			fmt.Fprintf(outx, " in %dms", msec)
-		}
-		params := "null"
-		if payload != nil {
-			params = string(*payload)
-		}
-		if params == "null" {
-			params = "{}"
-		}
-		fmt.Fprintf(outx, ".\r\nParams: %s%s", params, eol)
-		fmt.Fprintf(out, "%s", outx.String())
+type handler struct {
+	loggingRPCs bool
+	out         io.Writer
+}
+
+type rpcStats struct {
+	method     string
+	direction  jsonrpc2.Direction
+	id         *jsonrpc2.ID
+	payload    *json.RawMessage
+	start      time.Time
+	delivering func()
+	close      func()
+}
+
+type statsKeyType int
+
+const statsKey = statsKeyType(0)
+
+func (h *handler) Deliver(ctx context.Context, r *jsonrpc2.Request, delivered bool) bool {
+	stats := h.getStats(ctx)
+	if stats != nil {
+		stats.delivering()
 	}
+	return false
+}
+
+func (h *handler) Cancel(ctx context.Context, conn *jsonrpc2.Conn, id jsonrpc2.ID, cancelled bool) bool {
+	return false
+}
+
+func (h *handler) Request(ctx context.Context, direction jsonrpc2.Direction, r *jsonrpc2.WireRequest) context.Context {
+	if r.Method == "" {
+		panic("no method in rpc stats")
+	}
+	stats := &rpcStats{
+		method:    r.Method,
+		start:     time.Now(),
+		direction: direction,
+		payload:   r.Params,
+	}
+	ctx = context.WithValue(ctx, statsKey, stats)
+	mode := telemetry.Outbound
+	if direction == jsonrpc2.Receive {
+		mode = telemetry.Inbound
+	}
+	ctx, stats.close = trace.StartSpan(ctx, r.Method,
+		telemetry.Method.Of(r.Method),
+		telemetry.RPCDirection.Of(mode),
+		telemetry.RPCID.Of(r.ID),
+	)
+	telemetry.Started.Record(ctx, 1)
+	_, stats.delivering = trace.StartSpan(ctx, "queued")
+	return ctx
+}
+
+func (h *handler) Response(ctx context.Context, direction jsonrpc2.Direction, r *jsonrpc2.WireResponse) context.Context {
+	stats := h.getStats(ctx)
+	h.logRPC(direction, r.ID, 0, stats.method, r.Result, nil)
+	return ctx
+}
+
+func (h *handler) Done(ctx context.Context, err error) {
+	stats := h.getStats(ctx)
+	h.logRPC(stats.direction, stats.id, time.Since(stats.start), stats.method, stats.payload, err)
+	if err != nil {
+		ctx = telemetry.StatusCode.With(ctx, "ERROR")
+	} else {
+		ctx = telemetry.StatusCode.With(ctx, "OK")
+	}
+	elapsedTime := time.Since(stats.start)
+	latencyMillis := float64(elapsedTime) / float64(time.Millisecond)
+	telemetry.Latency.Record(ctx, latencyMillis)
+	stats.close()
+}
+
+func (h *handler) Read(ctx context.Context, bytes int64) context.Context {
+	telemetry.SentBytes.Record(ctx, bytes)
+	return ctx
+}
+
+func (h *handler) Wrote(ctx context.Context, bytes int64) context.Context {
+	telemetry.ReceivedBytes.Record(ctx, bytes)
+	return ctx
+}
+
+const eol = "\r\n\r\n\r\n"
+
+func (h *handler) Error(ctx context.Context, err error) {
+	stats := h.getStats(ctx)
+	h.logRPC(stats.direction, stats.id, 0, stats.method, nil, err)
+}
+
+func (h *handler) getStats(ctx context.Context) *rpcStats {
+	stats, ok := ctx.Value(statsKey).(*rpcStats)
+	if !ok || stats == nil {
+		method, ok := ctx.Value(telemetry.Method).(string)
+		if !ok {
+			method = "???"
+		}
+		stats = &rpcStats{
+			method: method,
+			close:  func() {},
+		}
+	}
+	return stats
+}
+
+func (h *handler) logRPC(direction jsonrpc2.Direction, id *jsonrpc2.ID, elapsed time.Duration, method string, payload *json.RawMessage, err error) {
+	if !h.loggingRPCs {
+		return
+	}
+	const eol = "\r\n\r\n\r\n"
+	if err != nil {
+		fmt.Fprintf(h.out, "[Error - %v] %s %s%s %v%s", time.Now().Format("3:04:05 PM"),
+			direction, method, id, err, eol)
+		return
+	}
+	outx := new(strings.Builder)
+	fmt.Fprintf(outx, "[Trace - %v] ", time.Now().Format("3:04:05 PM"))
+	switch direction {
+	case jsonrpc2.Send:
+		fmt.Fprint(outx, "Received ")
+	case jsonrpc2.Receive:
+		fmt.Fprint(outx, "Sending ")
+	}
+	switch {
+	case id == nil:
+		fmt.Fprint(outx, "notification ")
+	case elapsed >= 0:
+		fmt.Fprint(outx, "response ")
+	default:
+		fmt.Fprint(outx, "request ")
+	}
+	fmt.Fprintf(outx, "'%s", method)
+	switch {
+	case id == nil:
+		// do nothing
+	case id.Name != "":
+		fmt.Fprintf(outx, " - (%s)", id.Name)
+	default:
+		fmt.Fprintf(outx, " - (%d)", id.Number)
+	}
+	fmt.Fprint(outx, "'")
+	if elapsed >= 0 {
+		msec := int(elapsed.Round(time.Millisecond) / time.Millisecond)
+		fmt.Fprintf(outx, " in %dms", msec)
+	}
+	params := "null"
+	if payload != nil {
+		params = string(*payload)
+	}
+	if params == "null" {
+		params = "{}"
+	}
+	fmt.Fprintf(outx, ".\r\nParams: %s%s", params, eol)
+	fmt.Fprintf(h.out, "%s", outx.String())
 }

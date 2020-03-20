@@ -2,15 +2,16 @@ package dockerfile // import "github.com/docker/docker/builder/dockerfile"
 
 import (
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/docker/docker/builder/remotecontext"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/reexec"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
-	"github.com/gotestyourself/gotestyourself/skip"
 	"github.com/moby/buildkit/frontend/dockerfile/instructions"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+	"gotest.tools/skip"
 )
 
 type dispatchTestCase struct {
@@ -97,7 +98,9 @@ func initDispatchTestCases() []dispatchTestCase {
 }
 
 func TestDispatch(t *testing.T) {
-	skip.IfCondition(t, os.Getuid() != 0, "skipping test that requires root")
+	if runtime.GOOS != "windows" {
+		skip.If(t, os.Getuid() != 0, "skipping test that requires root")
+	}
 	testCases := initDispatchTestCases()
 
 	for _, testCase := range testCases {

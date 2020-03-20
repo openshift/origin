@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	consolev1 "github.com/openshift/api/console/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -22,7 +24,7 @@ var consoleclidownloadsResource = schema.GroupVersionResource{Group: "console.op
 var consoleclidownloadsKind = schema.GroupVersionKind{Group: "console.openshift.io", Version: "v1", Kind: "ConsoleCLIDownload"}
 
 // Get takes name of the consoleCLIDownload, and returns the corresponding consoleCLIDownload object, and an error if there is any.
-func (c *FakeConsoleCLIDownloads) Get(name string, options v1.GetOptions) (result *consolev1.ConsoleCLIDownload, err error) {
+func (c *FakeConsoleCLIDownloads) Get(ctx context.Context, name string, options v1.GetOptions) (result *consolev1.ConsoleCLIDownload, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(consoleclidownloadsResource, name), &consolev1.ConsoleCLIDownload{})
 	if obj == nil {
@@ -32,7 +34,7 @@ func (c *FakeConsoleCLIDownloads) Get(name string, options v1.GetOptions) (resul
 }
 
 // List takes label and field selectors, and returns the list of ConsoleCLIDownloads that match those selectors.
-func (c *FakeConsoleCLIDownloads) List(opts v1.ListOptions) (result *consolev1.ConsoleCLIDownloadList, err error) {
+func (c *FakeConsoleCLIDownloads) List(ctx context.Context, opts v1.ListOptions) (result *consolev1.ConsoleCLIDownloadList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(consoleclidownloadsResource, consoleclidownloadsKind, opts), &consolev1.ConsoleCLIDownloadList{})
 	if obj == nil {
@@ -53,13 +55,13 @@ func (c *FakeConsoleCLIDownloads) List(opts v1.ListOptions) (result *consolev1.C
 }
 
 // Watch returns a watch.Interface that watches the requested consoleCLIDownloads.
-func (c *FakeConsoleCLIDownloads) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeConsoleCLIDownloads) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(consoleclidownloadsResource, opts))
 }
 
 // Create takes the representation of a consoleCLIDownload and creates it.  Returns the server's representation of the consoleCLIDownload, and an error, if there is any.
-func (c *FakeConsoleCLIDownloads) Create(consoleCLIDownload *consolev1.ConsoleCLIDownload) (result *consolev1.ConsoleCLIDownload, err error) {
+func (c *FakeConsoleCLIDownloads) Create(ctx context.Context, consoleCLIDownload *consolev1.ConsoleCLIDownload, opts v1.CreateOptions) (result *consolev1.ConsoleCLIDownload, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(consoleclidownloadsResource, consoleCLIDownload), &consolev1.ConsoleCLIDownload{})
 	if obj == nil {
@@ -69,7 +71,7 @@ func (c *FakeConsoleCLIDownloads) Create(consoleCLIDownload *consolev1.ConsoleCL
 }
 
 // Update takes the representation of a consoleCLIDownload and updates it. Returns the server's representation of the consoleCLIDownload, and an error, if there is any.
-func (c *FakeConsoleCLIDownloads) Update(consoleCLIDownload *consolev1.ConsoleCLIDownload) (result *consolev1.ConsoleCLIDownload, err error) {
+func (c *FakeConsoleCLIDownloads) Update(ctx context.Context, consoleCLIDownload *consolev1.ConsoleCLIDownload, opts v1.UpdateOptions) (result *consolev1.ConsoleCLIDownload, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(consoleclidownloadsResource, consoleCLIDownload), &consolev1.ConsoleCLIDownload{})
 	if obj == nil {
@@ -79,22 +81,22 @@ func (c *FakeConsoleCLIDownloads) Update(consoleCLIDownload *consolev1.ConsoleCL
 }
 
 // Delete takes name of the consoleCLIDownload and deletes it. Returns an error if one occurs.
-func (c *FakeConsoleCLIDownloads) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeConsoleCLIDownloads) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(consoleclidownloadsResource, name), &consolev1.ConsoleCLIDownload{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeConsoleCLIDownloads) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(consoleclidownloadsResource, listOptions)
+func (c *FakeConsoleCLIDownloads) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(consoleclidownloadsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &consolev1.ConsoleCLIDownloadList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched consoleCLIDownload.
-func (c *FakeConsoleCLIDownloads) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *consolev1.ConsoleCLIDownload, err error) {
+func (c *FakeConsoleCLIDownloads) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *consolev1.ConsoleCLIDownload, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(consoleclidownloadsResource, name, pt, data, subresources...), &consolev1.ConsoleCLIDownload{})
 	if obj == nil {

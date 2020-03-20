@@ -29,7 +29,9 @@ func TestInteg_00_DescribeScalableTargets(t *testing.T) {
 	params := &applicationautoscaling.DescribeScalableTargetsInput{
 		ServiceNamespace: aws.String("ec2"),
 	}
-	_, err := svc.DescribeScalableTargetsWithContext(ctx, params)
+	_, err := svc.DescribeScalableTargetsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

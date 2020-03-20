@@ -27,7 +27,9 @@ func TestInteg_00_ListDevices(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := devicefarm.New(sess)
 	params := &devicefarm.ListDevicesInput{}
-	_, err := svc.ListDevicesWithContext(ctx, params)
+	_, err := svc.ListDevicesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_GetDevice(t *testing.T) {
 	params := &devicefarm.GetDeviceInput{
 		Arn: aws.String("arn:aws:devicefarm:us-west-2::device:000000000000000000000000fake-arn"),
 	}
-	_, err := svc.GetDeviceWithContext(ctx, params)
+	_, err := svc.GetDeviceWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

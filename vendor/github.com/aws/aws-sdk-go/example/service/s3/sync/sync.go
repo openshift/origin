@@ -85,8 +85,7 @@ func (iter *SyncFolderIterator) UploadObject() s3manager.BatchUploadObject {
 	}
 
 	return s3manager.BatchUploadObject{
-		&input,
-		nil,
+		Object: &input,
 	}
 }
 

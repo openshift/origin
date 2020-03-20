@@ -13,6 +13,19 @@
     "uid":"health-2016-08-04"
   },
   "operations":{
+    "DescribeAffectedAccountsForOrganization":{
+      "name":"DescribeAffectedAccountsForOrganization",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeAffectedAccountsForOrganizationRequest"},
+      "output":{"shape":"DescribeAffectedAccountsForOrganizationResponse"},
+      "errors":[
+        {"shape":"InvalidPaginationToken"}
+      ],
+      "idempotent":true
+    },
     "DescribeAffectedEntities":{
       "name":"DescribeAffectedEntities",
       "http":{
@@ -21,6 +34,20 @@
       },
       "input":{"shape":"DescribeAffectedEntitiesRequest"},
       "output":{"shape":"DescribeAffectedEntitiesResponse"},
+      "errors":[
+        {"shape":"InvalidPaginationToken"},
+        {"shape":"UnsupportedLocale"}
+      ],
+      "idempotent":true
+    },
+    "DescribeAffectedEntitiesForOrganization":{
+      "name":"DescribeAffectedEntitiesForOrganization",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeAffectedEntitiesForOrganizationRequest"},
+      "output":{"shape":"DescribeAffectedEntitiesForOrganizationResponse"},
       "errors":[
         {"shape":"InvalidPaginationToken"},
         {"shape":"UnsupportedLocale"}
@@ -63,6 +90,19 @@
       ],
       "idempotent":true
     },
+    "DescribeEventDetailsForOrganization":{
+      "name":"DescribeEventDetailsForOrganization",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeEventDetailsForOrganizationRequest"},
+      "output":{"shape":"DescribeEventDetailsForOrganizationResponse"},
+      "errors":[
+        {"shape":"UnsupportedLocale"}
+      ],
+      "idempotent":true
+    },
     "DescribeEventTypes":{
       "name":"DescribeEventTypes",
       "http":{
@@ -90,6 +130,51 @@
         {"shape":"UnsupportedLocale"}
       ],
       "idempotent":true
+    },
+    "DescribeEventsForOrganization":{
+      "name":"DescribeEventsForOrganization",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeEventsForOrganizationRequest"},
+      "output":{"shape":"DescribeEventsForOrganizationResponse"},
+      "errors":[
+        {"shape":"InvalidPaginationToken"},
+        {"shape":"UnsupportedLocale"}
+      ],
+      "idempotent":true
+    },
+    "DescribeHealthServiceStatusForOrganization":{
+      "name":"DescribeHealthServiceStatusForOrganization",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "output":{"shape":"DescribeHealthServiceStatusForOrganizationResponse"},
+      "idempotent":true
+    },
+    "DisableHealthServiceAccessForOrganization":{
+      "name":"DisableHealthServiceAccessForOrganization",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "errors":[
+        {"shape":"ConcurrentModificationException"}
+      ],
+      "idempotent":true
+    },
+    "EnableHealthServiceAccessForOrganization":{
+      "name":"EnableHealthServiceAccessForOrganization",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "errors":[
+        {"shape":"ConcurrentModificationException"}
+      ],
+      "idempotent":true
     }
   },
   "shapes":{
@@ -106,11 +191,56 @@
         "tags":{"shape":"tagSet"}
       }
     },
+    "ConcurrentModificationException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"string"}
+      },
+      "exception":true
+    },
     "DateTimeRange":{
       "type":"structure",
       "members":{
         "from":{"shape":"timestamp"},
         "to":{"shape":"timestamp"}
+      }
+    },
+    "DescribeAffectedAccountsForOrganizationRequest":{
+      "type":"structure",
+      "required":["eventArn"],
+      "members":{
+        "eventArn":{"shape":"eventArn"},
+        "nextToken":{"shape":"nextToken"},
+        "maxResults":{"shape":"maxResults"}
+      }
+    },
+    "DescribeAffectedAccountsForOrganizationResponse":{
+      "type":"structure",
+      "members":{
+        "affectedAccounts":{"shape":"affectedAccountsList"},
+        "nextToken":{"shape":"nextToken"}
+      }
+    },
+    "DescribeAffectedEntitiesForOrganizationFailedSet":{
+      "type":"list",
+      "member":{"shape":"OrganizationAffectedEntitiesErrorItem"}
+    },
+    "DescribeAffectedEntitiesForOrganizationRequest":{
+      "type":"structure",
+      "required":["organizationEntityFilters"],
+      "members":{
+        "organizationEntityFilters":{"shape":"OrganizationEntityFiltersList"},
+        "locale":{"shape":"locale"},
+        "nextToken":{"shape":"nextToken"},
+        "maxResults":{"shape":"maxResults"}
+      }
+    },
+    "DescribeAffectedEntitiesForOrganizationResponse":{
+      "type":"structure",
+      "members":{
+        "entities":{"shape":"EntityList"},
+        "failedSet":{"shape":"DescribeAffectedEntitiesForOrganizationFailedSet"},
+        "nextToken":{"shape":"nextToken"}
       }
     },
     "DescribeAffectedEntitiesRequest":{
@@ -163,6 +293,29 @@
       "type":"list",
       "member":{"shape":"EventDetailsErrorItem"}
     },
+    "DescribeEventDetailsForOrganizationFailedSet":{
+      "type":"list",
+      "member":{"shape":"OrganizationEventDetailsErrorItem"}
+    },
+    "DescribeEventDetailsForOrganizationRequest":{
+      "type":"structure",
+      "required":["organizationEventDetailFilters"],
+      "members":{
+        "organizationEventDetailFilters":{"shape":"OrganizationEventDetailFiltersList"},
+        "locale":{"shape":"locale"}
+      }
+    },
+    "DescribeEventDetailsForOrganizationResponse":{
+      "type":"structure",
+      "members":{
+        "successfulSet":{"shape":"DescribeEventDetailsForOrganizationSuccessfulSet"},
+        "failedSet":{"shape":"DescribeEventDetailsForOrganizationFailedSet"}
+      }
+    },
+    "DescribeEventDetailsForOrganizationSuccessfulSet":{
+      "type":"list",
+      "member":{"shape":"OrganizationEventDetails"}
+    },
     "DescribeEventDetailsRequest":{
       "type":"structure",
       "required":["eventArns"],
@@ -198,6 +351,22 @@
         "nextToken":{"shape":"nextToken"}
       }
     },
+    "DescribeEventsForOrganizationRequest":{
+      "type":"structure",
+      "members":{
+        "filter":{"shape":"OrganizationEventFilter"},
+        "nextToken":{"shape":"nextToken"},
+        "maxResults":{"shape":"maxResults"},
+        "locale":{"shape":"locale"}
+      }
+    },
+    "DescribeEventsForOrganizationResponse":{
+      "type":"structure",
+      "members":{
+        "events":{"shape":"OrganizationEventList"},
+        "nextToken":{"shape":"nextToken"}
+      }
+    },
     "DescribeEventsRequest":{
       "type":"structure",
       "members":{
@@ -212,6 +381,12 @@
       "members":{
         "events":{"shape":"EventList"},
         "nextToken":{"shape":"nextToken"}
+      }
+    },
+    "DescribeHealthServiceStatusForOrganizationResponse":{
+      "type":"structure",
+      "members":{
+        "healthServiceAccessStatusForOrganization":{"shape":"healthServiceAccessStatusForOrganization"}
       }
     },
     "EntityAggregate":{
@@ -254,6 +429,17 @@
         "endTime":{"shape":"timestamp"},
         "lastUpdatedTime":{"shape":"timestamp"},
         "statusCode":{"shape":"eventStatusCode"}
+      }
+    },
+    "EventAccountFilter":{
+      "type":"structure",
+      "required":[
+        "eventArn",
+        "awsAccountId"
+      ],
+      "members":{
+        "eventArn":{"shape":"eventArn"},
+        "awsAccountId":{"shape":"accountId"}
       }
     },
     "EventAggregate":{
@@ -356,6 +542,79 @@
       },
       "exception":true
     },
+    "OrganizationAffectedEntitiesErrorItem":{
+      "type":"structure",
+      "members":{
+        "awsAccountId":{"shape":"accountId"},
+        "eventArn":{"shape":"eventArn"},
+        "errorName":{"shape":"string"},
+        "errorMessage":{"shape":"string"}
+      }
+    },
+    "OrganizationEntityFiltersList":{
+      "type":"list",
+      "member":{"shape":"EventAccountFilter"},
+      "max":10,
+      "min":1
+    },
+    "OrganizationEvent":{
+      "type":"structure",
+      "members":{
+        "arn":{"shape":"eventArn"},
+        "service":{"shape":"service"},
+        "eventTypeCode":{"shape":"eventTypeCode"},
+        "eventTypeCategory":{"shape":"eventTypeCategory"},
+        "region":{"shape":"region"},
+        "startTime":{"shape":"timestamp"},
+        "endTime":{"shape":"timestamp"},
+        "lastUpdatedTime":{"shape":"timestamp"},
+        "statusCode":{"shape":"eventStatusCode"}
+      }
+    },
+    "OrganizationEventDetailFiltersList":{
+      "type":"list",
+      "member":{"shape":"EventAccountFilter"},
+      "max":10,
+      "min":1
+    },
+    "OrganizationEventDetails":{
+      "type":"structure",
+      "members":{
+        "awsAccountId":{"shape":"accountId"},
+        "event":{"shape":"Event"},
+        "eventDescription":{"shape":"EventDescription"},
+        "eventMetadata":{"shape":"eventMetadata"}
+      }
+    },
+    "OrganizationEventDetailsErrorItem":{
+      "type":"structure",
+      "members":{
+        "awsAccountId":{"shape":"accountId"},
+        "eventArn":{"shape":"eventArn"},
+        "errorName":{"shape":"string"},
+        "errorMessage":{"shape":"string"}
+      }
+    },
+    "OrganizationEventFilter":{
+      "type":"structure",
+      "members":{
+        "eventTypeCodes":{"shape":"eventTypeList"},
+        "awsAccountIds":{"shape":"awsAccountIdsList"},
+        "services":{"shape":"serviceList"},
+        "regions":{"shape":"regionList"},
+        "startTime":{"shape":"DateTimeRange"},
+        "endTime":{"shape":"DateTimeRange"},
+        "lastUpdatedTime":{"shape":"DateTimeRange"},
+        "entityArns":{"shape":"entityArnList"},
+        "entityValues":{"shape":"entityValueList"},
+        "eventTypeCategories":{"shape":"eventTypeCategoryList"},
+        "eventStatusCodes":{"shape":"eventStatusCodeList"}
+      }
+    },
+    "OrganizationEventList":{
+      "type":"list",
+      "member":{"shape":"OrganizationEvent"}
+    },
     "UnsupportedLocale":{
       "type":"structure",
       "members":{
@@ -365,16 +624,29 @@
     },
     "accountId":{
       "type":"string",
-      "pattern":"[0-9]{12}"
+      "max":12,
+      "pattern":"^\\S+$"
+    },
+    "affectedAccountsList":{
+      "type":"list",
+      "member":{"shape":"accountId"}
     },
     "aggregateValue":{"type":"string"},
     "availabilityZone":{
       "type":"string",
+      "max":18,
+      "min":6,
       "pattern":"[a-z]{2}\\-[0-9a-z\\-]{4,16}"
     },
     "availabilityZones":{
       "type":"list",
       "member":{"shape":"availabilityZone"}
+    },
+    "awsAccountIdsList":{
+      "type":"list",
+      "member":{"shape":"accountId"},
+      "max":50,
+      "min":1
     },
     "count":{"type":"integer"},
     "dateTimeRangeList":{
@@ -385,7 +657,8 @@
     },
     "entityArn":{
       "type":"string",
-      "max":1600
+      "max":1600,
+      "pattern":".{0,1600}"
     },
     "entityArnList":{
       "type":"list",
@@ -407,13 +680,11 @@
       "max":3,
       "min":1
     },
-    "entityUrl":{
-      "type":"string",
-      "pattern":"https?://.+\\.(amazon\\.com|amazonaws\\.com|amazonaws\\.cn|c2s\\.ic\\.gov|sc2s\\.sgov\\.gov|amazonaws-us-gov.com)/.*"
-    },
+    "entityUrl":{"type":"string"},
     "entityValue":{
       "type":"string",
-      "max":256
+      "max":256,
+      "pattern":".{0,256}"
     },
     "entityValueList":{
       "type":"list",
@@ -428,7 +699,7 @@
     "eventArn":{
       "type":"string",
       "max":1600,
-      "pattern":"arn:aws:health:[^:]*:[^:]*:event(?:/[\\w-]+){3}"
+      "pattern":"arn:aws(-[a-z]+(-[a-z]+)?)?:health:[^:]*:[^:]*:event(?:/[\\w-]+){3}"
     },
     "eventArnList":{
       "type":"list",
@@ -459,14 +730,16 @@
     "eventType":{
       "type":"string",
       "max":100,
-      "min":3
+      "min":3,
+      "pattern":"[^:/]{3,100}"
     },
     "eventTypeCategory":{
       "type":"string",
       "enum":[
         "issue",
         "accountNotification",
-        "scheduledChange"
+        "scheduledChange",
+        "investigation"
       ],
       "max":255,
       "min":3
@@ -480,7 +753,8 @@
     "eventTypeCode":{
       "type":"string",
       "max":100,
-      "min":3
+      "min":3,
+      "pattern":"[a-zA-Z0-9\\_\\-]{3,100}"
     },
     "eventTypeList":{
       "type":"list",
@@ -488,10 +762,12 @@
       "max":10,
       "min":1
     },
+    "healthServiceAccessStatusForOrganization":{"type":"string"},
     "locale":{
       "type":"string",
       "max":256,
-      "min":2
+      "min":2,
+      "pattern":".{2,256}"
     },
     "maxResults":{
       "type":"integer",
@@ -505,10 +781,14 @@
     },
     "nextToken":{
       "type":"string",
-      "pattern":"[a-zA-Z0-9=/+_.-]{4,512}"
+      "max":10000,
+      "min":4,
+      "pattern":"[a-zA-Z0-9=/+_.-]{4,10000}"
     },
     "region":{
       "type":"string",
+      "max":25,
+      "min":2,
       "pattern":"[^:/]{2,25}"
     },
     "regionList":{
@@ -520,7 +800,8 @@
     "service":{
       "type":"string",
       "max":30,
-      "min":2
+      "min":2,
+      "pattern":"[^:/]{2,30}"
     },
     "serviceList":{
       "type":"list",
@@ -536,7 +817,8 @@
     },
     "tagKey":{
       "type":"string",
-      "max":127
+      "max":127,
+      "pattern":".{0,127}"
     },
     "tagSet":{
       "type":"map",
@@ -546,7 +828,8 @@
     },
     "tagValue":{
       "type":"string",
-      "max":255
+      "max":255,
+      "pattern":".{0,255}"
     },
     "timestamp":{"type":"timestamp"}
   }

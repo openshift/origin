@@ -119,10 +119,38 @@ func (AuthenticationList) SwaggerDoc() map[string]string {
 
 var map_AuthenticationStatus = map[string]string{
 	"managingOAuthAPIServer": "ManagingOAuthAPIServer indicates whether this operator is managing OAuth related APIs. Setting this field to true will cause OAS-O to step down. Note that this field will be removed in the future releases, once https://github.com/openshift/enhancements/blob/master/enhancements/authentication/separate-oauth-resources.md is fully implemented",
+	"oauthAPIServer":         "OAuthAPIServer holds status specific only to oauth-apiserver",
 }
 
 func (AuthenticationStatus) SwaggerDoc() map[string]string {
 	return map_AuthenticationStatus
+}
+
+var map_OAuthAPIServerStatus = map[string]string{
+	"latestAvailableRevision": "LatestAvailableRevision is the latest revision used as suffix of revisioned secrets like encryption-config. A new revision causes a new deployment of pods.",
+}
+
+func (OAuthAPIServerStatus) SwaggerDoc() map[string]string {
+	return map_OAuthAPIServerStatus
+}
+
+var map_Config = map[string]string{
+	"":       "Config provides information to configure the config operator.",
+	"spec":   "spec is the specification of the desired behavior of the Config Operator.",
+	"status": "status defines the observed status of the Config Operator.",
+}
+
+func (Config) SwaggerDoc() map[string]string {
+	return map_Config
+}
+
+var map_ConfigList = map[string]string{
+	"":      "ConfigList is a collection of items",
+	"items": "Items contains the items",
+}
+
+func (ConfigList) SwaggerDoc() map[string]string {
+	return map_ConfigList
 }
 
 var map_Console = map[string]string{
@@ -399,6 +427,7 @@ func (PrivateStrategy) SwaggerDoc() map[string]string {
 var map_RouteAdmissionPolicy = map[string]string{
 	"":                   "RouteAdmissionPolicy is an admission policy for allowing new route claims.",
 	"namespaceOwnership": "namespaceOwnership describes how host name claims across namespaces should be handled.\n\nValue must be one of:\n\n- Strict: Do not allow routes in different namespaces to claim the same host.\n\n- InterNamespaceAllowed: Allow routes to claim different paths of the same\n  host name across namespaces.\n\nIf empty, the default is Strict.",
+	"wildcardPolicy":     "wildcardPolicy describes how routes with wildcard policies should be handled for the ingress controller. WildcardPolicy controls use of routes [1] exposed by the ingress controller based on the route's wildcard policy.\n\n[1] https://github.com/openshift/api/blob/master/route/v1/types.go\n\nNote: Updating WildcardPolicy from WildcardsAllowed to WildcardsDisallowed will cause admitted routes with a wildcard policy of Subdomain to stop working. These routes must be updated to a wildcard policy of None to be readmitted by the ingress controller.\n\nWildcardPolicy supports WildcardsAllowed and WildcardsDisallowed values.\n\nIf empty, defaults to \"WildcardsDisallowed\".",
 }
 
 func (RouteAdmissionPolicy) SwaggerDoc() map[string]string {
@@ -738,7 +767,7 @@ func (ServiceCAList) SwaggerDoc() map[string]string {
 }
 
 var map_ServiceCatalogAPIServer = map[string]string{
-	"": "ServiceCatalogAPIServer provides information to configure an operator to manage Service Catalog API Server",
+	"": "ServiceCatalogAPIServer provides information to configure an operator to manage Service Catalog API Server DEPRECATED: will be removed in 4.6",
 }
 
 func (ServiceCatalogAPIServer) SwaggerDoc() map[string]string {
@@ -746,7 +775,7 @@ func (ServiceCatalogAPIServer) SwaggerDoc() map[string]string {
 }
 
 var map_ServiceCatalogAPIServerList = map[string]string{
-	"":      "ServiceCatalogAPIServerList is a collection of items",
+	"":      "ServiceCatalogAPIServerList is a collection of items DEPRECATED: will be removed in 4.6",
 	"items": "Items contains the items",
 }
 
@@ -755,7 +784,7 @@ func (ServiceCatalogAPIServerList) SwaggerDoc() map[string]string {
 }
 
 var map_ServiceCatalogControllerManager = map[string]string{
-	"": "ServiceCatalogControllerManager provides information to configure an operator to manage Service Catalog Controller Manager",
+	"": "ServiceCatalogControllerManager provides information to configure an operator to manage Service Catalog Controller Manager DEPRECATED: will be removed in 4.6",
 }
 
 func (ServiceCatalogControllerManager) SwaggerDoc() map[string]string {
@@ -763,7 +792,7 @@ func (ServiceCatalogControllerManager) SwaggerDoc() map[string]string {
 }
 
 var map_ServiceCatalogControllerManagerList = map[string]string{
-	"":      "ServiceCatalogControllerManagerList is a collection of items",
+	"":      "ServiceCatalogControllerManagerList is a collection of items DEPRECATED: will be removed in 4.6",
 	"items": "Items contains the items",
 }
 

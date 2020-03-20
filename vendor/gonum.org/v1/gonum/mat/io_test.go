@@ -7,6 +7,7 @@ package mat
 import (
 	"bytes"
 	"encoding"
+	"encoding/binary"
 	"io"
 	"io/ioutil"
 	"math"
@@ -21,6 +22,8 @@ var (
 	_ encoding.BinaryMarshaler   = (*VecDense)(nil)
 	_ encoding.BinaryUnmarshaler = (*VecDense)(nil)
 )
+
+var sizeInt64 = binary.Size(int64(0))
 
 var denseData = []struct {
 	raw  []byte
@@ -131,8 +134,8 @@ func TestDenseMarshalTo(t *testing.T) {
 		if !bytes.Equal(buf.Bytes(), test.raw) {
 			t.Errorf("error encoding test-%d: bytes mismatch.\n got=%q\nwant=%q\n",
 				i,
-				string(buf.Bytes()),
-				string(test.raw),
+				buf.Bytes(),
+				test.raw,
 			)
 			continue
 		}
@@ -412,8 +415,8 @@ func TestVecDenseMarshalTo(t *testing.T) {
 		if !bytes.Equal(buf.Bytes(), test.raw) {
 			t.Errorf("error encoding test-%d: bytes mismatch.\n got=%q\nwant=%q\n",
 				i,
-				string(buf.Bytes()),
-				string(test.raw),
+				buf.Bytes(),
+				test.raw,
 			)
 			continue
 		}

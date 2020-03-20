@@ -144,7 +144,7 @@ func DorgtrTest(t *testing.T, impl Dorgtrer) {
 					}
 				}
 
-				// Compute Q^T * A * Q and store the result in ans.
+				// Compute Qᵀ * A * Q and store the result in ans.
 				tmp := blas64.General{Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n)}
 				blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, aMat, q, 0, tmp)
 				ans := blas64.General{Rows: n, Cols: n, Stride: n, Data: make([]float64, n*n)}

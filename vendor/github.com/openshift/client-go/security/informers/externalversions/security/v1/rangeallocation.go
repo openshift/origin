@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	securityv1 "github.com/openshift/api/security/v1"
@@ -44,13 +45,13 @@ func NewFilteredRangeAllocationInformer(client versioned.Interface, resyncPeriod
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SecurityV1().RangeAllocations().List(options)
+				return client.SecurityV1().RangeAllocations().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SecurityV1().RangeAllocations().Watch(options)
+				return client.SecurityV1().RangeAllocations().Watch(context.TODO(), options)
 			},
 		},
 		&securityv1.RangeAllocation{},

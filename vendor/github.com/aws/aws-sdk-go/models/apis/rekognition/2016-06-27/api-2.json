@@ -48,6 +48,43 @@
         {"shape":"ResourceAlreadyExistsException"}
       ]
     },
+    "CreateProject":{
+      "name":"CreateProject",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateProjectRequest"},
+      "output":{"shape":"CreateProjectResponse"},
+      "errors":[
+        {"shape":"ResourceInUseException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"ThrottlingException"},
+        {"shape":"ProvisionedThroughputExceededException"}
+      ]
+    },
+    "CreateProjectVersion":{
+      "name":"CreateProjectVersion",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateProjectVersionRequest"},
+      "output":{"shape":"CreateProjectVersionResponse"},
+      "errors":[
+        {"shape":"ResourceInUseException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"ThrottlingException"},
+        {"shape":"ProvisionedThroughputExceededException"}
+      ]
+    },
     "CreateStreamProcessor":{
       "name":"CreateStreamProcessor",
       "http":{
@@ -135,6 +172,41 @@
         {"shape":"ResourceNotFoundException"}
       ]
     },
+    "DescribeProjectVersions":{
+      "name":"DescribeProjectVersions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeProjectVersionsRequest"},
+      "output":{"shape":"DescribeProjectVersionsResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidPaginationTokenException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"ThrottlingException"},
+        {"shape":"ProvisionedThroughputExceededException"}
+      ]
+    },
+    "DescribeProjects":{
+      "name":"DescribeProjects",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeProjectsRequest"},
+      "output":{"shape":"DescribeProjectsResponse"},
+      "errors":[
+        {"shape":"InvalidPaginationTokenException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"ThrottlingException"},
+        {"shape":"ProvisionedThroughputExceededException"}
+      ]
+    },
     "DescribeStreamProcessor":{
       "name":"DescribeStreamProcessor",
       "http":{
@@ -150,6 +222,28 @@
         {"shape":"InvalidParameterException"},
         {"shape":"ResourceNotFoundException"},
         {"shape":"ProvisionedThroughputExceededException"}
+      ]
+    },
+    "DetectCustomLabels":{
+      "name":"DetectCustomLabels",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DetectCustomLabelsRequest"},
+      "output":{"shape":"DetectCustomLabelsResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ResourceNotReadyException"},
+        {"shape":"InvalidS3ObjectException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"ImageTooLargeException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"ThrottlingException"},
+        {"shape":"ProvisionedThroughputExceededException"},
+        {"shape":"InvalidImageFormatException"}
       ]
     },
     "DetectFaces":{
@@ -206,7 +300,8 @@
         {"shape":"InternalServerError"},
         {"shape":"ThrottlingException"},
         {"shape":"ProvisionedThroughputExceededException"},
-        {"shape":"InvalidImageFormatException"}
+        {"shape":"InvalidImageFormatException"},
+        {"shape":"HumanLoopQuotaExceededException"}
       ]
     },
     "DetectText":{
@@ -610,6 +705,25 @@
       ],
       "idempotent":true
     },
+    "StartProjectVersion":{
+      "name":"StartProjectVersion",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartProjectVersionRequest"},
+      "output":{"shape":"StartProjectVersionResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"ThrottlingException"},
+        {"shape":"ProvisionedThroughputExceededException"}
+      ]
+    },
     "StartStreamProcessor":{
       "name":"StartStreamProcessor",
       "http":{
@@ -625,6 +739,24 @@
         {"shape":"InvalidParameterException"},
         {"shape":"ResourceNotFoundException"},
         {"shape":"ResourceInUseException"},
+        {"shape":"ProvisionedThroughputExceededException"}
+      ]
+    },
+    "StopProjectVersion":{
+      "name":"StopProjectVersion",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopProjectVersionRequest"},
+      "output":{"shape":"StopProjectVersionResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"ThrottlingException"},
         {"shape":"ProvisionedThroughputExceededException"}
       ]
     },
@@ -660,6 +792,16 @@
         "Low":{"shape":"UInteger"},
         "High":{"shape":"UInteger"}
       }
+    },
+    "Asset":{
+      "type":"structure",
+      "members":{
+        "GroundTruthManifest":{"shape":"GroundTruthManifest"}
+      }
+    },
+    "Assets":{
+      "type":"list",
+      "member":{"shape":"Asset"}
     },
     "Attribute":{
       "type":"string",
@@ -768,7 +910,8 @@
       "members":{
         "SourceImage":{"shape":"Image"},
         "TargetImage":{"shape":"Image"},
-        "SimilarityThreshold":{"shape":"Percent"}
+        "SimilarityThreshold":{"shape":"Percent"},
+        "QualityFilter":{"shape":"QualityFilter"}
       }
     },
     "CompareFacesResponse":{
@@ -806,6 +949,18 @@
         "Confidence":{"shape":"Percent"}
       }
     },
+    "ContentClassifier":{
+      "type":"string",
+      "enum":[
+        "FreeOfPersonallyIdentifiableInformation",
+        "FreeOfAdultContent"
+      ]
+    },
+    "ContentClassifiers":{
+      "type":"list",
+      "member":{"shape":"ContentClassifier"},
+      "max":256
+    },
     "ContentModerationDetection":{
       "type":"structure",
       "members":{
@@ -839,6 +994,42 @@
         "FaceModelVersion":{"shape":"String"}
       }
     },
+    "CreateProjectRequest":{
+      "type":"structure",
+      "required":["ProjectName"],
+      "members":{
+        "ProjectName":{"shape":"ProjectName"}
+      }
+    },
+    "CreateProjectResponse":{
+      "type":"structure",
+      "members":{
+        "ProjectArn":{"shape":"ProjectArn"}
+      }
+    },
+    "CreateProjectVersionRequest":{
+      "type":"structure",
+      "required":[
+        "ProjectArn",
+        "VersionName",
+        "OutputConfig",
+        "TrainingData",
+        "TestingData"
+      ],
+      "members":{
+        "ProjectArn":{"shape":"ProjectArn"},
+        "VersionName":{"shape":"VersionName"},
+        "OutputConfig":{"shape":"OutputConfig"},
+        "TrainingData":{"shape":"TrainingData"},
+        "TestingData":{"shape":"TestingData"}
+      }
+    },
+    "CreateProjectVersionResponse":{
+      "type":"structure",
+      "members":{
+        "ProjectVersionArn":{"shape":"ProjectVersionArn"}
+      }
+    },
     "CreateStreamProcessorRequest":{
       "type":"structure",
       "required":[
@@ -861,6 +1052,18 @@
       "members":{
         "StreamProcessorArn":{"shape":"StreamProcessorArn"}
       }
+    },
+    "CustomLabel":{
+      "type":"structure",
+      "members":{
+        "Name":{"shape":"String"},
+        "Confidence":{"shape":"Percent"},
+        "Geometry":{"shape":"Geometry"}
+      }
+    },
+    "CustomLabels":{
+      "type":"list",
+      "member":{"shape":"CustomLabel"}
     },
     "DateTime":{"type":"timestamp"},
     "Degree":{
@@ -926,6 +1129,37 @@
         "CreationTimestamp":{"shape":"DateTime"}
       }
     },
+    "DescribeProjectVersionsRequest":{
+      "type":"structure",
+      "required":["ProjectArn"],
+      "members":{
+        "ProjectArn":{"shape":"ProjectArn"},
+        "VersionNames":{"shape":"VersionNames"},
+        "NextToken":{"shape":"ExtendedPaginationToken"},
+        "MaxResults":{"shape":"ProjectVersionsPageSize"}
+      }
+    },
+    "DescribeProjectVersionsResponse":{
+      "type":"structure",
+      "members":{
+        "ProjectVersionDescriptions":{"shape":"ProjectVersionDescriptions"},
+        "NextToken":{"shape":"ExtendedPaginationToken"}
+      }
+    },
+    "DescribeProjectsRequest":{
+      "type":"structure",
+      "members":{
+        "NextToken":{"shape":"ExtendedPaginationToken"},
+        "MaxResults":{"shape":"ProjectsPageSize"}
+      }
+    },
+    "DescribeProjectsResponse":{
+      "type":"structure",
+      "members":{
+        "ProjectDescriptions":{"shape":"ProjectDescriptions"},
+        "NextToken":{"shape":"ExtendedPaginationToken"}
+      }
+    },
     "DescribeStreamProcessorRequest":{
       "type":"structure",
       "required":["Name"],
@@ -946,6 +1180,25 @@
         "Output":{"shape":"StreamProcessorOutput"},
         "RoleArn":{"shape":"RoleArn"},
         "Settings":{"shape":"StreamProcessorSettings"}
+      }
+    },
+    "DetectCustomLabelsRequest":{
+      "type":"structure",
+      "required":[
+        "ProjectVersionArn",
+        "Image"
+      ],
+      "members":{
+        "ProjectVersionArn":{"shape":"ProjectVersionArn"},
+        "Image":{"shape":"Image"},
+        "MaxResults":{"shape":"UInteger"},
+        "MinConfidence":{"shape":"Percent"}
+      }
+    },
+    "DetectCustomLabelsResponse":{
+      "type":"structure",
+      "members":{
+        "CustomLabels":{"shape":"CustomLabels"}
       }
     },
     "DetectFacesRequest":{
@@ -985,14 +1238,16 @@
       "required":["Image"],
       "members":{
         "Image":{"shape":"Image"},
-        "MinConfidence":{"shape":"Percent"}
+        "MinConfidence":{"shape":"Percent"},
+        "HumanLoopConfig":{"shape":"HumanLoopConfig"}
       }
     },
     "DetectModerationLabelsResponse":{
       "type":"structure",
       "members":{
         "ModerationLabels":{"shape":"ModerationLabels"},
-        "ModerationModelVersion":{"shape":"String"}
+        "ModerationModelVersion":{"shape":"String"},
+        "HumanLoopActivationOutput":{"shape":"HumanLoopActivationOutput"}
       }
     },
     "DetectTextRequest":{
@@ -1025,12 +1280,24 @@
         "DISGUSTED",
         "SURPRISED",
         "CALM",
-        "UNKNOWN"
+        "UNKNOWN",
+        "FEAR"
       ]
     },
     "Emotions":{
       "type":"list",
       "member":{"shape":"Emotion"}
+    },
+    "EvaluationResult":{
+      "type":"structure",
+      "members":{
+        "F1Score":{"shape":"Float"},
+        "Summary":{"shape":"Summary"}
+      }
+    },
+    "ExtendedPaginationToken":{
+      "type":"string",
+      "max":1024
     },
     "ExternalImageId":{
       "type":"string",
@@ -1159,6 +1426,10 @@
       ]
     },
     "Float":{"type":"float"},
+    "FlowDefinitionArn":{
+      "type":"string",
+      "max":256
+    },
     "Gender":{
       "type":"structure",
       "members":{
@@ -1231,7 +1502,8 @@
         "StatusMessage":{"shape":"StatusMessage"},
         "VideoMetadata":{"shape":"VideoMetadata"},
         "ModerationLabels":{"shape":"ContentModerationDetections"},
-        "NextToken":{"shape":"PaginationToken"}
+        "NextToken":{"shape":"PaginationToken"},
+        "ModerationModelVersion":{"shape":"String"}
       }
     },
     "GetFaceDetectionRequest":{
@@ -1314,6 +1586,70 @@
         "Persons":{"shape":"PersonDetections"}
       }
     },
+    "GroundTruthManifest":{
+      "type":"structure",
+      "members":{
+        "S3Object":{"shape":"S3Object"}
+      }
+    },
+    "HumanLoopActivationConditionsEvaluationResults":{
+      "type":"string",
+      "max":10240
+    },
+    "HumanLoopActivationOutput":{
+      "type":"structure",
+      "members":{
+        "HumanLoopArn":{"shape":"HumanLoopArn"},
+        "HumanLoopActivationReasons":{"shape":"HumanLoopActivationReasons"},
+        "HumanLoopActivationConditionsEvaluationResults":{
+          "shape":"HumanLoopActivationConditionsEvaluationResults",
+          "jsonvalue":true
+        }
+      }
+    },
+    "HumanLoopActivationReason":{"type":"string"},
+    "HumanLoopActivationReasons":{
+      "type":"list",
+      "member":{"shape":"HumanLoopActivationReason"},
+      "min":1
+    },
+    "HumanLoopArn":{
+      "type":"string",
+      "max":256
+    },
+    "HumanLoopConfig":{
+      "type":"structure",
+      "required":[
+        "HumanLoopName",
+        "FlowDefinitionArn"
+      ],
+      "members":{
+        "HumanLoopName":{"shape":"HumanLoopName"},
+        "FlowDefinitionArn":{"shape":"FlowDefinitionArn"},
+        "DataAttributes":{"shape":"HumanLoopDataAttributes"}
+      }
+    },
+    "HumanLoopDataAttributes":{
+      "type":"structure",
+      "members":{
+        "ContentClassifiers":{"shape":"ContentClassifiers"}
+      }
+    },
+    "HumanLoopName":{
+      "type":"string",
+      "max":63,
+      "min":1,
+      "pattern":"^[a-z0-9](-*[a-z0-9])*"
+    },
+    "HumanLoopQuotaExceededException":{
+      "type":"structure",
+      "members":{
+        "ResourceType":{"shape":"String"},
+        "QuotaCode":{"shape":"String"},
+        "ServiceCode":{"shape":"String"}
+      },
+      "exception":true
+    },
     "IdempotentParameterMismatchException":{
       "type":"structure",
       "members":{
@@ -1372,6 +1708,10 @@
         "FaceModelVersion":{"shape":"String"},
         "UnindexedFaces":{"shape":"UnindexedFaces"}
       }
+    },
+    "InferenceUnits":{
+      "type":"integer",
+      "min":1
     },
     "Instance":{
       "type":"structure",
@@ -1636,6 +1976,13 @@
         "ROTATE_270"
       ]
     },
+    "OutputConfig":{
+      "type":"structure",
+      "members":{
+        "S3Bucket":{"shape":"S3Bucket"},
+        "S3KeyPrefix":{"shape":"S3KeyPrefix"}
+      }
+    },
     "PageSize":{
       "type":"integer",
       "max":4096,
@@ -1718,6 +2065,88 @@
         "Pitch":{"shape":"Degree"}
       }
     },
+    "ProjectArn":{
+      "type":"string",
+      "max":2048,
+      "min":20,
+      "pattern":"(^arn:[a-z\\d-]+:rekognition:[a-z\\d-]+:\\d{12}:project\\/[a-zA-Z0-9_.\\-]{1,255}\\/[0-9]+$)"
+    },
+    "ProjectDescription":{
+      "type":"structure",
+      "members":{
+        "ProjectArn":{"shape":"ProjectArn"},
+        "CreationTimestamp":{"shape":"DateTime"},
+        "Status":{"shape":"ProjectStatus"}
+      }
+    },
+    "ProjectDescriptions":{
+      "type":"list",
+      "member":{"shape":"ProjectDescription"}
+    },
+    "ProjectName":{
+      "type":"string",
+      "max":255,
+      "min":1,
+      "pattern":"[a-zA-Z0-9_.\\-]+"
+    },
+    "ProjectStatus":{
+      "type":"string",
+      "enum":[
+        "CREATING",
+        "CREATED",
+        "DELETING"
+      ]
+    },
+    "ProjectVersionArn":{
+      "type":"string",
+      "max":2048,
+      "min":20,
+      "pattern":"(^arn:[a-z\\d-]+:rekognition:[a-z\\d-]+:\\d{12}:project\\/[a-zA-Z0-9_.\\-]{1,255}\\/version\\/[a-zA-Z0-9_.\\-]{1,255}\\/[0-9]+$)"
+    },
+    "ProjectVersionDescription":{
+      "type":"structure",
+      "members":{
+        "ProjectVersionArn":{"shape":"ProjectVersionArn"},
+        "CreationTimestamp":{"shape":"DateTime"},
+        "MinInferenceUnits":{"shape":"InferenceUnits"},
+        "Status":{"shape":"ProjectVersionStatus"},
+        "StatusMessage":{"shape":"StatusMessage"},
+        "BillableTrainingTimeInSeconds":{"shape":"ULong"},
+        "TrainingEndTimestamp":{"shape":"DateTime"},
+        "OutputConfig":{"shape":"OutputConfig"},
+        "TrainingDataResult":{"shape":"TrainingDataResult"},
+        "TestingDataResult":{"shape":"TestingDataResult"},
+        "EvaluationResult":{"shape":"EvaluationResult"}
+      }
+    },
+    "ProjectVersionDescriptions":{
+      "type":"list",
+      "member":{"shape":"ProjectVersionDescription"}
+    },
+    "ProjectVersionStatus":{
+      "type":"string",
+      "enum":[
+        "TRAINING_IN_PROGRESS",
+        "TRAINING_COMPLETED",
+        "TRAINING_FAILED",
+        "STARTING",
+        "RUNNING",
+        "FAILED",
+        "STOPPING",
+        "STOPPED",
+        "DELETING"
+      ]
+    },
+    "ProjectVersionsPageSize":{
+      "type":"integer",
+      "max":100,
+      "min":1
+    },
+    "ProjectsPageSize":{
+      "type":"integer",
+      "max":100,
+      "min":1
+    },
     "ProvisionedThroughputExceededException":{
       "type":"structure",
       "members":{
@@ -1728,7 +2157,10 @@
       "type":"string",
       "enum":[
         "NONE",
-        "AUTO"
+        "AUTO",
+        "LOW",
+        "MEDIUM",
+        "HIGH"
       ]
     },
     "Reason":{
@@ -1739,7 +2171,8 @@
         "LOW_BRIGHTNESS",
         "LOW_SHARPNESS",
         "LOW_CONFIDENCE",
-        "SMALL_BOUNDING_BOX"
+        "SMALL_BOUNDING_BOX",
+        "LOW_FACE_QUALITY"
       ]
     },
     "Reasons":{
@@ -1783,6 +2216,12 @@
       },
       "exception":true
     },
+    "ResourceNotReadyException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "RoleArn":{
       "type":"string",
       "pattern":"arn:aws:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+"
@@ -1792,6 +2231,10 @@
       "max":255,
       "min":3,
       "pattern":"[0-9A-Za-z\\.\\-_]*"
+    },
+    "S3KeyPrefix":{
+      "type":"string",
+      "max":1024
     },
     "S3Object":{
       "type":"structure",
@@ -1825,7 +2268,8 @@
         "CollectionId":{"shape":"CollectionId"},
         "Image":{"shape":"Image"},
         "MaxFaces":{"shape":"MaxFaces"},
-        "FaceMatchThreshold":{"shape":"Percent"}
+        "FaceMatchThreshold":{"shape":"Percent"},
+        "QualityFilter":{"shape":"QualityFilter"}
       }
     },
     "SearchFacesByImageResponse":{
@@ -1969,6 +2413,23 @@
         "JobId":{"shape":"JobId"}
       }
     },
+    "StartProjectVersionRequest":{
+      "type":"structure",
+      "required":[
+        "ProjectVersionArn",
+        "MinInferenceUnits"
+      ],
+      "members":{
+        "ProjectVersionArn":{"shape":"ProjectVersionArn"},
+        "MinInferenceUnits":{"shape":"InferenceUnits"}
+      }
+    },
+    "StartProjectVersionResponse":{
+      "type":"structure",
+      "members":{
+        "Status":{"shape":"ProjectVersionStatus"}
+      }
+    },
     "StartStreamProcessorRequest":{
       "type":"structure",
       "required":["Name"],
@@ -1982,6 +2443,19 @@
       }
     },
     "StatusMessage":{"type":"string"},
+    "StopProjectVersionRequest":{
+      "type":"structure",
+      "required":["ProjectVersionArn"],
+      "members":{
+        "ProjectVersionArn":{"shape":"ProjectVersionArn"}
+      }
+    },
+    "StopProjectVersionResponse":{
+      "type":"structure",
+      "members":{
+        "Status":{"shape":"ProjectVersionStatus"}
+      }
+    },
     "StopStreamProcessorRequest":{
       "type":"structure",
       "required":["Name"],
@@ -2044,11 +2518,31 @@
       ]
     },
     "String":{"type":"string"},
+    "Summary":{
+      "type":"structure",
+      "members":{
+        "S3Object":{"shape":"S3Object"}
+      }
+    },
     "Sunglasses":{
       "type":"structure",
       "members":{
         "Value":{"shape":"Boolean"},
         "Confidence":{"shape":"Percent"}
+      }
+    },
+    "TestingData":{
+      "type":"structure",
+      "members":{
+        "Assets":{"shape":"Assets"},
+        "AutoCreate":{"shape":"Boolean"}
+      }
+    },
+    "TestingDataResult":{
+      "type":"structure",
+      "members":{
+        "Input":{"shape":"TestingData"},
+        "Output":{"shape":"TestingData"}
       }
     },
     "TextDetection":{
@@ -2081,6 +2575,19 @@
       "fault":true
     },
     "Timestamp":{"type":"long"},
+    "TrainingData":{
+      "type":"structure",
+      "members":{
+        "Assets":{"shape":"Assets"}
+      }
+    },
+    "TrainingDataResult":{
+      "type":"structure",
+      "members":{
+        "Input":{"shape":"TrainingData"},
+        "Output":{"shape":"TrainingData"}
+      }
+    },
     "UInteger":{
       "type":"integer",
       "min":0
@@ -2104,6 +2611,18 @@
     "Urls":{
       "type":"list",
       "member":{"shape":"Url"}
+    },
+    "VersionName":{
+      "type":"string",
+      "max":255,
+      "min":1,
+      "pattern":"[a-zA-Z0-9_.\\-]+"
+    },
+    "VersionNames":{
+      "type":"list",
+      "member":{"shape":"VersionName"},
+      "max":10,
+      "min":1
     },
     "Video":{
       "type":"structure",

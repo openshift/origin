@@ -31,7 +31,6 @@ import (
 	"github.com/docker/distribution/registry/proxy"
 	"github.com/docker/distribution/registry/storage"
 	memorycache "github.com/docker/distribution/registry/storage/cache/memory"
-	cacheprovider "github.com/docker/distribution/registry/storage/cache/provider"
 	rediscache "github.com/docker/distribution/registry/storage/cache/redis"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/factory"
@@ -288,20 +287,7 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 			dcontext.GetLogger(app).Infof("using inmemory blob descriptor cache")
 		default:
 			if v != "" {
-				name, ok := v.(string)
-				if !ok {
-					panic(fmt.Sprintf("unexpected type of value %T (string expected)", v))
-				}
-				cacheProvider, err := cacheprovider.Get(app, name, cc)
-				if err != nil {
-					panic("unable to initialize cache provider: " + err.Error())
-				}
-				localOptions := append(options, storage.BlobDescriptorCacheProvider(cacheProvider))
-				app.registry, err = storage.NewRegistry(app, app.driver, localOptions...)
-				if err != nil {
-					panic("could not create registry: " + err.Error())
-				}
-				dcontext.GetLogger(app).Infof("using %s blob descriptor cache", name)
+				dcontext.GetLogger(app).Warnf("unknown cache type %q, caching disabled", config.Storage["cache"])
 			}
 		}
 	}
@@ -434,29 +420,11 @@ func (app *App) RegisterHealthChecks(healthRegistries ...*health.Registry) {
 	}
 }
 
-type customAccessRecordsFunc func(*http.Request) []auth.Access
-
-func NoCustomAccessRecords(*http.Request) []auth.Access {
-	return []auth.Access{}
-}
-
-func NameNotRequired(*http.Request) bool {
-	return false
-}
-
-func NameRequired(*http.Request) bool {
-	return true
-}
-
 // register a handler with the application, by route name. The handler will be
 // passed through the application filters and context will be constructed at
 // request time.
 func (app *App) register(routeName string, dispatch dispatchFunc) {
-	app.RegisterRoute(routeName, app.router.GetRoute(routeName), dispatch, app.nameRequired, NoCustomAccessRecords)
-}
-
-func (app *App) RegisterRoute(routeName string, route *mux.Route, dispatch dispatchFunc, nameRequired nameRequiredFunc, accessRecords customAccessRecordsFunc) {
-	handler := app.dispatcher(dispatch, nameRequired, accessRecords)
+	handler := app.dispatcher(dispatch)
 
 	// Chain the handler with prometheus instrumented handler
 	if app.Config.HTTP.Debug.Prometheus.Enabled {
@@ -472,11 +440,7 @@ func (app *App) RegisterRoute(routeName string, route *mux.Route, dispatch dispa
 	// replace it with manual routing and structure-based dispatch for better
 	// control over the request execution.
 
-	route.Handler(handler)
-}
-
-func (app *App) NewRoute() *mux.Route {
-	return app.router.NewRoute()
+	app.router.GetRoute(routeName).Handler(handler)
 }
 
 // configureEvents prepares the event sink for action.
@@ -591,7 +555,7 @@ func (app *App) configureRedis(configuration *configuration.Configuration) {
 			_, err := c.Do("PING")
 			return err
 		},
-		Wait: false, // if a connection is not avialable, proceed without cache.
+		Wait: false, // if a connection is not available, proceed without cache.
 	}
 
 	app.redis = pool
@@ -659,7 +623,6 @@ func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Prepare the context with our own little decorations.
 	ctx := r.Context()
-	ctx = dcontext.WithLogger(ctx, dcontext.GetLogger(app))
 	ctx = dcontext.WithRequest(ctx, r)
 	ctx, w = dcontext.WithResponseWriter(ctx, w)
 	ctx = dcontext.WithLogger(ctx, dcontext.GetRequestLogger(ctx))
@@ -688,7 +651,7 @@ type dispatchFunc func(ctx *Context, r *http.Request) http.Handler
 
 // dispatcher returns a handler that constructs a request specific context and
 // handler, using the dispatch factory function.
-func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc, accessRecords customAccessRecordsFunc) http.Handler {
+func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for headerName, headerValues := range app.Config.HTTP.Headers {
 			for _, value := range headerValues {
@@ -698,7 +661,7 @@ func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc,
 
 		context := app.context(w, r)
 
-		if err := app.authorized(w, r, context, nameRequired, accessRecords(r)); err != nil {
+		if err := app.authorized(w, r, context); err != nil {
 			dcontext.GetLogger(context).Warnf("error authorizing context: %v", err)
 			return
 		}
@@ -709,7 +672,7 @@ func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc,
 		// sync up context on the request.
 		r = r.WithContext(context)
 
-		if nameRequired(r) {
+		if app.nameRequired(r) {
 			nameRef, err := reference.WithName(getName(context))
 			if err != nil {
 				dcontext.GetLogger(context).Errorf("error parsing reference from context: %v", err)
@@ -810,18 +773,7 @@ func (app *App) logError(ctx context.Context, errors errcode.Errors) {
 			errCodeKey{},
 			errMessageKey{},
 			errDetailKey{}))
-
-		logf := dcontext.GetResponseLogger(c).Errorf
-
-		httpStatus, ok := c.Value("http.response.status").(int)
-		if ok && httpStatus == 404 {
-			httpMethod, ok := c.Value("http.request.method").(string)
-			if ok && strings.ToLower(httpMethod) == "head" {
-				logf = dcontext.GetResponseLogger(c).Infof
-			}
-		}
-
-		logf("response completed with error")
+		dcontext.GetResponseLogger(c).Errorf("response completed with error")
 	}
 }
 
@@ -856,7 +808,7 @@ func (app *App) context(w http.ResponseWriter, r *http.Request) *Context {
 // authorized checks if the request can proceed with access to the requested
 // repository. If it succeeds, the context may access the requested
 // repository. An error will be returned if access is not available.
-func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Context, nameRequired nameRequiredFunc, customAccessRecords []auth.Access) error {
+func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Context) error {
 	dcontext.GetLogger(context).Debug("authorizing request")
 	repo := getName(context)
 
@@ -865,7 +817,6 @@ func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Cont
 	}
 
 	var accessRecords []auth.Access
-	accessRecords = append(accessRecords, customAccessRecords...)
 
 	if repo != "" {
 		accessRecords = appendAccessRecords(accessRecords, r.Method, repo)
@@ -874,10 +825,9 @@ func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Cont
 			// access to the source repository.
 			accessRecords = appendAccessRecords(accessRecords, "GET", fromRepo)
 		}
-	}
-	if len(accessRecords) == 0 {
+	} else {
 		// Only allow the name not to be set on the base route.
-		if nameRequired(r) {
+		if app.nameRequired(r) {
 			// For this to be properly secured, repo must always be set for a
 			// resource that may make a modification. The only condition under
 			// which name is not set and we still allow access is when the
@@ -897,7 +847,7 @@ func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Cont
 		switch err := err.(type) {
 		case auth.Challenge:
 			// Add the appropriate WWW-Auth header
-			err.SetHeaders(w)
+			err.SetHeaders(r, w)
 
 			if err := errcode.ServeJSON(w, errcode.ErrorCodeUnauthorized.WithDetail(accessRecords)); err != nil {
 				dcontext.GetLogger(context).Errorf("error serving error json: %v (from %v)", err, context.Errors)
@@ -932,8 +882,6 @@ func (app *App) eventBridge(ctx *Context, r *http.Request) notifications.Listene
 
 	return notifications.NewBridge(ctx.urlBuilder, app.events.source, actor, request, app.events.sink, app.Config.Notifications.EventConfig.IncludeReferences)
 }
-
-type nameRequiredFunc func(*http.Request) bool
 
 // nameRequired returns true if the route requires a name.
 func (app *App) nameRequired(r *http.Request) bool {
@@ -1049,7 +997,7 @@ func applyStorageMiddleware(driver storagedriver.StorageDriver, middlewares []co
 
 // uploadPurgeDefaultConfig provides a default configuration for upload
 // purging to be used in the absence of configuration in the
-// confifuration file
+// configuration file
 func uploadPurgeDefaultConfig() map[interface{}]interface{} {
 	config := map[interface{}]interface{}{}
 	config["enabled"] = true

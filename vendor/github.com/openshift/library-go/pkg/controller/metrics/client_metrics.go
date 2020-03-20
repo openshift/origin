@@ -64,6 +64,10 @@ func (l *latencyAdapter) ClearState() {
 	l.m.Reset()
 }
 
+func (l *latencyAdapter) FQName() string {
+	return l.m.FQName()
+}
+
 type resultAdapter struct {
 	m *k8smetrics.CounterVec
 }
@@ -86,4 +90,8 @@ func (r *resultAdapter) Increment(code, method, host string) {
 
 func (r *resultAdapter) ClearState() {
 	r.m.Reset()
+}
+
+func (r *resultAdapter) FQName() string {
+	return r.m.FQName()
 }

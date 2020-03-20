@@ -27,7 +27,9 @@ func TestInteg_00_ListDeliveryStreams(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := firehose.New(sess)
 	params := &firehose.ListDeliveryStreamsInput{}
-	_, err := svc.ListDeliveryStreamsWithContext(ctx, params)
+	_, err := svc.ListDeliveryStreamsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeDeliveryStream(t *testing.T) {
 	params := &firehose.DescribeDeliveryStreamInput{
 		DeliveryStreamName: aws.String("bogus-stream-name"),
 	}
-	_, err := svc.DescribeDeliveryStreamWithContext(ctx, params)
+	_, err := svc.DescribeDeliveryStreamWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

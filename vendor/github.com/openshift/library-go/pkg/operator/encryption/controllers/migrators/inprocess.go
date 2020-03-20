@@ -36,6 +36,10 @@ type InProcessMigrator struct {
 	handler cache.ResourceEventHandler
 }
 
+func (m *InProcessMigrator) HasSynced() bool {
+	return true
+}
+
 type inProcessMigration struct {
 	stopCh   chan<- struct{}
 	doneCh   <-chan struct{}
@@ -46,6 +50,8 @@ type inProcessMigration struct {
 	// when did it finish
 	timestamp time.Time
 }
+
+var _ Migrator = &InProcessMigrator{}
 
 func (m *InProcessMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, ts time.Time, err error) {
 	m.lock.Lock()
@@ -127,7 +133,7 @@ func (m *InProcessMigrator) runMigration(gvr schema.GroupVersionResource, writeK
 
 	listProcessor := newListProcessor(ctx, m.dynamicClient, func(obj *unstructured.Unstructured) error {
 		for {
-			_, updateErr := d.Namespace(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
+			_, updateErr := d.Namespace(obj.GetNamespace()).Update(ctx, obj, metav1.UpdateOptions{})
 			if updateErr == nil || errors.IsNotFound(updateErr) || errors.IsConflict(updateErr) {
 				return nil
 			}
@@ -164,9 +170,8 @@ func (m *InProcessMigrator) PruneMigration(gr schema.GroupResource) error {
 	return nil
 }
 
-func (m *InProcessMigrator) AddEventHandler(handler cache.ResourceEventHandler) []cache.InformerSynced {
+func (m *InProcessMigrator) AddEventHandler(handler cache.ResourceEventHandler) {
 	m.handler = handler
-	return nil
 }
 
 func preferredResourceVersion(c discovery.ServerResourcesInterface, gr schema.GroupResource) (string, error) {

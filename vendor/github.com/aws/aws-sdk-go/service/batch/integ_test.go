@@ -27,7 +27,9 @@ func TestInteg_00_DescribeComputeEnvironments(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := batch.New(sess)
 	params := &batch.DescribeComputeEnvironmentsInput{}
-	_, err := svc.DescribeComputeEnvironmentsWithContext(ctx, params)
+	_, err := svc.DescribeComputeEnvironmentsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

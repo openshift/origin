@@ -16,29 +16,7 @@ import (
 // Volume represents a volume in cubic metres.
 type Volume float64
 
-const (
-	Yottalitre Volume = 1e21
-	Zettalitre Volume = 1e18
-	Exalitre   Volume = 1e15
-	Petalitre  Volume = 1e12
-	Teralitre  Volume = 1e9
-	Gigalitre  Volume = 1e6
-	Megalitre  Volume = 1e3
-	Kilolitre  Volume = 1.0
-	Hectolitre Volume = 1e-1
-	Decalitre  Volume = 1e-2
-	Litre      Volume = 1e-3
-	Decilitre  Volume = 1e-4
-	Centilitre Volume = 1e-5
-	Millilitre Volume = 1e-6
-	Microlitre Volume = 1e-9
-	Nanolitre  Volume = 1e-12
-	Picolitre  Volume = 1e-15
-	Femtolitre Volume = 1e-18
-	Attolitre  Volume = 1e-21
-	Zeptolitre Volume = 1e-24
-	Yoctolitre Volume = 1e-27
-)
+const Litre Volume = 1e-3
 
 // Unit converts the Volume to a *Unit
 func (v Volume) Unit() *Unit {

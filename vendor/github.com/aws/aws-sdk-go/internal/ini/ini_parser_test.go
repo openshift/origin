@@ -270,6 +270,25 @@ region = us-west-2
 				newExprStatement(noQuotesRegionEQRegion),
 			},
 		},
+		{
+			name: "missing section statement",
+			r: bytes.NewBuffer([]byte(
+				`[default]
+s3 =
+[assumerole]
+output = json
+				`)),
+			expectedStack: []AST{
+				newCompletedSectionStatement(
+					defaultProfileStmt,
+				),
+				newSkipStatement(newEqualExpr(newExpression(s3ID), equalOp)),
+				newCompletedSectionStatement(
+					assumeProfileStmt,
+				),
+				newExprStatement(outputEQExpr),
+			},
+		},
 	}
 
 	for i, c := range cases {

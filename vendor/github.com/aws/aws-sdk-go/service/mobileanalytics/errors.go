@@ -2,6 +2,10 @@
 
 package mobileanalytics
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeBadRequestException for service response error code
@@ -10,3 +14,7 @@ const (
 	// An exception object returned when a request fails.
 	ErrCodeBadRequestException = "BadRequestException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"BadRequestException": newErrorBadRequestException,
+}

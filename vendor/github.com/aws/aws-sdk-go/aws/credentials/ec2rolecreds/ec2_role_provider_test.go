@@ -41,7 +41,7 @@ func initTestServer(expireOn string, failAssume bool) *httptest.Server {
 				fmt.Fprintf(w, credsRespTmpl, expireOn)
 			}
 		} else {
-			http.Error(w, "bad request", http.StatusBadRequest)
+			http.Error(w, "Not found", http.StatusNotFound)
 		}
 	}))
 

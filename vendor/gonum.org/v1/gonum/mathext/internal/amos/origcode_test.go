@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//nolint
 package amos
 
 import (
@@ -34,7 +35,7 @@ func max0(a, b int) int {
 	return b
 }
 
-func zairyOrig(ZR, ZI float64, ID, KODE int) (AIR, AII float64, NZ int) {
+func zairyOrig(ZR, ZI float64, ID, KODE int) (AIR, AII float64, NZ, IERR int) {
 	// zairy is adapted from the original Netlib code by Donald Amos.
 	// http://www.netlib.no/netlib/amos/zairy.f
 
@@ -171,7 +172,7 @@ func zairyOrig(ZR, ZI float64, ID, KODE int) (AIR, AII float64, NZ int) {
 		DK, D1, D2, ELIM, FID, FNU, PTR, RL, R1M5, SFAC, STI, STR,
 		S1I, S1R, S2I, S2R, TOL, TRM1I, TRM1R, TRM2I, TRM2R, TTH, ZEROI,
 		ZEROR, ZTAI, ZTAR, Z3I, Z3R, ALAZ, BB float64
-	var IERR, IFLAG, K, K1, K2, MR, NN int
+	var IFLAG, K, K1, K2, MR, NN int
 	var tmp complex128
 
 	// Extra element for padding.

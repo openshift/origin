@@ -17,6 +17,7 @@ limitations under the License.
 package apimachinery
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -72,58 +73,58 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 
 		ginkgo.By("client-side validation (kubectl create and apply) allows request with known and required properties")
 		validCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"name":"test-bar"}]}}`, meta)
-		if _, err := framework.RunKubectlInput(validCR, ns, "create", "-f", "-"); err != nil {
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, validCR, ns, "create", "-f", "-"); err != nil {
 			framework.Failf("failed to create valid CR %s: %v", validCR, err)
 		}
-		if _, err := framework.RunKubectl(ns, "delete", crd.Crd.Spec.Names.Plural, "test-foo"); err != nil {
+		if _, err := framework.RunKubectl(f.Namespace.Name, ns, "delete", crd.Crd.Spec.Names.Plural, "test-foo"); err != nil {
 			framework.Failf("failed to delete valid CR: %v", err)
 		}
-		if _, err := framework.RunKubectlInput(validCR, ns, "apply", "-f", "-"); err != nil {
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, validCR, ns, "apply", "-f", "-"); err != nil {
 			framework.Failf("failed to apply valid CR %s: %v", validCR, err)
 		}
-		if _, err := framework.RunKubectl(ns, "delete", crd.Crd.Spec.Names.Plural, "test-foo"); err != nil {
+		if _, err := framework.RunKubectl(f.Namespace.Name, ns, "delete", crd.Crd.Spec.Names.Plural, "test-foo"); err != nil {
 			framework.Failf("failed to delete valid CR: %v", err)
 		}
 
 		// TODO(workload): re-enable client-side validation tests
 		/*
-		ginkgo.By("client-side validation (kubectl create and apply) rejects request with unknown properties when disallowed by the schema")
-		unknownCR := fmt.Sprintf(`{%s,"spec":{"foo":true}}`, meta)
-		if _, err := framework.RunKubectlInput(unknownCR, ns, "create", "-f", "-"); err == nil || !strings.Contains(err.Error(), `unknown field "foo"`) {
-			framework.Failf("unexpected no error when creating CR with unknown field: %v", err)
-		}
-		if _, err := framework.RunKubectlInput(unknownCR, ns, "apply", "-f", "-"); err == nil || !strings.Contains(err.Error(), `unknown field "foo"`) {
-			framework.Failf("unexpected no error when applying CR with unknown field: %v", err)
-		}
+			ginkgo.By("client-side validation (kubectl create and apply) rejects request with unknown properties when disallowed by the schema")
+			unknownCR := fmt.Sprintf(`{%s,"spec":{"foo":true}}`, meta)
+			if _, err := framework.RunKubectlInput(f.Namespace.Name, unknownCR, ns, "create", "-f", "-"); err == nil || !strings.Contains(err.Error(), `unknown field "foo"`) {
+				framework.Failf("unexpected no error when creating CR with unknown field: %v", err)
+			}
+			if _, err := framework.RunKubectlInput(f.Namespace.Name, unknownCR, ns, "apply", "-f", "-"); err == nil || !strings.Contains(err.Error(), `unknown field "foo"`) {
+				framework.Failf("unexpected no error when applying CR with unknown field: %v", err)
+			}
 
-		ginkgo.By("client-side validation (kubectl create and apply) rejects request without required properties")
-		noRequireCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"age":"10"}]}}`, meta)
-		if _, err := framework.RunKubectlInput(noRequireCR, ns, "create", "-f", "-"); err == nil || !strings.Contains(err.Error(), `missing required field "name"`) {
-			framework.Failf("unexpected no error when creating CR without required field: %v", err)
-		}
-		if _, err := framework.RunKubectlInput(noRequireCR, ns, "apply", "-f", "-"); err == nil || !strings.Contains(err.Error(), `missing required field "name"`) {
-			framework.Failf("unexpected no error when applying CR without required field: %v", err)
-		}
+			ginkgo.By("client-side validation (kubectl create and apply) rejects request without required properties")
+			noRequireCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"age":"10"}]}}`, meta)
+			if _, err := framework.RunKubectlInput(f.Namespace.Name, noRequireCR, ns, "create", "-f", "-"); err == nil || !strings.Contains(err.Error(), `missing required field "name"`) {
+				framework.Failf("unexpected no error when creating CR without required field: %v", err)
+			}
+			if _, err := framework.RunKubectlInput(f.Namespace.Name, noRequireCR, ns, "apply", "-f", "-"); err == nil || !strings.Contains(err.Error(), `missing required field "name"`) {
+				framework.Failf("unexpected no error when applying CR without required field: %v", err)
+			}
 		*/
 
 		ginkgo.By("kubectl explain works to explain CR properties")
-		if err := verifyKubectlExplain(crd.Crd.Spec.Names.Plural, `(?s)DESCRIPTION:.*Foo CRD for Testing.*FIELDS:.*apiVersion.*<string>.*APIVersion defines.*spec.*<Object>.*Specification of Foo`); err != nil {
+		if err := verifyKubectlExplain(f.Namespace.Name, crd.Crd.Spec.Names.Plural, `(?s)DESCRIPTION:.*Foo CRD for Testing.*FIELDS:.*apiVersion.*<string>.*APIVersion defines.*spec.*<Object>.*Specification of Foo`); err != nil {
 			framework.Failf("%v", err)
 		}
 
 		ginkgo.By("kubectl explain works to explain CR properties recursively")
-		if err := verifyKubectlExplain(crd.Crd.Spec.Names.Plural+".metadata", `(?s)DESCRIPTION:.*Standard object's metadata.*FIELDS:.*creationTimestamp.*<string>.*CreationTimestamp is a timestamp`); err != nil {
+		if err := verifyKubectlExplain(f.Namespace.Name, crd.Crd.Spec.Names.Plural+".metadata", `(?s)DESCRIPTION:.*Standard object's metadata.*FIELDS:.*creationTimestamp.*<string>.*CreationTimestamp is a timestamp`); err != nil {
 			framework.Failf("%v", err)
 		}
-		if err := verifyKubectlExplain(crd.Crd.Spec.Names.Plural+".spec", `(?s)DESCRIPTION:.*Specification of Foo.*FIELDS:.*bars.*<\[\]Object>.*List of Bars and their specs`); err != nil {
+		if err := verifyKubectlExplain(f.Namespace.Name, crd.Crd.Spec.Names.Plural+".spec", `(?s)DESCRIPTION:.*Specification of Foo.*FIELDS:.*bars.*<\[\]Object>.*List of Bars and their specs`); err != nil {
 			framework.Failf("%v", err)
 		}
-		if err := verifyKubectlExplain(crd.Crd.Spec.Names.Plural+".spec.bars", `(?s)RESOURCE:.*bars.*<\[\]Object>.*DESCRIPTION:.*List of Bars and their specs.*FIELDS:.*bazs.*<\[\]string>.*List of Bazs.*name.*<string>.*Name of Bar`); err != nil {
+		if err := verifyKubectlExplain(f.Namespace.Name, crd.Crd.Spec.Names.Plural+".spec.bars", `(?s)RESOURCE:.*bars.*<\[\]Object>.*DESCRIPTION:.*List of Bars and their specs.*FIELDS:.*bazs.*<\[\]string>.*List of Bazs.*name.*<string>.*Name of Bar`); err != nil {
 			framework.Failf("%v", err)
 		}
 
 		ginkgo.By("kubectl explain works to return error when explain is called on property that doesn't exist")
-		if _, err := framework.RunKubectl("explain", crd.Crd.Spec.Names.Plural+".spec.bars2"); err == nil || !strings.Contains(err.Error(), `field "bars2" does not exist`) {
+		if _, err := framework.RunKubectl(f.Namespace.Name, "explain", crd.Crd.Spec.Names.Plural+".spec.bars2"); err == nil || !strings.Contains(err.Error(), `field "bars2" does not exist`) {
 			framework.Failf("unexpected no error when explaining property that doesn't exist: %v", err)
 		}
 
@@ -150,21 +151,21 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 
 		ginkgo.By("client-side validation (kubectl create and apply) allows request with any unknown properties")
 		randomCR := fmt.Sprintf(`{%s,"a":{"b":[{"c":"d"}]}}`, meta)
-		if _, err := framework.RunKubectlInput(randomCR, ns, "create", "-f", "-"); err != nil {
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, randomCR, ns, "create", "-f", "-"); err != nil {
 			framework.Failf("failed to create random CR %s for CRD without schema: %v", randomCR, err)
 		}
-		if _, err := framework.RunKubectl(ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
+		if _, err := framework.RunKubectl(f.Namespace.Name, ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
 			framework.Failf("failed to delete random CR: %v", err)
 		}
-		if _, err := framework.RunKubectlInput(randomCR, ns, "apply", "-f", "-"); err != nil {
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, randomCR, ns, "apply", "-f", "-"); err != nil {
 			framework.Failf("failed to apply random CR %s for CRD without schema: %v", randomCR, err)
 		}
-		if _, err := framework.RunKubectl(ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
+		if _, err := framework.RunKubectl(f.Namespace.Name, ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
 			framework.Failf("failed to delete random CR: %v", err)
 		}
 
 		ginkgo.By("kubectl explain works to explain CR without validation schema")
-		if err := verifyKubectlExplain(crd.Crd.Spec.Names.Plural, `(?s)DESCRIPTION:.*<empty>`); err != nil {
+		if err := verifyKubectlExplain(f.Namespace.Name, crd.Crd.Spec.Names.Plural, `(?s)DESCRIPTION:.*<empty>`); err != nil {
 			framework.Failf("%v", err)
 		}
 
@@ -191,21 +192,21 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 
 		ginkgo.By("client-side validation (kubectl create and apply) allows request with any unknown properties")
 		randomCR := fmt.Sprintf(`{%s,"a":{"b":[{"c":"d"}]}}`, meta)
-		if _, err := framework.RunKubectlInput(randomCR, ns, "create", "-f", "-"); err != nil {
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, randomCR, ns, "create", "-f", "-"); err != nil {
 			framework.Failf("failed to create random CR %s for CRD that allows unknown properties at the root: %v", randomCR, err)
 		}
-		if _, err := framework.RunKubectl(ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
+		if _, err := framework.RunKubectl(f.Namespace.Name, ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
 			framework.Failf("failed to delete random CR: %v", err)
 		}
-		if _, err := framework.RunKubectlInput(randomCR, ns, "apply", "-f", "-"); err != nil {
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, randomCR, ns, "apply", "-f", "-"); err != nil {
 			framework.Failf("failed to apply random CR %s for CRD without schema: %v", randomCR, err)
 		}
-		if _, err := framework.RunKubectl(ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
+		if _, err := framework.RunKubectl(f.Namespace.Name, ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
 			framework.Failf("failed to delete random CR: %v", err)
 		}
 
 		ginkgo.By("kubectl explain works to explain CR")
-		if err := verifyKubectlExplain(crd.Crd.Spec.Names.Plural, fmt.Sprintf(`(?s)KIND:.*%s`, crd.Crd.Spec.Names.Kind)); err != nil {
+		if err := verifyKubectlExplain(f.Namespace.Name, crd.Crd.Spec.Names.Plural, fmt.Sprintf(`(?s)KIND:.*%s`, crd.Crd.Spec.Names.Kind)); err != nil {
 			framework.Failf("%v", err)
 		}
 
@@ -233,21 +234,21 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 
 		ginkgo.By("client-side validation (kubectl create and apply) allows request with any unknown properties")
 		randomCR := fmt.Sprintf(`{%s,"spec":{"b":[{"c":"d"}]}}`, meta)
-		if _, err := framework.RunKubectlInput(randomCR, ns, "create", "-f", "-"); err != nil {
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, randomCR, ns, "create", "-f", "-"); err != nil {
 			framework.Failf("failed to create random CR %s for CRD that allows unknown properties in a nested object: %v", randomCR, err)
 		}
-		if _, err := framework.RunKubectl(ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
+		if _, err := framework.RunKubectl(f.Namespace.Name, ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
 			framework.Failf("failed to delete random CR: %v", err)
 		}
-		if _, err := framework.RunKubectlInput(randomCR, ns, "apply", "-f", "-"); err != nil {
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, randomCR, ns, "apply", "-f", "-"); err != nil {
 			framework.Failf("failed to apply random CR %s for CRD without schema: %v", randomCR, err)
 		}
-		if _, err := framework.RunKubectl(ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
+		if _, err := framework.RunKubectl(f.Namespace.Name, ns, "delete", crd.Crd.Spec.Names.Plural, "test-cr"); err != nil {
 			framework.Failf("failed to delete random CR: %v", err)
 		}
 
 		ginkgo.By("kubectl explain works to explain CR")
-		if err := verifyKubectlExplain(crd.Crd.Spec.Names.Plural, `(?s)DESCRIPTION:.*preserve-unknown-properties in nested field for Testing`); err != nil {
+		if err := verifyKubectlExplain(f.Namespace.Name, crd.Crd.Spec.Names.Plural, `(?s)DESCRIPTION:.*preserve-unknown-properties in nested field for Testing`); err != nil {
 			framework.Failf("%v", err)
 		}
 
@@ -395,7 +396,7 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 			{"op":"test","path":"/spec/versions/1/name","value":"v3"},
 			{"op": "replace", "path": "/spec/versions/1/name", "value": "v4"}
 		]`)
-		crdMultiVer.Crd, err = crdMultiVer.APIExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Patch(crdMultiVer.Crd.Name, types.JSONPatchType, patch)
+		crdMultiVer.Crd, err = crdMultiVer.APIExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Patch(context.TODO(), crdMultiVer.Crd.Name, types.JSONPatchType, patch, metav1.PatchOptions{})
 		if err != nil {
 			framework.Failf("%v", err)
 		}
@@ -443,12 +444,12 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		}
 
 		ginkgo.By("mark a version not serverd")
-		crd.Crd, err = crd.APIExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Get(crd.Crd.Name, metav1.GetOptions{})
+		crd.Crd, err = crd.APIExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), crd.Crd.Name, metav1.GetOptions{})
 		if err != nil {
 			framework.Failf("%v", err)
 		}
 		crd.Crd.Spec.Versions[1].Served = false
-		crd.Crd, err = crd.APIExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Update(crd.Crd)
+		crd.Crd, err = crd.APIExtensionClient.ApiextensionsV1().CustomResourceDefinitions().Update(context.TODO(), crd.Crd, metav1.UpdateOptions{})
 		if err != nil {
 			framework.Failf("%v", err)
 		}
@@ -599,12 +600,12 @@ func waitForDefinitionCleanup(c k8sclientset.Interface, name string) error {
 }
 
 func waitForOpenAPISchema(c k8sclientset.Interface, pred func(*spec.Swagger) (bool, string)) error {
-	client := c.CoreV1().RESTClient().(*rest.RESTClient).Client
-	url := c.CoreV1().RESTClient().Get().AbsPath("openapi", "v2").URL()
+	client := c.Discovery().RESTClient().(*rest.RESTClient).Client
+	url := c.Discovery().RESTClient().Get().AbsPath("openapi", "v2").URL()
 	lastMsg := ""
 	etag := ""
 	var etagSpec *spec.Swagger
-	if err := wait.Poll(500*time.Millisecond, wait.ForeverTestTimeout, mustSucceedMultipleTimes(waitSuccessThreshold, func() (bool, error) {
+	if err := wait.Poll(500*time.Millisecond, 60*time.Second, mustSucceedMultipleTimes(waitSuccessThreshold, func() (bool, error) {
 		// download spec with etag support
 		spec := &spec.Swagger{}
 		req, err := http.NewRequest("GET", url.String(), nil)
@@ -666,8 +667,8 @@ func dropDefaults(s *spec.Schema) {
 	delete(s.Extensions, "x-kubernetes-group-version-kind")
 }
 
-func verifyKubectlExplain(name, pattern string) error {
-	result, err := framework.RunKubectl("explain", name)
+func verifyKubectlExplain(ns, name, pattern string) error {
+	result, err := framework.RunKubectl(ns, "explain", name)
 	if err != nil {
 		return fmt.Errorf("failed to explain %s: %v", name, err)
 	}

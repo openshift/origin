@@ -171,6 +171,11 @@ type ImageRegistryConfigStorageS3 struct {
 	// registry.
 	// +optional
 	CloudFront *ImageRegistryConfigStorageS3CloudFront `json:"cloudFront,omitempty" protobuf:"bytes,6,opt,name=cloudFront"`
+	// virtualHostedStyle enables using S3 virtual hosted style bucket paths with
+	// a custom RegionEndpoint
+	// Optional, defaults to false.
+	// +optional
+	VirtualHostedStyle bool `json:"virtualHostedStyle" protobuf:"varint,7,opt,name=virtualHostedStyle"`
 }
 
 // ImageRegistryConfigStorageGCS holds GCS configuration.

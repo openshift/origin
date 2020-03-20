@@ -26,7 +26,7 @@ import (
 //    // myFunc uses an SDK service client to make a request to
 //    // AmazonApiGatewayManagementApi.
 //    func myFunc(svc apigatewaymanagementapiiface.ApiGatewayManagementApiAPI) bool {
-//        // Make svc.PostToConnection request
+//        // Make svc.DeleteConnection request
 //    }
 //
 //    func main() {
@@ -42,7 +42,7 @@ import (
 //    type mockApiGatewayManagementApiClient struct {
 //        apigatewaymanagementapiiface.ApiGatewayManagementApiAPI
 //    }
-//    func (m *mockApiGatewayManagementApiClient) PostToConnection(input *apigatewaymanagementapi.PostToConnectionInput) (*apigatewaymanagementapi.PostToConnectionOutput, error) {
+//    func (m *mockApiGatewayManagementApiClient) DeleteConnection(input *apigatewaymanagementapi.DeleteConnectionInput) (*apigatewaymanagementapi.DeleteConnectionOutput, error) {
 //        // mock response/functionality
 //    }
 //
@@ -60,6 +60,14 @@ import (
 // and waiters. Its suggested to use the pattern above for testing, or using
 // tooling to generate mocks to satisfy the interfaces.
 type ApiGatewayManagementApiAPI interface {
+	DeleteConnection(*apigatewaymanagementapi.DeleteConnectionInput) (*apigatewaymanagementapi.DeleteConnectionOutput, error)
+	DeleteConnectionWithContext(aws.Context, *apigatewaymanagementapi.DeleteConnectionInput, ...request.Option) (*apigatewaymanagementapi.DeleteConnectionOutput, error)
+	DeleteConnectionRequest(*apigatewaymanagementapi.DeleteConnectionInput) (*request.Request, *apigatewaymanagementapi.DeleteConnectionOutput)
+
+	GetConnection(*apigatewaymanagementapi.GetConnectionInput) (*apigatewaymanagementapi.GetConnectionOutput, error)
+	GetConnectionWithContext(aws.Context, *apigatewaymanagementapi.GetConnectionInput, ...request.Option) (*apigatewaymanagementapi.GetConnectionOutput, error)
+	GetConnectionRequest(*apigatewaymanagementapi.GetConnectionInput) (*request.Request, *apigatewaymanagementapi.GetConnectionOutput)
+
 	PostToConnection(*apigatewaymanagementapi.PostToConnectionInput) (*apigatewaymanagementapi.PostToConnectionOutput, error)
 	PostToConnectionWithContext(aws.Context, *apigatewaymanagementapi.PostToConnectionInput, ...request.Option) (*apigatewaymanagementapi.PostToConnectionOutput, error)
 	PostToConnectionRequest(*apigatewaymanagementapi.PostToConnectionInput) (*request.Request, *apigatewaymanagementapi.PostToConnectionOutput)

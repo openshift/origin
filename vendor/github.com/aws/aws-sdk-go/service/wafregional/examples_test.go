@@ -91,6 +91,12 @@ func ExampleWAFRegional_CreateRule_shared00() {
 				fmt.Println(wafregional.ErrCodeWAFInvalidParameterException, aerr.Error())
 			case wafregional.ErrCodeWAFLimitsExceededException:
 				fmt.Println(wafregional.ErrCodeWAFLimitsExceededException, aerr.Error())
+			case wafregional.ErrCodeWAFTagOperationException:
+				fmt.Println(wafregional.ErrCodeWAFTagOperationException, aerr.Error())
+			case wafregional.ErrCodeWAFTagOperationInternalErrorException:
+				fmt.Println(wafregional.ErrCodeWAFTagOperationInternalErrorException, aerr.Error())
+			case wafregional.ErrCodeWAFBadRequestException:
+				fmt.Println(wafregional.ErrCodeWAFBadRequestException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -215,6 +221,12 @@ func ExampleWAFRegional_CreateWebACL_shared00() {
 				fmt.Println(wafregional.ErrCodeWAFInvalidParameterException, aerr.Error())
 			case wafregional.ErrCodeWAFLimitsExceededException:
 				fmt.Println(wafregional.ErrCodeWAFLimitsExceededException, aerr.Error())
+			case wafregional.ErrCodeWAFTagOperationException:
+				fmt.Println(wafregional.ErrCodeWAFTagOperationException, aerr.Error())
+			case wafregional.ErrCodeWAFTagOperationInternalErrorException:
+				fmt.Println(wafregional.ErrCodeWAFTagOperationInternalErrorException, aerr.Error())
+			case wafregional.ErrCodeWAFBadRequestException:
+				fmt.Println(wafregional.ErrCodeWAFBadRequestException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -311,7 +323,7 @@ func ExampleWAFRegional_DeleteByteMatchSet_shared00() {
 
 // To delete an IP set
 //
-// The following example deletes an IP match set  with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
+// The following example deletes an IP match set with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
 func ExampleWAFRegional_DeleteIPSet_shared00() {
 	svc := wafregional.New(session.New())
 	input := &waf.DeleteIPSetInput{
@@ -375,6 +387,10 @@ func ExampleWAFRegional_DeleteRule_shared00() {
 				fmt.Println(wafregional.ErrCodeWAFReferencedItemException, aerr.Error())
 			case wafregional.ErrCodeWAFNonEmptyEntityException:
 				fmt.Println(wafregional.ErrCodeWAFNonEmptyEntityException, aerr.Error())
+			case wafregional.ErrCodeWAFTagOperationException:
+				fmt.Println(wafregional.ErrCodeWAFTagOperationException, aerr.Error())
+			case wafregional.ErrCodeWAFTagOperationInternalErrorException:
+				fmt.Println(wafregional.ErrCodeWAFTagOperationInternalErrorException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -391,7 +407,7 @@ func ExampleWAFRegional_DeleteRule_shared00() {
 
 // To delete a size constraint set
 //
-// The following example deletes a size constraint set  with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
+// The following example deletes a size constraint set with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
 func ExampleWAFRegional_DeleteSizeConstraintSet_shared00() {
 	svc := wafregional.New(session.New())
 	input := &waf.DeleteSizeConstraintSetInput{
@@ -431,7 +447,7 @@ func ExampleWAFRegional_DeleteSizeConstraintSet_shared00() {
 
 // To delete a SQL injection match set
 //
-// The following example deletes a SQL injection match set  with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
+// The following example deletes a SQL injection match set with the ID example1ds3t-46da-4fdb-b8d5-abc321j569j5.
 func ExampleWAFRegional_DeleteSqlInjectionMatchSet_shared00() {
 	svc := wafregional.New(session.New())
 	input := &waf.DeleteSqlInjectionMatchSetInput{
@@ -495,6 +511,10 @@ func ExampleWAFRegional_DeleteWebACL_shared00() {
 				fmt.Println(wafregional.ErrCodeWAFReferencedItemException, aerr.Error())
 			case wafregional.ErrCodeWAFNonEmptyEntityException:
 				fmt.Println(wafregional.ErrCodeWAFNonEmptyEntityException, aerr.Error())
+			case wafregional.ErrCodeWAFTagOperationException:
+				fmt.Println(wafregional.ErrCodeWAFTagOperationException, aerr.Error())
+			case wafregional.ErrCodeWAFTagOperationInternalErrorException:
+				fmt.Println(wafregional.ErrCodeWAFTagOperationInternalErrorException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -718,8 +738,8 @@ func ExampleWAFRegional_GetSampledRequests_shared00() {
 		MaxItems: aws.Int64(100),
 		RuleId:   aws.String("WAFRule-1-Example"),
 		TimeWindow: &waf.TimeWindow{
-			EndTime:   parseTime("2006-01-02T15:04:05Z", "2016-09-27T15:50Z"),
-			StartTime: parseTime("2006-01-02T15:04:05Z", "2016-09-27T15:50Z"),
+			EndTime:   parseTime("2006-01-02T15:04:05.999999999Z", "2016-09-27T15:50Z"),
+			StartTime: parseTime("2006-01-02T15:04:05.999999999Z", "2016-09-27T15:50Z"),
 		},
 		WebAclId: aws.String("createwebacl-1472061481310"),
 	}

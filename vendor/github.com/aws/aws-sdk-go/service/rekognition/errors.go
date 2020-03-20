@@ -2,6 +2,10 @@
 
 package rekognition
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeAccessDeniedException for service response error code
@@ -9,6 +13,13 @@ const (
 	//
 	// You are not authorized to perform the action.
 	ErrCodeAccessDeniedException = "AccessDeniedException"
+
+	// ErrCodeHumanLoopQuotaExceededException for service response error code
+	// "HumanLoopQuotaExceededException".
+	//
+	// The number of in-progress human reviews you have has exceeded the number
+	// allowed.
+	ErrCodeHumanLoopQuotaExceededException = "HumanLoopQuotaExceededException"
 
 	// ErrCodeIdempotentParameterMismatchException for service response error code
 	// "IdempotentParameterMismatchException".
@@ -89,6 +100,13 @@ const (
 	// The collection specified in the request cannot be found.
 	ErrCodeResourceNotFoundException = "ResourceNotFoundException"
 
+	// ErrCodeResourceNotReadyException for service response error code
+	// "ResourceNotReadyException".
+	//
+	// The requested resource isn't ready. For example, this exception occurs when
+	// you call DetectCustomLabels with a model version that isn't deployed.
+	ErrCodeResourceNotReadyException = "ResourceNotReadyException"
+
 	// ErrCodeThrottlingException for service response error code
 	// "ThrottlingException".
 	//
@@ -103,3 +121,23 @@ const (
 	// file size is 8GB. The maximum duration is 2 hours.
 	ErrCodeVideoTooLargeException = "VideoTooLargeException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"AccessDeniedException":                  newErrorAccessDeniedException,
+	"HumanLoopQuotaExceededException":        newErrorHumanLoopQuotaExceededException,
+	"IdempotentParameterMismatchException":   newErrorIdempotentParameterMismatchException,
+	"ImageTooLargeException":                 newErrorImageTooLargeException,
+	"InternalServerError":                    newErrorInternalServerError,
+	"InvalidImageFormatException":            newErrorInvalidImageFormatException,
+	"InvalidPaginationTokenException":        newErrorInvalidPaginationTokenException,
+	"InvalidParameterException":              newErrorInvalidParameterException,
+	"InvalidS3ObjectException":               newErrorInvalidS3ObjectException,
+	"LimitExceededException":                 newErrorLimitExceededException,
+	"ProvisionedThroughputExceededException": newErrorProvisionedThroughputExceededException,
+	"ResourceAlreadyExistsException":         newErrorResourceAlreadyExistsException,
+	"ResourceInUseException":                 newErrorResourceInUseException,
+	"ResourceNotFoundException":              newErrorResourceNotFoundException,
+	"ResourceNotReadyException":              newErrorResourceNotReadyException,
+	"ThrottlingException":                    newErrorThrottlingException,
+	"VideoTooLargeException":                 newErrorVideoTooLargeException,
+}

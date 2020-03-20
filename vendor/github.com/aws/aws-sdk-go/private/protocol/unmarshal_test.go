@@ -76,7 +76,7 @@ func TestUnmarshalSeriaizationError(t *testing.T) {
 			},
 			unmarshalFn: jsonrpc.Unmarshal,
 			expectedError: awserr.NewRequestFailure(
-				awserr.New("SerializationError", "", nil),
+				awserr.New(request.ErrCodeSerialization, "", nil),
 				502,
 				"",
 			),
@@ -92,7 +92,7 @@ func TestUnmarshalSeriaizationError(t *testing.T) {
 			},
 			unmarshalFn: ec2query.Unmarshal,
 			expectedError: awserr.NewRequestFailure(
-				awserr.New("SerializationError", "", nil),
+				awserr.New(request.ErrCodeSerialization, "", nil),
 				111,
 				"",
 			),
@@ -111,7 +111,7 @@ func TestUnmarshalSeriaizationError(t *testing.T) {
 			},
 			unmarshalFn: query.Unmarshal,
 			expectedError: awserr.NewRequestFailure(
-				awserr.New("SerializationError", "", nil),
+				awserr.New(request.ErrCodeSerialization, "", nil),
 				1,
 				"",
 			),
@@ -127,7 +127,7 @@ func TestUnmarshalSeriaizationError(t *testing.T) {
 			},
 			unmarshalFn: restjson.Unmarshal,
 			expectedError: awserr.NewRequestFailure(
-				awserr.New("SerializationError", "", nil),
+				awserr.New(request.ErrCodeSerialization, "", nil),
 				123,
 				"",
 			),
@@ -143,7 +143,7 @@ func TestUnmarshalSeriaizationError(t *testing.T) {
 			},
 			unmarshalFn: restxml.Unmarshal,
 			expectedError: awserr.NewRequestFailure(
-				awserr.New("SerializationError", "", nil),
+				awserr.New(request.ErrCodeSerialization, "", nil),
 				456,
 				"",
 			),

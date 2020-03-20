@@ -46,18 +46,18 @@ type activeMount struct {
 // New instantiates a new Root instance with the provided scope. Scope
 // is the base path that the Root instance uses to store its
 // volumes. The base path is created here if it does not exist.
-func New(scope string, rootIDs idtools.IDPair) (*Root, error) {
+func New(scope string, rootIdentity idtools.Identity) (*Root, error) {
 	rootDirectory := filepath.Join(scope, volumesPathName)
 
-	if err := idtools.MkdirAllAndChown(rootDirectory, 0700, rootIDs); err != nil {
+	if err := idtools.MkdirAllAndChown(rootDirectory, 0700, rootIdentity); err != nil {
 		return nil, err
 	}
 
 	r := &Root{
-		scope:   scope,
-		path:    rootDirectory,
-		volumes: make(map[string]*localVolume),
-		rootIDs: rootIDs,
+		scope:        scope,
+		path:         rootDirectory,
+		volumes:      make(map[string]*localVolume),
+		rootIdentity: rootIdentity,
 	}
 
 	dirs, err := ioutil.ReadDir(rootDirectory)
@@ -101,11 +101,11 @@ func New(scope string, rootIDs idtools.IDPair) (*Root, error) {
 // manages the creation/removal of volumes. It uses only standard vfs
 // commands to create/remove dirs within its provided scope.
 type Root struct {
-	m       sync.Mutex
-	scope   string
-	path    string
-	volumes map[string]*localVolume
-	rootIDs idtools.IDPair
+	m            sync.Mutex
+	scope        string
+	path         string
+	volumes      map[string]*localVolume
+	rootIdentity idtools.Identity
 }
 
 // List lists all the volumes
@@ -146,7 +146,7 @@ func (r *Root) Create(name string, opts map[string]string) (volume.Volume, error
 	}
 
 	path := r.DataPath(name)
-	if err := idtools.MkdirAllAndChown(path, 0755, r.rootIDs); err != nil {
+	if err := idtools.MkdirAllAndChown(path, 0755, r.rootIdentity); err != nil {
 		return nil, errors.Wrapf(errdefs.System(err), "error while creating volume path '%s'", path)
 	}
 
@@ -248,20 +248,12 @@ func (r *Root) Scope() string {
 	return volume.LocalScope
 }
 
-type validationError string
-
-func (e validationError) Error() string {
-	return string(e)
-}
-
-func (e validationError) InvalidParameter() {}
-
 func (r *Root) validateName(name string) error {
 	if len(name) == 1 {
-		return validationError("volume name is too short, names should be at least two alphanumeric characters")
+		return errdefs.InvalidParameter(errors.New("volume name is too short, names should be at least two alphanumeric characters"))
 	}
 	if !volumeNameRegex.MatchString(name) {
-		return validationError(fmt.Sprintf("%q includes invalid characters for a local volume name, only %q are allowed. If you intended to pass a host directory, use absolute path", name, names.RestrictedNameChars))
+		return errdefs.InvalidParameter(errors.Errorf("%q includes invalid characters for a local volume name, only %q are allowed. If you intended to pass a host directory, use absolute path", name, names.RestrictedNameChars))
 	}
 	return nil
 }
@@ -344,19 +336,10 @@ func (v *localVolume) unmount() error {
 	if v.opts != nil {
 		if err := mount.Unmount(v.path); err != nil {
 			if mounted, mErr := mount.Mounted(v.path); mounted || mErr != nil {
-				return errdefs.System(errors.Wrapf(err, "error while unmounting volume path '%s'", v.path))
+				return errdefs.System(err)
 			}
 		}
 		v.active.mounted = false
-	}
-	return nil
-}
-
-func validateOpts(opts map[string]string) error {
-	for opt := range opts {
-		if !validOpts[opt] {
-			return validationError(fmt.Sprintf("invalid option key: %q", opt))
-		}
 	}
 	return nil
 }

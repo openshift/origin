@@ -2,6 +2,10 @@
 
 package apigatewaymanagementapi
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeForbiddenException for service response error code
@@ -20,7 +24,7 @@ const (
 	// "LimitExceededException".
 	//
 	// The client is sending more than the allowed number of requests per unit of
-	// time.
+	// time or the WebSocket client side buffer is full.
 	ErrCodeLimitExceededException = "LimitExceededException"
 
 	// ErrCodePayloadTooLargeException for service response error code
@@ -29,3 +33,10 @@ const (
 	// The data has exceeded the maximum size allowed.
 	ErrCodePayloadTooLargeException = "PayloadTooLargeException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ForbiddenException":       newErrorForbiddenException,
+	"GoneException":            newErrorGoneException,
+	"LimitExceededException":   newErrorLimitExceededException,
+	"PayloadTooLargeException": newErrorPayloadTooLargeException,
+}

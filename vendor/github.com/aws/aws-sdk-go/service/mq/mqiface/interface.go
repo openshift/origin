@@ -92,6 +92,14 @@ type MQAPI interface {
 	DescribeBrokerWithContext(aws.Context, *mq.DescribeBrokerInput, ...request.Option) (*mq.DescribeBrokerResponse, error)
 	DescribeBrokerRequest(*mq.DescribeBrokerInput) (*request.Request, *mq.DescribeBrokerResponse)
 
+	DescribeBrokerEngineTypes(*mq.DescribeBrokerEngineTypesInput) (*mq.DescribeBrokerEngineTypesOutput, error)
+	DescribeBrokerEngineTypesWithContext(aws.Context, *mq.DescribeBrokerEngineTypesInput, ...request.Option) (*mq.DescribeBrokerEngineTypesOutput, error)
+	DescribeBrokerEngineTypesRequest(*mq.DescribeBrokerEngineTypesInput) (*request.Request, *mq.DescribeBrokerEngineTypesOutput)
+
+	DescribeBrokerInstanceOptions(*mq.DescribeBrokerInstanceOptionsInput) (*mq.DescribeBrokerInstanceOptionsOutput, error)
+	DescribeBrokerInstanceOptionsWithContext(aws.Context, *mq.DescribeBrokerInstanceOptionsInput, ...request.Option) (*mq.DescribeBrokerInstanceOptionsOutput, error)
+	DescribeBrokerInstanceOptionsRequest(*mq.DescribeBrokerInstanceOptionsInput) (*request.Request, *mq.DescribeBrokerInstanceOptionsOutput)
+
 	DescribeConfiguration(*mq.DescribeConfigurationInput) (*mq.DescribeConfigurationOutput, error)
 	DescribeConfigurationWithContext(aws.Context, *mq.DescribeConfigurationInput, ...request.Option) (*mq.DescribeConfigurationOutput, error)
 	DescribeConfigurationRequest(*mq.DescribeConfigurationInput) (*request.Request, *mq.DescribeConfigurationOutput)

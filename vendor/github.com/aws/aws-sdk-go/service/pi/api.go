@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
 )
 
 const opDescribeDimensionKeys = "DescribeDimensionKeys"
@@ -64,14 +65,14 @@ func (c *PI) DescribeDimensionKeysRequest(input *DescribeDimensionKeysInput) (re
 // See the AWS API reference guide for AWS Performance Insights's
 // API operation DescribeDimensionKeys for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+// Returned Error Types:
+//   * InvalidArgumentException
 //   One of the arguments provided is invalid for this request.
 //
-//   * ErrCodeInternalServiceError "InternalServiceError"
+//   * InternalServiceError
 //   The request failed due to an unknown error.
 //
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+//   * NotAuthorizedException
 //   The user is not authorized to perform this request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/pi-2018-02-27/DescribeDimensionKeys
@@ -151,14 +152,14 @@ func (c *PI) GetResourceMetricsRequest(input *GetResourceMetricsInput) (req *req
 // See the AWS API reference guide for AWS Performance Insights's
 // API operation GetResourceMetrics for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
+// Returned Error Types:
+//   * InvalidArgumentException
 //   One of the arguments provided is invalid for this request.
 //
-//   * ErrCodeInternalServiceError "InternalServiceError"
+//   * InternalServiceError
 //   The request failed due to an unknown error.
 //
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+//   * NotAuthorizedException
 //   The user is not authorized to perform this request.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/pi-2018-02-27/GetResourceMetrics
@@ -893,6 +894,118 @@ func (s *GetResourceMetricsOutput) SetNextToken(v string) *GetResourceMetricsOut
 	return s
 }
 
+// The request failed due to an unknown error.
+type InternalServiceError struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalServiceError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalServiceError) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServiceError(v protocol.ResponseMetadata) error {
+	return &InternalServiceError{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalServiceError) Code() string {
+	return "InternalServiceError"
+}
+
+// Message returns the exception's message.
+func (s InternalServiceError) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalServiceError) OrigErr() error {
+	return nil
+}
+
+func (s InternalServiceError) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalServiceError) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalServiceError) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// One of the arguments provided is invalid for this request.
+type InvalidArgumentException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidArgumentException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidArgumentException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidArgumentException(v protocol.ResponseMetadata) error {
+	return &InvalidArgumentException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidArgumentException) Code() string {
+	return "InvalidArgumentException"
+}
+
+// Message returns the exception's message.
+func (s InvalidArgumentException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidArgumentException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidArgumentException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidArgumentException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidArgumentException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // A time-ordered series of data points, correpsonding to a dimension of a Performance
 // Insights metric.
 type MetricKeyDataPoints struct {
@@ -1009,6 +1122,62 @@ func (s *MetricQuery) SetGroupBy(v *DimensionGroup) *MetricQuery {
 func (s *MetricQuery) SetMetric(v string) *MetricQuery {
 	s.Metric = &v
 	return s
+}
+
+// The user is not authorized to perform this request.
+type NotAuthorizedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s NotAuthorizedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NotAuthorizedException) GoString() string {
+	return s.String()
+}
+
+func newErrorNotAuthorizedException(v protocol.ResponseMetadata) error {
+	return &NotAuthorizedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s NotAuthorizedException) Code() string {
+	return "NotAuthorizedException"
+}
+
+// Message returns the exception's message.
+func (s NotAuthorizedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s NotAuthorizedException) OrigErr() error {
+	return nil
+}
+
+func (s NotAuthorizedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s NotAuthorizedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s NotAuthorizedException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // If PartitionBy was specified in a DescribeDimensionKeys request, the dimensions

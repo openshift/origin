@@ -16,29 +16,7 @@ import (
 // Inductance represents an electrical inductance in Henry.
 type Inductance float64
 
-const (
-	Yottahenry Inductance = 1e24
-	Zettahenry Inductance = 1e21
-	Exahenry   Inductance = 1e18
-	Petahenry  Inductance = 1e15
-	Terahenry  Inductance = 1e12
-	Gigahenry  Inductance = 1e9
-	Megahenry  Inductance = 1e6
-	Kilohenry  Inductance = 1e3
-	Hectohenry Inductance = 1e2
-	Decahenry  Inductance = 1e1
-	Henry      Inductance = 1.0
-	Decihenry  Inductance = 1e-1
-	Centihenry Inductance = 1e-2
-	Millihenry Inductance = 1e-3
-	Microhenry Inductance = 1e-6
-	Nanohenry  Inductance = 1e-9
-	Picohenry  Inductance = 1e-12
-	Femtohenry Inductance = 1e-15
-	Attohenry  Inductance = 1e-18
-	Zeptohenry Inductance = 1e-21
-	Yoctohenry Inductance = 1e-24
-)
+const Henry Inductance = 1
 
 // Unit converts the Inductance to a *Unit
 func (i Inductance) Unit() *Unit {

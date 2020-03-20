@@ -50,7 +50,7 @@ func newListProcessor(ctx context.Context, dynamicClient dynamic.Interface, work
 func (p *listProcessor) run(gvr schema.GroupVersionResource) error {
 	listPager := pager.New(pager.SimplePageFunc(func(opts metav1.ListOptions) (runtime.Object, error) {
 		for {
-			allResource, err := p.dynamicClient.Resource(gvr).List(opts)
+			allResource, err := p.dynamicClient.Resource(gvr).List(context.TODO(), opts)
 			if err != nil {
 				klog.Warningf("List of %v failed: %v", gvr, err)
 				if errors.IsResourceExpired(err) {
@@ -87,7 +87,7 @@ func (p *listProcessor) run(gvr schema.GroupVersionResource) error {
 	listPager.FullListIfExpired = false // prevent memory explosion from full list
 
 	migrationStarted := time.Now()
-	if _, err := listPager.List(p.ctx, metav1.ListOptions{}); err != nil {
+	if _, _, err := listPager.List(p.ctx, metav1.ListOptions{}); err != nil {
 		metrics.ObserveFailedMigration(gvr.String())
 		return err
 	}

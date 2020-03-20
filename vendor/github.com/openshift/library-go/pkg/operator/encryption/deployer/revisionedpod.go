@@ -1,6 +1,7 @@
 package deployer
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -40,6 +41,8 @@ type RevisionLabelPodDeployer struct {
 	nodeProvider MasterNodeProvider
 
 	revisionLabel string
+
+	cacheSynced []cache.InformerSynced
 }
 
 var (
@@ -95,7 +98,7 @@ func (d *RevisionLabelPodDeployer) DeployedEncryptionConfigSecret() (secret *cor
 	}
 
 	// do a live list so we never get confused about what revision we are on
-	apiServerPods, err := d.podClient.List(metav1.ListOptions{LabelSelector: "apiserver=true"})
+	apiServerPods, err := d.podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: "apiserver=true"})
 	if err != nil {
 		return nil, false, err
 	}
@@ -108,7 +111,7 @@ func (d *RevisionLabelPodDeployer) DeployedEncryptionConfigSecret() (secret *cor
 		return nil, false, nil
 	}
 
-	s, err := d.secretClient.Get(encryptionconfig.EncryptionConfSecretName+"-"+revision, metav1.GetOptions{})
+	s, err := d.secretClient.Get(context.TODO(), encryptionconfig.EncryptionConfSecretName+"-"+revision, metav1.GetOptions{})
 	if err != nil {
 		// if encryption is not enabled at this revision or the secret was deleted, we should not error
 		if errors.IsNotFound(err) {
@@ -121,17 +124,28 @@ func (d *RevisionLabelPodDeployer) DeployedEncryptionConfigSecret() (secret *cor
 
 // AddEventHandler registers a event handler whenever the backing resource change
 // that might influence the result of DeployedEncryptionConfigSecret.
-func (d *RevisionLabelPodDeployer) AddEventHandler(handler cache.ResourceEventHandler) []cache.InformerSynced {
+func (d *RevisionLabelPodDeployer) AddEventHandler(handler cache.ResourceEventHandler) {
 	targetPodInformer := d.targetNamespaceInformers.Core().V1().Pods().Informer()
 	targetPodInformer.AddEventHandler(handler)
 
 	targetSecretsInformer := d.targetNamespaceInformers.Core().V1().Secrets().Informer()
 	targetSecretsInformer.AddEventHandler(handler)
 
-	return append([]cache.InformerSynced{
+	d.cacheSynced = append([]cache.InformerSynced{
 		targetPodInformer.HasSynced,
 		targetSecretsInformer.HasSynced,
 	}, d.nodeProvider.AddEventHandler(handler)...)
+}
+
+func (d *RevisionLabelPodDeployer) HasSynced() bool {
+	allSynced := true
+	for i := range d.cacheSynced {
+		if !d.cacheSynced[i]() {
+			allSynced = false
+			break
+		}
+	}
+	return allSynced
 }
 
 // getAPIServerRevisionOfAllInstances attempts to find the current revision that

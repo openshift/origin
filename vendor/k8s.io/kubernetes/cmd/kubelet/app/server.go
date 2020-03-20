@@ -62,6 +62,7 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/featuregate"
+	"k8s.io/component-base/metrics"
 	"k8s.io/component-base/version"
 	"k8s.io/component-base/version/verflag"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
@@ -517,6 +518,10 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies, featureGate f
 		klog.Errorf("unable to register KubeletConfiguration with configz, error: %v", err)
 	}
 
+	if len(s.ShowHiddenMetricsForVersion) > 0 {
+		metrics.SetShowHidden()
+	}
+
 	// About to get clients and such, detect standaloneMode
 	standaloneMode := true
 	if len(s.KubeConfig) > 0 {
@@ -763,6 +768,17 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies, featureGate f
 	oomAdjuster := kubeDeps.OOMAdjuster
 	if err := oomAdjuster.ApplyOOMScoreAdj(0, int(s.OOMScoreAdj)); err != nil {
 		klog.Warning(err)
+	}
+
+	err = kubelet.PreInitRuntimeService(&s.KubeletConfiguration,
+		kubeDeps, &s.ContainerRuntimeOptions,
+		s.ContainerRuntime,
+		s.RuntimeCgroups,
+		s.RemoteRuntimeEndpoint,
+		s.RemoteImageEndpoint,
+		s.NonMasqueradeCIDR)
+	if err != nil {
+		return err
 	}
 
 	if err := RunKubelet(s, kubeDeps, s.RunOnce); err != nil {
@@ -1070,7 +1086,6 @@ func RunKubelet(kubeServer *options.KubeletServer, kubeDeps *kubelet.Dependencie
 		kubeDeps,
 		&kubeServer.ContainerRuntimeOptions,
 		kubeServer.ContainerRuntime,
-		kubeServer.RuntimeCgroups,
 		kubeServer.HostnameOverride,
 		kubeServer.NodeIP,
 		kubeServer.ProviderID,
@@ -1080,8 +1095,6 @@ func RunKubelet(kubeServer *options.KubeletServer, kubeDeps *kubelet.Dependencie
 		kubeServer.RegisterNode,
 		kubeServer.RegisterWithTaints,
 		kubeServer.AllowedUnsafeSysctls,
-		kubeServer.RemoteRuntimeEndpoint,
-		kubeServer.RemoteImageEndpoint,
 		kubeServer.ExperimentalMounterPath,
 		kubeServer.ExperimentalKernelMemcgNotification,
 		kubeServer.ExperimentalCheckNodeCapabilitiesBeforeMount,
@@ -1091,7 +1104,6 @@ func RunKubelet(kubeServer *options.KubeletServer, kubeDeps *kubelet.Dependencie
 		kubeServer.MaxContainerCount,
 		kubeServer.MasterServiceNamespace,
 		kubeServer.RegisterSchedulable,
-		kubeServer.NonMasqueradeCIDR,
 		kubeServer.KeepTerminatedPodVolumes,
 		kubeServer.NodeLabels,
 		kubeServer.SeccompProfileRoot,
@@ -1144,7 +1156,6 @@ func createAndInitKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	kubeDeps *kubelet.Dependencies,
 	crOptions *config.ContainerRuntimeOptions,
 	containerRuntime string,
-	runtimeCgroups string,
 	hostnameOverride string,
 	nodeIP string,
 	providerID string,
@@ -1154,8 +1165,6 @@ func createAndInitKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	registerNode bool,
 	registerWithTaints []api.Taint,
 	allowedUnsafeSysctls []string,
-	remoteRuntimeEndpoint string,
-	remoteImageEndpoint string,
 	experimentalMounterPath string,
 	experimentalKernelMemcgNotification bool,
 	experimentalCheckNodeCapabilitiesBeforeMount bool,
@@ -1165,7 +1174,6 @@ func createAndInitKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	maxContainerCount int32,
 	masterServiceNamespace string,
 	registerSchedulable bool,
-	nonMasqueradeCIDR string,
 	keepTerminatedPodVolumes bool,
 	nodeLabels map[string]string,
 	seccompProfileRoot string,
@@ -1178,7 +1186,6 @@ func createAndInitKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		kubeDeps,
 		crOptions,
 		containerRuntime,
-		runtimeCgroups,
 		hostnameOverride,
 		nodeIP,
 		providerID,
@@ -1188,8 +1195,6 @@ func createAndInitKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		registerNode,
 		registerWithTaints,
 		allowedUnsafeSysctls,
-		remoteRuntimeEndpoint,
-		remoteImageEndpoint,
 		experimentalMounterPath,
 		experimentalKernelMemcgNotification,
 		experimentalCheckNodeCapabilitiesBeforeMount,
@@ -1199,7 +1204,6 @@ func createAndInitKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		maxContainerCount,
 		masterServiceNamespace,
 		registerSchedulable,
-		nonMasqueradeCIDR,
 		keepTerminatedPodVolumes,
 		nodeLabels,
 		seccompProfileRoot,

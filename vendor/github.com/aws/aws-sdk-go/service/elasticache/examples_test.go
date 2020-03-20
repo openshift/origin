@@ -220,14 +220,14 @@ func ExampleElastiCache_CreateCacheCluster_shared00() {
 func ExampleElastiCache_CreateCacheCluster_shared01() {
 	svc := elasticache.New(session.New())
 	input := &elasticache.CreateCacheClusterInput{
-		AutoMinorVersionUpgrade: aws.Bool(true),
-		CacheClusterId:          aws.String("my-redis"),
-		CacheNodeType:           aws.String("cache.r3.larage"),
-		CacheSubnetGroupName:    aws.String("default"),
-		Engine:                  aws.String("redis"),
-		EngineVersion:           aws.String("3.2.4"),
-		NumCacheNodes:           aws.Int64(1),
-		Port:                    aws.Int64(6379),
+		AutoMinorVersionUpgrade:   aws.Bool(true),
+		CacheClusterId:            aws.String("my-redis"),
+		CacheNodeType:             aws.String("cache.r3.larage"),
+		CacheSubnetGroupName:      aws.String("default"),
+		Engine:                    aws.String("redis"),
+		EngineVersion:             aws.String("3.2.4"),
+		NumCacheNodes:             aws.Int64(1),
+		Port:                      aws.Int64(6379),
 		PreferredAvailabilityZone: aws.String("us-east-1c"),
 		SnapshotRetentionLimit:    aws.Int64(7),
 	}
@@ -1227,7 +1227,7 @@ func ExampleElastiCache_DescribeEvents_shared00() {
 func ExampleElastiCache_DescribeEvents_shared01() {
 	svc := elasticache.New(session.New())
 	input := &elasticache.DescribeEventsInput{
-		StartTime: parseTime("2006-01-02T15:04:05Z", "2016-12-22T15:00:00.000Z"),
+		StartTime: parseTime("2006-01-02T15:04:05.999999999Z", "2016-12-22T15:00:00.000Z"),
 	}
 
 	result, err := svc.DescribeEvents(input)
@@ -1744,6 +1744,8 @@ func ExampleElastiCache_ModifyReplicationGroup_shared00() {
 				fmt.Println(elasticache.ErrCodeCacheParameterGroupNotFoundFault, aerr.Error())
 			case elasticache.ErrCodeInvalidVPCNetworkStateFault:
 				fmt.Println(elasticache.ErrCodeInvalidVPCNetworkStateFault, aerr.Error())
+			case elasticache.ErrCodeInvalidKMSKeyFault:
+				fmt.Println(elasticache.ErrCodeInvalidKMSKeyFault, aerr.Error())
 			case elasticache.ErrCodeInvalidParameterValueException:
 				fmt.Println(elasticache.ErrCodeInvalidParameterValueException, aerr.Error())
 			case elasticache.ErrCodeInvalidParameterCombinationException:

@@ -290,6 +290,7 @@ func TestBatchDelete(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 		count++
 	}))
+	defer server.Close()
 
 	svc := &mockS3Client{S3: buildS3SvcClient(server.URL)}
 	for i, c := range cases {
@@ -362,6 +363,7 @@ func TestBatchDeleteError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
+	defer server.Close()
 
 	index := 0
 	svc := &mockS3Client{
@@ -460,6 +462,7 @@ func TestBatchDeleteList(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 		count++
 	}))
+	defer server.Close()
 
 	objects := []*s3.ListObjectsOutput{
 		{
@@ -543,6 +546,7 @@ func TestBatchDeleteList_EmptyListObjects(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 		count++
 	}))
+	defer server.Close()
 
 	svc := &mockS3Client{S3: buildS3SvcClient(server.URL)}
 	batcher := BatchDelete{
@@ -619,6 +623,7 @@ func TestBatchDownload(t *testing.T) {
 		w.Write([]byte(payload[count]))
 		count++
 	}))
+	defer server.Close()
 
 	svc := NewDownloaderWithClient(buildS3SvcClient(server.URL))
 
@@ -738,6 +743,7 @@ func TestBatchUpload(t *testing.T) {
 
 		count++
 	}))
+	defer server.Close()
 
 	svc := NewUploaderWithClient(buildS3SvcClient(server.URL))
 
@@ -838,6 +844,7 @@ func (client *mockClient) ListObjectsRequest(input *s3.ListObjectsInput) (*reque
 func TestBatchError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	}))
+	defer server.Close()
 
 	index := 0
 	responses := []response{
@@ -1038,6 +1045,7 @@ func (iter *testAfterUploadIter) UploadObject() BatchUploadObject {
 func TestAfter(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	}))
+	defer server.Close()
 
 	index := 0
 	responses := []response{

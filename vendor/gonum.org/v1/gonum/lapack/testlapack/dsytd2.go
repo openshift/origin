@@ -122,7 +122,7 @@ func Dsytd2Test(t *testing.T, impl Dsytd2er) {
 				t.Errorf("Q not orthogonal")
 			}
 
-			// Compute Q^T * A * Q.
+			// Compute Qᵀ * A * Q.
 			aMat := blas64.General{
 				Rows:   n,
 				Cols:   n,

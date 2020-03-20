@@ -89,51 +89,6 @@ func intervalsOverlap(a, b interval) bool {
 	return a.to > b.from && b.to > a.from
 }
 
-func overlapsParentTriangle(i, j, n int, parent, view TriKind) bool {
-	switch parent {
-	case Upper:
-		if i <= j {
-			return true
-		}
-		if view == Upper {
-			return i < j+n
-		}
-
-	case Lower:
-		if i >= j {
-			return true
-		}
-		if view == Lower {
-			return i+n > j
-		}
-	}
-
-	return false
-}
-
-func overlapSiblingTriangles(ai, aj, an int, aKind TriKind, bi, bj, bn int, bKind TriKind) bool {
-	for i := max(ai, bi); i < min(ai+an, bi+bn); i++ {
-		var a, b interval
-
-		if aKind == Upper {
-			a = interval{from: aj - ai + i, to: aj + an}
-		} else {
-			a = interval{from: aj, to: aj - ai + i + 1}
-		}
-
-		if bKind == Upper {
-			b = interval{from: bj - bi + i, to: bj + bn}
-		} else {
-			b = interval{from: bj, to: bj - bi + i + 1}
-		}
-
-		if intervalsOverlap(a, b) {
-			return true
-		}
-	}
-	return false
-}
-
 // See https://github.com/gonum/matrix/issues/359 for details.
 func TestIssue359(t *testing.T) {
 	for xi := 0; xi < 2; xi++ {

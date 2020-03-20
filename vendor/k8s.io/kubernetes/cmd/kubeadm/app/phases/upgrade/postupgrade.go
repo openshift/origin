@@ -17,13 +17,14 @@ limitations under the License.
 package upgrade
 
 import (
+	"context"
 	"os"
-	"path/filepath"
 
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	errorsutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 	clientset "k8s.io/client-go/kubernetes"
@@ -53,7 +54,7 @@ func PerformPostUpgradeTasks(client clientset.Interface, cfg *kubeadmapi.InitCon
 	}
 
 	// Create the new, version-branched kubelet ComponentConfig ConfigMap
-	if err := kubeletphase.CreateConfigMap(cfg.ClusterConfiguration.ComponentConfigs.Kubelet, cfg.KubernetesVersion, client); err != nil {
+	if err := kubeletphase.CreateConfigMap(&cfg.ClusterConfiguration, client); err != nil {
 		errs = append(errs, errors.Wrap(err, "error creating kubelet configuration ConfigMap"))
 	}
 
@@ -119,9 +120,16 @@ func removeOldDNSDeploymentIfAnotherDNSIsUsed(cfg *kubeadmapi.ClusterConfigurati
 			deploymentToDelete = kubeadmconstants.KubeDNSDeploymentName
 		}
 
-		// If we're dry-running, we don't need to wait for the new DNS addon to become ready
-		if !dryRun {
-			dnsDeployment, err := client.AppsV1().Deployments(metav1.NamespaceSystem).Get(installedDeploymentName, metav1.GetOptions{})
+		nodes, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
+			FieldSelector: fields.Set{"spec.unschedulable": "false"}.AsSelector().String(),
+		})
+		if err != nil {
+			return err
+		}
+
+		// If we're dry-running or there are no scheduable nodes available, we don't need to wait for the new DNS addon to become ready
+		if !dryRun && len(nodes.Items) != 0 {
+			dnsDeployment, err := client.AppsV1().Deployments(metav1.NamespaceSystem).Get(context.TODO(), installedDeploymentName, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
@@ -132,7 +140,7 @@ func removeOldDNSDeploymentIfAnotherDNSIsUsed(cfg *kubeadmapi.ClusterConfigurati
 
 		// We don't want to wait for the DNS deployment above to become ready when dryrunning (as it never will)
 		// but here we should execute the DELETE command against the dryrun clientset, as it will only be logged
-		err := apiclient.DeleteDeploymentForeground(client, metav1.NamespaceSystem, deploymentToDelete)
+		err = apiclient.DeleteDeploymentForeground(client, metav1.NamespaceSystem, deploymentToDelete)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
@@ -159,20 +167,6 @@ func writeKubeletConfigFiles(client clientset.Interface, cfg *kubeadmapi.InitCon
 
 	if dryRun { // Print what contents would be written
 		dryrunutil.PrintDryRunFile(kubeadmconstants.KubeletConfigurationFileName, kubeletDir, kubeadmconstants.KubeletRunDirectory, os.Stdout)
-	}
-
-	envFilePath := filepath.Join(kubeadmconstants.KubeletRunDirectory, kubeadmconstants.KubeletEnvFileName)
-	if _, err := os.Stat(envFilePath); os.IsNotExist(err) {
-		// Write env file with flags for the kubelet to use. We do not need to write the --register-with-taints for the control-plane,
-		// as we handle that ourselves in the mark-control-plane phase
-		// TODO: Maybe we want to do that some time in the future, in order to remove some logic from the mark-control-plane phase?
-		if err := kubeletphase.WriteKubeletDynamicEnvFile(&cfg.ClusterConfiguration, &cfg.NodeRegistration, false, kubeletDir); err != nil {
-			errs = append(errs, errors.Wrap(err, "error writing a dynamic environment file for the kubelet"))
-		}
-
-		if dryRun { // Print what contents would be written
-			dryrunutil.PrintDryRunFile(kubeadmconstants.KubeletEnvFileName, kubeletDir, kubeadmconstants.KubeletRunDirectory, os.Stdout)
-		}
 	}
 	return errorsutil.NewAggregate(errs)
 }

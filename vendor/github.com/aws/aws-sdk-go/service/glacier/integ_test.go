@@ -27,7 +27,9 @@ func TestInteg_00_ListVaults(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := glacier.New(sess)
 	params := &glacier.ListVaultsInput{}
-	_, err := svc.ListVaultsWithContext(ctx, params)
+	_, err := svc.ListVaultsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_ListVaults(t *testing.T) {
 	params := &glacier.ListVaultsInput{
 		AccountId: aws.String("abcmnoxyz"),
 	}
-	_, err := svc.ListVaultsWithContext(ctx, params)
+	_, err := svc.ListVaultsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

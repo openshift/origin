@@ -547,7 +547,7 @@ func rndComplex128(rnd *rand.Rand) complex128 {
 // zmm returns the result of one of the matrix-matrix operations
 //  alpha * op(A) * op(B) + beta * C
 // where op(X) is one of
-//  op(X) = X  or  op(X) = X^T  or  op(X) = X^H,
+//  op(X) = X  or  op(X) = Xᵀ  or  op(X) = Xᴴ,
 // alpha and beta are scalars, and A, B and C are matrices, with op(A) an m×k matrix,
 // op(B) a k×n matrix and C an m×n matrix.
 //

@@ -92,6 +92,10 @@ type SSMAPI interface {
 	CreateMaintenanceWindowWithContext(aws.Context, *ssm.CreateMaintenanceWindowInput, ...request.Option) (*ssm.CreateMaintenanceWindowOutput, error)
 	CreateMaintenanceWindowRequest(*ssm.CreateMaintenanceWindowInput) (*request.Request, *ssm.CreateMaintenanceWindowOutput)
 
+	CreateOpsItem(*ssm.CreateOpsItemInput) (*ssm.CreateOpsItemOutput, error)
+	CreateOpsItemWithContext(aws.Context, *ssm.CreateOpsItemInput, ...request.Option) (*ssm.CreateOpsItemOutput, error)
+	CreateOpsItemRequest(*ssm.CreateOpsItemInput) (*request.Request, *ssm.CreateOpsItemOutput)
+
 	CreatePatchBaseline(*ssm.CreatePatchBaselineInput) (*ssm.CreatePatchBaselineOutput, error)
 	CreatePatchBaselineWithContext(aws.Context, *ssm.CreatePatchBaselineInput, ...request.Option) (*ssm.CreatePatchBaselineOutput, error)
 	CreatePatchBaselineRequest(*ssm.CreatePatchBaselineInput) (*request.Request, *ssm.CreatePatchBaselineOutput)
@@ -258,6 +262,10 @@ type SSMAPI interface {
 	DescribeMaintenanceWindowsForTargetWithContext(aws.Context, *ssm.DescribeMaintenanceWindowsForTargetInput, ...request.Option) (*ssm.DescribeMaintenanceWindowsForTargetOutput, error)
 	DescribeMaintenanceWindowsForTargetRequest(*ssm.DescribeMaintenanceWindowsForTargetInput) (*request.Request, *ssm.DescribeMaintenanceWindowsForTargetOutput)
 
+	DescribeOpsItems(*ssm.DescribeOpsItemsInput) (*ssm.DescribeOpsItemsOutput, error)
+	DescribeOpsItemsWithContext(aws.Context, *ssm.DescribeOpsItemsInput, ...request.Option) (*ssm.DescribeOpsItemsOutput, error)
+	DescribeOpsItemsRequest(*ssm.DescribeOpsItemsInput) (*request.Request, *ssm.DescribeOpsItemsOutput)
+
 	DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error)
 	DescribeParametersWithContext(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
 	DescribeParametersRequest(*ssm.DescribeParametersInput) (*request.Request, *ssm.DescribeParametersOutput)
@@ -277,6 +285,10 @@ type SSMAPI interface {
 	DescribePatchGroupsWithContext(aws.Context, *ssm.DescribePatchGroupsInput, ...request.Option) (*ssm.DescribePatchGroupsOutput, error)
 	DescribePatchGroupsRequest(*ssm.DescribePatchGroupsInput) (*request.Request, *ssm.DescribePatchGroupsOutput)
 
+	DescribePatchProperties(*ssm.DescribePatchPropertiesInput) (*ssm.DescribePatchPropertiesOutput, error)
+	DescribePatchPropertiesWithContext(aws.Context, *ssm.DescribePatchPropertiesInput, ...request.Option) (*ssm.DescribePatchPropertiesOutput, error)
+	DescribePatchPropertiesRequest(*ssm.DescribePatchPropertiesInput) (*request.Request, *ssm.DescribePatchPropertiesOutput)
+
 	DescribeSessions(*ssm.DescribeSessionsInput) (*ssm.DescribeSessionsOutput, error)
 	DescribeSessionsWithContext(aws.Context, *ssm.DescribeSessionsInput, ...request.Option) (*ssm.DescribeSessionsOutput, error)
 	DescribeSessionsRequest(*ssm.DescribeSessionsInput) (*request.Request, *ssm.DescribeSessionsOutput)
@@ -284,6 +296,10 @@ type SSMAPI interface {
 	GetAutomationExecution(*ssm.GetAutomationExecutionInput) (*ssm.GetAutomationExecutionOutput, error)
 	GetAutomationExecutionWithContext(aws.Context, *ssm.GetAutomationExecutionInput, ...request.Option) (*ssm.GetAutomationExecutionOutput, error)
 	GetAutomationExecutionRequest(*ssm.GetAutomationExecutionInput) (*request.Request, *ssm.GetAutomationExecutionOutput)
+
+	GetCalendarState(*ssm.GetCalendarStateInput) (*ssm.GetCalendarStateOutput, error)
+	GetCalendarStateWithContext(aws.Context, *ssm.GetCalendarStateInput, ...request.Option) (*ssm.GetCalendarStateOutput, error)
+	GetCalendarStateRequest(*ssm.GetCalendarStateInput) (*request.Request, *ssm.GetCalendarStateOutput)
 
 	GetCommandInvocation(*ssm.GetCommandInvocationInput) (*ssm.GetCommandInvocationOutput, error)
 	GetCommandInvocationWithContext(aws.Context, *ssm.GetCommandInvocationInput, ...request.Option) (*ssm.GetCommandInvocationOutput, error)
@@ -333,6 +349,14 @@ type SSMAPI interface {
 	GetMaintenanceWindowTaskWithContext(aws.Context, *ssm.GetMaintenanceWindowTaskInput, ...request.Option) (*ssm.GetMaintenanceWindowTaskOutput, error)
 	GetMaintenanceWindowTaskRequest(*ssm.GetMaintenanceWindowTaskInput) (*request.Request, *ssm.GetMaintenanceWindowTaskOutput)
 
+	GetOpsItem(*ssm.GetOpsItemInput) (*ssm.GetOpsItemOutput, error)
+	GetOpsItemWithContext(aws.Context, *ssm.GetOpsItemInput, ...request.Option) (*ssm.GetOpsItemOutput, error)
+	GetOpsItemRequest(*ssm.GetOpsItemInput) (*request.Request, *ssm.GetOpsItemOutput)
+
+	GetOpsSummary(*ssm.GetOpsSummaryInput) (*ssm.GetOpsSummaryOutput, error)
+	GetOpsSummaryWithContext(aws.Context, *ssm.GetOpsSummaryInput, ...request.Option) (*ssm.GetOpsSummaryOutput, error)
+	GetOpsSummaryRequest(*ssm.GetOpsSummaryInput) (*request.Request, *ssm.GetOpsSummaryOutput)
+
 	GetParameter(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
 	GetParameterWithContext(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
 	GetParameterRequest(*ssm.GetParameterInput) (*request.Request, *ssm.GetParameterOutput)
@@ -362,6 +386,10 @@ type SSMAPI interface {
 	GetPatchBaselineForPatchGroup(*ssm.GetPatchBaselineForPatchGroupInput) (*ssm.GetPatchBaselineForPatchGroupOutput, error)
 	GetPatchBaselineForPatchGroupWithContext(aws.Context, *ssm.GetPatchBaselineForPatchGroupInput, ...request.Option) (*ssm.GetPatchBaselineForPatchGroupOutput, error)
 	GetPatchBaselineForPatchGroupRequest(*ssm.GetPatchBaselineForPatchGroupInput) (*request.Request, *ssm.GetPatchBaselineForPatchGroupOutput)
+
+	GetServiceSetting(*ssm.GetServiceSettingInput) (*ssm.GetServiceSettingOutput, error)
+	GetServiceSettingWithContext(aws.Context, *ssm.GetServiceSettingInput, ...request.Option) (*ssm.GetServiceSettingOutput, error)
+	GetServiceSettingRequest(*ssm.GetServiceSettingInput) (*request.Request, *ssm.GetServiceSettingOutput)
 
 	LabelParameterVersion(*ssm.LabelParameterVersionInput) (*ssm.LabelParameterVersionOutput, error)
 	LabelParameterVersionWithContext(aws.Context, *ssm.LabelParameterVersionInput, ...request.Option) (*ssm.LabelParameterVersionOutput, error)
@@ -463,6 +491,10 @@ type SSMAPI interface {
 	RemoveTagsFromResourceWithContext(aws.Context, *ssm.RemoveTagsFromResourceInput, ...request.Option) (*ssm.RemoveTagsFromResourceOutput, error)
 	RemoveTagsFromResourceRequest(*ssm.RemoveTagsFromResourceInput) (*request.Request, *ssm.RemoveTagsFromResourceOutput)
 
+	ResetServiceSetting(*ssm.ResetServiceSettingInput) (*ssm.ResetServiceSettingOutput, error)
+	ResetServiceSettingWithContext(aws.Context, *ssm.ResetServiceSettingInput, ...request.Option) (*ssm.ResetServiceSettingOutput, error)
+	ResetServiceSettingRequest(*ssm.ResetServiceSettingInput) (*request.Request, *ssm.ResetServiceSettingOutput)
+
 	ResumeSession(*ssm.ResumeSessionInput) (*ssm.ResumeSessionOutput, error)
 	ResumeSessionWithContext(aws.Context, *ssm.ResumeSessionInput, ...request.Option) (*ssm.ResumeSessionOutput, error)
 	ResumeSessionRequest(*ssm.ResumeSessionInput) (*request.Request, *ssm.ResumeSessionOutput)
@@ -527,9 +559,21 @@ type SSMAPI interface {
 	UpdateManagedInstanceRoleWithContext(aws.Context, *ssm.UpdateManagedInstanceRoleInput, ...request.Option) (*ssm.UpdateManagedInstanceRoleOutput, error)
 	UpdateManagedInstanceRoleRequest(*ssm.UpdateManagedInstanceRoleInput) (*request.Request, *ssm.UpdateManagedInstanceRoleOutput)
 
+	UpdateOpsItem(*ssm.UpdateOpsItemInput) (*ssm.UpdateOpsItemOutput, error)
+	UpdateOpsItemWithContext(aws.Context, *ssm.UpdateOpsItemInput, ...request.Option) (*ssm.UpdateOpsItemOutput, error)
+	UpdateOpsItemRequest(*ssm.UpdateOpsItemInput) (*request.Request, *ssm.UpdateOpsItemOutput)
+
 	UpdatePatchBaseline(*ssm.UpdatePatchBaselineInput) (*ssm.UpdatePatchBaselineOutput, error)
 	UpdatePatchBaselineWithContext(aws.Context, *ssm.UpdatePatchBaselineInput, ...request.Option) (*ssm.UpdatePatchBaselineOutput, error)
 	UpdatePatchBaselineRequest(*ssm.UpdatePatchBaselineInput) (*request.Request, *ssm.UpdatePatchBaselineOutput)
+
+	UpdateResourceDataSync(*ssm.UpdateResourceDataSyncInput) (*ssm.UpdateResourceDataSyncOutput, error)
+	UpdateResourceDataSyncWithContext(aws.Context, *ssm.UpdateResourceDataSyncInput, ...request.Option) (*ssm.UpdateResourceDataSyncOutput, error)
+	UpdateResourceDataSyncRequest(*ssm.UpdateResourceDataSyncInput) (*request.Request, *ssm.UpdateResourceDataSyncOutput)
+
+	UpdateServiceSetting(*ssm.UpdateServiceSettingInput) (*ssm.UpdateServiceSettingOutput, error)
+	UpdateServiceSettingWithContext(aws.Context, *ssm.UpdateServiceSettingInput, ...request.Option) (*ssm.UpdateServiceSettingOutput, error)
+	UpdateServiceSettingRequest(*ssm.UpdateServiceSettingInput) (*request.Request, *ssm.UpdateServiceSettingOutput)
 }
 
 var _ SSMAPI = (*ssm.SSM)(nil)

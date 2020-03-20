@@ -27,7 +27,9 @@ func TestInteg_00_ListDomainNames(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := elasticsearchservice.New(sess)
 	params := &elasticsearchservice.ListDomainNamesInput{}
-	_, err := svc.ListDomainNamesWithContext(ctx, params)
+	_, err := svc.ListDomainNamesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeElasticsearchDomain(t *testing.T) {
 	params := &elasticsearchservice.DescribeElasticsearchDomainInput{
 		DomainName: aws.String("not-a-domain"),
 	}
-	_, err := svc.DescribeElasticsearchDomainWithContext(ctx, params)
+	_, err := svc.DescribeElasticsearchDomainWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

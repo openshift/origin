@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	userv1 "github.com/openshift/api/user/v1"
@@ -44,13 +45,13 @@ func NewFilteredGroupInformer(client versioned.Interface, resyncPeriod time.Dura
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.UserV1().Groups().List(options)
+				return client.UserV1().Groups().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.UserV1().Groups().Watch(options)
+				return client.UserV1().Groups().Watch(context.TODO(), options)
 			},
 		},
 		&userv1.Group{},

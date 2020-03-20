@@ -27,7 +27,9 @@ func TestInteg_00_DescribeDirectories(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := directoryservice.New(sess)
 	params := &directoryservice.DescribeDirectoriesInput{}
-	_, err := svc.DescribeDirectoriesWithContext(ctx, params)
+	_, err := svc.DescribeDirectoriesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -43,7 +45,9 @@ func TestInteg_01_CreateDirectory(t *testing.T) {
 		Password: aws.String(""),
 		Size:     aws.String(""),
 	}
-	_, err := svc.CreateDirectoryWithContext(ctx, params)
+	_, err := svc.CreateDirectoryWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

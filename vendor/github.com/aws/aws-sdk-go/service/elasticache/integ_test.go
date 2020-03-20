@@ -27,7 +27,9 @@ func TestInteg_00_DescribeEvents(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := elasticache.New(sess)
 	params := &elasticache.DescribeEventsInput{}
-	_, err := svc.DescribeEventsWithContext(ctx, params)
+	_, err := svc.DescribeEventsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeCacheClusters(t *testing.T) {
 	params := &elasticache.DescribeCacheClustersInput{
 		CacheClusterId: aws.String("fake_cluster"),
 	}
-	_, err := svc.DescribeCacheClustersWithContext(ctx, params)
+	_, err := svc.DescribeCacheClustersWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

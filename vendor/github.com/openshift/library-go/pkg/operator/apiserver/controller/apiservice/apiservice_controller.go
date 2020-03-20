@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -79,7 +80,7 @@ func (c *APIServiceController) sync(ctx context.Context, syncCtx factory.SyncCon
 			return errors.NewAggregate(errs)
 		}
 		for _, apiService := range apiServices {
-			if err := c.apiregistrationv1Client.APIServices().Delete(apiService.Name, nil); err != nil {
+			if err := c.apiregistrationv1Client.APIServices().Delete(ctx, apiService.Name, metav1.DeleteOptions{}); err != nil {
 				errs = append(errs, err)
 			}
 		}

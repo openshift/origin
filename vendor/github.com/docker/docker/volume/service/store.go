@@ -12,7 +12,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/boltdb/bolt"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/locker"
 	"github.com/docker/docker/volume"
@@ -20,6 +19,7 @@ import (
 	volumemounts "github.com/docker/docker/volume/mounts"
 	"github.com/docker/docker/volume/service/opts"
 	"github.com/sirupsen/logrus"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
@@ -182,7 +182,7 @@ func (s *VolumeStore) purge(ctx context.Context, name string) error {
 	return nil
 }
 
-// VolumeStore is a struct that stores the list of volumes available and keeps track of their usage counts
+// VolumeStore is responsible for storing and reference counting volumes.
 type VolumeStore struct {
 	// locks ensures that only one action is being performed on a particular volume at a time without locking the entire store
 	// since actions on volumes can be quite slow, this ensures the store is free to handle requests for other volumes.

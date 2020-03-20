@@ -71,7 +71,7 @@ func (s *DockerSuite) TestExecAPICreateContainerPaused(c *check.C) {
 
 	dockerCmd(c, "pause", name)
 
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 
@@ -155,7 +155,7 @@ func (s *DockerSuite) TestExecAPIStartWithDetach(c *check.C) {
 		AttachStderr: true,
 	}
 
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 
@@ -212,7 +212,7 @@ func (s *DockerSuite) TestExecAPIStartInvalidCommand(c *check.C) {
 }
 
 func (s *DockerSuite) TestExecStateCleanup(c *check.C) {
-	testRequires(c, DaemonIsLinux, SameHostDaemon)
+	testRequires(c, DaemonIsLinux, testEnv.IsLocalDaemon)
 
 	// This test checks accidental regressions. Not part of stable API.
 

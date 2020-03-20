@@ -212,7 +212,7 @@ func testDlaexc(t *testing.T, impl Dlaexcer, wantq bool, n, j1, n1, n2, extra in
 			}
 		}
 	}
-	// Check that Q^T TOrig Q == T.
+	// Check that Qᵀ TOrig Q == T.
 	tq := eye(n, n)
 	blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, tmatCopy, q, 0, tq)
 	qtq := eye(n, n)

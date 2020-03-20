@@ -22,9 +22,9 @@ import (
 	"github.com/docker/docker/internal/test/daemon"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/plugins"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
-	"github.com/gotestyourself/gotestyourself/skip"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+	"gotest.tools/skip"
 )
 
 type graphEventsCounter struct {
@@ -394,12 +394,12 @@ func testGraphDriverPull(c client.APIClient, d *daemon.Daemon) func(*testing.T) 
 		defer d.Stop(t)
 		ctx := context.Background()
 
-		r, err := c.ImagePull(ctx, "busybox:latest", types.ImagePullOptions{})
+		r, err := c.ImagePull(ctx, "busybox:latest@sha256:bbc3a03235220b170ba48a157dd097dd1379299370e1ed99ce976df0355d24f0", types.ImagePullOptions{})
 		assert.NilError(t, err)
 		_, err = io.Copy(ioutil.Discard, r)
 		assert.NilError(t, err)
 
-		container.Run(t, ctx, c, container.WithImage("busybox:latest"))
+		container.Run(t, ctx, c, container.WithImage("busybox:latest@sha256:bbc3a03235220b170ba48a157dd097dd1379299370e1ed99ce976df0355d24f0"))
 	}
 }
 
@@ -437,6 +437,7 @@ func TestGraphdriverPluginV2(t *testing.T) {
 	testGraphDriver(t, client, ctx, plugin, nil)
 }
 
+// nolint: golint
 func testGraphDriver(t *testing.T, c client.APIClient, ctx context.Context, driverName string, afterContainerRunFn func(*testing.T)) { //nolint: golint
 	id := container.Run(t, ctx, c, container.WithCmd("sh", "-c", "echo hello > /hello"))
 

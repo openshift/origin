@@ -446,6 +446,10 @@
         "Attributes":{
           "shape":"QueueAttributeMap",
           "locationName":"Attribute"
+        },
+        "tags":{
+          "shape":"TagMap",
+          "locationName":"Tag"
         }
       }
     },
@@ -701,6 +705,18 @@
       },
       "flattened":true
     },
+    "MessageBodySystemAttributeMap":{
+      "type":"map",
+      "key":{
+        "shape":"MessageSystemAttributeNameForSends",
+        "locationName":"Name"
+      },
+      "value":{
+        "shape":"MessageSystemAttributeValue",
+        "locationName":"Value"
+      },
+      "flattened":true
+    },
     "MessageList":{
       "type":"list",
       "member":{
@@ -742,8 +758,32 @@
         "ApproximateFirstReceiveTimestamp",
         "SequenceNumber",
         "MessageDeduplicationId",
-        "MessageGroupId"
+        "MessageGroupId",
+        "AWSTraceHeader"
       ]
+    },
+    "MessageSystemAttributeNameForSends":{
+      "type":"string",
+      "enum":["AWSTraceHeader"]
+    },
+    "MessageSystemAttributeValue":{
+      "type":"structure",
+      "required":["DataType"],
+      "members":{
+        "StringValue":{"shape":"String"},
+        "BinaryValue":{"shape":"Binary"},
+        "StringListValues":{
+          "shape":"StringList",
+          "flattened":true,
+          "locationName":"StringListValue"
+        },
+        "BinaryListValues":{
+          "shape":"BinaryList",
+          "flattened":true,
+          "locationName":"BinaryListValue"
+        },
+        "DataType":{"shape":"String"}
+      }
     },
     "OverLimit":{
       "type":"structure",
@@ -912,6 +952,10 @@
           "shape":"MessageBodyAttributeMap",
           "locationName":"MessageAttribute"
         },
+        "MessageSystemAttributes":{
+          "shape":"MessageBodySystemAttributeMap",
+          "locationName":"MessageSystemAttribute"
+        },
         "MessageDeduplicationId":{"shape":"String"},
         "MessageGroupId":{"shape":"String"}
       }
@@ -947,6 +991,7 @@
         "MessageId":{"shape":"String"},
         "MD5OfMessageBody":{"shape":"String"},
         "MD5OfMessageAttributes":{"shape":"String"},
+        "MD5OfMessageSystemAttributes":{"shape":"String"},
         "SequenceNumber":{"shape":"String"}
       }
     },
@@ -972,6 +1017,10 @@
           "shape":"MessageBodyAttributeMap",
           "locationName":"MessageAttribute"
         },
+        "MessageSystemAttributes":{
+          "shape":"MessageBodySystemAttributeMap",
+          "locationName":"MessageSystemAttribute"
+        },
         "MessageDeduplicationId":{"shape":"String"},
         "MessageGroupId":{"shape":"String"}
       }
@@ -981,6 +1030,7 @@
       "members":{
         "MD5OfMessageBody":{"shape":"String"},
         "MD5OfMessageAttributes":{"shape":"String"},
+        "MD5OfMessageSystemAttributes":{"shape":"String"},
         "MessageId":{"shape":"String"},
         "SequenceNumber":{"shape":"String"}
       }

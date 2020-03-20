@@ -2,6 +2,10 @@
 
 package mturk
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeRequestError for service response error code
@@ -17,3 +21,8 @@ const (
 	// your call again.
 	ErrCodeServiceFault = "ServiceFault"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"RequestError": newErrorRequestError,
+	"ServiceFault": newErrorServiceFault,
+}

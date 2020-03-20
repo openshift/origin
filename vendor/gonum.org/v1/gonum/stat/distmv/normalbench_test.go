@@ -17,7 +17,7 @@ func BenchmarkMarginalNormal10(b *testing.B) {
 	sz := 10
 	rnd := rand.New(rand.NewSource(1))
 	normal := randomNormal(sz, rnd)
-	_ = normal.CovarianceMatrix(nil) // pre-compute sigma
+	normal.CovarianceMatrix(&mat.SymDense{}) // pre-compute sigma
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		marg, ok := normal.MarginalNormal([]int{1}, nil)

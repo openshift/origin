@@ -1,8 +1,8 @@
 package validation
 
 import (
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration"
 )
 
 // ValidateRunOnceDurationConfig validates the RunOnceDuration plugin configuration

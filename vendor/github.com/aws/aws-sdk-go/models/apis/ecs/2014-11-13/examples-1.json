@@ -155,6 +155,51 @@
         "title": "To create a new service behind a load balancer"
       }
     ],
+    "DeleteAccountSetting": [
+      {
+        "input": {
+          "name": "serviceLongArnFormat"
+        },
+        "output": {
+          "setting": {
+            "name": "serviceLongArnFormat",
+            "value": "enabled",
+            "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+          }
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example deletes the account setting for your user for the specified resource type.",
+        "id": "to-delete-the-account-setting-for-your-user-account-1549524548115",
+        "title": "To delete your account setting"
+      },
+      {
+        "input": {
+          "name": "containerInstanceLongArnFormat",
+          "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+        },
+        "output": {
+          "setting": {
+            "name": "containerInstanceLongArnFormat",
+            "value": "enabled",
+            "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+          }
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example deletes the account setting for a specific IAM user or IAM role for the specified resource type. Only the root user can view or modify the account settings for another user.",
+        "id": "to-delete-the-account-setting-for-a-specific-iam-user-or-iam-role-1549524612917",
+        "title": "To delete the account settings for a specific IAM user or IAM role"
+      }
+    ],
     "DeleteCluster": [
       {
         "input": {
@@ -537,6 +582,75 @@
         "title": "To describe a task"
       }
     ],
+    "ListAccountSettings": [
+      {
+        "input": {
+          "effectiveSettings": true
+        },
+        "output": {
+          "settings": [
+            {
+              "name": "containerInstanceLongArnFormat",
+              "value": "disabled",
+              "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+            },
+            {
+              "name": "serviceLongArnFormat",
+              "value": "enabled",
+              "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+            },
+            {
+              "name": "taskLongArnFormat",
+              "value": "disabled",
+              "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+            }
+          ]
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example displays the effective account settings for your account.",
+        "id": "to-view-your-account-settings-1549524118170",
+        "title": "To view your effective account settings"
+      },
+      {
+        "input": {
+          "effectiveSettings": true,
+          "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+        },
+        "output": {
+          "settings": [
+            {
+              "name": "containerInstanceLongArnFormat",
+              "value": "disabled",
+              "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+            },
+            {
+              "name": "serviceLongArnFormat",
+              "value": "enabled",
+              "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+            },
+            {
+              "name": "taskLongArnFormat",
+              "value": "disabled",
+              "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+            }
+          ]
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example displays the effective account settings for the specified user or role.",
+        "id": "to-view-the-account-settings-for-a-specific-iam-user-or-iam-role-1549524237932",
+        "title": "To view the effective account settings for a specific IAM user or IAM role"
+      }
+    ],
     "ListClusters": [
       {
         "input": {
@@ -754,6 +868,77 @@
         "description": "This example lists the tasks of a specified container instance. Specifying a ``containerInstance`` value limits  the  results  to  tasks  that belong to that container instance.",
         "id": "024bf3b7-9cbb-44e3-848f-9d074e1fecce",
         "title": "To list the tasks on a particular container instance"
+      }
+    ],
+    "PutAccountSetting": [
+      {
+        "input": {
+          "name": "serviceLongArnFormat",
+          "value": "enabled"
+        },
+        "output": {
+          "setting": {
+            "name": "serviceLongArnFormat",
+            "value": "enabled",
+            "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+          }
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example modifies your account settings to opt in to the new ARN and resource ID format for Amazon ECS services. If you’re using this command as the root user, then changes apply to the entire AWS account, unless an IAM user or role explicitly overrides these settings for themselves.",
+        "id": "to-modify-the-account-settings-for-your-iam-user-account-1549523130939",
+        "title": "To modify your account settings"
+      },
+      {
+        "input": {
+          "name": "containerInstanceLongArnFormat",
+          "value": "enabled",
+          "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+        },
+        "output": {
+          "setting": {
+            "name": "containerInstanceLongArnFormat",
+            "value": "enabled",
+            "principalArn": "arn:aws:iam::<aws_account_id>:user/principalName"
+          }
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example modifies the account setting for a specific IAM user or IAM role to opt in to the new ARN and resource ID format for Amazon ECS container instances. If you’re using this command as the root user, then changes apply to the entire AWS account, unless an IAM user or role explicitly overrides these settings for themselves.",
+        "id": "to-modify-the-account-settings-for-a-specific-iam-user-or-iam-role-1549523518390",
+        "title": "To modify the account settings for a specific IAM user or IAM role"
+      }
+    ],
+    "PutAccountSettingDefault": [
+      {
+        "input": {
+          "name": "serviceLongArnFormat",
+          "value": "enabled"
+        },
+        "output": {
+          "setting": {
+            "name": "serviceLongArnFormat",
+            "value": "enabled",
+            "principalArn": "arn:aws:iam::<aws_account_id>:root"
+          }
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example modifies the default account setting for the specified resource for all IAM users or roles on an account. These changes apply to the entire AWS account, unless an IAM user or role explicitly overrides these settings for themselves.",
+        "id": "to-modify-the-default-account-settings-for-all-iam-users-or-roles-on-your-account-1549523794603",
+        "title": "To modify the default account settings for all IAM users or roles on an account"
       }
     ],
     "RegisterTaskDefinition": [

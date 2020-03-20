@@ -2,6 +2,10 @@
 
 package pi
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeInternalServiceError for service response error code
@@ -22,3 +26,9 @@ const (
 	// The user is not authorized to perform this request.
 	ErrCodeNotAuthorizedException = "NotAuthorizedException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"InternalServiceError":     newErrorInternalServiceError,
+	"InvalidArgumentException": newErrorInvalidArgumentException,
+	"NotAuthorizedException":   newErrorNotAuthorizedException,
+}

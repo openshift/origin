@@ -16,7 +16,6 @@ func Incbi(aa, bb, yy0 float64) float64 {
 	var a, b, y0, d, y, x, x0, x1, lgm, yp, di, dithresh, yl, yh, xt float64
 	var i, rflg, dir, nflg int
 
-	i = 0
 	if yy0 <= 0 {
 		return (0.0)
 	}

@@ -1273,6 +1273,23 @@
       },
       "errors" : [ ]
     },
+    "ListTagsForResource" : {
+      "name" : "ListTagsForResource",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/tags/{resource-arn}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListTagsForResourceRequest"
+      },
+      "output" : {
+        "shape" : "ListTagsForResourceResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException"
+      } ]
+    },
     "ResetDeployments" : {
       "name" : "ResetDeployments",
       "http" : {
@@ -1319,6 +1336,34 @@
       },
       "output" : {
         "shape" : "StopBulkDeploymentResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException"
+      } ]
+    },
+    "TagResource" : {
+      "name" : "TagResource",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/tags/{resource-arn}",
+        "responseCode" : 204
+      },
+      "input" : {
+        "shape" : "TagResourceRequest"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException"
+      } ]
+    },
+    "UntagResource" : {
+      "name" : "UntagResource",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/tags/{resource-arn}",
+        "responseCode" : 204
+      },
+      "input" : {
+        "shape" : "UntagResourceRequest"
       },
       "errors" : [ {
         "shape" : "BadRequestException"
@@ -1512,7 +1557,7 @@
           "shape" : "__string"
         }
       },
-      "required" : [ "GroupId" ]
+      "required" : [ "GroupId", "RoleArn" ]
     },
     "AssociateRoleToGroupResponse" : {
       "type" : "structure",
@@ -1528,7 +1573,8 @@
         "RoleArn" : {
           "shape" : "__string"
         }
-      }
+      },
+      "required" : [ "RoleArn" ]
     },
     "AssociateServiceRoleToAccountResponse" : {
       "type" : "structure",
@@ -1656,7 +1702,7 @@
           "shape" : "__mapOf__string"
         }
       },
-      "required" : [ ]
+      "required" : [ "ConnectorArn", "Id" ]
     },
     "ConnectorDefinitionVersion" : {
       "type" : "structure",
@@ -1682,7 +1728,7 @@
           "shape" : "__string"
         }
       },
-      "required" : [ ]
+      "required" : [ "ThingArn", "Id", "CertificateArn" ]
     },
     "CoreDefinitionVersion" : {
       "type" : "structure",
@@ -1705,6 +1751,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -1783,6 +1832,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -1871,7 +1923,7 @@
           "shape" : "__string"
         }
       },
-      "required" : [ "GroupId" ]
+      "required" : [ "GroupId", "DeploymentType" ]
     },
     "CreateDeploymentResponse" : {
       "type" : "structure",
@@ -1897,6 +1949,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -1975,6 +2030,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -2080,6 +2138,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -2176,6 +2237,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -2254,6 +2318,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -2345,7 +2412,8 @@
         "UpdateTargetsOperatingSystem" : {
           "shape" : "UpdateTargetsOperatingSystem"
         }
-      }
+      },
+      "required" : [ "S3UrlSignerRole", "UpdateTargetsArchitecture", "SoftwareToUpdate", "UpdateTargets", "UpdateTargetsOperatingSystem" ]
     },
     "CreateSoftwareUpdateJobResponse" : {
       "type" : "structure",
@@ -2354,6 +2422,9 @@
           "shape" : "__string"
         },
         "IotJobId" : {
+          "shape" : "__string"
+        },
+        "PlatformSoftwareVersion" : {
           "shape" : "__string"
         }
       }
@@ -2371,6 +2442,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -2459,6 +2533,10 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "Tags" : {
+          "shape" : "Tags",
+          "locationName" : "tags"
         }
       }
     },
@@ -2628,7 +2706,7 @@
           "shape" : "__string"
         }
       },
-      "required" : [ ]
+      "required" : [ "ThingArn", "Id", "CertificateArn" ]
     },
     "DeviceDefinitionVersion" : {
       "type" : "structure",
@@ -2707,7 +2785,7 @@
           "shape" : "__string"
         }
       },
-      "required" : [ ]
+      "required" : [ "Id" ]
     },
     "FunctionConfiguration" : {
       "type" : "structure",
@@ -2765,6 +2843,9 @@
       "members" : {
         "IsolationMode" : {
           "shape" : "FunctionIsolationMode"
+        },
+        "RunAs" : {
+          "shape" : "FunctionRunAsConfig"
         }
       }
     },
@@ -2866,6 +2947,9 @@
         },
         "ErrorMessage" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -2926,6 +3010,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -3007,6 +3094,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -3119,6 +3209,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -3200,6 +3293,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -3336,6 +3432,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -3409,6 +3508,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -3487,6 +3589,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -3575,6 +3680,9 @@
         },
         "Name" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
       }
     },
@@ -4309,6 +4417,25 @@
         }
       }
     },
+    "ListTagsForResourceRequest" : {
+      "type" : "structure",
+      "members" : {
+        "ResourceArn" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "resource-arn"
+        }
+      },
+      "required" : [ "ResourceArn" ]
+    },
+    "ListTagsForResourceResponse" : {
+      "type" : "structure",
+      "members" : {
+        "tags" : {
+          "shape" : "Tags"
+        }
+      }
+    },
     "ListVersionsResponse" : {
       "type" : "structure",
       "members" : {
@@ -4364,7 +4491,7 @@
           "shape" : "LoggerType"
         }
       },
-      "required" : [ ]
+      "required" : [ "Type", "Level", "Id", "Component" ]
     },
     "LoggerComponent" : {
       "type" : "string",
@@ -4433,7 +4560,7 @@
           "shape" : "ResourceDataContainer"
         }
       },
-      "required" : [ ]
+      "required" : [ "ResourceDataContainer", "Id", "Name" ]
     },
     "ResourceAccessPolicy" : {
       "type" : "structure",
@@ -4445,7 +4572,7 @@
           "shape" : "__string"
         }
       },
-      "required" : [ ]
+      "required" : [ "ResourceId" ]
     },
     "ResourceDataContainer" : {
       "type" : "structure",
@@ -4475,11 +4602,26 @@
         }
       }
     },
+    "ResourceDownloadOwnerSetting" : {
+      "type" : "structure",
+      "members" : {
+        "GroupOwner" : {
+          "shape" : "__string"
+        },
+        "GroupPermission" : {
+          "shape" : "Permission"
+        }
+      },
+      "required" : [ "GroupOwner", "GroupPermission" ]
+    },
     "S3MachineLearningModelResourceData" : {
       "type" : "structure",
       "members" : {
         "DestinationPath" : {
           "shape" : "__string"
+        },
+        "OwnerSetting" : {
+          "shape" : "ResourceDownloadOwnerSetting"
         },
         "S3Uri" : {
           "shape" : "__string"
@@ -4494,6 +4636,9 @@
       "members" : {
         "DestinationPath" : {
           "shape" : "__string"
+        },
+        "OwnerSetting" : {
+          "shape" : "ResourceDownloadOwnerSetting"
         },
         "SageMakerJobArn" : {
           "shape" : "__string"
@@ -4528,8 +4673,12 @@
         },
         "InputFileUri" : {
           "shape" : "__string"
+        },
+        "tags" : {
+          "shape" : "Tags"
         }
-      }
+      },
+      "required" : [ "ExecutionRoleArn", "InputFileUri" ]
     },
     "StartBulkDeploymentResponse" : {
       "type" : "structure",
@@ -4573,7 +4722,7 @@
           "shape" : "__string"
         }
       },
-      "required" : [ ]
+      "required" : [ "Target", "Id", "Subject", "Source" ]
     },
     "SubscriptionDefinitionVersion" : {
       "type" : "structure",
@@ -4582,6 +4731,45 @@
           "shape" : "__listOfSubscription"
         }
       }
+    },
+    "TagResourceRequest" : {
+      "type" : "structure",
+      "members" : {
+        "ResourceArn" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "resource-arn"
+        },
+        "tags" : {
+          "shape" : "Tags"
+        }
+      },
+      "required" : [ "ResourceArn" ]
+    },
+    "Tags" : {
+      "type" : "map",
+      "key" : {
+        "shape" : "__string"
+      },
+      "value" : {
+        "shape" : "__string"
+      }
+    },
+    "UntagResourceRequest" : {
+      "type" : "structure",
+      "members" : {
+        "ResourceArn" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "resource-arn"
+        },
+        "TagKeys" : {
+          "shape" : "__listOf__string",
+          "location" : "querystring",
+          "locationName" : "tagKeys"
+        }
+      },
+      "required" : [ "TagKeys", "ResourceArn" ]
     },
     "UpdateAgentLogLevel" : {
       "type" : "string",
@@ -4793,11 +4981,11 @@
     },
     "UpdateTargetsArchitecture" : {
       "type" : "string",
-      "enum" : [ "armv7l", "x86_64", "aarch64" ]
+      "enum" : [ "armv6l", "armv7l", "x86_64", "aarch64" ]
     },
     "UpdateTargetsOperatingSystem" : {
       "type" : "string",
-      "enum" : [ "ubuntu", "raspbian", "amazon_linux" ]
+      "enum" : [ "ubuntu", "raspbian", "amazon_linux", "openwrt" ]
     },
     "VersionInformation" : {
       "type" : "structure",

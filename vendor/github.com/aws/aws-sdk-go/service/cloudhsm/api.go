@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
 )
 
 const opAddTagsToResource = "AddTagsToResource"
@@ -74,14 +75,14 @@ func (c *CloudHSM) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req 
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation AddTagsToResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/AddTagsToResource
@@ -169,14 +170,14 @@ func (c *CloudHSM) CreateHapgRequest(input *CreateHapgInput) (req *request.Reque
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation CreateHapg for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/CreateHapg
@@ -273,14 +274,14 @@ func (c *CloudHSM) CreateHsmRequest(input *CreateHsmInput) (req *request.Request
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation CreateHsm for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/CreateHsm
@@ -367,14 +368,14 @@ func (c *CloudHSM) CreateLunaClientRequest(input *CreateLunaClientInput) (req *r
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation CreateLunaClient for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/CreateLunaClient
@@ -461,14 +462,14 @@ func (c *CloudHSM) DeleteHapgRequest(input *DeleteHapgInput) (req *request.Reque
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation DeleteHapg for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/DeleteHapg
@@ -556,14 +557,14 @@ func (c *CloudHSM) DeleteHsmRequest(input *DeleteHsmInput) (req *request.Request
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation DeleteHsm for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/DeleteHsm
@@ -650,14 +651,14 @@ func (c *CloudHSM) DeleteLunaClientRequest(input *DeleteLunaClientInput) (req *r
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation DeleteLunaClient for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/DeleteLunaClient
@@ -744,14 +745,14 @@ func (c *CloudHSM) DescribeHapgRequest(input *DescribeHapgInput) (req *request.R
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation DescribeHapg for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/DescribeHapg
@@ -839,14 +840,14 @@ func (c *CloudHSM) DescribeHsmRequest(input *DescribeHsmInput) (req *request.Req
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation DescribeHsm for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/DescribeHsm
@@ -933,14 +934,14 @@ func (c *CloudHSM) DescribeLunaClientRequest(input *DescribeLunaClientInput) (re
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation DescribeLunaClient for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/DescribeLunaClient
@@ -1028,14 +1029,14 @@ func (c *CloudHSM) GetConfigRequest(input *GetConfigInput) (req *request.Request
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation GetConfig for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/GetConfig
@@ -1122,14 +1123,14 @@ func (c *CloudHSM) ListAvailableZonesRequest(input *ListAvailableZonesInput) (re
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation ListAvailableZones for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/ListAvailableZones
@@ -1221,14 +1222,14 @@ func (c *CloudHSM) ListHapgsRequest(input *ListHapgsInput) (req *request.Request
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation ListHapgs for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/ListHapgs
@@ -1321,14 +1322,14 @@ func (c *CloudHSM) ListHsmsRequest(input *ListHsmsInput) (req *request.Request, 
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation ListHsms for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/ListHsms
@@ -1420,14 +1421,14 @@ func (c *CloudHSM) ListLunaClientsRequest(input *ListLunaClientsInput) (req *req
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation ListLunaClients for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/ListLunaClients
@@ -1514,14 +1515,14 @@ func (c *CloudHSM) ListTagsForResourceRequest(input *ListTagsForResourceInput) (
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation ListTagsForResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/ListTagsForResource
@@ -1608,14 +1609,14 @@ func (c *CloudHSM) ModifyHapgRequest(input *ModifyHapgInput) (req *request.Reque
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation ModifyHapg for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/ModifyHapg
@@ -1708,14 +1709,14 @@ func (c *CloudHSM) ModifyHsmRequest(input *ModifyHsmInput) (req *request.Request
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation ModifyHsm for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/ModifyHsm
@@ -1805,8 +1806,8 @@ func (c *CloudHSM) ModifyLunaClientRequest(input *ModifyLunaClientInput) (req *r
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation ModifyLunaClient for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/ModifyLunaClient
@@ -1896,14 +1897,14 @@ func (c *CloudHSM) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceIn
 // See the AWS API reference guide for Amazon CloudHSM's
 // API operation RemoveTagsFromResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeCloudHsmServiceException "CloudHsmServiceException"
+// Returned Error Types:
+//   * CloudHsmServiceException
 //   Indicates that an exception occurred in the AWS CloudHSM service.
 //
-//   * ErrCodeCloudHsmInternalException "CloudHsmInternalException"
+//   * CloudHsmInternalException
 //   Indicates that an internal error occurred.
 //
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   * InvalidRequestException
 //   Indicates that one or more of the request parameters are not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudhsm-2014-05-30/RemoveTagsFromResource
@@ -2013,6 +2014,117 @@ func (s AddTagsToResourceOutput) GoString() string {
 func (s *AddTagsToResourceOutput) SetStatus(v string) *AddTagsToResourceOutput {
 	s.Status = &v
 	return s
+}
+
+// Indicates that an internal error occurred.
+type CloudHsmInternalException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s CloudHsmInternalException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CloudHsmInternalException) GoString() string {
+	return s.String()
+}
+
+func newErrorCloudHsmInternalException(v protocol.ResponseMetadata) error {
+	return &CloudHsmInternalException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s CloudHsmInternalException) Code() string {
+	return "CloudHsmInternalException"
+}
+
+// Message returns the exception's message.
+func (s CloudHsmInternalException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s CloudHsmInternalException) OrigErr() error {
+	return nil
+}
+
+func (s CloudHsmInternalException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s CloudHsmInternalException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s CloudHsmInternalException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates that an exception occurred in the AWS CloudHSM service.
+type CloudHsmServiceException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	// Additional information about the error.
+	Message_ *string `locationName:"message" type:"string"`
+
+	// Indicates if the action can be retried.
+	Retryable *bool `locationName:"retryable" type:"boolean"`
+}
+
+// String returns the string representation
+func (s CloudHsmServiceException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CloudHsmServiceException) GoString() string {
+	return s.String()
+}
+
+func newErrorCloudHsmServiceException(v protocol.ResponseMetadata) error {
+	return &CloudHsmServiceException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s CloudHsmServiceException) Code() string {
+	return "CloudHsmServiceException"
+}
+
+// Message returns the exception's message.
+func (s CloudHsmServiceException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s CloudHsmServiceException) OrigErr() error {
+	return nil
+}
+
+func (s CloudHsmServiceException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s CloudHsmServiceException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s CloudHsmServiceException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // Contains the inputs for the CreateHapgRequest action.
@@ -3074,6 +3186,57 @@ func (s *GetConfigOutput) SetConfigFile(v string) *GetConfigOutput {
 func (s *GetConfigOutput) SetConfigType(v string) *GetConfigOutput {
 	s.ConfigType = &v
 	return s
+}
+
+// Indicates that one or more of the request parameters are not valid.
+type InvalidRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s InvalidRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidRequestException(v protocol.ResponseMetadata) error {
+	return &InvalidRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidRequestException) Code() string {
+	return "InvalidRequestException"
+}
+
+// Message returns the exception's message.
+func (s InvalidRequestException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidRequestException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidRequestException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // Contains the inputs for the ListAvailableZones action.

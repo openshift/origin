@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws/request"
 )
@@ -23,8 +22,7 @@ func getWriterStore(req *request.Request, path string, useTempFile bool) (io.Rea
 	req.Handlers.Send.PushBack(func(r *request.Request) {
 		// Close the temp file and cleanup
 		f.Close()
-		fpath := filepath.Join(path, f.Name())
-		os.Remove(fpath)
+		os.Remove(f.Name())
 	})
 	return f, nil
 }

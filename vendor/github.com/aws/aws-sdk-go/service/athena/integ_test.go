@@ -27,7 +27,9 @@ func TestInteg_00_ListNamedQueries(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := athena.New(sess)
 	params := &athena.ListNamedQueriesInput{}
-	_, err := svc.ListNamedQueriesWithContext(ctx, params)
+	_, err := svc.ListNamedQueriesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

@@ -1,8 +1,8 @@
 package browsersafe
 
 import (
-	"testing"
 	"context"
+	"testing"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"

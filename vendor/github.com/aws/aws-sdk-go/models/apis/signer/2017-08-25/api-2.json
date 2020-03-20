@@ -114,6 +114,20 @@
         {"shape":"InternalServiceErrorException"}
       ]
     },
+    "ListTagsForResource":{
+      "name":"ListTagsForResource",
+      "http":{
+        "method":"GET",
+        "requestUri":"/tags/{resourceArn}"
+      },
+      "input":{"shape":"ListTagsForResourceRequest"},
+      "output":{"shape":"ListTagsForResourceResponse"},
+      "errors":[
+        {"shape":"InternalServiceErrorException"},
+        {"shape":"BadRequestException"},
+        {"shape":"NotFoundException"}
+      ]
+    },
     "PutSigningProfile":{
       "name":"PutSigningProfile",
       "http":{
@@ -145,6 +159,34 @@
         {"shape":"ThrottlingException"},
         {"shape":"InternalServiceErrorException"}
       ]
+    },
+    "TagResource":{
+      "name":"TagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/tags/{resourceArn}"
+      },
+      "input":{"shape":"TagResourceRequest"},
+      "output":{"shape":"TagResourceResponse"},
+      "errors":[
+        {"shape":"InternalServiceErrorException"},
+        {"shape":"BadRequestException"},
+        {"shape":"NotFoundException"}
+      ]
+    },
+    "UntagResource":{
+      "name":"UntagResource",
+      "http":{
+        "method":"DELETE",
+        "requestUri":"/tags/{resourceArn}"
+      },
+      "input":{"shape":"UntagResourceRequest"},
+      "output":{"shape":"UntagResourceResponse"},
+      "errors":[
+        {"shape":"InternalServiceErrorException"},
+        {"shape":"BadRequestException"},
+        {"shape":"NotFoundException"}
+      ]
     }
   },
   "shapes":{
@@ -155,6 +197,14 @@
         "message":{"shape":"ErrorMessage"}
       },
       "error":{"httpStatusCode":403},
+      "exception":true
+    },
+    "BadRequestException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "error":{"httpStatusCode":400},
       "exception":true
     },
     "BucketName":{"type":"string"},
@@ -279,7 +329,9 @@
         "platformId":{"shape":"PlatformId"},
         "overrides":{"shape":"SigningPlatformOverrides"},
         "signingParameters":{"shape":"SigningParameters"},
-        "status":{"shape":"SigningProfileStatus"}
+        "status":{"shape":"SigningProfileStatus"},
+        "arn":{"shape":"string"},
+        "tags":{"shape":"TagMap"}
       }
     },
     "HashAlgorithm":{
@@ -423,6 +475,23 @@
         "nextToken":{"shape":"NextToken"}
       }
     },
+    "ListTagsForResourceRequest":{
+      "type":"structure",
+      "required":["resourceArn"],
+      "members":{
+        "resourceArn":{
+          "shape":"String",
+          "location":"uri",
+          "locationName":"resourceArn"
+        }
+      }
+    },
+    "ListTagsForResourceResponse":{
+      "type":"structure",
+      "members":{
+        "tags":{"shape":"TagMap"}
+      }
+    },
     "MaxResults":{
       "type":"integer",
       "box":true,
@@ -431,6 +500,14 @@
     },
     "MaxSizeInMB":{"type":"integer"},
     "NextToken":{"type":"string"},
+    "NotFoundException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "error":{"httpStatusCode":404},
+      "exception":true
+    },
     "PlatformId":{"type":"string"},
     "Prefix":{"type":"string"},
     "ProfileName":{
@@ -455,7 +532,8 @@
         "signingMaterial":{"shape":"SigningMaterial"},
         "platformId":{"shape":"PlatformId"},
         "overrides":{"shape":"SigningPlatformOverrides"},
-        "signingParameters":{"shape":"SigningParameters"}
+        "signingParameters":{"shape":"SigningParameters"},
+        "tags":{"shape":"TagMap"}
       }
     },
     "PutSigningProfileResponse":{
@@ -594,7 +672,9 @@
         "signingMaterial":{"shape":"SigningMaterial"},
         "platformId":{"shape":"PlatformId"},
         "signingParameters":{"shape":"SigningParameters"},
-        "status":{"shape":"SigningProfileStatus"}
+        "status":{"shape":"SigningProfileStatus"},
+        "arn":{"shape":"string"},
+        "tags":{"shape":"TagMap"}
       }
     },
     "SigningProfileStatus":{
@@ -647,6 +727,49 @@
     },
     "StatusReason":{"type":"string"},
     "String":{"type":"string"},
+    "TagKey":{
+      "type":"string",
+      "max":128,
+      "min":1,
+      "pattern":"^(?!aws:)[a-zA-Z+-=._:/]+$"
+    },
+    "TagKeyList":{
+      "type":"list",
+      "member":{"shape":"TagKey"},
+      "max":200,
+      "min":1
+    },
+    "TagMap":{
+      "type":"map",
+      "key":{"shape":"TagKey"},
+      "value":{"shape":"TagValue"},
+      "max":200,
+      "min":1
+    },
+    "TagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "resourceArn",
+        "tags"
+      ],
+      "members":{
+        "resourceArn":{
+          "shape":"String",
+          "location":"uri",
+          "locationName":"resourceArn"
+        },
+        "tags":{"shape":"TagMap"}
+      }
+    },
+    "TagResourceResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "TagValue":{
+      "type":"string",
+      "max":256
+    },
     "ThrottlingException":{
       "type":"structure",
       "members":{
@@ -654,6 +777,30 @@
       },
       "error":{"httpStatusCode":429},
       "exception":true
+    },
+    "UntagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "resourceArn",
+        "tagKeys"
+      ],
+      "members":{
+        "resourceArn":{
+          "shape":"String",
+          "location":"uri",
+          "locationName":"resourceArn"
+        },
+        "tagKeys":{
+          "shape":"TagKeyList",
+          "location":"querystring",
+          "locationName":"tagKeys"
+        }
+      }
+    },
+    "UntagResourceResponse":{
+      "type":"structure",
+      "members":{
+      }
     },
     "ValidationException":{
       "type":"structure",

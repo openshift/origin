@@ -84,6 +84,9 @@ type MediaConnectAPI interface {
 	ListEntitlementsWithContext(aws.Context, *mediaconnect.ListEntitlementsInput, ...request.Option) (*mediaconnect.ListEntitlementsOutput, error)
 	ListEntitlementsRequest(*mediaconnect.ListEntitlementsInput) (*request.Request, *mediaconnect.ListEntitlementsOutput)
 
+	ListEntitlementsPages(*mediaconnect.ListEntitlementsInput, func(*mediaconnect.ListEntitlementsOutput, bool) bool) error
+	ListEntitlementsPagesWithContext(aws.Context, *mediaconnect.ListEntitlementsInput, func(*mediaconnect.ListEntitlementsOutput, bool) bool, ...request.Option) error
+
 	ListFlows(*mediaconnect.ListFlowsInput) (*mediaconnect.ListFlowsOutput, error)
 	ListFlowsWithContext(aws.Context, *mediaconnect.ListFlowsInput, ...request.Option) (*mediaconnect.ListFlowsOutput, error)
 	ListFlowsRequest(*mediaconnect.ListFlowsInput) (*request.Request, *mediaconnect.ListFlowsOutput)

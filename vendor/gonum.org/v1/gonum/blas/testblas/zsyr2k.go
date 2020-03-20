@@ -98,11 +98,11 @@ func zsyr2kTest(t *testing.T, impl Zsyr2ker, uplo blas.Uplo, trans blas.Transpos
 						// Compute the expected result using an internal Zgemm implementation.
 						var want []complex128
 						if trans == blas.NoTrans {
-							//  C = alpha*A*B^T + alpha*B*A^T + beta*C
+							//  C = alpha*A*Bᵀ + alpha*B*Aᵀ + beta*C
 							tmp := zmm(blas.NoTrans, blas.Trans, n, n, k, alpha, a, lda, b, ldb, beta, cSym, ldc)
 							want = zmm(blas.NoTrans, blas.Trans, n, n, k, alpha, b, ldb, a, lda, 1, tmp, ldc)
 						} else {
-							//  C = alpha*A^T*B + alpha*B^T*A + beta*C
+							//  C = alpha*Aᵀ*B + alpha*Bᵀ*A + beta*C
 							tmp := zmm(blas.Trans, blas.NoTrans, n, n, k, alpha, a, lda, b, ldb, beta, cSym, ldc)
 							want = zmm(blas.Trans, blas.NoTrans, n, n, k, alpha, b, ldb, a, lda, 1, tmp, ldc)
 						}

@@ -76,6 +76,18 @@ type DLMAPI interface {
 	GetLifecyclePolicyWithContext(aws.Context, *dlm.GetLifecyclePolicyInput, ...request.Option) (*dlm.GetLifecyclePolicyOutput, error)
 	GetLifecyclePolicyRequest(*dlm.GetLifecyclePolicyInput) (*request.Request, *dlm.GetLifecyclePolicyOutput)
 
+	ListTagsForResource(*dlm.ListTagsForResourceInput) (*dlm.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *dlm.ListTagsForResourceInput, ...request.Option) (*dlm.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*dlm.ListTagsForResourceInput) (*request.Request, *dlm.ListTagsForResourceOutput)
+
+	TagResource(*dlm.TagResourceInput) (*dlm.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *dlm.TagResourceInput, ...request.Option) (*dlm.TagResourceOutput, error)
+	TagResourceRequest(*dlm.TagResourceInput) (*request.Request, *dlm.TagResourceOutput)
+
+	UntagResource(*dlm.UntagResourceInput) (*dlm.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *dlm.UntagResourceInput, ...request.Option) (*dlm.UntagResourceOutput, error)
+	UntagResourceRequest(*dlm.UntagResourceInput) (*request.Request, *dlm.UntagResourceOutput)
+
 	UpdateLifecyclePolicy(*dlm.UpdateLifecyclePolicyInput) (*dlm.UpdateLifecyclePolicyOutput, error)
 	UpdateLifecyclePolicyWithContext(aws.Context, *dlm.UpdateLifecyclePolicyInput, ...request.Option) (*dlm.UpdateLifecyclePolicyOutput, error)
 	UpdateLifecyclePolicyRequest(*dlm.UpdateLifecyclePolicyInput) (*request.Request, *dlm.UpdateLifecyclePolicyOutput)

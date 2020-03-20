@@ -80,6 +80,10 @@ type DataSyncAPI interface {
 	CreateLocationS3WithContext(aws.Context, *datasync.CreateLocationS3Input, ...request.Option) (*datasync.CreateLocationS3Output, error)
 	CreateLocationS3Request(*datasync.CreateLocationS3Input) (*request.Request, *datasync.CreateLocationS3Output)
 
+	CreateLocationSmb(*datasync.CreateLocationSmbInput) (*datasync.CreateLocationSmbOutput, error)
+	CreateLocationSmbWithContext(aws.Context, *datasync.CreateLocationSmbInput, ...request.Option) (*datasync.CreateLocationSmbOutput, error)
+	CreateLocationSmbRequest(*datasync.CreateLocationSmbInput) (*request.Request, *datasync.CreateLocationSmbOutput)
+
 	CreateTask(*datasync.CreateTaskInput) (*datasync.CreateTaskOutput, error)
 	CreateTaskWithContext(aws.Context, *datasync.CreateTaskInput, ...request.Option) (*datasync.CreateTaskOutput, error)
 	CreateTaskRequest(*datasync.CreateTaskInput) (*request.Request, *datasync.CreateTaskOutput)
@@ -111,6 +115,10 @@ type DataSyncAPI interface {
 	DescribeLocationS3(*datasync.DescribeLocationS3Input) (*datasync.DescribeLocationS3Output, error)
 	DescribeLocationS3WithContext(aws.Context, *datasync.DescribeLocationS3Input, ...request.Option) (*datasync.DescribeLocationS3Output, error)
 	DescribeLocationS3Request(*datasync.DescribeLocationS3Input) (*request.Request, *datasync.DescribeLocationS3Output)
+
+	DescribeLocationSmb(*datasync.DescribeLocationSmbInput) (*datasync.DescribeLocationSmbOutput, error)
+	DescribeLocationSmbWithContext(aws.Context, *datasync.DescribeLocationSmbInput, ...request.Option) (*datasync.DescribeLocationSmbOutput, error)
+	DescribeLocationSmbRequest(*datasync.DescribeLocationSmbInput) (*request.Request, *datasync.DescribeLocationSmbOutput)
 
 	DescribeTask(*datasync.DescribeTaskInput) (*datasync.DescribeTaskOutput, error)
 	DescribeTaskWithContext(aws.Context, *datasync.DescribeTaskInput, ...request.Option) (*datasync.DescribeTaskOutput, error)

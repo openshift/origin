@@ -3,7 +3,11 @@
 package v1
 
 import (
+	"context"
+
 	v1 "github.com/openshift/api/authorization/v1"
+	scheme "github.com/openshift/client-go/authorization/clientset/versioned/scheme"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -15,7 +19,7 @@ type LocalSubjectAccessReviewsGetter interface {
 
 // LocalSubjectAccessReviewInterface has methods to work with LocalSubjectAccessReview resources.
 type LocalSubjectAccessReviewInterface interface {
-	Create(*v1.LocalSubjectAccessReview) (*v1.SubjectAccessReviewResponse, error)
+	Create(ctx context.Context, localSubjectAccessReview *v1.LocalSubjectAccessReview, opts metav1.CreateOptions) (*v1.SubjectAccessReviewResponse, error)
 
 	LocalSubjectAccessReviewExpansion
 }
@@ -35,13 +39,14 @@ func newLocalSubjectAccessReviews(c *AuthorizationV1Client, namespace string) *l
 }
 
 // Create takes the representation of a localSubjectAccessReview and creates it.  Returns the server's representation of the subjectAccessReviewResponse, and an error, if there is any.
-func (c *localSubjectAccessReviews) Create(localSubjectAccessReview *v1.LocalSubjectAccessReview) (result *v1.SubjectAccessReviewResponse, err error) {
+func (c *localSubjectAccessReviews) Create(ctx context.Context, localSubjectAccessReview *v1.LocalSubjectAccessReview, opts metav1.CreateOptions) (result *v1.SubjectAccessReviewResponse, err error) {
 	result = &v1.SubjectAccessReviewResponse{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("localsubjectaccessreviews").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(localSubjectAccessReview).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

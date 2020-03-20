@@ -16,29 +16,7 @@ import (
 // Mole represents an amount in moles.
 type Mole float64
 
-const (
-	Yottamol Mole = 1e24
-	Zettamol Mole = 1e21
-	Examol   Mole = 1e18
-	Petamol  Mole = 1e15
-	Teramol  Mole = 1e12
-	Gigamol  Mole = 1e9
-	Megamol  Mole = 1e6
-	Kilomol  Mole = 1e3
-	Hectomol Mole = 1e2
-	Decamol  Mole = 1e1
-	mol      Mole = 1.0
-	Decimol  Mole = 1e-1
-	Centimol Mole = 1e-2
-	Millimol Mole = 1e-3
-	Micromol Mole = 1e-6
-	Nanomol  Mole = 1e-9
-	Picomol  Mole = 1e-12
-	Femtomol Mole = 1e-15
-	Attomol  Mole = 1e-18
-	Zeptomol Mole = 1e-21
-	Yoctomol Mole = 1e-24
-)
+const Mol Mole = 1
 
 // Unit converts the Mole to a *Unit
 func (n Mole) Unit() *Unit {
@@ -55,7 +33,7 @@ func (n Mole) Mole() Mole {
 // From converts the unit into the receiver. From returns an
 // error if there is a mismatch in dimension
 func (n *Mole) From(u Uniter) error {
-	if !DimensionsMatch(u, mol) {
+	if !DimensionsMatch(u, Mol) {
 		*n = Mole(math.NaN())
 		return errors.New("Dimension mismatch")
 	}

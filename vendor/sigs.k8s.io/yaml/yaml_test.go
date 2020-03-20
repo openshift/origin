@@ -1,11 +1,16 @@
 package yaml
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
+	"sort"
 	"strconv"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type MarshalTest struct {
@@ -419,5 +424,122 @@ foo: baz
 	}
 	if _, err := YAMLToJSONStrict([]byte(data)); err == nil {
 		t.Error("expected YAMLtoJSONStrict to fail on duplicate field names")
+	}
+}
+
+func TestJSONObjectToYAMLObject(t *testing.T) {
+	intOrInt64 := func(i64 int64) interface{} {
+		if i := int(i64); i64 == int64(i) {
+			return i
+		}
+		return i64
+	}
+
+	tests := []struct {
+		name     string
+		input    map[string]interface{}
+		expected yaml.MapSlice
+	}{
+		{name: "nil", expected: yaml.MapSlice(nil)},
+		{name: "empty", input: map[string]interface{}{}, expected: yaml.MapSlice(nil)},
+		{
+			name: "values",
+			input: map[string]interface{}{
+				"nil slice":          []interface{}(nil),
+				"nil map":            map[string]interface{}(nil),
+				"empty slice":        []interface{}{},
+				"empty map":          map[string]interface{}{},
+				"bool":               true,
+				"float64":            float64(42.1),
+				"fractionless":       float64(42),
+				"int":                int(42),
+				"int64":              int64(42),
+				"int64 big":          float64(math.Pow(2, 62)),
+				"negative int64 big": -float64(math.Pow(2, 62)),
+				"map":                map[string]interface{}{"foo": "bar"},
+				"slice":              []interface{}{"foo", "bar"},
+				"string":             string("foo"),
+				"uint64 big":         float64(math.Pow(2, 63)),
+			},
+			expected: yaml.MapSlice{
+				{Key: "nil slice"},
+				{Key: "nil map"},
+				{Key: "empty slice", Value: []interface{}{}},
+				{Key: "empty map", Value: yaml.MapSlice(nil)},
+				{Key: "bool", Value: true},
+				{Key: "float64", Value: float64(42.1)},
+				{Key: "fractionless", Value: int(42)},
+				{Key: "int", Value: int(42)},
+				{Key: "int64", Value: int(42)},
+				{Key: "int64 big", Value: intOrInt64(int64(1) << 62)},
+				{Key: "negative int64 big", Value: intOrInt64(-(1 << 62))},
+				{Key: "map", Value: yaml.MapSlice{{Key: "foo", Value: "bar"}}},
+				{Key: "slice", Value: []interface{}{"foo", "bar"}},
+				{Key: "string", Value: string("foo")},
+				{Key: "uint64 big", Value: uint64(1) << 63},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := JSONObjectToYAMLObject(tt.input)
+			sortMapSlicesInPlace(tt.expected)
+			sortMapSlicesInPlace(got)
+			if !reflect.DeepEqual(got, tt.expected) {
+				t.Errorf("jsonToYAML() = %v, want %v", spew.Sdump(got), spew.Sdump(tt.expected))
+			}
+
+			jsonBytes, err := json.Marshal(tt.input)
+			if err != nil {
+				t.Fatalf("unexpected json.Marshal error: %v", err)
+			}
+			var gotByRoundtrip yaml.MapSlice
+			if err := yaml.Unmarshal(jsonBytes, &gotByRoundtrip); err != nil {
+				t.Fatalf("unexpected yaml.Unmarshal error: %v", err)
+			}
+
+			// yaml.Unmarshal loses precision, it's rounding to the 4th last digit.
+			// Replicate this here in the test, but don't change the type.
+			for i := range got {
+				switch got[i].Key {
+				case "int64 big", "uint64 big", "negative int64 big":
+					switch v := got[i].Value.(type) {
+					case int64:
+						d := int64(500)
+						if v < 0 {
+							d = -500
+						}
+						got[i].Value = int64((v+d)/1000) * 1000
+					case uint64:
+						got[i].Value = uint64((v+500)/1000) * 1000
+					case int:
+						d := int(500)
+						if v < 0 {
+							d = -500
+						}
+						got[i].Value = int((v+d)/1000) * 1000
+					default:
+						t.Fatalf("unexpected type for key %s: %v:%T", got[i].Key, v, v)
+					}
+				}
+			}
+
+			if !reflect.DeepEqual(got, gotByRoundtrip) {
+				t.Errorf("yaml.Unmarshal(json.Marshal(tt.input)) = %v, want %v\njson: %s", spew.Sdump(gotByRoundtrip), spew.Sdump(got), string(jsonBytes))
+			}
+		})
+	}
+}
+
+func sortMapSlicesInPlace(x interface{}) {
+	switch x := x.(type) {
+	case []interface{}:
+		for i := range x {
+			sortMapSlicesInPlace(x[i])
+		}
+	case yaml.MapSlice:
+		sort.Slice(x, func(a, b int) bool {
+			return x[a].Key.(string) < x[b].Key.(string)
+		})
 	}
 }

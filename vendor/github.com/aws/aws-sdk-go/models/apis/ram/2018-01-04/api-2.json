@@ -28,7 +28,9 @@
         {"shape":"ResourceShareInvitationAlreadyRejectedException"},
         {"shape":"ResourceShareInvitationExpiredException"},
         {"shape":"ServerInternalException"},
-        {"shape":"ServiceUnavailableException"}
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"InvalidClientTokenException"},
+        {"shape":"IdempotentParameterMismatchException"}
       ]
     },
     "AssociateResourceShare":{
@@ -54,6 +56,24 @@
         {"shape":"UnknownResourceException"}
       ]
     },
+    "AssociateResourceSharePermission":{
+      "name":"AssociateResourceSharePermission",
+      "http":{
+        "method":"POST",
+        "requestUri":"/associateresourcesharepermission"
+      },
+      "input":{"shape":"AssociateResourceSharePermissionRequest"},
+      "output":{"shape":"AssociateResourceSharePermissionResponse"},
+      "errors":[
+        {"shape":"MalformedArnException"},
+        {"shape":"UnknownResourceException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InvalidClientTokenException"},
+        {"shape":"ServerInternalException"},
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"OperationNotPermittedException"}
+      ]
+    },
     "CreateResourceShare":{
       "name":"CreateResourceShare",
       "http":{
@@ -71,6 +91,7 @@
         {"shape":"InvalidParameterException"},
         {"shape":"OperationNotPermittedException"},
         {"shape":"ResourceShareLimitExceededException"},
+        {"shape":"TagPolicyViolationException"},
         {"shape":"ServerInternalException"},
         {"shape":"ServiceUnavailableException"}
       ]
@@ -116,6 +137,24 @@
         {"shape":"UnknownResourceException"}
       ]
     },
+    "DisassociateResourceSharePermission":{
+      "name":"DisassociateResourceSharePermission",
+      "http":{
+        "method":"POST",
+        "requestUri":"/disassociateresourcesharepermission"
+      },
+      "input":{"shape":"DisassociateResourceSharePermissionRequest"},
+      "output":{"shape":"DisassociateResourceSharePermissionResponse"},
+      "errors":[
+        {"shape":"MalformedArnException"},
+        {"shape":"UnknownResourceException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InvalidClientTokenException"},
+        {"shape":"ServerInternalException"},
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"OperationNotPermittedException"}
+      ]
+    },
     "EnableSharingWithAwsOrganization":{
       "name":"EnableSharingWithAwsOrganization",
       "http":{
@@ -128,6 +167,23 @@
         {"shape":"OperationNotPermittedException"},
         {"shape":"ServerInternalException"},
         {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "GetPermission":{
+      "name":"GetPermission",
+      "http":{
+        "method":"POST",
+        "requestUri":"/getpermission"
+      },
+      "input":{"shape":"GetPermissionRequest"},
+      "output":{"shape":"GetPermissionResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"MalformedArnException"},
+        {"shape":"UnknownResourceException"},
+        {"shape":"ServerInternalException"},
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"OperationNotPermittedException"}
       ]
     },
     "GetResourcePolicies":{
@@ -199,6 +255,42 @@
         {"shape":"ServiceUnavailableException"}
       ]
     },
+    "ListPendingInvitationResources":{
+      "name":"ListPendingInvitationResources",
+      "http":{
+        "method":"POST",
+        "requestUri":"/listpendinginvitationresources"
+      },
+      "input":{"shape":"ListPendingInvitationResourcesRequest"},
+      "output":{"shape":"ListPendingInvitationResourcesResponse"},
+      "errors":[
+        {"shape":"MalformedArnException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"ServerInternalException"},
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"ResourceShareInvitationArnNotFoundException"},
+        {"shape":"MissingRequiredParameterException"},
+        {"shape":"ResourceShareInvitationAlreadyRejectedException"},
+        {"shape":"ResourceShareInvitationExpiredException"}
+      ]
+    },
+    "ListPermissions":{
+      "name":"ListPermissions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/listpermissions"
+      },
+      "input":{"shape":"ListPermissionsRequest"},
+      "output":{"shape":"ListPermissionsResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"ServerInternalException"},
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"OperationNotPermittedException"}
+      ]
+    },
     "ListPrincipals":{
       "name":"ListPrincipals",
       "http":{
@@ -214,6 +306,24 @@
         {"shape":"InvalidParameterException"},
         {"shape":"ServerInternalException"},
         {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "ListResourceSharePermissions":{
+      "name":"ListResourceSharePermissions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/listresourcesharepermissions"
+      },
+      "input":{"shape":"ListResourceSharePermissionsRequest"},
+      "output":{"shape":"ListResourceSharePermissionsResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"MalformedArnException"},
+        {"shape":"UnknownResourceException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"ServerInternalException"},
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"OperationNotPermittedException"}
       ]
     },
     "ListResources":{
@@ -234,6 +344,23 @@
         {"shape":"ServiceUnavailableException"}
       ]
     },
+    "PromoteResourceShareCreatedFromPolicy":{
+      "name":"PromoteResourceShareCreatedFromPolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/promoteresourcesharecreatedfrompolicy"
+      },
+      "input":{"shape":"PromoteResourceShareCreatedFromPolicyRequest"},
+      "output":{"shape":"PromoteResourceShareCreatedFromPolicyResponse"},
+      "errors":[
+        {"shape":"MalformedArnException"},
+        {"shape":"OperationNotPermittedException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"MissingRequiredParameterException"},
+        {"shape":"ServerInternalException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
     "RejectResourceShareInvitation":{
       "name":"RejectResourceShareInvitation",
       "http":{
@@ -250,7 +377,9 @@
         {"shape":"ResourceShareInvitationAlreadyRejectedException"},
         {"shape":"ResourceShareInvitationExpiredException"},
         {"shape":"ServerInternalException"},
-        {"shape":"ServiceUnavailableException"}
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"InvalidClientTokenException"},
+        {"shape":"IdempotentParameterMismatchException"}
       ]
     },
     "TagResource":{
@@ -266,6 +395,7 @@
         {"shape":"MalformedArnException"},
         {"shape":"TagLimitExceededException"},
         {"shape":"ResourceArnNotFoundException"},
+        {"shape":"TagPolicyViolationException"},
         {"shape":"ServerInternalException"},
         {"shape":"ServiceUnavailableException"}
       ]
@@ -321,6 +451,26 @@
         "clientToken":{"shape":"String"}
       }
     },
+    "AssociateResourceSharePermissionRequest":{
+      "type":"structure",
+      "required":[
+        "resourceShareArn",
+        "permissionArn"
+      ],
+      "members":{
+        "resourceShareArn":{"shape":"String"},
+        "permissionArn":{"shape":"String"},
+        "replace":{"shape":"Boolean"},
+        "clientToken":{"shape":"String"}
+      }
+    },
+    "AssociateResourceSharePermissionResponse":{
+      "type":"structure",
+      "members":{
+        "returnValue":{"shape":"Boolean"},
+        "clientToken":{"shape":"String"}
+      }
+    },
     "AssociateResourceShareRequest":{
       "type":"structure",
       "required":["resourceShareArn"],
@@ -348,7 +498,8 @@
         "principals":{"shape":"PrincipalArnOrIdList"},
         "tags":{"shape":"TagList"},
         "allowExternalPrincipals":{"shape":"Boolean"},
-        "clientToken":{"shape":"String"}
+        "clientToken":{"shape":"String"},
+        "permissionArns":{"shape":"PermissionArnList"}
       }
     },
     "CreateResourceShareResponse":{
@@ -382,6 +533,25 @@
         "clientToken":{"shape":"String"}
       }
     },
+    "DisassociateResourceSharePermissionRequest":{
+      "type":"structure",
+      "required":[
+        "resourceShareArn",
+        "permissionArn"
+      ],
+      "members":{
+        "resourceShareArn":{"shape":"String"},
+        "permissionArn":{"shape":"String"},
+        "clientToken":{"shape":"String"}
+      }
+    },
+    "DisassociateResourceSharePermissionResponse":{
+      "type":"structure",
+      "members":{
+        "returnValue":{"shape":"Boolean"},
+        "clientToken":{"shape":"String"}
+      }
+    },
     "DisassociateResourceShareRequest":{
       "type":"structure",
       "required":["resourceShareArn"],
@@ -408,6 +578,20 @@
       "type":"structure",
       "members":{
         "returnValue":{"shape":"Boolean"}
+      }
+    },
+    "GetPermissionRequest":{
+      "type":"structure",
+      "required":["permissionArn"],
+      "members":{
+        "permissionArn":{"shape":"String"},
+        "permissionVersion":{"shape":"Integer"}
+      }
+    },
+    "GetPermissionResponse":{
+      "type":"structure",
+      "members":{
+        "permission":{"shape":"ResourceSharePermissionDetail"}
       }
     },
     "GetResourcePoliciesRequest":{
@@ -492,6 +676,7 @@
       "error":{"httpStatusCode":400},
       "exception":true
     },
+    "Integer":{"type":"integer"},
     "InvalidClientTokenException":{
       "type":"structure",
       "required":["message"],
@@ -546,6 +731,37 @@
       "error":{"httpStatusCode":400},
       "exception":true
     },
+    "ListPendingInvitationResourcesRequest":{
+      "type":"structure",
+      "required":["resourceShareInvitationArn"],
+      "members":{
+        "resourceShareInvitationArn":{"shape":"String"},
+        "nextToken":{"shape":"String"},
+        "maxResults":{"shape":"MaxResults"}
+      }
+    },
+    "ListPendingInvitationResourcesResponse":{
+      "type":"structure",
+      "members":{
+        "resources":{"shape":"ResourceList"},
+        "nextToken":{"shape":"String"}
+      }
+    },
+    "ListPermissionsRequest":{
+      "type":"structure",
+      "members":{
+        "resourceType":{"shape":"String"},
+        "nextToken":{"shape":"String"},
+        "maxResults":{"shape":"MaxResults"}
+      }
+    },
+    "ListPermissionsResponse":{
+      "type":"structure",
+      "members":{
+        "permissions":{"shape":"ResourceSharePermissionList"},
+        "nextToken":{"shape":"String"}
+      }
+    },
     "ListPrincipalsRequest":{
       "type":"structure",
       "required":["resourceOwner"],
@@ -563,6 +779,22 @@
       "type":"structure",
       "members":{
         "principals":{"shape":"PrincipalList"},
+        "nextToken":{"shape":"String"}
+      }
+    },
+    "ListResourceSharePermissionsRequest":{
+      "type":"structure",
+      "required":["resourceShareArn"],
+      "members":{
+        "resourceShareArn":{"shape":"String"},
+        "nextToken":{"shape":"String"},
+        "maxResults":{"shape":"MaxResults"}
+      }
+    },
+    "ListResourceSharePermissionsResponse":{
+      "type":"structure",
+      "members":{
+        "permissions":{"shape":"ResourceSharePermissionList"},
         "nextToken":{"shape":"String"}
       }
     },
@@ -618,6 +850,10 @@
       "error":{"httpStatusCode":400},
       "exception":true
     },
+    "PermissionArnList":{
+      "type":"list",
+      "member":{"shape":"String"}
+    },
     "Policy":{"type":"string"},
     "PolicyList":{
       "type":"list",
@@ -641,6 +877,23 @@
       "type":"list",
       "member":{"shape":"Principal"}
     },
+    "PromoteResourceShareCreatedFromPolicyRequest":{
+      "type":"structure",
+      "required":["resourceShareArn"],
+      "members":{
+        "resourceShareArn":{
+          "shape":"String",
+          "location":"querystring",
+          "locationName":"resourceShareArn"
+        }
+      }
+    },
+    "PromoteResourceShareCreatedFromPolicyResponse":{
+      "type":"structure",
+      "members":{
+        "returnValue":{"shape":"Boolean"}
+      }
+    },
     "RejectResourceShareInvitationRequest":{
       "type":"structure",
       "required":["resourceShareInvitationArn"],
@@ -662,6 +915,7 @@
         "arn":{"shape":"String"},
         "type":{"shape":"String"},
         "resourceShareArn":{"shape":"String"},
+        "resourceGroupArn":{"shape":"String"},
         "status":{"shape":"ResourceStatus"},
         "statusMessage":{"shape":"String"},
         "creationTime":{"shape":"DateTime"},
@@ -703,7 +957,8 @@
         "statusMessage":{"shape":"String"},
         "tags":{"shape":"TagList"},
         "creationTime":{"shape":"DateTime"},
-        "lastUpdatedTime":{"shape":"DateTime"}
+        "lastUpdatedTime":{"shape":"DateTime"},
+        "featureSet":{"shape":"ResourceShareFeatureSet"}
       }
     },
     "ResourceShareArnList":{
@@ -714,6 +969,7 @@
       "type":"structure",
       "members":{
         "resourceShareArn":{"shape":"String"},
+        "resourceShareName":{"shape":"String"},
         "associatedEntity":{"shape":"String"},
         "associationType":{"shape":"ResourceShareAssociationType"},
         "status":{"shape":"ResourceShareAssociationStatus"},
@@ -744,6 +1000,14 @@
         "RESOURCE"
       ]
     },
+    "ResourceShareFeatureSet":{
+      "type":"string",
+      "enum":[
+        "CREATED_FROM_POLICY",
+        "PROMOTING_TO_STANDARD",
+        "STANDARD"
+      ]
+    },
     "ResourceShareInvitation":{
       "type":"structure",
       "members":{
@@ -754,7 +1018,11 @@
         "receiverAccountId":{"shape":"String"},
         "invitationTimestamp":{"shape":"DateTime"},
         "status":{"shape":"ResourceShareInvitationStatus"},
-        "resourceShareAssociations":{"shape":"ResourceShareAssociationList"}
+        "resourceShareAssociations":{
+          "shape":"ResourceShareAssociationList",
+          "deprecated":true,
+          "deprecatedMessage":"This member has been deprecated. Use ListPendingInvitationResources."
+        }
       }
     },
     "ResourceShareInvitationAlreadyAcceptedException":{
@@ -823,6 +1091,36 @@
       "type":"list",
       "member":{"shape":"ResourceShare"}
     },
+    "ResourceSharePermissionDetail":{
+      "type":"structure",
+      "members":{
+        "arn":{"shape":"String"},
+        "version":{"shape":"String"},
+        "defaultVersion":{"shape":"Boolean"},
+        "name":{"shape":"String"},
+        "resourceType":{"shape":"String"},
+        "permission":{"shape":"String"},
+        "creationTime":{"shape":"DateTime"},
+        "lastUpdatedTime":{"shape":"DateTime"}
+      }
+    },
+    "ResourceSharePermissionList":{
+      "type":"list",
+      "member":{"shape":"ResourceSharePermissionSummary"}
+    },
+    "ResourceSharePermissionSummary":{
+      "type":"structure",
+      "members":{
+        "arn":{"shape":"String"},
+        "version":{"shape":"String"},
+        "defaultVersion":{"shape":"Boolean"},
+        "name":{"shape":"String"},
+        "resourceType":{"shape":"String"},
+        "status":{"shape":"String"},
+        "creationTime":{"shape":"DateTime"},
+        "lastUpdatedTime":{"shape":"DateTime"}
+      }
+    },
     "ResourceShareStatus":{
       "type":"string",
       "enum":[
@@ -839,7 +1137,8 @@
         "AVAILABLE",
         "ZONAL_RESOURCE_INACCESSIBLE",
         "LIMIT_EXCEEDED",
-        "UNAVAILABLE"
+        "UNAVAILABLE",
+        "PENDING"
       ]
     },
     "ServerInternalException":{
@@ -896,6 +1195,15 @@
     "TagList":{
       "type":"list",
       "member":{"shape":"Tag"}
+    },
+    "TagPolicyViolationException":{
+      "type":"structure",
+      "required":["message"],
+      "members":{
+        "message":{"shape":"String"}
+      },
+      "error":{"httpStatusCode":400},
+      "exception":true
     },
     "TagResourceRequest":{
       "type":"structure",

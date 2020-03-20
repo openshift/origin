@@ -41,4 +41,20 @@ func TestRandomScheduler(t *testing.T) {
 			t.Errorf("frame not found for stream %d", id)
 		}
 	}
+
+	// Verify that we clean up maps for empty queues in all cases (golang.org/issue/33812)
+	const arbitraryStreamID = 123
+	ws.Push(makeHandlerPanicRST(arbitraryStreamID))
+	rws := ws.(*randomWriteScheduler)
+	if got, want := len(rws.sq), 1; got != want {
+		t.Fatalf("len of 123 stream = %v; want %v", got, want)
+	}
+	_, ok := ws.Pop()
+	if !ok {
+		t.Fatal("expected to be able to Pop")
+	}
+	if got, want := len(rws.sq), 0; got != want {
+		t.Fatalf("len of 123 stream = %v; want %v", got, want)
+	}
+
 }

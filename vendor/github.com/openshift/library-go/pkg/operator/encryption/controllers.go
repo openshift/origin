@@ -1,6 +1,8 @@
 package encryption
 
 import (
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -19,7 +21,7 @@ import (
 )
 
 type runner interface {
-	Run(stopCh <-chan struct{})
+	Run(ctx context.Context, workers int)
 }
 
 func NewControllers(
@@ -33,7 +35,7 @@ func NewControllers(
 	secretsClient corev1.SecretsGetter,
 	eventRecorder events.Recorder,
 	encryptedGRs ...schema.GroupResource,
-) (*Controllers, error) {
+) *Controllers {
 	// avoid using the CachedSecretGetter as we need strong guarantees that our encryptionSecretSelector works
 	// otherwise we could see secrets from a different component (which will break our keyID invariants)
 	// this is fine in terms of performance since these controllers will be idle most of the time
@@ -94,17 +96,17 @@ func NewControllers(
 				encryptedGRs,
 			),
 		},
-	}, nil
+	}
 }
 
 type Controllers struct {
 	controllers []runner
 }
 
-func (c *Controllers) Run(stopCh <-chan struct{}) {
+func (c *Controllers) Run(ctx context.Context, workers int) {
 	for _, controller := range c.controllers {
 		con := controller // capture range variable
-		go con.Run(stopCh)
+		go con.Run(ctx, workers)
 	}
-	<-stopCh
+	<-ctx.Done()
 }

@@ -2,6 +2,10 @@
 
 package mobile
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeAccountActionRequiredException for service response error code
@@ -59,3 +63,14 @@ const (
 	// Credentials of the caller are insufficient to authorize the request.
 	ErrCodeUnauthorizedException = "UnauthorizedException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"AccountActionRequiredException": newErrorAccountActionRequiredException,
+	"BadRequestException":            newErrorBadRequestException,
+	"InternalFailureException":       newErrorInternalFailureException,
+	"LimitExceededException":         newErrorLimitExceededException,
+	"NotFoundException":              newErrorNotFoundException,
+	"ServiceUnavailableException":    newErrorServiceUnavailableException,
+	"TooManyRequestsException":       newErrorTooManyRequestsException,
+	"UnauthorizedException":          newErrorUnauthorizedException,
+}

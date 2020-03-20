@@ -315,7 +315,7 @@ func TestDegraded(t *testing.T) {
 				t.Errorf("unexpected sync error: %v", err)
 				return
 			}
-			result, _ := clusterOperatorClient.ConfigV1().ClusterOperators().Get("OPERATOR_NAME", metav1.GetOptions{})
+			result, _ := clusterOperatorClient.ConfigV1().ClusterOperators().Get(context.TODO(), "OPERATOR_NAME", metav1.GetOptions{})
 
 			var expectedCondition *configv1.ClusterOperatorStatusCondition
 			if tc.expectedStatus != "" {

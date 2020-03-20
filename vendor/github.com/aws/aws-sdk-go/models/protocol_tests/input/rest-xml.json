@@ -1678,7 +1678,7 @@
         },
         "serialized": {
           "uri": "/path",
-          "body": "<OperationRequest xmlns=\"https://foo/\"><RecursiveStruct><RecursiveMap><entry><key>foo</key><value><NoRecurse>foo</NoRecurse></value></entry><entry><key>bar</key><value><NoRecurse>bar</NoRecurse></value></entry></RecursiveMap></RecursiveStruct></OperationRequest>"
+          "body": "<OperationRequest xmlns=\"https://foo/\"><RecursiveStruct><RecursiveMap><entry><key>bar</key><value><NoRecurse>bar</NoRecurse></value></entry><entry><key>foo</key><value><NoRecurse>foo</NoRecurse></value></entry></RecursiveMap></RecursiveStruct></OperationRequest>"
         }
       }
     ]
@@ -1903,7 +1903,7 @@
             "locationName": "MemberRefOpRequest"
           },
           "http": {
-            "method": "GET",
+            "method": "POST",
             "requestUri": "/path"
           },
           "endpoint":{
@@ -1917,6 +1917,77 @@
           "uri": "/path",
           "body": "<MemberRefOpRequest><Name>myname</Name></MemberRefOpRequest>",
           "host": "foo-myname.service.region.amazonaws.com"
+        }
+      }
+    ]
+  },
+  {
+    "description": "Header whitespace",
+    "metadata": {
+      "protocol": "rest-xml",
+      "apiVersion": "2014-01-01"
+    },
+    "shapes": {
+      "InputShape": {
+        "type": "structure",
+        "members": {
+          "Header1": {
+            "shape": "StringType",
+            "location": "header"
+          },
+          "HeaderMap": {
+            "shape": "StringMap",
+            "location": "headers",
+            "locationName": "header-map-"
+          }
+        }
+      },
+      "StringType": {
+        "type": "string"
+      },
+      "StringMap": {
+        "type": "map",
+        "key": {
+          "shape": "StringType"
+        },
+        "value": {
+          "shape": "StringType"
+        }
+      }
+    },
+    "cases": [
+      {
+        "given": {
+          "http": {
+            "method": "GET",
+            "requestUri": "/"
+          },
+          "input": {
+            "shape": "InputShape"
+          },
+          "name": "OperationName"
+        },
+        "params": {
+          "Header1": "   headerValue",
+          "HeaderMap": {
+              "leading-space": "   value",
+              "with-space": "   value   ",
+              "leading-tab": "    value",
+              "   key-leading-space": "value",
+              "   key-with-space   ": "value"
+          }
+        },
+        "serialized": {
+          "body": "",
+          "uri": "/",
+          "headers": {
+              "header1": "headerValue",
+              "header-map-leading-space": "value",
+              "header-map-with-space": "value",
+              "header-map-leading-tab": "value",
+              "header-map-key-leading-space": "value",
+              "header-map-key-with-space": "value"
+          }
         }
       }
     ]

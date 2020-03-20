@@ -8,14 +8,19 @@ import (
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
-	return scheme.AddConversionFuncs(
-		func(in *RunOnceDurationConfig, out *internal.RunOnceDurationConfig, s conversion.Scope) error {
-			out.ActiveDeadlineSecondsLimit = in.ActiveDeadlineSecondsOverride
-			return nil
-		},
-		func(in *internal.RunOnceDurationConfig, out *RunOnceDurationConfig, s conversion.Scope) error {
-			out.ActiveDeadlineSecondsOverride = in.ActiveDeadlineSecondsLimit
-			return nil
-		},
-	)
+	err := scheme.AddConversionFunc((*RunOnceDurationConfig)(nil), (*internal.RunOnceDurationConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		in := a.(*RunOnceDurationConfig)
+		out := b.(*internal.RunOnceDurationConfig)
+		out.ActiveDeadlineSecondsLimit = in.ActiveDeadlineSecondsOverride
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return scheme.AddConversionFunc((*internal.RunOnceDurationConfig)(nil), (*RunOnceDurationConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		in := a.(*internal.RunOnceDurationConfig)
+		out := b.(*RunOnceDurationConfig)
+		out.ActiveDeadlineSecondsOverride = in.ActiveDeadlineSecondsLimit
+		return nil
+	})
 }

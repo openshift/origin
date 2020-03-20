@@ -33,7 +33,7 @@ var initRequest func(*request.Request)
 const (
 	ServiceName = "AwsEndpointDiscoveryTest"        // Name of service.
 	EndpointsID = "awsendpointdiscoverytestservice" // ID to lookup a service endpoint with.
-	ServiceID   = "AwsEndpointDiscoveryTest"        // ServiceID is a unique identifer of a specific service.
+	ServiceID   = "AwsEndpointDiscoveryTest"        // ServiceID is a unique identifier of a specific service.
 )
 
 // New creates a new instance of the AwsEndpointDiscoveryTest client with a session.
@@ -41,6 +41,8 @@ const (
 // aws.Config parameter to add your extra config.
 //
 // Example:
+//     mySession := session.Must(session.NewSession())
+//
 //     // Create a AwsEndpointDiscoveryTest client from just a session.
 //     svc := awsendpointdiscoverytest.New(mySession)
 //
@@ -51,11 +53,11 @@ func New(p client.ConfigProvider, cfgs ...*aws.Config) *AwsEndpointDiscoveryTest
 	if c.SigningNameDerived || len(c.SigningName) == 0 {
 		c.SigningName = "awsendpointdiscoverytestservice"
 	}
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
+	return newClient(*c.Config, c.Handlers, c.PartitionID, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *AwsEndpointDiscoveryTest {
+func newClient(cfg aws.Config, handlers request.Handlers, partitionID, endpoint, signingRegion, signingName string) *AwsEndpointDiscoveryTest {
 	svc := &AwsEndpointDiscoveryTest{
 		Client: client.New(
 			cfg,
@@ -64,6 +66,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 				ServiceID:     ServiceID,
 				SigningName:   signingName,
 				SigningRegion: signingRegion,
+				PartitionID:   partitionID,
 				Endpoint:      endpoint,
 				APIVersion:    "2018-08-31",
 				JSONVersion:   "1.1",

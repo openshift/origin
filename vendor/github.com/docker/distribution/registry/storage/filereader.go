@@ -2,9 +2,11 @@ package storage
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 )
@@ -40,17 +42,12 @@ type fileReader struct {
 // call. The reader operates optimistically, assuming that the file is already
 // there.
 func newFileReader(ctx context.Context, driver storagedriver.StorageDriver, path string, size int64) (*fileReader, error) {
-	fr := &fileReader{
+	return &fileReader{
 		ctx:    ctx,
 		driver: driver,
 		path:   path,
 		size:   size,
-	}
-	_, err := fr.reader()
-	if err != nil {
-		return nil, err
-	}
-	return fr, nil
+	}, nil
 }
 
 func (fr *fileReader) Read(p []byte) (n int, err error) {
@@ -123,7 +120,16 @@ func (fr *fileReader) reader() (io.Reader, error) {
 	// If we don't have a reader, open one up.
 	rc, err := fr.driver.Reader(fr.ctx, fr.path, fr.offset)
 	if err != nil {
-		return nil, err
+		switch err := err.(type) {
+		case storagedriver.PathNotFoundError:
+			// NOTE(stevvooe): If the path is not found, we simply return a
+			// reader that returns io.EOF. However, we do not set fr.rc,
+			// allowing future attempts at getting a reader to possibly
+			// succeed if the file turns up later.
+			return ioutil.NopCloser(bytes.NewReader([]byte{})), nil
+		default:
+			return nil, err
+		}
 	}
 
 	fr.rc = rc

@@ -19,7 +19,7 @@ dependencies:
     - path: cmd/kubeadm/app/constants/constants.go
     - path: hack/lib/etcd.sh
       match: ETCD_VERSION=
-    - path: staging/src/k8s.io/sample-apiserver/artifacts/example/rc.yaml
+    - path: staging/src/k8s.io/sample-apiserver/artifacts/example/deployment.yaml
       match: quay.io/coreos/etcd
     - path: test/e2e/framework/nodes_util.go
       match: const etcdImage
@@ -32,7 +32,7 @@ dependencies:
 
 
   - name: "golang"
-    version: 1.13.5
+    version: 1.13.8
     refPaths:
     - path: build/build-image/cross/Dockerfile
       match: "golang:"
@@ -44,18 +44,16 @@ dependencies:
 
 
   - name: "cni"
-    version: 0.7.5
+    version: 0.8.5
     refPaths:
     - path: build/debian-hyperkube-base/Makefile
       match: CNI_VERSION=
-    - path: build/rpms/kubeadm.spec
-      match: kubernetes-cni
-    - path: build/rpms/kubelet.spec
-      match: kubernetes-cni
     - path: build/workspace.bzl
       match: CNI_VERSION =
     - path: cluster/gce/gci/configure.sh
       match: DEFAULT_CNI_VERSION=
+    - path: cluster/gce/config-common.sh
+      match: WINDOWS_CNI_VERSION=
     - path: test/e2e_node/remote/utils.go
       match: cniVersion[\t\n\f\r ]*=
 
@@ -71,15 +69,17 @@ dependencies:
       match: k8s.gcr.io/coredns
 
   - name: "coredns-kubeadm"
-    version: 1.6.5
+    version: 1.6.7
     refPaths:
     - path: cmd/kubeadm/app/constants/constants.go
       match: CoreDNSVersion =
 
   - name: "crictl"
-    version: 1.16.1
+    version: 1.17.0
     refPaths:
     - path: build/workspace.bzl
       match: CRI_TOOLS_VERSION =
     - path: cluster/gce/gci/configure.sh
       match: DEFAULT_CRICTL_VERSION=
+    - path: cluster/gce/windows/k8s-node-setup.psm1
+      match: CRICTL_VERSION =

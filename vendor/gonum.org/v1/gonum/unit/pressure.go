@@ -16,29 +16,7 @@ import (
 // Pressure represents a pressure in Pascals.
 type Pressure float64
 
-const (
-	Yottapascal Pressure = 1e24
-	Zettapascal Pressure = 1e21
-	Exapascal   Pressure = 1e18
-	Petapascal  Pressure = 1e15
-	Terapascal  Pressure = 1e12
-	Gigapascal  Pressure = 1e9
-	Megapascal  Pressure = 1e6
-	Kilopascal  Pressure = 1e3
-	Hectopascal Pressure = 1e2
-	Decapascal  Pressure = 1e1
-	Pascal      Pressure = 1.0
-	Decipascal  Pressure = 1e-1
-	Centipascal Pressure = 1e-2
-	Millipascal Pressure = 1e-3
-	Micropascal Pressure = 1e-6
-	Nanopascal  Pressure = 1e-9
-	Picopascal  Pressure = 1e-12
-	Femtopascal Pressure = 1e-15
-	Attopascal  Pressure = 1e-18
-	Zeptopascal Pressure = 1e-21
-	Yoctopascal Pressure = 1e-24
-)
+const Pascal Pressure = 1
 
 // Unit converts the Pressure to a *Unit
 func (pr Pressure) Unit() *Unit {

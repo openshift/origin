@@ -361,7 +361,7 @@ func (b *flockerVolumeMounter) SetUpAt(dir string, mounterArgs volume.MounterArg
 	}
 
 	if !b.readOnly {
-		volume.SetVolumeOwnership(b, mounterArgs.FsGroup)
+		volume.SetVolumeOwnership(b, mounterArgs.FsGroup, mounterArgs.FSGroupChangePolicy)
 	}
 
 	klog.V(4).Infof("successfully mounted %s", dir)
@@ -394,7 +394,6 @@ func (b *flockerVolumeMounter) updateDatasetPrimary(datasetUUID string, primaryU
 				datasetUUID, primaryUUID, err,
 			)
 		case <-tickChan.C:
-			break
 		}
 	}
 

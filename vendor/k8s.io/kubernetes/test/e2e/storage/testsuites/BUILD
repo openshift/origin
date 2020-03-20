@@ -45,11 +45,13 @@ go_library(
         "//staging/src/k8s.io/csi-translation-lib:go_default_library",
         "//staging/src/k8s.io/csi-translation-lib/plugins:go_default_library",
         "//test/e2e/framework:go_default_library",
+        "//test/e2e/framework/events:go_default_library",
         "//test/e2e/framework/metrics:go_default_library",
         "//test/e2e/framework/node:go_default_library",
         "//test/e2e/framework/pod:go_default_library",
         "//test/e2e/framework/podlogs:go_default_library",
         "//test/e2e/framework/pv:go_default_library",
+        "//test/e2e/framework/skipper:go_default_library",
         "//test/e2e/framework/volume:go_default_library",
         "//test/e2e/storage/testpatterns:go_default_library",
         "//test/e2e/storage/utils:go_default_library",
@@ -76,7 +78,13 @@ filegroup(
 
 go_test(
     name = "go_default_test",
-    srcs = ["base_test.go"],
+    srcs = [
+        "api_test.go",
+        "base_test.go",
+    ],
     embed = [":go_default_library"],
-    deps = ["//test/e2e/framework/volume:go_default_library"],
+    deps = [
+        "//test/e2e/framework/volume:go_default_library",
+        "//test/e2e/storage/testpatterns:go_default_library",
+    ],
 )

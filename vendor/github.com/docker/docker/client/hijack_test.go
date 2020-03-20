@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -11,9 +12,8 @@ import (
 
 	"github.com/docker/docker/api/server/httputils"
 	"github.com/docker/docker/api/types"
-	"github.com/gotestyourself/gotestyourself/assert"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
+	"gotest.tools/assert"
 )
 
 func TestTLSCloseWriter(t *testing.T) {
@@ -61,7 +61,7 @@ func TestTLSCloseWriter(t *testing.T) {
 			break
 		}
 	}
-	assert.Assert(t, err)
+	assert.NilError(t, err)
 
 	ts.Listener = l
 	defer l.Close()
@@ -76,13 +76,13 @@ func TestTLSCloseWriter(t *testing.T) {
 	defer ts.Close()
 
 	serverURL, err := url.Parse(ts.URL)
-	assert.Assert(t, err)
+	assert.NilError(t, err)
 
-	client, err := NewClient("tcp://"+serverURL.Host, "", ts.Client(), nil)
-	assert.Assert(t, err)
+	client, err := NewClientWithOpts(WithHost("tcp://"+serverURL.Host), WithHTTPClient(ts.Client()))
+	assert.NilError(t, err)
 
 	resp, err := client.postHijacked(context.Background(), "/asdf", url.Values{}, nil, map[string][]string{"Content-Type": {"text/plain"}})
-	assert.Assert(t, err)
+	assert.NilError(t, err)
 	defer resp.Close()
 
 	if _, ok := resp.Conn.(types.CloseWriter); !ok {
@@ -90,10 +90,10 @@ func TestTLSCloseWriter(t *testing.T) {
 	}
 
 	_, err = resp.Conn.Write([]byte("hello"))
-	assert.Assert(t, err)
+	assert.NilError(t, err)
 
 	b, err := ioutil.ReadAll(resp.Reader)
-	assert.Assert(t, err)
+	assert.NilError(t, err)
 	assert.Assert(t, string(b) == "hello")
 	assert.Assert(t, resp.CloseWrite())
 

@@ -18,10 +18,12 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"sort"
+	"strings"
 
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
@@ -30,10 +32,14 @@ import (
 	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	clientset "k8s.io/client-go/kubernetes"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1beta2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta2"
+	outputapischeme "k8s.io/kubernetes/cmd/kubeadm/app/apis/output/scheme"
+	outputapiv1alpha1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/output/v1alpha1"
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/options"
 	phaseutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/phases"
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
@@ -44,6 +50,7 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/phases/uploadconfig"
 	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util/output"
 	utilruntime "k8s.io/kubernetes/cmd/kubeadm/app/util/runtime"
 	utilsexec "k8s.io/utils/exec"
 )
@@ -116,7 +123,7 @@ func NewCmdConfigPrintJoinDefaults(out io.Writer) *cobra.Command {
 }
 
 func newCmdConfigPrintActionDefaults(out io.Writer, action string, configBytesProc func() ([]byte, error)) *cobra.Command {
-	componentConfigs := []string{}
+	kinds := []string{}
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s-defaults", action),
 		Short: fmt.Sprintf("Print default %s configuration, that can be used for 'kubeadm %s'", action, action),
@@ -127,11 +134,15 @@ func newCmdConfigPrintActionDefaults(out io.Writer, action string, configBytesPr
 			not perform the real computation for creating a token.
 		`), action, action, placeholderToken),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runConfigPrintActionDefaults(out, componentConfigs, configBytesProc)
+			groups, err := mapLegacyKindsToGroups(kinds)
+			if err != nil {
+				return err
+			}
+			return runConfigPrintActionDefaults(out, groups, configBytesProc)
 		},
 	}
-	cmd.Flags().StringSliceVar(&componentConfigs, "component-configs", componentConfigs,
-		fmt.Sprintf("A comma-separated list for component config API objects to print the default values for. Available values: %v. If this flag is not set, no component configs will be printed.", getSupportedComponentConfigAPIObjects()))
+	cmd.Flags().StringSliceVar(&kinds, "component-configs", kinds,
+		fmt.Sprintf("A comma-separated list for component config API objects to print the default values for. Available values: %v. If this flag is not set, no component configs will be printed.", getSupportedComponentConfigKinds()))
 	return cmd
 }
 
@@ -154,33 +165,47 @@ func runConfigPrintActionDefaults(out io.Writer, componentConfigs []string, conf
 	return nil
 }
 
-func getDefaultComponentConfigBytes(apiObject string) ([]byte, error) {
-	registration, ok := componentconfigs.Known[componentconfigs.RegistrationKind(apiObject)]
-	if !ok {
-		return []byte{}, errors.Errorf("--component-configs needs to contain some of %v", getSupportedComponentConfigAPIObjects())
-	}
-
+func getDefaultComponentConfigBytes(group string) ([]byte, error) {
 	defaultedInitConfig, err := getDefaultedInitConfig()
 	if err != nil {
 		return []byte{}, err
 	}
 
-	realObj, ok := registration.GetFromInternalConfig(&defaultedInitConfig.ClusterConfiguration)
+	componentCfg, ok := defaultedInitConfig.ComponentConfigs[group]
 	if !ok {
-		return []byte{}, errors.New("GetFromInternalConfig failed")
+		return []byte{}, errors.Errorf("cannot get defaulted config for component group %q", group)
 	}
 
-	return registration.Marshal(realObj)
+	return componentCfg.Marshal()
 }
 
-// getSupportedComponentConfigAPIObjects returns all currently supported component config API object names
-func getSupportedComponentConfigAPIObjects() []string {
+// legacyKindToGroupMap maps between the old API object types and the new way of specifying component configs (by group)
+var legacyKindToGroupMap = map[string]string{
+	"KubeletConfiguration":   componentconfigs.KubeletGroup,
+	"KubeProxyConfiguration": componentconfigs.KubeProxyGroup,
+}
+
+// getSupportedComponentConfigKinds returns all currently supported component config API object names
+func getSupportedComponentConfigKinds() []string {
 	objects := []string{}
-	for componentType := range componentconfigs.Known {
+	for componentType := range legacyKindToGroupMap {
 		objects = append(objects, string(componentType))
 	}
 	sort.Strings(objects)
 	return objects
+}
+
+func mapLegacyKindsToGroups(kinds []string) ([]string, error) {
+	groups := []string{}
+	for _, kind := range kinds {
+		group, ok := legacyKindToGroupMap[kind]
+		if ok {
+			groups = append(groups, group)
+		} else {
+			return nil, errors.Errorf("--component-configs needs to contain some of %v", getSupportedComponentConfigKinds())
+		}
+	}
+	return groups, nil
 }
 
 func getDefaultedInitConfig() (*kubeadmapi.InitConfiguration, error) {
@@ -414,7 +439,7 @@ func NewCmdConfigUploadFromFlags(out io.Writer, kubeConfigFile *string) *cobra.C
 func RunConfigView(out io.Writer, client clientset.Interface) error {
 
 	klog.V(1).Infoln("[config] getting the cluster configuration")
-	cfgConfigMap, err := client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Get(constants.KubeadmConfigConfigMap, metav1.GetOptions{})
+	cfgConfigMap, err := client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Get(context.TODO(), constants.KubeadmConfigConfigMap, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -508,6 +533,8 @@ func NewCmdConfigImagesList(out io.Writer, mockK8sVersion *string) *cobra.Comman
 		externalcfg.KubernetesVersion = *mockK8sVersion
 	}
 
+	outputFlags := output.NewOutputFlags(&imageTextPrintFlags{}).WithTypeSetter(outputapischeme.Scheme).WithDefaultOutput(output.TextOutput)
+
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "Print a list of images kubeadm will use. The configuration file is used in case any images or image repositories are customized",
@@ -517,14 +544,20 @@ func NewCmdConfigImagesList(out io.Writer, mockK8sVersion *string) *cobra.Comman
 				return err
 			}
 
+			printer, err := outputFlags.ToPrinter()
+			if err != nil {
+				return err
+			}
+
 			imagesList, err := NewImagesList(cfgPath, externalcfg)
 			if err != nil {
 				return err
 			}
 
-			return imagesList.Run(out)
+			return imagesList.Run(out, printer)
 		},
 	}
+	outputFlags.AddFlags(cmd)
 	AddImagesCommonConfigFlags(cmd.PersistentFlags(), externalcfg, &cfgPath, &featureGatesString)
 	return cmd
 }
@@ -553,11 +586,39 @@ type ImagesList struct {
 	cfg *kubeadmapi.InitConfiguration
 }
 
+// imageTextPrinter prints image info in a text form
+type imageTextPrinter struct {
+	output.TextPrinter
+}
+
+// PrintObj is an implementation of ResourcePrinter.PrintObj for plain text output
+func (itp *imageTextPrinter) PrintObj(obj runtime.Object, writer io.Writer) error {
+	var err error
+	if imgs, ok := obj.(*outputapiv1alpha1.Images); ok {
+		_, err = fmt.Fprintln(writer, strings.Join(imgs.Images, "\n"))
+	} else {
+		err = errors.New("unexpected object type")
+	}
+	return err
+}
+
+// imageTextPrintFlags provides flags necessary for printing image in a text form.
+type imageTextPrintFlags struct{}
+
+// ToPrinter returns kubeadm printer for the text output format
+func (ipf *imageTextPrintFlags) ToPrinter(outputFormat string) (output.Printer, error) {
+	if outputFormat == output.TextOutput {
+		return &imageTextPrinter{}, nil
+	}
+	return nil, genericclioptions.NoCompatiblePrinterError{OutputFormat: &outputFormat, AllowedFormats: []string{output.TextOutput}}
+}
+
 // Run runs the images command and writes the result to the io.Writer passed in
-func (i *ImagesList) Run(out io.Writer) error {
+func (i *ImagesList) Run(out io.Writer, printer output.Printer) error {
 	imgs := images.GetControlPlaneImages(&i.cfg.ClusterConfiguration)
-	for _, img := range imgs {
-		fmt.Fprintln(out, img)
+
+	if err := printer.PrintObj(&outputapiv1alpha1.Images{Images: imgs}, out); err != nil {
+		return errors.Wrap(err, "unable to print images")
 	}
 
 	return nil

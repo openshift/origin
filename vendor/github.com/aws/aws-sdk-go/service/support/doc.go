@@ -47,9 +47,9 @@
 //    of one or more checks.
 //
 // For authentication of requests, AWS Support uses Signature Version 4 Signing
-// Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+// Process (https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 //
-// See About the AWS Support API (http://docs.aws.amazon.com/awssupport/latest/user/Welcome.html)
+// See About the AWS Support API (https://docs.aws.amazon.com/awssupport/latest/user/Welcome.html)
 // in the AWS Support User Guide for information about how to use this service
 // to create and manage your support cases, and how to call Trusted Advisor
 // for results of checks on your resources.

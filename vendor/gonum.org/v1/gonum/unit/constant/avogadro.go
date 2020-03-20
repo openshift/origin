@@ -13,8 +13,8 @@ import (
 )
 
 // Avogadro is the Avogadro constant (A), the number of constituent particles contained in one mole of a substance.
-// The dimension of Avogadro is mol^-1. The standard uncertainty of the constant is 7.4e+15 mol^-1.
-const Avogadro = avogadroUnits(6.022140857e+23)
+// The dimension of Avogadro is mol^-1. The constant is exact.
+const Avogadro = avogadroUnits(6.02214076e+23)
 
 type avogadroUnits float64
 

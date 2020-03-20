@@ -45,6 +45,24 @@
         {"shape":"AccessDeniedException"}
       ]
     },
+    "CopyWorkspaceImage":{
+      "name":"CopyWorkspaceImage",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CopyWorkspaceImageRequest"},
+      "output":{"shape":"CopyWorkspaceImageResult"},
+      "errors":[
+        {"shape":"ResourceLimitExceededException"},
+        {"shape":"ResourceAlreadyExistsException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ResourceUnavailableException"},
+        {"shape":"OperationNotSupportedException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"InvalidParameterValuesException"}
+      ]
+    },
     "CreateIpGroup":{
       "name":"CreateIpGroup",
       "http":{
@@ -128,6 +146,22 @@
         {"shape":"ResourceAssociatedException"},
         {"shape":"InvalidResourceStateException"},
         {"shape":"AccessDeniedException"}
+      ]
+    },
+    "DeregisterWorkspaceDirectory":{
+      "name":"DeregisterWorkspaceDirectory",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeregisterWorkspaceDirectoryRequest"},
+      "output":{"shape":"DeregisterWorkspaceDirectoryResult"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"InvalidParameterValuesException"},
+        {"shape":"OperationNotSupportedException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidResourceStateException"}
       ]
     },
     "DescribeAccount":{
@@ -229,6 +263,20 @@
         {"shape":"AccessDeniedException"}
       ]
     },
+    "DescribeWorkspaceSnapshots":{
+      "name":"DescribeWorkspaceSnapshots",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeWorkspaceSnapshotsRequest"},
+      "output":{"shape":"DescribeWorkspaceSnapshotsResult"},
+      "errors":[
+        {"shape":"InvalidParameterValuesException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"AccessDeniedException"}
+      ]
+    },
     "DescribeWorkspaces":{
       "name":"DescribeWorkspaces",
       "http":{
@@ -282,7 +330,8 @@
         {"shape":"ResourceAlreadyExistsException"},
         {"shape":"ResourceNotFoundException"},
         {"shape":"OperationNotSupportedException"},
-        {"shape":"AccessDeniedException"}
+        {"shape":"AccessDeniedException"},
+        {"shape":"InvalidParameterValuesException"}
       ]
     },
     "ListAvailableManagementCidrRanges":{
@@ -296,6 +345,23 @@
       "errors":[
         {"shape":"InvalidParameterValuesException"},
         {"shape":"AccessDeniedException"}
+      ]
+    },
+    "MigrateWorkspace":{
+      "name":"MigrateWorkspace",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"MigrateWorkspaceRequest"},
+      "output":{"shape":"MigrateWorkspaceResult"},
+      "errors":[
+        {"shape":"InvalidParameterValuesException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"OperationNotSupportedException"},
+        {"shape":"OperationInProgressException"},
+        {"shape":"ResourceUnavailableException"}
       ]
     },
     "ModifyAccount":{
@@ -326,6 +392,47 @@
         {"shape":"InvalidParameterValuesException"},
         {"shape":"ResourceNotFoundException"},
         {"shape":"AccessDeniedException"}
+      ]
+    },
+    "ModifySelfservicePermissions":{
+      "name":"ModifySelfservicePermissions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ModifySelfservicePermissionsRequest"},
+      "output":{"shape":"ModifySelfservicePermissionsResult"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"InvalidParameterValuesException"},
+        {"shape":"ResourceNotFoundException"}
+      ]
+    },
+    "ModifyWorkspaceAccessProperties":{
+      "name":"ModifyWorkspaceAccessProperties",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ModifyWorkspaceAccessPropertiesRequest"},
+      "output":{"shape":"ModifyWorkspaceAccessPropertiesResult"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"AccessDeniedException"}
+      ]
+    },
+    "ModifyWorkspaceCreationProperties":{
+      "name":"ModifyWorkspaceCreationProperties",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ModifyWorkspaceCreationPropertiesRequest"},
+      "output":{"shape":"ModifyWorkspaceCreationPropertiesResult"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"InvalidParameterValuesException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "ModifyWorkspaceProperties":{
@@ -377,6 +484,39 @@
       },
       "input":{"shape":"RebuildWorkspacesRequest"},
       "output":{"shape":"RebuildWorkspacesResult"}
+    },
+    "RegisterWorkspaceDirectory":{
+      "name":"RegisterWorkspaceDirectory",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"RegisterWorkspaceDirectoryRequest"},
+      "output":{"shape":"RegisterWorkspaceDirectoryResult"},
+      "errors":[
+        {"shape":"InvalidParameterValuesException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ResourceLimitExceededException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"WorkspacesDefaultRoleNotFoundException"},
+        {"shape":"InvalidResourceStateException"},
+        {"shape":"UnsupportedNetworkConfigurationException"},
+        {"shape":"OperationNotSupportedException"}
+      ]
+    },
+    "RestoreWorkspace":{
+      "name":"RestoreWorkspace",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"RestoreWorkspaceRequest"},
+      "output":{"shape":"RestoreWorkspaceResult"},
+      "errors":[
+        {"shape":"InvalidParameterValuesException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"AccessDeniedException"}
+      ]
     },
     "RevokeIpRules":{
       "name":"RevokeIpRules",
@@ -448,6 +588,13 @@
         "message":{"shape":"ExceptionMessage"}
       },
       "exception":true
+    },
+    "AccessPropertyValue":{
+      "type":"string",
+      "enum":[
+        "ALLOW",
+        "DENY"
+      ]
     },
     "AccountModification":{
       "type":"structure",
@@ -557,13 +704,35 @@
         "UNKNOWN"
       ]
     },
+    "CopyWorkspaceImageRequest":{
+      "type":"structure",
+      "required":[
+        "Name",
+        "SourceImageId",
+        "SourceRegion"
+      ],
+      "members":{
+        "Name":{"shape":"WorkspaceImageName"},
+        "Description":{"shape":"WorkspaceImageDescription"},
+        "SourceImageId":{"shape":"WorkspaceImageId"},
+        "SourceRegion":{"shape":"Region"},
+        "Tags":{"shape":"TagList"}
+      }
+    },
+    "CopyWorkspaceImageResult":{
+      "type":"structure",
+      "members":{
+        "ImageId":{"shape":"WorkspaceImageId"}
+      }
+    },
     "CreateIpGroupRequest":{
       "type":"structure",
       "required":["GroupName"],
       "members":{
         "GroupName":{"shape":"IpGroupName"},
         "GroupDesc":{"shape":"IpGroupDesc"},
-        "UserRules":{"shape":"IpRuleList"}
+        "UserRules":{"shape":"IpRuleList"},
+        "Tags":{"shape":"TagList"}
       }
     },
     "CreateIpGroupResult":{
@@ -637,7 +806,8 @@
         "EnableInternetAccess":{"shape":"BooleanObject"},
         "DefaultOu":{"shape":"DefaultOu"},
         "CustomSecurityGroupId":{"shape":"SecurityGroupId"},
-        "UserEnabledAsLocalAdministrator":{"shape":"BooleanObject"}
+        "UserEnabledAsLocalAdministrator":{"shape":"BooleanObject"},
+        "EnableMaintenanceMode":{"shape":"BooleanObject"}
       }
     },
     "DeleteIpGroupRequest":{
@@ -676,6 +846,18 @@
       }
     },
     "DeleteWorkspaceImageResult":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DeregisterWorkspaceDirectoryRequest":{
+      "type":"structure",
+      "required":["DirectoryId"],
+      "members":{
+        "DirectoryId":{"shape":"DirectoryId"}
+      }
+    },
+    "DeregisterWorkspaceDirectoryResult":{
       "type":"structure",
       "members":{
       }
@@ -765,6 +947,7 @@
       "type":"structure",
       "members":{
         "DirectoryIds":{"shape":"DirectoryIdList"},
+        "Limit":{"shape":"Limit"},
         "NextToken":{"shape":"PaginationToken"}
       }
     },
@@ -788,6 +971,20 @@
       "members":{
         "Images":{"shape":"WorkspaceImageList"},
         "NextToken":{"shape":"PaginationToken"}
+      }
+    },
+    "DescribeWorkspaceSnapshotsRequest":{
+      "type":"structure",
+      "required":["WorkspaceId"],
+      "members":{
+        "WorkspaceId":{"shape":"WorkspaceId"}
+      }
+    },
+    "DescribeWorkspaceSnapshotsResult":{
+      "type":"structure",
+      "members":{
+        "RebuildSnapshots":{"shape":"SnapshotList"},
+        "RestoreSnapshots":{"shape":"SnapshotList"}
       }
     },
     "DescribeWorkspacesConnectionStatusRequest":{
@@ -825,6 +1022,8 @@
     "Description":{"type":"string"},
     "DirectoryId":{
       "type":"string",
+      "max":65,
+      "min":10,
       "pattern":"^d-[0-9a-f]{8,63}$"
     },
     "DirectoryIdList":{
@@ -916,7 +1115,8 @@
         "Ec2ImageId":{"shape":"Ec2ImageId"},
         "IngestionProcess":{"shape":"WorkspaceImageIngestionProcess"},
         "ImageName":{"shape":"WorkspaceImageName"},
-        "ImageDescription":{"shape":"WorkspaceImageDescription"}
+        "ImageDescription":{"shape":"WorkspaceImageDescription"},
+        "Tags":{"shape":"TagList"}
       }
     },
     "ImportWorkspaceImageResult":{
@@ -997,6 +1197,24 @@
       "max":5,
       "min":1
     },
+    "MigrateWorkspaceRequest":{
+      "type":"structure",
+      "required":[
+        "SourceWorkspaceId",
+        "BundleId"
+      ],
+      "members":{
+        "SourceWorkspaceId":{"shape":"WorkspaceId"},
+        "BundleId":{"shape":"BundleId"}
+      }
+    },
+    "MigrateWorkspaceResult":{
+      "type":"structure",
+      "members":{
+        "SourceWorkspaceId":{"shape":"WorkspaceId"},
+        "TargetWorkspaceId":{"shape":"WorkspaceId"}
+      }
+    },
     "ModificationResourceEnum":{
       "type":"string",
       "enum":[
@@ -1037,13 +1255,64 @@
     },
     "ModifyClientPropertiesRequest":{
       "type":"structure",
-      "required":["ResourceId"],
+      "required":[
+        "ResourceId",
+        "ClientProperties"
+      ],
       "members":{
         "ResourceId":{"shape":"NonEmptyString"},
         "ClientProperties":{"shape":"ClientProperties"}
       }
     },
     "ModifyClientPropertiesResult":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "ModifySelfservicePermissionsRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceId",
+        "SelfservicePermissions"
+      ],
+      "members":{
+        "ResourceId":{"shape":"DirectoryId"},
+        "SelfservicePermissions":{"shape":"SelfservicePermissions"}
+      }
+    },
+    "ModifySelfservicePermissionsResult":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "ModifyWorkspaceAccessPropertiesRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceId",
+        "WorkspaceAccessProperties"
+      ],
+      "members":{
+        "ResourceId":{"shape":"DirectoryId"},
+        "WorkspaceAccessProperties":{"shape":"WorkspaceAccessProperties"}
+      }
+    },
+    "ModifyWorkspaceAccessPropertiesResult":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "ModifyWorkspaceCreationPropertiesRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceId",
+        "WorkspaceCreationProperties"
+      ],
+      "members":{
+        "ResourceId":{"shape":"DirectoryId"},
+        "WorkspaceCreationProperties":{"shape":"WorkspaceCreationProperties"}
+      }
+    },
+    "ModifyWorkspaceCreationPropertiesResult":{
       "type":"structure",
       "members":{
       }
@@ -1175,6 +1444,32 @@
         "DISABLED"
       ]
     },
+    "Region":{
+      "type":"string",
+      "max":31,
+      "min":1,
+      "pattern":"^[-0-9a-z]{1,31}$"
+    },
+    "RegisterWorkspaceDirectoryRequest":{
+      "type":"structure",
+      "required":[
+        "DirectoryId",
+        "EnableWorkDocs"
+      ],
+      "members":{
+        "DirectoryId":{"shape":"DirectoryId"},
+        "SubnetIds":{"shape":"SubnetIds"},
+        "EnableWorkDocs":{"shape":"BooleanObject"},
+        "EnableSelfService":{"shape":"BooleanObject"},
+        "Tenancy":{"shape":"Tenancy"},
+        "Tags":{"shape":"TagList"}
+      }
+    },
+    "RegisterWorkspaceDirectoryResult":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "RegistrationCode":{
       "type":"string",
       "max":20,
@@ -1230,6 +1525,18 @@
       },
       "exception":true
     },
+    "RestoreWorkspaceRequest":{
+      "type":"structure",
+      "required":["WorkspaceId"],
+      "members":{
+        "WorkspaceId":{"shape":"WorkspaceId"}
+      }
+    },
+    "RestoreWorkspaceResult":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "RevokeIpRulesRequest":{
       "type":"structure",
       "required":[
@@ -1263,7 +1570,29 @@
     "RunningModeAutoStopTimeoutInMinutes":{"type":"integer"},
     "SecurityGroupId":{
       "type":"string",
-      "pattern":"^(sg-[0-9a-f]{8})$"
+      "max":20,
+      "min":11,
+      "pattern":"^(sg-([0-9a-f]{8}|[0-9a-f]{17}))$"
+    },
+    "SelfservicePermissions":{
+      "type":"structure",
+      "members":{
+        "RestartWorkspace":{"shape":"ReconnectEnum"},
+        "IncreaseVolumeSize":{"shape":"ReconnectEnum"},
+        "ChangeComputeType":{"shape":"ReconnectEnum"},
+        "SwitchRunningMode":{"shape":"ReconnectEnum"},
+        "RebuildWorkspace":{"shape":"ReconnectEnum"}
+      }
+    },
+    "Snapshot":{
+      "type":"structure",
+      "members":{
+        "SnapshotTime":{"shape":"Timestamp"}
+      }
+    },
+    "SnapshotList":{
+      "type":"list",
+      "member":{"shape":"Snapshot"}
     },
     "StartRequest":{
       "type":"structure",
@@ -1317,11 +1646,14 @@
     },
     "SubnetId":{
       "type":"string",
-      "pattern":"^(subnet-[0-9a-f]{8})$"
+      "max":24,
+      "min":15,
+      "pattern":"^(subnet-([0-9a-f]{8}|[0-9a-f]{17}))$"
     },
     "SubnetIds":{
       "type":"list",
-      "member":{"shape":"SubnetId"}
+      "member":{"shape":"SubnetId"},
+      "max":2
     },
     "Tag":{
       "type":"structure",
@@ -1355,6 +1687,13 @@
         "ADMIN_MAINTENANCE"
       ]
     },
+    "Tenancy":{
+      "type":"string",
+      "enum":[
+        "DEDICATED",
+        "SHARED"
+      ]
+    },
     "TerminateRequest":{
       "type":"structure",
       "required":["WorkspaceId"],
@@ -1382,6 +1721,13 @@
       }
     },
     "Timestamp":{"type":"timestamp"},
+    "UnsupportedNetworkConfigurationException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ExceptionMessage"}
+      },
+      "exception":true
+    },
     "UnsupportedWorkspaceConfigurationException":{
       "type":"structure",
       "members":{
@@ -1438,6 +1784,18 @@
         "ModificationStates":{"shape":"ModificationStateList"}
       }
     },
+    "WorkspaceAccessProperties":{
+      "type":"structure",
+      "members":{
+        "DeviceTypeWindows":{"shape":"AccessPropertyValue"},
+        "DeviceTypeOsx":{"shape":"AccessPropertyValue"},
+        "DeviceTypeWeb":{"shape":"AccessPropertyValue"},
+        "DeviceTypeIos":{"shape":"AccessPropertyValue"},
+        "DeviceTypeAndroid":{"shape":"AccessPropertyValue"},
+        "DeviceTypeChromeOs":{"shape":"AccessPropertyValue"},
+        "DeviceTypeZeroClient":{"shape":"AccessPropertyValue"}
+      }
+    },
     "WorkspaceBundle":{
       "type":"structure",
       "members":{
@@ -1445,9 +1803,11 @@
         "Name":{"shape":"NonEmptyString"},
         "Owner":{"shape":"BundleOwner"},
         "Description":{"shape":"Description"},
+        "ImageId":{"shape":"WorkspaceImageId"},
         "RootStorage":{"shape":"RootStorage"},
         "UserStorage":{"shape":"UserStorage"},
-        "ComputeType":{"shape":"ComputeType"}
+        "ComputeType":{"shape":"ComputeType"},
+        "LastUpdatedTime":{"shape":"Timestamp"}
       }
     },
     "WorkspaceConnectionStatus":{
@@ -1462,6 +1822,16 @@
     "WorkspaceConnectionStatusList":{
       "type":"list",
       "member":{"shape":"WorkspaceConnectionStatus"}
+    },
+    "WorkspaceCreationProperties":{
+      "type":"structure",
+      "members":{
+        "EnableInternetAccess":{"shape":"BooleanObject"},
+        "DefaultOu":{"shape":"DefaultOu"},
+        "CustomSecurityGroupId":{"shape":"SecurityGroupId"},
+        "UserEnabledAsLocalAdministrator":{"shape":"BooleanObject"},
+        "EnableMaintenanceMode":{"shape":"BooleanObject"}
+      }
     },
     "WorkspaceDirectory":{
       "type":"structure",
@@ -1478,7 +1848,10 @@
         "WorkspaceSecurityGroupId":{"shape":"SecurityGroupId"},
         "State":{"shape":"WorkspaceDirectoryState"},
         "WorkspaceCreationProperties":{"shape":"DefaultWorkspaceCreationProperties"},
-        "ipGroupIds":{"shape":"IpGroupIdList"}
+        "ipGroupIds":{"shape":"IpGroupIdList"},
+        "WorkspaceAccessProperties":{"shape":"WorkspaceAccessProperties"},
+        "Tenancy":{"shape":"Tenancy"},
+        "SelfservicePermissions":{"shape":"SelfservicePermissions"}
       }
     },
     "WorkspaceDirectoryState":{
@@ -1620,6 +1993,7 @@
         "REBOOTING",
         "STARTING",
         "REBUILDING",
+        "RESTORING",
         "MAINTENANCE",
         "ADMIN_MAINTENANCE",
         "TERMINATING",
@@ -1630,6 +2004,13 @@
         "STOPPED",
         "ERROR"
       ]
+    },
+    "WorkspacesDefaultRoleNotFoundException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ExceptionMessage"}
+      },
+      "exception":true
     },
     "WorkspacesIpGroup":{
       "type":"structure",

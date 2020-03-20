@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -30,7 +31,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	e2eservice "k8s.io/kubernetes/test/e2e/framework/service"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 
 	"github.com/onsi/ginkgo"
@@ -68,7 +69,7 @@ func checkConnectivityToHost(f *framework.Framework, nodeName, podName, host str
 		},
 	}
 	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
-	_, err := podClient.Create(pod)
+	_, err := podClient.Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -112,7 +113,7 @@ var _ = SIGDescribe("Networking", func() {
 
 	ginkgo.It("should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly]", func() {
 		// IPv6 is not supported on Windows.
-		framework.SkipIfNodeOSDistroIs("windows")
+		e2eskipper.SkipIfNodeOSDistroIs("windows")
 		ginkgo.By("Running container which tries to connect to 2001:4860:4860::8888")
 		framework.ExpectNoError(
 			checkConnectivityToHost(f, "", "connectivity-test", "2001:4860:4860::8888", 53, 30))
@@ -138,7 +139,7 @@ var _ = SIGDescribe("Networking", func() {
 			ginkgo.By(fmt.Sprintf("testing: %s", test.path))
 			data, err := f.ClientSet.CoreV1().RESTClient().Get().
 				AbsPath(test.path).
-				DoRaw()
+				DoRaw(context.TODO())
 			if err != nil {
 				framework.Failf("ginkgo.Failed: %v\nBody: %s", err, string(data))
 			}
@@ -148,7 +149,7 @@ var _ = SIGDescribe("Networking", func() {
 	ginkgo.It("should check kube-proxy urls", func() {
 		// TODO: this is overkill we just need the host networking pod
 		// to hit kube-proxy urls.
-		config := e2enetwork.NewNetworkingTestConfig(f)
+		config := e2enetwork.NewNetworkingTestConfig(f, true)
 
 		ginkgo.By("checking kube-proxy URLs")
 		config.GetSelfURL(ports.ProxyHealthzPort, "/healthz", "200 OK")
@@ -161,7 +162,7 @@ var _ = SIGDescribe("Networking", func() {
 	ginkgo.Describe("Granular Checks: Services", func() {
 
 		ginkgo.It("should function for pod-Service: http", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, false)
 			ginkgo.By(fmt.Sprintf("dialing(http) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, e2enetwork.ClusterHTTPPort))
 			config.DialFromTestContainer("http", config.ClusterIP, e2enetwork.ClusterHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
 
@@ -170,7 +171,7 @@ var _ = SIGDescribe("Networking", func() {
 		})
 
 		ginkgo.It("should function for pod-Service: udp", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, false)
 			ginkgo.By(fmt.Sprintf("dialing(udp) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, e2enetwork.ClusterUDPPort))
 			config.DialFromTestContainer("udp", config.ClusterIP, e2enetwork.ClusterUDPPort, config.MaxTries, 0, config.EndpointHostnames())
 
@@ -179,7 +180,7 @@ var _ = SIGDescribe("Networking", func() {
 		})
 
 		ginkgo.It("should function for node-Service: http", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, true)
 			ginkgo.By(fmt.Sprintf("dialing(http) %v (node) --> %v:%v (config.clusterIP)", config.NodeIP, config.ClusterIP, e2enetwork.ClusterHTTPPort))
 			config.DialFromNode("http", config.ClusterIP, e2enetwork.ClusterHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
 
@@ -188,7 +189,7 @@ var _ = SIGDescribe("Networking", func() {
 		})
 
 		ginkgo.It("should function for node-Service: udp", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, true)
 			ginkgo.By(fmt.Sprintf("dialing(udp) %v (node) --> %v:%v (config.clusterIP)", config.NodeIP, config.ClusterIP, e2enetwork.ClusterUDPPort))
 			config.DialFromNode("udp", config.ClusterIP, e2enetwork.ClusterUDPPort, config.MaxTries, 0, config.EndpointHostnames())
 
@@ -197,7 +198,7 @@ var _ = SIGDescribe("Networking", func() {
 		})
 
 		ginkgo.It("should function for endpoint-Service: http", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, false)
 			ginkgo.By(fmt.Sprintf("dialing(http) %v (endpoint) --> %v:%v (config.clusterIP)", config.EndpointPods[0].Name, config.ClusterIP, e2enetwork.ClusterHTTPPort))
 			config.DialFromEndpointContainer("http", config.ClusterIP, e2enetwork.ClusterHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
 
@@ -206,7 +207,7 @@ var _ = SIGDescribe("Networking", func() {
 		})
 
 		ginkgo.It("should function for endpoint-Service: udp", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, false)
 			ginkgo.By(fmt.Sprintf("dialing(udp) %v (endpoint) --> %v:%v (config.clusterIP)", config.EndpointPods[0].Name, config.ClusterIP, e2enetwork.ClusterUDPPort))
 			config.DialFromEndpointContainer("udp", config.ClusterIP, e2enetwork.ClusterUDPPort, config.MaxTries, 0, config.EndpointHostnames())
 
@@ -215,7 +216,7 @@ var _ = SIGDescribe("Networking", func() {
 		})
 
 		ginkgo.It("should update endpoints: http", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, false)
 			ginkgo.By(fmt.Sprintf("dialing(http) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, e2enetwork.ClusterHTTPPort))
 			config.DialFromTestContainer("http", config.ClusterIP, e2enetwork.ClusterHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
 
@@ -226,7 +227,7 @@ var _ = SIGDescribe("Networking", func() {
 		})
 
 		ginkgo.It("should update endpoints: udp", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, false)
 			ginkgo.By(fmt.Sprintf("dialing(udp) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, e2enetwork.ClusterUDPPort))
 			config.DialFromTestContainer("udp", config.ClusterIP, e2enetwork.ClusterUDPPort, config.MaxTries, 0, config.EndpointHostnames())
 
@@ -238,7 +239,7 @@ var _ = SIGDescribe("Networking", func() {
 
 		// Slow because we confirm that the nodePort doesn't serve traffic, which requires a period of polling.
 		ginkgo.It("should update nodePort: http [Slow]", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, true)
 			ginkgo.By(fmt.Sprintf("dialing(http) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeHTTPPort))
 			config.DialFromNode("http", config.NodeIP, config.NodeHTTPPort, config.MaxTries, 0, config.EndpointHostnames())
 
@@ -250,7 +251,7 @@ var _ = SIGDescribe("Networking", func() {
 
 		// Slow because we confirm that the nodePort doesn't serve traffic, which requires a period of polling.
 		ginkgo.It("should update nodePort: udp [Slow]", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, true)
 			ginkgo.By(fmt.Sprintf("dialing(udp) %v (node) --> %v:%v (nodeIP)", config.NodeIP, config.NodeIP, config.NodeUDPPort))
 			config.DialFromNode("udp", config.NodeIP, config.NodeUDPPort, config.MaxTries, 0, config.EndpointHostnames())
 
@@ -262,7 +263,7 @@ var _ = SIGDescribe("Networking", func() {
 
 		// [LinuxOnly]: Windows does not support session affinity.
 		ginkgo.It("should function for client IP based session affinity: http [LinuxOnly]", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, false)
 			ginkgo.By(fmt.Sprintf("dialing(http) %v --> %v:%v", config.TestContainerPod.Name, config.SessionAffinityService.Spec.ClusterIP, e2enetwork.ClusterHTTPPort))
 
 			// Check if number of endpoints returned are exactly one.
@@ -280,7 +281,7 @@ var _ = SIGDescribe("Networking", func() {
 
 		// [LinuxOnly]: Windows does not support session affinity.
 		ginkgo.It("should function for client IP based session affinity: udp [LinuxOnly]", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, false)
 			ginkgo.By(fmt.Sprintf("dialing(udp) %v --> %v:%v", config.TestContainerPod.Name, config.SessionAffinityService.Spec.ClusterIP, e2enetwork.ClusterUDPPort))
 
 			// Check if number of endpoints returned are exactly one.
@@ -297,14 +298,14 @@ var _ = SIGDescribe("Networking", func() {
 		})
 
 		ginkgo.It("should be able to handle large requests: http", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, false)
 			ginkgo.By(fmt.Sprintf("dialing(http) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, e2enetwork.ClusterHTTPPort))
 			message := strings.Repeat("42", 1000)
 			config.DialEchoFromTestContainer("http", config.ClusterIP, e2enetwork.ClusterHTTPPort, config.MaxTries, 0, message)
 		})
 
 		ginkgo.It("should be able to handle large requests: udp", func() {
-			config := e2enetwork.NewNetworkingTestConfig(f)
+			config := e2enetwork.NewNetworkingTestConfig(f, false)
 			ginkgo.By(fmt.Sprintf("dialing(udp) %v --> %v:%v (config.clusterIP)", config.TestContainerPod.Name, config.ClusterIP, e2enetwork.ClusterUDPPort))
 			message := "n" + strings.Repeat("o", 1999)
 			config.DialEchoFromTestContainer("udp", config.ClusterIP, e2enetwork.ClusterUDPPort, config.MaxTries, 0, message)
@@ -312,8 +313,8 @@ var _ = SIGDescribe("Networking", func() {
 	})
 
 	ginkgo.It("should recreate its iptables rules if they are deleted [Disruptive]", func() {
-		framework.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
-		framework.SkipUnlessSSHKeyPresent()
+		e2eskipper.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
+		e2eskipper.SkipUnlessSSHKeyPresent()
 
 		hosts, err := e2essh.NodeSSHHosts(f.ClientSet)
 		framework.ExpectNoError(err, "failed to find external/internal IPs for every node")
@@ -327,9 +328,9 @@ var _ = SIGDescribe("Networking", func() {
 		svc := "iptables-flush-test"
 
 		defer func() {
-			framework.ExpectNoError(e2eservice.StopServeHostnameService(f.ClientSet, ns, svc))
+			framework.ExpectNoError(StopServeHostnameService(f.ClientSet, ns, svc))
 		}()
-		podNames, svcIP, err := e2eservice.StartServeHostnameService(f.ClientSet, getServeHostnameService(svc), ns, numPods)
+		podNames, svcIP, err := StartServeHostnameService(f.ClientSet, getServeHostnameService(svc), ns, numPods)
 		framework.ExpectNoError(err, "failed to create replication controller with service: %s in the namespace: %s", svc, ns)
 
 		// Ideally we want to reload the system firewall, but we don't necessarily
@@ -377,7 +378,7 @@ var _ = SIGDescribe("Networking", func() {
 		}
 
 		ginkgo.By("verifying that kube-proxy rules are eventually recreated")
-		framework.ExpectNoError(e2eservice.VerifyServeHostnameServiceUp(f.ClientSet, ns, host, podNames, svcIP, servicePort))
+		framework.ExpectNoError(verifyServeHostnameServiceUp(f.ClientSet, ns, host, podNames, svcIP, servicePort))
 
 		ginkgo.By("verifying that kubelet rules are eventually recreated")
 		err = utilwait.PollImmediate(framework.Poll, framework.RestartNodeReadyAgainTimeout, func() (bool, error) {

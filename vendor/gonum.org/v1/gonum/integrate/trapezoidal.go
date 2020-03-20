@@ -6,33 +6,34 @@ package integrate
 
 import "sort"
 
-// Trapezoidal estimates the integral of a function f
+// Trapezoidal returns an approximate value of the integral
 //  \int_a^b f(x) dx
-// from a set of evaluations of the function using the trapezoidal rule.
-// The trapezoidal rule makes piecewise linear approximations to the function,
-// and estimates
+// computed using the trapezoidal rule. The function f is given as a slice of
+// samples evaluated at locations in x, that is,
+//  f[i] = f(x[i]), x[0] = a, x[len(x)-1] = b
+// The slice x must be sorted in strictly increasing order. x and f must be of
+// equal length and the length must be at least 2.
+//
+// The trapezoidal rule approximates f by a piecewise linear function and
+// estimates
 //  \int_x[i]^x[i+1] f(x) dx
 // as
 //  (x[i+1] - x[i]) * (f[i] + f[i+1])/2
-// where f[i] is the value of the function at x[i].
 // More details on the trapezoidal rule can be found at:
 // https://en.wikipedia.org/wiki/Trapezoidal_rule
-//
-// The (x,f) input data points must be sorted along x.
-// One can use github.com/gonum/stat.SortWeighted to do that.
-// The x and f slices must be of equal length and have length > 1.
 func Trapezoidal(x, f []float64) float64 {
+	n := len(x)
 	switch {
-	case len(x) != len(f):
+	case len(f) != n:
 		panic("integrate: slice length mismatch")
-	case len(x) < 2:
+	case n < 2:
 		panic("integrate: input data too small")
 	case !sort.Float64sAreSorted(x):
 		panic("integrate: input must be sorted")
 	}
 
 	integral := 0.0
-	for i := 0; i < len(x)-1; i++ {
+	for i := 0; i < n-1; i++ {
 		integral += 0.5 * (x[i+1] - x[i]) * (f[i+1] + f[i])
 	}
 

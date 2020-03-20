@@ -80,6 +80,14 @@ type CloudTrailAPI interface {
 	GetEventSelectorsWithContext(aws.Context, *cloudtrail.GetEventSelectorsInput, ...request.Option) (*cloudtrail.GetEventSelectorsOutput, error)
 	GetEventSelectorsRequest(*cloudtrail.GetEventSelectorsInput) (*request.Request, *cloudtrail.GetEventSelectorsOutput)
 
+	GetInsightSelectors(*cloudtrail.GetInsightSelectorsInput) (*cloudtrail.GetInsightSelectorsOutput, error)
+	GetInsightSelectorsWithContext(aws.Context, *cloudtrail.GetInsightSelectorsInput, ...request.Option) (*cloudtrail.GetInsightSelectorsOutput, error)
+	GetInsightSelectorsRequest(*cloudtrail.GetInsightSelectorsInput) (*request.Request, *cloudtrail.GetInsightSelectorsOutput)
+
+	GetTrail(*cloudtrail.GetTrailInput) (*cloudtrail.GetTrailOutput, error)
+	GetTrailWithContext(aws.Context, *cloudtrail.GetTrailInput, ...request.Option) (*cloudtrail.GetTrailOutput, error)
+	GetTrailRequest(*cloudtrail.GetTrailInput) (*request.Request, *cloudtrail.GetTrailOutput)
+
 	GetTrailStatus(*cloudtrail.GetTrailStatusInput) (*cloudtrail.GetTrailStatusOutput, error)
 	GetTrailStatusWithContext(aws.Context, *cloudtrail.GetTrailStatusInput, ...request.Option) (*cloudtrail.GetTrailStatusOutput, error)
 	GetTrailStatusRequest(*cloudtrail.GetTrailStatusInput) (*request.Request, *cloudtrail.GetTrailStatusOutput)
@@ -88,9 +96,22 @@ type CloudTrailAPI interface {
 	ListPublicKeysWithContext(aws.Context, *cloudtrail.ListPublicKeysInput, ...request.Option) (*cloudtrail.ListPublicKeysOutput, error)
 	ListPublicKeysRequest(*cloudtrail.ListPublicKeysInput) (*request.Request, *cloudtrail.ListPublicKeysOutput)
 
+	ListPublicKeysPages(*cloudtrail.ListPublicKeysInput, func(*cloudtrail.ListPublicKeysOutput, bool) bool) error
+	ListPublicKeysPagesWithContext(aws.Context, *cloudtrail.ListPublicKeysInput, func(*cloudtrail.ListPublicKeysOutput, bool) bool, ...request.Option) error
+
 	ListTags(*cloudtrail.ListTagsInput) (*cloudtrail.ListTagsOutput, error)
 	ListTagsWithContext(aws.Context, *cloudtrail.ListTagsInput, ...request.Option) (*cloudtrail.ListTagsOutput, error)
 	ListTagsRequest(*cloudtrail.ListTagsInput) (*request.Request, *cloudtrail.ListTagsOutput)
+
+	ListTagsPages(*cloudtrail.ListTagsInput, func(*cloudtrail.ListTagsOutput, bool) bool) error
+	ListTagsPagesWithContext(aws.Context, *cloudtrail.ListTagsInput, func(*cloudtrail.ListTagsOutput, bool) bool, ...request.Option) error
+
+	ListTrails(*cloudtrail.ListTrailsInput) (*cloudtrail.ListTrailsOutput, error)
+	ListTrailsWithContext(aws.Context, *cloudtrail.ListTrailsInput, ...request.Option) (*cloudtrail.ListTrailsOutput, error)
+	ListTrailsRequest(*cloudtrail.ListTrailsInput) (*request.Request, *cloudtrail.ListTrailsOutput)
+
+	ListTrailsPages(*cloudtrail.ListTrailsInput, func(*cloudtrail.ListTrailsOutput, bool) bool) error
+	ListTrailsPagesWithContext(aws.Context, *cloudtrail.ListTrailsInput, func(*cloudtrail.ListTrailsOutput, bool) bool, ...request.Option) error
 
 	LookupEvents(*cloudtrail.LookupEventsInput) (*cloudtrail.LookupEventsOutput, error)
 	LookupEventsWithContext(aws.Context, *cloudtrail.LookupEventsInput, ...request.Option) (*cloudtrail.LookupEventsOutput, error)
@@ -102,6 +123,10 @@ type CloudTrailAPI interface {
 	PutEventSelectors(*cloudtrail.PutEventSelectorsInput) (*cloudtrail.PutEventSelectorsOutput, error)
 	PutEventSelectorsWithContext(aws.Context, *cloudtrail.PutEventSelectorsInput, ...request.Option) (*cloudtrail.PutEventSelectorsOutput, error)
 	PutEventSelectorsRequest(*cloudtrail.PutEventSelectorsInput) (*request.Request, *cloudtrail.PutEventSelectorsOutput)
+
+	PutInsightSelectors(*cloudtrail.PutInsightSelectorsInput) (*cloudtrail.PutInsightSelectorsOutput, error)
+	PutInsightSelectorsWithContext(aws.Context, *cloudtrail.PutInsightSelectorsInput, ...request.Option) (*cloudtrail.PutInsightSelectorsOutput, error)
+	PutInsightSelectorsRequest(*cloudtrail.PutInsightSelectorsInput) (*request.Request, *cloudtrail.PutInsightSelectorsOutput)
 
 	RemoveTags(*cloudtrail.RemoveTagsInput) (*cloudtrail.RemoveTagsOutput, error)
 	RemoveTagsWithContext(aws.Context, *cloudtrail.RemoveTagsInput, ...request.Option) (*cloudtrail.RemoveTagsOutput, error)

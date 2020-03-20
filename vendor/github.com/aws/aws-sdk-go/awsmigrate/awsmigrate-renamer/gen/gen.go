@@ -114,7 +114,7 @@ func (p *pkg) buildRenames() {
 
 			for _, n := range entry.oldShape.MemberNames() {
 				for _, m := range entry.newShape.MemberNames() {
-					if n != m && strings.ToLower(n) == strings.ToLower(m) {
+					if n != m && strings.EqualFold(n, m) {
 						exportMap[pkgName].Fields[n] = m
 					}
 				}

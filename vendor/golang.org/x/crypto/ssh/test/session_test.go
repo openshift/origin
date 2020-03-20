@@ -217,28 +217,6 @@ func TestKeyChange(t *testing.T) {
 	}
 }
 
-func TestInvalidTerminalMode(t *testing.T) {
-	if runtime.GOOS == "aix" {
-		// On AIX, sshd cannot acquire /dev/pts/* if launched as
-		// a non-root user.
-		t.Skipf("skipping on %s", runtime.GOOS)
-	}
-	server := newServer(t)
-	defer server.Shutdown()
-	conn := server.Dial(clientConfig())
-	defer conn.Close()
-
-	session, err := conn.NewSession()
-	if err != nil {
-		t.Fatalf("session failed: %v", err)
-	}
-	defer session.Close()
-
-	if err = session.RequestPty("vt100", 80, 40, ssh.TerminalModes{255: 1984}); err == nil {
-		t.Fatalf("req-pty failed: successful request with invalid mode")
-	}
-}
-
 func TestValidTerminalMode(t *testing.T) {
 	if runtime.GOOS == "aix" {
 		// On AIX, sshd cannot acquire /dev/pts/* if launched as

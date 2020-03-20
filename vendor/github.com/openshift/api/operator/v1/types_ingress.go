@@ -335,7 +335,39 @@ type RouteAdmissionPolicy struct {
 	// If empty, the default is Strict.
 	// +optional
 	NamespaceOwnership NamespaceOwnershipCheck `json:"namespaceOwnership,omitempty"`
+	// wildcardPolicy describes how routes with wildcard policies should
+	// be handled for the ingress controller. WildcardPolicy controls use
+	// of routes [1] exposed by the ingress controller based on the route's
+	// wildcard policy.
+	//
+	// [1] https://github.com/openshift/api/blob/master/route/v1/types.go
+	//
+	// Note: Updating WildcardPolicy from WildcardsAllowed to WildcardsDisallowed
+	// will cause admitted routes with a wildcard policy of Subdomain to stop
+	// working. These routes must be updated to a wildcard policy of None to be
+	// readmitted by the ingress controller.
+	//
+	// WildcardPolicy supports WildcardsAllowed and WildcardsDisallowed values.
+	//
+	// If empty, defaults to "WildcardsDisallowed".
+	//
+	WildcardPolicy WildcardPolicy `json:"wildcardPolicy,omitempty"`
 }
+
+// WildcardPolicy is a route admission policy component that describes how
+// routes with a wildcard policy should be handled.
+// +kubebuilder:validation:Enum=WildcardsAllowed;WildcardsDisallowed
+type WildcardPolicy string
+
+const (
+	// WildcardPolicyAllowed indicates routes with any wildcard policy are
+	// admitted by the ingress controller.
+	WildcardPolicyAllowed WildcardPolicy = "WildcardsAllowed"
+
+	// WildcardPolicyDisallowed indicates only routes with a wildcard policy
+	// of None are admitted by the ingress controller.
+	WildcardPolicyDisallowed WildcardPolicy = "WildcardsDisallowed"
+)
 
 // NamespaceOwnershipCheck is a route admission policy component that describes
 // how host name claims across namespaces should be handled.

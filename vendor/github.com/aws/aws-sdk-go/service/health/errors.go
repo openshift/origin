@@ -2,7 +2,19 @@
 
 package health
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
+
+	// ErrCodeConcurrentModificationException for service response error code
+	// "ConcurrentModificationException".
+	//
+	// EnableHealthServiceAccessForOrganization is already in progress. Wait for
+	// the action to complete before trying again. To get the current status, use
+	// the DescribeHealthServiceStatusForOrganization operation.
+	ErrCodeConcurrentModificationException = "ConcurrentModificationException"
 
 	// ErrCodeInvalidPaginationToken for service response error code
 	// "InvalidPaginationToken".
@@ -16,3 +28,9 @@ const (
 	// The specified locale is not supported.
 	ErrCodeUnsupportedLocale = "UnsupportedLocale"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ConcurrentModificationException": newErrorConcurrentModificationException,
+	"InvalidPaginationToken":          newErrorInvalidPaginationToken,
+	"UnsupportedLocale":               newErrorUnsupportedLocale,
+}

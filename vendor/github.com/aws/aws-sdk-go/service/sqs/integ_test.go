@@ -27,7 +27,9 @@ func TestInteg_00_ListQueues(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := sqs.New(sess)
 	params := &sqs.ListQueuesInput{}
-	_, err := svc.ListQueuesWithContext(ctx, params)
+	_, err := svc.ListQueuesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_GetQueueUrl(t *testing.T) {
 	params := &sqs.GetQueueUrlInput{
 		QueueName: aws.String("fake_queue"),
 	}
-	_, err := svc.GetQueueUrlWithContext(ctx, params)
+	_, err := svc.GetQueueUrlWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

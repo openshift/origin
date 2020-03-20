@@ -363,7 +363,7 @@ var (
 		An: &types.Any{
 			TypeUrl: "type.googleapis.com/google.protobuf.Duration",
 			Value: []byte{
-				// &durpb.Duration{Seconds: 1, Nanos: 212000000 }
+				// &types.Duration{Seconds: 1, Nanos: 212000000 }
 				1 << 3, 1, // seconds
 				2 << 3, 0x80, 0xba, 0x8b, 0x65, // nanos
 			},
@@ -472,10 +472,18 @@ var marshalingTests = []struct {
 	{"Any with message and indent", marshalerAllOptions, anySimple, anySimplePrettyJSON},
 	{"Any with WKT", marshaler, anyWellKnown, anyWellKnownJSON},
 	{"Any with WKT and indent", marshalerAllOptions, anyWellKnown, anyWellKnownPrettyJSON},
-	{"Duration", marshaler, &pb.KnownTypes{Dur: &types.Duration{Seconds: 3}}, `{"dur":"3s"}`},
-	{"Duration", marshaler, &pb.KnownTypes{Dur: &types.Duration{Seconds: 3, Nanos: 1e6}}, `{"dur":"3.001s"}`},
-	{"Duration beyond float64 precision", marshaler, &pb.KnownTypes{Dur: &types.Duration{Seconds: 100000000, Nanos: 1}}, `{"dur":"100000000.000000001s"}`},
-	{"negative Duration", marshaler, &pb.KnownTypes{Dur: &types.Duration{Seconds: -123, Nanos: -456}}, `{"dur":"-123.000000456s"}`},
+	{"Duration empty", marshaler, &types.Duration{}, `"0s"`},
+	{"Duration with secs", marshaler, &types.Duration{Seconds: 3}, `"3s"`},
+	{"Duration with -secs", marshaler, &types.Duration{Seconds: -3}, `"-3s"`},
+	{"Duration with nanos", marshaler, &types.Duration{Nanos: 1e6}, `"0.001s"`},
+	{"Duration with -nanos", marshaler, &types.Duration{Nanos: -1e6}, `"-0.001s"`},
+	{"Duration with large secs", marshaler, &types.Duration{Seconds: 1e10, Nanos: 1}, `"10000000000.000000001s"`},
+	{"Duration with 6-digit nanos", marshaler, &types.Duration{Nanos: 1e4}, `"0.000010s"`},
+	{"Duration with 3-digit nanos", marshaler, &types.Duration{Nanos: 1e6}, `"0.001s"`},
+	{"Duration with -secs -nanos", marshaler, &types.Duration{Seconds: -123, Nanos: -450}, `"-123.000000450s"`},
+	{"Duration max value", marshaler, &types.Duration{Seconds: 315576000000, Nanos: 999999999}, `"315576000000.999999999s"`},
+	{"Duration small negative", marshaler, &types.Duration{Nanos: -1}, `"-0.000000001s"`},
+	{"Duration min value", marshaler, &types.Duration{Seconds: -315576000000, Nanos: -999999999}, `"-315576000000.999999999s"`},
 	{"Struct", marshaler, &pb.KnownTypes{St: &types.Struct{
 		Fields: map[string]*types.Value{
 			"one": {Kind: &types.Value_StringValue{StringValue: "loneliest number"}},
@@ -546,15 +554,17 @@ func TestMarshalIllegalTime(t *testing.T) {
 		pb   proto.Message
 		fail bool
 	}{
-		{&pb.KnownTypes{Dur: &types.Duration{Seconds: 1, Nanos: 0}}, false},
-		{&pb.KnownTypes{Dur: &types.Duration{Seconds: -1, Nanos: 0}}, false},
-		{&pb.KnownTypes{Dur: &types.Duration{Seconds: 1, Nanos: -1}}, true},
-		{&pb.KnownTypes{Dur: &types.Duration{Seconds: -1, Nanos: 1}}, true},
-		{&pb.KnownTypes{Dur: &types.Duration{Seconds: 1, Nanos: 1000000000}}, true},
-		{&pb.KnownTypes{Dur: &types.Duration{Seconds: -1, Nanos: -1000000000}}, true},
-		{&pb.KnownTypes{Ts: &types.Timestamp{Seconds: 1, Nanos: 1}}, false},
-		{&pb.KnownTypes{Ts: &types.Timestamp{Seconds: 1, Nanos: -1}}, true},
-		{&pb.KnownTypes{Ts: &types.Timestamp{Seconds: 1, Nanos: 1000000000}}, true},
+		{&types.Duration{Seconds: 1, Nanos: 0}, false},
+		{&types.Duration{Seconds: -1, Nanos: 0}, false},
+		{&types.Duration{Seconds: 1, Nanos: -1}, true},
+		{&types.Duration{Seconds: -1, Nanos: 1}, true},
+		{&types.Duration{Seconds: 315576000001}, true},
+		{&types.Duration{Seconds: -315576000001}, true},
+		{&types.Duration{Seconds: 1, Nanos: 1000000000}, true},
+		{&types.Duration{Seconds: -1, Nanos: -1000000000}, true},
+		{&types.Timestamp{Seconds: 1, Nanos: 1}, false},
+		{&types.Timestamp{Seconds: 1, Nanos: -1}, true},
+		{&types.Timestamp{Seconds: 1, Nanos: 1000000000}, true},
 	}
 	for _, tt := range tests {
 		_, err := marshaler.MarshalToString(tt.pb)
@@ -604,8 +614,7 @@ func TestMarshalAnyJSONPBMarshaler(t *testing.T) {
 		t.Errorf("an unexpected error occurred when marshalling Any to JSON: %v", err)
 	}
 	// same as expected above, but pretty-printed w/ indentation
-	expected =
-		`{
+	expected = `{
   "@type": "type.googleapis.com/` + dynamicMessageName + `",
   "baz": [
     0,

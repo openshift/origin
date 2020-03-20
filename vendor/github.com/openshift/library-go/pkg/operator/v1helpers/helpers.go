@@ -1,6 +1,7 @@
 package v1helpers
 
 import (
+	"errors"
 	"sort"
 	"strings"
 	"time"
@@ -260,6 +261,36 @@ func (agg aggregate) Error() string {
 // Errors is part of the Aggregate interface.
 func (agg aggregate) Errors() []error {
 	return []error(agg)
+}
+
+// Is is part of the Aggregate interface
+func (agg aggregate) Is(target error) bool {
+	return agg.visit(func(err error) bool {
+		return errors.Is(err, target)
+	})
+}
+
+func (agg aggregate) visit(f func(err error) bool) bool {
+	for _, err := range agg {
+		switch err := err.(type) {
+		case aggregate:
+			if match := err.visit(f); match {
+				return match
+			}
+		case utilerrors.Aggregate:
+			for _, nestedErr := range err.Errors() {
+				if match := f(nestedErr); match {
+					return match
+				}
+			}
+		default:
+			if match := f(err); match {
+				return match
+			}
+		}
+	}
+
+	return false
 }
 
 // MapToEnvVars converts a string-string map to a slice of corev1.EnvVar-s

@@ -8,75 +8,66 @@ import (
 	"math"
 	"testing"
 
-	"gonum.org/v1/gonum/floats"
+	"golang.org/x/exp/rand"
+
+	"gonum.org/v1/gonum/integrate/testquad"
 )
 
 func TestTrapezoidal(t *testing.T) {
-	const N = 1e6
-	x := floats.Span(make([]float64, N), 0, 1)
+	rnd := rand.New(rand.NewSource(1))
 	for i, test := range []struct {
-		x    []float64
-		f    func(x float64) float64
-		want float64
+		integral testquad.Integral
+		n        int
+		tol      float64
 	}{
-		{
-			x:    x,
-			f:    func(x float64) float64 { return x },
-			want: 0.5,
-		},
-		{
-			x:    floats.Span(make([]float64, N), -1, 1),
-			f:    func(x float64) float64 { return x },
-			want: 0,
-		},
-		{
-			x:    x,
-			f:    func(x float64) float64 { return x + 10 },
-			want: 10.5,
-		},
-		{
-			x:    x,
-			f:    func(x float64) float64 { return 3*x*x + 10 },
-			want: 11,
-		},
-		{
-			x:    x,
-			f:    func(x float64) float64 { return math.Exp(x) },
-			want: 1.7182818284591876,
-		},
-		{
-			x:    floats.Span(make([]float64, N), 0, math.Pi),
-			f:    func(x float64) float64 { return math.Cos(x) },
-			want: 0,
-		},
-		{
-			x:    floats.Span(make([]float64, N), 0, 2*math.Pi),
-			f:    func(x float64) float64 { return math.Cos(x) },
-			want: 0,
-		},
-		{
-			x:    floats.Span(make([]float64, N*10), 0, math.Pi),
-			f:    func(x float64) float64 { return math.Sin(x) },
-			want: 2,
-		},
-		{
-			x:    floats.Span(make([]float64, N*10), 0, 0.5*math.Pi),
-			f:    func(x float64) float64 { return math.Sin(x) },
-			want: 1,
-		},
-		{
-			x:    floats.Span(make([]float64, N), 0, 2*math.Pi),
-			f:    func(x float64) float64 { return math.Sin(x) },
-			want: 0,
-		},
+		{integral: testquad.Constant(0), n: 2, tol: 0},
+		{integral: testquad.Constant(0), n: 10, tol: 0},
+		{integral: testquad.Poly(0), n: 2, tol: 1e-14},
+		{integral: testquad.Poly(0), n: 10, tol: 1e-14},
+		{integral: testquad.Poly(1), n: 2, tol: 1e-14},
+		{integral: testquad.Poly(1), n: 10, tol: 1e-14},
+		{integral: testquad.Poly(2), n: 1e5, tol: 1e-8},
+		{integral: testquad.Poly(3), n: 1e5, tol: 1e-8},
+		{integral: testquad.Poly(4), n: 1e5, tol: 1e-7},
+		{integral: testquad.Poly(5), n: 1e5, tol: 1e-7},
+		{integral: testquad.Sin(), n: 1e5, tol: 1e-11},
+		{integral: testquad.XExpMinusX(), n: 1e5, tol: 1e-10},
+		{integral: testquad.Sqrt(), n: 1e5, tol: 1e-8},
+		{integral: testquad.ExpOverX2Plus1(), n: 1e5, tol: 1e-10},
 	} {
-		y := make([]float64, len(test.x))
-		for i, v := range test.x {
-			y[i] = test.f(v)
+		n := test.n
+		a := test.integral.A
+		b := test.integral.B
+
+		x := jitterSpan(n, a, b, rnd)
+		y := make([]float64, n)
+		for i, xi := range x {
+			y[i] = test.integral.F(xi)
 		}
-		v := Trapezoidal(test.x, y)
-		if !floats.EqualWithinAbs(v, test.want, 1e-12) {
-			t.Errorf("test #%d: got=%v want=%v\n", i, v, test.want)
+
+		got := Trapezoidal(x, y)
+
+		want := test.integral.Value
+		diff := math.Abs(got - want)
+		if diff > test.tol {
+			t.Errorf("Test #%d: %v, n=%v: unexpected result; got=%v want=%v diff=%v",
+				i, test.integral.Name, n, got, want, diff)
 		}
 	}
+}
+
+func jitterSpan(n int, a, b float64, rnd *rand.Rand) []float64 {
+	dx := (b - a) / float64(n-1)
+	x := make([]float64, n)
+	x[0] = a
+	for i := 1; i < n-1; i++ {
+		// Set x[i] to its regular location.
+		x[i] = a + float64(i)*dx
+		// Generate a random number in [-1,1).
+		jitter := 2*rnd.Float64() - 1
+		// Jitter x[i] without crossing over its neighbors.
+		x[i] += 0.4 * jitter * dx
+	}
+	x[n-1] = b
+	return x
 }

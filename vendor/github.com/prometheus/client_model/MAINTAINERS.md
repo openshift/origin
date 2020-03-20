@@ -1,1 +1,1 @@
-* Björn Rabenstein <beorn@soundcloud.com>
+* Björn Rabenstein <beorn@grafana.com> @beorn7

@@ -129,10 +129,11 @@ func TestStudentsTRand(t *testing.T) {
 		if !floats.EqualApprox(estMean, mean, 1e-2) {
 			t.Errorf("Mean mismatch: want: %v, got %v", test.mean, estMean)
 		}
-		cov := s.CovarianceMatrix(nil)
-		estCov := stat.CovarianceMatrix(nil, samps, nil)
-		if !mat.EqualApprox(estCov, cov, test.tolcov) {
-			t.Errorf("Case %d: Cov mismatch: want: %v, got %v", cas, cov, estCov)
+		var cov, estCov mat.SymDense
+		s.CovarianceMatrix(&cov)
+		stat.CovarianceMatrix(&estCov, samps, nil)
+		if !mat.EqualApprox(&estCov, &cov, test.tolcov) {
+			t.Errorf("Case %d: Cov mismatch: want: %v, got %v", cas, &cov, &estCov)
 		}
 	}
 }

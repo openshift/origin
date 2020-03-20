@@ -27,7 +27,9 @@ func TestInteg_00_ListPipelines(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := codepipeline.New(sess)
 	params := &codepipeline.ListPipelinesInput{}
-	_, err := svc.ListPipelinesWithContext(ctx, params)
+	_, err := svc.ListPipelinesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_GetPipeline(t *testing.T) {
 	params := &codepipeline.GetPipelineInput{
 		Name: aws.String("fake-pipeline"),
 	}
-	_, err := svc.GetPipelineWithContext(ctx, params)
+	_, err := svc.GetPipelineWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

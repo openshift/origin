@@ -5,12 +5,15 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/docker/docker/api/types"
-	"github.com/gotestyourself/gotestyourself/assert"
+	"github.com/docker/docker/errdefs"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 )
 
 // TestSetHostHeader should set fake host for local communications, set real host
@@ -86,4 +89,22 @@ func TestPlainTextError(t *testing.T) {
 	if err == nil || err.Error() != "Error response from daemon: Server error" {
 		t.Fatalf("expected a Server Error, got %v", err)
 	}
+	if !errdefs.IsSystem(err) {
+		t.Fatalf("expected a Server Error, got %T", err)
+	}
+}
+
+func TestInfiniteError(t *testing.T) {
+	infinitR := rand.New(rand.NewSource(42))
+	client := &Client{
+		client: newMockClient(func(req *http.Request) (*http.Response, error) {
+			resp := &http.Response{StatusCode: http.StatusInternalServerError}
+			resp.Header = http.Header{}
+			resp.Body = ioutil.NopCloser(infinitR)
+			return resp, nil
+		}),
+	}
+
+	_, err := client.Ping(context.Background())
+	assert.Check(t, is.ErrorContains(err, "request returned Internal Server Error"))
 }

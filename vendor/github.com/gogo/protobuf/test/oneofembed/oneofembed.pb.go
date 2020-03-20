@@ -20,7 +20,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Foo struct {
 	*Bar                 `protobuf:"bytes,1,opt,name=bar,proto3,embedded=bar" json:"bar,omitempty"`
@@ -90,13 +90,14 @@ var xxx_messageInfo_Bar proto.InternalMessageInfo
 type isBar_Pick interface {
 	isBar_Pick()
 	Equal(interface{}) bool
+	Compare(interface{}) int
 }
 
 type Bar_A struct {
-	A bool `protobuf:"varint,11,opt,name=a,proto3,oneof"`
+	A bool `protobuf:"varint,11,opt,name=a,proto3,oneof" json:"a,omitempty"`
 }
 type Bar_B struct {
-	B bool `protobuf:"varint,12,opt,name=b,proto3,oneof"`
+	B bool `protobuf:"varint,12,opt,name=b,proto3,oneof" json:"b,omitempty"`
 }
 
 func (*Bar_A) isBar_Pick() {}
@@ -123,76 +124,12 @@ func (m *Bar) GetB() bool {
 	return false
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Bar) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Bar_OneofMarshaler, _Bar_OneofUnmarshaler, _Bar_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Bar) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*Bar_A)(nil),
 		(*Bar_B)(nil),
 	}
-}
-
-func _Bar_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Bar)
-	// pick
-	switch x := m.Pick.(type) {
-	case *Bar_A:
-		t := uint64(0)
-		if x.A {
-			t = 1
-		}
-		_ = b.EncodeVarint(11<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(t)
-	case *Bar_B:
-		t := uint64(0)
-		if x.B {
-			t = 1
-		}
-		_ = b.EncodeVarint(12<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(t)
-	case nil:
-	default:
-		return fmt.Errorf("Bar.Pick has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Bar_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Bar)
-	switch tag {
-	case 11: // pick.a
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Pick = &Bar_A{x != 0}
-		return true, err
-	case 12: // pick.b
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Pick = &Bar_B{x != 0}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Bar_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Bar)
-	// pick
-	switch x := m.Pick.(type) {
-	case *Bar_A:
-		n += 1 // tag and wire
-		n += 1
-	case *Bar_B:
-		n += 1 // tag and wire
-		n += 1
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 func init() {
@@ -203,7 +140,7 @@ func init() {
 func init() { proto.RegisterFile("oneofembed.proto", fileDescriptor_70b95aca3b5d76ed) }
 
 var fileDescriptor_70b95aca3b5d76ed = []byte{
-	// 171 bytes of a gzipped FileDescriptorProto
+	// 175 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0xc8, 0xcf, 0x4b, 0xcd,
 	0x4f, 0x4b, 0xcd, 0x4d, 0x4a, 0x4d, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0x53,
 	0x52, 0xba, 0xe9, 0x99, 0x25, 0x19, 0xa5, 0x49, 0x7a, 0xc9, 0xf9, 0xb9, 0xfa, 0xe9, 0xf9, 0xe9,
@@ -212,11 +149,175 @@ var fileDescriptor_70b95aca3b5d76ed = []byte{
 	0x35, 0xb8, 0x8d, 0xb8, 0x20, 0x72, 0x7a, 0x4e, 0x89, 0x45, 0x4e, 0x2c, 0x17, 0xee, 0xc9, 0x33,
 	0x06, 0x81, 0x24, 0x95, 0x74, 0xb9, 0x98, 0x9d, 0x12, 0x8b, 0x84, 0xf8, 0xb8, 0x18, 0x13, 0x25,
 	0xb8, 0x15, 0x18, 0x35, 0x38, 0x3c, 0x18, 0x82, 0x18, 0x13, 0x41, 0xfc, 0x24, 0x09, 0x1e, 0x18,
-	0x3f, 0xc9, 0x89, 0x8d, 0x8b, 0xa5, 0x20, 0x33, 0x39, 0xdb, 0x89, 0xe7, 0xc7, 0x43, 0x39, 0xc6,
-	0x15, 0x8f, 0xe4, 0x18, 0x77, 0x3c, 0x92, 0x63, 0x4c, 0x62, 0x03, 0x1b, 0x69, 0x0c, 0x08, 0x00,
-	0x00, 0xff, 0xff, 0x56, 0x58, 0x05, 0x27, 0xb8, 0x00, 0x00, 0x00,
+	0x3f, 0xc9, 0x89, 0x8d, 0x8b, 0xa5, 0x20, 0x33, 0x39, 0xdb, 0x49, 0xe0, 0xc7, 0x43, 0x39, 0xc6,
+	0x15, 0x8f, 0xe4, 0x18, 0x77, 0x3c, 0x92, 0x63, 0x5c, 0xf1, 0x58, 0x8e, 0x31, 0x89, 0x0d, 0x6c,
+	0xac, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff, 0xe2, 0x9f, 0x49, 0x0a, 0xbc, 0x00, 0x00, 0x00,
 }
 
+func (this *Foo) Compare(that interface{}) int {
+	if that == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	}
+
+	that1, ok := that.(*Foo)
+	if !ok {
+		that2, ok := that.(Foo)
+		if ok {
+			that1 = &that2
+		} else {
+			return 1
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	} else if this == nil {
+		return -1
+	}
+	if c := this.Bar.Compare(that1.Bar); c != 0 {
+		return c
+	}
+	if c := bytes.Compare(this.XXX_unrecognized, that1.XXX_unrecognized); c != 0 {
+		return c
+	}
+	return 0
+}
+func (this *Bar) Compare(that interface{}) int {
+	if that == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	}
+
+	that1, ok := that.(*Bar)
+	if !ok {
+		that2, ok := that.(Bar)
+		if ok {
+			that1 = &that2
+		} else {
+			return 1
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	} else if this == nil {
+		return -1
+	}
+	if that1.Pick == nil {
+		if this.Pick != nil {
+			return 1
+		}
+	} else if this.Pick == nil {
+		return -1
+	} else {
+		thisType := -1
+		switch this.Pick.(type) {
+		case *Bar_A:
+			thisType = 0
+		case *Bar_B:
+			thisType = 1
+		default:
+			panic(fmt.Sprintf("compare: unexpected type %T in oneof", this.Pick))
+		}
+		that1Type := -1
+		switch that1.Pick.(type) {
+		case *Bar_A:
+			that1Type = 0
+		case *Bar_B:
+			that1Type = 1
+		default:
+			panic(fmt.Sprintf("compare: unexpected type %T in oneof", that1.Pick))
+		}
+		if thisType == that1Type {
+			if c := this.Pick.Compare(that1.Pick); c != 0 {
+				return c
+			}
+		} else if thisType < that1Type {
+			return -1
+		} else if thisType > that1Type {
+			return 1
+		}
+	}
+	if c := bytes.Compare(this.XXX_unrecognized, that1.XXX_unrecognized); c != 0 {
+		return c
+	}
+	return 0
+}
+func (this *Bar_A) Compare(that interface{}) int {
+	if that == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	}
+
+	that1, ok := that.(*Bar_A)
+	if !ok {
+		that2, ok := that.(Bar_A)
+		if ok {
+			that1 = &that2
+		} else {
+			return 1
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	} else if this == nil {
+		return -1
+	}
+	if this.A != that1.A {
+		if !this.A {
+			return -1
+		}
+		return 1
+	}
+	return 0
+}
+func (this *Bar_B) Compare(that interface{}) int {
+	if that == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	}
+
+	that1, ok := that.(*Bar_B)
+	if !ok {
+		that2, ok := that.(Bar_B)
+		if ok {
+			that1 = &that2
+		} else {
+			return 1
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	} else if this == nil {
+		return -1
+	}
+	if this.B != that1.B {
+		if !this.B {
+			return -1
+		}
+		return 1
+	}
+	return 0
+}
 func (this *Foo) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil

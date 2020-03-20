@@ -27,12 +27,13 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
+	csitrans "k8s.io/csi-translation-lib"
 	csilibplugins "k8s.io/csi-translation-lib/plugins"
 	"k8s.io/kubernetes/pkg/features"
-	"k8s.io/kubernetes/pkg/scheduler/algorithm/predicates"
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
 	fakelisters "k8s.io/kubernetes/pkg/scheduler/listers/fake"
 	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
@@ -50,13 +51,13 @@ const (
 // getVolumeLimitKey returns a ResourceName by filter type
 func getVolumeLimitKey(filterType string) v1.ResourceName {
 	switch filterType {
-	case predicates.EBSVolumeFilterType:
+	case ebsVolumeFilterType:
 		return v1.ResourceName(volumeutil.EBSVolumeLimitKey)
-	case predicates.GCEPDVolumeFilterType:
+	case gcePDVolumeFilterType:
 		return v1.ResourceName(volumeutil.GCEVolumeLimitKey)
-	case predicates.AzureDiskVolumeFilterType:
+	case azureDiskVolumeFilterType:
 		return v1.ResourceName(volumeutil.AzureVolumeLimitKey)
-	case predicates.CinderVolumeFilterType:
+	case cinderVolumeFilterType:
 		return v1.ResourceName(volumeutil.CinderVolumeLimitKey)
 	default:
 		return v1.ResourceName(volumeutil.GetCSIAttachLimitKey(filterType))
@@ -237,16 +238,15 @@ func TestCSILimits(t *testing.T) {
 	}
 
 	tests := []struct {
-		newPod                *v1.Pod
-		existingPods          []*v1.Pod
-		filterName            string
-		maxVols               int
-		driverNames           []string
-		test                  string
-		migrationEnabled      bool
-		limitSource           string
-		expectedFailureReason *predicates.PredicateFailureError
-		wantStatus            *framework.Status
+		newPod           *v1.Pod
+		existingPods     []*v1.Pod
+		filterName       string
+		maxVols          int
+		driverNames      []string
+		test             string
+		migrationEnabled bool
+		limitSource      string
+		wantStatus       *framework.Status
 	}{
 		{
 			newPod:       csiEBSOneVolPod,
@@ -265,7 +265,7 @@ func TestCSILimits(t *testing.T) {
 			driverNames:  []string{ebsCSIDriverName},
 			test:         "doesn't when node volume limit <= pods CSI volume",
 			limitSource:  "node",
-			wantStatus:   framework.NewStatus(framework.Unschedulable, predicates.ErrMaxVolumeCountExceeded.GetReason()),
+			wantStatus:   framework.NewStatus(framework.Unschedulable, ErrReasonMaxVolumeCountExceeded),
 		},
 		{
 			newPod:       csiEBSOneVolPod,
@@ -285,7 +285,7 @@ func TestCSILimits(t *testing.T) {
 			driverNames:  []string{ebsCSIDriverName},
 			test:         "count pending PVCs towards volume limit <= pods CSI volume",
 			limitSource:  "node",
-			wantStatus:   framework.NewStatus(framework.Unschedulable, predicates.ErrMaxVolumeCountExceeded.GetReason()),
+			wantStatus:   framework.NewStatus(framework.Unschedulable, ErrReasonMaxVolumeCountExceeded),
 		},
 		// two same pending PVCs should be counted as 1
 		{
@@ -306,7 +306,7 @@ func TestCSILimits(t *testing.T) {
 			driverNames:  []string{ebsCSIDriverName},
 			test:         "should count PVCs with invalid PV name but valid SC",
 			limitSource:  "node",
-			wantStatus:   framework.NewStatus(framework.Unschedulable, predicates.ErrMaxVolumeCountExceeded.GetReason()),
+			wantStatus:   framework.NewStatus(framework.Unschedulable, ErrReasonMaxVolumeCountExceeded),
 		},
 		// don't count a volume which has storageclass missing
 		{
@@ -327,7 +327,7 @@ func TestCSILimits(t *testing.T) {
 			driverNames:  []string{ebsCSIDriverName, gceCSIDriverName},
 			test:         "count pvcs with the same type towards volume limit",
 			limitSource:  "node",
-			wantStatus:   framework.NewStatus(framework.Unschedulable, predicates.ErrMaxVolumeCountExceeded.GetReason()),
+			wantStatus:   framework.NewStatus(framework.Unschedulable, ErrReasonMaxVolumeCountExceeded),
 		},
 		{
 			newPod:       gceTwoVolPod,
@@ -348,7 +348,7 @@ func TestCSILimits(t *testing.T) {
 			migrationEnabled: true,
 			limitSource:      "csinode",
 			test:             "should count in-tree volumes if migration is enabled",
-			wantStatus:       framework.NewStatus(framework.Unschedulable, predicates.ErrMaxVolumeCountExceeded.GetReason()),
+			wantStatus:       framework.NewStatus(framework.Unschedulable, ErrReasonMaxVolumeCountExceeded),
 		},
 		{
 			newPod:           pendingVolumePod,
@@ -359,7 +359,7 @@ func TestCSILimits(t *testing.T) {
 			migrationEnabled: true,
 			limitSource:      "csinode",
 			test:             "should count unbound in-tree volumes if migration is enabled",
-			wantStatus:       framework.NewStatus(framework.Unschedulable, predicates.ErrMaxVolumeCountExceeded.GetReason()),
+			wantStatus:       framework.NewStatus(framework.Unschedulable, ErrReasonMaxVolumeCountExceeded),
 		},
 		{
 			newPod:           inTreeOneVolPod,
@@ -411,7 +411,7 @@ func TestCSILimits(t *testing.T) {
 			migrationEnabled: true,
 			limitSource:      "csinode",
 			test:             "should count in-tree and csi volumes if migration is enabled (when scheduling in-tree volumes)",
-			wantStatus:       framework.NewStatus(framework.Unschedulable, predicates.ErrMaxVolumeCountExceeded.GetReason()),
+			wantStatus:       framework.NewStatus(framework.Unschedulable, ErrReasonMaxVolumeCountExceeded),
 		},
 		{
 			newPod:           csiEBSOneVolPod,
@@ -422,7 +422,7 @@ func TestCSILimits(t *testing.T) {
 			migrationEnabled: true,
 			limitSource:      "csinode",
 			test:             "should count in-tree and csi volumes if migration is enabled (when scheduling csi volumes)",
-			wantStatus:       framework.NewStatus(framework.Unschedulable, predicates.ErrMaxVolumeCountExceeded.GetReason()),
+			wantStatus:       framework.NewStatus(framework.Unschedulable, ErrReasonMaxVolumeCountExceeded),
 		},
 		{
 			newPod:           csiEBSOneVolPod,
@@ -460,7 +460,12 @@ func TestCSILimits(t *testing.T) {
 			}
 
 			p := &CSILimits{
-				predicate: predicates.NewCSIMaxVolumeLimitPredicate(getFakeCSINodeLister(csiNode), getFakeCSIPVLister(test.filterName, test.driverNames...), getFakeCSIPVCLister(test.filterName, "csi-sc", test.driverNames...), getFakeCSIStorageClassLister("csi-sc", test.driverNames[0])),
+				csiNodeLister:        getFakeCSINodeLister(csiNode),
+				pvLister:             getFakeCSIPVLister(test.filterName, test.driverNames...),
+				pvcLister:            getFakeCSIPVCLister(test.filterName, "csi-sc", test.driverNames...),
+				scLister:             getFakeCSIStorageClassLister("csi-sc", test.driverNames[0]),
+				randomVolumeIDPrefix: rand.String(32),
+				translator:           csitrans.New(),
 			}
 			gotStatus := p.Filter(context.Background(), nil, test.newPod, node)
 			if !reflect.DeepEqual(gotStatus, test.wantStatus) {

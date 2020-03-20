@@ -51,7 +51,7 @@ func (d *sccExecRestrictions) Validate(ctx context.Context, a admission.Attribut
 		return nil
 	}
 
-	pod, err := d.client.CoreV1().Pods(a.GetNamespace()).Get(a.GetName(), metav1.GetOptions{})
+	pod, err := d.client.CoreV1().Pods(a.GetNamespace()).Get(context.TODO(), a.GetName(), metav1.GetOptions{})
 	switch {
 	case errors.IsNotFound(err):
 		return admission.NewNotFound(a)

@@ -24,7 +24,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type OneofTest struct {
 	// Types that are valid to be assigned to Union:
@@ -75,10 +75,11 @@ type isOneofTest_Union interface {
 	Equal(interface{}) bool
 	MarshalTo([]byte) (int, error)
 	Size() int
+	Compare(interface{}) int
 }
 
 type OneofTest_I struct {
-	I int32 `protobuf:"varint,1,opt,name=i,oneof,def=4"`
+	I int32 `protobuf:"varint,1,opt,name=i,oneof,def=4" json:"i,omitempty"`
 }
 
 func (*OneofTest_I) isOneofTest_Union() {}
@@ -97,54 +98,11 @@ func (m *OneofTest) GetI() int32 {
 	return Default_OneofTest_I
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*OneofTest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _OneofTest_OneofMarshaler, _OneofTest_OneofUnmarshaler, _OneofTest_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*OneofTest) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*OneofTest_I)(nil),
 	}
-}
-
-func _OneofTest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*OneofTest)
-	// union
-	switch x := m.Union.(type) {
-	case *OneofTest_I:
-		_ = b.EncodeVarint(1<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(uint64(x.I))
-	case nil:
-	default:
-		return fmt.Errorf("OneofTest.Union has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _OneofTest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*OneofTest)
-	switch tag {
-	case 1: // union.i
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Union = &OneofTest_I{int32(x)}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _OneofTest_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*OneofTest)
-	// union
-	switch x := m.Union.(type) {
-	case *OneofTest_I:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.I))
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 func init() {
@@ -154,19 +112,113 @@ func init() {
 func init() { proto.RegisterFile("issue322.proto", fileDescriptor_fbf4e8d164dccde1) }
 
 var fileDescriptor_fbf4e8d164dccde1 = []byte{
-	// 149 bytes of a gzipped FileDescriptorProto
+	// 153 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xcb, 0x2c, 0x2e, 0x2e,
 	0x4d, 0x35, 0x36, 0x32, 0xd2, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x29, 0x49, 0x2d, 0x2e,
 	0x91, 0xd2, 0x4d, 0xcf, 0x2c, 0xc9, 0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0xcf, 0x4f,
 	0xcf, 0xd7, 0x07, 0x4b, 0x26, 0x95, 0xa6, 0x81, 0x79, 0x60, 0x0e, 0x98, 0x05, 0xd1, 0xa4, 0xa4,
 	0xce, 0xc5, 0xe9, 0x9f, 0x97, 0x9a, 0x9f, 0x16, 0x92, 0x5a, 0x5c, 0x22, 0x24, 0xc8, 0xc5, 0x98,
 	0x29, 0xc1, 0xa8, 0xc0, 0xa8, 0xc1, 0x6a, 0xc5, 0x68, 0xe2, 0xc1, 0x10, 0xc4, 0x98, 0xe9, 0xc4,
-	0xce, 0xc5, 0x5a, 0x9a, 0x97, 0x99, 0x9f, 0xe7, 0x24, 0xf3, 0xe1, 0xa1, 0x1c, 0xe3, 0x8f, 0x87,
+	0xce, 0xc5, 0x5a, 0x9a, 0x97, 0x99, 0x9f, 0xe7, 0xa4, 0xf0, 0xe1, 0xa1, 0x1c, 0xe3, 0x8f, 0x87,
 	0x72, 0x8c, 0x2b, 0x1e, 0xc9, 0x31, 0xee, 0x78, 0x24, 0xc7, 0x78, 0xe2, 0x91, 0x1c, 0xe3, 0x85,
-	0x47, 0x72, 0x8c, 0x0f, 0x1e, 0xc9, 0x31, 0x02, 0x02, 0x00, 0x00, 0xff, 0xff, 0xe6, 0x64, 0xd7,
-	0x6a, 0x8c, 0x00, 0x00, 0x00,
+	0x47, 0x72, 0x8c, 0x0f, 0x1e, 0xc9, 0x31, 0xae, 0x78, 0x2c, 0xc7, 0x08, 0x08, 0x00, 0x00, 0xff,
+	0xff, 0x42, 0xe9, 0xae, 0x78, 0x90, 0x00, 0x00, 0x00,
 }
 
+func (this *OneofTest) Compare(that interface{}) int {
+	if that == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	}
+
+	that1, ok := that.(*OneofTest)
+	if !ok {
+		that2, ok := that.(OneofTest)
+		if ok {
+			that1 = &that2
+		} else {
+			return 1
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	} else if this == nil {
+		return -1
+	}
+	if that1.Union == nil {
+		if this.Union != nil {
+			return 1
+		}
+	} else if this.Union == nil {
+		return -1
+	} else {
+		thisType := -1
+		switch this.Union.(type) {
+		case *OneofTest_I:
+			thisType = 0
+		default:
+			panic(fmt.Sprintf("compare: unexpected type %T in oneof", this.Union))
+		}
+		that1Type := -1
+		switch that1.Union.(type) {
+		case *OneofTest_I:
+			that1Type = 0
+		default:
+			panic(fmt.Sprintf("compare: unexpected type %T in oneof", that1.Union))
+		}
+		if thisType == that1Type {
+			if c := this.Union.Compare(that1.Union); c != 0 {
+				return c
+			}
+		} else if thisType < that1Type {
+			return -1
+		} else if thisType > that1Type {
+			return 1
+		}
+	}
+	if c := bytes.Compare(this.XXX_unrecognized, that1.XXX_unrecognized); c != 0 {
+		return c
+	}
+	return 0
+}
+func (this *OneofTest_I) Compare(that interface{}) int {
+	if that == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	}
+
+	that1, ok := that.(*OneofTest_I)
+	if !ok {
+		that2, ok := that.(OneofTest_I)
+		if ok {
+			that1 = &that2
+		} else {
+			return 1
+		}
+	}
+	if that1 == nil {
+		if this == nil {
+			return 0
+		}
+		return 1
+	} else if this == nil {
+		return -1
+	}
+	if this.I != that1.I {
+		if this.I < that1.I {
+			return -1
+		}
+		return 1
+	}
+	return 0
+}
 func (this *OneofTest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -292,7 +344,8 @@ func (m *OneofTest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *OneofTest_I) MarshalTo(dAtA []byte) (int, error) {
-	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
 func (m *OneofTest_I) MarshalToSizedBuffer(dAtA []byte) (int, error) {
@@ -515,6 +568,7 @@ func (m *OneofTest) Unmarshal(dAtA []byte) error {
 func skipIssue322(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -546,10 +600,8 @@ func skipIssue322(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -570,55 +622,30 @@ func skipIssue322(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthIssue322
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthIssue322
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowIssue322
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipIssue322(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthIssue322
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupIssue322
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthIssue322
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthIssue322 = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowIssue322   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthIssue322        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowIssue322          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupIssue322 = fmt.Errorf("proto: unexpected end of group")
 )

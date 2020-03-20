@@ -21,8 +21,8 @@ func S3ManagerUploadInputGoCode(a *API) string {
 	}
 
 	a.resetImports()
-	a.imports["io"] = true
-	a.imports["time"] = true
+	a.AddImport("io")
+	a.AddImport("time")
 
 	var w bytes.Buffer
 	if err := s3managerUploadInputTmpl.Execute(&w, s); err != nil {

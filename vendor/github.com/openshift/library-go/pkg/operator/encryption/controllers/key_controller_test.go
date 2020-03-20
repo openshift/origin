@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -22,6 +23,7 @@ import (
 	configv1clientfake "github.com/openshift/client-go/config/clientset/versioned/fake"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	encryptiondeployer "github.com/openshift/library-go/pkg/operator/encryption/deployer"
 	encryptiontesting "github.com/openshift/library-go/pkg/operator/encryption/testing"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -343,7 +345,7 @@ func TestKeyController(t *testing.T) {
 			target := NewKeyController(scenario.targetNamespace, deployer, fakeOperatorClient, fakeApiServerClient, fakeApiServerInformer, kubeInformers, fakeSecretClient, scenario.encryptionSecretSelector, eventRecorder, scenario.targetGRs)
 
 			// act
-			err = target.sync()
+			err = target.Sync(context.TODO(), factory.NewSyncContext("test", eventRecorder))
 
 			// validate
 			if err == nil && scenario.expectedError != nil {

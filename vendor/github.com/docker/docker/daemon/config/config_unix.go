@@ -12,7 +12,7 @@ import (
 
 const (
 	// DefaultIpcMode is default for container's IpcMode, if not set otherwise
-	DefaultIpcMode = "shareable" // TODO: change to private
+	DefaultIpcMode = "private"
 )
 
 // Config defines the configuration of a docker daemon.
@@ -37,6 +37,9 @@ type Config struct {
 	ShmSize              opts.MemBytes            `json:"default-shm-size,omitempty"`
 	NoNewPrivileges      bool                     `json:"no-new-privileges,omitempty"`
 	IpcMode              string                   `json:"default-ipc-mode,omitempty"`
+	// ResolvConf is the path to the configuration of the host resolver
+	ResolvConf string `json:"resolv-conf,omitempty"`
+	Rootless   bool   `json:"rootless,omitempty"`
 }
 
 // BridgeConfig stores all the bridge driver specific
@@ -84,4 +87,9 @@ func verifyDefaultIpcMode(mode string) error {
 // ValidatePlatformConfig checks if any platform-specific configuration settings are invalid.
 func (conf *Config) ValidatePlatformConfig() error {
 	return verifyDefaultIpcMode(conf.IpcMode)
+}
+
+// IsRootless returns conf.Rootless
+func (conf *Config) IsRootless() bool {
+	return conf.Rootless
 }

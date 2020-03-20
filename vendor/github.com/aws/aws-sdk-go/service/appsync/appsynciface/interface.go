@@ -26,7 +26,7 @@ import (
 //    // myFunc uses an SDK service client to make a request to
 //    // AWS AppSync.
 //    func myFunc(svc appsynciface.AppSyncAPI) bool {
-//        // Make svc.CreateApiKey request
+//        // Make svc.CreateApiCache request
 //    }
 //
 //    func main() {
@@ -42,7 +42,7 @@ import (
 //    type mockAppSyncClient struct {
 //        appsynciface.AppSyncAPI
 //    }
-//    func (m *mockAppSyncClient) CreateApiKey(input *appsync.CreateApiKeyInput) (*appsync.CreateApiKeyOutput, error) {
+//    func (m *mockAppSyncClient) CreateApiCache(input *appsync.CreateApiCacheInput) (*appsync.CreateApiCacheOutput, error) {
 //        // mock response/functionality
 //    }
 //
@@ -60,6 +60,10 @@ import (
 // and waiters. Its suggested to use the pattern above for testing, or using
 // tooling to generate mocks to satisfy the interfaces.
 type AppSyncAPI interface {
+	CreateApiCache(*appsync.CreateApiCacheInput) (*appsync.CreateApiCacheOutput, error)
+	CreateApiCacheWithContext(aws.Context, *appsync.CreateApiCacheInput, ...request.Option) (*appsync.CreateApiCacheOutput, error)
+	CreateApiCacheRequest(*appsync.CreateApiCacheInput) (*request.Request, *appsync.CreateApiCacheOutput)
+
 	CreateApiKey(*appsync.CreateApiKeyInput) (*appsync.CreateApiKeyOutput, error)
 	CreateApiKeyWithContext(aws.Context, *appsync.CreateApiKeyInput, ...request.Option) (*appsync.CreateApiKeyOutput, error)
 	CreateApiKeyRequest(*appsync.CreateApiKeyInput) (*request.Request, *appsync.CreateApiKeyOutput)
@@ -84,6 +88,10 @@ type AppSyncAPI interface {
 	CreateTypeWithContext(aws.Context, *appsync.CreateTypeInput, ...request.Option) (*appsync.CreateTypeOutput, error)
 	CreateTypeRequest(*appsync.CreateTypeInput) (*request.Request, *appsync.CreateTypeOutput)
 
+	DeleteApiCache(*appsync.DeleteApiCacheInput) (*appsync.DeleteApiCacheOutput, error)
+	DeleteApiCacheWithContext(aws.Context, *appsync.DeleteApiCacheInput, ...request.Option) (*appsync.DeleteApiCacheOutput, error)
+	DeleteApiCacheRequest(*appsync.DeleteApiCacheInput) (*request.Request, *appsync.DeleteApiCacheOutput)
+
 	DeleteApiKey(*appsync.DeleteApiKeyInput) (*appsync.DeleteApiKeyOutput, error)
 	DeleteApiKeyWithContext(aws.Context, *appsync.DeleteApiKeyInput, ...request.Option) (*appsync.DeleteApiKeyOutput, error)
 	DeleteApiKeyRequest(*appsync.DeleteApiKeyInput) (*request.Request, *appsync.DeleteApiKeyOutput)
@@ -107,6 +115,14 @@ type AppSyncAPI interface {
 	DeleteType(*appsync.DeleteTypeInput) (*appsync.DeleteTypeOutput, error)
 	DeleteTypeWithContext(aws.Context, *appsync.DeleteTypeInput, ...request.Option) (*appsync.DeleteTypeOutput, error)
 	DeleteTypeRequest(*appsync.DeleteTypeInput) (*request.Request, *appsync.DeleteTypeOutput)
+
+	FlushApiCache(*appsync.FlushApiCacheInput) (*appsync.FlushApiCacheOutput, error)
+	FlushApiCacheWithContext(aws.Context, *appsync.FlushApiCacheInput, ...request.Option) (*appsync.FlushApiCacheOutput, error)
+	FlushApiCacheRequest(*appsync.FlushApiCacheInput) (*request.Request, *appsync.FlushApiCacheOutput)
+
+	GetApiCache(*appsync.GetApiCacheInput) (*appsync.GetApiCacheOutput, error)
+	GetApiCacheWithContext(aws.Context, *appsync.GetApiCacheInput, ...request.Option) (*appsync.GetApiCacheOutput, error)
+	GetApiCacheRequest(*appsync.GetApiCacheInput) (*request.Request, *appsync.GetApiCacheOutput)
 
 	GetDataSource(*appsync.GetDataSourceInput) (*appsync.GetDataSourceOutput, error)
 	GetDataSourceWithContext(aws.Context, *appsync.GetDataSourceInput, ...request.Option) (*appsync.GetDataSourceOutput, error)
@@ -160,6 +176,10 @@ type AppSyncAPI interface {
 	ListResolversByFunctionWithContext(aws.Context, *appsync.ListResolversByFunctionInput, ...request.Option) (*appsync.ListResolversByFunctionOutput, error)
 	ListResolversByFunctionRequest(*appsync.ListResolversByFunctionInput) (*request.Request, *appsync.ListResolversByFunctionOutput)
 
+	ListTagsForResource(*appsync.ListTagsForResourceInput) (*appsync.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *appsync.ListTagsForResourceInput, ...request.Option) (*appsync.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*appsync.ListTagsForResourceInput) (*request.Request, *appsync.ListTagsForResourceOutput)
+
 	ListTypes(*appsync.ListTypesInput) (*appsync.ListTypesOutput, error)
 	ListTypesWithContext(aws.Context, *appsync.ListTypesInput, ...request.Option) (*appsync.ListTypesOutput, error)
 	ListTypesRequest(*appsync.ListTypesInput) (*request.Request, *appsync.ListTypesOutput)
@@ -167,6 +187,18 @@ type AppSyncAPI interface {
 	StartSchemaCreation(*appsync.StartSchemaCreationInput) (*appsync.StartSchemaCreationOutput, error)
 	StartSchemaCreationWithContext(aws.Context, *appsync.StartSchemaCreationInput, ...request.Option) (*appsync.StartSchemaCreationOutput, error)
 	StartSchemaCreationRequest(*appsync.StartSchemaCreationInput) (*request.Request, *appsync.StartSchemaCreationOutput)
+
+	TagResource(*appsync.TagResourceInput) (*appsync.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *appsync.TagResourceInput, ...request.Option) (*appsync.TagResourceOutput, error)
+	TagResourceRequest(*appsync.TagResourceInput) (*request.Request, *appsync.TagResourceOutput)
+
+	UntagResource(*appsync.UntagResourceInput) (*appsync.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *appsync.UntagResourceInput, ...request.Option) (*appsync.UntagResourceOutput, error)
+	UntagResourceRequest(*appsync.UntagResourceInput) (*request.Request, *appsync.UntagResourceOutput)
+
+	UpdateApiCache(*appsync.UpdateApiCacheInput) (*appsync.UpdateApiCacheOutput, error)
+	UpdateApiCacheWithContext(aws.Context, *appsync.UpdateApiCacheInput, ...request.Option) (*appsync.UpdateApiCacheOutput, error)
+	UpdateApiCacheRequest(*appsync.UpdateApiCacheInput) (*request.Request, *appsync.UpdateApiCacheOutput)
 
 	UpdateApiKey(*appsync.UpdateApiKeyInput) (*appsync.UpdateApiKeyOutput, error)
 	UpdateApiKeyWithContext(aws.Context, *appsync.UpdateApiKeyInput, ...request.Option) (*appsync.UpdateApiKeyOutput, error)

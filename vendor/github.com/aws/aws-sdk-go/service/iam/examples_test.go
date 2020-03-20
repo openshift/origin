@@ -515,13 +515,14 @@ func ExampleIAM_CreateOpenIDConnectProvider_shared00() {
 // To create an IAM role
 //
 // The following command creates a role named Test-Role and attaches a trust policy
-// to it that is provided as a URL-encoded JSON string.
+// that you must convert from JSON to a string. Upon success, the response includes
+// the same policy as a URL-encoded JSON string.
 func ExampleIAM_CreateRole_shared00() {
 	svc := iam.New(session.New())
 	input := &iam.CreateRoleInput{
-		AssumeRolePolicyDocument: aws.String("<URL-encoded-JSON>"),
-		Path:     aws.String("/"),
-		RoleName: aws.String("Test-Role"),
+		AssumeRolePolicyDocument: aws.String("<Stringified-JSON>"),
+		Path:                     aws.String("/"),
+		RoleName:                 aws.String("Test-Role"),
 	}
 
 	result, err := svc.CreateRole(input)
@@ -1016,6 +1017,35 @@ func ExampleIAM_DeleteVirtualMFADevice_shared00() {
 	fmt.Println(result)
 }
 
+// To generate a service last accessed data report for an organizational unit
+//
+// The following operation generates a report for the organizational unit ou-rge0-awexample
+func ExampleIAM_GenerateOrganizationsAccessReport_shared00() {
+	svc := iam.New(session.New())
+	input := &iam.GenerateOrganizationsAccessReportInput{
+		EntityPath: aws.String("o-a1b2c3d4e5/r-f6g7h8i9j0example/ou-1a2b3c-k9l8m7n6o5example"),
+	}
+
+	result, err := svc.GenerateOrganizationsAccessReport(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case iam.ErrCodeReportGenerationLimitExceededException:
+				fmt.Println(iam.ErrCodeReportGenerationLimitExceededException, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+		return
+	}
+
+	fmt.Println(result)
+}
+
 // To generate a service last accessed data report for a policy
 //
 // The following operation generates a report for the policy: ExamplePolicy1
@@ -1154,6 +1184,35 @@ func ExampleIAM_GetLoginProfile_shared00() {
 				fmt.Println(iam.ErrCodeNoSuchEntityException, aerr.Error())
 			case iam.ErrCodeServiceFailureException:
 				fmt.Println(iam.ErrCodeServiceFailureException, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+		return
+	}
+
+	fmt.Println(result)
+}
+
+// To get details from a previously generated organizational unit report
+//
+// The following operation gets details about the report with the job ID: examplea-1234-b567-cde8-90fg123abcd4
+func ExampleIAM_GetOrganizationsAccessReport_shared00() {
+	svc := iam.New(session.New())
+	input := &iam.GetOrganizationsAccessReportInput{
+		JobId: aws.String("examplea-1234-b567-cde8-90fg123abcd4"),
+	}
+
+	result, err := svc.GetOrganizationsAccessReport(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case iam.ErrCodeNoSuchEntityException:
+				fmt.Println(iam.ErrCodeNoSuchEntityException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -1792,6 +1851,36 @@ func ExampleIAM_RemoveUserFromGroup_shared00() {
 				fmt.Println(iam.ErrCodeNoSuchEntityException, aerr.Error())
 			case iam.ErrCodeLimitExceededException:
 				fmt.Println(iam.ErrCodeLimitExceededException, aerr.Error())
+			case iam.ErrCodeServiceFailureException:
+				fmt.Println(iam.ErrCodeServiceFailureException, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+		return
+	}
+
+	fmt.Println(result)
+}
+
+// To delete an access key for an IAM user
+//
+// The following command sets the STS global endpoint token to version 2. Version 2
+// tokens are valid in all Regions.
+func ExampleIAM_SetSecurityTokenServicePreferences_shared00() {
+	svc := iam.New(session.New())
+	input := &iam.SetSecurityTokenServicePreferencesInput{
+		GlobalEndpointTokenVersion: aws.String("v2Token"),
+	}
+
+	result, err := svc.SetSecurityTokenServicePreferences(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
 			case iam.ErrCodeServiceFailureException:
 				fmt.Println(iam.ErrCodeServiceFailureException, aerr.Error())
 			default:

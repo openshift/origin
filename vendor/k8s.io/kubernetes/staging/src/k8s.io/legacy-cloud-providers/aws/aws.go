@@ -1588,6 +1588,10 @@ func (c *Cloud) InstanceExistsByProviderID(ctx context.Context, providerID strin
 
 	instances, err := c.ec2.DescribeInstances(request)
 	if err != nil {
+		// if err is InstanceNotFound, return false with no error
+		if isAWSErrorInstanceNotFound(err) {
+			return false, nil
+		}
 		return false, err
 	}
 	if len(instances) == 0 {
@@ -1801,6 +1805,20 @@ func (c *Cloud) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) 
 
 	return zone, nil
 
+}
+
+func isAWSErrorInstanceNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if awsError, ok := err.(awserr.Error); ok {
+		if awsError.Code() == ec2.UnsuccessfulInstanceCreditSpecificationErrorCodeInvalidInstanceIdNotFound {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Used to represent a mount device for attaching an EBS volume
@@ -2084,7 +2102,7 @@ func (d *awsDisk) modifyVolume(requestGiB int64) (int64, error) {
 // applyUnSchedulableTaint applies a unschedulable taint to a node after verifying
 // if node has become unusable because of volumes getting stuck in attaching state.
 func (c *Cloud) applyUnSchedulableTaint(nodeName types.NodeName, reason string) {
-	node, fetchErr := c.kubeClient.CoreV1().Nodes().Get(string(nodeName), metav1.GetOptions{})
+	node, fetchErr := c.kubeClient.CoreV1().Nodes().Get(context.TODO(), string(nodeName), metav1.GetOptions{})
 	if fetchErr != nil {
 		klog.Errorf("Error fetching node %s with %v", nodeName, fetchErr)
 		return
@@ -3019,11 +3037,6 @@ func isEqualUserGroupPair(l, r *ec2.UserIdGroupPair, compareGroupUserIDs bool) b
 // Returns true if and only if changes were made
 // The security group must already exist
 func (c *Cloud) setSecurityGroupIngress(securityGroupID string, permissions IPPermissionSet) (bool, error) {
-	// We do not want to make changes to the Global defined SG
-	if securityGroupID == c.cfg.Global.ElbSecurityGroup {
-		return false, nil
-	}
-
 	group, err := c.findSecurityGroup(securityGroupID)
 	if err != nil {
 		klog.Warningf("Error retrieving security group %q", err)
@@ -3497,51 +3510,54 @@ func getPortSets(annotation string) (ports *portSets) {
 	return
 }
 
+// This function is useful in extracting the security group list from annotation
+func getSGListFromAnnotation(annotatedSG string) []string {
+	sgList := []string{}
+	for _, extraSG := range strings.Split(annotatedSG, ",") {
+		extraSG = strings.TrimSpace(extraSG)
+		if len(extraSG) > 0 {
+			sgList = append(sgList, extraSG)
+		}
+	}
+	return sgList
+}
+
 // buildELBSecurityGroupList returns list of SecurityGroups which should be
 // attached to ELB created by a service. List always consist of at least
 // 1 member which is an SG created for this service or a SG from the Global config.
 // Extra groups can be specified via annotation, as can extra tags for any
 // new groups. The annotation "ServiceAnnotationLoadBalancerSecurityGroups" allows for
 // setting the security groups specified.
-func (c *Cloud) buildELBSecurityGroupList(serviceName types.NamespacedName, loadBalancerName string, annotations map[string]string) ([]string, error) {
+func (c *Cloud) buildELBSecurityGroupList(serviceName types.NamespacedName, loadBalancerName string, annotations map[string]string) ([]string, bool, error) {
 	var err error
 	var securityGroupID string
+	// We do not want to make changes to a Global defined SG
+	var setupSg = false
 
-	if c.cfg.Global.ElbSecurityGroup != "" {
-		securityGroupID = c.cfg.Global.ElbSecurityGroup
-	} else {
-		// Create a security group for the load balancer
-		sgName := "k8s-elb-" + loadBalancerName
-		sgDescription := fmt.Sprintf("Security group for Kubernetes ELB %s (%v)", loadBalancerName, serviceName)
-		securityGroupID, err = c.ensureSecurityGroup(sgName, sgDescription, getLoadBalancerAdditionalTags(annotations))
-		if err != nil {
-			klog.Errorf("Error creating load balancer security group: %q", err)
-			return nil, err
-		}
-	}
-
-	sgList := []string{}
-
-	for _, extraSG := range strings.Split(annotations[ServiceAnnotationLoadBalancerSecurityGroups], ",") {
-		extraSG = strings.TrimSpace(extraSG)
-		if len(extraSG) > 0 {
-			sgList = append(sgList, extraSG)
-		}
-	}
+	sgList := getSGListFromAnnotation(annotations[ServiceAnnotationLoadBalancerSecurityGroups])
 
 	// If no Security Groups have been specified with the ServiceAnnotationLoadBalancerSecurityGroups annotation, we add the default one.
 	if len(sgList) == 0 {
-		sgList = append(sgList, securityGroupID)
-	}
-
-	for _, extraSG := range strings.Split(annotations[ServiceAnnotationLoadBalancerExtraSecurityGroups], ",") {
-		extraSG = strings.TrimSpace(extraSG)
-		if len(extraSG) > 0 {
-			sgList = append(sgList, extraSG)
+		if c.cfg.Global.ElbSecurityGroup != "" {
+			sgList = append(sgList, c.cfg.Global.ElbSecurityGroup)
+		} else {
+			// Create a security group for the load balancer
+			sgName := "k8s-elb-" + loadBalancerName
+			sgDescription := fmt.Sprintf("Security group for Kubernetes ELB %s (%v)", loadBalancerName, serviceName)
+			securityGroupID, err = c.ensureSecurityGroup(sgName, sgDescription, getLoadBalancerAdditionalTags(annotations))
+			if err != nil {
+				klog.Errorf("Error creating load balancer security group: %q", err)
+				return nil, setupSg, err
+			}
+			sgList = append(sgList, securityGroupID)
+			setupSg = true
 		}
 	}
 
-	return sgList, nil
+	extraSGList := getSGListFromAnnotation(annotations[ServiceAnnotationLoadBalancerExtraSecurityGroups])
+	sgList = append(sgList, extraSGList...)
+
+	return sgList, setupSg, nil
 }
 
 // buildListener creates a new listener from the given port, adding an SSL certificate
@@ -3850,7 +3866,7 @@ func (c *Cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, apiS
 
 	loadBalancerName := c.GetLoadBalancerName(ctx, clusterName, apiService)
 	serviceName := types.NamespacedName{Namespace: apiService.Namespace, Name: apiService.Name}
-	securityGroupIDs, err := c.buildELBSecurityGroupList(serviceName, loadBalancerName, annotations)
+	securityGroupIDs, setupSg, err := c.buildELBSecurityGroupList(serviceName, loadBalancerName, annotations)
 	if err != nil {
 		return nil, err
 	}
@@ -3858,7 +3874,7 @@ func (c *Cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, apiS
 		return nil, fmt.Errorf("[BUG] ELB can't have empty list of Security Groups to be assigned, this is a Kubernetes bug, please report")
 	}
 
-	{
+	if setupSg {
 		ec2SourceRanges := []*ec2.IpRange{}
 		for _, sourceRange := range sourceRanges.StringSlice() {
 			ec2SourceRanges = append(ec2SourceRanges, &ec2.IpRange{CidrIp: aws.String(sourceRange)})
@@ -4347,6 +4363,14 @@ func (c *Cloud) EnsureLoadBalancerDeleted(ctx context.Context, clusterName strin
 
 		// Collect the security groups to delete
 		securityGroupIDs := map[string]struct{}{}
+		annotatedSgSet := map[string]bool{}
+		annotatedSgsList := getSGListFromAnnotation(service.Annotations[ServiceAnnotationLoadBalancerSecurityGroups])
+		annotatedExtraSgsList := getSGListFromAnnotation(service.Annotations[ServiceAnnotationLoadBalancerExtraSecurityGroups])
+		annotatedSgsList = append(annotatedSgsList, annotatedExtraSgsList...)
+
+		for _, sg := range annotatedSgsList {
+			annotatedSgSet[sg] = true
+		}
 
 		for _, sg := range response {
 			sgID := aws.StringValue(sg.GroupId)
@@ -4362,6 +4386,12 @@ func (c *Cloud) EnsureLoadBalancerDeleted(ctx context.Context, clusterName strin
 
 			if !c.tagging.hasClusterTag(sg.Tags) {
 				klog.Warningf("Ignoring security group with no cluster tag in %s", service.Name)
+				continue
+			}
+
+			// This is an extra protection of deletion of non provisioned Security Group which is annotated with `service.beta.kubernetes.io/aws-load-balancer-security-groups`.
+			if _, ok := annotatedSgSet[sgID]; ok {
+				klog.Warningf("Ignoring security group with annotation `service.beta.kubernetes.io/aws-load-balancer-security-groups` or service.beta.kubernetes.io/aws-load-balancer-extra-security-groups in %s", service.Name)
 				continue
 			}
 

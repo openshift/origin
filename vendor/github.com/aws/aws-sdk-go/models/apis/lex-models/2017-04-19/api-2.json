@@ -631,7 +631,8 @@
         "botName":{"shape":"BotName"},
         "lastUpdatedDate":{"shape":"Timestamp"},
         "createdDate":{"shape":"Timestamp"},
-        "checksum":{"shape":"String"}
+        "checksum":{"shape":"String"},
+        "conversationLogs":{"shape":"ConversationLogsResponse"}
       }
     },
     "BotAliasMetadataList":{
@@ -780,6 +781,24 @@
         "CustomPayload"
       ]
     },
+    "ConversationLogsRequest":{
+      "type":"structure",
+      "required":[
+        "logSettings",
+        "iamRoleArn"
+      ],
+      "members":{
+        "logSettings":{"shape":"LogSettingsRequestList"},
+        "iamRoleArn":{"shape":"IamRoleArn"}
+      }
+    },
+    "ConversationLogsResponse":{
+      "type":"structure",
+      "members":{
+        "logSettings":{"shape":"LogSettingsResponseList"},
+        "iamRoleArn":{"shape":"IamRoleArn"}
+      }
+    },
     "Count":{"type":"integer"},
     "CreateBotVersionRequest":{
       "type":"structure",
@@ -810,7 +829,8 @@
         "checksum":{"shape":"String"},
         "version":{"shape":"Version"},
         "locale":{"shape":"Locale"},
-        "childDirected":{"shape":"Boolean"}
+        "childDirected":{"shape":"Boolean"},
+        "detectSentiment":{"shape":"Boolean"}
       }
     },
     "CreateIntentVersionRequest":{
@@ -1034,6 +1054,13 @@
       "max":200,
       "min":0
     },
+    "Destination":{
+      "type":"string",
+      "enum":[
+        "CLOUDWATCH_LOGS",
+        "S3"
+      ]
+    },
     "EnumerationValue":{
       "type":"structure",
       "required":["value"],
@@ -1117,7 +1144,8 @@
         "botName":{"shape":"BotName"},
         "lastUpdatedDate":{"shape":"Timestamp"},
         "createdDate":{"shape":"Timestamp"},
-        "checksum":{"shape":"String"}
+        "checksum":{"shape":"String"},
+        "conversationLogs":{"shape":"ConversationLogsResponse"}
       }
     },
     "GetBotAliasesRequest":{
@@ -1269,7 +1297,8 @@
         "checksum":{"shape":"String"},
         "version":{"shape":"Version"},
         "locale":{"shape":"Locale"},
-        "childDirected":{"shape":"Boolean"}
+        "childDirected":{"shape":"Boolean"},
+        "detectSentiment":{"shape":"Boolean"}
       }
     },
     "GetBotVersionsRequest":{
@@ -1695,6 +1724,12 @@
       "max":5,
       "min":1
     },
+    "IamRoleArn":{
+      "type":"string",
+      "max":2048,
+      "min":20,
+      "pattern":"^arn:[\\w\\-]+:iam::[\\d]{12}:role\\/[\\w+=,\\.@\\-]{1,64}$"
+    },
     "ImportStatus":{
       "type":"string",
       "enum":[
@@ -1753,6 +1788,12 @@
       "exception":true,
       "fault":true
     },
+    "KmsKeyArn":{
+      "type":"string",
+      "max":2048,
+      "min":20,
+      "pattern":"^arn:[\\w\\-]+:kms:[\\w\\-]+:[\\d]{12}:(?:key\\/[\\w\\-]+|alias\\/[a-zA-Z0-9:\\/_\\-]{1,256})$"
+    },
     "LambdaARN":{
       "type":"string",
       "max":2048,
@@ -1791,6 +1832,45 @@
     "LocaleList":{
       "type":"list",
       "member":{"shape":"Locale"}
+    },
+    "LogSettingsRequest":{
+      "type":"structure",
+      "required":[
+        "logType",
+        "destination",
+        "resourceArn"
+      ],
+      "members":{
+        "logType":{"shape":"LogType"},
+        "destination":{"shape":"Destination"},
+        "kmsKeyArn":{"shape":"KmsKeyArn"},
+        "resourceArn":{"shape":"ResourceArn"}
+      }
+    },
+    "LogSettingsRequestList":{
+      "type":"list",
+      "member":{"shape":"LogSettingsRequest"}
+    },
+    "LogSettingsResponse":{
+      "type":"structure",
+      "members":{
+        "logType":{"shape":"LogType"},
+        "destination":{"shape":"Destination"},
+        "kmsKeyArn":{"shape":"KmsKeyArn"},
+        "resourceArn":{"shape":"ResourceArn"},
+        "resourcePrefix":{"shape":"ResourcePrefix"}
+      }
+    },
+    "LogSettingsResponseList":{
+      "type":"list",
+      "member":{"shape":"LogSettingsResponse"}
+    },
+    "LogType":{
+      "type":"string",
+      "enum":[
+        "AUDIO",
+        "TEXT"
+      ]
     },
     "MaxResults":{
       "type":"integer",
@@ -1849,6 +1929,13 @@
       "min":1,
       "pattern":"[0-9]+"
     },
+    "ObfuscationSetting":{
+      "type":"string",
+      "enum":[
+        "NONE",
+        "DEFAULT_OBFUSCATION"
+      ]
+    },
     "PreconditionFailedException":{
       "type":"structure",
       "members":{
@@ -1906,7 +1993,8 @@
           "location":"uri",
           "locationName":"botName"
         },
-        "checksum":{"shape":"String"}
+        "checksum":{"shape":"String"},
+        "conversationLogs":{"shape":"ConversationLogsRequest"}
       }
     },
     "PutBotAliasResponse":{
@@ -1918,7 +2006,8 @@
         "botName":{"shape":"BotName"},
         "lastUpdatedDate":{"shape":"Timestamp"},
         "createdDate":{"shape":"Timestamp"},
-        "checksum":{"shape":"String"}
+        "checksum":{"shape":"String"},
+        "conversationLogs":{"shape":"ConversationLogsResponse"}
       }
     },
     "PutBotRequest":{
@@ -1944,6 +2033,7 @@
         "processBehavior":{"shape":"ProcessBehavior"},
         "locale":{"shape":"Locale"},
         "childDirected":{"shape":"Boolean"},
+        "detectSentiment":{"shape":"Boolean"},
         "createVersion":{"shape":"Boolean"}
       }
     },
@@ -1965,7 +2055,8 @@
         "version":{"shape":"Version"},
         "locale":{"shape":"Locale"},
         "childDirected":{"shape":"Boolean"},
-        "createVersion":{"shape":"Boolean"}
+        "createVersion":{"shape":"Boolean"},
+        "detectSentiment":{"shape":"Boolean"}
       }
     },
     "PutIntentRequest":{
@@ -2051,6 +2142,12 @@
         "BotChannel"
       ]
     },
+    "ResourceArn":{
+      "type":"string",
+      "max":2048,
+      "min":1,
+      "pattern":"^arn:[\\w\\-]+:(?:logs:[\\w\\-]+:[\\d]{12}:log-group:[\\.\\-_/#A-Za-z0-9]{1,512}(?::\\*)?|s3:::[a-z0-9][\\.\\-a-z0-9]{1,61}[a-z0-9])$"
+    },
     "ResourceInUseException":{
       "type":"structure",
       "members":{
@@ -2059,6 +2156,10 @@
       },
       "error":{"httpStatusCode":400},
       "exception":true
+    },
+    "ResourcePrefix":{
+      "type":"string",
+      "max":1024
     },
     "ResourceReference":{
       "type":"structure",
@@ -2100,7 +2201,8 @@
         "valueElicitationPrompt":{"shape":"Prompt"},
         "priority":{"shape":"Priority"},
         "sampleUtterances":{"shape":"SlotUtteranceList"},
-        "responseCard":{"shape":"ResponseCard"}
+        "responseCard":{"shape":"ResponseCard"},
+        "obfuscationSetting":{"shape":"ObfuscationSetting"}
       }
     },
     "SlotConstraint":{

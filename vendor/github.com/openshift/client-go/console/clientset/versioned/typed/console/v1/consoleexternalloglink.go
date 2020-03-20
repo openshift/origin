@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/openshift/api/console/v1"
@@ -21,14 +22,14 @@ type ConsoleExternalLogLinksGetter interface {
 
 // ConsoleExternalLogLinkInterface has methods to work with ConsoleExternalLogLink resources.
 type ConsoleExternalLogLinkInterface interface {
-	Create(*v1.ConsoleExternalLogLink) (*v1.ConsoleExternalLogLink, error)
-	Update(*v1.ConsoleExternalLogLink) (*v1.ConsoleExternalLogLink, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.ConsoleExternalLogLink, error)
-	List(opts metav1.ListOptions) (*v1.ConsoleExternalLogLinkList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ConsoleExternalLogLink, err error)
+	Create(ctx context.Context, consoleExternalLogLink *v1.ConsoleExternalLogLink, opts metav1.CreateOptions) (*v1.ConsoleExternalLogLink, error)
+	Update(ctx context.Context, consoleExternalLogLink *v1.ConsoleExternalLogLink, opts metav1.UpdateOptions) (*v1.ConsoleExternalLogLink, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ConsoleExternalLogLink, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.ConsoleExternalLogLinkList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConsoleExternalLogLink, err error)
 	ConsoleExternalLogLinkExpansion
 }
 
@@ -45,19 +46,19 @@ func newConsoleExternalLogLinks(c *ConsoleV1Client) *consoleExternalLogLinks {
 }
 
 // Get takes name of the consoleExternalLogLink, and returns the corresponding consoleExternalLogLink object, and an error if there is any.
-func (c *consoleExternalLogLinks) Get(name string, options metav1.GetOptions) (result *v1.ConsoleExternalLogLink, err error) {
+func (c *consoleExternalLogLinks) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ConsoleExternalLogLink, err error) {
 	result = &v1.ConsoleExternalLogLink{}
 	err = c.client.Get().
 		Resource("consoleexternalloglinks").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of ConsoleExternalLogLinks that match those selectors.
-func (c *consoleExternalLogLinks) List(opts metav1.ListOptions) (result *v1.ConsoleExternalLogLinkList, err error) {
+func (c *consoleExternalLogLinks) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ConsoleExternalLogLinkList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -67,13 +68,13 @@ func (c *consoleExternalLogLinks) List(opts metav1.ListOptions) (result *v1.Cons
 		Resource("consoleexternalloglinks").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested consoleExternalLogLinks.
-func (c *consoleExternalLogLinks) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *consoleExternalLogLinks) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,66 +84,69 @@ func (c *consoleExternalLogLinks) Watch(opts metav1.ListOptions) (watch.Interfac
 		Resource("consoleexternalloglinks").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a consoleExternalLogLink and creates it.  Returns the server's representation of the consoleExternalLogLink, and an error, if there is any.
-func (c *consoleExternalLogLinks) Create(consoleExternalLogLink *v1.ConsoleExternalLogLink) (result *v1.ConsoleExternalLogLink, err error) {
+func (c *consoleExternalLogLinks) Create(ctx context.Context, consoleExternalLogLink *v1.ConsoleExternalLogLink, opts metav1.CreateOptions) (result *v1.ConsoleExternalLogLink, err error) {
 	result = &v1.ConsoleExternalLogLink{}
 	err = c.client.Post().
 		Resource("consoleexternalloglinks").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(consoleExternalLogLink).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a consoleExternalLogLink and updates it. Returns the server's representation of the consoleExternalLogLink, and an error, if there is any.
-func (c *consoleExternalLogLinks) Update(consoleExternalLogLink *v1.ConsoleExternalLogLink) (result *v1.ConsoleExternalLogLink, err error) {
+func (c *consoleExternalLogLinks) Update(ctx context.Context, consoleExternalLogLink *v1.ConsoleExternalLogLink, opts metav1.UpdateOptions) (result *v1.ConsoleExternalLogLink, err error) {
 	result = &v1.ConsoleExternalLogLink{}
 	err = c.client.Put().
 		Resource("consoleexternalloglinks").
 		Name(consoleExternalLogLink.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(consoleExternalLogLink).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the consoleExternalLogLink and deletes it. Returns an error if one occurs.
-func (c *consoleExternalLogLinks) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *consoleExternalLogLinks) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("consoleexternalloglinks").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *consoleExternalLogLinks) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (c *consoleExternalLogLinks) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("consoleexternalloglinks").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched consoleExternalLogLink.
-func (c *consoleExternalLogLinks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ConsoleExternalLogLink, err error) {
+func (c *consoleExternalLogLinks) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConsoleExternalLogLink, err error) {
 	result = &v1.ConsoleExternalLogLink{}
 	err = c.client.Patch(pt).
 		Resource("consoleexternalloglinks").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

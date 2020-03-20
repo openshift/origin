@@ -3,6 +3,7 @@ package winio
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"io"
 	"net"
 	"os"
@@ -34,6 +35,40 @@ func TestDialListenerTimesOut(t *testing.T) {
 	_, err = DialPipe(testPipeName, &d)
 	if err != ErrTimeout {
 		t.Fatalf("expected ErrTimeout, got %v", err)
+	}
+}
+
+func TestDialContextListenerTimesOut(t *testing.T) {
+	l, err := ListenPipe(testPipeName, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	var d = time.Duration(10 * time.Millisecond)
+	ctx, _ := context.WithTimeout(context.Background(), d)
+	_, err = DialPipeContext(ctx, testPipeName)
+	if err != context.DeadlineExceeded {
+		t.Fatalf("expected context.DeadlineExceeded, got %v", err)
+	}
+}
+
+func TestDialListenerGetsCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	l, err := ListenPipe(testPipeName, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ch := make(chan error)
+	defer l.Close()
+	go func(ctx context.Context, ch chan error) {
+		_, err := DialPipeContext(ctx, testPipeName)
+		ch <- err
+	}(ctx, ch)
+	time.Sleep(time.Millisecond * 30)
+	cancel()
+	err = <-ch
+	if err != context.Canceled {
+		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
 
@@ -512,5 +547,26 @@ func TestMessageReadMode(t *testing.T) {
 	}
 	if !bytes.Equal(msg, vmsg) {
 		t.Fatalf("expected %s: %s", msg, vmsg)
+	}
+}
+
+func TestListenConnectRace(t *testing.T) {
+	for i := 0; i < 50 && !t.Failed(); i++ {
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			c, err := DialPipe(testPipeName, nil)
+			if err == nil {
+				c.Close()
+			}
+			wg.Done()
+		}()
+		s, err := ListenPipe(testPipeName, nil)
+		if err != nil {
+			t.Error(i, err)
+		} else {
+			s.Close()
+		}
+		wg.Wait()
 	}
 }

@@ -19,6 +19,7 @@ package common
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/events"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 	"k8s.io/utils/pointer"
 
@@ -121,7 +123,7 @@ var _ = framework.KubeDescribe("Security Context", func() {
 
 		ginkgo.It("should run with an explicit non-root user ID [LinuxOnly]", func() {
 			// creates a pod with RunAsUser, which is not supported on Windows.
-			framework.SkipIfNodeOSDistroIs("windows")
+			e2eskipper.SkipIfNodeOSDistroIs("windows")
 			name := "explicit-nonroot-uid"
 			pod := makeNonRootPod(name, rootImage, pointer.Int64Ptr(nonRootTestUserID))
 			podClient.Create(pod)
@@ -131,7 +133,7 @@ var _ = framework.KubeDescribe("Security Context", func() {
 		})
 		ginkgo.It("should not run with an explicit root user ID [LinuxOnly]", func() {
 			// creates a pod with RunAsUser, which is not supported on Windows.
-			framework.SkipIfNodeOSDistroIs("windows")
+			e2eskipper.SkipIfNodeOSDistroIs("windows")
 			name := "explicit-root-uid"
 			pod := makeNonRootPod(name, nonRootImage, pointer.Int64Ptr(0))
 			pod = podClient.Create(pod)
@@ -191,7 +193,7 @@ var _ = framework.KubeDescribe("Security Context", func() {
 			))
 
 			if readOnlyRootFilesystem {
-				podClient.WaitForFailure(podName, framework.PodStartTimeout)
+				waitForFailure(f, podName, framework.PodStartTimeout)
 			} else {
 				podClient.WaitForSuccess(podName, framework.PodStartTimeout)
 			}
@@ -366,3 +368,19 @@ var _ = framework.KubeDescribe("Security Context", func() {
 		})
 	})
 })
+
+// waitForFailure waits for pod to fail.
+func waitForFailure(f *framework.Framework, name string, timeout time.Duration) {
+	gomega.Expect(e2epod.WaitForPodCondition(f.ClientSet, f.Namespace.Name, name, fmt.Sprintf("%s or %s", v1.PodSucceeded, v1.PodFailed), timeout,
+		func(pod *v1.Pod) (bool, error) {
+			switch pod.Status.Phase {
+			case v1.PodFailed:
+				return true, nil
+			case v1.PodSucceeded:
+				return true, fmt.Errorf("pod %q successed with reason: %q, message: %q", name, pod.Status.Reason, pod.Status.Message)
+			default:
+				return false, nil
+			}
+		},
+	)).To(gomega.Succeed(), "wait for pod %q to fail", name)
+}

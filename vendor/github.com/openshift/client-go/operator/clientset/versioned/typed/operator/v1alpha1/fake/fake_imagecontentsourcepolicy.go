@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -22,7 +24,7 @@ var imagecontentsourcepoliciesResource = schema.GroupVersionResource{Group: "ope
 var imagecontentsourcepoliciesKind = schema.GroupVersionKind{Group: "operator.openshift.io", Version: "v1alpha1", Kind: "ImageContentSourcePolicy"}
 
 // Get takes name of the imageContentSourcePolicy, and returns the corresponding imageContentSourcePolicy object, and an error if there is any.
-func (c *FakeImageContentSourcePolicies) Get(name string, options v1.GetOptions) (result *v1alpha1.ImageContentSourcePolicy, err error) {
+func (c *FakeImageContentSourcePolicies) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ImageContentSourcePolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(imagecontentsourcepoliciesResource, name), &v1alpha1.ImageContentSourcePolicy{})
 	if obj == nil {
@@ -32,7 +34,7 @@ func (c *FakeImageContentSourcePolicies) Get(name string, options v1.GetOptions)
 }
 
 // List takes label and field selectors, and returns the list of ImageContentSourcePolicies that match those selectors.
-func (c *FakeImageContentSourcePolicies) List(opts v1.ListOptions) (result *v1alpha1.ImageContentSourcePolicyList, err error) {
+func (c *FakeImageContentSourcePolicies) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.ImageContentSourcePolicyList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(imagecontentsourcepoliciesResource, imagecontentsourcepoliciesKind, opts), &v1alpha1.ImageContentSourcePolicyList{})
 	if obj == nil {
@@ -53,13 +55,13 @@ func (c *FakeImageContentSourcePolicies) List(opts v1.ListOptions) (result *v1al
 }
 
 // Watch returns a watch.Interface that watches the requested imageContentSourcePolicies.
-func (c *FakeImageContentSourcePolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeImageContentSourcePolicies) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(imagecontentsourcepoliciesResource, opts))
 }
 
 // Create takes the representation of a imageContentSourcePolicy and creates it.  Returns the server's representation of the imageContentSourcePolicy, and an error, if there is any.
-func (c *FakeImageContentSourcePolicies) Create(imageContentSourcePolicy *v1alpha1.ImageContentSourcePolicy) (result *v1alpha1.ImageContentSourcePolicy, err error) {
+func (c *FakeImageContentSourcePolicies) Create(ctx context.Context, imageContentSourcePolicy *v1alpha1.ImageContentSourcePolicy, opts v1.CreateOptions) (result *v1alpha1.ImageContentSourcePolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(imagecontentsourcepoliciesResource, imageContentSourcePolicy), &v1alpha1.ImageContentSourcePolicy{})
 	if obj == nil {
@@ -69,7 +71,7 @@ func (c *FakeImageContentSourcePolicies) Create(imageContentSourcePolicy *v1alph
 }
 
 // Update takes the representation of a imageContentSourcePolicy and updates it. Returns the server's representation of the imageContentSourcePolicy, and an error, if there is any.
-func (c *FakeImageContentSourcePolicies) Update(imageContentSourcePolicy *v1alpha1.ImageContentSourcePolicy) (result *v1alpha1.ImageContentSourcePolicy, err error) {
+func (c *FakeImageContentSourcePolicies) Update(ctx context.Context, imageContentSourcePolicy *v1alpha1.ImageContentSourcePolicy, opts v1.UpdateOptions) (result *v1alpha1.ImageContentSourcePolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(imagecontentsourcepoliciesResource, imageContentSourcePolicy), &v1alpha1.ImageContentSourcePolicy{})
 	if obj == nil {
@@ -79,22 +81,22 @@ func (c *FakeImageContentSourcePolicies) Update(imageContentSourcePolicy *v1alph
 }
 
 // Delete takes name of the imageContentSourcePolicy and deletes it. Returns an error if one occurs.
-func (c *FakeImageContentSourcePolicies) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeImageContentSourcePolicies) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(imagecontentsourcepoliciesResource, name), &v1alpha1.ImageContentSourcePolicy{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeImageContentSourcePolicies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(imagecontentsourcepoliciesResource, listOptions)
+func (c *FakeImageContentSourcePolicies) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(imagecontentsourcepoliciesResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.ImageContentSourcePolicyList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched imageContentSourcePolicy.
-func (c *FakeImageContentSourcePolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ImageContentSourcePolicy, err error) {
+func (c *FakeImageContentSourcePolicies) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ImageContentSourcePolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(imagecontentsourcepoliciesResource, name, pt, data, subresources...), &v1alpha1.ImageContentSourcePolicy{})
 	if obj == nil {

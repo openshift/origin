@@ -1,7 +1,7 @@
 # Based on docker-library's golang 1.6 alpine and wheezy docker files.
 # https://github.com/docker-library/golang/blob/master/1.6/alpine/Dockerfile
 # https://github.com/docker-library/golang/blob/master/1.6/wheezy/Dockerfile
-FROM buildpack-deps:wheezy-scm
+FROM buildpack-deps:buster-scm
 
 ENV GOLANG_SRC_REPO_URL https://github.com/golang/go
 
@@ -30,7 +30,7 @@ RUN export GOROOT_BOOTSTRAP=$GOLANG_BOOTSTRAP_PATH/go \
 	&& git clone "$GOLANG_SRC_REPO_URL" /usr/local/go \
 	&& cd /usr/local/go/src \
 	&& ./make.bash \
-	&& rm -rf "$GOLANG_BOOTSTRAP_PATH" /usr/local/go/pkg/bootstrap 
+	&& rm -rf "$GOLANG_BOOTSTRAP_PATH" /usr/local/go/pkg/bootstrap
 
 # Build Go workspace and environment
 ENV GOPATH /go

@@ -17,8 +17,10 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -26,6 +28,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2edeploy "k8s.io/kubernetes/test/e2e/framework/deployment"
@@ -98,7 +101,7 @@ var _ = SIGDescribe("[Feature:IPv6DualStackAlphaFeature] [LinuxOnly]", func() {
 		podClient.CreateSync(pod)
 		framework.ExpectNoError(f.WaitForPodRunning(pod.Name))
 
-		p, err := podClient.Get(pod.Name, metav1.GetOptions{})
+		p, err := podClient.Get(context.TODO(), pod.Name, metav1.GetOptions{})
 		framework.ExpectNoError(err, "Failed to get pod %q", pod.Name)
 
 		gomega.Expect(p.Status.PodIP).ShouldNot(gomega.BeEquivalentTo(""))
@@ -112,7 +115,7 @@ var _ = SIGDescribe("[Feature:IPv6DualStackAlphaFeature] [LinuxOnly]", func() {
 		framework.ExpectEqual(isIPv4(p.Status.PodIPs[0].IP) != isIPv4(p.Status.PodIPs[1].IP), true)
 
 		ginkgo.By("deleting the pod")
-		err = podClient.Delete(pod.Name, metav1.NewDeleteOptions(30))
+		err = podClient.Delete(context.TODO(), pod.Name, *metav1.NewDeleteOptions(30))
 		framework.ExpectNoError(err, "failed to delete pod")
 	})
 
@@ -136,8 +139,9 @@ var _ = SIGDescribe("[Feature:IPv6DualStackAlphaFeature] [LinuxOnly]", func() {
 			replicas,
 			map[string]string{"test": "dual-stack-server"},
 			"dualstack-test-server",
-			imageutils.GetE2EImage(imageutils.TestWebserver),
+			imageutils.GetE2EImage(imageutils.Agnhost),
 			appsv1.RollingUpdateDeploymentStrategyType)
+		serverDeploymentSpec.Spec.Template.Spec.Containers[0].Args = []string{"test-webserver"}
 
 		// to ensure all the pods land on different nodes and we can thereby
 		// validate connectivity across all nodes.
@@ -187,10 +191,10 @@ var _ = SIGDescribe("[Feature:IPv6DualStackAlphaFeature] [LinuxOnly]", func() {
 			},
 		}
 
-		serverDeployment, err := cs.AppsV1().Deployments(f.Namespace.Name).Create(serverDeploymentSpec)
+		serverDeployment, err := cs.AppsV1().Deployments(f.Namespace.Name).Create(context.TODO(), serverDeploymentSpec, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 
-		clientDeployment, err := cs.AppsV1().Deployments(f.Namespace.Name).Create(clientDeploymentSpec)
+		clientDeployment, err := cs.AppsV1().Deployments(f.Namespace.Name).Create(context.TODO(), clientDeploymentSpec, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 
 		err = e2edeploy.WaitForDeploymentComplete(cs, serverDeployment)
@@ -217,7 +221,7 @@ var _ = SIGDescribe("[Feature:IPv6DualStackAlphaFeature] [LinuxOnly]", func() {
 			defaultIPFamily = v1.IPv6Protocol
 		}
 
-		t := e2eservice.NewServerTest(cs, ns, serviceName)
+		t := NewServerTest(cs, ns, serviceName)
 		defer func() {
 			defer ginkgo.GinkgoRecover()
 			if errs := t.Cleanup(); len(errs) != 0 {
@@ -240,11 +244,16 @@ var _ = SIGDescribe("[Feature:IPv6DualStackAlphaFeature] [LinuxOnly]", func() {
 		validateServiceAndClusterIPFamily(svc, defaultIPFamily)
 
 		// ensure endpoint belong to same ipfamily as service
-		endpoint, err := cs.CoreV1().Endpoints(svc.Namespace).Get(svc.Name, metav1.GetOptions{})
-		if err != nil {
+		if err := wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+			endpoint, err := cs.CoreV1().Endpoints(svc.Namespace).Get(context.TODO(), svc.Name, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
+			validateEndpointsBelongToIPFamily(svc, endpoint, defaultIPFamily)
+			return true, nil
+		}); err != nil {
 			framework.Failf("Get endpoints for service %s/%s failed (%s)", svc.Namespace, svc.Name, err)
 		}
-		validateEndpointsBelongToIPFamily(svc, endpoint, defaultIPFamily)
 	})
 
 	ginkgo.It("should create service with ipv4 cluster ip [Feature:IPv6DualStackAlphaFeature:Phase2]", func() {
@@ -254,7 +263,7 @@ var _ = SIGDescribe("[Feature:IPv6DualStackAlphaFeature] [LinuxOnly]", func() {
 
 		jig := e2eservice.NewTestJig(cs, ns, serviceName)
 
-		t := e2eservice.NewServerTest(cs, ns, serviceName)
+		t := NewServerTest(cs, ns, serviceName)
 		defer func() {
 			defer ginkgo.GinkgoRecover()
 			if errs := t.Cleanup(); len(errs) != 0 {
@@ -277,11 +286,16 @@ var _ = SIGDescribe("[Feature:IPv6DualStackAlphaFeature] [LinuxOnly]", func() {
 		validateServiceAndClusterIPFamily(svc, ipv4)
 
 		// ensure endpoints belong to same ipfamily as service
-		endpoint, err := cs.CoreV1().Endpoints(svc.Namespace).Get(svc.Name, metav1.GetOptions{})
-		if err != nil {
+		if err := wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+			endpoint, err := cs.CoreV1().Endpoints(svc.Namespace).Get(context.TODO(), svc.Name, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
+			validateEndpointsBelongToIPFamily(svc, endpoint, ipv4)
+			return true, nil
+		}); err != nil {
 			framework.Failf("Get endpoints for service %s/%s failed (%s)", svc.Namespace, svc.Name, err)
 		}
-		validateEndpointsBelongToIPFamily(svc, endpoint, ipv4)
 	})
 
 	ginkgo.It("should create service with ipv6 cluster ip [Feature:IPv6DualStackAlphaFeature:Phase2]", func() {
@@ -291,7 +305,7 @@ var _ = SIGDescribe("[Feature:IPv6DualStackAlphaFeature] [LinuxOnly]", func() {
 
 		jig := e2eservice.NewTestJig(cs, ns, serviceName)
 
-		t := e2eservice.NewServerTest(cs, ns, serviceName)
+		t := NewServerTest(cs, ns, serviceName)
 		defer func() {
 			defer ginkgo.GinkgoRecover()
 			if errs := t.Cleanup(); len(errs) != 0 {
@@ -314,11 +328,16 @@ var _ = SIGDescribe("[Feature:IPv6DualStackAlphaFeature] [LinuxOnly]", func() {
 		validateServiceAndClusterIPFamily(svc, ipv6)
 
 		// ensure endpoints belong to same ipfamily as service
-		endpoint, err := cs.CoreV1().Endpoints(svc.Namespace).Get(svc.Name, metav1.GetOptions{})
-		if err != nil {
+		if err := wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+			endpoint, err := cs.CoreV1().Endpoints(svc.Namespace).Get(context.TODO(), svc.Name, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
+			validateEndpointsBelongToIPFamily(svc, endpoint, ipv6)
+			return true, nil
+		}); err != nil {
 			framework.Failf("Get endpoints for service %s/%s failed (%s)", svc.Namespace, svc.Name, err)
 		}
-		validateEndpointsBelongToIPFamily(svc, endpoint, ipv6)
 	})
 })
 

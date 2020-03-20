@@ -115,14 +115,14 @@ func DlarftTest(t *testing.T, impl Dlarfter) {
 				}
 				var comp blas64.General
 				if store == lapack.ColumnWise {
-					// H = I - V * T * V^T
+					// H = I - V * T * Vᵀ
 					tmp := blas64.General{
 						Rows:   T.Rows,
 						Cols:   vMatT.Cols,
 						Stride: vMatT.Cols,
 						Data:   make([]float64, T.Rows*vMatT.Cols),
 					}
-					// T * V^T
+					// T * Vᵀ
 					blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, T, vMatT, 0, tmp)
 					comp = blas64.General{
 						Rows:   vMat.Rows,
@@ -130,10 +130,10 @@ func DlarftTest(t *testing.T, impl Dlarfter) {
 						Stride: tmp.Cols,
 						Data:   make([]float64, vMat.Rows*tmp.Cols),
 					}
-					// V * (T * V^T)
+					// V * (T * Vᵀ)
 					blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, vMat, tmp, 0, comp)
 				} else {
-					// H = I - V^T * T * V
+					// H = I - Vᵀ * T * V
 					tmp := blas64.General{
 						Rows:   T.Rows,
 						Cols:   vMat.Cols,
@@ -148,10 +148,10 @@ func DlarftTest(t *testing.T, impl Dlarfter) {
 						Stride: tmp.Cols,
 						Data:   make([]float64, vMatT.Rows*tmp.Cols),
 					}
-					// V^T * (T * V)
+					// Vᵀ * (T * V)
 					blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, vMatT, tmp, 0, comp)
 				}
-				// I - V^T * T * V
+				// I - Vᵀ * T * V
 				for i := 0; i < comp.Rows; i++ {
 					for j := 0; j < comp.Cols; j++ {
 						comp.Data[i*m+j] *= -1

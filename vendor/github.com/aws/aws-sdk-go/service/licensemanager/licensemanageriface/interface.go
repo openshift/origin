@@ -80,6 +80,10 @@ type LicenseManagerAPI interface {
 	ListAssociationsForLicenseConfigurationWithContext(aws.Context, *licensemanager.ListAssociationsForLicenseConfigurationInput, ...request.Option) (*licensemanager.ListAssociationsForLicenseConfigurationOutput, error)
 	ListAssociationsForLicenseConfigurationRequest(*licensemanager.ListAssociationsForLicenseConfigurationInput) (*request.Request, *licensemanager.ListAssociationsForLicenseConfigurationOutput)
 
+	ListFailuresForLicenseConfigurationOperations(*licensemanager.ListFailuresForLicenseConfigurationOperationsInput) (*licensemanager.ListFailuresForLicenseConfigurationOperationsOutput, error)
+	ListFailuresForLicenseConfigurationOperationsWithContext(aws.Context, *licensemanager.ListFailuresForLicenseConfigurationOperationsInput, ...request.Option) (*licensemanager.ListFailuresForLicenseConfigurationOperationsOutput, error)
+	ListFailuresForLicenseConfigurationOperationsRequest(*licensemanager.ListFailuresForLicenseConfigurationOperationsInput) (*request.Request, *licensemanager.ListFailuresForLicenseConfigurationOperationsOutput)
+
 	ListLicenseConfigurations(*licensemanager.ListLicenseConfigurationsInput) (*licensemanager.ListLicenseConfigurationsOutput, error)
 	ListLicenseConfigurationsWithContext(aws.Context, *licensemanager.ListLicenseConfigurationsInput, ...request.Option) (*licensemanager.ListLicenseConfigurationsOutput, error)
 	ListLicenseConfigurationsRequest(*licensemanager.ListLicenseConfigurationsInput) (*request.Request, *licensemanager.ListLicenseConfigurationsOutput)

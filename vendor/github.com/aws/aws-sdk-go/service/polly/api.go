@@ -3,6 +3,7 @@
 package polly
 
 import (
+	"fmt"
 	"io"
 	"time"
 
@@ -62,7 +63,7 @@ func (c *Polly) DeleteLexiconRequest(input *DeleteLexiconInput) (req *request.Re
 // which has been deleted is not available for speech synthesis, nor is it possible
 // to retrieve it using either the GetLexicon or ListLexicon APIs.
 //
-// For more information, see Managing Lexicons (http://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html).
+// For more information, see Managing Lexicons (https://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -71,8 +72,8 @@ func (c *Polly) DeleteLexiconRequest(input *DeleteLexiconInput) (req *request.Re
 // See the AWS API reference guide for Amazon Polly's
 // API operation DeleteLexicon for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLexiconNotFoundException "LexiconNotFoundException"
+// Returned Error Types:
+//   * LexiconNotFoundException
 //   Amazon Polly can't find the specified lexicon. This could be caused by a
 //   lexicon that is missing, its name is misspelled or specifying a lexicon that
 //   is in a different region.
@@ -80,7 +81,7 @@ func (c *Polly) DeleteLexiconRequest(input *DeleteLexiconInput) (req *request.Re
 //   Verify that the lexicon exists, is in the region (see ListLexicons) and that
 //   you spelled its name is spelled correctly. Then try again.
 //
-//   * ErrCodeServiceFailureException "ServiceFailureException"
+//   * ServiceFailureException
 //   An unknown condition has caused a service failure.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/polly-2016-06-10/DeleteLexicon
@@ -174,12 +175,12 @@ func (c *Polly) DescribeVoicesRequest(input *DescribeVoicesInput) (req *request.
 // See the AWS API reference guide for Amazon Polly's
 // API operation DescribeVoices for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+// Returned Error Types:
+//   * InvalidNextTokenException
 //   The NextToken is invalid. Verify that it's spelled correctly, and then try
 //   again.
 //
-//   * ErrCodeServiceFailureException "ServiceFailureException"
+//   * ServiceFailureException
 //   An unknown condition has caused a service failure.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/polly-2016-06-10/DescribeVoices
@@ -249,7 +250,7 @@ func (c *Polly) GetLexiconRequest(input *GetLexiconInput) (req *request.Request,
 // GetLexicon API operation for Amazon Polly.
 //
 // Returns the content of the specified pronunciation lexicon stored in an AWS
-// Region. For more information, see Managing Lexicons (http://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html).
+// Region. For more information, see Managing Lexicons (https://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -258,8 +259,8 @@ func (c *Polly) GetLexiconRequest(input *GetLexiconInput) (req *request.Request,
 // See the AWS API reference guide for Amazon Polly's
 // API operation GetLexicon for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeLexiconNotFoundException "LexiconNotFoundException"
+// Returned Error Types:
+//   * LexiconNotFoundException
 //   Amazon Polly can't find the specified lexicon. This could be caused by a
 //   lexicon that is missing, its name is misspelled or specifying a lexicon that
 //   is in a different region.
@@ -267,7 +268,7 @@ func (c *Polly) GetLexiconRequest(input *GetLexiconInput) (req *request.Request,
 //   Verify that the lexicon exists, is in the region (see ListLexicons) and that
 //   you spelled its name is spelled correctly. Then try again.
 //
-//   * ErrCodeServiceFailureException "ServiceFailureException"
+//   * ServiceFailureException
 //   An unknown condition has caused a service failure.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/polly-2016-06-10/GetLexicon
@@ -348,15 +349,15 @@ func (c *Polly) GetSpeechSynthesisTaskRequest(input *GetSpeechSynthesisTaskInput
 // See the AWS API reference guide for Amazon Polly's
 // API operation GetSpeechSynthesisTask for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidTaskIdException "InvalidTaskIdException"
+// Returned Error Types:
+//   * InvalidTaskIdException
 //   The provided Task ID is not valid. Please provide a valid Task ID and try
 //   again.
 //
-//   * ErrCodeServiceFailureException "ServiceFailureException"
+//   * ServiceFailureException
 //   An unknown condition has caused a service failure.
 //
-//   * ErrCodeSynthesisTaskNotFoundException "SynthesisTaskNotFoundException"
+//   * SynthesisTaskNotFoundException
 //   The Speech Synthesis task with requested Task ID cannot be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/polly-2016-06-10/GetSpeechSynthesisTask
@@ -426,7 +427,7 @@ func (c *Polly) ListLexiconsRequest(input *ListLexiconsInput) (req *request.Requ
 // ListLexicons API operation for Amazon Polly.
 //
 // Returns a list of pronunciation lexicons stored in an AWS Region. For more
-// information, see Managing Lexicons (http://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html).
+// information, see Managing Lexicons (https://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -435,12 +436,12 @@ func (c *Polly) ListLexiconsRequest(input *ListLexiconsInput) (req *request.Requ
 // See the AWS API reference guide for Amazon Polly's
 // API operation ListLexicons for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+// Returned Error Types:
+//   * InvalidNextTokenException
 //   The NextToken is invalid. Verify that it's spelled correctly, and then try
 //   again.
 //
-//   * ErrCodeServiceFailureException "ServiceFailureException"
+//   * ServiceFailureException
 //   An unknown condition has caused a service failure.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/polly-2016-06-10/ListLexicons
@@ -526,12 +527,12 @@ func (c *Polly) ListSpeechSynthesisTasksRequest(input *ListSpeechSynthesisTasksI
 // See the AWS API reference guide for Amazon Polly's
 // API operation ListSpeechSynthesisTasks for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+// Returned Error Types:
+//   * InvalidNextTokenException
 //   The NextToken is invalid. Verify that it's spelled correctly, and then try
 //   again.
 //
-//   * ErrCodeServiceFailureException "ServiceFailureException"
+//   * ServiceFailureException
 //   An unknown condition has caused a service failure.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/polly-2016-06-10/ListSpeechSynthesisTasks
@@ -567,7 +568,7 @@ func (c *Polly) ListSpeechSynthesisTasksWithContext(ctx aws.Context, input *List
 //    // Example iterating over at most 3 pages of a ListSpeechSynthesisTasks operation.
 //    pageNum := 0
 //    err := client.ListSpeechSynthesisTasksPages(params,
-//        func(page *ListSpeechSynthesisTasksOutput, lastPage bool) bool {
+//        func(page *polly.ListSpeechSynthesisTasksOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -599,10 +600,12 @@ func (c *Polly) ListSpeechSynthesisTasksPagesWithContext(ctx aws.Context, input 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListSpeechSynthesisTasksOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListSpeechSynthesisTasksOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -656,7 +659,7 @@ func (c *Polly) PutLexiconRequest(input *PutLexiconInput) (req *request.Request,
 // Lexicon operations have eventual consistency, therefore, it might take some
 // time before the lexicon is available to the SynthesizeSpeech operation.
 //
-// For more information, see Managing Lexicons (http://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html).
+// For more information, see Managing Lexicons (https://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -665,29 +668,29 @@ func (c *Polly) PutLexiconRequest(input *PutLexiconInput) (req *request.Request,
 // See the AWS API reference guide for Amazon Polly's
 // API operation PutLexicon for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidLexiconException "InvalidLexiconException"
+// Returned Error Types:
+//   * InvalidLexiconException
 //   Amazon Polly can't find the specified lexicon. Verify that the lexicon's
 //   name is spelled correctly, and then try again.
 //
-//   * ErrCodeUnsupportedPlsAlphabetException "UnsupportedPlsAlphabetException"
+//   * UnsupportedPlsAlphabetException
 //   The alphabet specified by the lexicon is not a supported alphabet. Valid
 //   values are x-sampa and ipa.
 //
-//   * ErrCodeUnsupportedPlsLanguageException "UnsupportedPlsLanguageException"
+//   * UnsupportedPlsLanguageException
 //   The language specified in the lexicon is unsupported. For a list of supported
-//   languages, see Lexicon Attributes (http://docs.aws.amazon.com/polly/latest/dg/API_LexiconAttributes.html).
+//   languages, see Lexicon Attributes (https://docs.aws.amazon.com/polly/latest/dg/API_LexiconAttributes.html).
 //
-//   * ErrCodeLexiconSizeExceededException "LexiconSizeExceededException"
+//   * LexiconSizeExceededException
 //   The maximum size of the specified lexicon would be exceeded by this operation.
 //
-//   * ErrCodeMaxLexemeLengthExceededException "MaxLexemeLengthExceededException"
+//   * MaxLexemeLengthExceededException
 //   The maximum size of the lexeme would be exceeded by this operation.
 //
-//   * ErrCodeMaxLexiconsNumberExceededException "MaxLexiconsNumberExceededException"
+//   * MaxLexiconsNumberExceededException
 //   The maximum number of lexicons would be exceeded by this operation.
 //
-//   * ErrCodeServiceFailureException "ServiceFailureException"
+//   * ServiceFailureException
 //   An unknown condition has caused a service failure.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/polly-2016-06-10/PutLexicon
@@ -771,34 +774,39 @@ func (c *Polly) StartSpeechSynthesisTaskRequest(input *StartSpeechSynthesisTaskI
 // See the AWS API reference guide for Amazon Polly's
 // API operation StartSpeechSynthesisTask for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeTextLengthExceededException "TextLengthExceededException"
+// Returned Error Types:
+//   * TextLengthExceededException
 //   The value of the "Text" parameter is longer than the accepted limits. For
 //   the SynthesizeSpeech API, the limit for input text is a maximum of 6000 characters
 //   total, of which no more than 3000 can be billed characters. For the StartSpeechSynthesisTask
 //   API, the maximum is 200,000 characters, of which no more than 100,000 can
 //   be billed characters. SSML tags are not counted as billed characters.
 //
-//   * ErrCodeInvalidS3BucketException "InvalidS3BucketException"
+//   * InvalidS3BucketException
 //   The provided Amazon S3 bucket name is invalid. Please check your input with
 //   S3 bucket naming requirements and try again.
 //
-//   * ErrCodeInvalidS3KeyException "InvalidS3KeyException"
+//   * InvalidS3KeyException
 //   The provided Amazon S3 key prefix is invalid. Please provide a valid S3 object
 //   key name.
 //
-//   * ErrCodeInvalidSampleRateException "InvalidSampleRateException"
+//   * InvalidSampleRateException
 //   The specified sample rate is not valid.
 //
-//   * ErrCodeInvalidSnsTopicArnException "InvalidSnsTopicArnException"
+//   * InvalidSnsTopicArnException
 //   The provided SNS topic ARN is invalid. Please provide a valid SNS topic ARN
 //   and try again.
 //
-//   * ErrCodeInvalidSsmlException "InvalidSsmlException"
+//   * InvalidSsmlException
 //   The SSML you provided is invalid. Verify the SSML syntax, spelling of tags
 //   and values, and then try again.
 //
-//   * ErrCodeLexiconNotFoundException "LexiconNotFoundException"
+//   * EngineNotSupportedException
+//   This engine is not compatible with the voice that you have designated. Choose
+//   a new voice that is compatible with the engine or change the engine and restart
+//   the operation.
+//
+//   * LexiconNotFoundException
 //   Amazon Polly can't find the specified lexicon. This could be caused by a
 //   lexicon that is missing, its name is misspelled or specifying a lexicon that
 //   is in a different region.
@@ -806,17 +814,17 @@ func (c *Polly) StartSpeechSynthesisTaskRequest(input *StartSpeechSynthesisTaskI
 //   Verify that the lexicon exists, is in the region (see ListLexicons) and that
 //   you spelled its name is spelled correctly. Then try again.
 //
-//   * ErrCodeServiceFailureException "ServiceFailureException"
+//   * ServiceFailureException
 //   An unknown condition has caused a service failure.
 //
-//   * ErrCodeMarksNotSupportedForFormatException "MarksNotSupportedForFormatException"
+//   * MarksNotSupportedForFormatException
 //   Speech marks are not supported for the OutputFormat selected. Speech marks
 //   are only available for content in json format.
 //
-//   * ErrCodeSsmlMarksNotSupportedForTextTypeException "SsmlMarksNotSupportedForTextTypeException"
+//   * SsmlMarksNotSupportedForTextTypeException
 //   SSML speech marks are not supported for plain text-type input.
 //
-//   * ErrCodeLanguageNotSupportedException "LanguageNotSupportedException"
+//   * LanguageNotSupportedException
 //   The language specified is not currently supported by Amazon Polly in this
 //   capacity.
 //
@@ -890,7 +898,7 @@ func (c *Polly) SynthesizeSpeechRequest(input *SynthesizeSpeechInput) (req *requ
 // must be valid, well-formed SSML. Some alphabets might not be available with
 // all the voices (for example, Cyrillic might not be read at all by English
 // voices) unless phoneme mapping is used. For more information, see How it
-// Works (http://docs.aws.amazon.com/polly/latest/dg/how-text-to-speech-works.html).
+// Works (https://docs.aws.amazon.com/polly/latest/dg/how-text-to-speech-works.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -899,22 +907,22 @@ func (c *Polly) SynthesizeSpeechRequest(input *SynthesizeSpeechInput) (req *requ
 // See the AWS API reference guide for Amazon Polly's
 // API operation SynthesizeSpeech for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeTextLengthExceededException "TextLengthExceededException"
+// Returned Error Types:
+//   * TextLengthExceededException
 //   The value of the "Text" parameter is longer than the accepted limits. For
 //   the SynthesizeSpeech API, the limit for input text is a maximum of 6000 characters
 //   total, of which no more than 3000 can be billed characters. For the StartSpeechSynthesisTask
 //   API, the maximum is 200,000 characters, of which no more than 100,000 can
 //   be billed characters. SSML tags are not counted as billed characters.
 //
-//   * ErrCodeInvalidSampleRateException "InvalidSampleRateException"
+//   * InvalidSampleRateException
 //   The specified sample rate is not valid.
 //
-//   * ErrCodeInvalidSsmlException "InvalidSsmlException"
+//   * InvalidSsmlException
 //   The SSML you provided is invalid. Verify the SSML syntax, spelling of tags
 //   and values, and then try again.
 //
-//   * ErrCodeLexiconNotFoundException "LexiconNotFoundException"
+//   * LexiconNotFoundException
 //   Amazon Polly can't find the specified lexicon. This could be caused by a
 //   lexicon that is missing, its name is misspelled or specifying a lexicon that
 //   is in a different region.
@@ -922,19 +930,24 @@ func (c *Polly) SynthesizeSpeechRequest(input *SynthesizeSpeechInput) (req *requ
 //   Verify that the lexicon exists, is in the region (see ListLexicons) and that
 //   you spelled its name is spelled correctly. Then try again.
 //
-//   * ErrCodeServiceFailureException "ServiceFailureException"
+//   * ServiceFailureException
 //   An unknown condition has caused a service failure.
 //
-//   * ErrCodeMarksNotSupportedForFormatException "MarksNotSupportedForFormatException"
+//   * MarksNotSupportedForFormatException
 //   Speech marks are not supported for the OutputFormat selected. Speech marks
 //   are only available for content in json format.
 //
-//   * ErrCodeSsmlMarksNotSupportedForTextTypeException "SsmlMarksNotSupportedForTextTypeException"
+//   * SsmlMarksNotSupportedForTextTypeException
 //   SSML speech marks are not supported for plain text-type input.
 //
-//   * ErrCodeLanguageNotSupportedException "LanguageNotSupportedException"
+//   * LanguageNotSupportedException
 //   The language specified is not currently supported by Amazon Polly in this
 //   capacity.
+//
+//   * EngineNotSupportedException
+//   This engine is not compatible with the voice that you have designated. Choose
+//   a new voice that is compatible with the engine or change the engine and restart
+//   the operation.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/polly-2016-06-10/SynthesizeSpeech
 func (c *Polly) SynthesizeSpeech(input *SynthesizeSpeechInput) (*SynthesizeSpeechOutput, error) {
@@ -1016,6 +1029,10 @@ func (s DeleteLexiconOutput) GoString() string {
 type DescribeVoicesInput struct {
 	_ struct{} `type:"structure"`
 
+	// Specifies the engine (standard or neural) used by Amazon Polly when processing
+	// input text for speech synthesis.
+	Engine *string `location:"querystring" locationName:"Engine" type:"string" enum:"Engine"`
+
 	// Boolean value indicating whether to return any bilingual voices that use
 	// the specified language as an additional language. For instance, if you request
 	// all languages that use US English (es-US), and there is an Italian voice
@@ -1041,6 +1058,12 @@ func (s DescribeVoicesInput) String() string {
 // GoString returns the string representation
 func (s DescribeVoicesInput) GoString() string {
 	return s.String()
+}
+
+// SetEngine sets the Engine field's value.
+func (s *DescribeVoicesInput) SetEngine(v string) *DescribeVoicesInput {
+	s.Engine = &v
+	return s
 }
 
 // SetIncludeAdditionalLanguageCodes sets the IncludeAdditionalLanguageCodes field's value.
@@ -1092,6 +1115,64 @@ func (s *DescribeVoicesOutput) SetNextToken(v string) *DescribeVoicesOutput {
 func (s *DescribeVoicesOutput) SetVoices(v []*Voice) *DescribeVoicesOutput {
 	s.Voices = v
 	return s
+}
+
+// This engine is not compatible with the voice that you have designated. Choose
+// a new voice that is compatible with the engine or change the engine and restart
+// the operation.
+type EngineNotSupportedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s EngineNotSupportedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EngineNotSupportedException) GoString() string {
+	return s.String()
+}
+
+func newErrorEngineNotSupportedException(v protocol.ResponseMetadata) error {
+	return &EngineNotSupportedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s EngineNotSupportedException) Code() string {
+	return "EngineNotSupportedException"
+}
+
+// Message returns the exception's message.
+func (s EngineNotSupportedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s EngineNotSupportedException) OrigErr() error {
+	return nil
+}
+
+func (s EngineNotSupportedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s EngineNotSupportedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s EngineNotSupportedException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type GetLexiconInput struct {
@@ -1175,7 +1256,7 @@ type GetSpeechSynthesisTaskInput struct {
 	// The Amazon Polly generated identifier for a speech synthesis task.
 	//
 	// TaskId is a required field
-	TaskId *string `location:"uri" locationName:"TaskId" min:"1" type:"string" required:"true"`
+	TaskId *string `location:"uri" locationName:"TaskId" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -1234,6 +1315,518 @@ func (s *GetSpeechSynthesisTaskOutput) SetSynthesisTask(v *SynthesisTask) *GetSp
 	return s
 }
 
+// Amazon Polly can't find the specified lexicon. Verify that the lexicon's
+// name is spelled correctly, and then try again.
+type InvalidLexiconException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidLexiconException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidLexiconException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidLexiconException(v protocol.ResponseMetadata) error {
+	return &InvalidLexiconException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidLexiconException) Code() string {
+	return "InvalidLexiconException"
+}
+
+// Message returns the exception's message.
+func (s InvalidLexiconException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidLexiconException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidLexiconException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidLexiconException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidLexiconException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The NextToken is invalid. Verify that it's spelled correctly, and then try
+// again.
+type InvalidNextTokenException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidNextTokenException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidNextTokenException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidNextTokenException(v protocol.ResponseMetadata) error {
+	return &InvalidNextTokenException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidNextTokenException) Code() string {
+	return "InvalidNextTokenException"
+}
+
+// Message returns the exception's message.
+func (s InvalidNextTokenException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidNextTokenException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidNextTokenException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidNextTokenException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidNextTokenException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The provided Amazon S3 bucket name is invalid. Please check your input with
+// S3 bucket naming requirements and try again.
+type InvalidS3BucketException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidS3BucketException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidS3BucketException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidS3BucketException(v protocol.ResponseMetadata) error {
+	return &InvalidS3BucketException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidS3BucketException) Code() string {
+	return "InvalidS3BucketException"
+}
+
+// Message returns the exception's message.
+func (s InvalidS3BucketException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidS3BucketException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidS3BucketException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidS3BucketException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidS3BucketException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The provided Amazon S3 key prefix is invalid. Please provide a valid S3 object
+// key name.
+type InvalidS3KeyException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidS3KeyException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidS3KeyException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidS3KeyException(v protocol.ResponseMetadata) error {
+	return &InvalidS3KeyException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidS3KeyException) Code() string {
+	return "InvalidS3KeyException"
+}
+
+// Message returns the exception's message.
+func (s InvalidS3KeyException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidS3KeyException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidS3KeyException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidS3KeyException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidS3KeyException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified sample rate is not valid.
+type InvalidSampleRateException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidSampleRateException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidSampleRateException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidSampleRateException(v protocol.ResponseMetadata) error {
+	return &InvalidSampleRateException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidSampleRateException) Code() string {
+	return "InvalidSampleRateException"
+}
+
+// Message returns the exception's message.
+func (s InvalidSampleRateException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidSampleRateException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidSampleRateException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidSampleRateException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidSampleRateException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The provided SNS topic ARN is invalid. Please provide a valid SNS topic ARN
+// and try again.
+type InvalidSnsTopicArnException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidSnsTopicArnException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidSnsTopicArnException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidSnsTopicArnException(v protocol.ResponseMetadata) error {
+	return &InvalidSnsTopicArnException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidSnsTopicArnException) Code() string {
+	return "InvalidSnsTopicArnException"
+}
+
+// Message returns the exception's message.
+func (s InvalidSnsTopicArnException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidSnsTopicArnException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidSnsTopicArnException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidSnsTopicArnException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidSnsTopicArnException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The SSML you provided is invalid. Verify the SSML syntax, spelling of tags
+// and values, and then try again.
+type InvalidSsmlException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidSsmlException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidSsmlException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidSsmlException(v protocol.ResponseMetadata) error {
+	return &InvalidSsmlException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidSsmlException) Code() string {
+	return "InvalidSsmlException"
+}
+
+// Message returns the exception's message.
+func (s InvalidSsmlException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidSsmlException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidSsmlException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidSsmlException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidSsmlException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The provided Task ID is not valid. Please provide a valid Task ID and try
+// again.
+type InvalidTaskIdException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidTaskIdException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidTaskIdException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidTaskIdException(v protocol.ResponseMetadata) error {
+	return &InvalidTaskIdException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidTaskIdException) Code() string {
+	return "InvalidTaskIdException"
+}
+
+// Message returns the exception's message.
+func (s InvalidTaskIdException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidTaskIdException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidTaskIdException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidTaskIdException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidTaskIdException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The language specified is not currently supported by Amazon Polly in this
+// capacity.
+type LanguageNotSupportedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LanguageNotSupportedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LanguageNotSupportedException) GoString() string {
+	return s.String()
+}
+
+func newErrorLanguageNotSupportedException(v protocol.ResponseMetadata) error {
+	return &LanguageNotSupportedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LanguageNotSupportedException) Code() string {
+	return "LanguageNotSupportedException"
+}
+
+// Message returns the exception's message.
+func (s LanguageNotSupportedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LanguageNotSupportedException) OrigErr() error {
+	return nil
+}
+
+func (s LanguageNotSupportedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LanguageNotSupportedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LanguageNotSupportedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Provides lexicon name and lexicon content in string format. For more information,
 // see Pronunciation Lexicon Specification (PLS) Version 1.0 (https://www.w3.org/TR/pronunciation-lexicon/).
 type Lexicon struct {
@@ -1270,7 +1863,7 @@ func (s *Lexicon) SetName(v string) *Lexicon {
 }
 
 // Contains metadata describing the lexicon such as the number of lexemes, language
-// code, and so on. For more information, see Managing Lexicons (http://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html).
+// code, and so on. For more information, see Managing Lexicons (https://docs.aws.amazon.com/polly/latest/dg/managing-lexicons.html).
 type LexiconAttributes struct {
 	_ struct{} `type:"structure"`
 
@@ -1372,6 +1965,123 @@ func (s *LexiconDescription) SetAttributes(v *LexiconAttributes) *LexiconDescrip
 func (s *LexiconDescription) SetName(v string) *LexiconDescription {
 	s.Name = &v
 	return s
+}
+
+// Amazon Polly can't find the specified lexicon. This could be caused by a
+// lexicon that is missing, its name is misspelled or specifying a lexicon that
+// is in a different region.
+//
+// Verify that the lexicon exists, is in the region (see ListLexicons) and that
+// you spelled its name is spelled correctly. Then try again.
+type LexiconNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LexiconNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LexiconNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorLexiconNotFoundException(v protocol.ResponseMetadata) error {
+	return &LexiconNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LexiconNotFoundException) Code() string {
+	return "LexiconNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s LexiconNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LexiconNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s LexiconNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LexiconNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LexiconNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The maximum size of the specified lexicon would be exceeded by this operation.
+type LexiconSizeExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LexiconSizeExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LexiconSizeExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLexiconSizeExceededException(v protocol.ResponseMetadata) error {
+	return &LexiconSizeExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LexiconSizeExceededException) Code() string {
+	return "LexiconSizeExceededException"
+}
+
+// Message returns the exception's message.
+func (s LexiconSizeExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LexiconSizeExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LexiconSizeExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LexiconSizeExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LexiconSizeExceededException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type ListLexiconsInput struct {
@@ -1521,6 +2231,175 @@ func (s *ListSpeechSynthesisTasksOutput) SetSynthesisTasks(v []*SynthesisTask) *
 	return s
 }
 
+// Speech marks are not supported for the OutputFormat selected. Speech marks
+// are only available for content in json format.
+type MarksNotSupportedForFormatException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s MarksNotSupportedForFormatException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MarksNotSupportedForFormatException) GoString() string {
+	return s.String()
+}
+
+func newErrorMarksNotSupportedForFormatException(v protocol.ResponseMetadata) error {
+	return &MarksNotSupportedForFormatException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s MarksNotSupportedForFormatException) Code() string {
+	return "MarksNotSupportedForFormatException"
+}
+
+// Message returns the exception's message.
+func (s MarksNotSupportedForFormatException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s MarksNotSupportedForFormatException) OrigErr() error {
+	return nil
+}
+
+func (s MarksNotSupportedForFormatException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s MarksNotSupportedForFormatException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s MarksNotSupportedForFormatException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The maximum size of the lexeme would be exceeded by this operation.
+type MaxLexemeLengthExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s MaxLexemeLengthExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MaxLexemeLengthExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorMaxLexemeLengthExceededException(v protocol.ResponseMetadata) error {
+	return &MaxLexemeLengthExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s MaxLexemeLengthExceededException) Code() string {
+	return "MaxLexemeLengthExceededException"
+}
+
+// Message returns the exception's message.
+func (s MaxLexemeLengthExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s MaxLexemeLengthExceededException) OrigErr() error {
+	return nil
+}
+
+func (s MaxLexemeLengthExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s MaxLexemeLengthExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s MaxLexemeLengthExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The maximum number of lexicons would be exceeded by this operation.
+type MaxLexiconsNumberExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s MaxLexiconsNumberExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MaxLexiconsNumberExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorMaxLexiconsNumberExceededException(v protocol.ResponseMetadata) error {
+	return &MaxLexiconsNumberExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s MaxLexiconsNumberExceededException) Code() string {
+	return "MaxLexiconsNumberExceededException"
+}
+
+// Message returns the exception's message.
+func (s MaxLexiconsNumberExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s MaxLexiconsNumberExceededException) OrigErr() error {
+	return nil
+}
+
+func (s MaxLexiconsNumberExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s MaxLexiconsNumberExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s MaxLexiconsNumberExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type PutLexiconInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1592,8 +2471,125 @@ func (s PutLexiconOutput) GoString() string {
 	return s.String()
 }
 
+// An unknown condition has caused a service failure.
+type ServiceFailureException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ServiceFailureException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ServiceFailureException) GoString() string {
+	return s.String()
+}
+
+func newErrorServiceFailureException(v protocol.ResponseMetadata) error {
+	return &ServiceFailureException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ServiceFailureException) Code() string {
+	return "ServiceFailureException"
+}
+
+// Message returns the exception's message.
+func (s ServiceFailureException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ServiceFailureException) OrigErr() error {
+	return nil
+}
+
+func (s ServiceFailureException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ServiceFailureException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ServiceFailureException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// SSML speech marks are not supported for plain text-type input.
+type SsmlMarksNotSupportedForTextTypeException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s SsmlMarksNotSupportedForTextTypeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SsmlMarksNotSupportedForTextTypeException) GoString() string {
+	return s.String()
+}
+
+func newErrorSsmlMarksNotSupportedForTextTypeException(v protocol.ResponseMetadata) error {
+	return &SsmlMarksNotSupportedForTextTypeException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s SsmlMarksNotSupportedForTextTypeException) Code() string {
+	return "SsmlMarksNotSupportedForTextTypeException"
+}
+
+// Message returns the exception's message.
+func (s SsmlMarksNotSupportedForTextTypeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s SsmlMarksNotSupportedForTextTypeException) OrigErr() error {
+	return nil
+}
+
+func (s SsmlMarksNotSupportedForTextTypeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s SsmlMarksNotSupportedForTextTypeException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s SsmlMarksNotSupportedForTextTypeException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type StartSpeechSynthesisTaskInput struct {
 	_ struct{} `type:"structure"`
+
+	// Specifies the engine (standard or neural) for Amazon Polly to use when processing
+	// input text for speech synthesis. Using a voice that is not supported for
+	// the engine selected will result in an error.
+	Engine *string `type:"string" enum:"Engine"`
 
 	// Optional language code for the Speech Synthesis request. This is only necessary
 	// if using a bilingual voice, such as Aditi, which can be used for either Indian
@@ -1627,8 +2623,9 @@ type StartSpeechSynthesisTaskInput struct {
 
 	// The audio frequency specified in Hz.
 	//
-	// The valid values for mp3 and ogg_vorbis are "8000", "16000", and "22050".
-	// The default value is "22050".
+	// The valid values for mp3 and ogg_vorbis are "8000", "16000", "22050", and
+	// "24000". The default value for standard voices is "22050". The default value
+	// for neural voices is "24000".
 	//
 	// Valid values for pcm are "8000" and "16000" The default value is "16000".
 	SampleRate *string `type:"string"`
@@ -1686,6 +2683,12 @@ func (s *StartSpeechSynthesisTaskInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetEngine sets the Engine field's value.
+func (s *StartSpeechSynthesisTaskInput) SetEngine(v string) *StartSpeechSynthesisTaskInput {
+	s.Engine = &v
+	return s
 }
 
 // SetLanguageCode sets the LanguageCode field's value.
@@ -1785,6 +2788,11 @@ type SynthesisTask struct {
 	// Timestamp for the time the synthesis task was started.
 	CreationTime *time.Time `type:"timestamp"`
 
+	// Specifies the engine (standard or neural) for Amazon Polly to use when processing
+	// input text for speech synthesis. Using a voice that is not supported for
+	// the engine selected will result in an error.
+	Engine *string `type:"string" enum:"Engine"`
+
 	// Optional language code for a synthesis task. This is only necessary if using
 	// a bilingual voice, such as Aditi, which can be used for either Indian English
 	// (en-IN) or Hindi (hi-IN).
@@ -1813,8 +2821,9 @@ type SynthesisTask struct {
 
 	// The audio frequency specified in Hz.
 	//
-	// The valid values for mp3 and ogg_vorbis are "8000", "16000", and "22050".
-	// The default value is "22050".
+	// The valid values for mp3 and ogg_vorbis are "8000", "16000", "22050", and
+	// "24000". The default value for standard voices is "22050". The default value
+	// for neural voices is "24000".
 	//
 	// Valid values for pcm are "8000" and "16000" The default value is "16000".
 	SampleRate *string `type:"string"`
@@ -1827,7 +2836,7 @@ type SynthesisTask struct {
 	SpeechMarkTypes []*string `type:"list"`
 
 	// The Amazon Polly generated identifier for a speech synthesis task.
-	TaskId *string `min:"1" type:"string"`
+	TaskId *string `type:"string"`
 
 	// Current status of the individual speech synthesis task.
 	TaskStatus *string `type:"string" enum:"TaskStatus"`
@@ -1857,6 +2866,12 @@ func (s SynthesisTask) GoString() string {
 // SetCreationTime sets the CreationTime field's value.
 func (s *SynthesisTask) SetCreationTime(v time.Time) *SynthesisTask {
 	s.CreationTime = &v
+	return s
+}
+
+// SetEngine sets the Engine field's value.
+func (s *SynthesisTask) SetEngine(v string) *SynthesisTask {
+	s.Engine = &v
 	return s
 }
 
@@ -1938,8 +2953,69 @@ func (s *SynthesisTask) SetVoiceId(v string) *SynthesisTask {
 	return s
 }
 
+// The Speech Synthesis task with requested Task ID cannot be found.
+type SynthesisTaskNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s SynthesisTaskNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SynthesisTaskNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorSynthesisTaskNotFoundException(v protocol.ResponseMetadata) error {
+	return &SynthesisTaskNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s SynthesisTaskNotFoundException) Code() string {
+	return "SynthesisTaskNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s SynthesisTaskNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s SynthesisTaskNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s SynthesisTaskNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s SynthesisTaskNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s SynthesisTaskNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type SynthesizeSpeechInput struct {
 	_ struct{} `type:"structure"`
+
+	// Specifies the engine (standard or neural) for Amazon Polly to use when processing
+	// input text for speech synthesis. Using a voice that is not supported for
+	// the engine selected will result in an error.
+	Engine *string `type:"string" enum:"Engine"`
 
 	// Optional language code for the Synthesize Speech request. This is only necessary
 	// if using a bilingual voice, such as Aditi, which can be used for either Indian
@@ -1955,7 +3031,7 @@ type SynthesizeSpeechInput struct {
 	// List of one or more pronunciation lexicon names you want the service to apply
 	// during synthesis. Lexicons are applied only if the language of the lexicon
 	// is the same as the language of the voice. For information about storing lexicons,
-	// see PutLexicon (http://docs.aws.amazon.com/polly/latest/dg/API_PutLexicon.html).
+	// see PutLexicon (https://docs.aws.amazon.com/polly/latest/dg/API_PutLexicon.html).
 	LexiconNames []*string `type:"list"`
 
 	// The format in which the returned output will be encoded. For audio stream,
@@ -1969,8 +3045,9 @@ type SynthesizeSpeechInput struct {
 
 	// The audio frequency specified in Hz.
 	//
-	// The valid values for mp3 and ogg_vorbis are "8000", "16000", and "22050".
-	// The default value is "22050".
+	// The valid values for mp3 and ogg_vorbis are "8000", "16000", "22050", and
+	// "24000". The default value for standard voices is "22050". The default value
+	// for neural voices is "24000".
 	//
 	// Valid values for pcm are "8000" and "16000" The default value is "16000".
 	SampleRate *string `type:"string"`
@@ -1985,11 +3062,11 @@ type SynthesizeSpeechInput struct {
 	Text *string `type:"string" required:"true"`
 
 	// Specifies whether the input text is plain text or SSML. The default value
-	// is plain text. For more information, see Using SSML (http://docs.aws.amazon.com/polly/latest/dg/ssml.html).
+	// is plain text. For more information, see Using SSML (https://docs.aws.amazon.com/polly/latest/dg/ssml.html).
 	TextType *string `type:"string" enum:"TextType"`
 
 	// Voice ID to use for the synthesis. You can get a list of available voice
-	// IDs by calling the DescribeVoices (http://docs.aws.amazon.com/polly/latest/dg/API_DescribeVoices.html)
+	// IDs by calling the DescribeVoices (https://docs.aws.amazon.com/polly/latest/dg/API_DescribeVoices.html)
 	// operation.
 	//
 	// VoiceId is a required field
@@ -2023,6 +3100,12 @@ func (s *SynthesizeSpeechInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetEngine sets the Engine field's value.
+func (s *SynthesizeSpeechInput) SetEngine(v string) *SynthesizeSpeechInput {
+	s.Engine = &v
+	return s
 }
 
 // SetLanguageCode sets the LanguageCode field's value.
@@ -2082,15 +3165,14 @@ type SynthesizeSpeechOutput struct {
 	// Specifies the type audio stream. This should reflect the OutputFormat parameter
 	// in your request.
 	//
-	//    *  If you request mp3 as the OutputFormat, the ContentType returned is
+	//    * If you request mp3 as the OutputFormat, the ContentType returned is
 	//    audio/mpeg.
 	//
-	//    *  If you request ogg_vorbis as the OutputFormat, the ContentType returned
+	//    * If you request ogg_vorbis as the OutputFormat, the ContentType returned
 	//    is audio/ogg.
 	//
-	//    *  If you request pcm as the OutputFormat, the ContentType returned is
+	//    * If you request pcm as the OutputFormat, the ContentType returned is
 	//    audio/pcm in a signed 16-bit, 1 channel (mono), little-endian format.
-	//
 	//
 	//    * If you request json as the OutputFormat, the ContentType returned is
 	//    audio/json.
@@ -2128,6 +3210,180 @@ func (s *SynthesizeSpeechOutput) SetRequestCharacters(v int64) *SynthesizeSpeech
 	return s
 }
 
+// The value of the "Text" parameter is longer than the accepted limits. For
+// the SynthesizeSpeech API, the limit for input text is a maximum of 6000 characters
+// total, of which no more than 3000 can be billed characters. For the StartSpeechSynthesisTask
+// API, the maximum is 200,000 characters, of which no more than 100,000 can
+// be billed characters. SSML tags are not counted as billed characters.
+type TextLengthExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s TextLengthExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TextLengthExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorTextLengthExceededException(v protocol.ResponseMetadata) error {
+	return &TextLengthExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TextLengthExceededException) Code() string {
+	return "TextLengthExceededException"
+}
+
+// Message returns the exception's message.
+func (s TextLengthExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TextLengthExceededException) OrigErr() error {
+	return nil
+}
+
+func (s TextLengthExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TextLengthExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TextLengthExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The alphabet specified by the lexicon is not a supported alphabet. Valid
+// values are x-sampa and ipa.
+type UnsupportedPlsAlphabetException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnsupportedPlsAlphabetException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnsupportedPlsAlphabetException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnsupportedPlsAlphabetException(v protocol.ResponseMetadata) error {
+	return &UnsupportedPlsAlphabetException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnsupportedPlsAlphabetException) Code() string {
+	return "UnsupportedPlsAlphabetException"
+}
+
+// Message returns the exception's message.
+func (s UnsupportedPlsAlphabetException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnsupportedPlsAlphabetException) OrigErr() error {
+	return nil
+}
+
+func (s UnsupportedPlsAlphabetException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnsupportedPlsAlphabetException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnsupportedPlsAlphabetException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The language specified in the lexicon is unsupported. For a list of supported
+// languages, see Lexicon Attributes (https://docs.aws.amazon.com/polly/latest/dg/API_LexiconAttributes.html).
+type UnsupportedPlsLanguageException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnsupportedPlsLanguageException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnsupportedPlsLanguageException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnsupportedPlsLanguageException(v protocol.ResponseMetadata) error {
+	return &UnsupportedPlsLanguageException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnsupportedPlsLanguageException) Code() string {
+	return "UnsupportedPlsLanguageException"
+}
+
+// Message returns the exception's message.
+func (s UnsupportedPlsLanguageException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnsupportedPlsLanguageException) OrigErr() error {
+	return nil
+}
+
+func (s UnsupportedPlsLanguageException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnsupportedPlsLanguageException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnsupportedPlsLanguageException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Description of the voice.
 type Voice struct {
 	_ struct{} `type:"structure"`
@@ -2156,6 +3412,10 @@ type Voice struct {
 	// Name of the voice (for example, Salli, Kendra, etc.). This provides a human
 	// readable voice name that you might display in your application.
 	Name *string `type:"string"`
+
+	// Specifies which engines (standard or neural) that are supported by a given
+	// voice.
+	SupportedEngines []*string `type:"list"`
 }
 
 // String returns the string representation
@@ -2204,6 +3464,20 @@ func (s *Voice) SetName(v string) *Voice {
 	return s
 }
 
+// SetSupportedEngines sets the SupportedEngines field's value.
+func (s *Voice) SetSupportedEngines(v []*string) *Voice {
+	s.SupportedEngines = v
+	return s
+}
+
+const (
+	// EngineStandard is a Engine enum value
+	EngineStandard = "standard"
+
+	// EngineNeural is a Engine enum value
+	EngineNeural = "neural"
+)
+
 const (
 	// GenderFemale is a Gender enum value
 	GenderFemale = "Female"
@@ -2213,6 +3487,9 @@ const (
 )
 
 const (
+	// LanguageCodeArb is a LanguageCode enum value
+	LanguageCodeArb = "arb"
+
 	// LanguageCodeCmnCn is a LanguageCode enum value
 	LanguageCodeCmnCn = "cmn-CN"
 
@@ -2349,44 +3626,80 @@ const (
 )
 
 const (
-	// VoiceIdGeraint is a VoiceId enum value
-	VoiceIdGeraint = "Geraint"
-
-	// VoiceIdGwyneth is a VoiceId enum value
-	VoiceIdGwyneth = "Gwyneth"
-
-	// VoiceIdMads is a VoiceId enum value
-	VoiceIdMads = "Mads"
-
-	// VoiceIdNaja is a VoiceId enum value
-	VoiceIdNaja = "Naja"
-
-	// VoiceIdHans is a VoiceId enum value
-	VoiceIdHans = "Hans"
-
-	// VoiceIdMarlene is a VoiceId enum value
-	VoiceIdMarlene = "Marlene"
-
-	// VoiceIdNicole is a VoiceId enum value
-	VoiceIdNicole = "Nicole"
-
-	// VoiceIdRussell is a VoiceId enum value
-	VoiceIdRussell = "Russell"
+	// VoiceIdAditi is a VoiceId enum value
+	VoiceIdAditi = "Aditi"
 
 	// VoiceIdAmy is a VoiceId enum value
 	VoiceIdAmy = "Amy"
 
+	// VoiceIdAstrid is a VoiceId enum value
+	VoiceIdAstrid = "Astrid"
+
+	// VoiceIdBianca is a VoiceId enum value
+	VoiceIdBianca = "Bianca"
+
 	// VoiceIdBrian is a VoiceId enum value
 	VoiceIdBrian = "Brian"
+
+	// VoiceIdCamila is a VoiceId enum value
+	VoiceIdCamila = "Camila"
+
+	// VoiceIdCarla is a VoiceId enum value
+	VoiceIdCarla = "Carla"
+
+	// VoiceIdCarmen is a VoiceId enum value
+	VoiceIdCarmen = "Carmen"
+
+	// VoiceIdCeline is a VoiceId enum value
+	VoiceIdCeline = "Celine"
+
+	// VoiceIdChantal is a VoiceId enum value
+	VoiceIdChantal = "Chantal"
+
+	// VoiceIdConchita is a VoiceId enum value
+	VoiceIdConchita = "Conchita"
+
+	// VoiceIdCristiano is a VoiceId enum value
+	VoiceIdCristiano = "Cristiano"
+
+	// VoiceIdDora is a VoiceId enum value
+	VoiceIdDora = "Dora"
 
 	// VoiceIdEmma is a VoiceId enum value
 	VoiceIdEmma = "Emma"
 
-	// VoiceIdRaveena is a VoiceId enum value
-	VoiceIdRaveena = "Raveena"
+	// VoiceIdEnrique is a VoiceId enum value
+	VoiceIdEnrique = "Enrique"
+
+	// VoiceIdEwa is a VoiceId enum value
+	VoiceIdEwa = "Ewa"
+
+	// VoiceIdFiliz is a VoiceId enum value
+	VoiceIdFiliz = "Filiz"
+
+	// VoiceIdGeraint is a VoiceId enum value
+	VoiceIdGeraint = "Geraint"
+
+	// VoiceIdGiorgio is a VoiceId enum value
+	VoiceIdGiorgio = "Giorgio"
+
+	// VoiceIdGwyneth is a VoiceId enum value
+	VoiceIdGwyneth = "Gwyneth"
+
+	// VoiceIdHans is a VoiceId enum value
+	VoiceIdHans = "Hans"
+
+	// VoiceIdInes is a VoiceId enum value
+	VoiceIdInes = "Ines"
 
 	// VoiceIdIvy is a VoiceId enum value
 	VoiceIdIvy = "Ivy"
+
+	// VoiceIdJacek is a VoiceId enum value
+	VoiceIdJacek = "Jacek"
+
+	// VoiceIdJan is a VoiceId enum value
+	VoiceIdJan = "Jan"
 
 	// VoiceIdJoanna is a VoiceId enum value
 	VoiceIdJoanna = "Joanna"
@@ -2397,56 +3710,17 @@ const (
 	// VoiceIdJustin is a VoiceId enum value
 	VoiceIdJustin = "Justin"
 
+	// VoiceIdKarl is a VoiceId enum value
+	VoiceIdKarl = "Karl"
+
 	// VoiceIdKendra is a VoiceId enum value
 	VoiceIdKendra = "Kendra"
 
 	// VoiceIdKimberly is a VoiceId enum value
 	VoiceIdKimberly = "Kimberly"
 
-	// VoiceIdMatthew is a VoiceId enum value
-	VoiceIdMatthew = "Matthew"
-
-	// VoiceIdSalli is a VoiceId enum value
-	VoiceIdSalli = "Salli"
-
-	// VoiceIdConchita is a VoiceId enum value
-	VoiceIdConchita = "Conchita"
-
-	// VoiceIdEnrique is a VoiceId enum value
-	VoiceIdEnrique = "Enrique"
-
-	// VoiceIdMiguel is a VoiceId enum value
-	VoiceIdMiguel = "Miguel"
-
-	// VoiceIdPenelope is a VoiceId enum value
-	VoiceIdPenelope = "Penelope"
-
-	// VoiceIdChantal is a VoiceId enum value
-	VoiceIdChantal = "Chantal"
-
-	// VoiceIdCeline is a VoiceId enum value
-	VoiceIdCeline = "Celine"
-
 	// VoiceIdLea is a VoiceId enum value
 	VoiceIdLea = "Lea"
-
-	// VoiceIdMathieu is a VoiceId enum value
-	VoiceIdMathieu = "Mathieu"
-
-	// VoiceIdDora is a VoiceId enum value
-	VoiceIdDora = "Dora"
-
-	// VoiceIdKarl is a VoiceId enum value
-	VoiceIdKarl = "Karl"
-
-	// VoiceIdCarla is a VoiceId enum value
-	VoiceIdCarla = "Carla"
-
-	// VoiceIdGiorgio is a VoiceId enum value
-	VoiceIdGiorgio = "Giorgio"
-
-	// VoiceIdMizuki is a VoiceId enum value
-	VoiceIdMizuki = "Mizuki"
 
 	// VoiceIdLiv is a VoiceId enum value
 	VoiceIdLiv = "Liv"
@@ -2454,69 +3728,81 @@ const (
 	// VoiceIdLotte is a VoiceId enum value
 	VoiceIdLotte = "Lotte"
 
-	// VoiceIdRuben is a VoiceId enum value
-	VoiceIdRuben = "Ruben"
+	// VoiceIdLucia is a VoiceId enum value
+	VoiceIdLucia = "Lucia"
 
-	// VoiceIdEwa is a VoiceId enum value
-	VoiceIdEwa = "Ewa"
+	// VoiceIdLupe is a VoiceId enum value
+	VoiceIdLupe = "Lupe"
 
-	// VoiceIdJacek is a VoiceId enum value
-	VoiceIdJacek = "Jacek"
-
-	// VoiceIdJan is a VoiceId enum value
-	VoiceIdJan = "Jan"
+	// VoiceIdMads is a VoiceId enum value
+	VoiceIdMads = "Mads"
 
 	// VoiceIdMaja is a VoiceId enum value
 	VoiceIdMaja = "Maja"
 
-	// VoiceIdRicardo is a VoiceId enum value
-	VoiceIdRicardo = "Ricardo"
+	// VoiceIdMarlene is a VoiceId enum value
+	VoiceIdMarlene = "Marlene"
 
-	// VoiceIdVitoria is a VoiceId enum value
-	VoiceIdVitoria = "Vitoria"
+	// VoiceIdMathieu is a VoiceId enum value
+	VoiceIdMathieu = "Mathieu"
 
-	// VoiceIdCristiano is a VoiceId enum value
-	VoiceIdCristiano = "Cristiano"
-
-	// VoiceIdInes is a VoiceId enum value
-	VoiceIdInes = "Ines"
-
-	// VoiceIdCarmen is a VoiceId enum value
-	VoiceIdCarmen = "Carmen"
+	// VoiceIdMatthew is a VoiceId enum value
+	VoiceIdMatthew = "Matthew"
 
 	// VoiceIdMaxim is a VoiceId enum value
 	VoiceIdMaxim = "Maxim"
 
-	// VoiceIdTatyana is a VoiceId enum value
-	VoiceIdTatyana = "Tatyana"
+	// VoiceIdMia is a VoiceId enum value
+	VoiceIdMia = "Mia"
 
-	// VoiceIdAstrid is a VoiceId enum value
-	VoiceIdAstrid = "Astrid"
+	// VoiceIdMiguel is a VoiceId enum value
+	VoiceIdMiguel = "Miguel"
 
-	// VoiceIdFiliz is a VoiceId enum value
-	VoiceIdFiliz = "Filiz"
+	// VoiceIdMizuki is a VoiceId enum value
+	VoiceIdMizuki = "Mizuki"
 
-	// VoiceIdVicki is a VoiceId enum value
-	VoiceIdVicki = "Vicki"
+	// VoiceIdNaja is a VoiceId enum value
+	VoiceIdNaja = "Naja"
 
-	// VoiceIdTakumi is a VoiceId enum value
-	VoiceIdTakumi = "Takumi"
+	// VoiceIdNicole is a VoiceId enum value
+	VoiceIdNicole = "Nicole"
+
+	// VoiceIdPenelope is a VoiceId enum value
+	VoiceIdPenelope = "Penelope"
+
+	// VoiceIdRaveena is a VoiceId enum value
+	VoiceIdRaveena = "Raveena"
+
+	// VoiceIdRicardo is a VoiceId enum value
+	VoiceIdRicardo = "Ricardo"
+
+	// VoiceIdRuben is a VoiceId enum value
+	VoiceIdRuben = "Ruben"
+
+	// VoiceIdRussell is a VoiceId enum value
+	VoiceIdRussell = "Russell"
+
+	// VoiceIdSalli is a VoiceId enum value
+	VoiceIdSalli = "Salli"
 
 	// VoiceIdSeoyeon is a VoiceId enum value
 	VoiceIdSeoyeon = "Seoyeon"
 
-	// VoiceIdAditi is a VoiceId enum value
-	VoiceIdAditi = "Aditi"
+	// VoiceIdTakumi is a VoiceId enum value
+	VoiceIdTakumi = "Takumi"
+
+	// VoiceIdTatyana is a VoiceId enum value
+	VoiceIdTatyana = "Tatyana"
+
+	// VoiceIdVicki is a VoiceId enum value
+	VoiceIdVicki = "Vicki"
+
+	// VoiceIdVitoria is a VoiceId enum value
+	VoiceIdVitoria = "Vitoria"
+
+	// VoiceIdZeina is a VoiceId enum value
+	VoiceIdZeina = "Zeina"
 
 	// VoiceIdZhiyu is a VoiceId enum value
 	VoiceIdZhiyu = "Zhiyu"
-
-	// VoiceIdBianca is a VoiceId enum value
-	VoiceIdBianca = "Bianca"
-
-	// VoiceIdLucia is a VoiceId enum value
-	VoiceIdLucia = "Lucia"
-
-	// VoiceIdMia is a VoiceId enum value
-	VoiceIdMia = "Mia"
 )

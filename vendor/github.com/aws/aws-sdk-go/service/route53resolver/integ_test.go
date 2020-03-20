@@ -27,7 +27,9 @@ func TestInteg_00_ListResolverEndpoints(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := route53resolver.New(sess)
 	params := &route53resolver.ListResolverEndpointsInput{}
-	_, err := svc.ListResolverEndpointsWithContext(ctx, params)
+	_, err := svc.ListResolverEndpointsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_GetResolverRule(t *testing.T) {
 	params := &route53resolver.GetResolverRuleInput{
 		ResolverRuleId: aws.String("fake-id"),
 	}
-	_, err := svc.GetResolverRuleWithContext(ctx, params)
+	_, err := svc.GetResolverRuleWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

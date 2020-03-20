@@ -26,14 +26,41 @@
 //    * DescribeEntityAggregates: A count of the number of affected entities
 //    that meet specified criteria.
 //
+// AWS Health integrates with AWS Organizations to provide a centralized view
+// of AWS Health events across all accounts in your organization.
+//
+//    * DescribeEventsForOrganization: Summary information about events across
+//    the organization.
+//
+//    * DescribeAffectedAccountsForOrganization: List of accounts in your organization
+//    impacted by an event.
+//
+//    * DescribeEventDetailsForOrganization: Detailed information about events
+//    in your organization.
+//
+//    * DescribeAffectedEntitiesForOrganization: Information about AWS resources
+//    in your organization that are affected by events.
+//
+// You can use the following operations to enable or disable AWS Health from
+// working with AWS Organizations.
+//
+//    * EnableHealthServiceAccessForOrganization: Enables AWS Health to work
+//    with AWS Organizations.
+//
+//    * DisableHealthServiceAccessForOrganization: Disables AWS Health from
+//    working with AWS Organizations.
+//
+//    * DescribeHealthServiceStatusForOrganization: Status information about
+//    enabling or disabling AWS Health from working with AWS Organizations.
+//
 // The Health API requires a Business or Enterprise support plan from AWS Support
 // (http://aws.amazon.com/premiumsupport/). Calling the Health API from an account
 // that does not have a Business or Enterprise support plan causes a SubscriptionRequiredException.
 //
 // For authentication of requests, AWS Health uses the Signature Version 4 Signing
-// Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+// Process (https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 //
-// See the AWS Health User Guide (http://docs.aws.amazon.com/health/latest/ug/what-is-aws-health.html)
+// See the AWS Health User Guide (https://docs.aws.amazon.com/health/latest/ug/what-is-aws-health.html)
 // for information about how to use the API.
 //
 // Service Endpoint

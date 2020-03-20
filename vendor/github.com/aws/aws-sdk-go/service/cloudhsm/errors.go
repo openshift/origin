@@ -2,6 +2,10 @@
 
 package cloudhsm
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeCloudHsmInternalException for service response error code
@@ -22,3 +26,9 @@ const (
 	// Indicates that one or more of the request parameters are not valid.
 	ErrCodeInvalidRequestException = "InvalidRequestException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"CloudHsmInternalException": newErrorCloudHsmInternalException,
+	"CloudHsmServiceException":  newErrorCloudHsmServiceException,
+	"InvalidRequestException":   newErrorInvalidRequestException,
+}

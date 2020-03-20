@@ -27,7 +27,9 @@ func TestInteg_00_GetDomainNames(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := apigateway.New(sess)
 	params := &apigateway.GetDomainNamesInput{}
-	_, err := svc.GetDomainNamesWithContext(ctx, params)
+	_, err := svc.GetDomainNamesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -43,7 +45,9 @@ func TestInteg_01_CreateUsagePlanKey(t *testing.T) {
 		KeyType:     aws.String("fixx"),
 		UsagePlanId: aws.String("foo"),
 	}
-	_, err := svc.CreateUsagePlanKeyWithContext(ctx, params)
+	_, err := svc.CreateUsagePlanKeyWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

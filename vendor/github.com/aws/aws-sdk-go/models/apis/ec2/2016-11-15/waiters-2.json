@@ -379,6 +379,24 @@
         }
       ]
     },
+    "SecurityGroupExists": {
+      "operation": "DescribeSecurityGroups",
+      "delay": 5,
+      "maxAttempts": 6,
+      "acceptors": [
+        {
+          "expected": true,
+          "matcher": "path",
+          "state": "success",
+          "argument": "length(SecurityGroups[].GroupId) > `0`"
+        },
+        {
+          "expected": "InvalidGroupNotFound",
+          "matcher": "error",
+          "state": "retry"
+        }
+      ]
+    },
     "SpotInstanceRequestFulfilled": {
       "operation": "DescribeSpotInstanceRequests",
       "maxAttempts": 40,

@@ -120,6 +120,9 @@ func TestChainProviderIsExpired(t *testing.T) {
 	}
 
 	_, err = p.Retrieve()
+	if err != nil {
+		t.Errorf("Expect no error, got %v", err)
+	}
 	if p.IsExpired() {
 		t.Errorf("Expect not expired after retrieve")
 	}

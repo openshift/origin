@@ -16,6 +16,10 @@ func TestDbdsqr(t *testing.T) {
 	testlapack.DbdsqrTest(t, impl)
 }
 
+func TestDcombssq(t *testing.T) {
+	testlapack.DcombssqTest(t, impl)
+}
+
 func TestDhseqr(t *testing.T) {
 	testlapack.DhseqrTest(t, impl)
 }
@@ -189,12 +193,20 @@ func TestDlasrt(t *testing.T) {
 	testlapack.DlasrtTest(t, impl)
 }
 
+func TestDlassq(t *testing.T) {
+	testlapack.DlassqTest(t, impl)
+}
+
 func TestDlaswp(t *testing.T) {
 	testlapack.DlaswpTest(t, impl)
 }
 
 func TestDlasy2(t *testing.T) {
 	testlapack.Dlasy2Test(t, impl)
+}
+
+func TestDlansb(t *testing.T) {
+	testlapack.DlansbTest(t, impl)
 }
 
 func TestDlanst(t *testing.T) {
@@ -289,6 +301,10 @@ func TestDlasv2(t *testing.T) {
 	testlapack.Dlasv2Test(t, impl)
 }
 
+func TestDlatbs(t *testing.T) {
+	testlapack.DlatbsTest(t, impl)
+}
+
 func TestDlatrd(t *testing.T) {
 	testlapack.DlatrdTest(t, impl)
 }
@@ -369,8 +385,20 @@ func TestDorm2r(t *testing.T) {
 	testlapack.Dorm2rTest(t, impl)
 }
 
+func TestDpbcon(t *testing.T) {
+	testlapack.DpbconTest(t, impl)
+}
+
 func TestDpbtf2(t *testing.T) {
 	testlapack.Dpbtf2Test(t, impl)
+}
+
+func TestDpbtrf(t *testing.T) {
+	testlapack.DpbtrfTest(t, impl)
+}
+
+func TestDpbtrs(t *testing.T) {
+	testlapack.DpbtrsTest(t, impl)
 }
 
 func TestDpocon(t *testing.T) {

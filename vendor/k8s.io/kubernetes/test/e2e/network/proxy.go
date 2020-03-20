@@ -19,6 +19,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"net/http"
@@ -27,13 +28,14 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/net"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
+	e2erc "k8s.io/kubernetes/test/e2e/framework/rc"
 	testutils "k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
@@ -85,7 +87,7 @@ var _ = SIGDescribe("Proxy", func() {
 		framework.ConformanceIt("should proxy through a service and a pod ", func() {
 			start := time.Now()
 			labels := map[string]string{"proxy-service-target": "true"}
-			service, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(&v1.Service{
+			service, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(context.TODO(), &v1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "proxy-service-",
 				},
@@ -114,7 +116,7 @@ var _ = SIGDescribe("Proxy", func() {
 						},
 					},
 				},
-			})
+			}, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 
 			// Make an RC with a single pod. The 'porter' image is
@@ -160,9 +162,9 @@ var _ = SIGDescribe("Proxy", func() {
 				Labels:      labels,
 				CreatedPods: &pods,
 			}
-			err = framework.RunRC(cfg)
+			err = e2erc.RunRC(cfg)
 			framework.ExpectNoError(err)
-			defer framework.DeleteRCAndWaitForGC(f.ClientSet, f.Namespace.Name, cfg.Name)
+			defer e2erc.DeleteRCAndWaitForGC(f.ClientSet, f.Namespace.Name, cfg.Name)
 
 			err = waitForEndpoint(f.ClientSet, f.Namespace.Name, service.Name)
 			framework.ExpectNoError(err)
@@ -225,7 +227,7 @@ var _ = SIGDescribe("Proxy", func() {
 						body, status, d, err := doProxy(f, path, i)
 
 						if err != nil {
-							if serr, ok := err.(*errors.StatusError); ok {
+							if serr, ok := err.(*apierrors.StatusError); ok {
 								recordError(fmt.Sprintf("%v (%v; %v): path %v gave status error: %+v",
 									i, status, d, path, serr.Status()))
 							} else {
@@ -248,7 +250,7 @@ var _ = SIGDescribe("Proxy", func() {
 			}
 
 			if len(errs) != 0 {
-				body, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).GetLogs(pods[0].Name, &v1.PodLogOptions{}).Do().Raw()
+				body, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).GetLogs(pods[0].Name, &v1.PodLogOptions{}).Do(context.TODO()).Raw()
 				if err != nil {
 					framework.Logf("Error getting logs for pod %s: %v", pods[0].Name, err)
 				} else {
@@ -269,7 +271,7 @@ func doProxy(f *framework.Framework, path string, i int) (body []byte, statusCod
 	//   chance of the things we are talking to being confused for an error
 	//   that apiserver would have emitted.
 	start := time.Now()
-	body, err = f.ClientSet.CoreV1().RESTClient().Get().AbsPath(path).Do().StatusCode(&statusCode).Raw()
+	body, err = f.ClientSet.CoreV1().RESTClient().Get().AbsPath(path).Do(context.TODO()).StatusCode(&statusCode).Raw()
 	d = time.Since(start)
 	if len(body) > 0 {
 		framework.Logf("(%v) %v: %s (%v; %v)", i, path, truncate(body, maxDisplayBodyLen), statusCode, d)
@@ -320,8 +322,8 @@ func waitForEndpoint(c clientset.Interface, ns, name string) error {
 	// registerTimeout is how long to wait for an endpoint to be registered.
 	registerTimeout := time.Minute
 	for t := time.Now(); time.Since(t) < registerTimeout; time.Sleep(framework.Poll) {
-		endpoint, err := c.CoreV1().Endpoints(ns).Get(name, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
+		endpoint, err := c.CoreV1().Endpoints(ns).Get(context.TODO(), name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
 			framework.Logf("Endpoint %s/%s is not ready yet", ns, name)
 			continue
 		}

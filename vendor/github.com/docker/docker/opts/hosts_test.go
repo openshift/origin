@@ -38,13 +38,13 @@ func TestParseHost(t *testing.T) {
 	}
 
 	for _, value := range invalid {
-		if _, err := ParseHost(false, value); err == nil {
+		if _, err := ParseHost(false, false, value); err == nil {
 			t.Errorf("Expected an error for %v, got [nil]", value)
 		}
 	}
 
 	for value, expected := range valid {
-		if actual, err := ParseHost(false, value); err != nil || actual != expected {
+		if actual, err := ParseHost(false, false, value); err != nil || actual != expected {
 			t.Errorf("Expected for %v [%v], got [%v, %v]", value, expected, actual, err)
 		}
 	}
@@ -69,18 +69,18 @@ func TestParseDockerDaemonHost(t *testing.T) {
 		"[::1]:5555/path":             "tcp://[::1]:5555/path",
 		"[0:0:0:0:0:0:0:1]:":          "tcp://[0:0:0:0:0:0:0:1]:2375",
 		"[0:0:0:0:0:0:0:1]:5555/path": "tcp://[0:0:0:0:0:0:0:1]:5555/path",
-		":6666":                   fmt.Sprintf("tcp://%s:6666", DefaultHTTPHost),
-		":6666/path":              fmt.Sprintf("tcp://%s:6666/path", DefaultHTTPHost),
-		"tcp://":                  DefaultTCPHost,
-		"tcp://:7777":             fmt.Sprintf("tcp://%s:7777", DefaultHTTPHost),
-		"tcp://:7777/path":        fmt.Sprintf("tcp://%s:7777/path", DefaultHTTPHost),
-		"unix:///run/docker.sock": "unix:///run/docker.sock",
-		"unix://":                 "unix://" + DefaultUnixSocket,
-		"fd://":                   "fd://",
-		"fd://something":          "fd://something",
-		"localhost:":              "tcp://localhost:2375",
-		"localhost:5555":          "tcp://localhost:5555",
-		"localhost:5555/path":     "tcp://localhost:5555/path",
+		":6666":                       fmt.Sprintf("tcp://%s:6666", DefaultHTTPHost),
+		":6666/path":                  fmt.Sprintf("tcp://%s:6666/path", DefaultHTTPHost),
+		"tcp://":                      DefaultTCPHost,
+		"tcp://:7777":                 fmt.Sprintf("tcp://%s:7777", DefaultHTTPHost),
+		"tcp://:7777/path":            fmt.Sprintf("tcp://%s:7777/path", DefaultHTTPHost),
+		"unix:///run/docker.sock":     "unix:///run/docker.sock",
+		"unix://":                     "unix://" + DefaultUnixSocket,
+		"fd://":                       "fd://",
+		"fd://something":              "fd://something",
+		"localhost:":                  "tcp://localhost:2375",
+		"localhost:5555":              "tcp://localhost:5555",
+		"localhost:5555/path":         "tcp://localhost:5555/path",
 	}
 	for invalidAddr, expectedError := range invalids {
 		if addr, err := parseDaemonHost(invalidAddr); err == nil || err.Error() != expectedError {

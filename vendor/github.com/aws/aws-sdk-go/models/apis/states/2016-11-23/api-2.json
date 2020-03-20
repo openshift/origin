@@ -23,7 +23,8 @@
       "output":{"shape":"CreateActivityOutput"},
       "errors":[
         {"shape":"ActivityLimitExceeded"},
-        {"shape":"InvalidName"}
+        {"shape":"InvalidName"},
+        {"shape":"TooManyTags"}
       ],
       "idempotent":true
     },
@@ -39,9 +40,12 @@
         {"shape":"InvalidArn"},
         {"shape":"InvalidDefinition"},
         {"shape":"InvalidName"},
+        {"shape":"InvalidLoggingConfiguration"},
         {"shape":"StateMachineAlreadyExists"},
         {"shape":"StateMachineDeleting"},
-        {"shape":"StateMachineLimitExceeded"}
+        {"shape":"StateMachineLimitExceeded"},
+        {"shape":"StateMachineTypeNotSupported"},
+        {"shape":"TooManyTags"}
       ],
       "idempotent":true
     },
@@ -172,7 +176,8 @@
       "errors":[
         {"shape":"InvalidArn"},
         {"shape":"InvalidToken"},
-        {"shape":"StateMachineDoesNotExist"}
+        {"shape":"StateMachineDoesNotExist"},
+        {"shape":"StateMachineTypeNotSupported"}
       ]
     },
     "ListStateMachines":{
@@ -313,6 +318,7 @@
       "errors":[
         {"shape":"InvalidArn"},
         {"shape":"InvalidDefinition"},
+        {"shape":"InvalidLoggingConfiguration"},
         {"shape":"MissingRequiredParameter"},
         {"shape":"StateMachineDeleting"},
         {"shape":"StateMachineDoesNotExist"}
@@ -413,6 +419,12 @@
       "max":256,
       "min":1
     },
+    "CloudWatchLogsLogGroup":{
+      "type":"structure",
+      "members":{
+        "logGroupArn":{"shape":"Arn"}
+      }
+    },
     "ConnectorParameters":{
       "type":"string",
       "max":32768,
@@ -423,7 +435,8 @@
       "type":"structure",
       "required":["name"],
       "members":{
-        "name":{"shape":"Name"}
+        "name":{"shape":"Name"},
+        "tags":{"shape":"TagList"}
       }
     },
     "CreateActivityOutput":{
@@ -447,7 +460,10 @@
       "members":{
         "name":{"shape":"Name"},
         "definition":{"shape":"Definition"},
-        "roleArn":{"shape":"Arn"}
+        "roleArn":{"shape":"Arn"},
+        "type":{"shape":"StateMachineType"},
+        "loggingConfiguration":{"shape":"LoggingConfiguration"},
+        "tags":{"shape":"TagList"}
       }
     },
     "CreateStateMachineOutput":{
@@ -576,6 +592,7 @@
         "name",
         "definition",
         "roleArn",
+        "type",
         "creationDate"
       ],
       "members":{
@@ -584,7 +601,9 @@
         "status":{"shape":"StateMachineStatus"},
         "definition":{"shape":"Definition"},
         "roleArn":{"shape":"Arn"},
-        "creationDate":{"shape":"Timestamp"}
+        "type":{"shape":"StateMachineType"},
+        "creationDate":{"shape":"Timestamp"},
+        "loggingConfiguration":{"shape":"LoggingConfiguration"}
       }
     },
     "ErrorMessage":{"type":"string"},
@@ -688,7 +707,7 @@
       "type":"structure",
       "members":{
         "taskToken":{"shape":"TaskToken"},
-        "input":{"shape":"SensitiveData"}
+        "input":{"shape":"SensitiveDataJobInput"}
       }
     },
     "GetExecutionHistoryInput":{
@@ -740,6 +759,11 @@
         "executionSucceededEventDetails":{"shape":"ExecutionSucceededEventDetails"},
         "executionAbortedEventDetails":{"shape":"ExecutionAbortedEventDetails"},
         "executionTimedOutEventDetails":{"shape":"ExecutionTimedOutEventDetails"},
+        "mapStateStartedEventDetails":{"shape":"MapStateStartedEventDetails"},
+        "mapIterationStartedEventDetails":{"shape":"MapIterationEventDetails"},
+        "mapIterationSucceededEventDetails":{"shape":"MapIterationEventDetails"},
+        "mapIterationFailedEventDetails":{"shape":"MapIterationEventDetails"},
+        "mapIterationAbortedEventDetails":{"shape":"MapIterationEventDetails"},
         "lambdaFunctionFailedEventDetails":{"shape":"LambdaFunctionFailedEventDetails"},
         "lambdaFunctionScheduleFailedEventDetails":{"shape":"LambdaFunctionScheduleFailedEventDetails"},
         "lambdaFunctionScheduledEventDetails":{"shape":"LambdaFunctionScheduledEventDetails"},
@@ -758,47 +782,57 @@
       "type":"string",
       "enum":[
         "ActivityFailed",
-        "ActivityScheduleFailed",
         "ActivityScheduled",
+        "ActivityScheduleFailed",
         "ActivityStarted",
         "ActivitySucceeded",
         "ActivityTimedOut",
         "ChoiceStateEntered",
         "ChoiceStateExited",
-        "TaskFailed",
-        "TaskScheduled",
-        "TaskStartFailed",
-        "TaskStarted",
-        "TaskSubmitFailed",
-        "TaskSubmitted",
-        "TaskSucceeded",
-        "TaskTimedOut",
+        "ExecutionAborted",
         "ExecutionFailed",
         "ExecutionStarted",
         "ExecutionSucceeded",
-        "ExecutionAborted",
         "ExecutionTimedOut",
         "FailStateEntered",
         "LambdaFunctionFailed",
-        "LambdaFunctionScheduleFailed",
         "LambdaFunctionScheduled",
-        "LambdaFunctionStartFailed",
+        "LambdaFunctionScheduleFailed",
         "LambdaFunctionStarted",
+        "LambdaFunctionStartFailed",
         "LambdaFunctionSucceeded",
         "LambdaFunctionTimedOut",
-        "SucceedStateEntered",
-        "SucceedStateExited",
-        "TaskStateAborted",
-        "TaskStateEntered",
-        "TaskStateExited",
-        "PassStateEntered",
-        "PassStateExited",
+        "MapIterationAborted",
+        "MapIterationFailed",
+        "MapIterationStarted",
+        "MapIterationSucceeded",
+        "MapStateAborted",
+        "MapStateEntered",
+        "MapStateExited",
+        "MapStateFailed",
+        "MapStateStarted",
+        "MapStateSucceeded",
         "ParallelStateAborted",
         "ParallelStateEntered",
         "ParallelStateExited",
         "ParallelStateFailed",
         "ParallelStateStarted",
         "ParallelStateSucceeded",
+        "PassStateEntered",
+        "PassStateExited",
+        "SucceedStateEntered",
+        "SucceedStateExited",
+        "TaskFailed",
+        "TaskScheduled",
+        "TaskStarted",
+        "TaskStartFailed",
+        "TaskStateAborted",
+        "TaskStateEntered",
+        "TaskStateExited",
+        "TaskSubmitFailed",
+        "TaskSubmitted",
+        "TaskSucceeded",
+        "TaskTimedOut",
         "WaitStateAborted",
         "WaitStateEntered",
         "WaitStateExited"
@@ -808,6 +842,7 @@
       "type":"string",
       "max":256
     },
+    "IncludeExecutionData":{"type":"boolean"},
     "InvalidArn":{
       "type":"structure",
       "members":{
@@ -823,6 +858,13 @@
       "exception":true
     },
     "InvalidExecutionInput":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
+    },
+    "InvalidLoggingConfiguration":{
       "type":"structure",
       "members":{
         "message":{"shape":"ErrorMessage"}
@@ -918,7 +960,7 @@
         "stateMachineArn":{"shape":"Arn"},
         "statusFilter":{"shape":"ExecutionStatus"},
         "maxResults":{"shape":"PageSize"},
-        "nextToken":{"shape":"PageToken"}
+        "nextToken":{"shape":"ListExecutionsPageToken"}
       }
     },
     "ListExecutionsOutput":{
@@ -926,8 +968,13 @@
       "required":["executions"],
       "members":{
         "executions":{"shape":"ExecutionList"},
-        "nextToken":{"shape":"PageToken"}
+        "nextToken":{"shape":"ListExecutionsPageToken"}
       }
+    },
+    "ListExecutionsPageToken":{
+      "type":"string",
+      "max":3096,
+      "min":1
     },
     "ListStateMachinesInput":{
       "type":"structure",
@@ -955,6 +1002,46 @@
       "type":"structure",
       "members":{
         "tags":{"shape":"TagList"}
+      }
+    },
+    "LogDestination":{
+      "type":"structure",
+      "members":{
+        "cloudWatchLogsLogGroup":{"shape":"CloudWatchLogsLogGroup"}
+      }
+    },
+    "LogDestinationList":{
+      "type":"list",
+      "member":{"shape":"LogDestination"}
+    },
+    "LogLevel":{
+      "type":"string",
+      "enum":[
+        "ALL",
+        "ERROR",
+        "FATAL",
+        "OFF"
+      ]
+    },
+    "LoggingConfiguration":{
+      "type":"structure",
+      "members":{
+        "level":{"shape":"LogLevel"},
+        "includeExecutionData":{"shape":"IncludeExecutionData"},
+        "destinations":{"shape":"LogDestinationList"}
+      }
+    },
+    "MapIterationEventDetails":{
+      "type":"structure",
+      "members":{
+        "name":{"shape":"Name"},
+        "index":{"shape":"UnsignedInteger"}
+      }
+    },
+    "MapStateStartedEventDetails":{
+      "type":"structure",
+      "members":{
+        "length":{"shape":"UnsignedInteger"}
       }
     },
     "MissingRequiredParameter":{
@@ -1041,6 +1128,11 @@
       "max":32768,
       "sensitive":true
     },
+    "SensitiveDataJobInput":{
+      "type":"string",
+      "max":65536,
+      "sensitive":true
+    },
     "SensitiveError":{
       "type":"string",
       "max":256,
@@ -1120,11 +1212,13 @@
       "required":[
         "stateMachineArn",
         "name",
+        "type",
         "creationDate"
       ],
       "members":{
         "stateMachineArn":{"shape":"Arn"},
         "name":{"shape":"Name"},
+        "type":{"shape":"StateMachineType"},
         "creationDate":{"shape":"Timestamp"}
       }
     },
@@ -1134,6 +1228,20 @@
         "ACTIVE",
         "DELETING"
       ]
+    },
+    "StateMachineType":{
+      "type":"string",
+      "enum":[
+        "STANDARD",
+        "EXPRESS"
+      ]
+    },
+    "StateMachineTypeNotSupported":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
     },
     "StopExecutionInput":{
       "type":"structure",
@@ -1327,6 +1435,10 @@
       },
       "exception":true
     },
+    "UnsignedInteger":{
+      "type":"integer",
+      "min":0
+    },
     "UntagResourceInput":{
       "type":"structure",
       "required":[
@@ -1349,7 +1461,8 @@
       "members":{
         "stateMachineArn":{"shape":"Arn"},
         "definition":{"shape":"Definition"},
-        "roleArn":{"shape":"Arn"}
+        "roleArn":{"shape":"Arn"},
+        "loggingConfiguration":{"shape":"LoggingConfiguration"}
       }
     },
     "UpdateStateMachineOutput":{

@@ -11,7 +11,10 @@ of the problem, prefixed by the primary affected package.
 
 
 ### What did you do?
-<!-- Please include a link to a minimal reproducer here. -->
+<!--
+Please include a link to a minimal reproducer here. Preferably this should
+be a complete runnable example at https://play.golang.org/.
+-->
 
 
 ### What did you expect to happen?

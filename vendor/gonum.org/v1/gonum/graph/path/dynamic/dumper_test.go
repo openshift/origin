@@ -96,7 +96,7 @@ func (d *dumper) dump(withpath bool) {
 					if n.g != n.rhs {
 						fmt.Fprintf(w, "key:%.3f", n.key)
 					}
-					if n.key == n.key {
+					if !n.key.isBadKey() {
 						// Mark keys for nodes in the priority queue.
 						// We use NaN inequality for this check since all
 						// keys not in the queue must have their key set

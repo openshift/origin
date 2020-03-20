@@ -16,29 +16,7 @@ import (
 // EquivalentRadioactiveDose is a measure of equivalent dose of ionizing radiation in sieverts.
 type EquivalentRadioactiveDose float64
 
-const (
-	Yottasievert EquivalentRadioactiveDose = 1e24
-	Zettasievert EquivalentRadioactiveDose = 1e21
-	Exasievert   EquivalentRadioactiveDose = 1e18
-	Petasievert  EquivalentRadioactiveDose = 1e15
-	Terasievert  EquivalentRadioactiveDose = 1e12
-	Gigasievert  EquivalentRadioactiveDose = 1e9
-	Megasievert  EquivalentRadioactiveDose = 1e6
-	Kilosievert  EquivalentRadioactiveDose = 1e3
-	Hectosievert EquivalentRadioactiveDose = 1e2
-	Decasievert  EquivalentRadioactiveDose = 1e1
-	Sievert      EquivalentRadioactiveDose = 1.0
-	Decisievert  EquivalentRadioactiveDose = 1e-1
-	Centisievert EquivalentRadioactiveDose = 1e-2
-	Millisievert EquivalentRadioactiveDose = 1e-3
-	Microsievert EquivalentRadioactiveDose = 1e-6
-	Nanosievert  EquivalentRadioactiveDose = 1e-9
-	Picosievert  EquivalentRadioactiveDose = 1e-12
-	Femtosievert EquivalentRadioactiveDose = 1e-15
-	Attosievert  EquivalentRadioactiveDose = 1e-18
-	Zeptosievert EquivalentRadioactiveDose = 1e-21
-	Yoctosievert EquivalentRadioactiveDose = 1e-24
-)
+const Sievert EquivalentRadioactiveDose = 1
 
 // Unit converts the EquivalentRadioactiveDose to a *Unit
 func (a EquivalentRadioactiveDose) Unit() *Unit {

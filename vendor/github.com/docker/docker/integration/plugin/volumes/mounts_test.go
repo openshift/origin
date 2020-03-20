@@ -9,29 +9,29 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/internal/test/daemon"
 	"github.com/docker/docker/internal/test/fixtures/plugin"
-	"github.com/gotestyourself/gotestyourself/assert"
-	"github.com/gotestyourself/gotestyourself/skip"
+	"gotest.tools/assert"
+	"gotest.tools/skip"
 )
 
 // TestPluginWithDevMounts tests very specific regression caused by mounts ordering
 // (sorted in the daemon). See #36698
 func TestPluginWithDevMounts(t *testing.T) {
 	skip.If(t, testEnv.IsRemoteDaemon, "cannot run daemon when remote daemon")
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 	t.Parallel()
 
 	d := daemon.New(t)
 	d.Start(t, "--iptables=false")
 	defer d.Stop(t)
 
-	client, err := d.NewClient()
-	assert.Assert(t, err)
+	c := d.NewClientT(t)
 	ctx := context.Background()
 
 	testDir, err := ioutil.TempDir("", "test-dir")
-	assert.Assert(t, err)
+	assert.NilError(t, err)
 	defer os.RemoveAll(testDir)
 
-	createPlugin(t, client, "test", "dummy", asVolumeDriver, func(c *plugin.Config) {
+	createPlugin(t, c, "test", "dummy", asVolumeDriver, func(c *plugin.Config) {
 		root := "/"
 		dev := "/dev"
 		mounts := []types.PluginMount{
@@ -45,14 +45,14 @@ func TestPluginWithDevMounts(t *testing.T) {
 		c.IpcHost = true
 	})
 
-	err = client.PluginEnable(ctx, "test", types.PluginEnableOptions{Timeout: 30})
-	assert.Assert(t, err)
+	err = c.PluginEnable(ctx, "test", types.PluginEnableOptions{Timeout: 30})
+	assert.NilError(t, err)
 	defer func() {
-		err := client.PluginRemove(ctx, "test", types.PluginRemoveOptions{Force: true})
+		err := c.PluginRemove(ctx, "test", types.PluginRemoveOptions{Force: true})
 		assert.Check(t, err)
 	}()
 
-	p, _, err := client.PluginInspectWithRaw(ctx, "test")
-	assert.Assert(t, err)
+	p, _, err := c.PluginInspectWithRaw(ctx, "test")
+	assert.NilError(t, err)
 	assert.Assert(t, p.Enabled)
 }

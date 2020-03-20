@@ -62,8 +62,6 @@ func (g *WeightedDirectedGraph) AddNode(n graph.Node) {
 		panic(fmt.Sprintf("simple: node ID collision: %d", n.ID()))
 	}
 	g.nodes[n.ID()] = n
-	g.from[n.ID()] = make(map[int64]map[int64]graph.WeightedLine)
-	g.to[n.ID()] = make(map[int64]map[int64]graph.WeightedLine)
 	g.nodeIDs.Use(n.ID())
 }
 
@@ -251,26 +249,35 @@ func (g *WeightedDirectedGraph) SetWeightedLine(l graph.WeightedLine) {
 	} else {
 		g.nodes[fid] = from
 	}
-	if g.from[fid][tid] == nil {
-		g.from[fid][tid] = make(map[int64]graph.WeightedLine)
-	}
 	if _, ok := g.nodes[tid]; !ok {
 		g.AddNode(to)
 	} else {
 		g.nodes[tid] = to
 	}
-	if g.to[tid][fid] == nil {
-		g.to[tid][fid] = make(map[int64]graph.WeightedLine)
+
+	switch {
+	case g.from[fid] == nil:
+		g.from[fid] = map[int64]map[int64]graph.WeightedLine{tid: {lid: l}}
+	case g.from[fid][tid] == nil:
+		g.from[fid][tid] = map[int64]graph.WeightedLine{lid: l}
+	default:
+		g.from[fid][tid][lid] = l
+	}
+	switch {
+	case g.to[tid] == nil:
+		g.to[tid] = map[int64]map[int64]graph.WeightedLine{fid: {lid: l}}
+	case g.to[tid][fid] == nil:
+		g.to[tid][fid] = map[int64]graph.WeightedLine{lid: l}
+	default:
+		g.to[tid][fid][lid] = l
 	}
 
-	g.from[fid][tid][lid] = l
-	g.to[tid][fid][lid] = l
 	g.lineIDs.Use(l.ID())
 }
 
 // To returns all nodes in g that can reach directly to n.
 func (g *WeightedDirectedGraph) To(id int64) graph.Nodes {
-	if _, ok := g.from[id]; !ok {
+	if _, ok := g.to[id]; !ok {
 		return graph.Empty
 	}
 

@@ -1787,7 +1787,6 @@ func ExampleEC2_DeleteNetworkInterface_shared00() {
 // To delete a placement group
 //
 // This example deletes the specified placement group.
-//
 func ExampleEC2_DeletePlacementGroup_shared00() {
 	svc := ec2.New(session.New())
 	input := &ec2.DeletePlacementGroupInput{
@@ -2384,7 +2383,6 @@ func ExampleEC2_DescribeImages_shared00() {
 // To describe the instance type
 //
 // This example describes the instance type of the specified instance.
-//
 func ExampleEC2_DescribeInstanceAttribute_shared00() {
 	svc := ec2.New(session.New())
 	input := &ec2.DescribeInstanceAttributeInput{
@@ -2413,7 +2411,6 @@ func ExampleEC2_DescribeInstanceAttribute_shared00() {
 // To describe the disableApiTermination attribute
 //
 // This example describes the ``disableApiTermination`` attribute of the specified instance.
-//
 func ExampleEC2_DescribeInstanceAttribute_shared01() {
 	svc := ec2.New(session.New())
 	input := &ec2.DescribeInstanceAttributeInput{
@@ -2442,7 +2439,6 @@ func ExampleEC2_DescribeInstanceAttribute_shared01() {
 // To describe the block device mapping for an instance
 //
 // This example describes the ``blockDeviceMapping`` attribute of the specified instance.
-//
 func ExampleEC2_DescribeInstanceAttribute_shared02() {
 	svc := ec2.New(session.New())
 	input := &ec2.DescribeInstanceAttributeInput{
@@ -3004,8 +3000,8 @@ func ExampleEC2_DescribeScheduledInstanceAvailability_shared00() {
 	svc := ec2.New(session.New())
 	input := &ec2.DescribeScheduledInstanceAvailabilityInput{
 		FirstSlotStartTimeRange: &ec2.SlotDateTimeRangeRequest{
-			EarliestTime: parseTime("2006-01-02T15:04:05Z", "2016-01-31T00:00:00Z"),
-			LatestTime:   parseTime("2006-01-02T15:04:05Z", "2016-01-31T04:00:00Z"),
+			EarliestTime: parseTime("2006-01-02T15:04:05.999999999Z", "2016-01-31T00:00:00Z"),
+			LatestTime:   parseTime("2006-01-02T15:04:05.999999999Z", "2016-01-31T04:00:00Z"),
 		},
 		Recurrence: &ec2.ScheduledInstanceRecurrenceRequest{
 			Frequency: aws.String("Weekly"),
@@ -3311,7 +3307,7 @@ func ExampleEC2_DescribeSpotFleetRequestHistory_shared00() {
 	svc := ec2.New(session.New())
 	input := &ec2.DescribeSpotFleetRequestHistoryInput{
 		SpotFleetRequestId: aws.String("sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE"),
-		StartTime:          parseTime("2006-01-02T15:04:05Z", "2015-05-26T00:00:00Z"),
+		StartTime:          parseTime("2006-01-02T15:04:05.999999999Z", "2015-05-26T00:00:00Z"),
 	}
 
 	result, err := svc.DescribeSpotFleetRequestHistory(input)
@@ -3397,14 +3393,14 @@ func ExampleEC2_DescribeSpotInstanceRequests_shared00() {
 func ExampleEC2_DescribeSpotPriceHistory_shared00() {
 	svc := ec2.New(session.New())
 	input := &ec2.DescribeSpotPriceHistoryInput{
-		EndTime: parseTime("2006-01-02T15:04:05Z", "2014-01-06T08:09:10"),
+		EndTime: parseTime("2006-01-02T15:04:05.999999999Z", "2014-01-06T08:09:10"),
 		InstanceTypes: []*string{
 			aws.String("m1.xlarge"),
 		},
 		ProductDescriptions: []*string{
 			aws.String("Linux/UNIX (Amazon VPC)"),
 		},
-		StartTime: parseTime("2006-01-02T15:04:05Z", "2014-01-06T07:08:09"),
+		StartTime: parseTime("2006-01-02T15:04:05.999999999Z", "2014-01-06T07:08:09"),
 	}
 
 	result, err := svc.DescribeSpotPriceHistory(input)

@@ -768,6 +768,21 @@
         {"shape":"ServiceFailureException"}
       ]
     },
+    "GenerateOrganizationsAccessReport":{
+      "name":"GenerateOrganizationsAccessReport",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GenerateOrganizationsAccessReportRequest"},
+      "output":{
+        "shape":"GenerateOrganizationsAccessReportResponse",
+        "resultWrapper":"GenerateOrganizationsAccessReportResult"
+      },
+      "errors":[
+        {"shape":"ReportGenerationLimitExceededException"}
+      ]
+    },
     "GenerateServiceLastAccessedDetails":{
       "name":"GenerateServiceLastAccessedDetails",
       "http":{
@@ -794,10 +809,7 @@
       "output":{
         "shape":"GetAccessKeyLastUsedResponse",
         "resultWrapper":"GetAccessKeyLastUsedResult"
-      },
-      "errors":[
-        {"shape":"NoSuchEntityException"}
-      ]
+      }
     },
     "GetAccountAuthorizationDetails":{
       "name":"GetAccountAuthorizationDetails",
@@ -970,6 +982,21 @@
         {"shape":"InvalidInputException"},
         {"shape":"NoSuchEntityException"},
         {"shape":"ServiceFailureException"}
+      ]
+    },
+    "GetOrganizationsAccessReport":{
+      "name":"GetOrganizationsAccessReport",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetOrganizationsAccessReportRequest"},
+      "output":{
+        "shape":"GetOrganizationsAccessReportResponse",
+        "resultWrapper":"GetOrganizationsAccessReportResult"
+      },
+      "errors":[
+        {"shape":"NoSuchEntityException"}
       ]
     },
     "GetPolicy":{
@@ -1762,6 +1789,17 @@
         {"shape":"ServiceFailureException"}
       ]
     },
+    "SetSecurityTokenServicePreferences":{
+      "name":"SetSecurityTokenServicePreferences",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"SetSecurityTokenServicePreferencesRequest"},
+      "errors":[
+        {"shape":"ServiceFailureException"}
+      ]
+    },
     "SimulateCustomPolicy":{
       "name":"SimulateCustomPolicy",
       "http":{
@@ -2113,6 +2151,25 @@
     }
   },
   "shapes":{
+    "AccessDetail":{
+      "type":"structure",
+      "required":[
+        "ServiceName",
+        "ServiceNamespace"
+      ],
+      "members":{
+        "ServiceName":{"shape":"serviceNameType"},
+        "ServiceNamespace":{"shape":"serviceNamespaceType"},
+        "Region":{"shape":"stringType"},
+        "EntityPath":{"shape":"organizationsEntityPathType"},
+        "LastAuthenticatedTime":{"shape":"dateType"},
+        "TotalAuthenticatedEntities":{"shape":"integerType"}
+      }
+    },
+    "AccessDetails":{
+      "type":"list",
+      "member":{"shape":"AccessDetail"}
+    },
     "AccessKey":{
       "type":"structure",
       "required":[
@@ -2986,6 +3043,20 @@
         "Description":{"shape":"ReportStateDescriptionType"}
       }
     },
+    "GenerateOrganizationsAccessReportRequest":{
+      "type":"structure",
+      "required":["EntityPath"],
+      "members":{
+        "EntityPath":{"shape":"organizationsEntityPathType"},
+        "OrganizationsPolicyId":{"shape":"organizationsPolicyIdType"}
+      }
+    },
+    "GenerateOrganizationsAccessReportResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"jobIDType"}
+      }
+    },
     "GenerateServiceLastAccessedDetailsRequest":{
       "type":"structure",
       "required":["Arn"],
@@ -3029,7 +3100,7 @@
         "RoleDetailList":{"shape":"roleDetailListType"},
         "Policies":{"shape":"ManagedPolicyDetailListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "GetAccountPasswordPolicyResponse":{
@@ -3117,7 +3188,7 @@
         "Group":{"shape":"Group"},
         "Users":{"shape":"userListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "GetInstanceProfileRequest":{
@@ -3162,6 +3233,34 @@
         "ClientIDList":{"shape":"clientIDListType"},
         "ThumbprintList":{"shape":"thumbprintListType"},
         "CreateDate":{"shape":"dateType"}
+      }
+    },
+    "GetOrganizationsAccessReportRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"jobIDType"},
+        "MaxItems":{"shape":"maxItemsType"},
+        "Marker":{"shape":"markerType"},
+        "SortKey":{"shape":"sortKeyType"}
+      }
+    },
+    "GetOrganizationsAccessReportResponse":{
+      "type":"structure",
+      "required":[
+        "JobStatus",
+        "JobCreationDate"
+      ],
+      "members":{
+        "JobStatus":{"shape":"jobStatusType"},
+        "JobCreationDate":{"shape":"dateType"},
+        "JobCompletionDate":{"shape":"dateType"},
+        "NumberOfServicesAccessible":{"shape":"integerType"},
+        "NumberOfServicesNotAccessed":{"shape":"integerType"},
+        "AccessDetails":{"shape":"AccessDetails"},
+        "IsTruncated":{"shape":"booleanType"},
+        "Marker":{"shape":"markerType"},
+        "ErrorDetails":{"shape":"ErrorDetails"}
       }
     },
     "GetPolicyRequest":{
@@ -3303,7 +3402,7 @@
         "ServicesLastAccessed":{"shape":"ServicesLastAccessed"},
         "JobCompletionDate":{"shape":"dateType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"},
+        "Marker":{"shape":"responseMarkerType"},
         "Error":{"shape":"ErrorDetails"}
       }
     },
@@ -3334,7 +3433,7 @@
         "JobCompletionDate":{"shape":"dateType"},
         "EntityDetailsList":{"shape":"entityDetailsListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"},
+        "Marker":{"shape":"responseMarkerType"},
         "Error":{"shape":"ErrorDetails"}
       }
     },
@@ -3537,7 +3636,7 @@
       "members":{
         "AccessKeyMetadata":{"shape":"accessKeyMetadataListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListAccountAliasesRequest":{
@@ -3553,7 +3652,7 @@
       "members":{
         "AccountAliases":{"shape":"accountAliasListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListAttachedGroupPoliciesRequest":{
@@ -3571,7 +3670,7 @@
       "members":{
         "AttachedPolicies":{"shape":"attachedPoliciesListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListAttachedRolePoliciesRequest":{
@@ -3589,7 +3688,7 @@
       "members":{
         "AttachedPolicies":{"shape":"attachedPoliciesListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListAttachedUserPoliciesRequest":{
@@ -3607,7 +3706,7 @@
       "members":{
         "AttachedPolicies":{"shape":"attachedPoliciesListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListEntitiesForPolicyRequest":{
@@ -3629,7 +3728,7 @@
         "PolicyUsers":{"shape":"PolicyUserListType"},
         "PolicyRoles":{"shape":"PolicyRoleListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListGroupPoliciesRequest":{
@@ -3647,7 +3746,7 @@
       "members":{
         "PolicyNames":{"shape":"policyNameListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListGroupsForUserRequest":{
@@ -3665,7 +3764,7 @@
       "members":{
         "Groups":{"shape":"groupListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListGroupsRequest":{
@@ -3682,7 +3781,7 @@
       "members":{
         "Groups":{"shape":"groupListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListInstanceProfilesForRoleRequest":{
@@ -3700,7 +3799,7 @@
       "members":{
         "InstanceProfiles":{"shape":"instanceProfileListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListInstanceProfilesRequest":{
@@ -3717,7 +3816,7 @@
       "members":{
         "InstanceProfiles":{"shape":"instanceProfileListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListMFADevicesRequest":{
@@ -3734,7 +3833,7 @@
       "members":{
         "MFADevices":{"shape":"mfaDeviceListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListOpenIDConnectProvidersRequest":{
@@ -3773,7 +3872,7 @@
       "members":{
         "PoliciesGrantingServiceAccess":{"shape":"listPolicyGrantingServiceAccessResponseListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListPoliciesRequest":{
@@ -3792,7 +3891,7 @@
       "members":{
         "Policies":{"shape":"policyListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListPolicyVersionsRequest":{
@@ -3809,7 +3908,7 @@
       "members":{
         "Versions":{"shape":"policyDocumentVersionListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListRolePoliciesRequest":{
@@ -3827,7 +3926,7 @@
       "members":{
         "PolicyNames":{"shape":"policyNameListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListRoleTagsRequest":{
@@ -3845,7 +3944,7 @@
       "members":{
         "Tags":{"shape":"tagListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListRolesRequest":{
@@ -3862,7 +3961,7 @@
       "members":{
         "Roles":{"shape":"roleListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListSAMLProvidersRequest":{
@@ -3889,7 +3988,7 @@
       "members":{
         "SSHPublicKeys":{"shape":"SSHPublicKeyListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListServerCertificatesRequest":{
@@ -3906,7 +4005,7 @@
       "members":{
         "ServerCertificateMetadataList":{"shape":"serverCertificateMetadataListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListServiceSpecificCredentialsRequest":{
@@ -3936,7 +4035,7 @@
       "members":{
         "Certificates":{"shape":"certificateListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListUserPoliciesRequest":{
@@ -3954,7 +4053,7 @@
       "members":{
         "PolicyNames":{"shape":"policyNameListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListUserTagsRequest":{
@@ -3972,7 +4071,7 @@
       "members":{
         "Tags":{"shape":"tagListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListUsersRequest":{
@@ -3989,7 +4088,7 @@
       "members":{
         "Users":{"shape":"userListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "ListVirtualMFADevicesRequest":{
@@ -4006,7 +4105,7 @@
       "members":{
         "VirtualMFADevices":{"shape":"virtualMFADeviceListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "LoginProfile":{
@@ -4388,6 +4487,18 @@
       "type":"string",
       "enum":["text/csv"]
     },
+    "ReportGenerationLimitExceededException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"reportGenerationLimitExceededMessage"}
+      },
+      "error":{
+        "code":"ReportGenerationLimitExceeded",
+        "httpStatusCode":409,
+        "senderFault":true
+      },
+      "exception":true
+    },
     "ReportStateDescriptionType":{"type":"string"},
     "ReportStateType":{
       "type":"string",
@@ -4477,7 +4588,8 @@
         "Description":{"shape":"roleDescriptionType"},
         "MaxSessionDuration":{"shape":"roleMaxSessionDurationType"},
         "PermissionsBoundary":{"shape":"AttachedPermissionsBoundary"},
-        "Tags":{"shape":"tagListType"}
+        "Tags":{"shape":"tagListType"},
+        "RoleLastUsed":{"shape":"RoleLastUsed"}
       }
     },
     "RoleDetail":{
@@ -4493,7 +4605,15 @@
         "RolePolicyList":{"shape":"policyDetailListType"},
         "AttachedManagedPolicies":{"shape":"attachedPoliciesListType"},
         "PermissionsBoundary":{"shape":"AttachedPermissionsBoundary"},
-        "Tags":{"shape":"tagListType"}
+        "Tags":{"shape":"tagListType"},
+        "RoleLastUsed":{"shape":"RoleLastUsed"}
+      }
+    },
+    "RoleLastUsed":{
+      "type":"structure",
+      "members":{
+        "LastUsedDate":{"shape":"dateType"},
+        "Region":{"shape":"stringType"}
       }
     },
     "RoleUsageListType":{
@@ -4692,6 +4812,13 @@
         "VersionId":{"shape":"policyVersionIdType"}
       }
     },
+    "SetSecurityTokenServicePreferencesRequest":{
+      "type":"structure",
+      "required":["GlobalEndpointTokenVersion"],
+      "members":{
+        "GlobalEndpointTokenVersion":{"shape":"globalEndpointTokenVersion"}
+      }
+    },
     "SigningCertificate":{
       "type":"structure",
       "required":[
@@ -4732,7 +4859,7 @@
       "members":{
         "EvaluationResults":{"shape":"EvaluationResultsListType"},
         "IsTruncated":{"shape":"booleanType"},
-        "Marker":{"shape":"markerType"}
+        "Marker":{"shape":"responseMarkerType"}
       }
     },
     "SimulatePrincipalPolicyRequest":{
@@ -5245,6 +5372,13 @@
       "min":1,
       "pattern":"[\\w+=,.@-]+"
     },
+    "globalEndpointTokenVersion":{
+      "type":"string",
+      "enum":[
+        "v1Token",
+        "v2Token"
+      ]
+    },
     "groupDetailListType":{
       "type":"list",
       "member":{"shape":"GroupDetail"}
@@ -5333,6 +5467,16 @@
       "min":6
     },
     "noSuchEntityMessage":{"type":"string"},
+    "organizationsEntityPathType":{
+      "type":"string",
+      "max":427,
+      "min":19,
+      "pattern":"^o-[0-9a-z]{10,32}\\/r-[0-9a-z]{4,32}[0-9a-z-\\/]*"
+    },
+    "organizationsPolicyIdType":{
+      "type":"string",
+      "pattern":"^p-[0-9a-zA-Z_]{8,128}$"
+    },
     "passwordPolicyViolationMessage":{"type":"string"},
     "passwordReusePreventionType":{
       "type":"integer",
@@ -5407,6 +5551,8 @@
     },
     "policyPathType":{
       "type":"string",
+      "max":512,
+      "min":1,
       "pattern":"((/[A-Za-z0-9\\.,\\+@=_-]+)*)/"
     },
     "policyScopeType":{
@@ -5453,6 +5599,8 @@
       "min":1,
       "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u00FF]+"
     },
+    "reportGenerationLimitExceededMessage":{"type":"string"},
+    "responseMarkerType":{"type":"string"},
     "roleDescriptionType":{
       "type":"string",
       "max":1000,
@@ -5525,6 +5673,15 @@
       "min":17,
       "pattern":"[\\w+=,.@-]+"
     },
+    "sortKeyType":{
+      "type":"string",
+      "enum":[
+        "SERVICE_NAMESPACE_ASCENDING",
+        "SERVICE_NAMESPACE_DESCENDING",
+        "LAST_AUTHENTICATED_TIME_ASCENDING",
+        "LAST_AUTHENTICATED_TIME_DESCENDING"
+      ]
+    },
     "statusType":{
       "type":"string",
       "enum":[
@@ -5560,7 +5717,8 @@
         "PolicySizeQuota",
         "PolicyVersionsInUse",
         "PolicyVersionsInUseQuota",
-        "VersionsPerPolicyQuota"
+        "VersionsPerPolicyQuota",
+        "GlobalEndpointTokenVersion"
       ]
     },
     "summaryMapType":{

@@ -17,24 +17,23 @@ limitations under the License.
 package windows
 
 import (
+	"context"
 	"regexp"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/onsi/ginkgo"
 )
 
-const dnsTestPodHostName = "dns-querier-1"
-const dnsTestServiceName = "dns-test-service"
-
 var _ = SIGDescribe("DNS", func() {
 
 	ginkgo.BeforeEach(func() {
-		framework.SkipUnlessNodeOSDistroIs("windows")
+		e2eskipper.SkipUnlessNodeOSDistroIs("windows")
 	})
 
 	f := framework.NewDefaultFramework("dns")
@@ -51,12 +50,12 @@ var _ = SIGDescribe("DNS", func() {
 			Nameservers: []string{testInjectedIP},
 			Searches:    []string{testSearchPath},
 		}
-		testUtilsPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(testUtilsPod)
+		testUtilsPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), testUtilsPod, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 		framework.Logf("Created pod %v", testUtilsPod)
 		defer func() {
 			framework.Logf("Deleting pod %s...", testUtilsPod.Name)
-			if err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(testUtilsPod.Name, metav1.NewDeleteOptions(0)); err != nil {
+			if err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), testUtilsPod.Name, *metav1.NewDeleteOptions(0)); err != nil {
 				framework.Failf("Failed to delete pod %s: %v", testUtilsPod.Name, err)
 			}
 		}()
@@ -76,6 +75,7 @@ var _ = SIGDescribe("DNS", func() {
 
 		framework.Logf("ipconfig /all:\n%s", stdout)
 		dnsRegex, err := regexp.Compile(`DNS Servers[\s*.]*:(\s*[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})+`)
+		framework.ExpectNoError(err)
 
 		if dnsRegex.MatchString(stdout) {
 			match := dnsRegex.FindString(stdout)
@@ -102,7 +102,7 @@ func generateDNSUtilsPod() *v1.Pod {
 			Containers: []v1.Container{
 				{
 					Name:    "util",
-					Image:   imageutils.GetE2EImage(imageutils.Dnsutils),
+					Image:   imageutils.GetE2EImage(imageutils.Agnhost),
 					Command: []string{"sleep", "10000"},
 				},
 			},

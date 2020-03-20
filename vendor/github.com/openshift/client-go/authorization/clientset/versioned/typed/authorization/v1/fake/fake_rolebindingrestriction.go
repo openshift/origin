@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -23,7 +25,7 @@ var rolebindingrestrictionsResource = schema.GroupVersionResource{Group: "author
 var rolebindingrestrictionsKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "v1", Kind: "RoleBindingRestriction"}
 
 // Get takes name of the roleBindingRestriction, and returns the corresponding roleBindingRestriction object, and an error if there is any.
-func (c *FakeRoleBindingRestrictions) Get(name string, options v1.GetOptions) (result *authorizationv1.RoleBindingRestriction, err error) {
+func (c *FakeRoleBindingRestrictions) Get(ctx context.Context, name string, options v1.GetOptions) (result *authorizationv1.RoleBindingRestriction, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(rolebindingrestrictionsResource, c.ns, name), &authorizationv1.RoleBindingRestriction{})
 
@@ -34,7 +36,7 @@ func (c *FakeRoleBindingRestrictions) Get(name string, options v1.GetOptions) (r
 }
 
 // List takes label and field selectors, and returns the list of RoleBindingRestrictions that match those selectors.
-func (c *FakeRoleBindingRestrictions) List(opts v1.ListOptions) (result *authorizationv1.RoleBindingRestrictionList, err error) {
+func (c *FakeRoleBindingRestrictions) List(ctx context.Context, opts v1.ListOptions) (result *authorizationv1.RoleBindingRestrictionList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(rolebindingrestrictionsResource, rolebindingrestrictionsKind, c.ns, opts), &authorizationv1.RoleBindingRestrictionList{})
 
@@ -56,14 +58,14 @@ func (c *FakeRoleBindingRestrictions) List(opts v1.ListOptions) (result *authori
 }
 
 // Watch returns a watch.Interface that watches the requested roleBindingRestrictions.
-func (c *FakeRoleBindingRestrictions) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeRoleBindingRestrictions) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(rolebindingrestrictionsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a roleBindingRestriction and creates it.  Returns the server's representation of the roleBindingRestriction, and an error, if there is any.
-func (c *FakeRoleBindingRestrictions) Create(roleBindingRestriction *authorizationv1.RoleBindingRestriction) (result *authorizationv1.RoleBindingRestriction, err error) {
+func (c *FakeRoleBindingRestrictions) Create(ctx context.Context, roleBindingRestriction *authorizationv1.RoleBindingRestriction, opts v1.CreateOptions) (result *authorizationv1.RoleBindingRestriction, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(rolebindingrestrictionsResource, c.ns, roleBindingRestriction), &authorizationv1.RoleBindingRestriction{})
 
@@ -74,7 +76,7 @@ func (c *FakeRoleBindingRestrictions) Create(roleBindingRestriction *authorizati
 }
 
 // Update takes the representation of a roleBindingRestriction and updates it. Returns the server's representation of the roleBindingRestriction, and an error, if there is any.
-func (c *FakeRoleBindingRestrictions) Update(roleBindingRestriction *authorizationv1.RoleBindingRestriction) (result *authorizationv1.RoleBindingRestriction, err error) {
+func (c *FakeRoleBindingRestrictions) Update(ctx context.Context, roleBindingRestriction *authorizationv1.RoleBindingRestriction, opts v1.UpdateOptions) (result *authorizationv1.RoleBindingRestriction, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(rolebindingrestrictionsResource, c.ns, roleBindingRestriction), &authorizationv1.RoleBindingRestriction{})
 
@@ -85,7 +87,7 @@ func (c *FakeRoleBindingRestrictions) Update(roleBindingRestriction *authorizati
 }
 
 // Delete takes name of the roleBindingRestriction and deletes it. Returns an error if one occurs.
-func (c *FakeRoleBindingRestrictions) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeRoleBindingRestrictions) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(rolebindingrestrictionsResource, c.ns, name), &authorizationv1.RoleBindingRestriction{})
 
@@ -93,15 +95,15 @@ func (c *FakeRoleBindingRestrictions) Delete(name string, options *v1.DeleteOpti
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeRoleBindingRestrictions) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(rolebindingrestrictionsResource, c.ns, listOptions)
+func (c *FakeRoleBindingRestrictions) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(rolebindingrestrictionsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &authorizationv1.RoleBindingRestrictionList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched roleBindingRestriction.
-func (c *FakeRoleBindingRestrictions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorizationv1.RoleBindingRestriction, err error) {
+func (c *FakeRoleBindingRestrictions) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *authorizationv1.RoleBindingRestriction, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(rolebindingrestrictionsResource, c.ns, name, pt, data, subresources...), &authorizationv1.RoleBindingRestriction{})
 

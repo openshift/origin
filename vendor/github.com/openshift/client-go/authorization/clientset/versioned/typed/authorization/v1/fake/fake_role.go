@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -23,7 +25,7 @@ var rolesResource = schema.GroupVersionResource{Group: "authorization.openshift.
 var rolesKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "v1", Kind: "Role"}
 
 // Get takes name of the role, and returns the corresponding role object, and an error if there is any.
-func (c *FakeRoles) Get(name string, options v1.GetOptions) (result *authorizationv1.Role, err error) {
+func (c *FakeRoles) Get(ctx context.Context, name string, options v1.GetOptions) (result *authorizationv1.Role, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(rolesResource, c.ns, name), &authorizationv1.Role{})
 
@@ -34,7 +36,7 @@ func (c *FakeRoles) Get(name string, options v1.GetOptions) (result *authorizati
 }
 
 // List takes label and field selectors, and returns the list of Roles that match those selectors.
-func (c *FakeRoles) List(opts v1.ListOptions) (result *authorizationv1.RoleList, err error) {
+func (c *FakeRoles) List(ctx context.Context, opts v1.ListOptions) (result *authorizationv1.RoleList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(rolesResource, rolesKind, c.ns, opts), &authorizationv1.RoleList{})
 
@@ -56,14 +58,14 @@ func (c *FakeRoles) List(opts v1.ListOptions) (result *authorizationv1.RoleList,
 }
 
 // Watch returns a watch.Interface that watches the requested roles.
-func (c *FakeRoles) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeRoles) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(rolesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a role and creates it.  Returns the server's representation of the role, and an error, if there is any.
-func (c *FakeRoles) Create(role *authorizationv1.Role) (result *authorizationv1.Role, err error) {
+func (c *FakeRoles) Create(ctx context.Context, role *authorizationv1.Role, opts v1.CreateOptions) (result *authorizationv1.Role, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(rolesResource, c.ns, role), &authorizationv1.Role{})
 
@@ -74,7 +76,7 @@ func (c *FakeRoles) Create(role *authorizationv1.Role) (result *authorizationv1.
 }
 
 // Update takes the representation of a role and updates it. Returns the server's representation of the role, and an error, if there is any.
-func (c *FakeRoles) Update(role *authorizationv1.Role) (result *authorizationv1.Role, err error) {
+func (c *FakeRoles) Update(ctx context.Context, role *authorizationv1.Role, opts v1.UpdateOptions) (result *authorizationv1.Role, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(rolesResource, c.ns, role), &authorizationv1.Role{})
 
@@ -85,7 +87,7 @@ func (c *FakeRoles) Update(role *authorizationv1.Role) (result *authorizationv1.
 }
 
 // Delete takes name of the role and deletes it. Returns an error if one occurs.
-func (c *FakeRoles) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeRoles) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(rolesResource, c.ns, name), &authorizationv1.Role{})
 
@@ -93,15 +95,15 @@ func (c *FakeRoles) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeRoles) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(rolesResource, c.ns, listOptions)
+func (c *FakeRoles) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(rolesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &authorizationv1.RoleList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched role.
-func (c *FakeRoles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorizationv1.Role, err error) {
+func (c *FakeRoles) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *authorizationv1.Role, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(rolesResource, c.ns, name, pt, data, subresources...), &authorizationv1.Role{})
 

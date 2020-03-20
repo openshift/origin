@@ -27,7 +27,9 @@ func TestInteg_00_DescribeEntityAggregates(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-east-1")
 	svc := health.New(sess)
 	params := &health.DescribeEntityAggregatesInput{}
-	_, err := svc.DescribeEntityAggregatesWithContext(ctx, params)
+	_, err := svc.DescribeEntityAggregatesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
