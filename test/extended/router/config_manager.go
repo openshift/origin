@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("router-config-manager", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("router-config-manager")
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()

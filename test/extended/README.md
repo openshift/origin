@@ -146,7 +146,7 @@ import (
 var _ = g.Describe("[<test bucket>] <Testing scenario>", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("test-name", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("test-name")
 		testFixture = filepath.Join("testdata", "test.json")
 	)
 })

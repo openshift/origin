@@ -21,7 +21,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc = exutil.NewCLI("operators-routable", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("operators-routable")
 
 		// routeHostWait is how long to wait for routes to be assigned a host
 		routeHostWait = 30 * time.Second

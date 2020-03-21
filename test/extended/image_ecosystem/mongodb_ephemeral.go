@@ -16,7 +16,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mongodb] openshift mongo
 	defer g.GinkgoRecover()
 
 	templatePath := "mongodb-ephemeral"
-	oc := exutil.NewCLI("mongodb-create", exutil.KubeConfigPath()).Verbose()
+	oc := exutil.NewCLI("mongodb-create").Verbose()
 
 	g.Context("", func() {
 		g.BeforeEach(func() {

@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	testexutil "github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = Describe("[sig-network] services", func() {
@@ -34,7 +34,7 @@ var _ = Describe("[sig-network] services", func() {
 		})
 	})
 
-	oc := testexutil.NewCLI("ns-global", testexutil.KubeConfigPath())
+	oc := exutil.NewCLI("ns-global")
 
 	InIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-services1")

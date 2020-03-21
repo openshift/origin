@@ -21,7 +21,7 @@ import (
 
 var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("build-webhooks", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("build-webhooks")
 
 	g.It("TestWebhook", func() {
 		TestWebhook(g.GinkgoT(), oc)

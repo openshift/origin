@@ -57,7 +57,7 @@ type certAuthTest struct {
 }
 
 var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP]", func() {
-	var oc = exutil.NewCLI("request-headers", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("request-headers")
 
 	g.It("test RequestHeaders IdP", func() {
 		caCert, caKey := createClientCA(oc.AdminKubeClient().CoreV1())

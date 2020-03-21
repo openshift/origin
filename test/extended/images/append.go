@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		}
 	})
 
-	oc = exutil.NewCLI("image-append", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("image-append")
 
 	g.It("should create images by appending them", func() {
 		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get("php", metav1.GetOptions{})

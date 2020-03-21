@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][postgresql][Slow][Local]
 	defer g.GinkgoRecover()
 	g.Skip("db replica tests are currently flaky and disabled")
 
-	var oc = exutil.NewCLI("postgresql-replication", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("postgresql-replication")
 	var pvs = []*kapiv1.PersistentVolume{}
 	var nfspod = &kapiv1.Pod{}
 	var cleanup = func() {

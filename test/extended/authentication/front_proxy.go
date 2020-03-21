@@ -20,7 +20,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:Authentication] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestFrontProxy", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {

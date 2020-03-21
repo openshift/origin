@@ -29,7 +29,7 @@ const (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota] Image resource quota", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLI("resourcequota-admission", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("resourcequota-admission")
 
 	g.It(fmt.Sprintf("should deny a push of built image exceeding %s quota", imagev1.ResourceImageStreams), func() {
 		g.Skip("TODO: determine why this test is not skipped/fails on 4.0 clusters")

@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 		mavenSlavePipelinePath        = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
 		blueGreenPipelinePath         = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
 		envVarsPipelinePath           = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
-		oc                            = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
+		oc                            = exutil.NewCLI("jenkins-pipeline")
 		ticker                        *time.Ticker
 		j                             *jenkins.JenkinsRef
 		pvs                           = []*corev1.PersistentVolume{}

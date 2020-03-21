@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-node] supplemental groups", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc = exutil.NewCLI("sup-groups", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("sup-groups")
 		f  = oc.KubeFramework()
 	)
 

@@ -21,7 +21,7 @@ import (
 
 var _ = g.Describe("[sig-network][endpoints] admission", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("endpoint-admission", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("endpoint-admission")
 
 	g.It("TestEndpointAdmission", func() {
 		TestEndpointAdmission(g.GinkgoT(), oc)

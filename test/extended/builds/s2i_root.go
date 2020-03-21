@@ -26,7 +26,7 @@ func After(oc *exutil.CLI) {
 
 var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user image", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("s2i-build-root", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("s2i-build-root")
 
 	g.It("should create a root build and fail without a privileged SCC", func() {
 		g.Skip("TODO: figure out why we aren't properly denying this, also consider whether we still need to deny it")

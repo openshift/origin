@@ -34,12 +34,11 @@ var blacklist = sets.NewString(
 
 var _ = g.Describe("[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd:", func() {
 	hacklibDir := exutil.FixturePath("testdata", "cmd", "hack")
-	testsDir := exutil.FixturePath("testdata", "cmd", "test", "cmd")
+	keys := exutil.FixturePaths("testdata", "cmd", "test", "cmd")
 
-	oc := exutil.NewCLI("test-cmd", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("test-cmd")
 
-	cmData, _ := getDirDataAndKeyPathMap(testsDir)
-	for _, filename := range sets.StringKeySet(cmData).List() {
+	for _, filename := range keys {
 		// only make tests for the bash files
 		if !strings.HasSuffix(filename, ".sh") {
 			continue
@@ -50,6 +49,7 @@ var _ = g.Describe("[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] te
 		}
 
 		g.It("test/cmd/"+currFilename, func() {
+			testsDir := exutil.FixturePath("testdata", "cmd", "test", "cmd")
 			oc.AddExplicitResourceToDelete(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "", "cmd-"+currFilename[0:len(currFilename)-3])
 
 			hacklibVolume, hacklibVolumeMount := createConfigMapForDir(oc, hacklibDir, "/var/tests/hack")

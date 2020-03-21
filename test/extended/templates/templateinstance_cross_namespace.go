@@ -27,8 +27,8 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 	defer g.GinkgoRecover()
 
 	var (
-		cli  = exutil.NewCLI("templates", exutil.KubeConfigPath())
-		cli2 = exutil.NewCLI("templates2", exutil.KubeConfigPath())
+		cli  = exutil.NewCLI("templates")
+		cli2 = exutil.NewCLI("templates2")
 	)
 
 	g.It("should create and delete objects across namespaces", func() {

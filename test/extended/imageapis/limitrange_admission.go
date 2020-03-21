@@ -28,7 +28,7 @@ const (
 var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("limitrange-admission", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("limitrange-admission")
 
 	g.BeforeEach(func() {
 		_, err := exutil.WaitForInternalRegistryHostname(oc)

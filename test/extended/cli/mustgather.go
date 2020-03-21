@@ -22,12 +22,12 @@ import (
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
-	"github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	defer g.GinkgoRecover()
-	oc := util.NewCLI("oc-adm-must-gather", util.KubeConfigPath()).AsAdmin()
+	oc := exutil.NewCLI("oc-adm-must-gather").AsAdmin()
 	g.It("runs successfully", func() {
 		// makes some tokens that should not show in the audit logs
 		const tokenName = "must-gather-audit-logs-token-plus-some-padding-here-to-make-the-limit"
@@ -185,7 +185,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	})
 })
 
-func getPluginOutputDir(oc *util.CLI, tempDir string) string {
+func getPluginOutputDir(oc *exutil.CLI, tempDir string) string {
 	imageClient := versioned.NewForConfigOrDie(oc.AdminConfig())
 	stream, err := imageClient.ImageV1().ImageStreams("openshift").Get("must-gather", metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())

@@ -11,7 +11,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] custom build with buildah", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                 = exutil.NewCLI("custom-build", exutil.KubeConfigPath())
+		oc                 = exutil.NewCLI("custom-build")
 		customBuildAdd     = exutil.FixturePath("testdata", "builds", "custom-build")
 		customBuildFixture = exutil.FixturePath("testdata", "builds", "test-custom-build.yaml")
 	)

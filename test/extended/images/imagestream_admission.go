@@ -24,7 +24,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream admission", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("imagestream-admission", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("imagestream-admission")
 
 	g.It("TestImageStreamTagsAdmission", func() {
 		TestImageStreamTagsAdmission(g.GinkgoT(), oc)

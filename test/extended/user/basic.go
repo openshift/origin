@@ -22,7 +22,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("user-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("user-api")
 
 	g.It("users can manipulate groups", func() {
 		t := g.GinkgoT()

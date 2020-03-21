@@ -56,7 +56,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 		verifyServiceClientPluginPipelinePath  = exutil.FixturePath("testdata", "verifyservice-pipeline-template.yaml")
 		pollingInterval                        = time.Second
 		timeout                                = time.Minute
-		oc                                     = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
+		oc                                     = exutil.NewCLI("jenkins-pipeline")
 		ticker                                 *time.Ticker
 		j                                      *jenkins.JenkinsRef
 		pvs                                    = []*corev1.PersistentVolume{}

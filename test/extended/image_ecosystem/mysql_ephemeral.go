@@ -13,7 +13,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift m
 	defer g.GinkgoRecover()
 	var (
 		templatePath = "mysql-ephemeral"
-		oc           = exutil.NewCLI("mysql-create", exutil.KubeConfigPath())
+		oc           = exutil.NewCLI("mysql-create")
 	)
 
 	g.Context("", func() {

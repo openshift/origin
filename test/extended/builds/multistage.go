@@ -18,7 +18,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] Multi-stage image builds", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("build-multistage", exutil.KubeConfigPath())
+		oc             = exutil.NewCLI("build-multistage")
 		testDockerfile = `
 FROM scratch as test
 USER 1001

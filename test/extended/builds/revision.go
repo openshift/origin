@@ -15,7 +15,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build have source revision meta
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-revision.json")
-		oc           = exutil.NewCLI("cli-build-revision", exutil.KubeConfigPath())
+		oc           = exutil.NewCLI("cli-build-revision")
 	)
 
 	g.Context("", func() {

@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker bind te
 	defer g.GinkgoRecover()
 
 	var (
-		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
+		cli                = exutil.NewCLI("templates")
 		instanceID         = "aadda50d-d92c-402d-bd29-5ed2095aad2c"
 		bindingID          = uuid.NewRandom().String()
 		serviceID          = "d261a5c9-db37-40b5-ac0f-5709e0e3aac4"

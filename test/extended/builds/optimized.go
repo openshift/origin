@@ -17,7 +17,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] Optimized image builds", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("build-dockerfile-env", exutil.KubeConfigPath())
+		oc             = exutil.NewCLI("build-dockerfile-env")
 		skipLayers     = buildv1.ImageOptimizationSkipLayers
 		testDockerfile = `
 FROM centos:7

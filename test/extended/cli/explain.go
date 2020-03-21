@@ -341,7 +341,7 @@ var (
 var _ = g.Describe("[sig-cli] oc explain", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("oc-explain")
 
 	g.It("should contain spec+status for builtinTypes", func() {
 		for _, bt := range builtinTypes {
@@ -370,7 +370,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 var _ = g.Describe("[sig-cli] oc explain networking types", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("oc-explain")
 
 	networking.InOpenShiftSDNContext(func() {
 		g.It("should contain proper fields description for special networking types", func() {

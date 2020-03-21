@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 		}
 	})
 
-	oc = exutil.NewCLI("image-extract", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("image-extract")
 
 	g.It("should extract content from an image", func() {
 		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get("php", metav1.GetOptions{})

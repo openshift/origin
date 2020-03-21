@@ -32,7 +32,7 @@ const (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLI("prune-images", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("prune-images")
 
 	var originalAcceptSchema2 *bool
 

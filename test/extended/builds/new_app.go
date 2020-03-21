@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 	// whose name itself includes the app name.  Ensure we can create and fully
 	// deploy an app with a 58 character name [63 maximum - len('-9999' suffix)].
 
-	oc := exutil.NewCLI("new-app", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("new-app")
 
 	g.Context("", func() {
 

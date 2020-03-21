@@ -118,7 +118,7 @@ func waitForQuotaToBeApplied(oc *exutil.CLI, fsGroup int, volDir string) error {
 var _ = g.Describe("[sig-storage][Feature:LocalStorageQuota] Test local storage quota", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                 = exutil.NewCLI("local-quota", exutil.KubeConfigPath())
+		oc                 = exutil.NewCLI("local-quota")
 		emptyDirPodFixture = exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.json")
 	)
 

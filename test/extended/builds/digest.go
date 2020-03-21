@@ -16,7 +16,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] completed builds should h
 		imageStreamFixture = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")
 		stiBuildFixture    = exutil.FixturePath("testdata", "builds", "test-s2i-build.json")
 		dockerBuildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build.json")
-		oc                 = exutil.NewCLI("build-sti-labels", exutil.KubeConfigPath())
+		oc                 = exutil.NewCLI("build-sti-labels")
 	)
 
 	g.Context("", func() {

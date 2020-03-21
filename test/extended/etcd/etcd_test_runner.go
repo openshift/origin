@@ -22,11 +22,11 @@ import (
 var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("etcd-storage-path", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("etcd-storage-path").AsAdmin()
 
 	_ = g.It("should be stored at the correct location and version for all resources [Serial]", func() {
 		ctx, cancel := context.WithCancel(context.Background())
-		cmd := exec.CommandContext(ctx, "oc", "port-forward", "service/etcd", ":2379", "-n", "openshift-etcd", "--config", exutil.KubeConfigPath())
+		cmd := exec.CommandContext(ctx, "oc", "port-forward", "service/etcd", ":2379", "-n", "openshift-etcd")
 
 		defer func() {
 			cancel()

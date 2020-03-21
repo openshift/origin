@@ -27,7 +27,7 @@ func init() {
 }
 
 var _ = g.Describe("[sig-auth][Feature:HTPasswdAuth] HTPasswd IDP", func() {
-	var oc = exutil.NewCLI("htpasswd-idp", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("htpasswd-idp")
 
 	g.It("should successfully configure htpasswd and be responsive", func() {
 		newTokenReqOpts, cleanup, err := deployOAuthServer(oc)

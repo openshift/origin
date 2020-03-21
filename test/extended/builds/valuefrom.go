@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][valueFrom] process valueFrom in
 		successfulDockerBuildValueFrom = filepath.Join(valueFromBaseDir, "successful-docker-build-value-from-config.yaml")
 		failedSTIBuildValueFrom        = filepath.Join(valueFromBaseDir, "failed-sti-build-value-from-config.yaml")
 		failedDockerBuildValueFrom     = filepath.Join(valueFromBaseDir, "failed-docker-build-value-from-config.yaml")
-		oc                             = exutil.NewCLI("build-valuefrom", exutil.KubeConfigPath())
+		oc                             = exutil.NewCLI("build-valuefrom")
 	)
 
 	g.Context("", func() {

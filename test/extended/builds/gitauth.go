@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositor
 	var (
 		gitServerFixture = exutil.FixturePath("testdata", "test-gitserver.yaml")
 		testBuildFixture = exutil.FixturePath("testdata", "builds", "test-auth-build.yaml")
-		oc               = exutil.NewCLI("build-sti-private-repo", exutil.KubeConfigPath())
+		oc               = exutil.NewCLI("build-sti-private-repo")
 	)
 
 	g.Context("", func() {

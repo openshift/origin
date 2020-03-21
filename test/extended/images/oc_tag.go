@@ -17,7 +17,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("image-oc-tag", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("image-oc-tag")
 
 	g.It("should preserve image reference for external images", func() {
 		const (

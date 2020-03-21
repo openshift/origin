@@ -37,7 +37,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("bootstrap-policy")
 
 	g.Context("", func() {
 		g.Describe("TestClusterReaderCoverage", func() {
@@ -369,7 +369,7 @@ func (test localResourceAccessReviewTest) run() {
 // serial because it is vulnerable to access added by other tests
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authorization", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("bootstrap-policy")
 
 	g.Context("", func() {
 		g.Describe("TestAuthorizationResourceAccessReview", func() {
@@ -468,7 +468,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("bootstrap-policy")
 
 	g.Context("", func() {
 		g.Describe("TestAuthorizationSubjectAccessReview", func() {
@@ -1023,7 +1023,7 @@ func AddUserViewToProject(oc *exutil.CLI, namespace, user string) string {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("bootstrap-policy")
 
 	g.Context("", func() {
 		g.Describe("TestAuthorizationSubjectAccessReviewAPIGroup", func() {
@@ -1159,7 +1159,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("bootstrap-policy")
 
 	g.Context("", func() {
 		g.Describe("TestBrowserSafeAuthorizer", func() {

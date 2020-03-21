@@ -14,7 +14,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] build can reference a cluster service", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("build-service", exutil.KubeConfigPath())
+		oc             = exutil.NewCLI("build-service")
 		testDockerfile = `
 FROM centos:7
 RUN cat /etc/resolv.conf

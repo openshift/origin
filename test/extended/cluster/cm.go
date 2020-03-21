@@ -21,7 +21,7 @@ import (
 var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror cluster", func() {
 	defer g.GinkgoRecover()
 	const filename string = "cm.yml"
-	var oc = exutil.NewCLI("cl", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("cl")
 	var c kclientset.Interface
 
 	g.BeforeEach(func() {

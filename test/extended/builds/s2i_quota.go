@@ -21,7 +21,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a quota", func()
 
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-s2i-build-quota.json")
-		oc           = exutil.NewCLI("s2i-build-quota", exutil.KubeConfigPath())
+		oc           = exutil.NewCLI("s2i-build-quota")
 	)
 
 	g.Context("", func() {

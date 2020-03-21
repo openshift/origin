@@ -5,11 +5,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	testexutil "github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = Describe("[sig-network] network isolation", func() {
-	oc := testexutil.NewCLI("ns-global", testexutil.KubeConfigPath())
+	oc := exutil.NewCLI("ns-global")
 
 	InNonIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-isolation1")

@@ -29,7 +29,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestProjectIsNamespace", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -90,7 +90,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestProjectWatch", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -149,7 +149,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestProjectWatchWithSelectionPredicate", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -320,7 +320,7 @@ func waitForOnlyDelete(projectName string, w watch.Interface) {
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestScopedProjectAccess", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -434,7 +434,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestInvalidRoleRefs", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {

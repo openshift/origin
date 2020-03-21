@@ -112,7 +112,7 @@ var _ = g.Describe("[sig-cli] CLI", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("cli", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("cli")
 
 	g.It("can run inside of a busybox container", func() {
 		ns = oc.Namespace()

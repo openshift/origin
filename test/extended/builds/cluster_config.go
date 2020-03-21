@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 		blacklistConfigFixture    = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-blacklist.yaml")
 		whitelistConfigFixture    = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-whitelist.yaml")
 		invalidproxyConfigFixture = exutil.FixturePath("testdata", "builds", "cluster-config", "invalid-build-cluster-config.yaml")
-		oc                        = exutil.NewCLI("build-cluster-config", exutil.KubeConfigPath())
+		oc                        = exutil.NewCLI("build-cluster-config")
 		checkPodProxyEnvs         = func(containers []v1.Container, proxySpec *configv1.ProxySpec) {
 			o.Expect(containers).NotTo(o.BeNil())
 			foundHTTP := false
