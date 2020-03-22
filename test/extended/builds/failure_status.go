@@ -21,6 +21,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		postCommitHookFixture                  = exutil.FixturePath("testdata", "builds", "statusfail-postcommithook.yaml")
 		fetchDockerSrc                         = exutil.FixturePath("testdata", "builds", "statusfail-fetchsourcedocker.yaml")
 		fetchS2ISrc                            = exutil.FixturePath("testdata", "builds", "statusfail-fetchsources2i.yaml")
+		fetchDockerImg                         = exutil.FixturePath("testdata", "builds", "statusfail-fetchimagecontentdocker.yaml")
 		badContextDirS2ISrc                    = exutil.FixturePath("testdata", "builds", "statusfail-badcontextdirs2i.yaml")
 		oomkilled                              = exutil.FixturePath("testdata", "builds", "statusfail-oomkilled.yaml")
 		builderImageFixture                    = exutil.FixturePath("testdata", "builds", "statusfail-fetchbuilderimage.yaml")
@@ -32,6 +33,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 		StatusMessagePushImageToRegistryFailed = "Failed to push the image to the registry."
 		StatusMessagePullBuilderImageFailed    = "Failed pulling builder image."
 		StatusMessageFetchSourceFailed         = "Failed to fetch the input source."
+		StatusMessageFetchImageContentFailed   = "Failed to extract image content."
 		StatusMessageInvalidContextDirectory   = "The supplied context directory does not exist."
 		StatusMessageGenericBuildFailed        = "Generic Build failure - check logs for details."
 	)
@@ -82,6 +84,25 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 				})
 				o.Expect(err).NotTo(o.HaveOccurred(), "Should not get an error or timeout getting LogSnippet")
 				o.Expect(len(build.Status.LogSnippet)).NotTo(o.Equal(0), "LogSnippet should be set to something for failed builds")
+			})
+		})
+
+		g.Describe("Build status Docker fetch image content failure", func() {
+			g.It("should contain the Docker build fetch image content reason and message", func() {
+				err := oc.Run("create").Args("-f", fetchDockerImg).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				br, err := exutil.StartBuildAndWait(oc, "statusfail-fetchimagecontentdocker", "--build-loglevel=5")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertFailure()
+				br.DumpLogs()
+
+				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonFetchImageContentFailed))
+				o.Expect(build.Status.Message).To(o.Equal(StatusMessageFetchImageContentFailed))
+
+				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, BuildFailedEventReason, BuildFailedEventMessage)
 			})
 		})
 

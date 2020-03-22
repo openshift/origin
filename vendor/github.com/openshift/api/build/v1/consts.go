@@ -112,6 +112,14 @@ const (
 	// build has failed.
 	StatusReasonFetchSourceFailed StatusReason = "FetchSourceFailed"
 
+	// StatusReasonFetchImageContentFailed indicates that the fetching of an image and extracting
+	// its contents for inclusion in the build has failed.
+	StatusReasonFetchImageContentFailed StatusReason = "FetchImageContentFailed"
+
+	// StatusReasonManageDockerfileFailed indicates that the set up of the Dockerfile for the build
+	// has failed.
+	StatusReasonManageDockerfileFailed StatusReason = "ManageDockerfileFailed"
+
 	// StatusReasonInvalidContextDirectory indicates that the supplied
 	// contextDir does not exist
 	StatusReasonInvalidContextDirectory StatusReason = "InvalidContextDirectory"

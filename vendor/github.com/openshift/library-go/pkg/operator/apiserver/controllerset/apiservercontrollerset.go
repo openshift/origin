@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/unsupportedconfigoverridescontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -226,6 +227,7 @@ func (cs *APIServerControllerSet) WithWorkloadController(
 	workloadController.AddInformer(kubeInformersForNamespaces.InformersFor(targetNamespace).Core().V1().ConfigMaps().Informer())
 	workloadController.AddInformer(kubeInformersForNamespaces.InformersFor(targetNamespace).Core().V1().Secrets().Informer())
 	workloadController.AddInformer(kubeInformersForNamespaces.InformersFor(targetNamespace).Apps().V1().Deployments().Informer())
+	workloadController.AddInformer(kubeInformersForNamespaces.InformersFor(metav1.NamespaceSystem).Core().V1().Nodes().Informer())
 
 	workloadController.AddNamespaceInformer(kubeInformersForNamespaces.InformersFor(targetNamespace).Core().V1().Namespaces().Informer())
 

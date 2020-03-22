@@ -136,12 +136,13 @@ func TestBuildImageSendXRegistryConfig(t *testing.T) {
 		},
 	}
 
-	encodedConfig := "eyJjb25maWdzIjp7InF1YXkuaW8iOnsidXNlcm5hbWUiOiJmb28iLCJwYXNzd29yZCI6ImJhciIsImVtYWlsIjoiYmF6Iiwic2VydmVyYWRkcmVzcyI6InF1YXkuaW8ifX19"
+	encodedConfig := "eyJjb25maWdzIjp7InF1YXkuaW8iOnsidXNlcm5hbWUiOiJmb28iLCJwYXNzd29yZCI6ImJhciIsImVtYWlsIjoiYmF6Iiwic2VydmVyYWRkcmVzcyI6InF1YXkuaW8ifX19Cg=="
+
 	if err := client.BuildImage(opts); err != nil {
 		t.Fatal(err)
 	}
 
-	xRegistryConfig := fakeRT.requests[0].Header.Get("X-Registry-Config")
+	xRegistryConfig := fakeRT.requests[0].Header["X-Registry-Config"][0]
 	if xRegistryConfig != encodedConfig {
 		t.Errorf(
 			"BuildImage: X-Registry-Config not set currectly: expected %q, got %q",
@@ -151,7 +152,7 @@ func TestBuildImageSendXRegistryConfig(t *testing.T) {
 	}
 }
 
-func unpackBodyTarball(req io.Reader) (tmpdir string, err error) {
+func unpackBodyTarball(req io.ReadCloser) (tmpdir string, err error) {
 	tmpdir, err = ioutil.TempDir("", "go-dockerclient-test")
 	if err != nil {
 		return

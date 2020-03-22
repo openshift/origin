@@ -102,6 +102,7 @@
 // test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml
 // test/extended/testdata/builds/statusfail-failedassemble.yaml
 // test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml
+// test/extended/testdata/builds/statusfail-fetchimagecontentdocker.yaml
 // test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml
 // test/extended/testdata/builds/statusfail-fetchsources2i.yaml
 // test/extended/testdata/builds/statusfail-genericreason.yaml
@@ -20749,6 +20750,45 @@ func testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml() (*asset, error)
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-fetchimagecontentdocker
+spec:
+  source:
+    images:
+      - from:
+          kind: DockerImage
+          name: dummy.io/dont/exist:latest
+        paths:
+          - destinationDir: injected/opt/app-root/test-links
+            sourcePath: /opt/app-root/test-links/.
+          - destinationDir: injected/opt/rh/rh-ruby-25/root/usr/bin
+            sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
+
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+`)
+
+func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-fetchimagecontentdocker.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -58437,6 +58477,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml": testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
 	"test/extended/testdata/builds/statusfail-failedassemble.yaml": testExtendedTestdataBuildsStatusfailFailedassembleYaml,
 	"test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml": testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml,
+	"test/extended/testdata/builds/statusfail-fetchimagecontentdocker.yaml": testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml,
 	"test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml": testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml,
 	"test/extended/testdata/builds/statusfail-fetchsources2i.yaml": testExtendedTestdataBuildsStatusfailFetchsources2iYaml,
 	"test/extended/testdata/builds/statusfail-genericreason.yaml": testExtendedTestdataBuildsStatusfailGenericreasonYaml,
@@ -59016,6 +59057,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"statusfail-badcontextdirs2i.yaml": &bintree{testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml, map[string]*bintree{}},
 					"statusfail-failedassemble.yaml": &bintree{testExtendedTestdataBuildsStatusfailFailedassembleYaml, map[string]*bintree{}},
 					"statusfail-fetchbuilderimage.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml, map[string]*bintree{}},
+					"statusfail-fetchimagecontentdocker.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml, map[string]*bintree{}},
 					"statusfail-fetchsourcedocker.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml, map[string]*bintree{}},
 					"statusfail-fetchsources2i.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchsources2iYaml, map[string]*bintree{}},
 					"statusfail-genericreason.yaml": &bintree{testExtendedTestdataBuildsStatusfailGenericreasonYaml, map[string]*bintree{}},

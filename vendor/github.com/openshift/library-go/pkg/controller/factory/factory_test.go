@@ -15,7 +15,72 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 )
+
+func TestFactory_ToController(t *testing.T) {
+	f := New().WithSync(func(ctx context.Context, controllerContext SyncContext) error {
+		return nil
+	})
+
+	// minimal controller
+	c := f.ToController("test", eventstesting.NewTestingEventRecorder(t))
+	b := c.(*baseController)
+	if b.Name() != "test" {
+		t.Errorf("expected controller name to be test, got %q", b.name)
+	}
+	if b.syncContext == nil {
+		t.Error("expected controller queue to be initialized")
+	}
+	if len(b.cachesToSync) > 0 {
+		t.Errorf("expected caches to sync to be empty, got %#v", b.cachesToSync)
+	}
+
+	// allows to override sync context
+	c = f.WithSyncContext(NewSyncContext("new-context", eventstesting.NewTestingEventRecorder(t))).ToController("test", eventstesting.NewTestingEventRecorder(t))
+	b = c.(*baseController)
+	if b.syncContext.Recorder().ComponentName() != "test-new-context" {
+		t.Errorf("expected custom sync context to be used, got %q", b.syncContext.Recorder().ComponentName())
+	}
+
+	informer := &fakeInformer{}
+	c = f.WithInformers(informer).ToController("test", eventstesting.NewTestingEventRecorder(t))
+	b = c.(*baseController)
+	for _, cache := range b.cachesToSync {
+		cache()
+	}
+	if informer.hasSyncedCount == 0 {
+		t.Errorf("expected the informer to be registered")
+	}
+
+	informer = &fakeInformer{}
+	c = f.WithNamespaceInformer(informer, "foo").ToController("test", eventstesting.NewTestingEventRecorder(t))
+	b = c.(*baseController)
+	for _, cache := range b.cachesToSync {
+		cache()
+	}
+	if informer.hasSyncedCount == 0 {
+		t.Errorf("expected the informer to be registered")
+	}
+
+	informer = &fakeInformer{}
+	queueFuncUsed := false
+	c = f.WithInformersQueueKeyFunc(func(object runtime.Object) string {
+		queueFuncUsed = true
+		return "test-key"
+	}, informer).ToController("test", eventstesting.NewTestingEventRecorder(t))
+	b = c.(*baseController)
+	for _, cache := range b.cachesToSync {
+		cache()
+	}
+	if informer.hasSyncedCount == 0 {
+		t.Errorf("expected the informer to be registered")
+	}
+	informer.eventHandler.OnAdd(&v1.Secret{})
+	if !queueFuncUsed {
+		t.Error("expected to use the queue function")
+	}
+}
 
 func makeFakeSecret() *v1.Secret {
 	return &v1.Secret{
@@ -110,9 +175,9 @@ func TestMultiWorkerControllerShutdown(t *testing.T) {
 func TestControllerWithInformer(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
 
-	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
+	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 10*time.Second, informers.WithNamespace("test"))
 	ctx, cancel := context.WithCancel(context.TODO())
-	go kubeInformers.Start(ctx.Done())
+	go kubeInformers.Core().V1().Secrets().Informer().Run(ctx.Done())
 
 	factory := New().WithInformers(kubeInformers.Core().V1().Secrets().Informer())
 

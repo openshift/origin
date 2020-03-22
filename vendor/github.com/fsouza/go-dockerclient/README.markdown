@@ -1,35 +1,20 @@
 # go-dockerclient
 
-[![Build Status](https://github.com/fsouza/go-dockerclient/workflows/Build/badge.svg)](https://github.com/fsouza/go-dockerclient/actions?query=branch:master+workflow:Build)
-[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/docker/docker/api/types?tab=doc#AuthConfig)
+[![Travis Build Status](https://travis-ci.org/fsouza/go-dockerclient.svg?branch=master)](https://travis-ci.org/fsouza/go-dockerclient)
+[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/4m374pti06ubg2l7?svg=true)](https://ci.appveyor.com/project/fsouza/go-dockerclient)
+[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg?style=flat-square)](https://godoc.org/github.com/fsouza/go-dockerclient)
 
 This package presents a client for the Docker remote API. It also provides
 support for the extensions in the [Swarm API](https://docs.docker.com/swarm/swarm-api/).
+It currently supports the Docker API up to version 1.23.
 
 This package also provides support for docker's network API, which is a simple
-passthrough to the libnetwork remote API.
+passthrough to the libnetwork remote API.  Note that docker's network API is
+only available in docker 1.8 and above, and only enabled in docker if
+DOCKER_EXPERIMENTAL is defined during the docker build process.
 
 For more details, check the [remote API
-documentation](https://docs.docker.com/engine/api/latest/).
-
-## Difference between go-dockerclient and the official SDK
-
-Link for the official SDK: https://docs.docker.com/develop/sdk/
-
-go-dockerclient was created before Docker had an official Go SDK and is
-still maintained and active because it's still used out there. New features in
-the Docker API do not get automatically implemented here: it's based on demand,
-if someone wants it, they can file an issue or a PR and the feature may get
-implemented/merged.
-
-For new projects, using the official SDK is probably more appropriate as
-go-dockerclient lags behind the official SDK.
-
-When using the official SDK, keep in mind that because of how the its
-dependencies are organized, you may need some extra steps in order to be able
-to import it in your projects (see
-[#784](https://github.com/fsouza/go-dockerclient/issues/784) and
-[moby/moby#28269](https://github.com/moby/moby/issues/28269)).
+documentation](http://docs.docker.com/engine/reference/api/docker_remote_api/).
 
 ## Example
 
@@ -39,11 +24,12 @@ package main
 import (
 	"fmt"
 
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 )
 
 func main() {
-	client, err := docker.NewClientFromEnv()
+	endpoint := "unix:///var/run/docker.sock"
+	client, err := docker.NewClient(endpoint)
 	if err != nil {
 		panic(err)
 	}
@@ -74,11 +60,11 @@ package main
 import (
 	"fmt"
 
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 )
 
 func main() {
-	const endpoint = "tcp://[ip]:[port]"
+	endpoint := "tcp://[ip]:[port]"
 	path := os.Getenv("DOCKER_CERT_PATH")
 	ca := fmt.Sprintf("%s/ca.pem", path)
 	cert := fmt.Sprintf("%s/cert.pem", path)
@@ -90,8 +76,7 @@ func main() {
 
 If using [docker-machine](https://docs.docker.com/machine/), or another
 application that exports environment variables `DOCKER_HOST`,
-`DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH`, `DOCKER_API_VERSION`, you can use
-NewClientFromEnv.
+`DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH`, you can use NewClientFromEnv.
 
 
 ```go
@@ -100,14 +85,11 @@ package main
 import (
 	"fmt"
 
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 )
 
 func main() {
-	client, err := docker.NewClientFromEnv()
-	if err != nil {
-		// handle err
-	}
+	client, _ := docker.NewClientFromEnv()
 	// use client
 }
 ```
@@ -120,22 +102,14 @@ All development commands can be seen in the [Makefile](Makefile).
 
 Commited code must pass:
 
-* [golangci-lint](https://github.com/golangci/golangci-lint)
+* [golint](https://github.com/golang/lint) (with some exceptions, see the Makefile).
+* [go vet](https://golang.org/cmd/vet/)
+* [gofmt](https://golang.org/cmd/gofmt)
 * [go test](https://golang.org/cmd/go/#hdr-Test_packages)
 
-Running ``make test`` will run all checks, as well as install any required
-dependencies.
-
-## Modules
-
-go-dockerclient supports Go modules.
-
-If you're using dep, you can check the [releases
-page](https://github.com/fsouza/go-dockerclient/releases) for the latest
-release fully compatible with dep.
-
-With other vendoring tools, users need to specify go-dockerclient's
-dependencies manually.
+Running `make test` will check all of these. If your editor does not
+automatically call ``gofmt -s``, `make fmt` will format all go files in this
+repository.
 
 ## Using with Docker 1.9 and Go 1.4
 

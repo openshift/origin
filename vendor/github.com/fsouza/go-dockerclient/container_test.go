@@ -5,54 +5,53 @@
 package docker
 
 import (
+	"bufio"
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/net/context"
 )
 
 func TestStateString(t *testing.T) {
 	t.Parallel()
 	started := time.Now().Add(-3 * time.Hour)
-	tests := []struct {
-		name     string
+	var tests = []struct {
 		input    State
 		expected string
 	}{
-		{"paused", State{Running: true, Paused: true, StartedAt: started}, "Up 3 hours (Paused)"},
-		{"restarting", State{Running: true, Restarting: true, ExitCode: 7, FinishedAt: started}, "Restarting (7) 3 hours ago"},
-		{"up", State{Running: true, StartedAt: started}, "Up 3 hours"},
-		{"being removed", State{RemovalInProgress: true}, "Removal In Progress"},
-		{"dead", State{Dead: true}, "Dead"},
-		{"created", State{}, "Created"},
-		{"no creation info", State{StartedAt: started}, ""},
-		{"erro code", State{ExitCode: 7, StartedAt: started, FinishedAt: started}, "Exited (7) 3 hours ago"},
+		{State{Running: true, Paused: true, StartedAt: started}, "Up 3 hours (Paused)"},
+		{State{Running: true, Restarting: true, ExitCode: 7, FinishedAt: started}, "Restarting (7) 3 hours ago"},
+		{State{Running: true, StartedAt: started}, "Up 3 hours"},
+		{State{RemovalInProgress: true}, "Removal In Progress"},
+		{State{Dead: true}, "Dead"},
+		{State{}, "Created"},
+		{State{StartedAt: started}, ""},
+		{State{ExitCode: 7, StartedAt: started, FinishedAt: started}, "Exited (7) 3 hours ago"},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			if got := test.input.String(); got != test.expected {
-				t.Errorf("State.String(): wrong result. Want %q. Got %q.", test.expected, got)
-			}
-		})
+		if got := tt.input.String(); got != tt.expected {
+			t.Errorf("State.String(): wrong result. Want %q. Got %q.", tt.expected, got)
+		}
 	}
 }
 
 func TestStateStateString(t *testing.T) {
 	t.Parallel()
 	started := time.Now().Add(-3 * time.Hour)
-	tests := []struct {
+	var tests = []struct {
 		input    State
 		expected string
 	}{
@@ -64,13 +63,9 @@ func TestStateStateString(t *testing.T) {
 		{State{StartedAt: started}, "exited"},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.expected, func(t *testing.T) {
-			t.Parallel()
-			if got := test.input.StateString(); got != test.expected {
-				t.Errorf("State.String(): wrong result. Want %q. Got %q.", test.expected, got)
-			}
-		})
+		if got := tt.input.StateString(); got != tt.expected {
+			t.Errorf("State.String(): wrong result. Want %q. Got %q.", tt.expected, got)
+		}
 	}
 }
 
@@ -127,7 +122,7 @@ func TestListContainers(t *testing.T) {
 
 func TestListContainersParams(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input  ListContainersOptions
 		params map[string][]string
 	}{
@@ -147,33 +142,30 @@ func TestListContainersParams(t *testing.T) {
 			map[string][]string{"all": {"1"}, "filters": {"{\"exited\":[\"0\"],\"status\":[\"exited\"]}"}},
 		},
 	}
-	const expectedPath = "/containers/json"
+	fakeRT := &FakeRoundTripper{message: "[]", status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	u, _ := url.Parse(client.getURL("/containers/json"))
 	for _, tt := range tests {
-		test := tt
-		t.Run("", func(t *testing.T) {
-			t.Parallel()
-			fakeRT := &FakeRoundTripper{message: "[]", status: http.StatusOK}
-			client := newTestClient(fakeRT)
-			if _, err := client.ListContainers(test.input); err != nil {
-				t.Error(err)
-			}
-			got := map[string][]string(fakeRT.requests[0].URL.Query())
-			if !reflect.DeepEqual(got, test.params) {
-				t.Errorf("Expected %#v, got %#v.", test.params, got)
-			}
-			if path := fakeRT.requests[0].URL.Path; path != expectedPath {
-				t.Errorf("Wrong path on request. Want %q. Got %q.", expectedPath, path)
-			}
-			if meth := fakeRT.requests[0].Method; meth != http.MethodGet {
-				t.Errorf("Wrong HTTP method. Want GET. Got %s.", meth)
-			}
-		})
+		if _, err := client.ListContainers(tt.input); err != nil {
+			t.Error(err)
+		}
+		got := map[string][]string(fakeRT.requests[0].URL.Query())
+		if !reflect.DeepEqual(got, tt.params) {
+			t.Errorf("Expected %#v, got %#v.", tt.params, got)
+		}
+		if path := fakeRT.requests[0].URL.Path; path != u.Path {
+			t.Errorf("Wrong path on request. Want %q. Got %q.", u.Path, path)
+		}
+		if meth := fakeRT.requests[0].Method; meth != "GET" {
+			t.Errorf("Wrong HTTP method. Want GET. Got %s.", meth)
+		}
+		fakeRT.Reset()
 	}
 }
 
 func TestListContainersFailure(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		status  int
 		message string
 	}{
@@ -181,19 +173,15 @@ func TestListContainersFailure(t *testing.T) {
 		{500, "internal server error"},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(strconv.Itoa(test.status), func(t *testing.T) {
-			t.Parallel()
-			client := newTestClient(&FakeRoundTripper{message: test.message, status: test.status})
-			expected := Error{Status: test.status, Message: test.message}
-			containers, err := client.ListContainers(ListContainersOptions{})
-			if !reflect.DeepEqual(expected, *err.(*Error)) {
-				t.Errorf("Wrong error in ListContainers. Want %#v. Got %#v.", expected, err)
-			}
-			if len(containers) > 0 {
-				t.Errorf("ListContainers failure. Expected empty list. Got %#v.", containers)
-			}
-		})
+		client := newTestClient(&FakeRoundTripper{message: tt.message, status: tt.status})
+		expected := Error{Status: tt.status, Message: tt.message}
+		containers, err := client.ListContainers(ListContainersOptions{})
+		if !reflect.DeepEqual(expected, *err.(*Error)) {
+			t.Errorf("Wrong error in ListContainers. Want %#v. Got %#v.", expected, err)
+		}
+		if len(containers) > 0 {
+			t.Errorf("ListContainers failure. Expected empty list. Got %#v.", containers)
+		}
 	}
 }
 
@@ -229,10 +217,7 @@ func TestInspectContainer(t *testing.T) {
                       ],
                       "Ulimits": [
                           { "Name": "nofile", "Soft": 1024, "Hard": 2048 }
-											],
-											"Shell": [
-                         "/bin/sh", "-c"
-											]
+                      ]
              },
              "State": {
                      "Running": false,
@@ -453,124 +438,6 @@ func TestInspectContainerWithContext(t *testing.T) {
 	case <-ctx.Done():
 		// Context was canceled unexpectedly. Report the same.
 		t.Fatalf("Context canceled when waiting for inspect container response: %v", ctx.Err())
-	}
-}
-
-func TestInspectContainerWithOptions(t *testing.T) {
-	t.Parallel()
-	jsonContainer := `{
-             "Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2",
-             "AppArmorProfile": "Profile",
-             "Created": "2013-05-07T14:51:42.087658+02:00",
-             "Path": "date",
-             "Args": [],
-             "Config": {
-                     "Hostname": "4fa6e0f0c678",
-                     "User": "",
-                     "Memory": 17179869184,
-                     "MemorySwap": 34359738368,
-                     "AttachStdin": false,
-                     "AttachStdout": true,
-                     "AttachStderr": true,
-                     "PortSpecs": null,
-                     "Tty": false,
-                     "OpenStdin": false,
-                     "StdinOnce": false,
-                     "Env": null,
-                     "Cmd": [
-                             "date"
-                     ],
-                     "Image": "base",
-                     "Volumes": {},
-                     "VolumesFrom": "",
-                     "SecurityOpt": [
-                         "label:user:USER"
-                      ],
-                      "Ulimits": [
-                          { "Name": "nofile", "Soft": 1024, "Hard": 2048 }
-											],
-											"Shell": [
-                         "/bin/sh", "-c"
-											]
-             },
-             "State": {
-                     "Running": false,
-                     "Pid": 0,
-                     "ExitCode": 0,
-                     "StartedAt": "2013-05-07T14:51:42.087658+02:00",
-                     "Ghost": false
-             },
-             "Node": {
-                  "ID": "4I4E:QR4I:Z733:QEZK:5X44:Q4T7:W2DD:JRDY:KB2O:PODO:Z5SR:XRB6",
-                  "IP": "192.168.99.105",
-                  "Addra": "192.168.99.105:2376",
-                  "Name": "node-01",
-                  "Cpus": 4,
-                  "Memory": 1048436736,
-                  "Labels": {
-                      "executiondriver": "native-0.2",
-                      "kernelversion": "3.18.5-tinycore64",
-                      "operatingsystem": "Boot2Docker 1.5.0 (TCL 5.4); master : a66bce5 - Tue Feb 10 23:31:27 UTC 2015",
-                      "provider": "virtualbox",
-                      "storagedriver": "aufs"
-                  }
-              },
-             "Image": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
-             "NetworkSettings": {
-                     "IpAddress": "",
-                     "IpPrefixLen": 0,
-                     "Gateway": "",
-                     "Bridge": "",
-                     "PortMapping": null
-             },
-             "SysInitPath": "/home/kitty/go/src/github.com/dotcloud/docker/bin/docker",
-             "ResolvConfPath": "/etc/resolv.conf",
-             "Volumes": {},
-             "HostConfig": {
-               "Binds": null,
-               "ContainerIDFile": "",
-               "LxcConf": [],
-               "Privileged": false,
-               "PortBindings": {
-                 "80/tcp": [
-                   {
-                     "HostIp": "0.0.0.0",
-                     "HostPort": "49153"
-                   }
-                 ]
-               },
-               "Links": null,
-               "PublishAllPorts": false,
-               "CgroupParent": "/mesos",
-               "Memory": 17179869184,
-               "MemorySwap": 34359738368,
-               "GroupAdd": ["fake", "12345"],
-               "OomScoreAdj": 642,
-               "SizeRw": 3,
-               "SizeRootFs": 5552693
-             }
-}`
-	var expected Container
-	err := json.Unmarshal([]byte(jsonContainer), &expected)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fakeRT := &FakeRoundTripper{message: jsonContainer, status: http.StatusOK}
-	client := newTestClient(fakeRT)
-	const id = "4fa6e0f0c678"
-	container, err := client.InspectContainerWithOptions(InspectContainerOptions{
-		ID:   id,
-		Size: true,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(*container, expected) {
-		t.Errorf("InspectContainer(%q): Expected %#v. Got %#v.", id, expected, container)
-	}
-	expectedURL, _ := url.Parse(client.getURL("/containers/4fa6e0f0c678/json?size=true"))
-	if gotPath := fakeRT.requests[0].URL.Path; gotPath != expectedURL.Path {
-		t.Errorf("InspectContainer(%q): Wrong path in request. Want %q. Got %q.", id, expectedURL.Path, gotPath)
 	}
 }
 
@@ -815,6 +682,7 @@ func TestInspectContainerNetwork(t *testing.T) {
 	} else {
 		t.Errorf("InspectContainerNetworks(%q): No method Networks for NetworkSettings", id)
 	}
+
 }
 
 func TestInspectContainerNegativeSwap(t *testing.T) {
@@ -1013,8 +881,8 @@ func TestCreateContainer(t *testing.T) {
 		t.Errorf("CreateContainer: wrong ID. Want %q. Got %q.", id, container.ID)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("CreateContainer: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("CreateContainer: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/create"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1029,7 +897,7 @@ func TestCreateContainer(t *testing.T) {
 
 func TestCreateContainerImageNotFound(t *testing.T) {
 	t.Parallel()
-	client := newTestClient(&FakeRoundTripper{message: "No such image: whatever", status: http.StatusNotFound})
+	client := newTestClient(&FakeRoundTripper{message: "No such image", status: http.StatusNotFound})
 	config := Config{AttachStdout: true, AttachStdin: true}
 	container, err := client.CreateContainer(CreateContainerOptions{Config: &config})
 	if container != nil {
@@ -1101,8 +969,8 @@ func TestUpdateContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("UpdateContainer: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("UpdateContainer: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/update"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1131,8 +999,8 @@ func TestStartContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/start"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1155,8 +1023,8 @@ func TestStartContainerHostConfigAPI124(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/start"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1182,8 +1050,8 @@ func TestStartContainerNilHostConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/start"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1219,8 +1087,8 @@ func TestStartContainerWithContext(t *testing.T) {
 			t.Fatal(err)
 		}
 		req := fakeRT.requests[0]
-		if req.Method != http.MethodPost {
-			t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+		if req.Method != "POST" {
+			t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 		}
 		expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/start"))
 		if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1266,8 +1134,8 @@ func TestStopContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("StopContainer(%q, 10): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("StopContainer(%q, 10): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/stop"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1294,8 +1162,8 @@ func TestStopContainerWithContext(t *testing.T) {
 			t.Fatal(err)
 		}
 		req := fakeRT.requests[0]
-		if req.Method != http.MethodPost {
-			t.Errorf("StopContainer(%q, 10): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+		if req.Method != "POST" {
+			t.Errorf("StopContainer(%q, 10): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 		}
 		expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/stop"))
 		if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1337,8 +1205,8 @@ func TestRestartContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("RestartContainer(%q, 10): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("RestartContainer(%q, 10): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/restart"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1366,8 +1234,8 @@ func TestPauseContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("PauseContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("PauseContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/pause"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1395,8 +1263,8 @@ func TestUnpauseContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("PauseContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("PauseContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/unpause"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1424,8 +1292,8 @@ func TestKillContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("KillContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("KillContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/kill"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1443,8 +1311,8 @@ func TestKillContainerSignal(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("KillContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("KillContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	if signal := req.URL.Query().Get("signal"); signal != "15" {
 		t.Errorf("KillContainer(%q): Wrong query string in request. Want %q. Got %q.", id, "15", signal)
@@ -1461,18 +1329,6 @@ func TestKillContainerNotFound(t *testing.T) {
 	}
 }
 
-func TestKillContainerNotRunning(t *testing.T) {
-	t.Parallel()
-	id := "abcd1234567890"
-	msg := fmt.Sprintf("Cannot kill container: %[1]s: Container %[1]s is not running", id)
-	client := newTestClient(&FakeRoundTripper{message: msg, status: http.StatusConflict})
-	err := client.KillContainer(KillContainerOptions{ID: id})
-	expected := &ContainerNotRunning{ID: id}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("KillContainer: Wrong error returned. Want %#v. Got %#v.", expected, err)
-	}
-}
-
 func TestRemoveContainer(t *testing.T) {
 	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
@@ -1484,8 +1340,8 @@ func TestRemoveContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodDelete {
-		t.Errorf("RemoveContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodDelete, req.Method)
+	if req.Method != "DELETE" {
+		t.Errorf("RemoveContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "DELETE", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1531,8 +1387,8 @@ func TestResizeContainerTTY(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("ResizeContainerTTY(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("ResizeContainerTTY(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/resize"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1561,8 +1417,8 @@ func TestWaitContainer(t *testing.T) {
 		t.Errorf("WaitContainer(%q): wrong return. Want 56. Got %d.", id, status)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("WaitContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("WaitContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/wait"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1595,8 +1451,8 @@ func TestWaitContainerWithContext(t *testing.T) {
 			t.Errorf("WaitContainer(%q): wrong return. Want 56. Got %d.", id, status)
 		}
 		req := fakeRT.requests[0]
-		if req.Method != http.MethodPost {
-			t.Errorf("WaitContainer(%q): wrong HTTP method. Want %q. Got %q.", id, http.MethodPost, req.Method)
+		if req.Method != "POST" {
+			t.Errorf("WaitContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
 		}
 		expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/wait"))
 		if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -1636,7 +1492,7 @@ func TestCommitContainerParams(t *testing.T) {
 	t.Parallel()
 	cfg := Config{Memory: 67108864}
 	json, _ := json.Marshal(&cfg)
-	tests := []struct {
+	var tests = []struct {
 		input  CommitContainerOptions
 		params map[string][]string
 		body   []byte
@@ -1654,36 +1510,33 @@ func TestCommitContainerParams(t *testing.T) {
 			json,
 		},
 	}
-	const expectedPath = "/commit"
+	fakeRT := &FakeRoundTripper{message: "{}", status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	u, _ := url.Parse(client.getURL("/commit"))
 	for _, tt := range tests {
-		test := tt
-		t.Run("", func(t *testing.T) {
-			t.Parallel()
-			fakeRT := &FakeRoundTripper{message: "{}", status: http.StatusOK}
-			client := newTestClient(fakeRT)
-			if _, err := client.CommitContainer(test.input); err != nil {
-				t.Error(err)
-			}
-			got := map[string][]string(fakeRT.requests[0].URL.Query())
-			if !reflect.DeepEqual(got, test.params) {
-				t.Errorf("Expected %#v, got %#v.", test.params, got)
-			}
-			if path := fakeRT.requests[0].URL.Path; path != expectedPath {
-				t.Errorf("Wrong path on request. Want %q. Got %q.", expectedPath, path)
-			}
-			if meth := fakeRT.requests[0].Method; meth != http.MethodPost {
-				t.Errorf("Wrong HTTP method. Want POST. Got %s.", meth)
-			}
-			if test.body != nil {
-				if requestBody, err := ioutil.ReadAll(fakeRT.requests[0].Body); err == nil {
-					if !bytes.Equal(requestBody, test.body) {
-						t.Errorf("Expected body %#v, got %#v", test.body, requestBody)
-					}
-				} else {
-					t.Errorf("Error reading request body: %#v", err)
+		if _, err := client.CommitContainer(tt.input); err != nil {
+			t.Error(err)
+		}
+		got := map[string][]string(fakeRT.requests[0].URL.Query())
+		if !reflect.DeepEqual(got, tt.params) {
+			t.Errorf("Expected %#v, got %#v.", tt.params, got)
+		}
+		if path := fakeRT.requests[0].URL.Path; path != u.Path {
+			t.Errorf("Wrong path on request. Want %q. Got %q.", u.Path, path)
+		}
+		if meth := fakeRT.requests[0].Method; meth != "POST" {
+			t.Errorf("Wrong HTTP method. Want POST. Got %s.", meth)
+		}
+		if tt.body != nil {
+			if requestBody, err := ioutil.ReadAll(fakeRT.requests[0].Body); err == nil {
+				if !bytes.Equal(requestBody, tt.body) {
+					t.Errorf("Expected body %#v, got %#v", tt.body, requestBody)
 				}
+			} else {
+				t.Errorf("Error reading request body: %#v", err)
 			}
-		})
+		}
+		fakeRT.Reset()
 	}
 }
 
@@ -1733,7 +1586,7 @@ func TestAttachToContainerLogs(t *testing.T) {
 	if buf.String() != expected {
 		t.Errorf("AttachToContainer for logs: wrong output. Want %q. Got %q.", expected, buf.String())
 	}
-	if req.Method != http.MethodPost {
+	if req.Method != "POST" {
 		t.Errorf("AttachToContainer: wrong HTTP method. Want POST. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/containers/a123456/attach"))
@@ -1753,7 +1606,7 @@ func TestAttachToContainerLogs(t *testing.T) {
 
 func TestAttachToContainer(t *testing.T) {
 	t.Parallel()
-	reader := strings.NewReader("send value")
+	var reader = strings.NewReader("send value")
 	var req http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
@@ -1793,7 +1646,7 @@ func TestAttachToContainer(t *testing.T) {
 
 func TestAttachToContainerSentinel(t *testing.T) {
 	t.Parallel()
-	reader := strings.NewReader("send value")
+	var reader = strings.NewReader("send value")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
 		w.Write([]byte("hello"))
@@ -1827,7 +1680,7 @@ func TestAttachToContainerSentinel(t *testing.T) {
 
 func TestAttachToContainerNilStdout(t *testing.T) {
 	t.Parallel()
-	reader := strings.NewReader("send value")
+	var reader = strings.NewReader("send value")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
 		w.Write([]byte("hello"))
@@ -1855,7 +1708,7 @@ func TestAttachToContainerNilStdout(t *testing.T) {
 
 func TestAttachToContainerNilStderr(t *testing.T) {
 	t.Parallel()
-	reader := strings.NewReader("send value")
+	var reader = strings.NewReader("send value")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
 		w.Write([]byte("hello"))
@@ -1882,7 +1735,7 @@ func TestAttachToContainerNilStderr(t *testing.T) {
 
 func TestAttachToContainerStdinOnly(t *testing.T) {
 	t.Parallel()
-	reader := strings.NewReader("send value")
+	var reader = strings.NewReader("send value")
 	serverFinished := make(chan struct{})
 	clientFinished := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2022,7 +1875,7 @@ func TestLogs(t *testing.T) {
 	if buf.String() != expected {
 		t.Errorf("Logs: wrong output. Want %q. Got %q.", expected, buf.String())
 	}
-	if req.Method != http.MethodGet {
+	if req.Method != "GET" {
 		t.Errorf("Logs: wrong HTTP method. Want GET. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/containers/a123456/logs"))
@@ -2118,7 +1971,7 @@ func TestLogsSpecifyingTail(t *testing.T) {
 	if buf.String() != expected {
 		t.Errorf("Logs: wrong output. Want %q. Got %q.", expected, buf.String())
 	}
-	if req.Method != http.MethodGet {
+	if req.Method != "GET" {
 		t.Errorf("Logs: wrong HTTP method. Want GET. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/containers/a123456/logs"))
@@ -2179,7 +2032,7 @@ func TestLogsNoContainer(t *testing.T) {
 
 func TestNoSuchContainerError(t *testing.T) {
 	t.Parallel()
-	err := &NoSuchContainer{ID: "i345"}
+	var err = &NoSuchContainer{ID: "i345"}
 	expected := "No such container: i345"
 	if got := err.Error(); got != expected {
 		t.Errorf("NoSuchContainer: wrong message. Want %q. Got %q.", expected, got)
@@ -2188,7 +2041,7 @@ func TestNoSuchContainerError(t *testing.T) {
 
 func TestNoSuchContainerErrorMessage(t *testing.T) {
 	t.Parallel()
-	err := &NoSuchContainer{ID: "i345", Err: errors.New("some advanced error info")}
+	var err = &NoSuchContainer{ID: "i345", Err: errors.New("some advanced error info")}
 	expected := "some advanced error info"
 	if got := err.Error(); got != expected {
 		t.Errorf("NoSuchContainer: wrong message. Want %q. Got %q.", expected, got)
@@ -2208,6 +2061,38 @@ func TestExportContainer(t *testing.T) {
 	if out.String() != content {
 		t.Errorf("ExportContainer: wrong stdout. Want %#v. Got %#v.", content, out.String())
 	}
+}
+
+func runStreamConnServer(t *testing.T, network, laddr string, listening chan<- string, done chan<- int, containerID string) {
+	defer close(done)
+	l, err := net.Listen(network, laddr)
+	if err != nil {
+		t.Errorf("Listen(%q, %q) failed: %v", network, laddr, err)
+		listening <- "<nil>"
+		return
+	}
+	defer l.Close()
+	listening <- l.Addr().String()
+	c, err := l.Accept()
+	if err != nil {
+		t.Logf("Accept failed: %v", err)
+		return
+	}
+	defer c.Close()
+	breader := bufio.NewReader(c)
+	req, err := http.ReadRequest(breader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if path := "/containers/" + containerID + "/export"; req.URL.Path != path {
+		t.Errorf("wrong path. Want %q. Got %q", path, req.URL.Path)
+		return
+	}
+	c.Write([]byte("HTTP/1.1 200 OK\n\nexported container tar content"))
+}
+
+func tempfile(filename string) string {
+	return os.TempDir() + "/" + filename + "." + strconv.Itoa(os.Getpid())
 }
 
 func TestExportContainerNoId(t *testing.T) {
@@ -2241,13 +2126,14 @@ func TestUploadToContainer(t *testing.T) {
 
 	req := fakeRT.requests[0]
 
-	if req.Method != http.MethodPut {
+	if req.Method != "PUT" {
 		t.Errorf("UploadToContainer{Path:abc}: Wrong HTTP method.  Want PUT. Got %s", req.Method)
 	}
 
 	if pathParam := req.URL.Query().Get("path"); pathParam != "abc" {
 		t.Errorf("ListImages({Path:abc}): Wrong parameter. Want path=abc.  Got path=%s", pathParam)
 	}
+
 }
 
 func TestDownloadFromContainer(t *testing.T) {
@@ -2575,8 +2461,7 @@ func TestStats(t *testing.T) {
              "total_usage" : 36488948,
              "usage_in_kernelmode" : 20000000
           },
-          "system_cpu_usage" : 20091722000000000,
-		  "online_cpus": 4
+          "system_cpu_usage" : 20091722000000000
        },
        "precpu_stats" : {
           "cpu_usage" : {
@@ -2590,8 +2475,7 @@ func TestStats(t *testing.T) {
              "total_usage" : 36488948,
              "usage_in_kernelmode" : 20000000
           },
-          "system_cpu_usage" : 20091722000000000,
-		  "online_cpus": 4
+          "system_cpu_usage" : 20091722000000000
        }
     }`
 	// 1 second later, cache is 100
@@ -2695,8 +2579,7 @@ func TestStats(t *testing.T) {
              "total_usage" : 36488948,
              "usage_in_kernelmode" : 20000000
           },
-          "system_cpu_usage" : 20091722000000000,
-		  "online_cpus": 4
+          "system_cpu_usage" : 20091722000000000
        },
        "precpu_stats" : {
           "cpu_usage" : {
@@ -2710,8 +2593,7 @@ func TestStats(t *testing.T) {
              "total_usage" : 36488948,
              "usage_in_kernelmode" : 20000000
           },
-          "system_cpu_usage" : 20091722000000000,
-		  "online_cpus": 4
+          "system_cpu_usage" : 20091722000000000
        }
     }`
 	var expected1 Stats
@@ -2765,7 +2647,7 @@ func TestStats(t *testing.T) {
 	if !reflect.DeepEqual(resultStats[1], &expected2) {
 		t.Errorf("Stats: Expected:\n%+v\nGot:\n%+v", expected2, resultStats[1])
 	}
-	if req.Method != http.MethodGet {
+	if req.Method != "GET" {
 		t.Errorf("Stats: wrong HTTP method. Want GET. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/containers/" + id + "/stats"))
@@ -2797,8 +2679,8 @@ func TestRenameContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != http.MethodPost {
-		t.Errorf("RenameContainer: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
+	if req.Method != "POST" {
+		t.Errorf("RenameContainer: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/something_old/rename?name=something_new"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -2819,7 +2701,7 @@ type sleepyRoudTripper struct {
 
 func (rt *sleepyRoudTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	time.Sleep(rt.sleepDuration)
-	return nil, errors.New("Can't complete round trip")
+	return nil, fmt.Errorf("Can't complete round trip")
 }
 
 func TestInspectContainerWhenContextTimesOut(t *testing.T) {
@@ -2854,11 +2736,11 @@ func TestStartContainerWhenContextTimesOut(t *testing.T) {
 
 func TestStopContainerWhenContextTimesOut(t *testing.T) {
 	t.Parallel()
-	rt := sleepyRoudTripper{sleepDuration: 300 * time.Millisecond}
+	rt := sleepyRoudTripper{sleepDuration: 200 * time.Millisecond}
 
 	client := newTestClient(&rt)
 
-	ctx, cancel := context.WithTimeout(context.TODO(), 50*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.TODO(), 100*time.Millisecond)
 	defer cancel()
 
 	err := client.StopContainerWithContext("id", 10, ctx)

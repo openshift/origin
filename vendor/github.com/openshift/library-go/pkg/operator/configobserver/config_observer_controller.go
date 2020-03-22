@@ -52,6 +52,7 @@ func NewConfigObserver(
 	operatorClient v1helpers.OperatorClient,
 	eventRecorder events.Recorder,
 	listers Listers,
+	informers []factory.Informer,
 	observers ...ObserveConfigFunc,
 ) factory.Controller {
 	c := &ConfigObserver{
@@ -59,7 +60,8 @@ func NewConfigObserver(
 		observers:      observers,
 		listers:        listers,
 	}
-	return factory.New().ResyncEvery(time.Second).WithSync(c.sync).WithInformers(listersToInformer(listers)...).ToController("ConfigObserver", eventRecorder.WithComponentSuffix("config-observer"))
+
+	return factory.New().ResyncEvery(time.Second).WithSync(c.sync).WithInformers(append(informers, listersToInformer(listers)...)...).ToController("ConfigObserver", eventRecorder.WithComponentSuffix("config-observer"))
 }
 
 // sync reacts to a change in prereqs by finding information that is required to match another value in the cluster. This

@@ -125,7 +125,7 @@ func (f *Factory) WithSyncContext(ctx SyncContext) *Factory {
 // Controller produce a runnable controller.
 func (f *Factory) ToController(name string, eventRecorder events.Recorder) Controller {
 	if f.sync == nil {
-		panic("Sync() function must be called before making controller")
+		panic("WithSync() must be used before calling ToController()")
 	}
 
 	var ctx SyncContext
@@ -136,10 +136,11 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 	}
 
 	c := &baseController{
-		name:        name,
-		sync:        f.sync,
-		resyncEvery: f.resyncInterval,
-		syncContext: ctx,
+		name:         name,
+		sync:         f.sync,
+		resyncEvery:  f.resyncInterval,
+		cachesToSync: append([]cache.InformerSynced{}, f.cachesToSync...),
+		syncContext:  ctx,
 	}
 
 	for i := range f.informerQueueKeys {
@@ -147,7 +148,7 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 			informer := f.informerQueueKeys[i].informers[d]
 			queueKeyFn := f.informerQueueKeys[i].queueKeyFn
 			informer.AddEventHandler(c.syncContext.(syncContext).eventHandler(queueKeyFn, sets.NewString()))
-			c.cachesToSync = append(f.cachesToSync, informer.HasSynced)
+			c.cachesToSync = append(c.cachesToSync, informer.HasSynced)
 		}
 	}
 
@@ -155,14 +156,14 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 		f.informers[i].AddEventHandler(c.syncContext.(syncContext).eventHandler(func(runtime.Object) string {
 			return DefaultQueueKey
 		}, sets.NewString()))
-		c.cachesToSync = append(f.cachesToSync, f.informers[i].HasSynced)
+		c.cachesToSync = append(c.cachesToSync, f.informers[i].HasSynced)
 	}
 
 	for i := range f.namespaceInformers {
 		f.namespaceInformers[i].informer.AddEventHandler(c.syncContext.(syncContext).eventHandler(func(runtime.Object) string {
 			return DefaultQueueKey
 		}, f.namespaceInformers[i].namespaces))
-		c.cachesToSync = append(f.cachesToSync, f.namespaceInformers[i].informer.HasSynced)
+		c.cachesToSync = append(c.cachesToSync, f.namespaceInformers[i].informer.HasSynced)
 	}
 
 	return c

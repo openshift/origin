@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/swarm"
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 	"github.com/gorilla/mux"
 )
 
@@ -34,7 +34,7 @@ func newSwarmServer(srv *DockerServer, bind string) (*swarmServer, error) {
 		return nil, err
 	}
 	router := mux.NewRouter()
-	router.Path("/internal/updatenodes").Methods(http.MethodPost).HandlerFunc(srv.handlerWrapper(srv.internalUpdateNodes))
+	router.Path("/internal/updatenodes").Methods("POST").HandlerFunc(srv.handlerWrapper(srv.internalUpdateNodes))
 	server := &swarmServer{
 		listener: listener,
 		mux:      router,
@@ -255,9 +255,6 @@ func (s *DockerServer) setServiceEndpoint(service *swarm.Service) {
 }
 
 func (s *DockerServer) addTasks(service *swarm.Service, update bool) {
-	if service.Spec.TaskTemplate.ContainerSpec == nil {
-		return
-	}
 	containerCount := 1
 	if service.Spec.Mode.Global != nil {
 		containerCount = len(s.nodes)
@@ -280,7 +277,7 @@ func (s *DockerServer) addTasks(service *swarm.Service, update bool) {
 			NodeID:    chosenNode.ID,
 			Status: swarm.TaskStatus{
 				State: swarm.TaskStateReady,
-				ContainerStatus: &swarm.ContainerStatus{
+				ContainerStatus: swarm.ContainerStatus{
 					ContainerID: container.ID,
 				},
 			},
@@ -288,7 +285,7 @@ func (s *DockerServer) addTasks(service *swarm.Service, update bool) {
 			Spec:         service.Spec.TaskTemplate,
 		}
 		s.tasks = append(s.tasks, &task)
-		s.addContainer(container)
+		s.containers = append(s.containers, container)
 		s.notify(container)
 	}
 }
@@ -444,10 +441,9 @@ func (s *DockerServer) serviceDelete(w http.ResponseWriter, r *http.Request) {
 	s.services = s.services[:len(s.services)-1]
 	for i := 0; i < len(s.tasks); i++ {
 		if s.tasks[i].ServiceID == toDelete.ID {
-			cont, _ := s.findContainerWithLock(s.tasks[i].Status.ContainerStatus.ContainerID, false)
-			if cont != nil {
-				delete(s.containers, cont.ID)
-				delete(s.contNameToID, cont.Name)
+			_, contIdx, _ := s.findContainerWithLock(s.tasks[i].Status.ContainerStatus.ContainerID, false)
+			if contIdx != -1 {
+				s.containers = append(s.containers[:contIdx], s.containers[contIdx+1:]...)
 			}
 			s.tasks = append(s.tasks[:i], s.tasks[i+1:]...)
 			i--
@@ -461,7 +457,6 @@ func (s *DockerServer) serviceDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *DockerServer) serviceUpdate(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
 	s.swarmMut.Lock()
 	defer s.swarmMut.Unlock()
 	s.cMut.Lock()
@@ -489,21 +484,14 @@ func (s *DockerServer) serviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toUpdate.Spec = newSpec
-	end := time.Now()
-	toUpdate.UpdateStatus = &swarm.UpdateStatus{
-		State:       swarm.UpdateStateCompleted,
-		CompletedAt: &end,
-		StartedAt:   &start,
-	}
 	s.setServiceEndpoint(toUpdate)
 	for i := 0; i < len(s.tasks); i++ {
 		if s.tasks[i].ServiceID != toUpdate.ID {
 			continue
 		}
-		cont, _ := s.findContainerWithLock(s.tasks[i].Status.ContainerStatus.ContainerID, false)
-		if cont != nil {
-			delete(s.containers, cont.ID)
-			delete(s.contNameToID, cont.Name)
+		_, contIdx, _ := s.findContainerWithLock(s.tasks[i].Status.ContainerStatus.ContainerID, false)
+		if contIdx != -1 {
+			s.containers = append(s.containers[:contIdx], s.containers[contIdx+1:]...)
 		}
 		s.tasks = append(s.tasks[:i], s.tasks[i+1:]...)
 		i--
@@ -626,7 +614,6 @@ func (s *DockerServer) runNodeOperation(dst string, nodeOp nodeOperation) error 
 	if err != nil {
 		return err
 	}
-	defer rsp.Body.Close()
 	if rsp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code in updatenodes: %d", rsp.StatusCode)
 	}
@@ -677,13 +664,11 @@ func (s *DockerServer) internalUpdateNodes(w http.ResponseWriter, r *http.Reques
 				continue
 			}
 			url := fmt.Sprintf("http://%s/internal/updatenodes?propagate=0", node.ManagerStatus.Addr)
-			var resp *http.Response
-			resp, err = http.Post(url, "application/json", bytes.NewReader(data))
+			_, err = http.Post(url, "application/json", bytes.NewReader(data))
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			resp.Body.Close()
 		}
 	}
 	if nodeOp.Services != nil {
