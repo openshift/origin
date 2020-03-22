@@ -101,6 +101,22 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 				o.Expect(build.Status.Message).To(o.Equal(StatusMessageFetchSourceFailed))
 
 				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, BuildFailedEventReason, BuildFailedEventMessage)
+
+				// wait for the build to be updated w/ an init container failure (git-clone) meaning the logsnippet
+				// is set
+				err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
+					// note this is the same build variable used in the test scope
+					build, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+					if err != nil {
+						return true, err
+					}
+					if len(build.Status.LogSnippet) != 0 {
+						return true, nil
+					}
+					return false, nil
+				})
+				o.Expect(err).NotTo(o.HaveOccurred(), "Should not get an error or timeout getting LogSnippet")
+				o.Expect(len(build.Status.LogSnippet)).NotTo(o.Equal(0), "LogSnippet should be set to something for failed git-clone in build")
 			})
 		})
 
