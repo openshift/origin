@@ -193,7 +193,7 @@ func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceD
 		}
 		// secret is nil means the secret was optional and we failed to get it.
 		if secret != nil {
-			secrets = append(secrets, secret)
+			secrets = append(secrets, o.substituteSecret(secret))
 		}
 	}
 
@@ -206,7 +206,7 @@ func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceD
 		}
 		// config is nil means the config was optional and we failed to get it.
 		if config != nil {
-			configs = append(configs, config)
+			configs = append(configs, o.substituteConfigMap(config))
 		}
 	}
 
@@ -221,9 +221,12 @@ func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceD
 			return err
 		}
 		for filename, content := range secret.Data {
-			// TODO fix permissions
 			klog.Infof("Writing secret manifest %q ...", path.Join(contentDir, filename))
-			if err := ioutil.WriteFile(path.Join(contentDir, filename), content, 0600); err != nil {
+			filePerms := os.FileMode(0600)
+			if strings.HasSuffix(filename, ".sh") {
+				filePerms = 0700
+			}
+			if err := ioutil.WriteFile(path.Join(contentDir, filename), content, filePerms); err != nil {
 				return err
 			}
 		}
@@ -240,9 +243,14 @@ func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceD
 		}
 		for filename, content := range configmap.Data {
 			klog.Infof("Writing config file %q ...", path.Join(contentDir, filename))
-			if err := ioutil.WriteFile(path.Join(contentDir, filename), []byte(content), 0644); err != nil {
+			filePerms := os.FileMode(0644)
+			if strings.HasSuffix(filename, ".sh") {
+				filePerms = 0755
+			}
+			if err := ioutil.WriteFile(path.Join(contentDir, filename), []byte(content), filePerms); err != nil {
 				return err
 			}
+
 		}
 	}
 
@@ -298,13 +306,11 @@ func (o *InstallOptions) copyContent(ctx context.Context) error {
 		if err != nil {
 			return false, err
 		}
-		podData, exists := podConfigMap.Data["pod.yaml"]
-		if !exists {
+		if _, exists := podConfigMap.Data["pod.yaml"]; !exists {
 			return true, fmt.Errorf("required 'pod.yaml' key does not exist in configmap")
 		}
-		podContent = strings.ReplaceAll(podData, "REVISION", o.Revision)
-		podContent = strings.ReplaceAll(podContent, "NODE_NAME", o.NodeName)
-		podContent = strings.ReplaceAll(podContent, "NODE_ENVVAR_NAME", strings.ReplaceAll(strings.ReplaceAll(o.NodeName, "-", "_"), ".", "_"))
+		podConfigMap = o.substituteConfigMap(podConfigMap)
+		podContent = podConfigMap.Data["pod.yaml"]
 		return true, nil
 	})
 	if err != nil {
@@ -341,6 +347,28 @@ func (o *InstallOptions) copyContent(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (o *InstallOptions) substituteConfigMap(obj *corev1.ConfigMap) *corev1.ConfigMap {
+	ret := obj.DeepCopy()
+	for k, oldContent := range obj.Data {
+		newContent := strings.ReplaceAll(oldContent, "REVISION", o.Revision)
+		newContent = strings.ReplaceAll(newContent, "NODE_NAME", o.NodeName)
+		newContent = strings.ReplaceAll(newContent, "NODE_ENVVAR_NAME", strings.ReplaceAll(strings.ReplaceAll(o.NodeName, "-", "_"), ".", "_"))
+		ret.Data[k] = newContent
+	}
+	return ret
+}
+
+func (o *InstallOptions) substituteSecret(obj *corev1.Secret) *corev1.Secret {
+	ret := obj.DeepCopy()
+	for k, oldContent := range obj.Data {
+		newContent := strings.ReplaceAll(string(oldContent), "REVISION", o.Revision)
+		newContent = strings.ReplaceAll(newContent, "NODE_NAME", o.NodeName)
+		newContent = strings.ReplaceAll(newContent, "NODE_ENVVAR_NAME", strings.ReplaceAll(strings.ReplaceAll(o.NodeName, "-", "_"), ".", "_"))
+		ret.Data[k] = []byte(newContent)
+	}
+	return ret
 }
 
 func (o *InstallOptions) Run(ctx context.Context) error {
