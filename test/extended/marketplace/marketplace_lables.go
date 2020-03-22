@@ -13,7 +13,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[sig-operator][Feature:Marketplace] Marketplace resources with labels provider displayName", func() {
+var _ = g.Describe("[sig-operator] [Serial] [Feature:Marketplace] Marketplace resources with labels provider displayName", func() {
 
 	defer g.GinkgoRecover()
 
