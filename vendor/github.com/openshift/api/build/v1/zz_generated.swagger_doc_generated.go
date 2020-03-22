@@ -237,7 +237,7 @@ var map_BuildStrategy = map[string]string{
 	"dockerStrategy":          "dockerStrategy holds the parameters to the container image build strategy.",
 	"sourceStrategy":          "sourceStrategy holds the parameters to the Source build strategy.",
 	"customStrategy":          "customStrategy holds the parameters to the Custom build strategy",
-	"jenkinsPipelineStrategy": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.",
+	"jenkinsPipelineStrategy": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy. Deprecated: use OpenShift Pipelines",
 }
 
 func (BuildStrategy) SwaggerDoc() map[string]string {
@@ -483,7 +483,7 @@ func (ImageSourcePath) SwaggerDoc() map[string]string {
 }
 
 var map_JenkinsPipelineBuildStrategy = map[string]string{
-	"":                "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.",
+	"":                "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build. Deprecated: use OpenShift Pipelines",
 	"jenkinsfilePath": "JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified contextDir.",
 	"jenkinsfile":     "Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.",
 	"env":             "env contains additional environment variables you want to pass into a build pipeline.",

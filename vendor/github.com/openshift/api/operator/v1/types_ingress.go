@@ -75,6 +75,7 @@ type IngressControllerSpec struct {
 	//   AWS:      LoadBalancerService (with External scope)
 	//   Azure:    LoadBalancerService (with External scope)
 	//   GCP:      LoadBalancerService (with External scope)
+	//   IBMCloud: LoadBalancerService (with External scope)
 	//   Libvirt:  HostNetwork
 	//
 	// Any other platform types (including None) default to HostNetwork.

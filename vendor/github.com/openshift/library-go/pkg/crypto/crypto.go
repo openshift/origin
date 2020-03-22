@@ -526,8 +526,16 @@ type RandomSerialGenerator struct {
 }
 
 func (s *RandomSerialGenerator) Next(template *x509.Certificate) (int64, error) {
+	return randomSerialNumber(), nil
+}
+
+// randomSerialNumber returns a random int64 serial number based on
+// time.Now. It is defined separately from the generator interface so
+// that the caller doesn't have to worry about an input template or
+// error - these are unnecessary when creating a random serial.
+func randomSerialNumber() int64 {
 	r := mathrand.New(mathrand.NewSource(time.Now().UTC().UnixNano()))
-	return r.Int63(), nil
+	return r.Int63()
 }
 
 // EnsureCA returns a CA, whether it was created (as opposed to pre-existing), and any error
@@ -908,9 +916,13 @@ func newSigningCertificateTemplateForDuration(subject pkix.Name, caLifetime time
 
 		SignatureAlgorithm: x509.SHA256WithRSA,
 
-		NotBefore:    currentTime().Add(-1 * time.Second),
-		NotAfter:     currentTime().Add(caLifetime),
-		SerialNumber: big.NewInt(1),
+		NotBefore: currentTime().Add(-1 * time.Second),
+		NotAfter:  currentTime().Add(caLifetime),
+
+		// Specify a random serial number to avoid the same issuer+serial
+		// number referring to different certs in a chain of trust if the
+		// signing certificate is ever rotated.
+		SerialNumber: big.NewInt(randomSerialNumber()),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,

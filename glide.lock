@@ -1,5 +1,5 @@
 hash: bd7f3626cf55d8e0d9623e29ba2b13ab601411fbc582497a8e990a246eb6f636
-updated: 2020-01-22T21:07:22.179254036-05:00
+updated: 2020-03-22T18:12:37.276152-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -737,7 +737,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/onsi/ginkgo
-  version: d0603c19fe78143eb81221b59025ebcb9b534957
+  version: 8028b24bc44b0d561ac0fb0d3cc1c7a43fceab3a
   repo: https://github.com/openshift/onsi-ginkgo.git
   subpackages:
   - config
@@ -811,7 +811,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 2987a591a72cee08898c93dcc09816783d39a5bc
+  version: e9d93e317dd13b6f135baca5cee888d5ff3c222b
   subpackages:
   - annotations
   - apps
@@ -984,7 +984,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: e8b3a065ded2917960eb402ccba30d90433c17f3
+  version: 584415949f49b25b6e4cc837ff32a08f9093fe7b
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1528,7 +1528,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: 46c5f7baf5456058e6999b176e1bdb87668c7c9d
+  version: 7bcbbe6c4b8386e49885d7d36043419c5c63ed00
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1594,7 +1594,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: b1d2a8e7919512e18b23c8af6ab1658708241579
+  version: 5c091f5683e2ae510c251ef93c00622771a06a6d
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2163,7 +2163,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 2f8a9755ef72445cfba9c42db5410f107209f495
+  version: 5be3642f4728e75dc9ba9e1fe947a62d04b198a7
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app

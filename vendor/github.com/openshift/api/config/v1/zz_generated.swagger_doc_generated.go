@@ -716,6 +716,17 @@ func (GCPPlatformStatus) SwaggerDoc() map[string]string {
 	return map_GCPPlatformStatus
 }
 
+var map_IBMCloudPlatformStatus = map[string]string{
+	"":                  "IBMCloudPlatformStatus holds the current status of the IBMCloud infrastructure provider.",
+	"location":          "Location is where the cluster has been deployed",
+	"resourceGroupName": "ResourceGroupName is the Resource Group for new IBMCloud resources created for the cluster.",
+	"providerType":      "ProviderType indicates the type of cluster that was created",
+}
+
+func (IBMCloudPlatformStatus) SwaggerDoc() map[string]string {
+	return map_IBMCloudPlatformStatus
+}
+
 var map_Infrastructure = map[string]string{
 	"":       "Infrastructure holds cluster-wide information about Infrastructure.  The canonical name is `cluster`",
 	"spec":   "spec holds user settable values for configuration",
