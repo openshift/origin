@@ -44,8 +44,8 @@ func TestExecCreate(t *testing.T) {
 		t.Errorf("ExecCreate: wrong ID. Want %q. Got %q.", expectedID, execObj.ID)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
-		t.Errorf("ExecCreate: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
+	if req.Method != http.MethodPost {
+		t.Errorf("ExecCreate: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/containers/test/exec"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -120,6 +120,68 @@ func TestExecCreateWithEnv(t *testing.T) {
 	}
 }
 
+func TestExecCreateWithWorkingDirErr(t *testing.T) {
+	t.Parallel()
+	jsonContainer := `{"Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"}`
+	var expected struct{ ID string }
+	err := json.Unmarshal([]byte(jsonContainer), &expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeRT := &FakeRoundTripper{message: jsonContainer, status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	config := CreateExecOptions{
+		Container:    "test",
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: false,
+		Tty:          false,
+		WorkingDir:   "/tmp",
+		Cmd:          []string{"touch", "file"},
+		User:         "a-user",
+	}
+	_, err = client.CreateExec(config)
+	if err == nil || err.Error() != "exec configuration WorkingDir is only supported in API#1.35 and above" {
+		t.Error("CreateExec: options contain WorkingDir for unsupported api version")
+	}
+}
+
+func TestExecCreateWithWorkingDir(t *testing.T) {
+	t.Parallel()
+	jsonContainer := `{"Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"}`
+	var expected struct{ ID string }
+	err := json.Unmarshal([]byte(jsonContainer), &expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeRT := &FakeRoundTripper{message: jsonContainer, status: http.StatusOK}
+	endpoint := "http://localhost:4243"
+	u, _ := parseEndpoint("http://localhost:4243", false)
+	testAPIVersion, _ := NewAPIVersion("1.35")
+	client := Client{
+		HTTPClient:             &http.Client{Transport: fakeRT},
+		Dialer:                 &net.Dialer{},
+		endpoint:               endpoint,
+		endpointURL:            u,
+		SkipServerVersionCheck: true,
+		serverAPIVersion:       testAPIVersion,
+	}
+	config := CreateExecOptions{
+		Container:    "test",
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: false,
+		Tty:          false,
+		WorkingDir:   "/tmp",
+		Cmd:          []string{"touch", "file"},
+		User:         "a-user",
+	}
+	_, err = client.CreateExec(config)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestExecStartDetached(t *testing.T) {
 	t.Parallel()
 	execID := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -133,8 +195,8 @@ func TestExecStartDetached(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
-		t.Errorf("ExecStart: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
+	if req.Method != http.MethodPost {
+		t.Errorf("ExecStart: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/exec/" + execID + "/start"))
 	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
@@ -152,7 +214,7 @@ func TestExecStartDetached(t *testing.T) {
 }
 
 func TestExecStartAndAttach(t *testing.T) {
-	var reader = strings.NewReader("send value")
+	reader := strings.NewReader("send value")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
 		w.Write([]byte("hello"))
@@ -188,8 +250,8 @@ func TestExecResize(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
-		t.Errorf("ExecStart: wrong HTTP method. Want %q. Got %q.", "POST", req.Method)
+	if req.Method != http.MethodPost {
+		t.Errorf("ExecStart: wrong HTTP method. Want %q. Got %q.", http.MethodPost, req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/exec/" + execID + "/resize?h=10&w=20"))
 	if gotPath := req.URL.RequestURI(); gotPath != expectedURL.RequestURI() {
@@ -236,8 +298,8 @@ func TestExecInspect(t *testing.T) {
 		t.Errorf("ExecInspect: Expected %#v. Got %#v.", expected, *execObj)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "GET" {
-		t.Errorf("ExecInspect: wrong HTTP method. Want %q. Got %q.", "GET", req.Method)
+	if req.Method != http.MethodGet {
+		t.Errorf("ExecInspect: wrong HTTP method. Want %q. Got %q.", http.MethodGet, req.Method)
 	}
 	expectedURL, _ := url.Parse(client.getURL("/exec/" + expectedID + "/json"))
 	if gotPath := fakeRT.requests[0].URL.Path; gotPath != expectedURL.Path {
