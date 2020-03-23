@@ -18,9 +18,11 @@ package kubelet
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 )
@@ -72,6 +74,13 @@ func (kl *Kubelet) updatePodCIDR(cidr string) {
 
 	glog.Infof("Setting Pod CIDR: %v -> %v", podCIDR, cidr)
 	kl.runtimeState.setPodCIDR(cidr)
+}
+
+func (kl *Kubelet) initNetworkUtil() {
+	kl.syncNetworkUtil()
+	go kl.iptClient.Monitor(utiliptables.Chain("KUBE-KUBELET-CANARY"),
+		[]utiliptables.Table{utiliptables.TableMangle, utiliptables.TableNAT, utiliptables.TableFilter},
+		kl.syncNetworkUtil, 1*time.Minute, wait.NeverStop)
 }
 
 // syncNetworkUtil ensures the network utility are present on host.
