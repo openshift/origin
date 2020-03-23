@@ -51,7 +51,6 @@ go_library(
     importpath = "k8s.io/kubernetes/pkg/util/iptables",
     deps = [
         "//pkg/util/dbus:go_default_library",
-        "//pkg/util/version:go_default_library",
         "//vendor/github.com/godbus/dbus:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/sets:go_default_library",
