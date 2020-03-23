@@ -90,9 +90,6 @@ func (f *FakeIPTables) RestoreAll(data []byte, flush iptables.FlushFlag, counter
 	f.Lines = data
 	return nil
 }
-func (*FakeIPTables) AddReloadFunc(reloadFunc func()) {}
-
-func (*FakeIPTables) Destroy() {}
 
 func getToken(line, separator string) string {
 	tokens := strings.Split(line, separator)

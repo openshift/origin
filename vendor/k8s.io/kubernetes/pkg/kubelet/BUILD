@@ -95,7 +95,6 @@ go_library(
         "//pkg/security/apparmor:go_default_library",
         "//pkg/security/podsecuritypolicy/sysctl:go_default_library",
         "//pkg/securitycontext:go_default_library",
-        "//pkg/util/dbus:go_default_library",
         "//pkg/util/file:go_default_library",
         "//pkg/util/io:go_default_library",
         "//pkg/util/iptables:go_default_library",
