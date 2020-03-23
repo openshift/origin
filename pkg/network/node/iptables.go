@@ -14,7 +14,6 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	"k8s.io/kubernetes/pkg/util/iptables"
 	kexec "k8s.io/utils/exec"
 )
@@ -34,7 +33,7 @@ type NodeIPTables struct {
 
 func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masqueradeServices bool, vxlanPort uint32, masqueradeBit uint32) *NodeIPTables {
 	return &NodeIPTables{
-		ipt:                iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4),
+		ipt:                iptables.New(kexec.New(), iptables.ProtocolIpv4),
 		clusterNetworkCIDR: clusterNetworkCIDR,
 		syncPeriod:         syncPeriod,
 		masqueradeServices: masqueradeServices,
@@ -49,30 +48,15 @@ func (n *NodeIPTables) Setup() error {
 		return err
 	}
 
-	// If firewalld is running, reload will call this method
-	n.ipt.AddReloadFunc(func() {
-		if err := n.syncIPTableRules(); err != nil {
-			utilruntime.HandleError(fmt.Errorf("Reloading openshift iptables failed: %v", err))
-		}
-	})
-
-	go utilwait.Forever(n.syncLoop, 0)
+	go n.ipt.Monitor(iptables.Chain("OPENSHIFT-SDN-CANARY"),
+		[]iptables.Table{iptables.TableMangle, iptables.TableNAT, iptables.TableFilter},
+		func() {
+			if err := n.syncIPTableRules(); err != nil {
+				utilruntime.HandleError(fmt.Errorf("Reloading openshift iptables failed: %v", err))
+			}
+		},
+		n.syncPeriod, utilwait.NeverStop)
 	return nil
-}
-
-// syncLoop periodically calls syncIPTableRules().
-// This is expected to run as a go routine or as the main loop. It does not return.
-func (n *NodeIPTables) syncLoop() {
-	t := time.NewTicker(n.syncPeriod)
-	defer t.Stop()
-	for {
-		<-t.C
-		glog.V(6).Infof("Periodic openshift iptables sync")
-		err := n.syncIPTableRules()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("Syncing openshift iptables failed: %v", err))
-		}
-	}
 }
 
 type Chain struct {
