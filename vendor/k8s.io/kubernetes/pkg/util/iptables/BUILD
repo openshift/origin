@@ -68,6 +68,7 @@ go_test(
     srcs = select({
         "@io_bazel_rules_go//go/platform:linux": [
             "iptables_test.go",
+            "monitor_test.go",
         ],
         "//conditions:default": [],
     }),
@@ -75,6 +76,7 @@ go_test(
     deps = select({
         "@io_bazel_rules_go//go/platform:linux": [
             "//vendor/k8s.io/apimachinery/pkg/util/sets:go_default_library",
+            "//vendor/k8s.io/apimachinery/pkg/util/wait:go_default_library",
             "//vendor/k8s.io/utils/exec:go_default_library",
             "//vendor/k8s.io/utils/exec/testing:go_default_library",
         ],
