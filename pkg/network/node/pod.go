@@ -28,7 +28,6 @@ import (
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilexec "k8s.io/utils/exec"
 
@@ -174,7 +173,7 @@ func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) 
 // Start the CNI server and start processing requests from it
 func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork, serviceNetworkCIDR string, clearHostPorts bool) error {
 	if m.enableHostports {
-		iptInterface := utiliptables.New(utilexec.New(), utildbus.New(), utiliptables.ProtocolIpv4)
+		iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIpv4)
 		m.hostportSyncer = kubehostport.NewHostportSyncer(iptInterface)
 		if clearHostPorts {
 			_ = m.hostportSyncer.SyncHostports(Tun0, nil)
