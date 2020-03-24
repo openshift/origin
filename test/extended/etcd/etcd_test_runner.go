@@ -39,8 +39,9 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 		o.Expect(cmd.Start()).NotTo(o.HaveOccurred())
 
 		scanner := bufio.NewScanner(stdOut)
-		o.Expect(scanner.Scan()).To(o.BeTrue())
+		scan := scanner.Scan()
 		o.Expect(scanner.Err()).NotTo(o.HaveOccurred())
+		o.Expect(scan).To(o.BeTrue())
 		output := scanner.Text()
 
 		port := strings.TrimSuffix(strings.TrimPrefix(output, "Forwarding from 127.0.0.1:"), " -> 2379")
