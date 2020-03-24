@@ -31,8 +31,9 @@ var _ = g.Describe("[Serial][sig-node][Suite:openshift/performance][Feature:Topo
 	g.Context("with gu workload", func() {
 		t.DescribeTable("should guarantee NUMA-aligned cpu cores in gu pods",
 			func(pps PodParamsList) {
-				if requestCpu, maxAvailCpu, ok := enoughCoresInTheCluster(workerNodes, pps); !ok {
-					g.Skip(fmt.Sprintf("not enough CPU resources in the cluster max=%v requested=%v", maxAvailCpu, requestCpu))
+				// this is a coarse-grained check to avoid false negatives
+				if requestCpu, ok := enoughCoresInTheCluster(workerNodes, pps); !ok {
+					g.Skip(fmt.Sprintf("not enough CPU resources in the cluster requested=%v", requestCpu))
 				}
 
 				// shortcuts
@@ -204,8 +205,7 @@ func (pps PodParamsList) TotalCpuRequest() int64 {
 	return total
 }
 
-func enoughCoresInTheCluster(nodes []corev1.Node, pps PodParamsList) (resource.Quantity, resource.Quantity, bool) {
-	var maxAvailCpu resource.Quantity
+func enoughCoresInTheCluster(nodes []corev1.Node, pps PodParamsList) (resource.Quantity, bool) {
 	requestCpu := resource.MustParse(fmt.Sprintf("%dm", pps.TotalCpuRequest()))
 	e2e.Logf("checking request %v on %d nodes", requestCpu, len(nodes))
 
@@ -214,17 +214,12 @@ func enoughCoresInTheCluster(nodes []corev1.Node, pps PodParamsList) (resource.Q
 		o.Expect(ok).To(o.BeTrue())
 		o.Expect(availCpu.IsZero()).To(o.BeFalse())
 
-		if availCpu.Cmp(maxAvailCpu) > 1 {
-			e2e.Logf("max available cpu %v -> %v", maxAvailCpu, availCpu)
-			maxAvailCpu = availCpu
-		}
-
 		e2e.Logf("node %q available cpu %v requested cpu %v", node.Name, availCpu, requestCpu)
 		if availCpu.Cmp(requestCpu) >= 1 {
 			e2e.Logf("at least node %q has enough resources, cluster OK", node.Name)
-			return requestCpu, maxAvailCpu, true
+			return requestCpu, true
 		}
 	}
 
-	return requestCpu, maxAvailCpu, false
+	return requestCpu, false
 }
