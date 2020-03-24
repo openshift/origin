@@ -2,7 +2,6 @@ package controlplane
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -17,8 +16,8 @@ import (
 type AvailableTest struct {
 }
 
-// Name returns the tracking name of the test.
-func (AvailableTest) Name() string { return "control-plane-upgrade" }
+func (AvailableTest) Name() string        { return "control-plane-available" }
+func (AvailableTest) DisplayName() string { return "Kubernetes and OpenShift APIs remain available" }
 
 // Setup does nothing
 func (t *AvailableTest) Setup(f *framework.Framework) {
@@ -33,30 +32,17 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	m := monitor.NewMonitorWithInterval(time.Second)
 	err = monitor.StartAPIMonitoring(ctx, m, config, 15*time.Second)
 	framework.ExpectNoError(err, "unable to monitor API")
+
+	start := time.Now()
 	m.StartSampling(ctx)
 
 	// wait to ensure API is still up after the test ends
 	<-done
 	time.Sleep(15 * time.Second)
 	cancel()
+	end := time.Now()
 
-	var duration time.Duration
-	var describe []string
-	for _, interval := range m.Events(time.Time{}, time.Time{}) {
-		describe = append(describe, interval.String())
-		i := interval.To.Sub(interval.From)
-		if i < time.Second {
-			i = time.Second
-		}
-		if interval.Condition.Level > monitor.Info {
-			duration += i
-		}
-	}
-	if duration > 120*time.Second {
-		framework.Failf("API was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
-	} else if duration > 0 {
-		disruption.Flakef(f, "API was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
-	}
+	disruption.ExpectNoDisruption(f, 0.08, end.Sub(start), m.Events(time.Time{}, time.Time{}), "API was unreachable during disruption")
 }
 
 // Teardown cleans up any remaining resources.

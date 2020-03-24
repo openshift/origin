@@ -7,13 +7,13 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/events"
@@ -32,8 +32,10 @@ type UpgradeTest struct {
 	tcpService *v1.Service
 }
 
-// Name returns the tracking name of the test.
-func (UpgradeTest) Name() string { return "k8s-service-upgrade" }
+func (UpgradeTest) Name() string { return "k8s-service-lb-available" }
+func (UpgradeTest) DisplayName() string {
+	return "Application behind service load balancer with PDB is not disrupted"
+}
 
 func shouldTestPDBs() bool { return true }
 
@@ -47,6 +49,18 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	ginkgo.By("creating a TCP service " + serviceName + " with type=LoadBalancer in namespace " + ns.Name)
 	tcpService := jig.CreateTCPServiceOrFail(ns.Name, func(s *v1.Service) {
 		s.Spec.Type = v1.ServiceTypeLoadBalancer
+		if s.Annotations == nil {
+			s.Annotations = make(map[string]string)
+		}
+		// We tune the LB checks to match the longest intervals available so that interactions between
+		// upgrading components and the service are more obvious.
+		// - AWS allows configuration, default is 70s (6 failed with 10s interval in 1.17) set to match GCP
+		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval"] = "8"
+		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold"] = "3"
+		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold"] = "2"
+		// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
+		// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
+		//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
 	})
 	tcpService = jig.WaitForLoadBalancerOrFail(ns.Name, tcpService.Name, service.LoadBalancerLagTimeoutAWS)
 	jig.SanityCheckService(tcpService, v1.ServiceTypeLoadBalancer)
@@ -57,13 +71,15 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 
 	ginkgo.By("creating RC to be part of service " + serviceName)
 	rc := jig.RunOrFail(ns.Name, func(rc *v1.ReplicationController) {
-		// ensure the pod waits long enough for most LBs to take it out of rotation
-		minute := int64(60)
+		// ensure the pod waits long enough for most LBs to take it out of rotation, which has to be
+		// longer than the LB failed health check interval
 		rc.Spec.Template.Spec.Containers[0].Lifecycle = &v1.Lifecycle{
 			PreStop: &v1.Handler{
-				Exec: &v1.ExecAction{Command: []string{"sleep", "30"}},
+				Exec: &v1.ExecAction{Command: []string{"sleep", "45"}},
 			},
 		}
+		// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
+		minute := int64(60)
 		rc.Spec.Template.Spec.TerminationGracePeriodSeconds = &minute
 
 		jig.AddRCAntiAffinity(rc)
@@ -77,7 +93,8 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	// Hit it once before considering ourselves ready
 	ginkgo.By("hitting pods through the service's LoadBalancer")
 	timeout := service.LoadBalancerLagTimeoutAWS
-	jig.TestReachableHTTP(tcpIngressIP, svcPort, timeout)
+	// require thirty seconds of passing requests to continue (in case the SLB becomes available and then degrades)
+	TestReachableHTTPWithMinSuccessCount(tcpIngressIP, svcPort, 30, timeout)
 
 	t.jig = jig
 	t.tcpService = tcpService
@@ -100,6 +117,8 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	m := monitor.NewMonitorWithInterval(1 * time.Second)
 	err = startEndpointMonitoring(ctx, m, t.tcpService, r)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to monitor API")
+
+	start := time.Now()
 	m.StartSampling(ctx)
 
 	// wait to ensure API is still up after the test ends
@@ -107,24 +126,9 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	ginkgo.By("waiting for any post disruption failures")
 	time.Sleep(15 * time.Second)
 	cancel()
+	end := time.Now()
 
-	var duration time.Duration
-	var describe []string
-	for _, interval := range m.Events(time.Time{}, time.Time{}) {
-		describe = append(describe, interval.String())
-		i := interval.To.Sub(interval.From)
-		if i < time.Second {
-			i = time.Second
-		}
-		if interval.Condition.Level > monitor.Info {
-			duration += i
-		}
-	}
-	if duration > 60*time.Second {
-		framework.Failf("Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
-	} else if duration > 0 {
-		disruption.Flakef(f, "Service was unreachable during upgrade for at least %s:\n\n%s", duration.Truncate(time.Second), strings.Join(describe, "\n"))
-	}
+	disruption.ExpectNoDisruption(f, 0.02, end.Sub(start), m.Events(time.Time{}, time.Time{}), "Service was unreachable during disruption")
 
 	// verify finalizer behavior
 	defer func() {
@@ -249,4 +253,24 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 
 func locateService(svc *v1.Service) string {
 	return fmt.Sprintf("ns/%s svc/%s", svc.Namespace, svc.Name)
+}
+
+// TestReachableHTTPWithMinSuccessCount tests that the given host serves HTTP on the given port for a minimum of successCount number of
+// counts at a given interval. If the service reachability fails, the counter gets reset
+func TestReachableHTTPWithMinSuccessCount(host string, port int, successCount int, timeout time.Duration) {
+	consecutiveSuccessCnt := 0
+	err := wait.PollImmediate(framework.Poll, timeout, func() (bool, error) {
+		result := framework.PokeHTTP(host, port, "/echo?msg=hello",
+			&framework.HTTPPokeParams{
+				BodyContains:   "hello",
+				RetriableCodes: []int{},
+			})
+		if result.Status == framework.HTTPSuccess {
+			consecutiveSuccessCnt++
+			return consecutiveSuccessCnt >= successCount, nil
+		}
+		consecutiveSuccessCnt = 0
+		return false, nil // caller can retry
+	})
+	framework.ExpectNoError(err)
 }
