@@ -112,12 +112,12 @@ var (
 
 		// FIXME
 		// {Group: "operator.openshift.io", Version: "v1", Resource: "credentialsrequestses"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "ingresscontrollers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecas"},
 
