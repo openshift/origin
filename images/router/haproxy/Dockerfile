@@ -5,8 +5,7 @@
 #
 FROM openshift/origin-cli
 
-RUN yum-config-manager --add-repo http://brew-task-repos.usersys.redhat.com/repos/scratch/dmace/haproxy/1.8.17/4.el7/haproxy-1.8.17-4.el7-scratch.repo
-RUN yum --disablerepo="*" --enablerepo="brew-task-repo-haproxy-1.8.17-4.el7-scratch" install -y haproxy18
+RUN yum install -y https://raw.githubusercontent.com/ironcladlou/origin/haproxy-1.8-patch/images/router/haproxy/haproxy18-1.8.17-4.el7.x86_64.rpm
 
 RUN INSTALL_PKGS="rsyslog" && \
     yum install -y $INSTALL_PKGS && \
