@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/RangelReale/osincli"
+	"github.com/davecgh/go-spew/spew"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -196,20 +197,21 @@ func waitForOAuthServerReady(oc *exutil.CLI) error {
 	if err := exutil.WaitForUserBeAuthorized(oc, "system:serviceaccount:"+oc.Namespace()+":e2e-oauth", "*", "*"); err != nil {
 		return err
 	}
-	if err := waitForOAuthServerRouteReady(oc); err != nil {
+	if err := waitForOAuthServerPodReady(oc); err != nil {
 		return err
 	}
-	return waitForOAuthServerPodReady(oc)
+	return waitForOAuthServerRouteReady(oc)
 }
 
 func waitForOAuthServerPodReady(oc *exutil.CLI) error {
-	return wait.PollImmediate(1*time.Second, 45*time.Second, func() (bool, error) {
-		e2e.Logf("Waiting for the OAuth server pod to be ready")
+	e2e.Logf("Waiting for the OAuth server pod to be ready")
+	return wait.PollImmediateInfinite(1*time.Second, func() (bool, error) {
 		pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get("test-oauth-server", metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 		if !exutil.CheckPodIsReady(*pod) {
+			e2e.Logf("OAuth server pod is not ready: %s\nContainer statuses: %s", pod.Status.Message, spew.Sdump(pod.Status.ContainerStatuses))
 			return false, nil
 		}
 		return true, nil
