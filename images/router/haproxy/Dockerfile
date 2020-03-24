@@ -5,7 +5,7 @@
 #
 FROM openshift/origin-cli
 
-RUN yum install -y https://github.com/frobware/haproxy-hacks/raw/master/RPMs/haproxy18-1.8.23-1.el7.x86_64.rpm
+RUN yum install -y https://github.com/frobware/haproxy-hacks/raw/master/RPMs/haproxy18-1.8.23-2.el7.x86_64.rpm
 RUN haproxy -vv
 
 RUN INSTALL_PKGS="rsyslog" && \
