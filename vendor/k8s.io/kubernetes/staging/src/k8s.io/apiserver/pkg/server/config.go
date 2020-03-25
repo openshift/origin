@@ -739,6 +739,7 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler := genericapifilters.WithAuthorization(apiHandler, c.Authorization.Authorizer, c.Serializer)
 	if c.FlowControl != nil {
+		klog.Infof("Priority&Fairness Test: %#v", c.FlowControl)
 		handler = genericfilters.WithPriorityAndFairness(handler, c.LongRunningFunc, c.FlowControl)
 	} else {
 		handler = genericfilters.WithMaxInFlightLimit(handler, c.MaxRequestsInFlight, c.MaxMutatingRequestsInFlight, c.LongRunningFunc)

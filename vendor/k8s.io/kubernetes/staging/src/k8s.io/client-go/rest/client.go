@@ -117,7 +117,8 @@ func NewRESTClient(baseURL *url.URL, versionedAPIPath string, config ClientConte
 		versionedAPIPath: versionedAPIPath,
 		content:          config,
 		createBackoffMgr: readExpBackoffConfig,
-		rateLimiter:      rateLimiter,
+		// DO NOT MERGE: for Priority&Fairness benchmarking, opening flood gates
+		// rateLimiter:      rateLimiter,
 
 		Client: client,
 	}, nil

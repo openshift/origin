@@ -268,6 +268,8 @@ HTTP server: The kubelet can also listen for HTTP and respond to a simple API
 				return
 			}
 
+			klog.Infof("Priority&Fairness Test: %#v", kubeletServer.KubeletConfiguration)
+
 			// run the kubelet
 			klog.V(5).Infof("KubeletConfiguration: %#v", kubeletServer.KubeletConfiguration)
 			if err := Run(kubeletServer, kubeletDeps, utilfeature.DefaultFeatureGate, stopCh); err != nil {
