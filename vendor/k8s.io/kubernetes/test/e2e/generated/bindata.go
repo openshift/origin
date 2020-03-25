@@ -53,6 +53,7 @@
 // test/e2e/testing-manifests/kubectl/httpd-deployment1.yaml.in
 // test/e2e/testing-manifests/kubectl/httpd-deployment2.yaml.in
 // test/e2e/testing-manifests/kubectl/httpd-deployment3.yaml.in
+// test/e2e/testing-manifests/kubectl/httpd-rc.yaml.in
 // test/e2e/testing-manifests/kubectl/pause-pod.yaml.in
 // test/e2e/testing-manifests/kubectl/pod-with-readiness-probe.yaml.in
 // test/e2e/testing-manifests/pod
@@ -1474,6 +1475,26 @@ func testE2eTestingManifestsKubectlHttpdDeployment3YamlIn() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/e2e/testing-manifests/kubectl/httpd-deployment3.yaml.in", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testE2eTestingManifestsKubectlHttpdRcYamlIn = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x64\x8f\xb1\x8a\xc3\x30\x10\x44\x7b\x7d\xc5\xfc\x80\x0f\xdc\xaa\xbd\xe6\xae\xb9\xe2\x8a\xf4\x1b\x79\x49\x44\xa4\x95\x58\x6d\x92\xc2\xf8\xdf\x83\x30\x36\x26\x99\x6e\x67\x78\xb3\x0c\xd5\x78\x62\x6d\xb1\x88\xc7\x63\x74\xb7\x28\x93\xc7\x3f\xd7\x14\x03\x59\x2c\xf2\x5d\xc4\xb4\xa4\xc4\xea\x32\x1b\x4d\x64\xe4\x1d\x20\x94\xd9\xe3\x6a\x56\xa7\x41\x83\x6b\x95\x43\xb7\x75\x05\x9b\xc7\xe8\x80\xc6\x89\x83\x15\xed\x09\xa0\x77\x39\x10\x80\x71\xae\x89\x8c\xd7\xf4\x58\xde\x95\xe8\xcc\xa9\x6d\xd7\x27\x0d\x6c\x3f\xbb\x42\x11\xa3\x28\xac\x3b\x31\x20\x66\xba\xb0\xc7\x3c\x7f\xfd\x74\xec\x8f\x9f\xbf\xdd\x59\x96\xbd\xf3\x6d\xc4\x2b\x00\x00\xff\xff\x5c\xf5\x77\xda\x0b\x01\x00\x00")
+
+func testE2eTestingManifestsKubectlHttpdRcYamlInBytes() ([]byte, error) {
+	return bindataRead(
+		_testE2eTestingManifestsKubectlHttpdRcYamlIn,
+		"test/e2e/testing-manifests/kubectl/httpd-rc.yaml.in",
+	)
+}
+
+func testE2eTestingManifestsKubectlHttpdRcYamlIn() (*asset, error) {
+	bytes, err := testE2eTestingManifestsKubectlHttpdRcYamlInBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/e2e/testing-manifests/kubectl/httpd-rc.yaml.in", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -7543,6 +7564,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/e2e/testing-manifests/kubectl/httpd-deployment1.yaml.in":                           testE2eTestingManifestsKubectlHttpdDeployment1YamlIn,
 	"test/e2e/testing-manifests/kubectl/httpd-deployment2.yaml.in":                           testE2eTestingManifestsKubectlHttpdDeployment2YamlIn,
 	"test/e2e/testing-manifests/kubectl/httpd-deployment3.yaml.in":                           testE2eTestingManifestsKubectlHttpdDeployment3YamlIn,
+	"test/e2e/testing-manifests/kubectl/httpd-rc.yaml.in":                                    testE2eTestingManifestsKubectlHttpdRcYamlIn,
 	"test/e2e/testing-manifests/kubectl/pause-pod.yaml.in":                                   testE2eTestingManifestsKubectlPausePodYamlIn,
 	"test/e2e/testing-manifests/kubectl/pod-with-readiness-probe.yaml.in":                    testE2eTestingManifestsKubectlPodWithReadinessProbeYamlIn,
 	"test/e2e/testing-manifests/pod":                                                         testE2eTestingManifestsPod,
@@ -7971,6 +7993,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"httpd-deployment1.yaml.in":         {testE2eTestingManifestsKubectlHttpdDeployment1YamlIn, map[string]*bintree{}},
 					"httpd-deployment2.yaml.in":         {testE2eTestingManifestsKubectlHttpdDeployment2YamlIn, map[string]*bintree{}},
 					"httpd-deployment3.yaml.in":         {testE2eTestingManifestsKubectlHttpdDeployment3YamlIn, map[string]*bintree{}},
+					"httpd-rc.yaml.in":                  {testE2eTestingManifestsKubectlHttpdRcYamlIn, map[string]*bintree{}},
 					"pause-pod.yaml.in":                 {testE2eTestingManifestsKubectlPausePodYamlIn, map[string]*bintree{}},
 					"pod-with-readiness-probe.yaml.in":  {testE2eTestingManifestsKubectlPodWithReadinessProbeYamlIn, map[string]*bintree{}},
 				}},
