@@ -163,6 +163,6 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	WinOverlay:              {Default: false, PreRelease: featuregate.Alpha},
 	WinDSR:                  {Default: false, PreRelease: featuregate.Alpha},
 	WatchBookmark:           {Default: true, PreRelease: featuregate.GA, LockToDefault: true},
-	APIPriorityAndFairness:  {Default: false, PreRelease: featuregate.Alpha},
+	APIPriorityAndFairness:  {Default: true, PreRelease: featuregate.Alpha},
 	RemoveSelfLink:          {Default: false, PreRelease: featuregate.Alpha},
 }
