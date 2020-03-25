@@ -31102,19 +31102,15 @@ export KUBECONFIG="${temp_config}"
 #os::cmd::expect_success 'oc new-project test-project-admin'
 #os::cmd::try_until_success "oc project test-project-admin"
 
-os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
-os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'
+os::cmd::expect_success 'oc create deploymentconfig --image=openshift/hello-openshift test'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --restart=Never test3'
-os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=job/v1 --restart=Never test4'
-os::cmd::expect_success 'oc delete dc/test rc/test2 pod/test3 job/test4'
+os::cmd::expect_success 'oc create job --image=openshift/hello-openshift test4'
+os::cmd::expect_success 'oc delete dc/test pod/test3 job/test4'
 
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name'                                'deploymentconfig.apps.openshift.io/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --restart=Always'               'deploymentconfig.apps.openshift.io/foo'
+os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --image=bar -o name'               'deploymentconfig.apps.openshift.io/foo'
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --restart=Never'                'pod/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=job/v1'              'job.batch/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=deploymentconfig/v1' 'deploymentconfig.apps.openshift.io/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-controller/v1'   'replicationcontroller/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run/v1'              'replicationcontroller/foo'
+os::cmd::expect_success_and_text 'oc create job --dry-run foo --image=bar -o name'              'job.batch/foo'
+os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --image=bar -o name' 'deploymentconfig.apps.openshift.io/foo'
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-pod/v1'          'pod/foo'
 
 os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l name=mytemplate | oc create -f -'
@@ -32468,7 +32464,7 @@ os::cmd::expect_success_and_text "oc set image-lookup is/nginx" "updated"
 os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=nginx:latest nginx"
 os::cmd::expect_success_and_text "oc get pod/nginx -o jsonpath='{.spec.containers[0].image}'" "nginx@sha256:"
 ## Image lookup works for jobs
-os::cmd::expect_success          "oc run --generator=job/v1 --restart=Never --image=nginx:latest nginx"
+os::cmd::expect_success          "oc create job --image=nginx:latest nginx"
 os::cmd::expect_success_and_text "oc get job/nginx -o jsonpath='{.spec.template.spec.containers[0].image}'" "nginx@sha256:"
 ## Image lookup works for replica sets
 os::cmd::expect_success          "oc create deployment --image=nginx:latest nginx"
@@ -34583,7 +34579,7 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/run"
 # This test validates the value of --image for oc run
-os::cmd::expect_success_and_text 'oc run newdcforimage --image=validimagevalue' 'deploymentconfig.apps.openshift.io/newdcforimage created'
+os::cmd::expect_success_and_text 'oc create deploymentconfig newdcforimage --image=validimagevalue' 'deploymentconfig.apps.openshift.io/newdcforimage created'
 os::cmd::expect_failure_and_text 'oc run newdcforimage2 --image="InvalidImageValue0192"' 'error: Invalid image name "InvalidImageValue0192": invalid reference format'
 os::cmd::expect_failure_and_text 'oc run test1 --image=busybox --attach --dry-run' "dry-run can't be used with attached containers options"
 os::cmd::expect_failure_and_text 'oc run test1 --image=busybox --stdin --dry-run' "dry-run can't be used with attached containers options"
@@ -35223,7 +35219,7 @@ os::cmd::expect_success_and_text 'oc status -v' 'shorthand -v has been deprecate
 os::cmd::expect_success_and_text 'oc status --verbose' '\-\-verbose has been deprecated'
 
 # Verify jobs are showing in status
-os::cmd::expect_success "oc run pi --image=perl --restart=OnFailure -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
+os::cmd::expect_success "oc create job pi --image=perl -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
 os::cmd::expect_success_and_text "oc status" "job/pi manages perl"
 
 # logout

@@ -85,7 +85,7 @@ os::cmd::expect_success_and_text 'oc status -v' 'shorthand -v has been deprecate
 os::cmd::expect_success_and_text 'oc status --verbose' '\-\-verbose has been deprecated'
 
 # Verify jobs are showing in status
-os::cmd::expect_success "oc run pi --image=perl --restart=OnFailure -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
+os::cmd::expect_success "oc create job pi --image=perl -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
 os::cmd::expect_success_and_text "oc status" "job/pi manages perl"
 
 # logout
