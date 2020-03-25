@@ -94,6 +94,20 @@ const (
 
 	// OvirtPlatformType represents oVirt/RHV infrastructure.
 	OvirtPlatformType PlatformType = "oVirt"
+
+	// IBMCloudPlatformType represents IBM Cloud infrastructure.
+	IBMCloudPlatformType PlatformType = "IBMCloud"
+)
+
+// IBMCloudProviderType is a specific supported IBM Cloud provider cluster type
+type IBMCloudProviderType string
+
+const (
+	// Classic  means that the IBM Cloud cluster is using classic infrastructure
+	IBMCloudProviderTypeClassic IBMCloudProviderType = "Classic"
+
+	// VPC means that the IBM Cloud cluster is using VPC infrastructure
+	IBMCloudProviderTypeVPC IBMCloudProviderType = "VPC"
 )
 
 // PlatformStatus holds the current status specific to the underlying infrastructure provider
@@ -228,6 +242,18 @@ type OvirtPlatformStatus struct {
 	// datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames
 	// to the nodes in the cluster.
 	NodeDNSIP string `json:"nodeDNSIP,omitempty"`
+}
+
+//IBMCloudPlatformStatus holds the current status of the IBMCloud infrastructure provider.
+type IBMCloudPlatformStatus struct {
+	// Location is where the cluster has been deployed
+	Location string `json:"location,omitempty"`
+
+	// ResourceGroupName is the Resource Group for new IBMCloud resources created for the cluster.
+	ResourceGroupName string `json:"resourceGroupName,omitempty"`
+
+	// ProviderType indicates the type of cluster that was created
+	ProviderType IBMCloudProviderType `json:"providerType,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

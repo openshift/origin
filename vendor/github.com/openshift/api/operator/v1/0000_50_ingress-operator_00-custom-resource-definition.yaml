@@ -83,9 +83,10 @@ spec:
                 etc. \n If unset, the default is based on infrastructure.config.openshift.io/cluster
                 .status.platform: \n   AWS:      LoadBalancerService (with External
                 scope)   Azure:    LoadBalancerService (with External scope)   GCP:
-                \     LoadBalancerService (with External scope)   Libvirt:  HostNetwork
-                \n Any other platform types (including None) default to HostNetwork.
-                \n endpointPublishingStrategy cannot be updated."
+                \     LoadBalancerService (with External scope)   IBMCloud: LoadBalancerService
+                (with External scope)   Libvirt:  HostNetwork \n Any other platform
+                types (including None) default to HostNetwork. \n endpointPublishingStrategy
+                cannot be updated."
               type: object
               required:
               - type
