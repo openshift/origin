@@ -28,11 +28,14 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		routerIP  string
 		metricsIP string
 		infra     *configv1.Infrastructure
+		network   *configv1.Network
 	)
 
 	g.BeforeEach(func() {
 		var err error
 		infra, err = oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		network, err = oc.AdminConfigClient().ConfigV1().Networks().Get("cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		routerIP, err = exutil.WaitForRouterServiceIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -43,6 +46,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("should set Forwarded headers appropriately", func() {
 			o.Expect(infra).NotTo(o.BeNil())
+			o.Expect(network).NotTo(o.BeNil())
 
 			platformType := infra.Status.Platform
 			if infra.Status.PlatformStatus != nil {
@@ -116,6 +120,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			g.By(fmt.Sprintf("inspecting the echoed headers"))
 			ffHeader := req.Header.Get("X-Forwarded-For")
 
+			ignoreClientIP := false
 			switch platformType {
 			case configv1.AWSPlatformType:
 				// On AWS we can only assert that we
@@ -180,10 +185,23 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 				// `clientIP` given the route the GET
 				// request takes. So for AWS we just
 				// expect the header to be present.
+				ignoreClientIP = true
+			}
+
+			if network.Status.NetworkType == "OVNKubernetes" {
+				// Similarly to AWS, the connection is
+				// NAT'd to an unknown address when
+				// the network plugin is
+				// OVNKubernetes, so we must disable
+				// the check in this case too.
+				ignoreClientIP = true
+			}
+
+			if ignoreClientIP {
 				if ffHeader == "" {
 					e2e.Failf("Expected X-Forwarded-For header; All headers: %#v", req.Header)
 				}
-			default:
+			} else {
 				if ffHeader != clientIP {
 					e2e.Failf("Unexpected header: '%s' (expected %s); All headers: %#v", ffHeader, clientIP, req.Header)
 				}
