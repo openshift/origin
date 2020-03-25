@@ -126,6 +126,12 @@ var (
 
 			// TODO(node): test works when run alone, but not in the suite in CI
 			`\[Feature:HPA\] Horizontal pod autoscaling \(scale resource: CPU\) \[sig-autoscaling\] ReplicationController light Should scale from 1 pod to 2 pods`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1794714
+			`\[sig-network\] Networking Granular Checks: Services should function for node-Service`,
+			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service`,
+			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
+,
 		},
 		// tests that must be run without competition
 		"[Serial]": {
