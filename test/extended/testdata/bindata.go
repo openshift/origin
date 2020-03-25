@@ -32026,32 +32026,32 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/set-env"
 # This test validates the value of --image for oc run
-os::cmd::expect_success 'oc new-app node'
-os::cmd::expect_failure_and_text 'oc set env dc/node' 'error: at least one environment variable must be provided'
-os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig.apps.openshift.io/node updated'
-os::cmd::expect_success_and_text 'oc set env dc/node --list' 'deploymentconfigs/node, container node'
-os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" key-' 'deploymentconfig.apps.openshift.io/node updated'
-os::cmd::expect_failure_and_text 'oc set env dc --all --containers="node"' 'error: at least one environment variable must be provided'
-os::cmd::expect_failure_and_not_text 'oc set env --from=secret/mysecret dc/node' 'error: at least one environment variable must be provided'
-os::cmd::expect_failure_and_text 'oc set env dc/node test#abc=1234' 'environment variable test#abc=1234 is invalid, a valid environment variable name must consist of alphabetic characters'
+os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
+os::cmd::expect_failure_and_text 'oc set env dc/testdc' 'error: at least one environment variable must be provided'
+os::cmd::expect_success_and_text 'oc set env dc/testdc key=value' 'deploymentconfig.apps.openshift.io/testdc updated'
+os::cmd::expect_success_and_text 'oc set env dc/testdc --list' 'deploymentconfigs/testdc, container default-container'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="default-container" key-' 'deploymentconfig.apps.openshift.io/testdc updated'
+os::cmd::expect_failure_and_text 'oc set env dc --all --containers="default-container"' 'error: at least one environment variable must be provided'
+os::cmd::expect_failure_and_not_text 'oc set env --from=secret/mysecret dc/testdc' 'error: at least one environment variable must be provided'
+os::cmd::expect_failure_and_text 'oc set env dc/testdc test#abc=1234' 'environment variable test#abc=1234 is invalid, a valid environment variable name must consist of alphabetic characters'
 
 # ensure deleting a var through --env does not result in an error message
-os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig.apps.openshift.io/node updated'
-os::cmd::expect_success_and_text 'oc set env dc/node dots.in.a.key=dots.in.a.value' 'deploymentconfig.apps.openshift.io/node updated'
-os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=key-' 'deploymentconfig.apps.openshift.io/node updated'
+os::cmd::expect_success_and_text 'oc set env dc/testdc key=value' 'deploymentconfig.apps.openshift.io/testdc updated'
+os::cmd::expect_success_and_text 'oc set env dc/testdc dots.in.a.key=dots.in.a.value' 'deploymentconfig.apps.openshift.io/testdc updated'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="default-container" --env=key-' 'deploymentconfig.apps.openshift.io/testdc updated'
 # ensure deleting a var through --env actually deletes the env var
-os::cmd::expect_success_and_not_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:key'
-os::cmd::expect_success_and_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:dots.in.a.key'
-os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=dots.in.a.key-' 'deploymentconfig.apps.openshift.io/node updated'
-os::cmd::expect_success_and_not_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:dots.in.a.key'
+os::cmd::expect_success_and_not_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name\:key'
+os::cmd::expect_success_and_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name\:dots.in.a.key'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="default-container" --env=dots.in.a.key-' 'deploymentconfig.apps.openshift.io/testdc updated'
+os::cmd::expect_success_and_not_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name\:dots.in.a.key'
 
 # check that env vars are not split at commas
-os::cmd::expect_success_and_text 'oc set env -o yaml dc/node PASS=x,y=z' 'value: x,y=z'
-os::cmd::expect_success_and_text 'oc set env -o yaml dc/node --env PASS=x,y=z' 'value: x,y=z'
+os::cmd::expect_success_and_text 'oc set env -o yaml dc/testdc PASS=x,y=z' 'value: x,y=z'
+os::cmd::expect_success_and_text 'oc set env -o yaml dc/testdc --env PASS=x,y=z' 'value: x,y=z'
 # warning is printed when --env has comma in it
-os::cmd::expect_success_and_text 'oc set env dc/node --env PASS=x,y=z' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_text 'oc set env dc/testdc --env PASS=x,y=z' 'no longer accepts comma-separated list'
 # warning is not printed for variables passed as positional arguments
-os::cmd::expect_success_and_not_text 'oc set env dc/node PASS=x,y=z' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text 'oc set env dc/testdc PASS=x,y=z' 'no longer accepts comma-separated list'
 
 # create a build-config object with the JenkinsPipeline strategy
 os::cmd::expect_success 'oc process -p NAMESPACE=openshift -f ${TEST_DATA}/jenkins/jenkins-ephemeral-template.json | oc create -f -'
@@ -34196,15 +34196,13 @@ os::cmd::expect_success_and_not_text 'oc get is' 'imagestream.image.openshift.io
 
 # Test that resource printer includes namespaces for buildconfigs with custom strategies
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-custombuild.json'
-os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample' 'deploymentconfig.apps.openshift.io "frontend" created'
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample' 'deployment.*.apps.* "frontend" created'
 os::cmd::expect_success_and_text 'oc get all --all-namespaces' 'cmd-printer[\ ]+buildconfig.build.openshift.io\/ruby\-sample\-build'
 
 # Test that infos printer supports all outputFormat options
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value' 'deploymentconfig.apps.openshift.io/node updated'
-# FIXME: what to do with this?
-# os::cmd::expect_success 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o custom-colums="NAME:.metadata.name"'
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o yaml' 'apiVersion: apps.openshift.io/v1'
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o json' '"apiVersion": "apps.openshift.io/v1"'
+os::cmd::expect_success_and_text 'oc new-app node --dry-run -o yaml | oc set env --local -f - MYVAR=value' 'deployment.*.apps.*/node updated'
+os::cmd::expect_success_and_text 'oc new-app node --dry-run -o yaml | oc set env --local -f - MYVAR=value -o yaml' 'apiVersion: apps.*/v1'
+os::cmd::expect_success_and_text 'oc new-app node --dry-run -o yaml | oc set env --local -f - MYVAR=value -o json' '"apiVersion": "apps.*/v1"'
 echo "resource printer: ok"
 os::test::junit::declare_suite_end
 `)
@@ -46659,10 +46657,10 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/request-timeout"
 # This test validates the global request-timeout option
-os::cmd::expect_success_and_text 'oc new-app node' 'Success'
-os::cmd::expect_success_and_text 'oc get dc node -w --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
-os::cmd::expect_success_and_text 'oc get dc node --request-timeout=1s' 'node'
-os::cmd::expect_success_and_text 'oc get dc node --request-timeout=1' 'node'
+os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
+os::cmd::expect_success_and_text 'oc get dc/testdc -w --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
+os::cmd::expect_success_and_text 'oc get dc/testdc --request-timeout=1s' 'testdc'
+os::cmd::expect_success_and_text 'oc get dc/testdc --request-timeout=1' 'testdc'
 os::cmd::expect_success_and_text 'oc get pods --watch --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
 
 echo "request-timeout: ok"
@@ -46704,7 +46702,6 @@ os::test::junit::declare_suite_start "cmd/triggers"
 
 os::cmd::expect_success 'oc new-app centos/ruby-25-centos7~https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
-os::cmd::expect_success 'oc get dc/ruby-hello-world'
 
 os::cmd::expect_success "oc new-build --name=scratch --docker-image=scratch --dockerfile='FROM scratch'"
 
@@ -46780,32 +46777,33 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/triggers/deploymentconfigs"
 ## Deployment configs
 
+os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
+
 # error conditions
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-github' 'deployment configs do not support GitHub web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-webhook' 'deployment configs do not support web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-gitlab' 'deployment configs do not support GitLab web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-bitbucket' 'deployment configs do not support Bitbucket web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-image=test:latest' 'you must specify --containers when setting --from-image'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: ruby-hello-world\)'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-github' 'deployment configs do not support GitHub web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-webhook' 'deployment configs do not support web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-gitlab' 'deployment configs do not support GitLab web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-bitbucket' 'deployment configs do not support Bitbucket web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-image=test:latest' 'you must specify --containers when setting --from-image'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: default-container\)'
 # print
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'webhook|github|gitlab|bitbucket'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'gitlab'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'config.*true'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'webhook|github|gitlab|bitbucket'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'gitlab'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'bitbucket'
 # remove all
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --remove-all' 'updated'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'webhook|github|image|gitlab|bitbucket'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*false'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc --remove-all' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'webhook|github|image|gitlab|bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'config.*false'
 # auto
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --auto' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --from-image=ruby-hello-world:latest -c ruby-hello-world' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc --auto' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'config.*true'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc --from-image=ruby-hello-world:latest -c default-container' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'image.*ruby-hello-world:latest \(default-container\).*true'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/triggers/annotations"
-## Deployment configs
+## Deployment
 
 os::cmd::expect_success 'oc create deployment test --image=busybox'
 

@@ -18,7 +18,6 @@ os::test::junit::declare_suite_start "cmd/triggers"
 
 os::cmd::expect_success 'oc new-app centos/ruby-25-centos7~https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
-os::cmd::expect_success 'oc get dc/ruby-hello-world'
 
 os::cmd::expect_success "oc new-build --name=scratch --docker-image=scratch --dockerfile='FROM scratch'"
 
@@ -94,32 +93,33 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/triggers/deploymentconfigs"
 ## Deployment configs
 
+os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
+
 # error conditions
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-github' 'deployment configs do not support GitHub web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-webhook' 'deployment configs do not support web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-gitlab' 'deployment configs do not support GitLab web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-bitbucket' 'deployment configs do not support Bitbucket web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-image=test:latest' 'you must specify --containers when setting --from-image'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: ruby-hello-world\)'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-github' 'deployment configs do not support GitHub web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-webhook' 'deployment configs do not support web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-gitlab' 'deployment configs do not support GitLab web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-bitbucket' 'deployment configs do not support Bitbucket web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-image=test:latest' 'you must specify --containers when setting --from-image'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: default-container\)'
 # print
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'webhook|github|gitlab|bitbucket'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'gitlab'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'config.*true'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'webhook|github|gitlab|bitbucket'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'gitlab'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'bitbucket'
 # remove all
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --remove-all' 'updated'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'webhook|github|image|gitlab|bitbucket'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*false'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc --remove-all' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'webhook|github|image|gitlab|bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'config.*false'
 # auto
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --auto' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --from-image=ruby-hello-world:latest -c ruby-hello-world' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc --auto' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'config.*true'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc --from-image=ruby-hello-world:latest -c default-container' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'image.*ruby-hello-world:latest \(default-container\).*true'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/triggers/annotations"
-## Deployment configs
+## Deployment
 
 os::cmd::expect_success 'oc create deployment test --image=busybox'
 
