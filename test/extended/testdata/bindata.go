@@ -55735,7 +55735,8 @@ func testExtendedTestdataS2iDropcapsRootAccessBuildYaml() (*asset, error) {
 
 var _testExtendedTestdataS2iDropcapsRootableRubyDockerfile = []byte(`FROM centos/ruby-25-centos7:latest
 USER root
-RUN yum -y install expect
+RUN yum -y update && \
+    yum -y install expect
 RUN echo "root:redhat" | chpasswd
 USER 1001
 COPY ./adduser /usr/libexec/s2i/
