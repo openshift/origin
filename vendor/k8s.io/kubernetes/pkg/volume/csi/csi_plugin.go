@@ -282,7 +282,10 @@ func initializeCSINode(host volume.VolumeHost) error {
 			// using CSI for all Migrated volume plugins. Then all the CSINode initialization
 			// code can be dropped from Kubelet.
 			// Kill the Kubelet process and allow it to restart to retry initialization
-			klog.Fatalf("Failed to initialize CSINodeInfo after retrying")
+			//klog.Fatalf("Failed to initialize CSINodeInfo after retrying")
+			// OCP: don't kill kubelet yet, see https://bugzilla.redhat.com/show_bug.cgi?id=1817382
+			klog.Errorf("Failed to initialize CSINodeInfo after retrying")
+			kvh.SetKubeletError(nil)
 		}
 	}()
 	return nil
