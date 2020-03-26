@@ -12,10 +12,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/openshift/origin/test/extended/scheme"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("[Feature:Authentication] ", func() {
@@ -24,6 +26,10 @@ var _ = g.Describe("[Feature:Authentication] ", func() {
 
 	g.Describe("TestFrontProxy", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
+			if e2e.TestContext.Provider == ibmcloud.ProviderName {
+				e2e.Skipf("IBM ROKS clusters do not have an aggregator-client secret in the cluster. Because the control plane lives outside the cluster, the aggregator-client secret is not needed in the cluster.")
+			}
+
 			frontProxySecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-kube-apiserver").Get("aggregator-client", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 

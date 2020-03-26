@@ -17,6 +17,7 @@ import (
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/pkg/crypto"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 const (
@@ -35,6 +36,9 @@ var _ = g.Describe("[Feature:OAuthServer] OAuth server", func() {
 	g.It("has the correct token and certificate fallback semantics", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 			e2e.Skipf("Authenticator order changed in 4.4 to match kubernetes which precludes running this test against a skewed cluster.")
+		}
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			e2e.Skipf("IBM ROKS clusters do not contain a kube-control-plane-signer secret inside the cluster. The secret lives outside the cluster with the rest of the control plane.")
 		}
 		var (
 			// We have to generate this dynamically in order to have an invalid cert signed by a signer with the same name as the valid CA
