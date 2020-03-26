@@ -204,7 +204,6 @@ var (
 			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
 			// https://github.com/ovn-org/ovn-kubernetes/issues/928
 			`\[sig-network\] Services should be rejected when no endpoints exist`,
-			`\[cli\] oc explain networking types should contain proper fields description for special networking types`,
 		},
 
 		"[sig-node]": {
