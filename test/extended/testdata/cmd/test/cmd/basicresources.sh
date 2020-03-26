@@ -278,19 +278,15 @@ export KUBECONFIG="${temp_config}"
 #os::cmd::expect_success 'oc new-project test-project-admin'
 #os::cmd::try_until_success "oc project test-project-admin"
 
-os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
-os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'
+os::cmd::expect_success 'oc create deploymentconfig --image=openshift/hello-openshift test'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --restart=Never test3'
-os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=job/v1 --restart=Never test4'
-os::cmd::expect_success 'oc delete dc/test rc/test2 pod/test3 job/test4'
+os::cmd::expect_success 'oc create job --image=openshift/hello-openshift test4'
+os::cmd::expect_success 'oc delete dc/test pod/test3 job/test4'
 
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name'                                'deploymentconfig.apps.openshift.io/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --restart=Always'               'deploymentconfig.apps.openshift.io/foo'
+os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --image=bar -o name'               'deploymentconfig.apps.openshift.io/foo'
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --restart=Never'                'pod/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=job/v1'              'job.batch/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=deploymentconfig/v1' 'deploymentconfig.apps.openshift.io/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-controller/v1'   'replicationcontroller/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run/v1'              'replicationcontroller/foo'
+os::cmd::expect_success_and_text 'oc create job --dry-run foo --image=bar -o name'              'job.batch/foo'
+os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --image=bar -o name' 'deploymentconfig.apps.openshift.io/foo'
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-pod/v1'          'pod/foo'
 
 os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l name=mytemplate | oc create -f -'
