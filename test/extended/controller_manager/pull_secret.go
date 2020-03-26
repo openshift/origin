@@ -133,8 +133,8 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
-			g.By("dumping openshift-controller-manager logs")
-			exutil.DumpPodLogsStartingWithInNamespace("controller-manager", "openshift-controller-manager", oc.AsAdmin())
+			g.By("dumping secrets")
+			exutil.DumpSecretStates(oc)
 		}
 	})
 
@@ -196,5 +196,21 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 		}); err != nil {
 			t.Fatalf("error waiting for pull secret deletion: %v", err)
 		}
+	})
+
+	g.It("checks service account pull secret creation timing", func() {
+		clusterAdminKubeClient := oc.AdminKubeClient()
+		saNamespace := oc.Namespace()
+
+		g.By("creating test service account")
+		sa := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{Name: "new-sa", Namespace: saNamespace},
+		}
+
+		sa, err := clusterAdminKubeClient.CoreV1().ServiceAccounts(sa.Namespace).Create(context.Background(), sa, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		g.By("waiting up to 2 seconds for the service account's pull secret to be created")
+		_, _, err = waitForServiceAccountPullSecret(clusterAdminKubeClient, sa.Namespace, sa.Name, 20, 100*time.Millisecond)
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })

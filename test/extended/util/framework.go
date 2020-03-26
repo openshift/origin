@@ -480,6 +480,17 @@ func DumpConfigMapStates(oc *CLI) {
 	e2e.Logf(out)
 }
 
+// DumpSecretStates dumps the state of all Secrets in the CLI's current namespace
+func DumpSecretStates(oc *CLI) {
+	e2e.Logf("Dumping secret states for namespace %s", oc.Namespace())
+	out, err := oc.AsAdmin().Run("get").Args("secrets", "-o", "yaml").Output()
+	if err != nil {
+		e2e.Logf("Error dumping secret states: %v", err)
+		return
+	}
+	e2e.Logf(out)
+}
+
 // GetMasterThreadDump will get a golang thread stack dump
 func GetMasterThreadDump(oc *CLI) {
 	out, err := oc.AsAdmin().Run("get").Args("--raw", "/debug/pprof/goroutine?debug=2").Output()
