@@ -31,6 +31,7 @@ import (
 
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("[Feature:Prometheus][Late] Alerts", func() {
@@ -177,21 +178,27 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verifying all expected jobs have a working target")
-				lastErrs = all(
-					// The OpenShift control plane
-					targets.Expect(labels{"job": "api"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "controller-manager"}, "up", "^https://.*/metrics$"),
+				// For IBM cloud clusters, skip control plane components and the CVO
+				if e2e.TestContext.Provider != ibmcloud.ProviderName {
+					lastErrs = all(
+						// The OpenShift control plane
+						targets.Expect(labels{"job": "api"}, "up", "^https://.*/metrics$"),
+						targets.Expect(labels{"job": "controller-manager"}, "up", "^https://.*/metrics$"),
 
-					// The kube control plane
-					// TODO restore this after etcd operator lands
-					//targets.Expect(labels{"job": "etcd"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "apiserver"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "scheduler"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "kube-state-metrics"}, "up", "^https://.*/metrics$"),
+						// The kube control plane
+						// TODO restore this after etcd operator lands
+						//targets.Expect(labels{"job": "etcd"}, "up", "^https://.*/metrics$"),
+						targets.Expect(labels{"job": "apiserver"}, "up", "^https://.*/metrics$"),
+						targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^https://.*/metrics$"),
+						targets.Expect(labels{"job": "scheduler"}, "up", "^https://.*/metrics$"),
+						targets.Expect(labels{"job": "kube-state-metrics"}, "up", "^https://.*/metrics$"),
 
-					// TODO: should probably be https
-					targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^http://.*/metrics$"),
+						// Cluster version operator
+						// TODO: should probably be https
+						targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^http://.*/metrics$"),
+					)
+				}
+				lastErrs = append(lastErrs, all(
 					targets.Expect(labels{"job": "prometheus-k8s", "namespace": "openshift-monitoring", "pod": "prometheus-k8s-0"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "kubelet"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "kubelet"}, "up", "^https://.*/metrics/cadvisor$"),
@@ -199,7 +206,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					targets.Expect(labels{"job": "prometheus-operator"}, "up", "^http://.*/metrics$"),
 					targets.Expect(labels{"job": "alertmanager-main"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "crio"}, "up", "^http://.*/metrics$"),
-				)
+				)...)
 				if len(lastErrs) > 0 {
 					e2e.Logf("missing some targets: %v", lastErrs)
 					return false, nil

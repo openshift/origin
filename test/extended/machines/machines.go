@@ -19,6 +19,8 @@ import (
 	"k8s.io/client-go/dynamic"
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 const (
@@ -37,6 +39,9 @@ var _ = g.Describe("[Feature:Machines] Managed cluster should", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("checking for the openshift machine api operator")
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			e2e.Skipf("IBM Cloud clusters do not contain machine resources")
+		}
 		// TODO: skip if platform != aws
 		skipUnlessMachineAPIOperator(c.CoreV1().Namespaces())
 
