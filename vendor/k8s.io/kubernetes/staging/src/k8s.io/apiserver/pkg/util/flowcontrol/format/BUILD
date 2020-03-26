@@ -2,14 +2,14 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["metrics.go"],
-    importmap = "k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/util/flowcontrol/metrics",
-    importpath = "k8s.io/apiserver/pkg/util/flowcontrol/metrics",
+    srcs = ["formatting.go"],
+    importmap = "k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/util/flowcontrol/format",
+    importpath = "k8s.io/apiserver/pkg/util/flowcontrol/format",
     visibility = ["//visibility:public"],
     deps = [
-        "//staging/src/k8s.io/component-base/metrics:go_default_library",
-        "//staging/src/k8s.io/component-base/metrics/legacyregistry:go_default_library",
-        "//staging/src/k8s.io/component-base/metrics/testutil:go_default_library",
+        "//staging/src/k8s.io/api/flowcontrol/v1alpha1:go_default_library",
+        "//staging/src/k8s.io/apiserver/pkg/authentication/user:go_default_library",
+        "//staging/src/k8s.io/apiserver/pkg/endpoints/request:go_default_library",
     ],
 )
 
