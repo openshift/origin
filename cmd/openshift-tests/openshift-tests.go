@@ -79,7 +79,11 @@ func getTestBinaries(streams genericclioptions.IOStreams) ([]string, error) {
 			}
 
 			testBinaryPath := filepath.Join(dir, f.Name())
-			if testBinaries.Has(testBinaryPath) {
+			isSymlink, err := evalSymlink(testBinaryPath)
+			if err != nil {
+				log.Println(err)
+			}
+			if testBinaries.Has(testBinaryPath) || isSymlink {
 				continue
 			}
 			testBinaries.Insert(testBinaryPath)
@@ -113,6 +117,22 @@ func getTestBinaries(streams genericclioptions.IOStreams) ([]string, error) {
 type CommandOverrideVerifier struct {
 	//root        *cobra.Command
 	seenPlugins map[string]string
+}
+
+// evalSymlink returns true if provided path is a symlink
+func evalSymlink(path string) (bool, error) {
+	link, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return false, err
+	}
+	// DEBUG: REMOVE
+	klog.V(0).Infof("link: %v, testbinaryPath: %v", link, path)
+	if len(link) != 0 {
+		if link != path {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // Verify implements PathVerifier and determines if a given path
