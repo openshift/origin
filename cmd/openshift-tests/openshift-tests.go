@@ -16,6 +16,7 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/kubectl/pkg/util/templates"
 
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
@@ -44,6 +45,7 @@ func main() {
 	root.AddCommand(
 		newRunCommand(),
 		newRunUpgradeCommand(),
+		newImagesCommand(),
 		newRunTestCommand(),
 		newRunMonitorCommand(),
 	)
@@ -86,9 +88,71 @@ func newRunMonitorCommand() *cobra.Command {
 	return cmd
 }
 
+type imagesOptions struct {
+	Repository string
+	Upstream   bool
+}
+
+func newImagesCommand() *cobra.Command {
+	opt := &imagesOptions{}
+	cmd := &cobra.Command{
+		Use:   "images",
+		Short: "Gather images required for testing",
+		Long: templates.LongDesc(fmt.Sprintf(`
+		Creates a mapping to mirror test images to a private registry
+
+		This command identifies the locations of all test images referenced by the test
+		suite and outputs a mirror list for use with 'oc image mirror' to copy those images
+		to a private registry. The list may be passed via file or standard input.
+
+				$ openshift-tests images --to-repository private.com/test/repository > /tmp/mirror
+				$ oc image mirror -f mirror
+			
+		The 'run' and 'run-upgrade' subcommands accept '--from-repository' which will source
+		required test images from your source location. See the help for 'oc image mirror' for
+		more about mirroring to disk or consult the docs for mirroring offline.
+
+		By default, the test images are sourced from a public container image repository at
+		%[1]s and are provided as-is for testing purposes only. Images 
+		are mirrored by the project to the public repository periodically.
+		`, defaultTestImageMirrorLocation)),
+
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ref, err := reference.Parse(opt.Repository)
+			if err != nil {
+				return fmt.Errorf("--to-repository is not valid: %v", err)
+			}
+			if len(ref.Tag) > 0 || len(ref.ID) > 0 {
+				return fmt.Errorf("--to-repository may not include a tag or image digest")
+			}
+
+			// use the default source for images
+			if !opt.Upstream {
+				if err := updateInternalImages(defaultTestImageMirrorLocation); err != nil {
+					return fmt.Errorf("unexpected error, unable to build mirror list: %v", err)
+				}
+			}
+			lines, err := createImageMirrorForInternalImages(ref, !opt.Upstream)
+			if err != nil {
+				return err
+			}
+			for _, line := range lines {
+				fmt.Fprintln(os.Stdout, line)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&opt.Upstream, "upstream", opt.Upstream, "Retrieve images from the default upstream location")
+	cmd.Flags().StringVar(&opt.Repository, "to-repository", opt.Repository, "A container image repository to mirror to.")
+	return cmd
+}
+
 func newRunCommand() *cobra.Command {
 	opt := &testginkgo.Options{
-		Suites: staticSuites,
+		Suites:         staticSuites,
+		FromRepository: defaultTestImageMirrorLocation,
 	}
 
 	cmd := &cobra.Command{
@@ -111,6 +175,9 @@ func newRunCommand() *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mirrorToFile(opt, func() error {
+				if err := updateInternalImages(opt.FromRepository); err != nil {
+					return fmt.Errorf("unable to configure source image repository: %v", err)
+				}
 				config, err := decodeProvider(opt.Provider, opt.DryRun, true)
 				if err != nil {
 					return err
@@ -130,7 +197,10 @@ func newRunCommand() *cobra.Command {
 }
 
 func newRunUpgradeCommand() *cobra.Command {
-	opt := &testginkgo.Options{Suites: upgradeSuites}
+	opt := &testginkgo.Options{
+		Suites:         upgradeSuites,
+		FromRepository: defaultTestImageMirrorLocation,
+	}
 	upgradeOpt := &UpgradeOptions{}
 
 	cmd := &cobra.Command{
@@ -161,6 +231,9 @@ func newRunUpgradeCommand() *cobra.Command {
 			return mirrorToFile(opt, func() error {
 				if len(upgradeOpt.ToImage) == 0 {
 					return fmt.Errorf("--to-image must be specified to run an upgrade test")
+				}
+				if err := updateInternalImages(opt.FromRepository); err != nil {
+					return fmt.Errorf("unable to configure source image repository: %v", err)
 				}
 
 				if len(args) > 0 {
@@ -217,6 +290,9 @@ func newRunTestCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := updateInternalImages(os.Getenv("TEST_IMAGE_REPOSITORY")); err != nil {
+				return err
+			}
 			upgradeOpts, err := initUpgrade(os.Getenv("TEST_SUITE_OPTIONS"))
 			if err != nil {
 				return err
@@ -279,4 +355,5 @@ func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
 	flags.IntVar(&opt.Parallelism, "max-parallel-tests", opt.Parallelism, "Maximum number of tests running in parallel. 0 defaults to test suite recommended value, which is different in each suite.")
+	flags.StringVar(&opt.FromRepository, "from-repository", opt.FromRepository, "A container image repository to retrieve test images from.")
 }
