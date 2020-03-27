@@ -40,8 +40,9 @@ type Options struct {
 
 	IncludeSuccessOutput bool
 
-	Provider     string
-	SuiteOptions string
+	FromRepository string
+	Provider       string
+	SuiteOptions   string
 
 	Suites []*TestSuite
 
@@ -52,6 +53,7 @@ type Options struct {
 
 func (opt *Options) AsEnv() []string {
 	var args []string
+	args = append(args, fmt.Sprintf("KUBE_TEST_REPO=%s", opt.FromRepository))
 	args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", opt.Provider))
 	args = append(args, fmt.Sprintf("TEST_SUITE_OPTIONS=%s", opt.SuiteOptions))
 	return args
