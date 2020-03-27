@@ -227,6 +227,23 @@ var (
 			`\[Feature:GKELocalSSD\]`,
 			`\[Feature:GKENodePool\]`,
 		},
+		"[sig-cli]": {
+			// Removed in 1.18, skipping those to merge oc rebase before origin gets rebased to 1.18
+			// TODO(jchaloup): once origin is rebased to 1.18, remove the lines
+			"Kubectl alpha client Kubectl run CronJob should create a CronJob",
+			"Kubectl client Simple pod should support inline execution and attach",
+			"Kubectl client Simple pod should contain last line of the log",
+			"Kubectl client Kubectl logs should be able to retrieve and filter logs",
+			"Kubectl client Kubectl run default should create an rc or deployment from an image",
+			"Kubectl client Kubectl run rc should create an rc from an image",
+			"Kubectl client Kubectl rolling-update should support rolling-update to same image",
+			"Kubectl client Kubectl run deployment should create a deployment from an image",
+			"Kubectl client Kubectl run job should create a job from an image when restart is OnFailure",
+			"Kubectl client Kubectl run CronJob should create a CronJob",
+			"Kubectl client Kubectl run pod should create a pod from an image when restart is Never",
+			"Kubectl client Kubectl replace should update a single-container pod's image",
+			"Kubectl client Kubectl run --rm job should create a job from an image, then delete the job",
+		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite
