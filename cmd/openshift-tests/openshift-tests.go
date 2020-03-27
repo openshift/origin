@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/kubectl/pkg/util/templates"
 
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
@@ -44,6 +46,7 @@ func main() {
 	root.AddCommand(
 		newRunCommand(),
 		newRunUpgradeCommand(),
+		newImagesCommand(),
 		newRunTestCommand(),
 		newRunMonitorCommand(),
 	)
@@ -86,9 +89,78 @@ func newRunMonitorCommand() *cobra.Command {
 	return cmd
 }
 
+type imagesOptions struct {
+	Repository string
+	Upstream   bool
+}
+
+func newImagesCommand() *cobra.Command {
+	opt := &imagesOptions{}
+	cmd := &cobra.Command{
+		Use:   "images",
+		Short: "Gather images required for testing",
+		Long: templates.LongDesc(fmt.Sprintf(`
+		Creates a mapping to mirror test images to a private registry
+
+		This command identifies the locations of all test images referenced by the test
+		suite and outputs a mirror list for use with 'oc image mirror' to copy those images
+		to a private registry. The list may be passed via file or standard input.
+
+				$ openshift-tests images --to-repository private.com/test/repository > /tmp/mirror
+				$ oc image mirror -f /tmp/mirror
+
+		The 'run' and 'run-upgrade' subcommands accept '--from-repository' which will source
+		required test images from your mirror.
+
+		See the help for 'oc image mirror' for more about mirroring to disk or consult the docs
+		for mirroring offline. You may use a file:// prefix in your '--to-repository', but when
+		mirroring from disk to your offline repository you will have to construct the appropriate
+		disk to internal registry statements yourself.
+
+		By default, the test images are sourced from a public container image repository at
+		%[1]s and are provided as-is for testing purposes only. Images are mirrored by the project
+		to the public repository periodically.
+		`, defaultTestImageMirrorLocation)),
+
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			repository := opt.Repository
+			var prefix string
+			for _, validPrefix := range []string{"file://", "s3://"} {
+				if strings.HasPrefix(repository, validPrefix) {
+					repository = strings.TrimPrefix(repository, validPrefix)
+					prefix = validPrefix
+					break
+				}
+			}
+			ref, err := reference.Parse(repository)
+			if err != nil {
+				return fmt.Errorf("--to-repository is not valid: %v", err)
+			}
+			if len(ref.Tag) > 0 || len(ref.ID) > 0 {
+				return fmt.Errorf("--to-repository may not include a tag or image digest")
+			}
+
+			lines, err := createImageMirrorForInternalImages(prefix, ref, !opt.Upstream)
+			if err != nil {
+				return err
+			}
+			for _, line := range lines {
+				fmt.Fprintln(os.Stdout, line)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&opt.Upstream, "upstream", opt.Upstream, "Retrieve images from the default upstream location")
+	cmd.Flags().StringVar(&opt.Repository, "to-repository", opt.Repository, "A container image repository to mirror to.")
+	return cmd
+}
+
 func newRunCommand() *cobra.Command {
 	opt := &testginkgo.Options{
-		Suites: staticSuites,
+		Suites:         staticSuites,
+		FromRepository: defaultTestImageMirrorLocation,
 	}
 
 	cmd := &cobra.Command{
@@ -130,7 +202,10 @@ func newRunCommand() *cobra.Command {
 }
 
 func newRunUpgradeCommand() *cobra.Command {
-	opt := &testginkgo.Options{Suites: upgradeSuites}
+	opt := &testginkgo.Options{
+		Suites:         upgradeSuites,
+		FromRepository: defaultTestImageMirrorLocation,
+	}
 	upgradeOpt := &UpgradeOptions{}
 
 	cmd := &cobra.Command{
@@ -278,4 +353,5 @@ func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.IntVar(&opt.Count, "count", opt.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value.")
 	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
+	flags.StringVar(&opt.FromRepository, "from-repository", opt.FromRepository, "A container image repository to retrieve test images from.")
 }
