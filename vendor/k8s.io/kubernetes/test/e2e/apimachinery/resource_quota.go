@@ -130,6 +130,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 	framework.ConformanceIt("should create a ResourceQuota and capture the life of a secret.", func() {
 		ginkgo.By("Discovering how many secrets are in namespace by default")
 		found, unchanged := 0, 0
+		foundSecrets := []v1.Secret{}
 		// On contended servers the service account controller can slow down, leading to the count changing during a run.
 		// Wait up to 5s for the count to stabilize, assuming that updates come at a consistent rate, and are not held indefinitely.
 		wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
@@ -137,11 +138,14 @@ var _ = SIGDescribe("ResourceQuota", func() {
 			framework.ExpectNoError(err)
 			if len(secrets.Items) == found {
 				// loop until the number of secrets has stabilized for 5 seconds
+				framework.Logf("seen secrets number hasn't changed %d for %d occurences", len(foundSecrets), unchanged)
 				unchanged++
 				return unchanged > 4, nil
 			}
+			framework.Logf("reseting the number of seen secrets")
 			unchanged = 0
 			found = len(secrets.Items)
+			foundSecrets = secrets.Items
 			return false, nil
 		})
 		defaultSecrets := fmt.Sprintf("%d", found)
@@ -163,6 +167,25 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		usedResources[v1.ResourceQuotas] = resource.MustParse(strconv.Itoa(c + 1))
 		usedResources[v1.ResourceSecrets] = resource.MustParse(defaultSecrets)
 		err = waitForResourceQuota(f.ClientSet, f.Namespace.Name, quotaName, usedResources)
+		{
+			secrets, err := f.ClientSet.CoreV1().Secrets(f.Namespace.Name).List(metav1.ListOptions{})
+			framework.ExpectNoError(err)
+			if len(foundSecrets) != len(secrets.Items) {
+				framework.Logf("there were %d secrets at the begining, now the number of secrets is %d", len(foundSecrets), len(secrets.Items))
+			}
+			for _, actualSecret := range secrets.Items {
+				found := false
+				for _, expectedSecret := range foundSecrets {
+					if actualSecret.Name == expectedSecret.Name {
+						found = true
+						break
+					}
+				}
+				if !found {
+					framework.Logf("secret %s is new - hasn't been seen at the begining", actualSecret.Name)
+				}
+			}
+		}
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Creating a Secret")
