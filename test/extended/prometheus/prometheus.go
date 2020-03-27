@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
+	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
 
 var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
@@ -44,7 +45,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	)
 	g.BeforeEach(func() {
 		var ok bool
-		url, bearerToken, ok = locatePrometheus(oc)
+		url, bearerToken, ok = helper.LocatePrometheus(oc)
 		if !ok {
 			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
 		}
@@ -65,7 +66,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 			`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity!="info"}[2h]) >= 1`: false,
 		}
-		runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 	})
 
 	g.It("should have a Watchdog alert in firing state the entire cluster run", func() {
@@ -80,7 +81,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			// should have constantly firing a watchdog alert
 			`count_over_time(ALERTS{alertstate="firing",alertname="Watchdog", severity="none"}[1h])`: true,
 		}
-		runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 
 		e2e.Logf("Watchdog alert is firing")
 	})
@@ -102,7 +103,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			// rule contains the count of the all the series that are sent via telemetry.
 			`max_over_time(cluster:telemetry_selected_series:count[2h]) >= 500`: false,
 		}
-		runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 
 		e2e.Logf("Total number of series sent via telemetry is below the limit")
 	})
@@ -119,7 +120,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 
 	g.BeforeEach(func() {
 		var ok bool
-		url, bearerToken, ok = locatePrometheus(oc)
+		url, bearerToken, ok = helper.LocatePrometheus(oc)
 		if !ok {
 			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
 		}
@@ -149,7 +150,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				// should have scraped some metrics from prometheus
 				`federate_samples{job="telemeter-client"} >= 10`: true,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 
 			e2e.Logf("Telemetry is enabled: %s", bearerToken)
 		})
@@ -193,7 +194,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			})).NotTo(o.HaveOccurred(), fmt.Sprintf("Did not find tsdb_samples_appended_total, tsdb_head_samples_appended_total, or prometheus_tsdb_head_samples_appended_total"))
 
 			g.By("verifying the oauth-proxy reports a 403 on the root URL")
-			err := expectURLStatusCodeExec(ns, execPod.Name, url, 403)
+			err := helper.ExpectURLStatusCodeExec(ns, execPod.Name, url, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to authenticate")
@@ -304,7 +305,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				// should have constantly firing a watchdog alert
 				`ALERTS{alertstate="firing",alertname="AlertmanagerReceiversNotConfigured"} == 1`: true,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 
 			e2e.Logf("AlertmanagerReceiversNotConfigured alert is firing")
 		})
@@ -331,7 +332,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				`sum(node_role_os_version_machine:cpu_capacity_cores:sum{label_kubernetes_io_arch!="",label_node_role_kubernetes_io_master!=""}) > 0`:                                      true,
 				`sum(node_role_os_version_machine:cpu_capacity_sockets:sum{label_kubernetes_io_arch!="",label_node_hyperthread_enabled!="",label_node_role_kubernetes_io_master!=""}) > 0`: true,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		})
 		g.It("should have non-Pod host cAdvisor metrics", func() {
 			oc.SetupProject()
@@ -344,7 +345,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			tests := map[string]bool{
 				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"} >= 1`: true,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		})
 		g.It("shouldn't have failing rules evaluation", func() {
 			oc.SetupProject()
@@ -357,7 +358,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			tests := map[string]bool{
 				`prometheus_rule_evaluation_failures_total >= 1`: false,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		})
 		networking.InOpenShiftSDNContext(func() {
 			g.It("should be able to get the sdn ovs flows", func() {
@@ -372,7 +373,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 					//something
 					`openshift_sdn_ovs_flows >= 1`: true,
 				}
-				runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+				helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			})
 		})
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early]", func() {
@@ -390,7 +391,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 				`ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|PrometheusRemoteWriteDesiredShards",alertstate="firing",severity!="info"} >= 1`: false,
 			}
-			runQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		})
 		g.It("should provide ingress metrics", func() {
 			oc.SetupProject()
@@ -427,7 +428,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				`template_router_reload_seconds_count{job="router-internal-default"} >= 1`: true,
 				`haproxy_server_up{job="router-internal-default"} >= 1`:                    true,
 			}
-			runQueries(queries, oc, ns, execPod.Name, url, bearerToken)
+			helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
 		})
 	})
 })
@@ -546,18 +547,6 @@ func findMetricLabels(f *dto.MetricFamily, labels map[string]string, match strin
 		}
 	}
 	return result
-}
-
-func expectURLStatusCodeExec(ns, execPodName, url string, statusCode int) error {
-	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
-	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
-	if err != nil {
-		return fmt.Errorf("host command failed: %v\n%s", err, output)
-	}
-	if output != strconv.Itoa(statusCode) {
-		return fmt.Errorf("last response from server was not %d: %s", statusCode, output)
-	}
-	return nil
 }
 
 func expectBearerTokenURLStatusCodeExec(ns, execPodName, url, bearer string, statusCode int) error {

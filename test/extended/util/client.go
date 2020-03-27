@@ -91,6 +91,18 @@ type resourceRef struct {
 	Name      string
 }
 
+// NewCLIWithFramework initializes the CLI using the provided Kube
+// framework. It can be called inside of a Ginkgo .It() function.
+func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
+	cli := &CLI{
+		kubeFramework:   kubeFramework,
+		username:        "admin",
+		execPath:        "oc",
+		adminConfigPath: KubeConfigPath(),
+	}
+	return cli
+}
+
 // NewCLI initializes the CLI and Kube framework helpers with the provided
 // namespace. Should be called outside of a Ginkgo .It() function.
 func NewCLI(project string) *CLI {
