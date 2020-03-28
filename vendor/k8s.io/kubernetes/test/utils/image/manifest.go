@@ -17,102 +17,15 @@ limitations under the License.
 package image
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
-)
-
-// RegistryList holds public and private image registries
-type RegistryList struct {
-	GcAuthenticatedRegistry string `yaml:"gcAuthenticatedRegistry"`
-	DockerLibraryRegistry   string `yaml:"dockerLibraryRegistry"`
-	DockerGluster           string `yaml:"dockerGluster"`
-	E2eRegistry             string `yaml:"e2eRegistry"`
-	InvalidRegistry         string `yaml:"invalidRegistry"`
-	GcRegistry              string `yaml:"gcRegistry"`
-	GcrReleaseRegistry      string `yaml:"gcrReleaseRegistry"`
-	GoogleContainerRegistry string `yaml:"googleContainerRegistry"`
-	PrivateRegistry         string `yaml:"privateRegistry"`
-	SampleRegistry          string `yaml:"sampleRegistry"`
-	QuayK8sCSI              string `yaml:"quayK8sCSI"`
-	QuayIncubator           string `yaml:"quayIncubator"`
-}
-
-// Config holds an images registry, name, and version
-type Config struct {
-	registry string
-	name     string
-	version  string
-}
-
-// SetRegistry sets an image registry in a Config struct
-func (i *Config) SetRegistry(registry string) {
-	i.registry = registry
-}
-
-// SetName sets an image name in a Config struct
-func (i *Config) SetName(name string) {
-	i.name = name
-}
-
-// SetVersion sets an image version in a Config struct
-func (i *Config) SetVersion(version string) {
-	i.version = version
-}
-
-func initReg() RegistryList {
-	registry := RegistryList{
-		GcAuthenticatedRegistry: "gcr.io/authenticated-image-pulling",
-		DockerLibraryRegistry:   "docker.io/library",
-		DockerGluster:           "docker.io/gluster",
-		E2eRegistry:             "gcr.io/kubernetes-e2e-test-images",
-		InvalidRegistry:         "invalid.com/invalid",
-		GcRegistry:              "k8s.gcr.io",
-		GcrReleaseRegistry:      "gcr.io/gke-release",
-		GoogleContainerRegistry: "gcr.io/google-containers",
-		PrivateRegistry:         "gcr.io/k8s-authenticated-test",
-		SampleRegistry:          "gcr.io/google-samples",
-		QuayK8sCSI:              "quay.io/k8scsi",
-		QuayIncubator:           "quay.io/kubernetes_incubator",
-	}
-	repoList := os.Getenv("KUBE_TEST_REPO_LIST")
-	if repoList == "" {
-		return registry
-	}
-
-	fileContent, err := ioutil.ReadFile(repoList)
-	if err != nil {
-		panic(fmt.Errorf("Error reading '%v' file contents: %v", repoList, err))
-	}
-
-	err = yaml.Unmarshal(fileContent, &registry)
-	if err != nil {
-		panic(fmt.Errorf("Error unmarshalling '%v' YAML file: %v", repoList, err))
-	}
-	return registry
-}
-
-var (
-	registry                = initReg()
-	dockerLibraryRegistry   = registry.DockerLibraryRegistry
-	dockerGluster           = registry.DockerGluster
-	e2eRegistry             = registry.E2eRegistry
-	gcAuthenticatedRegistry = registry.GcAuthenticatedRegistry
-	gcRegistry              = registry.GcRegistry
-	gcrReleaseRegistry      = registry.GcrReleaseRegistry
-	googleContainerRegistry = registry.GoogleContainerRegistry
-	invalidRegistry         = registry.InvalidRegistry
-	quayK8sCSI              = registry.QuayK8sCSI
-	quayIncubator           = registry.QuayIncubator
-	// PrivateRegistry is an image repository that requires authentication
-	PrivateRegistry = registry.PrivateRegistry
-	sampleRegistry  = registry.SampleRegistry
-
-	// Preconfigured image configs
-	imageConfigs = initImageConfigs()
 )
 
 const (
@@ -136,7 +49,6 @@ const (
 	CudaVectorAdd
 	// CudaVectorAdd2 image
 	CudaVectorAdd2
-	// Dnsutils image
 	Dnsutils
 	// EchoServer image
 	EchoServer
@@ -187,13 +99,10 @@ const (
 	RegressionIssue74839
 	// ResourceConsumer image
 	ResourceConsumer
-	// ResourceController image
 	ResourceController
 	// SdDummyExporter image
 	SdDummyExporter
-	// StartupScript image
 	StartupScript
-	// TestWebserver image
 	TestWebserver
 	// VolumeNFSServer image
 	VolumeNFSServer
@@ -205,106 +114,65 @@ const (
 	VolumeRBDServer
 )
 
-func initImageConfigs() map[int]Config {
-	configs := map[int]Config{}
-	configs[Agnhost] = Config{e2eRegistry, "agnhost", "2.8"}
-	configs[AgnhostPrivate] = Config{PrivateRegistry, "agnhost", "2.6"}
-	configs[AuthenticatedAlpine] = Config{gcAuthenticatedRegistry, "alpine", "3.7"}
-	configs[AuthenticatedWindowsNanoServer] = Config{gcAuthenticatedRegistry, "windows-nanoserver", "v1"}
-	configs[APIServer] = Config{e2eRegistry, "sample-apiserver", "1.10"}
-	configs[AppArmorLoader] = Config{e2eRegistry, "apparmor-loader", "1.0"}
-	configs[BusyBox] = Config{dockerLibraryRegistry, "busybox", "1.29"}
-	configs[CheckMetadataConcealment] = Config{e2eRegistry, "metadata-concealment", "1.2"}
-	configs[CudaVectorAdd] = Config{e2eRegistry, "cuda-vector-add", "1.0"}
-	configs[CudaVectorAdd2] = Config{e2eRegistry, "cuda-vector-add", "2.0"}
-	configs[Dnsutils] = Config{e2eRegistry, "dnsutils", "1.1"}
-	configs[EchoServer] = Config{e2eRegistry, "echoserver", "2.2"}
-	configs[Etcd] = Config{gcRegistry, "etcd", "3.4.3"}
-	configs[GlusterDynamicProvisioner] = Config{dockerGluster, "glusterdynamic-provisioner", "v1.0"}
-	configs[Httpd] = Config{dockerLibraryRegistry, "httpd", "2.4.38-alpine"}
-	configs[HttpdNew] = Config{dockerLibraryRegistry, "httpd", "2.4.39-alpine"}
-	configs[InvalidRegistryImage] = Config{invalidRegistry, "alpine", "3.1"}
-	configs[IpcUtils] = Config{e2eRegistry, "ipc-utils", "1.0"}
-	configs[JessieDnsutils] = Config{e2eRegistry, "jessie-dnsutils", "1.0"}
-	configs[Kitten] = Config{e2eRegistry, "kitten", "1.0"}
-	configs[Mounttest] = Config{e2eRegistry, "mounttest", "1.0"}
-	configs[MounttestUser] = Config{e2eRegistry, "mounttest-user", "1.0"}
-	configs[Nautilus] = Config{e2eRegistry, "nautilus", "1.0"}
-	configs[NFSProvisioner] = Config{quayIncubator, "nfs-provisioner", "v2.2.2"}
-	configs[Nginx] = Config{dockerLibraryRegistry, "nginx", "1.14-alpine"}
-	configs[NginxNew] = Config{dockerLibraryRegistry, "nginx", "1.15-alpine"}
-	configs[Nonewprivs] = Config{e2eRegistry, "nonewprivs", "1.0"}
-	configs[NonRoot] = Config{e2eRegistry, "nonroot", "1.0"}
-	// Pause - when these values are updated, also update cmd/kubelet/app/options/container_runtime.go
-	configs[Pause] = Config{gcRegistry, "pause", "3.1"}
-	configs[Perl] = Config{dockerLibraryRegistry, "perl", "5.26"}
-	configs[PrometheusDummyExporter] = Config{gcRegistry, "prometheus-dummy-exporter", "v0.1.0"}
-	configs[PrometheusToSd] = Config{gcRegistry, "prometheus-to-sd", "v0.5.0"}
-	configs[Redis] = Config{dockerLibraryRegistry, "redis", "5.0.5-alpine"}
-	configs[RegressionIssue74839] = Config{e2eRegistry, "regression-issue-74839-amd64", "1.0"}
-	configs[ResourceConsumer] = Config{e2eRegistry, "resource-consumer", "1.5"}
-	configs[ResourceController] = Config{e2eRegistry, "resource-consumer-controller", "1.0"}
-	configs[SdDummyExporter] = Config{gcRegistry, "sd-dummy-exporter", "v0.2.0"}
-	configs[StartupScript] = Config{googleContainerRegistry, "startup-script", "v1"}
-	configs[TestWebserver] = Config{e2eRegistry, "test-webserver", "1.0"}
-	configs[VolumeNFSServer] = Config{e2eRegistry, "volume/nfs", "1.0"}
-	configs[VolumeISCSIServer] = Config{e2eRegistry, "volume/iscsi", "2.0"}
-	configs[VolumeGlusterServer] = Config{e2eRegistry, "volume/gluster", "1.0"}
-	configs[VolumeRBDServer] = Config{e2eRegistry, "volume/rbd", "1.0.1"}
-	return configs
-}
-
-// GetImageConfigs returns the map of imageConfigs
+// GetImageConfigs returns the map of imageConfigs by their constant.
 func GetImageConfigs() map[int]Config {
 	return imageConfigs
 }
 
-// GetConfig returns the Config object for an image
+// GetConfig returns the Config object for an image.
 func GetConfig(image int) Config {
 	return imageConfigs[image]
 }
 
-// GetE2EImage returns the fully qualified URI to an image (including version)
+// GetE2EImage returns the fully qualified URI to an image (including version).
 func GetE2EImage(image int) string {
 	return fmt.Sprintf("%s/%s:%s", imageConfigs[image].registry, imageConfigs[image].name, imageConfigs[image].version)
 }
 
-// GetE2EImage returns the fully qualified URI to an image (including version)
+// GetE2EImage returns the fully qualified URI to an image (including version).
 func (i *Config) GetE2EImage() string {
 	return fmt.Sprintf("%s/%s:%s", i.registry, i.name, i.version)
 }
 
-// GetPauseImageName returns the pause image name with proper version
+// GetPauseImageName returns the pause image name with proper version.
 func GetPauseImageName() string {
 	return GetE2EImage(Pause)
 }
 
-// ReplaceRegistryInImageURL replaces the registry in the image URL with a custom one
+func GetAlternateImageConfig(repository string) (defaults map[int]Config, updated map[int]Config) {
+	defaults = defaultImageConfigs(defaultRegistryList())
+	updated = defaultImageConfigsForRepository(repository)
+	return
+}
+
+// ReplaceRegistryInImageURL replaces the registry in the image URL with a custom one.
 func ReplaceRegistryInImageURL(imageURL string) (string, error) {
 	parts := strings.Split(imageURL, "/")
 	countParts := len(parts)
 	registryAndUser := strings.Join(parts[:countParts-1], "/")
 
+	list := registry
+
 	switch registryAndUser {
 	case "gcr.io/kubernetes-e2e-test-images":
-		registryAndUser = e2eRegistry
+		registryAndUser = list.E2eRegistry
 	case "k8s.gcr.io":
-		registryAndUser = gcRegistry
+		registryAndUser = list.GcRegistry
 	case "gcr.io/k8s-authenticated-test":
-		registryAndUser = PrivateRegistry
+		registryAndUser = list.PrivateRegistry
 	case "gcr.io/google-samples":
-		registryAndUser = sampleRegistry
+		registryAndUser = list.SampleRegistry
 	case "gcr.io/gke-release":
-		registryAndUser = gcrReleaseRegistry
+		registryAndUser = list.GcrReleaseRegistry
 	case "docker.io/library":
-		registryAndUser = dockerLibraryRegistry
+		registryAndUser = list.DockerLibraryRegistry
 	case "quay.io/k8scsi":
-		registryAndUser = quayK8sCSI
+		registryAndUser = list.QuayK8sCSI
 	default:
 		if countParts == 1 {
 			// We assume we found an image from docker hub library
 			// e.g. openjdk -> docker.io/library/openjdk
-			registryAndUser = dockerLibraryRegistry
+			registryAndUser = list.DockerLibraryRegistry
 			break
 		}
 
@@ -312,4 +180,193 @@ func ReplaceRegistryInImageURL(imageURL string) (string, error) {
 	}
 
 	return fmt.Sprintf("%s/%s", registryAndUser, parts[countParts-1]), nil
+}
+
+// Config holds an images registry, name, and version
+type Config struct {
+	registry string
+	name     string
+	version  string
+}
+
+// SetRegistry sets an image registry in a Config struct
+func (i *Config) SetRegistry(registry string) {
+	i.registry = registry
+}
+
+// SetName sets an image name in a Config struct
+func (i *Config) SetName(name string) {
+	i.name = name
+}
+
+// SetVersion sets an image version in a Config struct
+func (i *Config) SetVersion(version string) {
+	i.version = version
+}
+
+var (
+	registry     RegistryList
+	imageConfigs map[int]Config
+)
+
+func init() {
+	registry = defaultRegistryList()
+
+	// user wants to mirror to another repo
+	if repoList := os.Getenv("KUBE_TEST_REPO_LIST"); len(repoList) > 0 {
+		fileContent, err := ioutil.ReadFile(repoList)
+		if err != nil {
+			panic(fmt.Errorf("Error reading '%v' file contents: %v", repoList, err))
+		}
+
+		err = yaml.Unmarshal(fileContent, &registry)
+		if err != nil {
+			panic(fmt.Errorf("Error unmarshalling '%v' YAML file: %v", repoList, err))
+		}
+	}
+
+	// user wants all images to be coming from a single repo, except those that are special cased
+	if repo := os.Getenv("KUBE_TEST_REPO"); len(repo) > 0 {
+		imageConfigs = defaultImageConfigsForRepository(repo)
+		return
+	}
+
+	// use the images mapped according to the registry list
+	imageConfigs = defaultImageConfigs(registry)
+}
+
+// RegistryList holds public and private image registries
+type RegistryList struct {
+	GcAuthenticatedRegistry string `yaml:"gcAuthenticatedRegistry"`
+	DockerLibraryRegistry   string `yaml:"dockerLibraryRegistry"`
+	DockerGluster           string `yaml:"dockerGluster"`
+	E2eRegistry             string `yaml:"e2eRegistry"`
+	PromoterE2eRegistry     string `yaml:"promoterE2eRegistry"`
+	InvalidRegistry         string `yaml:"invalidRegistry"`
+	GcRegistry              string `yaml:"gcRegistry"`
+	GcrReleaseRegistry      string `yaml:"gcrReleaseRegistry"`
+	// TODO: The last consumer of this has been removed and it should be deprecated
+	GoogleContainerRegistry string `yaml:"googleContainerRegistry"`
+	PrivateRegistry         string `yaml:"privateRegistry"`
+	SampleRegistry          string `yaml:"sampleRegistry"`
+	QuayK8sCSI              string `yaml:"quayK8sCSI"`
+	QuayIncubator           string `yaml:"quayIncubator"`
+}
+
+// defaultRegistryList returns the default registries constants are pulled from.
+func defaultRegistryList() RegistryList {
+	return RegistryList{
+		GcAuthenticatedRegistry: "gcr.io/authenticated-image-pulling",
+		DockerLibraryRegistry:   "docker.io/library",
+		DockerGluster:           "docker.io/gluster",
+		E2eRegistry:             "gcr.io/kubernetes-e2e-test-images",
+		// TODO: After the domain flip, this should instead be k8s.gcr.io/k8s-artifacts-prod/e2e-test-images
+		PromoterE2eRegistry: "us.gcr.io/k8s-artifacts-prod/e2e-test-images",
+		InvalidRegistry:     "invalid.com/invalid",
+		GcRegistry:          "k8s.gcr.io",
+		GcrReleaseRegistry:  "gcr.io/gke-release",
+		// TODO: The last consumer of this has been removed and it should be deleted
+		GoogleContainerRegistry: "gcr.io/google-containers",
+		PrivateRegistry:         "gcr.io/k8s-authenticated-test",
+		SampleRegistry:          "gcr.io/google-samples",
+		QuayK8sCSI:              "quay.io/k8scsi",
+		QuayIncubator:           "quay.io/kubernetes_incubator",
+	}
+}
+
+// defaultImageConfigsForRepository generates an image config map that allows all
+// public images to be accessed from a single repository. This is used by those
+// who wish to mirror their images inside a private network. The mapping is
+// the full original name -> <repository>:e2e-[ID]-[HASH_OF_NAME]-mirror. The
+// trailing '-mirror' segment is required to ensure the name forms a valid
+// container tag.
+func defaultImageConfigsForRepository(repository string) map[int]Config {
+	parts := strings.SplitN(repository, "/", 2)
+	if len(parts) == 1 {
+		panic("repository provided via env must be of the form REGISTRY/NAME")
+	}
+	defaults := defaultImageConfigs(defaultRegistryList())
+	h := sha256.New()
+	reCharSafe := regexp.MustCompile(`[^\w]`)
+	reDashes := regexp.MustCompile(`-+`)
+	for i, config := range defaults {
+		switch i {
+		case InvalidRegistryImage, AuthenticatedAlpine,
+			AuthenticatedWindowsNanoServer, AgnhostPrivate:
+			// These images are special and can't be run out of the cloud - some because they
+			// are authenticated, and others because they are not real images. Tests that depend
+			// on these images can't be run without access to the public internet.
+			continue
+		}
+		pullSpec := config.GetE2EImage()
+
+		// Build a new tag with a the index, a hash of the image spec (to be unique) and
+		// shorten and make the pull spec "safe" so it will fit in the tag
+		h.Reset()
+		h.Write([]byte(pullSpec))
+		hash := base64.RawURLEncoding.EncodeToString(h.Sum(nil)[:16])
+		shortName := reCharSafe.ReplaceAllLiteralString(pullSpec, "-")
+		shortName = reDashes.ReplaceAllLiteralString(shortName, "-")
+		maxLength := 127 - 16 - 6 - 10
+		if len(shortName) > maxLength {
+			shortName = shortName[len(shortName)-maxLength:]
+		}
+		newTag := fmt.Sprintf("e2e-%d-%s-%s", i, shortName, hash)
+
+		config.SetRegistry(parts[0])
+		config.SetName(parts[1])
+		config.SetVersion(newTag)
+		defaults[i] = config
+	}
+	return defaults
+}
+
+// defaultImageConfigs returns a map of images by their constant based on the provided RegistryList.
+func defaultImageConfigs(list RegistryList) map[int]Config {
+	configs := map[int]Config{}
+	configs[Agnhost] = Config{list.PromoterE2eRegistry, "agnhost", "2.12"}
+	configs[AgnhostPrivate] = Config{list.PrivateRegistry, "agnhost", "2.6"}
+	configs[AuthenticatedAlpine] = Config{list.GcAuthenticatedRegistry, "alpine", "3.7"}
+	configs[AuthenticatedWindowsNanoServer] = Config{list.GcAuthenticatedRegistry, "windows-nanoserver", "v1"}
+	configs[APIServer] = Config{list.E2eRegistry, "sample-apiserver", "1.17"}
+	configs[AppArmorLoader] = Config{list.E2eRegistry, "apparmor-loader", "1.0"}
+	configs[BusyBox] = Config{list.DockerLibraryRegistry, "busybox", "1.29"}
+	configs[CheckMetadataConcealment] = Config{list.E2eRegistry, "metadata-concealment", "1.2"}
+	configs[CudaVectorAdd] = Config{list.E2eRegistry, "cuda-vector-add", "1.0"}
+	configs[CudaVectorAdd2] = Config{list.E2eRegistry, "cuda-vector-add", "2.0"}
+	configs[Dnsutils] = Config{list.E2eRegistry, "dnsutils", "1.1"}
+	configs[EchoServer] = Config{list.E2eRegistry, "echoserver", "2.2"}
+	configs[Etcd] = Config{list.GcRegistry, "etcd", "3.4.4"}
+	configs[GlusterDynamicProvisioner] = Config{list.DockerGluster, "glusterdynamic-provisioner", "v1.0"}
+	configs[Httpd] = Config{list.DockerLibraryRegistry, "httpd", "2.4.38-alpine"}
+	configs[HttpdNew] = Config{list.DockerLibraryRegistry, "httpd", "2.4.39-alpine"}
+	configs[InvalidRegistryImage] = Config{list.InvalidRegistry, "alpine", "3.1"}
+	configs[IpcUtils] = Config{list.E2eRegistry, "ipc-utils", "1.0"}
+	configs[JessieDnsutils] = Config{list.E2eRegistry, "jessie-dnsutils", "1.0"}
+	configs[Kitten] = Config{list.E2eRegistry, "kitten", "1.0"}
+	configs[Mounttest] = Config{list.E2eRegistry, "mounttest", "1.0"}
+	configs[MounttestUser] = Config{list.E2eRegistry, "mounttest-user", "1.0"}
+	configs[Nautilus] = Config{list.E2eRegistry, "nautilus", "1.0"}
+	configs[NFSProvisioner] = Config{list.QuayIncubator, "nfs-provisioner", "v2.2.2"}
+	configs[Nginx] = Config{list.DockerLibraryRegistry, "nginx", "1.14-alpine"}
+	configs[NginxNew] = Config{list.DockerLibraryRegistry, "nginx", "1.15-alpine"}
+	configs[Nonewprivs] = Config{list.E2eRegistry, "nonewprivs", "1.0"}
+	configs[NonRoot] = Config{list.E2eRegistry, "nonroot", "1.0"}
+	// Pause - when these values are updated, also update cmd/kubelet/app/options/container_runtime.go
+	configs[Pause] = Config{list.GcRegistry, "pause", "3.2"}
+	configs[Perl] = Config{list.DockerLibraryRegistry, "perl", "5.26"}
+	configs[PrometheusDummyExporter] = Config{list.GcRegistry, "prometheus-dummy-exporter", "v0.1.0"}
+	configs[PrometheusToSd] = Config{list.GcRegistry, "prometheus-to-sd", "v0.5.0"}
+	configs[Redis] = Config{list.DockerLibraryRegistry, "redis", "5.0.5-alpine"}
+	configs[RegressionIssue74839] = Config{list.E2eRegistry, "regression-issue-74839-amd64", "1.0"}
+	configs[ResourceConsumer] = Config{list.E2eRegistry, "resource-consumer", "1.5"}
+	configs[ResourceController] = Config{list.E2eRegistry, "resource-consumer-controller", "1.0"}
+	configs[SdDummyExporter] = Config{list.GcRegistry, "sd-dummy-exporter", "v0.2.0"}
+	configs[StartupScript] = Config{list.GoogleContainerRegistry, "startup-script", "v1"}
+	configs[TestWebserver] = Config{list.E2eRegistry, "test-webserver", "1.0"}
+	configs[VolumeNFSServer] = Config{list.E2eRegistry, "volume/nfs", "1.0"}
+	configs[VolumeISCSIServer] = Config{list.E2eRegistry, "volume/iscsi", "2.0"}
+	configs[VolumeGlusterServer] = Config{list.E2eRegistry, "volume/gluster", "1.0"}
+	configs[VolumeRBDServer] = Config{list.E2eRegistry, "volume/rbd", "1.0.1"}
+	return configs
 }

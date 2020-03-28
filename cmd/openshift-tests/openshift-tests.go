@@ -128,12 +128,6 @@ func newImagesCommand() *cobra.Command {
 				return fmt.Errorf("--to-repository may not include a tag or image digest")
 			}
 
-			// use the default source for images
-			if !opt.Upstream {
-				if err := updateInternalImages(defaultTestImageMirrorLocation); err != nil {
-					return fmt.Errorf("unexpected error, unable to build mirror list: %v", err)
-				}
-			}
 			lines, err := createImageMirrorForInternalImages(ref, !opt.Upstream)
 			if err != nil {
 				return err
@@ -175,9 +169,6 @@ func newRunCommand() *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mirrorToFile(opt, func() error {
-				if err := updateInternalImages(opt.FromRepository); err != nil {
-					return fmt.Errorf("unable to configure source image repository: %v", err)
-				}
 				config, err := decodeProvider(opt.Provider, opt.DryRun, true)
 				if err != nil {
 					return err
@@ -231,9 +222,6 @@ func newRunUpgradeCommand() *cobra.Command {
 			return mirrorToFile(opt, func() error {
 				if len(upgradeOpt.ToImage) == 0 {
 					return fmt.Errorf("--to-image must be specified to run an upgrade test")
-				}
-				if err := updateInternalImages(opt.FromRepository); err != nil {
-					return fmt.Errorf("unable to configure source image repository: %v", err)
 				}
 
 				if len(args) > 0 {
@@ -290,9 +278,6 @@ func newRunTestCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := updateInternalImages(os.Getenv("TEST_IMAGE_REPOSITORY")); err != nil {
-				return err
-			}
 			upgradeOpts, err := initUpgrade(os.Getenv("TEST_SUITE_OPTIONS"))
 			if err != nil {
 				return err
