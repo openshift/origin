@@ -16,5 +16,5 @@ fi
 os::util::ensure::built_binary_exists 'commitchecker'
 
 os::test::junit::declare_suite_start "verify/upstream-commits"
-os::cmd::expect_success "commitchecker"
+os::cmd::expect_success "commitchecker --start ${PULL_BASE_SHA:-master}"
 os::test::junit::declare_suite_end
