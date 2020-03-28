@@ -4,6 +4,10 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kdeployutil "k8s.io/kubernetes/test/e2e/framework/deployment"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -38,8 +42,17 @@ RUN curl -vvv hello-openshift:8080
 				err := oc.Run("new-app").Args("docker.io/openshift/hello-openshift").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "hello-openshift", 1, true, oc)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				deploy, derr := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get("hello-openshift", metav1.GetOptions{})
+				if kapierrs.IsNotFound(derr) {
+					// if deployment is not there we're working with old new-app producing deployment configs
+					err := exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "hello-openshift", 1, true, oc)
+					o.Expect(err).NotTo(o.HaveOccurred())
+				} else {
+					// if present - wait for deployment
+					o.Expect(derr).NotTo(o.HaveOccurred())
+					err := kdeployutil.WaitForDeploymentComplete(oc.KubeClient(), deploy)
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
 
 				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "hello-openshift")
 				o.Expect(err).NotTo(o.HaveOccurred())
