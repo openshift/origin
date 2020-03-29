@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "weighted-router.yaml")
-		oc         = exutil.NewCLI("weighted-router", exutil.KubeConfigPath())
+		oc         = exutil.NewCLI("weighted-router")
 	)
 
 	g.BeforeEach(func() {

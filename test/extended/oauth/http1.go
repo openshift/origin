@@ -15,7 +15,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("oauth", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("oauth")
 
 	g.It("should use http1.1 only to prevent http2 connection reuse", func() {
 		metadata := getOAuthWellKnownData(oc)

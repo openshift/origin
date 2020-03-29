@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 		}
 	})
 
-	oc = exutil.NewCLI("image-layers", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("image-layers")
 
 	g.It("should identify a deleted image as missing", func() {
 		client := imagev1client.NewForConfigOrDie(oc.AdminConfig()).ImageV1()

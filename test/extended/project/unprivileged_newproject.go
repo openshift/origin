@@ -18,7 +18,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("project-api")
 
 	g.It("TestUnprivilegedNewProject", func() {
 		t := g.GinkgoT()
@@ -61,7 +61,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI][Serial] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("project-api")
 
 	g.It("TestUnprivilegedNewProjectDenied", func() {
 		t := g.GinkgoT()

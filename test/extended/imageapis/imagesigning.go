@@ -22,7 +22,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("image", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("image")
 
 	g.It("TestImageAddSignature", func() {
 		t := g.GinkgoT()
@@ -121,7 +121,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 
 var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("image", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("image").AsAdmin()
 
 	g.It("TestImageRemoveSignature", func() {
 		t := g.GinkgoT()

@@ -297,7 +297,7 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 //DumpImageStreams will dump both the openshift namespace and local namespace imagestreams
 // as part of debugging when the language imagestreams in the openshift namespace seem to disappear
 func DumpImageStreams(oc *CLI) {
-	out, err := oc.AsAdmin().Run("get").Args("is", "-n", "openshift", "-o", "yaml", "--config", KubeConfigPath()).Output()
+	out, err := oc.AsAdmin().Run("get").Args("is", "-n", "openshift", "-o", "yaml").Output()
 	if err == nil {
 		e2e.Logf("\n  imagestreams in openshift namespace: \n%s\n", out)
 	} else {
@@ -320,7 +320,7 @@ func DumpImageStreams(oc *CLI) {
 }
 
 func DumpSampleOperator(oc *CLI) {
-	out, err := oc.AsAdmin().Run("get").Args("configs.samples.operator.openshift.io", "cluster", "-o", "yaml", "--config", KubeConfigPath()).Output()
+	out, err := oc.AsAdmin().Run("get").Args("configs.samples.operator.openshift.io", "cluster", "-o", "yaml").Output()
 	if err == nil {
 		e2e.Logf("\n  samples operator CR: \n%s\n", out)
 	} else {
@@ -509,7 +509,7 @@ func ExaminePodDiskUsage(oc *CLI) {
 	// disabling this for now, easier to do it here than everywhere that's calling it.
 	return
 	/*
-		out, err := oc.Run("get").Args("pods", "-o", "json", "-n", "default", "--config", KubeConfigPath()).Output()
+		out, err := oc.Run("get").Args("pods", "-o", "json", "-n", "default").Output()
 		var podName string
 		if err == nil {
 			b := []byte(out)
@@ -534,13 +534,13 @@ func ExaminePodDiskUsage(oc *CLI) {
 			return
 		}
 
-		out, err = oc.Run("exec").Args("-n", "default", podName, "df", "--config", KubeConfigPath()).Output()
+		out, err = oc.Run("exec").Args("-n", "default", podName, "df").Output()
 		if err == nil {
 			e2e.Logf("\n\n df from registry pod: \n%s\n\n", out)
 		} else {
 			e2e.Logf("\n\n got error on reg pod df: %v\n", err)
 		}
-		out, err = oc.Run("exec").Args("-n", "default", podName, "du", "/registry", "--config", KubeConfigPath()).Output()
+		out, err = oc.Run("exec").Args("-n", "default", podName, "du", "/registry").Output()
 		if err == nil {
 			e2e.Logf("\n\n du from registry pod: \n%s\n\n", out)
 		} else {
@@ -1247,14 +1247,7 @@ func ArtifactPath(elem ...string) string {
 	return filepath.Join(append([]string{ArtifactDirPath()}, elem...)...)
 }
 
-var (
-	fixtureDirLock sync.Once
-	fixtureDir     string
-)
-
-// FixturePath returns an absolute path to a fixture file in test/extended/testdata/,
-// test/integration/, or examples/.
-func FixturePath(elem ...string) string {
+func prefixFixturePath(elem []string) []string {
 	switch {
 	case len(elem) == 0:
 		panic("must specify path")
@@ -1269,16 +1262,65 @@ func FixturePath(elem ...string) string {
 	default:
 		panic(fmt.Sprintf("Fixtures must be in test/extended/testdata or examples not %s", path.Join(elem...)))
 	}
-	fixtureDirLock.Do(func() {
-		dir, err := ioutil.TempDir("", "fixture-testdata-dir")
-		if err != nil {
-			panic(err)
+	return elem
+}
+
+// FixturePaths returns the set of paths within the provided fixture directory.
+func FixturePaths(elem ...string) []string {
+	var paths []string
+	elem = prefixFixturePath(elem)
+	prefix := path.Join(elem...)
+	items, _ := testdata.AssetDir(prefix)
+	for _, item := range items {
+		paths = append(paths, item)
+	}
+	return paths
+}
+
+var (
+	internalFixtureOnce sync.Once
+	// callers should use fixtureDirectory() instead
+	internalFixtureDir string
+)
+
+// fixtureDirectory returns the fixture directory for use within this process.
+// It returns true if the current process was the one to initialize the directory.
+func fixtureDirectory() (string, bool) {
+	// load or allocate fixture directory
+	var init bool
+	internalFixtureOnce.Do(func() {
+		// reuse fixture directories across child processes for efficiency
+		internalFixtureDir = os.Getenv("OS_TEST_FIXTURE_DIR")
+		if len(internalFixtureDir) == 0 {
+			dir, err := ioutil.TempDir("", "fixture-testdata-dir")
+			if err != nil {
+				panic(err)
+			}
+			internalFixtureDir = dir
+			init = true
 		}
-		fixtureDir = dir
 	})
+	return internalFixtureDir, init
+}
+
+// FixturePath returns an absolute path to a fixture file in test/extended/testdata/,
+// test/integration/, or examples/. The contents of the path will not exist until the
+// test is started.
+func FixturePath(elem ...string) string {
+	// normalize the element array
+	originalElem := elem
+	elem = prefixFixturePath(elem)
 	relativePath := path.Join(elem...)
+
+	fixtureDir, _ := fixtureDirectory()
 	fullPath := path.Join(fixtureDir, relativePath)
-	if err := testdata.RestoreAsset(fixtureDir, relativePath); err != nil {
+	absPath, err := filepath.Abs(fullPath)
+	if err != nil {
+		panic(err)
+	}
+
+	if testsStarted {
+		// extract the contents to disk
 		if err := testdata.RestoreAssets(fixtureDir, relativePath); err != nil {
 			panic(err)
 		}
@@ -1293,17 +1335,15 @@ func FixturePath(elem ...string) string {
 		}); err != nil {
 			panic(err)
 		}
+
 	} else {
-		if err := os.Chmod(fullPath, 0640); err != nil {
-			panic(err)
-		}
+		// defer extraction of content to a BeforeEach when called before tests start
+		g.BeforeEach(func() {
+			FixturePath(originalElem...)
+		})
 	}
 
-	p, err := filepath.Abs(fullPath)
-	if err != nil {
-		panic(err)
-	}
-	return p
+	return absPath
 }
 
 // FetchURL grabs the output from the specified url and returns it.

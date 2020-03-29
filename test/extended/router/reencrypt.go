@@ -35,7 +35,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("router-reencrypt", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("router-reencrypt")
 
 	g.BeforeEach(func() {
 		var err error

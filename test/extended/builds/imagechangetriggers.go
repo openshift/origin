@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] imagechangetriggers", func() {
 
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-imagechangetriggers.yaml")
-		oc           = exutil.NewCLI("imagechangetriggers", exutil.KubeConfigPath())
+		oc           = exutil.NewCLI("imagechangetriggers")
 	)
 
 	g.Context("", func() {

@@ -29,7 +29,7 @@ const (
 
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("oauth", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("oauth")
 
 	g.It("has the correct token and certificate fallback semantics", func() {
 		var (

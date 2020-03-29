@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mongodb][Slow] openshift
 
 	const templatePath = "https://raw.githubusercontent.com/sclorg/mongodb-container/master/examples/petset/mongodb-petset-persistent.yaml"
 
-	oc := exutil.NewCLI("mongodb-petset-replica", exutil.KubeConfigPath()).Verbose()
+	oc := exutil.NewCLI("mongodb-petset-replica").Verbose()
 	var pvs = []*kapiv1.PersistentVolume{}
 	var nfspod = &kapiv1.Pod{}
 	var cleanup = func() {

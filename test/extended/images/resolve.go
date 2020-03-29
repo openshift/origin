@@ -16,7 +16,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLI("resolve-local-names", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("resolve-local-names")
 	one := int64(0)
 
 	g.It("should update standard Kube object image fields when local names are on", func() {

@@ -38,7 +38,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestScopedTokens", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -99,7 +99,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestScopedImpersonation", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -134,7 +134,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestScopeEscalations", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -209,7 +209,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestTokensWithIllegalScopes", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -440,7 +440,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestUnknownScopes", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {

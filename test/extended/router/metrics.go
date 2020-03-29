@@ -35,7 +35,7 @@ import (
 var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("router-metrics", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("router-metrics")
 
 		username, password, bearerToken string
 		metricsPort                     int32

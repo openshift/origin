@@ -19,7 +19,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scc", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scc")
 
 	g.It("TestPodUpdateSCCEnforcement", func() {
 		t := g.GinkgoT()
@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scc", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scc")
 
 	g.It("TestAllowedSCCViaRBAC", func() {
 		t := g.GinkgoT()

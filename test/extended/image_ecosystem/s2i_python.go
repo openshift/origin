@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy
 	defer g.GinkgoRecover()
 
 	var (
-		oc               = exutil.NewCLI("s2i-python", exutil.KubeConfigPath())
+		oc               = exutil.NewCLI("s2i-python")
 		djangoRepository = "https://github.com/sclorg/django-ex.git"
 		modifyCommand    = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
 		pageCountFn      = func(count int) string { return fmt.Sprintf("Page views: %d", count) }

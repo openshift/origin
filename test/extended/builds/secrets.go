@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use build secrets", f
 		dockerBuildDockerfile  = filepath.Join(buildSecretBaseDir, "Dockerfile")
 		sourceBuildFixture     = filepath.Join(buildSecretBaseDir, "test-s2i-build.json")
 		sourceBuildBinDir      = filepath.Join(buildSecretBaseDir, "s2i-binary-dir")
-		oc                     = exutil.NewCLI("build-secrets", exutil.KubeConfigPath())
+		oc                     = exutil.NewCLI("build-secrets")
 	)
 
 	g.Context("", func() {

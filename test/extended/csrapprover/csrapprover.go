@@ -28,7 +28,7 @@ import (
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle]", func() {
-	oc := exutil.NewCLI("cluster-client-cert", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("cluster-client-cert")
 	defer g.GinkgoRecover()
 
 	g.It("Pods cannot access the /config/master API endpoint", func() {

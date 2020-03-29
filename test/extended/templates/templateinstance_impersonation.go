@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance impersonatio
 	defer g.GinkgoRecover()
 
 	var (
-		cli = exutil.NewCLI("templates", exutil.KubeConfigPath())
+		cli = exutil.NewCLI("templates")
 
 		adminuser              *userv1.User // project admin, but can't impersonate anyone
 		impersonateuser        *userv1.User // project edit, and can impersonate edituser1

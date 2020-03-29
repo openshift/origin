@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance object kinds
 
 	var (
 		fixture = exutil.FixturePath("testdata", "templates", "templateinstance_objectkinds.yaml")
-		cli     = exutil.NewCLI("templates", exutil.KubeConfigPath())
+		cli     = exutil.NewCLI("templates")
 	)
 
 	g.It("should create and delete objects from varying API groups", func() {

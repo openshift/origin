@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 	defer g.GinkgoRecover()
 
 	var (
-		cli              = exutil.NewCLI("templates", exutil.KubeConfigPath())
+		cli              = exutil.NewCLI("templates")
 		template         *templatev1.Template
 		templateinstance *templatev1.TemplateInstance
 		templatefixture  = exutil.FixturePath("testdata", "templates", "templateinstance_readiness.yaml")

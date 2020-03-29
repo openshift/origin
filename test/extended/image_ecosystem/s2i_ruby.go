@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy f
 	defer g.GinkgoRecover()
 	var (
 		railsTemplate = "rails-postgresql-example"
-		oc            = exutil.NewCLI("s2i-ruby", exutil.KubeConfigPath())
+		oc            = exutil.NewCLI("s2i-ruby")
 		modifyCommand = []string{"sed", "-ie", `s%render :file => 'public/index.html'%%`, "app/controllers/welcome_controller.rb"}
 		removeCommand = []string{"rm", "-f", "public/index.html"}
 		dcName        = "rails-postgresql-example"

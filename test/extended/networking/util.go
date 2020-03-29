@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 
-	testexutil "github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 
 	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -50,7 +50,7 @@ func expectNoError(err error, explain ...interface{}) {
 }
 
 func launchWebserverService(f *e2e.Framework, serviceName string, nodeName string) (serviceAddr string) {
-	testexutil.LaunchWebserverPod(f, serviceName, nodeName)
+	exutil.LaunchWebserverPod(f, serviceName, nodeName)
 
 	// FIXME: make e2e.LaunchWebserverPod() set the label when creating the pod
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -89,7 +89,7 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 	serviceClient := f.ClientSet.CoreV1().Services(f.Namespace.Name)
 	_, err = serviceClient.Create(service)
 	expectNoError(err)
-	expectNoError(testexutil.WaitForEndpoint(f.ClientSet, f.Namespace.Name, serviceName))
+	expectNoError(exutil.WaitForEndpoint(f.ClientSet, f.Namespace.Name, serviceName))
 	createdService, err := serviceClient.Get(serviceName, metav1.GetOptions{})
 	expectNoError(err)
 	serviceAddr = fmt.Sprintf("%s:%d", createdService.Spec.ClusterIP, servicePort)
@@ -132,9 +132,9 @@ var cachedNetworkPluginName *string
 
 func networkPluginName() string {
 	if cachedNetworkPluginName == nil {
-		// We don't use testexutil.NewCLI() here because it can't be called from BeforeEach()
+		// We don't use exutil.NewCLI() here because it can't be called from BeforeEach()
 		out, err := exec.Command(
-			"oc", "--config="+testexutil.KubeConfigPath(),
+			"oc", "--config="+exutil.KubeConfigPath(),
 			"get", "clusternetwork", "default",
 			"--template={{.pluginName}}",
 		).CombinedOutput()
@@ -169,7 +169,7 @@ func pluginImplementsNetworkPolicy() bool {
 	}
 }
 
-func makeNamespaceGlobal(oc *testexutil.CLI, ns *corev1.Namespace) {
+func makeNamespaceGlobal(oc *exutil.CLI, ns *corev1.Namespace) {
 	clientConfig := oc.AdminConfig()
 	networkClient := networkclient.NewForConfigOrDie(clientConfig)
 	netns, err := networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
@@ -265,7 +265,7 @@ func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
 	}
 	podName := "isolation-webserver"
 	defer f1.ClientSet.CoreV1().Pods(f1.Namespace.Name).Delete(podName, nil)
-	ip := testexutil.LaunchWebserverPod(f1, podName, serverNode.Name)
+	ip := exutil.LaunchWebserverPod(f1, podName, serverNode.Name)
 
 	return checkConnectivityToHost(f2, clientNode.Name, "isolation-wget", ip, 10*time.Second)
 }

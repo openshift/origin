@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][timing] capture build stages an
 		dockerBuildDockerfile = filepath.Join(buildTimingBaseDir, "Dockerfile")
 		sourceBuildFixture    = filepath.Join(buildTimingBaseDir, "test-s2i-build.json")
 		sourceBuildBinDir     = filepath.Join(buildTimingBaseDir, "s2i-binary-dir")
-		oc                    = exutil.NewCLI("build-timing", exutil.KubeConfigPath())
+		oc                    = exutil.NewCLI("build-timing")
 	)
 
 	g.Context("", func() {

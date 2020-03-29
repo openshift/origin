@@ -21,7 +21,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	f.SkipNamespaceCreation = true
 	f.SkipPrivilegedPSPBinding = true
 
-	oc := exutil.NewCLIWithoutNamespace("oc-adm")
+	oc := exutil.NewCLIWithoutNamespace("oc-adm").AsAdmin()
 
 	g.It("oc adm node-logs", func() {
 		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc)).Execute()).To(o.Succeed())

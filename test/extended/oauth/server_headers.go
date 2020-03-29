@@ -12,12 +12,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-openapi/pkg/util/sets"
 
-	"github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/oauthserver"
 )
 
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers]", func() {
-	var oc = util.NewCLI("oauth-server-headers", util.KubeConfigPath())
+	var oc = exutil.NewCLI("oauth-server-headers")
 	var transport http.RoundTripper
 	var oauthServerAddr string
 	var oauthServerCleanup func()

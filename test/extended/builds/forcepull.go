@@ -64,7 +64,7 @@ be a quick fix.
 
 var _ = g.Describe("[sig-builds][Feature:Builds] forcePull should affect pulling builder images", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLI("forcepull", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("forcepull")
 
 	g.Context("", func() {
 

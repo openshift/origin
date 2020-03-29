@@ -127,7 +127,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 
 var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLI("s2i-usage", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("s2i-usage")
 
 	g.Context("", func() {
 		g.JustBeforeEach(func() {

@@ -3,6 +3,7 @@ package deployments
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"sort"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -31,6 +33,7 @@ import (
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 
+	"github.com/openshift/origin/test/extended/scheme"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -515,7 +518,7 @@ func waitForDCModification(oc *exutil.CLI, namespace string, name string, timeou
 }
 
 func createDeploymentConfig(oc *exutil.CLI, fixture string) (*appsv1.DeploymentConfig, error) {
-	obj, err := exutil.ReadFixture(fixture)
+	obj, err := ReadFixture(fixture)
 	if err != nil {
 		return nil, err
 	}
@@ -775,4 +778,26 @@ func (d *deployerPodInvariantChecker) Start(ctx context.Context) {
 
 func (d *deployerPodInvariantChecker) Wait() {
 	d.wg.Wait()
+}
+
+func ReadFixture(path string) (runtime.Object, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %q: %v", path, err)
+	}
+
+	obj, _, err := scheme.Codecs.UniversalDeserializer().Decode(data, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, nil
+}
+
+func ReadFixtureOrFail(path string) runtime.Object {
+	obj, err := ReadFixture(path)
+
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	return obj
 }

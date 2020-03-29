@@ -20,7 +20,7 @@ var (
 var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Annotation trigger", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("cli-deployment")
 
 	var (
 		deploymentFixture = exutil.FixturePath("testdata", "image", "deployment-with-annotation-trigger.yaml")

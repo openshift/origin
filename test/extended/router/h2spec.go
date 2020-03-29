@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "router-h2spec.yaml")
-		oc         = exutil.NewCLI("router-h2spec", exutil.KubeConfigPath())
+		oc         = exutil.NewCLI("router-h2spec")
 	)
 
 	// this hook must be registered before the framework namespace teardown

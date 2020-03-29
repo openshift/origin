@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "router-http-echo-server.yaml")
-		oc         = exutil.NewCLI("router-headers", exutil.KubeConfigPath())
+		oc         = exutil.NewCLI("router-headers")
 
 		routerIP  string
 		metricsIP string

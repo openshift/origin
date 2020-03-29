@@ -22,7 +22,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream API", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("imagestream-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("imagestream-api")
 
 	g.It("TestImageStreamMappingCreate", func() {
 		TestImageStreamMappingCreate(g.GinkgoT(), oc)

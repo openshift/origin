@@ -18,7 +18,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("rolebinding-restrictions", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("rolebinding-restrictions")
 	g.Context("", func() {
 		g.Describe("Create a rolebinding when there are no restrictions", func() {
 			g.It(fmt.Sprintf("should succeed"), func() {

@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods", func
 	defer g.GinkgoRecover()
 
 	var (
-		oc           = exutil.NewCLI("cli-rsync", exutil.KubeConfigPath())
+		oc           = exutil.NewCLI("cli-rsync")
 		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mariadb-ephemeral-template.json")
 		sourcePath1  = exutil.FixturePath("..", "..", "examples", "image-streams")
 		sourcePath2  = exutil.FixturePath("..", "..", "examples", "sample-app")

@@ -119,16 +119,51 @@ func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
 		r = append(r, reporters.NewJUnitReporter(path.Join(TestContext.ReportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
 	}
 
-	if quiet {
-		r = append(r, NewSimpleReporter())
-		ginkgo.RunSpecsWithCustomReporters(t, suite, r)
-	} else {
-		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
+	WithCleanup(func() {
+		if quiet {
+			r = append(r, NewSimpleReporter())
+			ginkgo.RunSpecsWithCustomReporters(t, suite, r)
+		} else {
+			ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
+		}
+	})
+}
+
+var testsStarted bool
+
+// requiresTestStart indicates this code should never be called from within init() or
+// Ginkgo test definition.
+//
+// We explictly prevent Run() from outside of a test because it means that
+// test initialization may be expensive. Tests should not vary definition
+// based on a cluster, they should be static in definition. Always use framework.Skipf()
+// if your test should not be run based on a dynamic condition of the cluster.
+func requiresTestStart() {
+	if !testsStarted {
+		panic("May only be called from within a test case")
 	}
 }
 
-// ProwGCPSetup makes sure certain required env vars are available in the case
-// that extended tests are invoked directly via calls to ginkgo/extended.test
+// WithCleanup instructs utility methods to move out of dry run mode so there are no side
+// effects due to package initialization of Ginkgo tests, and then after the function
+// completes cleans up any artifacts created by this project.
+func WithCleanup(fn func()) {
+	testsStarted = true
+
+	// Initialize the fixture directory. If we were the ones to initialize it, set the env
+	// var so that child processes inherit this directory and take responsibility for
+	// cleaning it up after we exit.
+	fixtureDir, init := fixtureDirectory()
+	if init {
+		os.Setenv("OS_TEST_FIXTURE_DIR", fixtureDir)
+		defer os.RemoveAll(fixtureDir)
+	}
+
+	fn()
+}
+
+// InitDefaultEnvironmentVariables makes sure certain required env vars are available
+// in the case that extended tests are invoked directly via calls to ginkgo/extended.test
 func InitDefaultEnvironmentVariables() {
 	if ad := os.Getenv("ARTIFACT_DIR"); len(strings.TrimSpace(ad)) == 0 {
 		os.Setenv("ARTIFACT_DIR", filepath.Join(os.TempDir(), "artifacts"))

@@ -23,7 +23,7 @@ import (
 
 var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("deployment-scale", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("deployment-scale")
 
 	g.It("TestDeployScale", func() {
 		t := g.GinkgoT()

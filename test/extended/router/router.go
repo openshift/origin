@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("router-stress", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("router-stress")
 
 	g.BeforeEach(func() {
 		var err error

@@ -206,7 +206,7 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                  = exutil.NewCLI("cli-idling", exutil.KubeConfigPath()).Verbose()
+		oc                  = exutil.NewCLI("cli-idling").Verbose()
 		echoServerFixture   = exutil.FixturePath("testdata", "idling-echo-server.yaml")
 		echoServerRcFixture = exutil.FixturePath("testdata", "idling-echo-server-rc.yaml")
 		framework           = oc.KubeFramework()

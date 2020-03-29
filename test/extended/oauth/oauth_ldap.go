@@ -15,14 +15,14 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	testutil "github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 	oauthutil "github.com/openshift/origin/test/extended/util/oauthserver"
 )
 
 var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = testutil.NewCLI("oauth-ldap-idp", testutil.KubeConfigPath())
+		oc = exutil.NewCLI("oauth-ldap-idp")
 
 		bindDN         = "cn=Manager,dc=example,dc=com"
 		bindPassword   = "admin"
@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 		defer userv1client.NewForConfigOrDie(oc.AdminConfig()).Users().Delete(userName, nil)
 
 		g.By("setting up an OpenLDAP server")
-		ldapService, ldapCA, err := testutil.CreateLDAPTestServer(oc)
+		ldapService, ldapCA, err := exutil.CreateLDAPTestServer(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("deploying an oauth server")
@@ -95,8 +95,8 @@ var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("configuring LDAP users")
-		volumeMounts, volumes := testutil.LDAPClientMounts()
-		_, errs := testutil.RunOneShotCommandPod(oc, "oneshot-ldappasswd", testutil.OpenLDAPTestImage, fmt.Sprintf("ldappasswd -x -H ldap://%s -Z -D %s -w %s -s %s cn=%s,%s -vvv", ldapService, bindDN, bindPassword, goodPass, userName, searchDN), volumeMounts, volumes, nil, 5*time.Minute)
+		volumeMounts, volumes := exutil.LDAPClientMounts()
+		_, errs := exutil.RunOneShotCommandPod(oc, "oneshot-ldappasswd", exutil.OpenLDAPTestImage, fmt.Sprintf("ldappasswd -x -H ldap://%s -Z -D %s -w %s -s %s cn=%s,%s -vvv", ldapService, bindDN, bindPassword, goodPass, userName, searchDN), volumeMounts, volumes, nil, 5*time.Minute)
 		o.Expect(errs).To(o.BeEmpty())
 
 		g.By("ensuring that you cannot authenticate with a bad password")

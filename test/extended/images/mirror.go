@@ -265,7 +265,7 @@ RUN echo %s > /3
 var _ = g.Describe("[sig-imageregistry][Feature:ImageMirror][Slow] Image mirror", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("image-mirror", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("image-mirror")
 
 	g.It("mirror image from integrated registry to external registry", func() {
 		g.By("get user credentials")

@@ -158,7 +158,7 @@ var (
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default cluster RBAC policy", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("default-rbac-policy", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("default-rbac-policy")
 
 	g.It("should have correct RBAC rules", func() {
 		kubeInformers := informers.NewSharedInformerFactory(oc.AdminKubeClient(), 20*time.Minute)

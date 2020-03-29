@@ -25,7 +25,7 @@ import (
 
 var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("templates", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("templates")
 
 	g.It("TestTemplate", func() {
 		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
@@ -98,7 +98,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 
 var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("templates", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("templates")
 
 	g.It("TestTemplateTransformationFromConfig", func() {
 		g.Skip("Bug 1731222: skip template tests until we determine what is broken")

@@ -13,7 +13,7 @@ var _ = g.Describe("[sig-cli] oc rsh", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc                     = exutil.NewCLI("oc-rsh", exutil.KubeConfigPath())
+		oc                     = exutil.NewCLI("oc-rsh")
 		multiContainersFixture = exutil.FixturePath("testdata", "cli", "pod-with-two-containers.yaml")
 		podsLabel              = exutil.ParseLabelsOrDie("name=hello-centos")
 	)

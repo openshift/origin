@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have container 
 		s2iBuildFixture    = exutil.FixturePath("testdata", "builds", "test-imageresolution-s2i-build.yaml")
 		dockerBuildFixture = exutil.FixturePath("testdata", "builds", "test-imageresolution-docker-build.yaml")
 		customBuildFixture = exutil.FixturePath("testdata", "builds", "test-imageresolution-custom-build.yaml")
-		oc                 = exutil.NewCLI("build-image-source", exutil.KubeConfigPath())
+		oc                 = exutil.NewCLI("build-image-source")
 		imageSourceLabel   = exutil.ParseLabelsOrDie("app=imagesourceapp")
 		imageDockerLabel   = exutil.ParseLabelsOrDie("app=imagedockerapp")
 		sourceBuildLabel   = exutil.ParseLabelsOrDie("openshift.io/build.name=imagesourcebuild")

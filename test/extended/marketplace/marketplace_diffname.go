@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-operator][Feature:Marketplace] Marketplace diff name te
 	defer g.GinkgoRecover()
 
 	var (
-		oc            = exutil.NewCLI("marketplace", exutil.KubeConfigPath())
+		oc            = exutil.NewCLI("marketplace")
 		allNs         = "openshift-operators"
 		marketplaceNs = "openshift-marketplace"
 		resourceWait  = 60 * time.Second

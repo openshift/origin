@@ -35,7 +35,7 @@ type sampleRepoConfig struct {
 func NewSampleRepoTest(c sampleRepoConfig) func() {
 	return func() {
 		defer g.GinkgoRecover()
-		var oc = exutil.NewCLI(c.repoName+"-repo-test", exutil.KubeConfigPath())
+		var oc = exutil.NewCLI(c.repoName + "-repo-test")
 
 		g.Context("", func() {
 			g.BeforeEach(func() {

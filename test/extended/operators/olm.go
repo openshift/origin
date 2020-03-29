@@ -156,7 +156,7 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc           = exutil.NewCLI("olm-23440", exutil.KubeConfigPath())
+		oc           = exutil.NewCLI("olm-23440")
 		operatorWait = 150 * time.Second
 
 		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")

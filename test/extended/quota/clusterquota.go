@@ -22,7 +22,7 @@ import (
 
 var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("crq", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("crq")
 
 	g.Describe("Cluster resource quota", func() {
 		g.It(fmt.Sprintf("should control resource limits across namespaces"), func() {

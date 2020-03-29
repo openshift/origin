@@ -234,8 +234,8 @@ func newRunTestCommand() *cobra.Command {
 				return err
 			}
 			exutil.TestContext.ReportDir = upgradeOpts.JUnitDir
-
-			return testOpt.Run(args)
+			exutil.WithCleanup(func() { err = testOpt.Run(args) })
+			return err
 		},
 	}
 	cmd.Flags().BoolVar(&testOpt.DryRun, "dry-run", testOpt.DryRun, "Print the test to run without executing them.")
