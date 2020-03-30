@@ -237,10 +237,12 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	etcddata.CreateTestCRDs(tt, crdClient, false, etcddata.GetCustomResourceDefinitionData()...)
 	defer func() {
 		deleteCRD := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete
+		// this list deletes crds created from upstream kubernetes/test/integration/etcd/data.go
 		if err := errors.NewAggregate([]error{
 			deleteCRD("foos.cr.bar.com", nil),
 			deleteCRD("pandas.awesome.bears.com", nil),
 			deleteCRD("pants.custom.fancy.com", nil),
+			deleteCRD("integers.random.numbers.com", nil),
 		}); err != nil {
 			t.Fatal(err)
 		}
