@@ -219,8 +219,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 					targets.Expect(labels{"job": "kubelet"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "kubelet"}, "up", "^https://.*/metrics/cadvisor$"),
 					targets.Expect(labels{"job": "node-exporter"}, "up", "^https://.*/metrics$"),
-					// FIXME(paulfantom): uncomment after https://github.com/openshift/cluster-monitoring-operator/pull/722 is merged
-					// targets.Expect(labels{"job": "prometheus-operator"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "prometheus-operator"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "alertmanager-main"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "crio"}, "up", "^http://.*/metrics$"),
 				)
