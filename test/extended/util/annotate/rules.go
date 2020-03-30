@@ -24,6 +24,7 @@ var (
 			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
 			`\[Feature:IPv6DualStack.*\]`,
 			`version v1 should create Endpoints and EndpointSlices for Pods matching a Service`, // off by default.
+			`\[Feature:ImmutableEphemeralVolume\]`,                                              // flag gate is off
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
