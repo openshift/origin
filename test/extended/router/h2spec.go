@@ -22,6 +22,8 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
+const h2specDialTimeoutInSeconds = 15
+
 type h2specFailingTest struct {
 	TestCase   *h2spec.JUnitTestCase
 	TestNumber int
@@ -152,40 +154,56 @@ func runConformanceTests(oc *exutil.CLI, t h2specRouteTypeTest) []*h2spec.JUnitT
 	podName := "h2spec"
 	e2e.ExpectNoError(oc.KubeFramework().WaitForPodRunning(podName))
 
-	outputFile, err := ioutil.TempFile("", "runConformanceTests")
-	o.Expect(err).NotTo(o.HaveOccurred())
-	defer os.Remove(outputFile.Name())
+	var results []*h2spec.JUnitTestSuite
 
-	g.By("Running the h2spec CLI test")
-	h2specOutput, h2specErr := e2e.RunHostCmd(oc.KubeFramework().Namespace.Name, podName, h2specCommand(t.hostname, outputFile.Name()))
-	if h2specErr != nil {
-		// We don't assert on a failure here; h2spec will exit
-		// with non-zero if _any_ test in the suite fails. We
-		// later assert on failing to copy the results,
-		// failing to read the results, failing to decode the
-		// results because there are no testsuites in the
-		// decoded results. We always expect at least one
-		// testsuite in the results.
-		e2e.Logf("[%s] h2spec: error=\n%s", t.routeType, h2specErr)
-	}
-	if h2specErr != nil && h2specErr.Error() != h2specOutput {
-		// Also log any output if different.
-		e2e.Logf("[%s] h2spec: output=\n%s", t.routeType, h2specOutput)
-	}
+	o.Expect(wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
+		g.By("Running the h2spec CLI test")
 
-	g.By(fmt.Sprintf("[%s] Copying %s:%q %q", t.routeType, podName, outputFile.Name(), outputFile.Name()))
-	cpErr := oc.Run("cp").Args(podName+":"+outputFile.Name(), outputFile.Name()).Execute()
-	o.Expect(cpErr).NotTo(o.HaveOccurred())
+		ns := oc.KubeFramework().Namespace.Name
+		outputFile, err := ioutil.TempFile("", "runConformanceTests")
+		if err != nil {
+			e2e.Logf("[%s] error: failed to generate tmp file: %v; retrying...", t.routeType, err)
+			return false, nil
+		}
+		defer os.Remove(outputFile.Name())
 
-	g.By(fmt.Sprintf("[%s] Reading %q", t.routeType, outputFile.Name()))
-	data, readErr := ioutil.ReadFile(outputFile.Name())
-	o.Expect(readErr).NotTo(o.HaveOccurred())
+		output, _ := e2e.RunHostCmd(ns, podName, h2specCommand(h2specDialTimeoutInSeconds, t.hostname, outputFile.Name()))
+		// h2spec will exit with non-zero if _any_ test in the
+		// suite fails, or if there is a dial timeout, so we
+		// ignore the error. We can exit from this loop if we
+		// can fetch the results, if we can decode the results
+		// and we have > 0 test suites from the decoded
+		// results.
 
-	g.By(fmt.Sprintf("[%s] Decoding %q", t.routeType, outputFile.Name()))
-	testSuites, err := h2spec.DecodeJUnitReport(strings.NewReader(string(data)))
-	o.Expect(err).NotTo(o.HaveOccurred())
+		g.By(fmt.Sprintf("[%s] Copying results from %s:%q", t.routeType, podName, outputFile.Name()))
+		data, err := e2e.RunHostCmd(ns, podName, fmt.Sprintf("cat %q", outputFile.Name()))
+		if err != nil {
+			e2e.Logf("[%s] error: failed to copy results: %v; retrying...", t.routeType, err)
+			return false, nil
+		}
+		if data == "" {
+			e2e.Logf("[%s] error: zero length results file; retrying...", t.routeType)
+			return false, nil
+		}
 
-	return testSuites
+		g.By(fmt.Sprintf("[%s] Decoding results", t.routeType))
+		testSuites, err := h2spec.DecodeJUnitReport(strings.NewReader(data))
+		if err != nil {
+			e2e.Logf("[%s] error: decoding results: %v; retrying...", t.routeType, err)
+			return false, nil
+		}
+		if len(testSuites) == 0 {
+			e2e.Logf("[%s] error: no test results found; retrying...", t.routeType)
+			return false, nil
+		}
+
+		// Log what we consider a successful run
+		e2e.Logf("[%s] h2spec results\n%s", t.routeType, output)
+		results = testSuites
+		return true, nil
+	})).NotTo(o.HaveOccurred())
+
+	return results
 }
 
 func runConformanceTestsAndLogAggregateFailures(oc *exutil.CLI, tests []h2specRouteTypeTest, iterations int) {
@@ -247,8 +265,8 @@ func getHostnameForRoute(oc *exutil.CLI, routeName string) string {
 	return hostname
 }
 
-func h2specCommand(hostname, results string) string {
-	return fmt.Sprintf("h2spec --tls --insecure --strict --host=%q --junit-report=%q", hostname, results)
+func h2specCommand(timeout int, hostname, results string) string {
+	return fmt.Sprintf("h2spec --timeout=%v --tls --insecure --strict --host=%q --junit-report=%q", timeout, hostname, results)
 }
 
 func (f h2specFailingTest) ID() string {
