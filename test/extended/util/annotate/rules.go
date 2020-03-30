@@ -227,7 +227,7 @@ var (
 			`\[Feature:GKELocalSSD\]`,
 			`\[Feature:GKENodePool\]`,
 		},
-		"[sig-cli]": {
+		"[Disabled:sig-cli]": {
 			// Removed in 1.18, skipping those to merge oc rebase before origin gets rebased to 1.18
 			// TODO(jchaloup): once origin is rebased to 1.18, remove the lines
 			"Kubectl alpha client Kubectl run CronJob should create a CronJob",
