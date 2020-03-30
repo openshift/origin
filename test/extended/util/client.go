@@ -532,8 +532,14 @@ func (c *CLI) Output() (string, error) {
 		c.stdout = bytes.NewBuffer(out)
 		return trimmed, nil
 	case *exec.ExitError:
-		framework.Logf("Error running %v:\n%s", cmd, trimmed)
-		return trimmed, &ExitError{ExitError: err.(*exec.ExitError), Cmd: c.execPath + " " + strings.Join(c.finalArgs, " "), StdErr: trimmed}
+		// avoid excessively long lines in the error output if a command generates a giant amount of logging
+		const maxLength = 809
+		shortened := trimmed
+		if len(shortened) > maxLength {
+			shortened = shortened[:maxLength/2] + "\n...\n" + shortened[len(shortened)-(maxLength/2):]
+		}
+		framework.Logf("Error running %v:\n%s", cmd, shortened)
+		return trimmed, &ExitError{ExitError: err.(*exec.ExitError), Cmd: c.execPath + " " + strings.Join(c.finalArgs, " "), StdErr: shortened}
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
 		// unreachable code
