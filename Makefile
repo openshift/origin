@@ -79,6 +79,7 @@ check: | build verify
 #
 # Example:
 #   make verify
+# TODO: remove verify-upstream-commits when CI is switched over
 verify: build
 	# build-tests task has been disabled until we can determine why memory usage is so high
 	{ \
@@ -96,6 +97,9 @@ verify: build
 	}
 .PHONY: verify
 
+verify-commits:
+	hack/verify-upstream-commits.sh
+.PHONY: verify-commits
 
 # Update all generated artifacts.
 #
