@@ -1,212 +1,287 @@
 package main
 
 import (
+	"flag"
+	goflag "flag"
 	"fmt"
-	"io/ioutil"
-	"log"
+	"io"
+	"math/rand"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
+	"time"
 
-	errorsutil "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/klog"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/library-go/pkg/serviceability"
+	"github.com/openshift/origin/pkg/monitor"
+	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
+	"github.com/openshift/origin/pkg/version"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func main() {
-	streams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
+	logs.InitLogs()
+	defer logs.FlushLogs()
 
-	testBinaries, err := getTestBinaries(streams)
-	if err != nil {
-		klog.Fatal(err)
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+
+	root := &cobra.Command{
+		Long: templates.LongDesc(`
+		OpenShift Tests
+
+		This command verifies behavior of an OpenShift cluster by running remote tests against
+		the cluster API that exercise functionality. In general these tests may be disruptive
+		or require elevated privileges - see the descriptions of each test suite.
+		`),
 	}
-	fmt.Fprintf(streams.ErrOut, "The following compatible plugins are available:\n%v\n\n", strings.Join(testBinaries, "\n"))
 
-	for _, testBinary := range testBinaries {
-		testCommand := exec.Command(testBinary, os.Args[1:]...)
-		testCommand.Stdout = streams.Out
-		testCommand.Stderr = streams.ErrOut
-		testCommand.Stdin = streams.In
+	root.AddCommand(
+		newRunCommand(),
+		newRunUpgradeCommand(),
+		newRunTestCommand(),
+		newRunMonitorCommand(),
+	)
 
-		if err := testCommand.Run(); err != nil {
-			klog.Fatal(err)
+	pflag.CommandLine = pflag.NewFlagSet("empty", pflag.ExitOnError)
+	flag.CommandLine = flag.NewFlagSet("empty", flag.ExitOnError)
+	exutil.InitStandardFlags()
+
+	if err := func() error {
+		defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
+		return root.Execute()
+	}(); err != nil {
+		if ex, ok := err.(testginkgo.ExitError); ok {
+			os.Exit(ex.Code)
 		}
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
-func getTestBinaries(streams genericclioptions.IOStreams) ([]string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Println(err)
+func newRunMonitorCommand() *cobra.Command {
+	monitorOpt := &monitor.Options{
+		Out:    os.Stdout,
+		ErrOut: os.Stderr,
 	}
-	executablePath, err := os.Executable()
-	if err != nil {
-		log.Println(err)
+	cmd := &cobra.Command{
+		Use:   "run-monitor",
+		Short: "Continuously verify the cluster is functional",
+		Long: templates.LongDesc(`
+		Run a continuous verification process
+
+		`),
+
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return monitorOpt.Run()
+		},
 	}
-	executableDir := filepath.Dir(executablePath)
-	testBinaryDirectories := []string{}
-	testBinaryDirectories = append(testBinaryDirectories, cwd)
-	testBinaryDirectories = append(testBinaryDirectories, executableDir)
-	testBinaryDirectories = append(testBinaryDirectories, filepath.SplitList(os.Getenv("PATH"))...)
+	return cmd
+}
 
-	warnings := 0
-	errors := []error{}
-	testBinaries := sets.String{}
-	verifier := &CommandOverrideVerifier{
-		//root:        cmd.Root(),
-		seenPlugins: make(map[string]string),
+func newRunCommand() *cobra.Command {
+	opt := &testginkgo.Options{
+		Suites: staticSuites,
 	}
-	for _, dir := range uniquePathsList(testBinaryDirectories) {
-		files, err := ioutil.ReadDir(dir)
-		if err != nil {
-			if _, ok := err.(*os.PathError); ok {
-				fmt.Fprintf(streams.ErrOut, "Unable read directory %q from your PATH: %v. Skipping...\n", dir, err)
-				continue
-			}
 
-			errors = append(errors, fmt.Errorf("error: unable to read directory %q in your PATH: %v", dir, err))
-			continue
-		}
+	cmd := &cobra.Command{
+		Use:   "run SUITE",
+		Short: "Run a test suite",
+		Long: templates.LongDesc(`
+		Run a test suite against an OpenShift server
 
-		for _, f := range files {
-			if f.IsDir() {
-				continue
-			}
-			if !nameMatchesTest(f.Name()) {
-				continue
-			}
+		This command will run one of the following suites against a cluster identified by the current
+		KUBECONFIG file. See the suite description for more on what actions the suite will take.
 
-			testBinaryPath := filepath.Join(dir, f.Name())
-			isSymlink, err := evalSymlink(testBinaryPath)
-			if err != nil {
-				log.Println(err)
-			}
-			if testBinaries.Has(testBinaryPath) || isSymlink {
-				continue
-			}
-			testBinaries.Insert(testBinaryPath)
+		If you specify the --dry-run argument, the names of each individual test that is part of the
+		suite will be printed, one per line. You may filter this list and pass it back to the run
+		command with the --file argument. You may also pipe a list of test names, one per line, on
+		standard input by passing "-f -".
 
-			fmt.Fprintf(streams.ErrOut, "%s\n", testBinaryPath)
-			if errs := verifier.Verify(streams, filepath.Join(dir, f.Name())); len(errs) != 0 {
-				for _, err := range errs {
-					fmt.Fprintf(streams.ErrOut, "  - %s\n", err)
-					warnings++
+		`) + testginkgo.SuitesString(opt.Suites, "\n\nAvailable test suites:\n\n"),
+
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return mirrorToFile(opt, func() error {
+				if !opt.DryRun {
+					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 				}
+				config, err := decodeProvider(opt.Provider, opt.DryRun, true)
+				if err != nil {
+					return err
+				}
+				opt.Provider = config.ToJSONString()
+				matchFn, err := initializeTestFramework(exutil.TestContext, config, opt.DryRun)
+				if err != nil {
+					return err
+				}
+				opt.MatchFn = matchFn
+				return opt.Run(args)
+			})
+		},
+	}
+	bindOptions(opt, cmd.Flags())
+	return cmd
+}
+
+func newRunUpgradeCommand() *cobra.Command {
+	opt := &testginkgo.Options{Suites: upgradeSuites}
+	upgradeOpt := &UpgradeOptions{}
+
+	cmd := &cobra.Command{
+		Use:   "run-upgrade SUITE",
+		Short: "Run an upgrade suite",
+		Long: templates.LongDesc(`
+		Run an upgrade test suite against an OpenShift server
+
+		This command will run one of the following suites against a cluster identified by the current
+		KUBECONFIG file. See the suite description for more on what actions the suite will take.
+
+		If you specify the --dry-run argument, the actions the suite will take will be printed to the
+		output.
+
+		Supported options:
+
+		* abort-at=NUMBER - Set to a number between 0 and 100 to control the percent of operators
+		at which to stop the current upgrade and roll back to the current version.
+		* disrupt-reboot=POLICY - During upgrades, periodically reboot master nodes. If set to 'graceful'
+		the reboot will allow the node to shut down services in an orderly fashion. If set to 'force' the
+		machine will terminate immediately without clean shutdown.
+
+		`) + testginkgo.SuitesString(opt.Suites, "\n\nAvailable upgrade suites:\n\n"),
+
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return mirrorToFile(opt, func() error {
+				if len(upgradeOpt.ToImage) == 0 {
+					return fmt.Errorf("--to-image must be specified to run an upgrade test")
+				}
+
+				if len(args) > 0 {
+					for _, suite := range opt.Suites {
+						if suite.Name == args[0] {
+							upgradeOpt.Suite = suite.Name
+							upgradeOpt.JUnitDir = opt.JUnitDir
+							value := upgradeOpt.ToEnv()
+							if _, err := initUpgrade(value); err != nil {
+								return err
+							}
+							opt.SuiteOptions = value
+							break
+						}
+					}
+				}
+
+				config, err := decodeProvider(opt.Provider, opt.DryRun, true)
+				if err != nil {
+					return err
+				}
+				opt.Provider = config.ToJSONString()
+				matchFn, err := initializeTestFramework(exutil.TestContext, config, opt.DryRun)
+				if err != nil {
+					return err
+				}
+				opt.MatchFn = matchFn
+				return opt.Run(args)
+			})
+		},
+	}
+
+	bindOptions(opt, cmd.Flags())
+	bindUpgradeOptions(upgradeOpt, cmd.Flags())
+	return cmd
+}
+
+func newRunTestCommand() *cobra.Command {
+	testOpt := &testginkgo.TestOptions{
+		Out:    os.Stdout,
+		ErrOut: os.Stderr,
+	}
+
+	cmd := &cobra.Command{
+		Use:   "run-test NAME",
+		Short: "Run a single test by name",
+		Long: templates.LongDesc(`
+		Execute a single test
+
+		This executes a single test by name. It is used by the run command during suite execution but may also
+		be used to test in isolation while developing new tests.
+		`),
+
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			upgradeOpts, err := initUpgrade(os.Getenv("TEST_SUITE_OPTIONS"))
+			if err != nil {
+				return err
 			}
-		}
+			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false)
+			if err != nil {
+				return err
+			}
+			if _, err := initializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
+				return err
+			}
+			exutil.TestContext.ReportDir = upgradeOpts.JUnitDir
+			exutil.WithCleanup(func() { err = testOpt.Run(args) })
+			return err
+		},
 	}
-	if warnings > 0 {
-		if warnings == 1 {
-			errors = append(errors, fmt.Errorf("error: one plugin warning was found"))
-		} else {
-			errors = append(errors, fmt.Errorf("error: %v plugin warnings were found", warnings))
-		}
-	}
-	if len(testBinaries) == 0 {
-		errors = append(errors, fmt.Errorf("error: unable to find any kubectl plugins in your PATH"))
-	}
-	if len(errors) > 0 {
-		return nil, errorsutil.NewAggregate(errors)
-	}
-
-	return testBinaries.List(), nil
+	cmd.Flags().BoolVar(&testOpt.DryRun, "dry-run", testOpt.DryRun, "Print the test to run without executing them.")
+	return cmd
 }
 
-type CommandOverrideVerifier struct {
-	//root        *cobra.Command
-	seenPlugins map[string]string
-}
+// mirrorToFile ensures a copy of all output goes to the provided OutFile, including
+// any error returned from fn. The function returns fn() or any error encountered while
+// attempting to open the file.
+func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
+	if opt.Out == nil {
+		opt.Out = os.Stdout
+	}
+	if opt.ErrOut == nil {
+		opt.ErrOut = os.Stderr
+	}
+	if len(opt.OutFile) == 0 {
+		return fn()
+	}
 
-// evalSymlink returns true if provided path is a symlink
-func evalSymlink(path string) (bool, error) {
-	link, err := filepath.EvalSymlinks(path)
+	f, err := os.OpenFile(opt.OutFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0640)
 	if err != nil {
-		return false, err
+		return err
 	}
-	if len(link) != 0 {
-		if link != path {
-			return true, nil
-		}
+	opt.Out = io.MultiWriter(opt.Out, f)
+	opt.ErrOut = io.MultiWriter(opt.ErrOut, f)
+	exitErr := fn()
+	if exitErr != nil {
+		fmt.Fprintf(f, "error: %s", exitErr)
 	}
-	return false, nil
+	if err := f.Close(); err != nil {
+		fmt.Fprintf(opt.ErrOut, "error: Unable to close output file\n")
+	}
+	return exitErr
 }
 
-// Verify implements PathVerifier and determines if a given path
-// is valid depending on whether or not it overwrites an existing
-// kubectl command path, or a previously seen plugin.
-func (v *CommandOverrideVerifier) Verify(streams genericclioptions.IOStreams, path string) []error {
-	//if v.root == nil {
-	//	return []error{fmt.Errorf("unable to verify path with nil root")}
-	//}
-
-	// extract the plugin binary name
-	segs := strings.Split(path, "/")
-	binName := segs[len(segs)-1]
-
-	cmdPath := strings.Split(binName, "-")
-	if len(cmdPath) > 1 {
-		// the first argument is always "kubectl" for a plugin binary
-		cmdPath = cmdPath[1:]
-	}
-
-	errors := []error{}
-
-	if isExec, err := isExecutable(path); err == nil && !isExec {
-		errors = append(errors, fmt.Errorf("warning: %s identified as a kubectl plugin, but it is not executable", path))
-	} else if err != nil {
-		errors = append(errors, fmt.Errorf("error: unable to identify %s as an executable file: %v", path, err))
-	}
-
-	if existingPath, ok := v.seenPlugins[binName]; ok {
-		fmt.Fprintf(streams.ErrOut, "warning: %s is overshadowed by a similarly named plugin: %s\n", path, existingPath)
-	} else {
-		v.seenPlugins[binName] = path
-	}
-
-	//if cmd, _, err := v.root.Find(cmdPath); err == nil {
-	//	errors = append(errors, fmt.Errorf("warning: %s overwrites existing command: %q", binName, cmd.CommandPath()))
-	//}
-
-	return errors
-}
-
-func isExecutable(fullPath string) (bool, error) {
-	info, err := os.Stat(fullPath)
-	if err != nil {
-		return false, err
-	}
-
-	if m := info.Mode(); !m.IsDir() && m&0111 != 0 {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-// uniquePathsList deduplicates a given slice of strings without
-// sorting or otherwise altering its order in any way.
-func uniquePathsList(paths []string) []string {
-	seen := map[string]bool{}
-	newPaths := []string{}
-	for _, p := range paths {
-		if seen[p] {
-			continue
-		}
-		seen[p] = true
-		newPaths = append(newPaths, p)
-	}
-	return newPaths
-}
-
-func nameMatchesTest(filepath string) bool {
-	for _, prefix := range []string{"openshift-tests"} {
-		if !strings.HasPrefix(filepath, prefix+"-") {
-			continue
-		}
-		return true
-	}
-
-	return false
+func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
+	flags.BoolVar(&opt.DryRun, "dry-run", opt.DryRun, "Print the tests to run without executing them.")
+	flags.BoolVar(&opt.PrintCommands, "print-commands", opt.PrintCommands, "Print the sub-commands that would be executed instead.")
+	flags.StringVar(&opt.JUnitDir, "junit-dir", opt.JUnitDir, "The directory to write test reports to.")
+	flags.StringVar(&opt.Provider, "provider", opt.Provider, "The cluster infrastructure provider. Will automatically default to the correct value.")
+	flags.StringVarP(&opt.TestFile, "file", "f", opt.TestFile, "Create a suite from the newline-delimited test names in this file.")
+	flags.StringVar(&opt.Regex, "run", opt.Regex, "Regular expression of tests to run.")
+	flags.StringVarP(&opt.OutFile, "output-file", "o", opt.OutFile, "Write all test output to this file.")
+	flags.IntVar(&opt.Count, "count", opt.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value.")
+	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
+	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
+	flags.IntVar(&opt.Parallelism, "max-parallel-tests", opt.Parallelism, "Maximum number of tests running in parallel. 0 defaults to test suite recommended value, which is different in each suite.")
 }
