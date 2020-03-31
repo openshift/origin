@@ -127,8 +127,8 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 
 			g.Describe("override environment", func() {
 				g.It("should accept environment variables", func() {
-					g.By("starting the build with -e FOO=bar,VAR=test")
-					br, err := exutil.StartBuildAndWait(oc, "sample-build", "-e", "FOO=bar,VAR=test")
+					g.By("starting the build with -e FOO=bar,-e VAR=test")
+					br, err := exutil.StartBuildAndWait(oc, "sample-build", "-e", "FOO=bar", "-e", "VAR=test")
 					br.AssertSuccess()
 					verifyNodeSelector(oc, br.BuildName)
 					buildLog, err := br.Logs()
