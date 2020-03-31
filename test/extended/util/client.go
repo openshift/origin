@@ -294,7 +294,7 @@ func (c *CLI) CreateProject() string {
 }
 
 func (c *CLI) DebugSCCForbidden() {
-	sccList, err := c.AsAdmin().AdminSecurityClient().SecurityV1().SecurityContextConstraints().List(metav1.ListOptions{})
+	sccList, err := c.AsAdmin().AdminSecurityClient().SecurityV1().SecurityContextConstraints().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		framework.Logf("error trying to dump SCC for failure debug: %s", err.Error())
 		return

@@ -1,7 +1,9 @@
 package image_ecosystem
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -23,8 +25,36 @@ func getPodNameForTest(image string, t tc) string {
 	return fmt.Sprintf("%s-%s-centos7", image, t.Version)
 }
 
-func debugSCCForbidden(err error, oc *exutil.CLI) {
+func debugSCCForbidden(err error, oc *exutil.CLI, podName string) {
 	if err != nil && kapierrors.IsForbidden(err) {
+		p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), podName, metav1.GetOptions{})
+		if e != nil {
+			e2e.Logf("debugSCCForbidden could not refetch pod: %s", e.Error())
+		} else {
+			data, e := json.MarshalIndent(p, "", "    ")
+			if e != nil {
+				e2e.Logf("debugSCCForbidden could not marshal pod: %s", e.Error())
+			} else {
+				buf := bytes.Buffer{}
+				data = append(data, '\n')
+				buf.Write(data)
+				e2e.Logf("SCC debug pod yaml:\n%s", buf.String())
+			}
+		}
+		n, e := oc.KubeClient().CoreV1().Namespaces().Get(context.Background(), oc.Namespace(), metav1.GetOptions{})
+		if e != nil {
+			e2e.Logf("debugSCCForbidden could not fetch namespace: %s", e.Error())
+		} else {
+			data, e := json.MarshalIndent(n, "", "    ")
+			if e != nil {
+				e2e.Logf("debugSCCForbidden could not marshal namespace: %s", e.Error())
+			} else {
+				buf := bytes.Buffer{}
+				data = append(data, '\n')
+				buf.Write(data)
+				e2e.Logf("SCC debug namespace yaml:\n%s", buf.String())
+			}
+		}
 		oc.DebugSCCForbidden()
 	}
 }
@@ -44,7 +74,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			})
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			if err != nil {
-				debugSCCForbidden(err, oc)
+				debugSCCForbidden(err, oc, pod.Name)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -63,6 +93,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			err = wait.Poll(1*time.Second, 10*time.Second, func() (bool, error) {
 				log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw(context.Background())
 				if err != nil {
+					debugSCCForbidden(err, oc, pod.Name)
 					return false, err
 				}
 				e2e.Logf("got log %v from pod %v", string(log), pod.Name)
@@ -86,7 +117,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			if err != nil {
-				debugSCCForbidden(err, oc)
+				debugSCCForbidden(err, oc, pod.Name)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -104,6 +135,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			err = wait.Poll(1*time.Second, 10*time.Second, func() (bool, error) {
 				log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw(context.Background())
 				if err != nil {
+					debugSCCForbidden(err, oc, pod.Name)
 					return false, err
 				}
 				e2e.Logf("got log %v from pod %v", string(log), pod.Name)
