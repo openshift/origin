@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -49,6 +50,31 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							if obj.Count > 1 {
 								message += fmt.Sprintf(" (%d times)", obj.Count)
 							}
+							// special case some very common events
+							switch obj.Reason {
+							case "":
+							case "Scheduled":
+								if obj.InvolvedObject.Kind == "Pod" {
+									if strings.HasPrefix(message, "Successfully assigned ") {
+										if i := strings.Index(message, " to "); i != -1 {
+											node := message[i+4:]
+											message = fmt.Sprintf("node/%s reason/%s", node, obj.Reason)
+											break
+										}
+									}
+								}
+								message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
+							case "Started", "Created", "Pulling", "Pulled", "Killing":
+								if obj.InvolvedObject.Kind == "Pod" {
+									if containerName, ok := eventForContainer(obj.InvolvedObject.FieldPath); ok {
+										message = fmt.Sprintf("container/%s reason/%s", containerName, obj.Reason)
+										break
+									}
+								}
+								message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
+							default:
+								message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
+							}
 							condition := Condition{
 								Level:   Info,
 								Locator: locateEvent(obj),
@@ -82,4 +108,19 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 			}
 		}
 	}()
+}
+
+func eventForContainer(fieldPath string) (string, bool) {
+	if !strings.HasSuffix(fieldPath, "}") {
+		return "", false
+	}
+	fieldPath = strings.TrimSuffix(fieldPath, "}")
+	switch {
+	case strings.HasPrefix(fieldPath, "spec.containers{"):
+		return strings.TrimPrefix(fieldPath, "spec.containers{"), true
+	case strings.HasPrefix(fieldPath, "spec.initContainers{"):
+		return strings.TrimPrefix(fieldPath, "spec.initContainers{"), true
+	default:
+		return "", false
+	}
 }
