@@ -10,8 +10,9 @@
   "spec":{
     "triggers":[],
     "source":{
+      "type":"Source",
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
+        "uri":"https://github.com/sclorg/nodejs-ex"
       },
       "dockerfile": "FROM docker.io/busybox:latest"
     },

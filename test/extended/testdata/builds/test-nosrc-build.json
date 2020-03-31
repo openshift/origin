@@ -23,9 +23,9 @@
         "creationTimestamp": null
       },
       "spec": {
-        "triggers": [
-        ],
+        "triggers": [],
         "source": {
+          "type": "Source"
         },
         "strategy": {
           "type": "Source",

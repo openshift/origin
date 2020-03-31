@@ -16,10 +16,12 @@
       }
     },
     "source": {
+      "type": "Binary",
       "binary": {
         "asFile": ""
-      }          
+      }
     },
+    "triggers": [],
     "strategy": {
       "type": "Source",
       "sourceStrategy": {

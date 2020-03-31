@@ -19,8 +19,8 @@ items:
     - name: weightedendpoints2
       kind: Service
       weight: 50
-    ports:
-    - targetPort: 8080
+    port:
+      targetPort: 8080
 
 # a route that has multiple services but all weights are zero
 - apiVersion: v1
@@ -40,8 +40,8 @@ items:
     - name: weightedendpoints2
       kind: Service
       weight: 0
-    ports:
-    - targetPort: 8080
+    port:
+      targetPort: 8080
 
 # two services that can be routed to
 - apiVersion: v1

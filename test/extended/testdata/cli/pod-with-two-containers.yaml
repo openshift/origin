@@ -14,10 +14,6 @@ spec:
     resources:
       limits:
         memory: 256Mi
-    terminationMessagePath: "/dev/termination-log"
-    imagePullPolicy: IfNotPresent
-    capabilities: {}
-    securityContext: {}
   - name: hello-centos-2
     image: docker.io/centos:centos7
     command:
@@ -26,11 +22,4 @@ spec:
     resources:
       limits:
         memory: 256Mi
-    terminationMessagePath: "/dev/termination-log1"
-    imagePullPolicy: IfNotPresent
-    capabilities: {}
-    securityContext: {}
   restartPolicy: Always
-  dnsPolicy: ClusterFirst
-  serviceAccount: ''
-status: {}

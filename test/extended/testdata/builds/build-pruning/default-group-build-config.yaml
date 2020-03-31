@@ -7,6 +7,7 @@ spec:
     type: Git
     git:
       uri: 'https://github.com/sclorg/cakephp-ex.git'
+  triggers: []
   strategy:
     type: Source
     sourceStrategy:

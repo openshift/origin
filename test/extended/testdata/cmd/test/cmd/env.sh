@@ -39,9 +39,12 @@ metadata:
   name: fake-pipeline
 spec:
   source:
+    type: Git
     git:
       uri: git://github.com/openshift/ruby-hello-world.git
+  triggers: []
   strategy:
+    type: JenkinsPipeline
     jenkinsPipelineStrategy: {}
 ' | oc create -f -"
 

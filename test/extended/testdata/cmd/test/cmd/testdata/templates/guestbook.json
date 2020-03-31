@@ -24,8 +24,7 @@
           "kind": "Service",
           "name": "frontend-service"
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "Service",

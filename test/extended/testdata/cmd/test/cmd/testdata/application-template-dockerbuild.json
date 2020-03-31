@@ -65,8 +65,7 @@
         "tls": {
           "termination": "edge"
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "ImageStream",
@@ -293,8 +292,7 @@
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "Service",
@@ -413,8 +411,7 @@
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     }
   ],
   "parameters": [

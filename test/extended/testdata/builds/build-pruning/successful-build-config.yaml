@@ -9,8 +9,11 @@ metadata:
 spec:
   successfulBuildsHistoryLimit: 2
   source:
+    type: Dockerfile
     dockerfile: |
       FROM busybox
       RUN touch /php-file
+  triggers: []
   strategy:
+    type: Docker
     dockerStrategy: {}

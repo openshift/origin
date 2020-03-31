@@ -40,4 +40,3 @@ spec:
         name: vol1
   triggers:
   - type: ConfigChange
-status: {}

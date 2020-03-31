@@ -6,7 +6,8 @@ items:
     creationTimestamp: null
     name: basic-user2
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - user.openshift.io
     attributeRestrictions: null
     resourceNames:
     - "~"
@@ -14,20 +15,23 @@ items:
     - users
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projectrequests
     verbs:
     - list
-  - apiGroups: null
+  - apiGroups:
+    - rbac.authorization.k8s.io
     attributeRestrictions: null
     resources:
     - clusterroles
     verbs:
     - get
     - list
-  - apiGroups: null
+  - apiGroups:
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects

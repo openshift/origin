@@ -12,6 +12,7 @@ spec:
     type: Git
     git:
       uri: 'https://github.com/openshift/non-working-example.git'
+  triggers: []
   strategy:
     type: Source
     sourceStrategy:

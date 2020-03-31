@@ -6389,8 +6389,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
         "tls": {
           "termination": "edge"
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "ImageStream",
@@ -6617,8 +6616,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "Service",
@@ -6737,8 +6735,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     }
   ],
   "parameters": [
@@ -19189,6 +19186,7 @@ spec:
     type: Git
     git:
       uri: 'https://github.com/sclorg/cakephp-ex.git'
+  triggers: []
   strategy:
     type: Source
     sourceStrategy:
@@ -19265,6 +19263,7 @@ spec:
     git:
       uri: 'https://github.com/sclorg/cakephp-ex.git'
       ref: master
+  triggers: []
   strategy:
     type: Source
     sourceStrategy:
@@ -19308,6 +19307,7 @@ spec:
     type: Git
     git:
       uri: 'https://github.com/openshift/non-working-example.git'
+  triggers: []
   strategy:
     type: Source
     sourceStrategy:
@@ -19394,11 +19394,15 @@ metadata:
 spec:
   successfulBuildsHistoryLimit: 2
   source:
+    type: Dockerfile
     dockerfile: |
       FROM busybox
       RUN touch /php-file
+  triggers: []
   strategy:
-    dockerStrategy: {}`)
+    type: Docker
+    dockerStrategy: {}
+`)
 
 func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, nil
@@ -21447,6 +21451,7 @@ var _testExtendedTestdataBuildsTestBuildRevisionJson = []byte(`{
             "uri": "git://github.com/openshift/ruby-hello-world.git"
           }
         },
+        "triggers": [],
         "strategy": {
           "type": "Source",
           "sourceStrategy": {
@@ -21762,6 +21767,7 @@ items:
       type: Git
       git:
         uri: https://server1.example.com/path
+    triggers: []
     strategy:
       type: Source
       sourceStrategy:
@@ -21777,6 +21783,7 @@ items:
       type: Git
       git:
         uri: ssh://server1.example.com/path
+    triggers: []
     strategy:
       type: Source
       sourceStrategy:
@@ -21792,6 +21799,7 @@ items:
       type: Git
       git:
         uri: https://test.com/path
+    triggers: []
     strategy:
       type: Source
       sourceStrategy:
@@ -21807,6 +21815,7 @@ items:
       type: Git
       git:
         uri: http://test.com/path
+    triggers: []
     strategy:
       type: Source
       sourceStrategy:
@@ -22116,6 +22125,7 @@ items:
     annotations:
       template.alpha.openshift.io/wait-for-ready: 'true'
   spec:
+    triggers: []
     strategy:
       type: Custom
       customStrategy:
@@ -22189,8 +22199,10 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
+        "type": "Dockerfile",
         "dockerfile": "FROM docker.io/busybox:latest"
       },
+      "triggers": [],
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
@@ -22219,8 +22231,10 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
+        "type": "Dockerfile",
         "dockerfile": "FROM docker.io/busybox:latest"
       },
+      "triggers": [],
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
@@ -22263,8 +22277,9 @@ var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
   "spec":{
     "triggers":[],
     "source":{
+      "type":"Source",
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
+        "uri":"https://github.com/sclorg/nodejs-ex"
       },
       "dockerfile": "FROM docker.io/busybox:latest"
     },
@@ -22889,9 +22904,9 @@ var _testExtendedTestdataBuildsTestNosrcBuildJson = []byte(`{
         "creationTimestamp": null
       },
       "spec": {
-        "triggers": [
-        ],
+        "triggers": [],
         "source": {
+          "type": "Source"
         },
         "strategy": {
           "type": "Source",
@@ -22941,10 +22956,12 @@ var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
       }
     },
     "source": {
+      "type": "Binary",
       "binary": {
         "asFile": ""
-      }          
+      }
     },
+    "triggers": [],
     "strategy": {
       "type": "Source",
       "sourceStrategy": {
@@ -23154,6 +23171,7 @@ spec:
   triggers: []
   runPolicy: Serial
   source:
+    type: Dockerfile
     dockerfile:
       'FROM busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6'
   strategy:
@@ -23282,8 +23300,10 @@ spec:
   triggers: []
   runPolicy: Serial
   source:
+    type: Dockerfile
     dockerfile:
       'FROM busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6'
+  triggers: []
   strategy:
     type: Docker
     dockerStrategy:
@@ -24914,10 +24934,6 @@ spec:
     resources:
       limits:
         memory: 256Mi
-    terminationMessagePath: "/dev/termination-log"
-    imagePullPolicy: IfNotPresent
-    capabilities: {}
-    securityContext: {}
   - name: hello-centos-2
     image: docker.io/centos:centos7
     command:
@@ -24926,14 +24942,7 @@ spec:
     resources:
       limits:
         memory: 256Mi
-    terminationMessagePath: "/dev/termination-log1"
-    imagePullPolicy: IfNotPresent
-    capabilities: {}
-    securityContext: {}
   restartPolicy: Always
-  dnsPolicy: ClusterFirst
-  serviceAccount: ''
-status: {}
 `)
 
 func testExtendedTestdataCliPodWithTwoContainersYamlBytes() ([]byte, error) {
@@ -32058,9 +32067,12 @@ metadata:
   name: fake-pipeline
 spec:
   source:
+    type: Git
     git:
       uri: git://github.com/openshift/ruby-hello-world.git
+  triggers: []
   strategy:
+    type: JenkinsPipeline
     jenkinsPipelineStrategy: {}
 ' | oc create -f -"
 
@@ -39030,8 +39042,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
         "tls": {
           "termination": "edge"
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "ImageStream",
@@ -39258,8 +39269,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "Service",
@@ -39378,8 +39388,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     }
   ],
   "parameters": [
@@ -42230,6 +42239,7 @@ items:
     kind: DockerImage
   dockerImageMetadataVersion: "1.0"
   dockerImageReference: registry/namespace/name
+  dockerImageLayers: []
   kind: Image
   metadata:
     annotations:
@@ -44646,7 +44656,8 @@ items:
     creationTimestamp: null
     name: basic-user2
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - user.openshift.io
     attributeRestrictions: null
     resourceNames:
     - "~"
@@ -44654,20 +44665,23 @@ items:
     - users
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projectrequests
     verbs:
     - list
-  - apiGroups: null
+  - apiGroups:
+    - rbac.authorization.k8s.io
     attributeRestrictions: null
     resources:
     - clusterroles
     verbs:
     - get
     - list
-  - apiGroups: null
+  - apiGroups:
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects
@@ -45266,8 +45280,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJson = []byte(`{
           "kind": "Service",
           "name": "frontend-service"
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "Service",
@@ -46217,7 +46230,6 @@ spec:
         name: vol1
   triggers:
   - type: ConfigChange
-status: {}
 `)
 
 func testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYamlBytes() ([]byte, error) {
@@ -46346,6 +46358,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestImageJson = []byte(`{
     "ContainerConfig": {},
     "Config": {}
   },
+  "dockerImageLayers": [],
   "dockerImageMetadataVersion": "1.0"
 }
 `)
@@ -46466,8 +46479,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestRouteJson = []byte(`{
       "kind": "Service",
       "name": "testservice"
     }
-  },
-  "status": {}
+  }
 }
 `)
 
@@ -50520,6 +50532,7 @@ var _testExtendedTestdataImageTestImageJson = []byte(`{
     "ContainerConfig": {},
     "Config": {}
   },
+  "dockerImageLayers": [],
   "dockerImageMetadataVersion": "1.0"
 }
 `)
@@ -54145,7 +54158,8 @@ items:
     creationTimestamp: null
     name: basic-user2
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - user.openshift.io
     attributeRestrictions: null
     resourceNames:
     - "~"
@@ -54153,20 +54167,23 @@ items:
     - users
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projectrequests
     verbs:
     - list
-  - apiGroups: null
+  - apiGroups:
+    - rbac.authorization.k8s.io
     attributeRestrictions: null
     resources:
     - clusterroles
     verbs:
     - get
     - list
-  - apiGroups: null
+  - apiGroups:
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects
@@ -55336,8 +55353,8 @@ items:
     - name: weightedendpoints2
       kind: Service
       weight: 50
-    ports:
-    - targetPort: 8080
+    port:
+      targetPort: 8080
 
 # a route that has multiple services but all weights are zero
 - apiVersion: v1
@@ -55357,8 +55374,8 @@ items:
     - name: weightedendpoints2
       kind: Service
       weight: 0
-    ports:
-    - targetPort: 8080
+    port:
+      targetPort: 8080
 
 # two services that can be routed to
 - apiVersion: v1
@@ -56425,8 +56442,7 @@ var _testExtendedTestdataTemplatesGuestbookJson = []byte(`{
           "kind": "Service",
           "name": "frontend-service"
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "Service",
@@ -58320,7 +58336,6 @@ spec:
         name: vol1
   triggers:
   - type: ConfigChange
-status: {}
 `)
 
 func testIntegrationTestdataTestDeploymentConfigYamlBytes() ([]byte, error) {
@@ -58426,6 +58441,7 @@ var _testIntegrationTestdataTestImageJson = []byte(`{
     "ContainerConfig": {},
     "Config": {}
   },
+  "dockerImageLayers": [],
   "dockerImageMetadataVersion": "1.0"
 }
 `)
@@ -58509,8 +58525,7 @@ var _testIntegrationTestdataTestRouteJson = []byte(`{
       "kind": "Service",
       "name": "testservice"
     }
-  },
-  "status": {}
+  }
 }
 `)
 
