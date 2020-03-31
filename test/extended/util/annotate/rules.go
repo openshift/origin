@@ -243,6 +243,7 @@ var (
 			"Kubectl client Kubectl run pod should create a pod from an image when restart is Never",
 			"Kubectl client Kubectl replace should update a single-container pod's image",
 			"Kubectl client Kubectl run --rm job should create a job from an image, then delete the job",
+			"Kubectl client Update Demo should do a rolling update of a replication controller",
 		},
 	}
 
