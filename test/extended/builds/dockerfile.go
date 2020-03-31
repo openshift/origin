@@ -31,6 +31,7 @@ USER 1001
 FROM scratch
 USER 1001
 `
+		dockerfileAddEnv = exutil.FixturePath("testdata", "builds", "docker-add", "docker-add-env")
 	)
 
 	g.Context("", func() {
@@ -144,6 +145,18 @@ USER 1001
 				o.Expect(logs).To(o.ContainSubstring("no such file or directory"))
 			})
 
+			g.It("testing build image with dockerfile contains a file path uses a variable in its name", func() {
+				// https://bugzilla.redhat.com/show_bug.cgi?id=1810174
+				g.By("creating a build")
+				err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name=buildah-env").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, err := exutil.StartBuildAndWait(oc, "buildah-env", fmt.Sprintf("--from-dir=%s", dockerfileAddEnv))
+				br.AssertSuccess()
+				g.By("build log should not have error about no file or directory")
+				logs, err := br.Logs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(logs).ToNot(o.ContainSubstring("/f\": no such file or directory"))
+			})
 		})
 	})
 })

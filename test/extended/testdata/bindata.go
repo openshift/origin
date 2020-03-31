@@ -92,6 +92,8 @@
 // test/extended/testdata/builds/custom-build/Dockerfile.sample
 // test/extended/testdata/builds/custom-build/build.sh
 // test/extended/testdata/builds/docker-add/Dockerfile
+// test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile
+// test/extended/testdata/builds/docker-add/docker-add-env/foo
 // test/extended/testdata/builds/incremental-auth-build.json
 // test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml
 // test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml
@@ -20431,6 +20433,43 @@ func testExtendedTestdataBuildsDockerAddDockerfile() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/docker-add/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile = []byte(`FROM centos
+ENV foo=foo
+ADD ./${foo} /tmp/foo
+`)
+
+func testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile, nil
+}
+
+func testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsDockerAddDockerAddEnvFoo = []byte(``)
+
+func testExtendedTestdataBuildsDockerAddDockerAddEnvFooBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsDockerAddDockerAddEnvFoo, nil
+}
+
+func testExtendedTestdataBuildsDockerAddDockerAddEnvFoo() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsDockerAddDockerAddEnvFooBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/docker-add/docker-add-env/foo", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -58427,6 +58466,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/custom-build/Dockerfile.sample": testExtendedTestdataBuildsCustomBuildDockerfileSample,
 	"test/extended/testdata/builds/custom-build/build.sh": testExtendedTestdataBuildsCustomBuildBuildSh,
 	"test/extended/testdata/builds/docker-add/Dockerfile": testExtendedTestdataBuildsDockerAddDockerfile,
+	"test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile": testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile,
+	"test/extended/testdata/builds/docker-add/docker-add-env/foo": testExtendedTestdataBuildsDockerAddDockerAddEnvFoo,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
 	"test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml": testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml,
 	"test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml": testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml,
@@ -58993,6 +59034,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"docker-add": &bintree{nil, map[string]*bintree{
 						"Dockerfile": &bintree{testExtendedTestdataBuildsDockerAddDockerfile, map[string]*bintree{}},
+						"docker-add-env": &bintree{nil, map[string]*bintree{
+							"Dockerfile": &bintree{testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile, map[string]*bintree{}},
+							"foo": &bintree{testExtendedTestdataBuildsDockerAddDockerAddEnvFoo, map[string]*bintree{}},
+						}},
 					}},
 					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
 					"pullsecret": &bintree{nil, map[string]*bintree{
