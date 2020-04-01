@@ -101,6 +101,9 @@ var (
 
 			// TODO(sdn): test pod fails to connect in 1.16
 			`should allow ingress access from updated pod`,
+
+			// A fix is in progress: https://github.com/openshift/origin/pull/24709
+			`Multi-AZ Clusters should spread the pods of a replication controller across zones`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -141,7 +144,7 @@ var (
 			`should allow starting 95 pods per node`,
 			`DynamicProvisioner should test that deleting a claim before the volume is provisioned deletes the volume`, // test is very disruptive to other tests
 
-			`Multi-AZ Clusters should spread the pods`, // spreading is a priority, not a predicate, and if the node is temporarily full the priority will be ignored
+			`Multi-AZ Clusters should spread the pods of a service across zones`, // spreading is a priority, not a predicate, and if the node is temporarily full the priority will be ignored
 
 			`Should be able to support the 1\.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
 
