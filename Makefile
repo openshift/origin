@@ -45,7 +45,7 @@ all build:
 #   make build-all
 build-all:
 	hack/build-go.sh
-	hack/build-go.sh cmd/openshift-tests cmd/openshift-tests-kubernetes
+	hack/build-go.sh cmd/openshift-tests
 .PHONY: build-all
 
 # Build the test binaries.
@@ -56,7 +56,7 @@ build-tests: build-extended-test
 .PHONY: build-tests
 
 build-extended-test:
-	hack/build-go.sh cmd/openshift-tests cmd/openshift-tests-kubernetes
+	hack/build-go.sh cmd/openshift-tests
 .PHONY: build-extended-test
 
 build-docs:
