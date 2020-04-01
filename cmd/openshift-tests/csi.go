@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift/origin/test/extended/csi"
-
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/storage/external"
+
+	"github.com/openshift/origin/test/extended/csi"
 )
 
 const (

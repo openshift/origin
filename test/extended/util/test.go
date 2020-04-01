@@ -156,7 +156,10 @@ func WithCleanup(fn func()) {
 	fixtureDir, init := fixtureDirectory()
 	if init {
 		os.Setenv("OS_TEST_FIXTURE_DIR", fixtureDir)
-		defer os.RemoveAll(fixtureDir)
+		defer func() {
+			os.Setenv("OS_TEST_FIXTURE_DIR", "")
+			os.RemoveAll(fixtureDir)
+		}()
 	}
 
 	fn()
