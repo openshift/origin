@@ -31888,8 +31888,6 @@ os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --container=blah -o yaml -- echo 'hello world'" 'does not have a container named'
 # Non-existent volume
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --volumes=blah -o yaml -- echo 'hello world'" 'does not have a volume named'
-# verify the deprecated flag shorthand is working
-os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre -v blah -o yaml -- echo 'hello world'" 'shorthand -v has been deprecated'
 # Existing container
 os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --local --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'does not have a container named'
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'containerName: ruby-helloworld'
@@ -33875,16 +33873,16 @@ os::cmd::expect_success_and_text 'oc policy who-can impersonate storage-admin' '
 #os::cmd::expect_failure 'oc whoami --as=cluster-admin'
 
 # Test storage-admin can not do normal project scoped tasks
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pods --all-namespaces' 'no'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create projects' 'no'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pvc' 'no'
+os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm create pods --all-namespaces' 'no'
+os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm create projects' 'no'
+os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm create pvc' 'no'
 
 # Test storage-admin can read pvc and pods, and create pv and storageclass
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get pvc --all-namespaces' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get storageclass' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pv' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create storageclass' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get pods --all-namespaces' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm get pvc --all-namespaces' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm get storageclass' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm create pv' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm create storageclass' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm get pods --all-namespaces' 'yes'
 
 # Test failure to change policy on users for storage-admin
 os::cmd::expect_failure_and_text 'oc policy --as=storage-adm add-role-to-user admin storage-adm' ' cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"'
@@ -33895,10 +33893,10 @@ os::cmd::expect_failure_and_text 'oc policy --as=storage-adm remove-user screele
 #os::cmd::expect_success 'oc login -u storage-adm2 -p pw'
 #os::cmd::expect_success_and_text 'oc whoami' "storage-adm2"
 os::cmd::expect_success 'oc new-project --as=storage-adm2 --as-group=system:authenticated:oauth --as-group=system:authenticated policy-can-i'
-os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create pod --all-namespaces' 'no'
-os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create pod' 'yes'
-os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create pvc' 'yes'
-os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create endpoints' 'yes'
+os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm2 create pod --all-namespaces' 'no'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm2 create pod' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm2 create pvc' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm2 create endpoints' 'yes'
 os::cmd::expect_success 'oc delete project policy-can-i'
 `)
 
@@ -33948,7 +33946,7 @@ os::cmd::expect_success 'oc login -u wheel -p pw'
 os::cmd::expect_success_and_text 'oc whoami' "wheel"
 os::cmd::expect_failure 'oc whoami --as deads'
 os::cmd::expect_success_and_text 'oc whoami --as=system:admin' "system:admin"
-os::cmd::expect_success_and_text 'oc policy can-i --list --as=system:admin' '.*'
+os::cmd::expect_success_and_text 'oc auth can-i --list --as=system:admin' '.*'
 
 os::cmd::expect_success 'oc login -u local-admin -p pw'
 os::cmd::expect_success 'oc new-project policy-login'
@@ -34093,25 +34091,24 @@ os::cmd::expect_success_and_text 'oc adm policy who-can create builds/custom' 's
 
 os::cmd::expect_success 'oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"'
 
-os::cmd::try_until_text 'oc policy can-i --list' 'get update.*imagestreams/layers'
-os::cmd::try_until_text 'oc policy can-i create pods --all-namespaces' 'yes'
-os::cmd::try_until_text 'oc policy can-i create pods' 'yes'
-os::cmd::try_until_text 'oc policy can-i create pods --as harold' 'no'
-os::cmd::expect_failure 'oc policy can-i create pods --as harold --user harold'
-os::cmd::expect_failure 'oc policy can-i --list --as harold --user harold'
-os::cmd::expect_failure 'oc policy can-i create pods --as harold -q'
+os::cmd::try_until_text 'oc auth can-i --list' 'get update.*imagestreams/layers'
+os::cmd::try_until_text 'oc auth can-i create pods --all-namespaces' 'yes'
+os::cmd::try_until_text 'oc auth can-i create pods' 'yes'
+os::cmd::try_until_text 'oc auth can-i create pods --as harold' 'no'
+os::cmd::expect_failure 'oc auth can-i create pods --as harold --user harold'
+os::cmd::expect_failure 'oc auth can-i --list --as harold --user harold'
+os::cmd::expect_failure 'oc auth can-i create pods --as harold -q'
 
-os::cmd::expect_success_and_text 'oc policy can-i create pods --user system:admin' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --groups system:unauthenticated --groups system:masters' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --groups system:unauthenticated' 'no'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --user harold' 'no'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --user system:admin' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --groups system:unauthenticated --groups system:masters' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --groups system:unauthenticated' 'no'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --user harold' 'no'
 
-os::cmd::expect_success_and_text 'oc policy can-i --list --user system:admin' 'get update.*imagestreams/layers'
-os::cmd::expect_success_and_text 'oc policy can-i --list --groups system:unauthenticated --groups system:cluster-readers' 'get.*imagestreams/layers'
-os::cmd::expect_success_and_not_text 'oc policy can-i --list --groups system:unauthenticated' 'get update.*imagestreams/layers'
-os::cmd::expect_success_and_not_text 'oc policy can-i --list --user harold --groups system:authenticated' 'get update.*imagestreams/layers'
-os::cmd::expect_success_and_text 'oc policy can-i --list --user harold --groups system:authenticated' 'create get.*buildconfigs/webhooks'
-
+os::cmd::expect_success_and_text 'oc auth can-i --list --user system:admin' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc auth can-i --list --groups system:unauthenticated --groups system:cluster-readers' 'get.*imagestreams/layers'
+os::cmd::expect_success_and_not_text 'oc auth can-i --list --groups system:unauthenticated' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_not_text 'oc auth can-i --list --user harold --groups system:authenticated' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc auth can-i --list --user harold --groups system:authenticated' 'create get.*buildconfigs/webhooks'
 
 os::cmd::expect_failure 'oc policy scc-subject-review'
 os::cmd::expect_failure 'oc policy scc-review'
@@ -34188,14 +34185,14 @@ os::cmd::expect_failure_and_text "oc replace --kubeconfig=${new_kubeconfig} clus
 
 # This test validates cluster level policy for serviceaccounts
 # ensure service account cannot list pods at the namespace level
-os::cmd::expect_success_and_text "oc policy can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
+os::cmd::expect_success_and_text "oc auth can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
 os::cmd::expect_success_and_text "oc adm policy add-role-to-user view -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/view added: "testserviceaccount"'
 # ensure service account can list pods at the namespace level after "view" role is added, but not at the cluster level
-os::cmd::try_until_text "oc policy can-i list pods --as=system:serviceaccount:${project}:testserviceaccount" "yes"
-os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "no"
+os::cmd::try_until_text "oc auth can-i list pods --as=system:serviceaccount:${project}:testserviceaccount" "yes"
+os::cmd::try_until_text "oc auth can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "no"
 # ensure service account can list pods at the cluster level after "cluster-reader" cluster role is added
 os::cmd::expect_success_and_text "oc adm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/cluster-reader added: "testserviceaccount"'
-os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
+os::cmd::try_until_text "oc auth can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
 
 # make sure users can easily create roles for RBAC based SCC access
 os::cmd::expect_success_and_text 'oc create role scc-privileged --verb=use --resource=scc --resource-name=privileged' 'role.rbac.authorization.k8s.io/scc-privileged created'
@@ -34282,13 +34279,15 @@ os::test::junit::declare_suite_start "cmd/projects/lifecycle"
 # resourceaccessreview
 os::cmd::expect_success 'oc policy who-can get pods -n missing-ns'
 # selfsubjectaccessreview
-os::cmd::expect_success 'oc policy can-i get pods -n missing-ns'
+os::cmd::expect_success 'oc auth can-i get pods -n missing-ns'
 # selfsubjectrulesreivew
-os::cmd::expect_success 'oc policy can-i --list -n missing-ns'
+os::cmd::expect_success 'oc auth can-i --list -n missing-ns'
+# create bob
+os::cmd::expect_success 'oc create user bob'
 # subjectaccessreview
-os::cmd::expect_success 'oc policy can-i get pods --user=bob -n missing-ns'
+os::cmd::expect_failure_and_text 'oc auth can-i get pods --as=bob -n missing-ns' 'no'
 # subjectrulesreview
-os::cmd::expect_success 'oc policy can-i --list  --user=bob -n missing-ns'
+os::cmd::expect_success 'oc auth can-i --list  --as=bob -n missing-ns'
 echo 'project lifecycle ok'
 os::test::junit::declare_suite_end
 
@@ -34713,7 +34712,7 @@ os::cmd::expect_success "oc create secret generic sshauth --from-file=ssh-privat
 # check to make sure incorrect SSH private-key path fail as expected
 os::cmd::expect_failure_and_text 'oc create secret generic bad-file --from-file=ssh-privatekey=/bad/path' 'error reading /bad/path: no such file or directory'
 
-# attach secrets to service account (deprecated)
+# attach secrets to service account
 # single secret with prefix
 os::cmd::expect_success 'oc secrets link deployer basicauth'
 # don't add the same secret twice
@@ -35251,10 +35250,6 @@ os::cmd::try_until_not_text "oc get projects" "project-bar-2"
 #os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
 os::cmd::expect_success "oc new-project project-status --display-name='my project' --description='test project'"
 
-# Verify the deprecated flags are working
-os::cmd::expect_success_and_text 'oc status -v' 'shorthand -v has been deprecated'
-os::cmd::expect_success_and_text 'oc status --verbose' '\-\-verbose has been deprecated'
-
 # Verify jobs are showing in status
 os::cmd::expect_success "oc create job pi --image=perl -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
 os::cmd::expect_success_and_text "oc status" "job/pi manages perl"
@@ -35437,18 +35432,16 @@ os::test::junit::declare_suite_start "cmd/templates/process"
 os::cmd::expect_failure_and_text 'oc process name1 name2' 'template name must be specified only once'
 # fail to pass a filename or template by name
 os::cmd::expect_failure_and_text 'oc process' 'Must pass a filename or name of stored template'
-# can't ask for parameters and try process the template (include tests for deprecated -v/--value)
+# can't ask for parameters and try process the template
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --param=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -p someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --labels=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -l someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --output=yaml' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -o yaml' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --output-version=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output-version'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --raw' '\-\-parameters flag does not process the template, can.t be used with \-\-raw'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --template=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -t someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
-# providing a value more than once should fail (include tests for deprecated -v/--value)
+# providing a value more than once should fail
 os::cmd::expect_failure_and_text 'oc process template-name key=value key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name --param=key=value --param=key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name key=value --param=key=value' 'provided more than once: key'
@@ -46901,7 +46894,7 @@ os::test::junit::declare_suite_start "cmd/volumes"
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/rollingupdate-daemonset.yaml'
 
-os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list' 'vol1'
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config' 'vol1'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol0 -m /opt5'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol2 --type=emptydir -m /opt'
 os::cmd::expect_failure_and_text "oc set volume dc/test-deployment-config --add --name=vol1 --type=secret --secret-name='\$ecret' -m /data" 'overwrite to replace'
@@ -46913,14 +46906,14 @@ os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vo
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --add -m /opt' "'/opt' already exists"
 os::cmd::expect_success_and_text "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby' --overwrite" 'does not have any containers'
 os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby*' --overwrite"
-os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list --name=vol2' 'mounted at /etc'
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --name=vol2' 'mounted at /etc'
 os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --dry-run --add --name=vol3 -o yaml' 'name: vol3'
-os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --list --name=vol3' 'volume "vol3" not found'
+os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --name=vol3' 'volume "vol3" not found'
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --remove' 'confirm for removing more than one volume'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --name=vol2'
-os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol2'
+os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config' 'vol2'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --confirm'
-os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol1'
+os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config' 'vol1'
 
 # ensure that resources not present in all versions of a target group
 # are still able to be encoded and patched accordingly
@@ -46978,7 +46971,7 @@ os::cmd::expect_success_and_text 'oc set volume dc/simple-dc' 'configMap/cmvol a
 # command alias
 os::cmd::expect_success 'oc set volumes --help'
 os::cmd::expect_success 'oc set volumes --help'
-os::cmd::expect_success 'oc set volumes dc/test-deployment-config --list'
+os::cmd::expect_success 'oc set volumes dc/test-deployment-config'
 
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
 echo "volumes: ok"

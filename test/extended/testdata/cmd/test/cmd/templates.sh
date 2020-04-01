@@ -154,18 +154,16 @@ os::test::junit::declare_suite_start "cmd/templates/process"
 os::cmd::expect_failure_and_text 'oc process name1 name2' 'template name must be specified only once'
 # fail to pass a filename or template by name
 os::cmd::expect_failure_and_text 'oc process' 'Must pass a filename or name of stored template'
-# can't ask for parameters and try process the template (include tests for deprecated -v/--value)
+# can't ask for parameters and try process the template
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --param=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -p someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --labels=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -l someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --output=yaml' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -o yaml' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --output-version=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output-version'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --raw' '\-\-parameters flag does not process the template, can.t be used with \-\-raw'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --template=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -t someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
-# providing a value more than once should fail (include tests for deprecated -v/--value)
+# providing a value more than once should fail
 os::cmd::expect_failure_and_text 'oc process template-name key=value key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name --param=key=value --param=key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name key=value --param=key=value' 'provided more than once: key'

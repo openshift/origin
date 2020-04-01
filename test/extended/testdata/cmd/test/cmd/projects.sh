@@ -21,13 +21,15 @@ os::test::junit::declare_suite_start "cmd/projects/lifecycle"
 # resourceaccessreview
 os::cmd::expect_success 'oc policy who-can get pods -n missing-ns'
 # selfsubjectaccessreview
-os::cmd::expect_success 'oc policy can-i get pods -n missing-ns'
+os::cmd::expect_success 'oc auth can-i get pods -n missing-ns'
 # selfsubjectrulesreivew
-os::cmd::expect_success 'oc policy can-i --list -n missing-ns'
+os::cmd::expect_success 'oc auth can-i --list -n missing-ns'
+# create bob
+os::cmd::expect_success 'oc create user bob'
 # subjectaccessreview
-os::cmd::expect_success 'oc policy can-i get pods --user=bob -n missing-ns'
+os::cmd::expect_failure_and_text 'oc auth can-i get pods --as=bob -n missing-ns' 'no'
 # subjectrulesreview
-os::cmd::expect_success 'oc policy can-i --list  --user=bob -n missing-ns'
+os::cmd::expect_success 'oc auth can-i --list  --as=bob -n missing-ns'
 echo 'project lifecycle ok'
 os::test::junit::declare_suite_end
 
