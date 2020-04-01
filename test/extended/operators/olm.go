@@ -162,6 +162,7 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")
 		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
 		etcdSub             = filepath.Join(buildPruningBaseDir, "etcd-subscription.yaml")
+		etcdSubManual       = filepath.Join(buildPruningBaseDir, "etcd-subscription-manual.yaml")
 	)
 
 	files := []string{etcdSub}
@@ -230,4 +231,46 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		}
 
 	})
+
+	// OCP-21126 - Subscription status says 'CSV is installed' when it is not
+	// author: scolange@redhat.com
+	g.It("Subscription status says CSV is installed", func() {
+
+		e2e.Logf(oc.Namespace())
+		e2e.Logf(fmt.Sprintf(oc.Namespace()))
+		e2e.Logf(fmt.Sprintf("NAMESPACE=%s", oc.Namespace()))
+
+		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", etcdSubManual, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "INSTALLPLAN=Manual", "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		inst, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("sub", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].spec.installPlanApproval}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(inst).To(o.Equal("Manual"))
+		if inst == "Manual" {
+			e2e.Logf("Install Approval Manual")
+		} else {
+			e2e.Failf("No packages for evaluating if package namespace is not NULL")
+		}
+
+		instCsv, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("sub", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].status.installedCSV}").Output()
+		o.Expect(err1).NotTo(o.HaveOccurred())
+		o.Expect(instCsv).To(o.Equal(""))
+		if instCsv == "" {
+			e2e.Logf("NO CSV Inside subscription")
+		} else {
+			e2e.Failf("No packages for evaluating if package namespace is not NULL")
+		}
+
+		msgcsv, err2 := oc.AsAdmin().WithoutNamespace().Run("get").Args("csv", "-n", oc.Namespace()).Output()
+		o.Expect(err2).NotTo(o.HaveOccurred())
+		o.Expect(msgcsv).To(o.Equal("No resources found."))
+		if msgcsv == "No resources found." {
+			e2e.Logf("NO CSV Installed")
+		} else {
+			e2e.Failf("No packages for evaluating if package namespace is not NULL")
+		}
+	})
+
 })

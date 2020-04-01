@@ -416,6 +416,7 @@
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
 // test/extended/testdata/oauthserver/oauth-sa.yaml
+// test/extended/testdata/olm/etcd-subscription-manual.yaml
 // test/extended/testdata/olm/etcd-subscription.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
@@ -53882,6 +53883,46 @@ func testExtendedTestdataOauthserverOauthSaYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmEtcdSubscriptionManualYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    channel: singlenamespace-alpha
+    installPlanApproval: "${INSTALLPLAN}"
+    name: etcd
+    source: "${SOURCENAME}"
+    sourceNamespace: "${SOURCENAMESPACE}"
+    startingCSV: etcdoperator.v0.9.4
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: INSTALLPLAN
+- name: SOURCENAME
+- name: SOURCENAMESPACE
+`)
+
+func testExtendedTestdataOlmEtcdSubscriptionManualYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmEtcdSubscriptionManualYaml, nil
+}
+
+func testExtendedTestdataOlmEtcdSubscriptionManualYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmEtcdSubscriptionManualYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/etcd-subscription-manual.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOlmEtcdSubscriptionYaml = []byte(`apiVersion: v1
 kind: Template
 metadata:
@@ -58787,6 +58828,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-network.yaml": testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml": testExtendedTestdataOauthserverOauthPodYaml,
 	"test/extended/testdata/oauthserver/oauth-sa.yaml": testExtendedTestdataOauthserverOauthSaYaml,
+	"test/extended/testdata/olm/etcd-subscription-manual.yaml": testExtendedTestdataOlmEtcdSubscriptionManualYaml,
 	"test/extended/testdata/olm/etcd-subscription.yaml": testExtendedTestdataOlmEtcdSubscriptionYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml": testExtendedTestdataOlmOperatorgroupYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
@@ -59517,6 +59559,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"oauth-sa.yaml": &bintree{testExtendedTestdataOauthserverOauthSaYaml, map[string]*bintree{}},
 				}},
 				"olm": &bintree{nil, map[string]*bintree{
+					"etcd-subscription-manual.yaml": &bintree{testExtendedTestdataOlmEtcdSubscriptionManualYaml, map[string]*bintree{}},
 					"etcd-subscription.yaml": &bintree{testExtendedTestdataOlmEtcdSubscriptionYaml, map[string]*bintree{}},
 					"operatorgroup.yaml": &bintree{testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},
 				}},
