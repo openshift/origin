@@ -5,8 +5,8 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/util/retry"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -67,14 +67,46 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 		Before(oc)
 		defer After(oc)
 		g.By("adding builder account to privileged SCC")
-		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			scc, err := oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			scc.Users = append(scc.Users, "system:serviceaccount:"+oc.Namespace()+":builder")
-			_, err = oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Update(scc)
-			return err
-		})
+		// create a namespace local role and role binding to the privileged SCC;
+		// role and role binding will be deleted as part of test namespace clean up
+		role := &rbacv1.Role{}
+		role.Namespace = oc.Namespace()
+		role.Name = "privileged-builder-role"
+		role.Rules = []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{
+					"security.openshift.io",
+				},
+				ResourceNames: []string{
+					"privileged",
+				},
+				Resources: []string{
+					"securitycontextconstraints",
+				},
+				Verbs: []string{
+					"use",
+				},
+			},
+		}
+		role, err := oc.AdminKubeClient().RbacV1().Roles(oc.Namespace()).Create(role)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		roleBinding := &rbacv1.RoleBinding{}
+		roleBinding.Namespace = oc.Namespace()
+		roleBinding.Name = "privileged-builder-rolebinding"
+		roleBinding.RoleRef = rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "Role",
+			Name:     "privileged-builder-role",
+		}
+		roleBinding.Subjects = []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				APIGroup:  "",
+				Name:      "builder",
+				Namespace: oc.Namespace(),
+			},
+		}
+		roleBinding, err = oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(roleBinding)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("new-build").Args("docker.io/openshift/test-build-roots2i~https://github.com/sclorg/nodejs-ex", "--name", "nodejspass").Execute()
