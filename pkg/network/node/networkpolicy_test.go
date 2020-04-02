@@ -690,3 +690,92 @@ func _TestNetworkPolicyCache(t *testing.T) {
 		t.Fatalf("Expected cache size to shrink from %d to %d, got %d", cacheSize, cacheSize-1, len(np.nsMatchCache))
 	}
 }
+
+func TestNetworkPolicy_MultiplePoliciesOneNamespace(t *testing.T) {
+	np := &networkPolicyPlugin{
+		namespaces:       make(map[uint32]*npNamespace),
+		namespacesByName: make(map[string]*npNamespace),
+		pods:             make(map[ktypes.UID]corev1.Pod),
+		nsMatchCache:     make(map[string]*npCacheEntry),
+	}
+	np.vnids = newNodeVNIDMap(np, nil)
+
+	// Create some Namespaces
+	addNamespace(np, "default", 0, map[string]string{"default": "true"})
+
+	// Add two pods to each namespace
+	for _, npns := range np.namespaces {
+
+		np.handleAddOrUpdateNetworkPolicy(&networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-client-to-server-1",
+				UID:       uid(npns, "allow-client-to-server-1"),
+				Namespace: npns.name,
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"kind": "server",
+					},
+				},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+				Ingress: []networkingv1.NetworkPolicyIngressRule{{
+					From: []networkingv1.NetworkPolicyPeer{{
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"kind": "client",
+							},
+						},
+					}},
+				}},
+			},
+		}, nil, watch.Added)
+		np.handleAddOrUpdateNetworkPolicy(&networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-client-to-server-2",
+				UID:       uid(npns, "allow-client-to-server-2"),
+				Namespace: npns.name,
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"kind": "server",
+					},
+				},
+				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
+				Ingress: []networkingv1.NetworkPolicyIngressRule{{
+					From: []networkingv1.NetworkPolicyPeer{{
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"kind": "client",
+							},
+						},
+					}},
+				}},
+			},
+		}, nil, watch.Added)
+	}
+	for _, npns := range np.namespaces {
+		addPods(np, npns)
+		// both policies should be updated
+		err := assertPolicies(npns, 2, map[string]*npPolicy{
+			"allow-client-to-server-1": {
+				watchesNamespaces: false,
+				watchesPods:       true,
+				flows: []string{
+					fmt.Sprintf("ip, nw_dst=%s, reg0=%d, ip, nw_src=%s", serverIP(npns), npns.vnid, clientIP(npns)),
+				},
+			},
+			"allow-client-to-server-2": {
+				watchesNamespaces: false,
+				watchesPods:       true,
+				flows: []string{
+					fmt.Sprintf("ip, nw_dst=%s, reg0=%d, ip, nw_src=%s", serverIP(npns), npns.vnid, clientIP(npns)),
+				},
+			},
+		})
+		if err != nil {
+			t.Error(err.Error())
+		}
+	}
+}
