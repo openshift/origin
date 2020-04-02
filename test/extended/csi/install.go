@@ -14,7 +14,7 @@ import (
 
 const (
 	csiBasePath         = "test/extended/testdata/csi"
-	defaultImageFormat  = "registry.svc.ci.openshift.org/origin/4.3:${component}"
+	defaultImageFormat  = "registry.svc.ci.openshift.org/origin/4.5:${component}"
 	imageFormatVariable = "IMAGE_FORMAT"
 )
 

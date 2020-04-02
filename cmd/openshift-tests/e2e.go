@@ -137,8 +137,15 @@ var staticSuites = []*ginkgo.TestSuite{
 	{
 		Name: "openshift/csi",
 		Description: templates.LongDesc(`
-		Run tests for an installed CSI driver. TEST_CSI_DRIVER_FILES env. variable must be set and it must be a comma separated list of CSI driver definition files.
-        See https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/external/README.md for required format of the files.
+		Run tests for an CSI driver. Set the TEST_INSTALL_CSI_DRIVERS environment variable to the name of the driver to load.
+		For example, TEST_INSTALL_CSI_DRIVERS=aws-ebs will test the AWS EBS CSI driver. To change the location of the images,
+		specify IMAGE_FORMAT=myregistry.com/myrepository/${component}:4.5 where ${component} will be substituted with the
+		names of required CSI component images:
+
+			csi-external-attacher, csi-external-provisioner, csi-external-resizer,
+			csi-external-snapshotter, csi-node-driver-registrar, csi-livenessprobe
+
+		See https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/external/README.md for required format of the files.
 		`),
 		Matches: func(name string) bool {
 			return strings.Contains(name, "External Storage [Driver:") && !strings.Contains(name, "[Disruptive]")
