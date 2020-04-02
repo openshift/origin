@@ -700,7 +700,6 @@ func (np *networkPolicyPlugin) refreshNetworkPolicies(refreshFor refreshForType)
 				((refreshFor == refreshForPods) && npp.watchesPods) {
 				if np.updateNetworkPolicy(npns, &npp.policy) {
 					changed = true
-					break
 				}
 			}
 		}
