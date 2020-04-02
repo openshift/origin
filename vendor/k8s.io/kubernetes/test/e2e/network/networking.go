@@ -19,8 +19,10 @@ package network
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -233,5 +235,103 @@ var _ = SIGDescribe("Networking", func() {
 				framework.Failf("Unexpected endpoints return: %v, expect 1 endpoints", eps)
 			}
 		})
+	})
+
+	It("should recreate its iptables rules if they are deleted [Disruptive]", func() {
+		framework.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
+		framework.SkipUnlessSSHKeyPresent()
+
+		hosts, err := framework.NodeSSHHosts(f.ClientSet)
+		framework.ExpectNoError(err, "failed to find external/internal IPs for every node")
+		if len(hosts) == 0 {
+			framework.Failf("No ssh-able nodes")
+		}
+		host := hosts[0]
+
+		ns := f.Namespace.Name
+		numPods, servicePort := 3, defaultServeHostnameServicePort
+		svc := "iptables-flush-test"
+
+		defer func() {
+			framework.ExpectNoError(framework.StopServeHostnameService(f.ClientSet, ns, svc))
+		}()
+		podNames, svcIP, err := framework.StartServeHostnameService(f.ClientSet, f.InternalClientset, getServeHostnameService(svc), ns, numPods)
+		framework.ExpectNoError(err, "failed to create replication controller with service: %s in the namespace: %s", svc, ns)
+
+		// Ideally we want to reload the system firewall, but we don't necessarily
+		// know how to do that on this system ("firewall-cmd --reload"? "systemctl
+		// restart iptables"?). So instead we just manually delete all "KUBE-"
+		// chains.
+
+		By("dumping iptables rules on a node")
+		result, err := framework.SSH("sudo iptables-save", host, framework.TestContext.Provider)
+		if err != nil || result.Code != 0 {
+			remote := fmt.Sprintf("%s@%s", result.User, result.Host)
+			framework.Logf("ssh %s: command:   %s", remote, result.Cmd)
+			framework.Logf("ssh %s: stdout:    %q", remote, result.Stdout)
+			framework.Logf("ssh %s: stderr:    %q", remote, result.Stderr)
+			framework.Logf("ssh %s: exit code: %d", remote, result.Code)
+
+			framework.Failf("couldn't dump iptable rules: %v", err)
+		}
+
+		// All the commands that delete rules have to come before all the commands
+		// that delete chains, since the chains can't be deleted while there are
+		// still rules referencing them.
+		var deleteRuleCmds, deleteChainCmds []string
+		table := ""
+		for _, line := range strings.Split(result.Stdout, "\n") {
+			if strings.HasPrefix(line, "*") {
+				table = line[1:]
+			} else if table == "" {
+				continue
+			}
+
+			// Delete jumps from non-KUBE chains to KUBE chains
+			if !strings.HasPrefix(line, "-A KUBE-") && strings.Contains(line, "-j KUBE-") {
+				deleteRuleCmds = append(deleteRuleCmds, fmt.Sprintf("sudo iptables -t %s -D %s || true", table, line[3:]))
+			}
+			// Flush and delete all KUBE chains
+			if strings.HasPrefix(line, ":KUBE-") {
+				chain := strings.Split(line, " ")[0][1:]
+				deleteRuleCmds = append(deleteRuleCmds, fmt.Sprintf("sudo iptables -t %s -F %s || true", table, chain))
+				deleteChainCmds = append(deleteChainCmds, fmt.Sprintf("sudo iptables -t %s -X %s || true", table, chain))
+			}
+		}
+		cmd := strings.Join(append(deleteRuleCmds, deleteChainCmds...), "\n")
+
+		By("deleting all KUBE-* iptables chains")
+		result, err = framework.SSH(cmd, host, framework.TestContext.Provider)
+		if err != nil || result.Code != 0 {
+			remote := fmt.Sprintf("%s@%s", result.User, result.Host)
+			framework.Logf("ssh %s: command:   %s", remote, result.Cmd)
+			framework.Logf("ssh %s: stdout:    %q", remote, result.Stdout)
+			framework.Logf("ssh %s: stderr:    %q", remote, result.Stderr)
+			framework.Logf("ssh %s: exit code: %d", remote, result.Code)
+
+			framework.Failf("couldn't delete iptable rules: %v", err)
+		}
+
+		By("verifying that kube-proxy rules are eventually recreated")
+		framework.ExpectNoError(framework.VerifyServeHostnameServiceUp(f.ClientSet, ns, host, podNames, svcIP, servicePort))
+
+		By("verifying that kubelet rules are eventually recreated")
+		err = utilwait.PollImmediate(framework.Poll, framework.RestartNodeReadyAgainTimeout, func() (bool, error) {
+			result, err = framework.SSH("sudo iptables-save -t nat", host, framework.TestContext.Provider)
+			if err != nil || result.Code != 0 {
+				remote := fmt.Sprintf("%s@%s", result.User, result.Host)
+				framework.Logf("ssh %s: command:   %s", remote, result.Cmd)
+				framework.Logf("ssh %s: stdout:    %q", remote, result.Stdout)
+				framework.Logf("ssh %s: stderr:    %q", remote, result.Stderr)
+				framework.Logf("ssh %s: exit code: %d", remote, result.Code)
+				return false, err
+			}
+
+			if strings.Contains(result.Stdout, "\n-A KUBE-MARK-DROP ") {
+				return true, nil
+			}
+			return false, nil
+		})
+		framework.ExpectNoError(err, "kubelet did not recreate its iptables rules")
 	})
 })
