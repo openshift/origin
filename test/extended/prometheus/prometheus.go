@@ -150,12 +150,12 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
 
-			g.By("checking the unsecured metrics path")
+			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
 			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
 				results, err := getInsecureURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", url))
 				if err != nil {
-					e2e.Logf("unable to get unsecured metrics: %v", err)
+					e2e.Logf("unable to get metrics: %v", err)
 					return false, nil
 				}
 
@@ -229,6 +229,44 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				}
 				return true, nil
 			})).NotTo(o.HaveOccurred(), "possibly some services didn't register ServiceMonitors to allow metrics collection")
+
+			g.By("verifying all targets are exposing metrics over secure channel")
+			var insecureTargets []error
+			contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", url), bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			targets := &prometheusTargets{}
+			err = json.Unmarshal([]byte(contents), targets)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Currently following targets do not secure their /metrics endpoints:
+			// job="cco-metrics" - https://bugzilla.redhat.com/show_bug.cgi?id=1809194
+			// job="cluster-version-operator" - https://bugzilla.redhat.com/show_bug.cgi?id=1809195
+			// job="dns-default" - https://bugzilla.redhat.com/show_bug.cgi?id=1809197
+			// job="crio" - https://issues.redhat.com/browse/MON-1034 + https://issues.redhat.com/browse/OCPNODE-321
+			// job="sdn" - https://bugzilla.redhat.com/show_bug.cgi?id=1809205
+			// job="multus-admission-controller-monitor-service" - https://bugzilla.redhat.com/show_bug.cgi?id=1809204
+			// Exclude list should be reduced to 0
+			exclude := map[string]bool{
+				"cco-metrics":              true,
+				"cluster-version-operator": true,
+				"dns-default":              true,
+				"crio":                     true,
+				"sdn":                      true,
+				"multus-admission-controller-monitor-service": true,
+			}
+
+			pattern := regexp.MustCompile("^https://.*")
+			for _, t := range targets.Data.ActiveTargets {
+				if exclude[t.Labels["job"]] {
+					continue
+				}
+				if !pattern.MatchString(t.ScrapeUrl) {
+					msg := fmt.Errorf("following target does not secure metrics endpoint: %v", t.Labels["job"])
+					insecureTargets = append(insecureTargets, msg)
+				}
+			}
+			o.Expect(insecureTargets).To(o.BeEmpty(), "some services expose metrics over insecure channel")
 		})
 		g.It("should have a AlertmanagerReceiversNotConfigured alert in firing state", func() {
 			oc.SetupProject()
