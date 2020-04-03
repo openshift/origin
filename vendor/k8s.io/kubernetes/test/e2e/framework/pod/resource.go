@@ -27,6 +27,7 @@ import (
 	"github.com/onsi/gomega"
 
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -355,6 +356,10 @@ func LogPodLogs(c clientset.Interface, pods []v1.Pod) error {
 	for _, pod := range pods {
 		for _, container := range pod.Spec.Containers {
 			logData, err := GetPodLogs(c, pod.Namespace, pod.Name, container.Name)
+			if err != nil && apierrors.IsNotFound(err) {
+				// Pod may have already been removed; try to get previous pod logs
+				logData, err = GetPreviousPodLogs(c, pod.Namespace, pod.Name, container.Name)
+			}
 			if err != nil {
 				errs = append(errs, fmt.Errorf("%s[%s].container[%s].error=%v", pod.Name, pod.Namespace, container.Name, err))
 				continue
