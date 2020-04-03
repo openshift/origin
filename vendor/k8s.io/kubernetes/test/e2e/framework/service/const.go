@@ -29,9 +29,7 @@ const (
 	// Many tests create an endpoint per node, in large clusters, this is
 	// resource and time intensive.
 	MaxNodesForEndpointsTests = 3
-)
 
-const (
 	// KubeProxyLagTimeout is the maximum time a kube-proxy daemon on a node is allowed
 	// to not notice a Service update, such as type=NodePort.
 	// TODO: This timeout should be O(10s), observed values are O(1m), 5m is very
@@ -66,7 +64,7 @@ const (
 
 	// LoadBalancerPollTimeout is the time required by the loadbalancer to poll.
 	// On average it takes ~6 minutes for a single backend to come online in GCE.
-	LoadBalancerPollTimeout = 15 * time.Minute
+	LoadBalancerPollTimeout = 22 * time.Minute
 	// LoadBalancerPollInterval is the interval value in which the loadbalancer polls.
 	LoadBalancerPollInterval = 30 * time.Second
 
@@ -75,16 +73,6 @@ const (
 
 	// TestTimeout is used for most polling/waiting activities
 	TestTimeout = 60 * time.Second
-
-	// AffinityTimeout is the maximum time that CheckAffinity is allowed to take; this
-	// needs to be more than long enough for AffinityConfirmCount HTTP requests to
-	// complete in a busy CI cluster, but shouldn't be too long since we will end up
-	// waiting the entire time in the tests where affinity is not expected.
-	AffinityTimeout = 2 * time.Minute
-
-	// AffinityConfirmCount is the number of needed continuous requests to confirm that
-	// affinity is enabled.
-	AffinityConfirmCount = 15
 
 	// ServiceEndpointsTimeout is the maximum time in which endpoints for the service should be created.
 	ServiceEndpointsTimeout = 2 * time.Minute

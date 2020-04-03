@@ -16,13 +16,13 @@ func TestAvogadroFormat(t *testing.T) {
 		format string
 		want   string
 	}{
-		{"%v", "6.022140857e+23 mol^-1"},
+		{"%v", "6.02214076e+23 mol^-1"},
 		{"%.1v", "6e+23 mol^-1"},
 		{"%50.1v", "                                      6e+23 mol^-1"},
-		{"%50v", "                            6.022140857e+23 mol^-1"},
-		{"%1v", "6.022140857e+23 mol^-1"},
-		{"%#v", "constant.avogadroUnits(6.022140857e+23)"},
-		{"%s", "%!s(constant.avogadroUnits=6.022140857e+23 mol^-1)"},
+		{"%50v", "                             6.02214076e+23 mol^-1"},
+		{"%1v", "6.02214076e+23 mol^-1"},
+		{"%#v", "constant.avogadroUnits(6.02214076e+23)"},
+		{"%s", "%!s(constant.avogadroUnits=6.02214076e+23 mol^-1)"},
 	} {
 		got := fmt.Sprintf(test.format, Avogadro)
 		if got != test.want {

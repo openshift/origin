@@ -19,10 +19,10 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 	coInformer := cache.NewSharedIndexInformer(
 		NewErrorRecordingListWatcher(m, &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return client.ConfigV1().ClusterOperators().List(options)
+				return client.ConfigV1().ClusterOperators().List(ctx, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return client.ConfigV1().ClusterOperators().Watch(options)
+				return client.ConfigV1().ClusterOperators().Watch(ctx, options)
 			},
 		}),
 		&configv1.ClusterOperator{},
@@ -129,11 +129,11 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 		NewErrorRecordingListWatcher(m, &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = "metadata.name=version"
-				return client.ConfigV1().ClusterVersions().List(options)
+				return client.ConfigV1().ClusterVersions().List(ctx, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = "metadata.name=version"
-				return client.ConfigV1().ClusterVersions().Watch(options)
+				return client.ConfigV1().ClusterVersions().Watch(ctx, options)
 			},
 		}),
 		&configv1.ClusterVersion{},

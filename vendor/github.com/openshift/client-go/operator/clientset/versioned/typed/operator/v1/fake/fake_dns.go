@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	operatorv1 "github.com/openshift/api/operator/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -22,7 +24,7 @@ var dnsesResource = schema.GroupVersionResource{Group: "operator.openshift.io", 
 var dnsesKind = schema.GroupVersionKind{Group: "operator.openshift.io", Version: "v1", Kind: "DNS"}
 
 // Get takes name of the dNS, and returns the corresponding dNS object, and an error if there is any.
-func (c *FakeDNSes) Get(name string, options v1.GetOptions) (result *operatorv1.DNS, err error) {
+func (c *FakeDNSes) Get(ctx context.Context, name string, options v1.GetOptions) (result *operatorv1.DNS, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(dnsesResource, name), &operatorv1.DNS{})
 	if obj == nil {
@@ -32,7 +34,7 @@ func (c *FakeDNSes) Get(name string, options v1.GetOptions) (result *operatorv1.
 }
 
 // List takes label and field selectors, and returns the list of DNSes that match those selectors.
-func (c *FakeDNSes) List(opts v1.ListOptions) (result *operatorv1.DNSList, err error) {
+func (c *FakeDNSes) List(ctx context.Context, opts v1.ListOptions) (result *operatorv1.DNSList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(dnsesResource, dnsesKind, opts), &operatorv1.DNSList{})
 	if obj == nil {
@@ -53,13 +55,13 @@ func (c *FakeDNSes) List(opts v1.ListOptions) (result *operatorv1.DNSList, err e
 }
 
 // Watch returns a watch.Interface that watches the requested dNSes.
-func (c *FakeDNSes) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeDNSes) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(dnsesResource, opts))
 }
 
 // Create takes the representation of a dNS and creates it.  Returns the server's representation of the dNS, and an error, if there is any.
-func (c *FakeDNSes) Create(dNS *operatorv1.DNS) (result *operatorv1.DNS, err error) {
+func (c *FakeDNSes) Create(ctx context.Context, dNS *operatorv1.DNS, opts v1.CreateOptions) (result *operatorv1.DNS, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(dnsesResource, dNS), &operatorv1.DNS{})
 	if obj == nil {
@@ -69,7 +71,7 @@ func (c *FakeDNSes) Create(dNS *operatorv1.DNS) (result *operatorv1.DNS, err err
 }
 
 // Update takes the representation of a dNS and updates it. Returns the server's representation of the dNS, and an error, if there is any.
-func (c *FakeDNSes) Update(dNS *operatorv1.DNS) (result *operatorv1.DNS, err error) {
+func (c *FakeDNSes) Update(ctx context.Context, dNS *operatorv1.DNS, opts v1.UpdateOptions) (result *operatorv1.DNS, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(dnsesResource, dNS), &operatorv1.DNS{})
 	if obj == nil {
@@ -80,7 +82,7 @@ func (c *FakeDNSes) Update(dNS *operatorv1.DNS) (result *operatorv1.DNS, err err
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeDNSes) UpdateStatus(dNS *operatorv1.DNS) (*operatorv1.DNS, error) {
+func (c *FakeDNSes) UpdateStatus(ctx context.Context, dNS *operatorv1.DNS, opts v1.UpdateOptions) (*operatorv1.DNS, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateSubresourceAction(dnsesResource, "status", dNS), &operatorv1.DNS{})
 	if obj == nil {
@@ -90,22 +92,22 @@ func (c *FakeDNSes) UpdateStatus(dNS *operatorv1.DNS) (*operatorv1.DNS, error) {
 }
 
 // Delete takes name of the dNS and deletes it. Returns an error if one occurs.
-func (c *FakeDNSes) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeDNSes) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(dnsesResource, name), &operatorv1.DNS{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeDNSes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(dnsesResource, listOptions)
+func (c *FakeDNSes) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(dnsesResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &operatorv1.DNSList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched dNS.
-func (c *FakeDNSes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *operatorv1.DNS, err error) {
+func (c *FakeDNSes) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *operatorv1.DNS, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(dnsesResource, name, pt, data, subresources...), &operatorv1.DNS{})
 	if obj == nil {

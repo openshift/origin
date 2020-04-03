@@ -17,6 +17,7 @@ limitations under the License.
 package apiserver
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/server/egressselector"
 	v1informers "k8s.io/client-go/informers/core/v1"
 	v1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
@@ -92,6 +94,7 @@ func NewAvailableConditionController(
 	proxyTransport *http.Transport,
 	proxyCurrentCertKeyContent certKeyFunc,
 	serviceResolver ServiceResolver,
+	egressSelector *egressselector.EgressSelector,
 ) (*AvailableConditionController, error) {
 	c := &AvailableConditionController{
 		apiServiceClient: apiServiceClient,
@@ -365,7 +368,7 @@ func updateAPIServiceStatus(client apiregistrationclient.APIServicesGetter, orig
 		return newAPIService, nil
 	}
 
-	newAPIService, err := client.APIServices().UpdateStatus(newAPIService)
+	newAPIService, err := client.APIServices().UpdateStatus(context.TODO(), newAPIService, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}

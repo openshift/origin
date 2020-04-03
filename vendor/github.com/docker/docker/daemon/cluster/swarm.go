@@ -92,14 +92,27 @@ func (c *Cluster) Init(req types.InitRequest) (string, error) {
 		}
 	}
 
+	//Validate Default Address Pool input
+	if err := validateDefaultAddrPool(req.DefaultAddrPool, req.SubnetSize); err != nil {
+		return "", err
+	}
+
+	port, err := getDataPathPort(req.DataPathPort)
+	if err != nil {
+		return "", err
+	}
+
 	nr, err := c.newNodeRunner(nodeStartConfig{
-		forceNewCluster: req.ForceNewCluster,
-		autolock:        req.AutoLockManagers,
-		LocalAddr:       localAddr,
-		ListenAddr:      net.JoinHostPort(listenHost, listenPort),
-		AdvertiseAddr:   net.JoinHostPort(advertiseHost, advertisePort),
-		DataPathAddr:    dataPathAddr,
-		availability:    req.Availability,
+		forceNewCluster:    req.ForceNewCluster,
+		autolock:           req.AutoLockManagers,
+		LocalAddr:          localAddr,
+		ListenAddr:         net.JoinHostPort(listenHost, listenPort),
+		AdvertiseAddr:      net.JoinHostPort(advertiseHost, advertisePort),
+		DataPathAddr:       dataPathAddr,
+		DefaultAddressPool: req.DefaultAddrPool,
+		SubnetSize:         req.SubnetSize,
+		availability:       req.Availability,
+		DataPathPort:       port,
 	})
 	if err != nil {
 		return "", err
@@ -444,6 +457,20 @@ func (c *Cluster) Info() types.Info {
 				if n.ManagerStatus != nil {
 					info.Managers = info.Managers + 1
 				}
+			}
+		}
+
+		switch info.LocalNodeState {
+		case types.LocalNodeStateInactive, types.LocalNodeStateLocked, types.LocalNodeStateError:
+			// nothing to do
+		default:
+			if info.Managers == 2 {
+				const warn string = `WARNING: Running Swarm in a two-manager configuration. This configuration provides
+         no fault tolerance, and poses a high risk to loose control over the cluster.
+         Refer to https://docs.docker.com/engine/swarm/admin_guide/ to configure the
+         Swarm for fault-tolerance.`
+
+				info.Warnings = append(info.Warnings, warn)
 			}
 		}
 	}

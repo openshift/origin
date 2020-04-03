@@ -1558,11 +1558,11 @@ func ExampleAutoScaling_PutScheduledUpdateGroupAction_shared00() {
 	input := &autoscaling.PutScheduledUpdateGroupActionInput{
 		AutoScalingGroupName: aws.String("my-auto-scaling-group"),
 		DesiredCapacity:      aws.Int64(4),
-		EndTime:              parseTime("2006-01-02T15:04:05Z", "2014-05-12T08:00:00Z"),
+		EndTime:              parseTime("2006-01-02T15:04:05.999999999Z", "2014-05-12T08:00:00Z"),
 		MaxSize:              aws.Int64(6),
 		MinSize:              aws.Int64(2),
 		ScheduledActionName:  aws.String("my-scheduled-action"),
-		StartTime:            parseTime("2006-01-02T15:04:05Z", "2014-05-12T08:00:00Z"),
+		StartTime:            parseTime("2006-01-02T15:04:05.999999999Z", "2014-05-12T08:00:00Z"),
 	}
 
 	result, err := svc.PutScheduledUpdateGroupAction(input)

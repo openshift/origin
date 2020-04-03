@@ -1,6 +1,7 @@
 package resourcehash
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/listers/core/v1"
+	v1 "k8s.io/client-go/listers/core/v1"
 )
 
 // GetConfigMapHash returns a hash of the configmap data
@@ -81,7 +82,7 @@ func MultipleObjectHashStringMapForObjectReferences(client kubernetes.Interface,
 	for _, objRef := range objRefs {
 		switch objRef.Resource {
 		case schema.GroupResource{Resource: "configmap"}, schema.GroupResource{Resource: "configmaps"}:
-			obj, err := client.CoreV1().ConfigMaps(objRef.Namespace).Get(objRef.Name, metav1.GetOptions{})
+			obj, err := client.CoreV1().ConfigMaps(objRef.Namespace).Get(context.TODO(), objRef.Name, metav1.GetOptions{})
 			if apierrors.IsNotFound(err) {
 				// don't error, just don't list the key. this is different than empty
 				continue
@@ -92,7 +93,7 @@ func MultipleObjectHashStringMapForObjectReferences(client kubernetes.Interface,
 			objs = append(objs, obj)
 
 		case schema.GroupResource{Resource: "secret"}, schema.GroupResource{Resource: "secrets"}:
-			obj, err := client.CoreV1().Secrets(objRef.Namespace).Get(objRef.Name, metav1.GetOptions{})
+			obj, err := client.CoreV1().Secrets(objRef.Namespace).Get(context.TODO(), objRef.Name, metav1.GetOptions{})
 			if apierrors.IsNotFound(err) {
 				// don't error, just don't list the key. this is different than empty
 				continue

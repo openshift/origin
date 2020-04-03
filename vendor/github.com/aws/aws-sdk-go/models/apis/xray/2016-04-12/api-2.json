@@ -167,6 +167,19 @@
         {"shape":"ThrottledException"}
       ]
     },
+    "GetTimeSeriesServiceStatistics":{
+      "name":"GetTimeSeriesServiceStatistics",
+      "http":{
+        "method":"POST",
+        "requestUri":"/TimeSeriesServiceStatistics"
+      },
+      "input":{"shape":"GetTimeSeriesServiceStatisticsRequest"},
+      "output":{"shape":"GetTimeSeriesServiceStatisticsResult"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"ThrottledException"}
+      ]
+    },
     "GetTraceGraph":{
       "name":"GetTraceGraph",
       "http":{
@@ -458,6 +471,11 @@
         "KMS"
       ]
     },
+    "EntitySelectorExpression":{
+      "type":"string",
+      "max":500,
+      "min":1
+    },
     "ErrorMessage":{"type":"string"},
     "ErrorRootCause":{
       "type":"structure",
@@ -548,11 +566,7 @@
         "TotalCount":{"shape":"NullableLong"}
       }
     },
-    "FilterExpression":{
-      "type":"string",
-      "max":2000,
-      "min":1
-    },
+    "FilterExpression":{"type":"string"},
     "FixedRate":{
       "type":"double",
       "max":1,
@@ -665,6 +679,30 @@
         "NextToken":{"shape":"String"}
       }
     },
+    "GetTimeSeriesServiceStatisticsRequest":{
+      "type":"structure",
+      "required":[
+        "StartTime",
+        "EndTime"
+      ],
+      "members":{
+        "StartTime":{"shape":"Timestamp"},
+        "EndTime":{"shape":"Timestamp"},
+        "GroupName":{"shape":"GroupName"},
+        "GroupARN":{"shape":"GroupARN"},
+        "EntitySelectorExpression":{"shape":"EntitySelectorExpression"},
+        "Period":{"shape":"NullableInteger"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "GetTimeSeriesServiceStatisticsResult":{
+      "type":"structure",
+      "members":{
+        "TimeSeriesServiceStatistics":{"shape":"TimeSeriesServiceStatisticsList"},
+        "ContainsOldGroupVersions":{"shape":"Boolean"},
+        "NextToken":{"shape":"String"}
+      }
+    },
     "GetTraceGraphRequest":{
       "type":"structure",
       "required":["TraceIds"],
@@ -689,7 +727,9 @@
       "members":{
         "StartTime":{"shape":"Timestamp"},
         "EndTime":{"shape":"Timestamp"},
+        "TimeRangeType":{"shape":"TimeRangeType"},
         "Sampling":{"shape":"NullableBoolean"},
+        "SamplingStrategy":{"shape":"SamplingStrategy"},
         "FilterExpression":{"shape":"FilterExpression"},
         "NextToken":{"shape":"String"}
       }
@@ -1009,6 +1049,20 @@
       "member":{"shape":"SamplingStatisticsDocument"},
       "max":25
     },
+    "SamplingStrategy":{
+      "type":"structure",
+      "members":{
+        "Name":{"shape":"SamplingStrategyName"},
+        "Value":{"shape":"NullableDouble"}
+      }
+    },
+    "SamplingStrategyName":{
+      "type":"string",
+      "enum":[
+        "PartialScan",
+        "FixedRate"
+      ]
+    },
     "SamplingTargetDocument":{
       "type":"structure",
       "members":{
@@ -1121,6 +1175,26 @@
       "error":{"httpStatusCode":429},
       "exception":true
     },
+    "TimeRangeType":{
+      "type":"string",
+      "enum":[
+        "TraceId",
+        "Event"
+      ]
+    },
+    "TimeSeriesServiceStatistics":{
+      "type":"structure",
+      "members":{
+        "Timestamp":{"shape":"Timestamp"},
+        "EdgeSummaryStatistics":{"shape":"EdgeStatistics"},
+        "ServiceSummaryStatistics":{"shape":"ServiceStatistics"},
+        "ResponseTimeHistogram":{"shape":"Histogram"}
+      }
+    },
+    "TimeSeriesServiceStatisticsList":{
+      "type":"list",
+      "member":{"shape":"TimeSeriesServiceStatistics"}
+    },
     "Timestamp":{"type":"timestamp"},
     "Trace":{
       "type":"structure",
@@ -1181,7 +1255,8 @@
         "FaultRootCauses":{"shape":"FaultRootCauses"},
         "ErrorRootCauses":{"shape":"ErrorRootCauses"},
         "ResponseTimeRootCauses":{"shape":"ResponseTimeRootCauses"},
-        "Revision":{"shape":"Integer"}
+        "Revision":{"shape":"Integer"},
+        "MatchedEventTime":{"shape":"Timestamp"}
       }
     },
     "TraceSummaryList":{

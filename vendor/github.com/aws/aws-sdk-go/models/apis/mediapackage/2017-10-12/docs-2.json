@@ -3,15 +3,21 @@
   "service" : "AWS Elemental MediaPackage",
   "operations" : {
     "CreateChannel" : "Creates a new Channel.",
+    "CreateHarvestJob" : "Creates a new HarvestJob record.",
     "CreateOriginEndpoint" : "Creates a new OriginEndpoint record.",
     "DeleteChannel" : "Deletes an existing Channel.",
     "DeleteOriginEndpoint" : "Deletes an existing OriginEndpoint.",
     "DescribeChannel" : "Gets details about a Channel.",
+    "DescribeHarvestJob" : "Gets details about an existing HarvestJob.",
     "DescribeOriginEndpoint" : "Gets details about an existing OriginEndpoint.",
     "ListChannels" : "Returns a collection of Channels.",
+    "ListHarvestJobs" : "Returns a collection of HarvestJob records.",
     "ListOriginEndpoints" : "Returns a collection of OriginEndpoint records.",
+    "ListTagsForResource" : null,
     "RotateChannelCredentials" : "Changes the Channel's first IngestEndpoint's username and password. WARNING - This API is deprecated. Please use RotateIngestEndpointCredentials instead",
     "RotateIngestEndpointCredentials" : "Rotate the IngestEndpoint's username and password, as specified by the IngestEndpoint's id.",
+    "TagResource" : null,
+    "UntagResource" : null,
     "UpdateChannel" : "Updates an existing Channel.",
     "UpdateOriginEndpoint" : "Updates an existing OriginEndpoint."
   },
@@ -22,6 +28,30 @@
         "HlsManifest$AdMarkers" : "This setting controls how ad markers are included in the packaged OriginEndpoint.\n\"NONE\" will omit all SCTE-35 ad markers from the output.\n\"PASSTHROUGH\" causes the manifest to contain a copy of the SCTE-35 ad\nmarkers (comments) taken directly from the input HTTP Live Streaming (HLS) manifest.\n\"SCTE35_ENHANCED\" generates ad markers and blackout tags based on SCTE-35\nmessages in the input source.\n",
         "HlsManifestCreateOrUpdateParameters$AdMarkers" : "This setting controls how ad markers are included in the packaged OriginEndpoint.\n\"NONE\" will omit all SCTE-35 ad markers from the output.\n\"PASSTHROUGH\" causes the manifest to contain a copy of the SCTE-35 ad\nmarkers (comments) taken directly from the input HTTP Live Streaming (HLS) manifest.\n\"SCTE35_ENHANCED\" generates ad markers and blackout tags based on SCTE-35\nmessages in the input source.\n",
         "HlsPackage$AdMarkers" : "This setting controls how ad markers are included in the packaged OriginEndpoint.\n\"NONE\" will omit all SCTE-35 ad markers from the output.\n\"PASSTHROUGH\" causes the manifest to contain a copy of the SCTE-35 ad\nmarkers (comments) taken directly from the input HTTP Live Streaming (HLS) manifest.\n\"SCTE35_ENHANCED\" generates ad markers and blackout tags based on SCTE-35\nmessages in the input source.\n"
+      }
+    },
+    "AdTriggers" : {
+      "base" : "A list of SCTE-35 message types that are treated as ad markers in the output.  If empty, no\nad markers are output.  Specify multiple items to create ad markers for all of the included\nmessage types.\n",
+      "refs" : {
+        "DashPackage$AdTriggers" : null,
+        "HlsManifestCreateOrUpdateParameters$AdTriggers" : null,
+        "HlsPackage$AdTriggers" : null
+      }
+    },
+    "AdsOnDeliveryRestrictions" : {
+      "base" : "This setting allows the delivery restriction flags on SCTE-35 segmentation descriptors to\ndetermine whether a message signals an ad.  Choosing \"NONE\" means no SCTE-35 messages become\nads.  Choosing \"RESTRICTED\" means SCTE-35 messages of the types specified in AdTriggers that\ncontain delivery restrictions will be treated as ads.  Choosing \"UNRESTRICTED\" means SCTE-35\nmessages of the types specified in AdTriggers that do not contain delivery restrictions will\nbe treated as ads.  Choosing \"BOTH\" means all SCTE-35 messages of the types specified in\nAdTriggers will be treated as ads.  Note that Splice Insert messages do not have these flags\nand are always treated as ads if specified in AdTriggers.\n",
+      "refs" : {
+        "DashPackage$AdsOnDeliveryRestrictions" : null,
+        "HlsManifestCreateOrUpdateParameters$AdsOnDeliveryRestrictions" : null,
+        "HlsPackage$AdsOnDeliveryRestrictions" : null
+      }
+    },
+    "Authorization" : {
+      "base" : "CDN Authorization credentials",
+      "refs" : {
+        "OriginEndpoint$Authorization" : null,
+        "OriginEndpointCreateParameters$Authorization" : null,
+        "OriginEndpointUpdateParameters$Authorization" : null
       }
     },
     "Channel" : {
@@ -82,6 +112,20 @@
         "HlsEncryption$EncryptionMethod" : "The encryption method to use."
       }
     },
+    "HarvestJob" : {
+      "base" : "A HarvestJob resource configuration",
+      "refs" : {
+        "__listOfHarvestJob$member" : null
+      }
+    },
+    "HarvestJobCreateParameters" : {
+      "base" : "Configuration parameters for a new HarvestJob",
+      "refs" : { }
+    },
+    "HarvestJobList" : {
+      "base" : "A collection of HarvestJob records.",
+      "refs" : { }
+    },
     "HlsEncryption" : {
       "base" : "An HTTP Live Streaming (HLS) encryption configuration.",
       "refs" : {
@@ -120,6 +164,12 @@
         "__listOfIngestEndpoint$member" : null
       }
     },
+    "ManifestLayout" : {
+      "base" : null,
+      "refs" : {
+        "DashPackage$ManifestLayout" : "Determines the position of some tags in the Media Presentation Description (MPD).  When set to FULL, elements like SegmentTemplate and ContentProtection are included in each Representation.  When set to COMPACT, duplicate elements are combined and presented at the AdaptationSet level."
+      }
+    },
     "MssEncryption" : {
       "base" : "A Microsoft Smooth Streaming (MSS) encryption configuration.",
       "refs" : {
@@ -152,6 +202,14 @@
       "base" : "Configuration parameters for updating an existing OriginEndpoint.",
       "refs" : { }
     },
+    "Origination" : {
+      "base" : null,
+      "refs" : {
+        "OriginEndpoint$Origination" : "Control whether origination of video is allowed for this OriginEndpoint. If set to ALLOW, the OriginEndpoint\nmay by requested, pursuant to any other form of access control. If set to DENY, the OriginEndpoint may not be\nrequested. This can be helpful for Live to VOD harvesting, or for temporarily disabling origination\n",
+        "OriginEndpointCreateParameters$Origination" : "Control whether origination of video is allowed for this OriginEndpoint. If set to ALLOW, the OriginEndpoint\nmay by requested, pursuant to any other form of access control. If set to DENY, the OriginEndpoint may not be\nrequested. This can be helpful for Live to VOD harvesting, or for temporarily disabling origination\n",
+        "OriginEndpointUpdateParameters$Origination" : "Control whether origination of video is allowed for this OriginEndpoint. If set to ALLOW, the OriginEndpoint\nmay by requested, pursuant to any other form of access control. If set to DENY, the OriginEndpoint may not be\nrequested. This can be helpful for Live to VOD harvesting, or for temporarily disabling origination\n"
+      }
+    },
     "PlaylistType" : {
       "base" : null,
       "refs" : {
@@ -166,6 +224,19 @@
         "DashPackage$Profile" : "The Dynamic Adaptive Streaming over HTTP (DASH) profile type.  When set to \"HBBTV_1_5\", HbbTV 1.5 compliant output is enabled."
       }
     },
+    "S3Destination" : {
+      "base" : "Configuration parameters for where in an S3 bucket to place the harvested content\n",
+      "refs" : {
+        "HarvestJob$S3Destination" : null,
+        "HarvestJobCreateParameters$S3Destination" : null
+      }
+    },
+    "SegmentTemplateFormat" : {
+      "base" : null,
+      "refs" : {
+        "DashPackage$SegmentTemplateFormat" : "Determines the type of SegmentTemplate included in the Media Presentation Description (MPD).  When set to NUMBER_WITH_TIMELINE, a full timeline is presented in each SegmentTemplate, with $Number$ media URLs.  When set to TIME_WITH_TIMELINE, a full timeline is presented in each SegmentTemplate, with $Time$ media URLs. When set to NUMBER_WITH_DURATION, only a duration is included in each SegmentTemplate, with $Number$ media URLs."
+      }
+    },
     "SpekeKeyProvider" : {
       "base" : "A configuration for accessing an external Secure Packager and Encoder Key Exchange (SPEKE) service that will provide encryption keys.",
       "refs" : {
@@ -173,6 +244,12 @@
         "DashEncryption$SpekeKeyProvider" : null,
         "HlsEncryption$SpekeKeyProvider" : null,
         "MssEncryption$SpekeKeyProvider" : null
+      }
+    },
+    "Status" : {
+      "base" : null,
+      "refs" : {
+        "HarvestJob$Status" : "The current status of the HarvestJob. Consider setting up a CloudWatch Event to listen for\nHarvestJobs as they succeed or fail. In the event of failure, the CloudWatch Event will\ninclude an explanation of why the HarvestJob failed.\n"
       }
     },
     "StreamOrder" : {
@@ -189,6 +266,25 @@
         "DashPackage$StreamSelection" : null,
         "HlsPackage$StreamSelection" : null,
         "MssPackage$StreamSelection" : null
+      }
+    },
+    "Tags" : {
+      "base" : "A collection of tags associated with a resource",
+      "refs" : {
+        "Channel$Tags" : null,
+        "ChannelCreateParameters$Tags" : null,
+        "OriginEndpoint$Tags" : null,
+        "OriginEndpointCreateParameters$Tags" : null
+      }
+    },
+    "TagsModel" : {
+      "base" : null,
+      "refs" : { }
+    },
+    "__AdTriggersElement" : {
+      "base" : null,
+      "refs" : {
+        "AdTriggers$member" : null
       }
     },
     "__PeriodTriggersElement" : {
@@ -245,6 +341,12 @@
         "ChannelList$Channels" : "A list of Channel records."
       }
     },
+    "__listOfHarvestJob" : {
+      "base" : null,
+      "refs" : {
+        "HarvestJobList$HarvestJobs" : "A list of HarvestJob records."
+      }
+    },
     "__listOfHlsManifest" : {
       "base" : null,
       "refs" : {
@@ -284,9 +386,17 @@
         "SpekeKeyProvider$SystemIds" : "The system IDs to include in key requests."
       }
     },
+    "__mapOf__string" : {
+      "base" : null,
+      "refs" : {
+        "TagsModel$Tags" : null
+      }
+    },
     "__string" : {
       "base" : null,
       "refs" : {
+        "Authorization$CdnIdentifierSecret" : "The Amazon Resource Name (ARN) for the secret in Secrets Manager that your Content Distribution Network (CDN) uses for authorization to access your endpoint.\n",
+        "Authorization$SecretsRoleArn" : "The Amazon Resource Name (ARN) for the IAM role that allows MediaPackage to communicate with AWS Secrets Manager.\n",
         "Channel$Arn" : "The Amazon Resource Name (ARN) assigned to the Channel.",
         "Channel$Description" : "A short text description of the Channel.",
         "Channel$Id" : "The ID of the Channel.",
@@ -296,6 +406,18 @@
         "ChannelUpdateParameters$Description" : "A short text description of the Channel.",
         "CmafPackage$SegmentPrefix" : "An optional custom string that is prepended to the name of each segment. If not specified, it defaults to the ChannelId.",
         "CmafPackageCreateOrUpdateParameters$SegmentPrefix" : "An optional custom string that is prepended to the name of each segment. If not specified, it defaults to the ChannelId.",
+        "HarvestJob$Arn" : "The Amazon Resource Name (ARN) assigned to the HarvestJob.\n",
+        "HarvestJob$ChannelId" : "The ID of the Channel that the HarvestJob will harvest from.\n",
+        "HarvestJob$CreatedAt" : "The time the HarvestJob was submitted\n",
+        "HarvestJob$EndTime" : "The end of the time-window which will be harvested.\n",
+        "HarvestJob$Id" : "The ID of the HarvestJob. The ID must be unique within the region\nand it cannot be changed after the HarvestJob is submitted.\n",
+        "HarvestJob$OriginEndpointId" : "The ID of the OriginEndpoint that the HarvestJob will harvest from.\nThis cannot be changed after the HarvestJob is submitted.\n",
+        "HarvestJob$StartTime" : "The start of the time-window which will be harvested.\n",
+        "HarvestJobCreateParameters$EndTime" : "The end of the time-window which will be harvested\n",
+        "HarvestJobCreateParameters$Id" : "The ID of the HarvestJob. The ID must be unique within the region\nand it cannot be changed after the HarvestJob is submitted\n",
+        "HarvestJobCreateParameters$OriginEndpointId" : "The ID of the OriginEndpoint that the HarvestJob will harvest from.\nThis cannot be changed after the HarvestJob is submitted.\n",
+        "HarvestJobCreateParameters$StartTime" : "The start of the time-window which will be harvested\n",
+        "HarvestJobList$NextToken" : "A token that can be used to resume pagination from the end of the collection.",
         "HlsEncryption$ConstantInitializationVector" : "A constant initialization vector for encryption (optional).\nWhen not specified the initialization vector will be periodically rotated.\n",
         "HlsManifest$Id" : "The ID of the manifest. The ID must be unique within the OriginEndpoint and it cannot be changed after it is created.",
         "HlsManifest$ManifestName" : "An optional short string appended to the end of the OriginEndpoint URL. If not specified, defaults to the manifestName for the OriginEndpoint.",
@@ -319,11 +441,16 @@
         "OriginEndpointList$NextToken" : "A token that can be used to resume pagination from the end of the collection.",
         "OriginEndpointUpdateParameters$Description" : "A short text description of the OriginEndpoint.",
         "OriginEndpointUpdateParameters$ManifestName" : "A short string that will be appended to the end of the Endpoint URL.",
+        "S3Destination$BucketName" : "The name of an S3 bucket within which harvested content will be exported\n",
+        "S3Destination$ManifestKey" : "The key in the specified S3 bucket where the harvested top-level manifest will be placed.\n",
+        "S3Destination$RoleArn" : "The IAM role used to write to the specified S3 bucket\n",
         "SpekeKeyProvider$CertificateArn" : "An Amazon Resource Name (ARN) of a Certificate Manager certificate\nthat MediaPackage will use for enforcing secure end-to-end data\ntransfer with the key provider service.\n",
         "SpekeKeyProvider$ResourceId" : "The resource ID to include in key requests.",
         "SpekeKeyProvider$RoleArn" : "An Amazon Resource Name (ARN) of an IAM role that AWS Elemental\nMediaPackage will assume when accessing the key provider service.\n",
         "SpekeKeyProvider$Url" : "The URL of the external key provider service.",
-        "__listOf__string$member" : null
+        "Tags$member" : null,
+        "__listOf__string$member" : null,
+        "__mapOf__string$member" : null
       }
     }
   }

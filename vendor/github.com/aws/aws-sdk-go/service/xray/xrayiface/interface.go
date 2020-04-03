@@ -95,13 +95,22 @@ type XRayAPI interface {
 	GetGroupsWithContext(aws.Context, *xray.GetGroupsInput, ...request.Option) (*xray.GetGroupsOutput, error)
 	GetGroupsRequest(*xray.GetGroupsInput) (*request.Request, *xray.GetGroupsOutput)
 
+	GetGroupsPages(*xray.GetGroupsInput, func(*xray.GetGroupsOutput, bool) bool) error
+	GetGroupsPagesWithContext(aws.Context, *xray.GetGroupsInput, func(*xray.GetGroupsOutput, bool) bool, ...request.Option) error
+
 	GetSamplingRules(*xray.GetSamplingRulesInput) (*xray.GetSamplingRulesOutput, error)
 	GetSamplingRulesWithContext(aws.Context, *xray.GetSamplingRulesInput, ...request.Option) (*xray.GetSamplingRulesOutput, error)
 	GetSamplingRulesRequest(*xray.GetSamplingRulesInput) (*request.Request, *xray.GetSamplingRulesOutput)
 
+	GetSamplingRulesPages(*xray.GetSamplingRulesInput, func(*xray.GetSamplingRulesOutput, bool) bool) error
+	GetSamplingRulesPagesWithContext(aws.Context, *xray.GetSamplingRulesInput, func(*xray.GetSamplingRulesOutput, bool) bool, ...request.Option) error
+
 	GetSamplingStatisticSummaries(*xray.GetSamplingStatisticSummariesInput) (*xray.GetSamplingStatisticSummariesOutput, error)
 	GetSamplingStatisticSummariesWithContext(aws.Context, *xray.GetSamplingStatisticSummariesInput, ...request.Option) (*xray.GetSamplingStatisticSummariesOutput, error)
 	GetSamplingStatisticSummariesRequest(*xray.GetSamplingStatisticSummariesInput) (*request.Request, *xray.GetSamplingStatisticSummariesOutput)
+
+	GetSamplingStatisticSummariesPages(*xray.GetSamplingStatisticSummariesInput, func(*xray.GetSamplingStatisticSummariesOutput, bool) bool) error
+	GetSamplingStatisticSummariesPagesWithContext(aws.Context, *xray.GetSamplingStatisticSummariesInput, func(*xray.GetSamplingStatisticSummariesOutput, bool) bool, ...request.Option) error
 
 	GetSamplingTargets(*xray.GetSamplingTargetsInput) (*xray.GetSamplingTargetsOutput, error)
 	GetSamplingTargetsWithContext(aws.Context, *xray.GetSamplingTargetsInput, ...request.Option) (*xray.GetSamplingTargetsOutput, error)
@@ -113,6 +122,13 @@ type XRayAPI interface {
 
 	GetServiceGraphPages(*xray.GetServiceGraphInput, func(*xray.GetServiceGraphOutput, bool) bool) error
 	GetServiceGraphPagesWithContext(aws.Context, *xray.GetServiceGraphInput, func(*xray.GetServiceGraphOutput, bool) bool, ...request.Option) error
+
+	GetTimeSeriesServiceStatistics(*xray.GetTimeSeriesServiceStatisticsInput) (*xray.GetTimeSeriesServiceStatisticsOutput, error)
+	GetTimeSeriesServiceStatisticsWithContext(aws.Context, *xray.GetTimeSeriesServiceStatisticsInput, ...request.Option) (*xray.GetTimeSeriesServiceStatisticsOutput, error)
+	GetTimeSeriesServiceStatisticsRequest(*xray.GetTimeSeriesServiceStatisticsInput) (*request.Request, *xray.GetTimeSeriesServiceStatisticsOutput)
+
+	GetTimeSeriesServiceStatisticsPages(*xray.GetTimeSeriesServiceStatisticsInput, func(*xray.GetTimeSeriesServiceStatisticsOutput, bool) bool) error
+	GetTimeSeriesServiceStatisticsPagesWithContext(aws.Context, *xray.GetTimeSeriesServiceStatisticsInput, func(*xray.GetTimeSeriesServiceStatisticsOutput, bool) bool, ...request.Option) error
 
 	GetTraceGraph(*xray.GetTraceGraphInput) (*xray.GetTraceGraphOutput, error)
 	GetTraceGraphWithContext(aws.Context, *xray.GetTraceGraphInput, ...request.Option) (*xray.GetTraceGraphOutput, error)

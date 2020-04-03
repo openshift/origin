@@ -148,6 +148,10 @@ type LightsailAPI interface {
 	CreateRelationalDatabaseSnapshotWithContext(aws.Context, *lightsail.CreateRelationalDatabaseSnapshotInput, ...request.Option) (*lightsail.CreateRelationalDatabaseSnapshotOutput, error)
 	CreateRelationalDatabaseSnapshotRequest(*lightsail.CreateRelationalDatabaseSnapshotInput) (*request.Request, *lightsail.CreateRelationalDatabaseSnapshotOutput)
 
+	DeleteAutoSnapshot(*lightsail.DeleteAutoSnapshotInput) (*lightsail.DeleteAutoSnapshotOutput, error)
+	DeleteAutoSnapshotWithContext(aws.Context, *lightsail.DeleteAutoSnapshotInput, ...request.Option) (*lightsail.DeleteAutoSnapshotOutput, error)
+	DeleteAutoSnapshotRequest(*lightsail.DeleteAutoSnapshotInput) (*request.Request, *lightsail.DeleteAutoSnapshotOutput)
+
 	DeleteDisk(*lightsail.DeleteDiskInput) (*lightsail.DeleteDiskOutput, error)
 	DeleteDiskWithContext(aws.Context, *lightsail.DeleteDiskInput, ...request.Option) (*lightsail.DeleteDiskOutput, error)
 	DeleteDiskRequest(*lightsail.DeleteDiskInput) (*request.Request, *lightsail.DeleteDiskOutput)
@@ -175,6 +179,10 @@ type LightsailAPI interface {
 	DeleteKeyPair(*lightsail.DeleteKeyPairInput) (*lightsail.DeleteKeyPairOutput, error)
 	DeleteKeyPairWithContext(aws.Context, *lightsail.DeleteKeyPairInput, ...request.Option) (*lightsail.DeleteKeyPairOutput, error)
 	DeleteKeyPairRequest(*lightsail.DeleteKeyPairInput) (*request.Request, *lightsail.DeleteKeyPairOutput)
+
+	DeleteKnownHostKeys(*lightsail.DeleteKnownHostKeysInput) (*lightsail.DeleteKnownHostKeysOutput, error)
+	DeleteKnownHostKeysWithContext(aws.Context, *lightsail.DeleteKnownHostKeysInput, ...request.Option) (*lightsail.DeleteKnownHostKeysOutput, error)
+	DeleteKnownHostKeysRequest(*lightsail.DeleteKnownHostKeysInput) (*request.Request, *lightsail.DeleteKnownHostKeysOutput)
 
 	DeleteLoadBalancer(*lightsail.DeleteLoadBalancerInput) (*lightsail.DeleteLoadBalancerOutput, error)
 	DeleteLoadBalancerWithContext(aws.Context, *lightsail.DeleteLoadBalancerInput, ...request.Option) (*lightsail.DeleteLoadBalancerOutput, error)
@@ -204,9 +212,17 @@ type LightsailAPI interface {
 	DetachStaticIpWithContext(aws.Context, *lightsail.DetachStaticIpInput, ...request.Option) (*lightsail.DetachStaticIpOutput, error)
 	DetachStaticIpRequest(*lightsail.DetachStaticIpInput) (*request.Request, *lightsail.DetachStaticIpOutput)
 
+	DisableAddOn(*lightsail.DisableAddOnInput) (*lightsail.DisableAddOnOutput, error)
+	DisableAddOnWithContext(aws.Context, *lightsail.DisableAddOnInput, ...request.Option) (*lightsail.DisableAddOnOutput, error)
+	DisableAddOnRequest(*lightsail.DisableAddOnInput) (*request.Request, *lightsail.DisableAddOnOutput)
+
 	DownloadDefaultKeyPair(*lightsail.DownloadDefaultKeyPairInput) (*lightsail.DownloadDefaultKeyPairOutput, error)
 	DownloadDefaultKeyPairWithContext(aws.Context, *lightsail.DownloadDefaultKeyPairInput, ...request.Option) (*lightsail.DownloadDefaultKeyPairOutput, error)
 	DownloadDefaultKeyPairRequest(*lightsail.DownloadDefaultKeyPairInput) (*request.Request, *lightsail.DownloadDefaultKeyPairOutput)
+
+	EnableAddOn(*lightsail.EnableAddOnInput) (*lightsail.EnableAddOnOutput, error)
+	EnableAddOnWithContext(aws.Context, *lightsail.EnableAddOnInput, ...request.Option) (*lightsail.EnableAddOnOutput, error)
+	EnableAddOnRequest(*lightsail.EnableAddOnInput) (*request.Request, *lightsail.EnableAddOnOutput)
 
 	ExportSnapshot(*lightsail.ExportSnapshotInput) (*lightsail.ExportSnapshotOutput, error)
 	ExportSnapshotWithContext(aws.Context, *lightsail.ExportSnapshotInput, ...request.Option) (*lightsail.ExportSnapshotOutput, error)
@@ -215,6 +231,10 @@ type LightsailAPI interface {
 	GetActiveNames(*lightsail.GetActiveNamesInput) (*lightsail.GetActiveNamesOutput, error)
 	GetActiveNamesWithContext(aws.Context, *lightsail.GetActiveNamesInput, ...request.Option) (*lightsail.GetActiveNamesOutput, error)
 	GetActiveNamesRequest(*lightsail.GetActiveNamesInput) (*request.Request, *lightsail.GetActiveNamesOutput)
+
+	GetAutoSnapshots(*lightsail.GetAutoSnapshotsInput) (*lightsail.GetAutoSnapshotsOutput, error)
+	GetAutoSnapshotsWithContext(aws.Context, *lightsail.GetAutoSnapshotsInput, ...request.Option) (*lightsail.GetAutoSnapshotsOutput, error)
+	GetAutoSnapshotsRequest(*lightsail.GetAutoSnapshotsInput) (*request.Request, *lightsail.GetAutoSnapshotsOutput)
 
 	GetBlueprints(*lightsail.GetBlueprintsInput) (*lightsail.GetBlueprintsOutput, error)
 	GetBlueprintsWithContext(aws.Context, *lightsail.GetBlueprintsInput, ...request.Option) (*lightsail.GetBlueprintsOutput, error)

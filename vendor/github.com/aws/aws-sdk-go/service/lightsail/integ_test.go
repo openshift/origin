@@ -27,7 +27,9 @@ func TestInteg_00_GetActiveNames(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := lightsail.New(sess)
 	params := &lightsail.GetActiveNamesInput{}
-	_, err := svc.GetActiveNamesWithContext(ctx, params)
+	_, err := svc.GetActiveNamesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

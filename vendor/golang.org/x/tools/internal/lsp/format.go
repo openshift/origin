@@ -6,8 +6,8 @@ package lsp
 
 import (
 	"context"
-	"fmt"
 
+	"golang.org/x/tools/internal/lsp/diff"
 	"golang.org/x/tools/internal/lsp/protocol"
 	"golang.org/x/tools/internal/lsp/source"
 	"golang.org/x/tools/internal/span"
@@ -17,63 +17,52 @@ func (s *Server) formatting(ctx context.Context, params *protocol.DocumentFormat
 	uri := span.NewURI(params.TextDocument.URI)
 	view := s.session.ViewOf(uri)
 	spn := span.New(uri, span.Point{}, span.Point{})
-	return formatRange(ctx, view, spn)
-}
-
-// formatRange formats a document with a given range.
-func formatRange(ctx context.Context, v source.View, s span.Span) ([]protocol.TextEdit, error) {
-	f, m, err := getGoFile(ctx, v, s.URI())
+	f, m, rng, err := spanToRange(ctx, view, spn)
 	if err != nil {
 		return nil, err
-	}
-	rng, err := s.Range(m.Converter)
-	if err != nil {
-		return nil, err
-	}
-	if rng.Start == rng.End {
-		// If we have a single point, assume we want the whole file.
-		tok := f.GetToken(ctx)
-		if tok == nil {
-			return nil, fmt.Errorf("no file information for %s", f.URI())
-		}
-		rng.End = tok.Pos(tok.Size())
 	}
 	edits, err := source.Format(ctx, f, rng)
 	if err != nil {
 		return nil, err
 	}
-	return ToProtocolEdits(m, edits)
+	return source.ToProtocolEdits(m, edits)
 }
 
-func ToProtocolEdits(m *protocol.ColumnMapper, edits []source.TextEdit) ([]protocol.TextEdit, error) {
-	if edits == nil {
-		return nil, nil
+func spanToRange(ctx context.Context, view source.View, spn span.Span) (source.GoFile, *protocol.ColumnMapper, span.Range, error) {
+	f, err := getGoFile(ctx, view, spn.URI())
+	if err != nil {
+		return nil, nil, span.Range{}, err
 	}
-	result := make([]protocol.TextEdit, len(edits))
-	for i, edit := range edits {
-		rng, err := m.Range(edit.Span)
+	m, err := getMapper(ctx, f)
+	if err != nil {
+		return nil, nil, span.Range{}, err
+	}
+	rng, err := spn.Range(m.Converter)
+	if err != nil {
+		return nil, nil, span.Range{}, err
+	}
+	if rng.Start == rng.End {
+		// If we have a single point, assume we want the whole file.
+		tok, err := f.GetToken(ctx)
 		if err != nil {
-			return nil, err
+			return nil, nil, span.Range{}, err
 		}
-		result[i] = protocol.TextEdit{
-			Range:   rng,
-			NewText: edit.NewText,
-		}
+		rng.End = tok.Pos(tok.Size())
 	}
-	return result, nil
+	return f, m, rng, nil
 }
 
-func FromProtocolEdits(m *protocol.ColumnMapper, edits []protocol.TextEdit) ([]source.TextEdit, error) {
+func FromProtocolEdits(m *protocol.ColumnMapper, edits []protocol.TextEdit) ([]diff.TextEdit, error) {
 	if edits == nil {
 		return nil, nil
 	}
-	result := make([]source.TextEdit, len(edits))
+	result := make([]diff.TextEdit, len(edits))
 	for i, edit := range edits {
 		spn, err := m.RangeSpan(edit.Range)
 		if err != nil {
 			return nil, err
 		}
-		result[i] = source.TextEdit{
+		result[i] = diff.TextEdit{
 			Span:    spn,
 			NewText: edit.NewText,
 		}

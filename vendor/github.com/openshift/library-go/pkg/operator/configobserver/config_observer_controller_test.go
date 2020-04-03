@@ -7,24 +7,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/library-go/pkg/controller/factory"
-	"github.com/openshift/library-go/pkg/operator/condition"
-	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
-
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ghodss/yaml"
 	"github.com/imdario/mergo"
-
+	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/controller/factory"
+	"github.com/openshift/library-go/pkg/operator/condition"
+	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/fake"
 	ktesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-
-	operatorv1 "github.com/openshift/api/operator/v1"
-
-	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 func (c *fakeOperatorClient) Informer() cache.SharedIndexInformer {
@@ -284,4 +280,127 @@ func toYAML(o interface{}) string {
 		return e.Error()
 	}
 	return string(b)
+}
+
+func TestWithPrefix(t *testing.T) {
+	const targetField = "changeThisIfYouMust"
+	const targetValue = "targetValue"
+
+	var modified bool
+	var testErr = fmt.Errorf("error")
+	var testedPrefix = []string{"some", "prefix"}
+
+	existingConfig := map[string]interface{}{
+		targetField: targetValue,
+	}
+
+	getObserverFunc := func(shouldError, returnNil bool) ObserveConfigFunc {
+		return func(_ Listers, _ events.Recorder, existingConfig map[string]interface{}) (map[string]interface{}, []error) {
+			var errs = []error{}
+			if shouldError {
+				errs = append(errs, testErr)
+			}
+
+			if returnNil {
+				return nil, errs
+			}
+
+			ret := map[string]interface{}{}
+			if v, _, _ := unstructured.NestedString(existingConfig, targetField); v != targetValue {
+				modified = true
+			}
+			unstructured.SetNestedField(ret, targetValue, targetField)
+
+			return ret, errs
+		}
+	}
+
+	tests := []struct {
+		name           string
+		observer       ObserveConfigFunc
+		testedPrefix   []string
+		existingConfig map[string]interface{}
+		wantConfig     map[string]interface{}
+		wantErrors     []error
+		shouldModify   bool
+	}{
+		{
+			name:     "nil prefix, nil return",
+			observer: getObserverFunc(false, true),
+		},
+		{
+			name:           "some prefix, nil return",
+			observer:       getObserverFunc(false, true),
+			testedPrefix:   testedPrefix,
+			existingConfig: addPrefixToInterface(existingConfig, testedPrefix...),
+		},
+		{
+			name:           "existing == expected",
+			observer:       getObserverFunc(false, false),
+			testedPrefix:   testedPrefix,
+			existingConfig: addPrefixToInterface(existingConfig, testedPrefix...),
+			wantConfig:     addPrefixToInterface(existingConfig, testedPrefix...),
+		},
+		{
+			name:         "update existing",
+			observer:     getObserverFunc(false, false),
+			testedPrefix: testedPrefix,
+			existingConfig: addPrefixToInterface(map[string]interface{}{
+				targetField: "100%randomvalue",
+			}, testedPrefix...),
+			wantConfig:   addPrefixToInterface(existingConfig, testedPrefix...),
+			shouldModify: true,
+		},
+		{
+			name:           "observer error gets propagated",
+			observer:       getObserverFunc(true, false),
+			testedPrefix:   testedPrefix,
+			existingConfig: addPrefixToInterface(existingConfig, testedPrefix...),
+			wantConfig:     addPrefixToInterface(existingConfig, testedPrefix...),
+			wantErrors:     []error{testErr},
+		},
+		{
+			name:           "prefix is empty in existing map, get modified",
+			observer:       getObserverFunc(false, false),
+			testedPrefix:   testedPrefix,
+			existingConfig: existingConfig,
+			wantConfig:     addPrefixToInterface(existingConfig, testedPrefix...),
+			shouldModify:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// reset modified flag
+			defer func() { modified = false }()
+
+			gotConfig, errs := WithPrefix(tt.observer, tt.testedPrefix...)(nil, events.NewInMemoryRecorder("test"), tt.existingConfig)
+
+			if !reflect.DeepEqual(gotConfig, tt.wantConfig) {
+				t.Errorf("observed with prefix; got = %v, want %v", gotConfig, tt.wantConfig)
+			}
+
+			if len(errs) != len(tt.wantErrors) {
+				t.Errorf("observed with prefix; got errors = %v, want %v", errs, tt.wantErrors)
+			} else {
+				for i := range errs {
+					if errs[i].Error() != tt.wantErrors[i].Error() {
+						t.Errorf("observed with prefix; got errors = %v, want %v", errs, tt.wantErrors)
+						break
+					}
+				}
+			}
+
+			if modified != tt.shouldModify {
+				t.Errorf("existing config was modified but it should not have been")
+			}
+
+		})
+	}
+}
+
+func addPrefixToInterface(i interface{}, prefix ...string) map[string]interface{} {
+	ret := map[string]interface{}{}
+	unstructured.SetNestedField(ret, i, prefix...)
+	return ret
 }

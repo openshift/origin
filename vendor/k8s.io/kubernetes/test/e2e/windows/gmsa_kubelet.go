@@ -35,7 +35,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-var _ = SIGDescribe("[Feature:Windows] [Feature:WindowsGMSA] GMSA Kubelet [Slow]", func() {
+var _ = SIGDescribe("[Feature:Windows] GMSA Kubelet [Slow]", func() {
 	f := framework.NewDefaultFramework("gmsa-kubelet-test-windows")
 
 	ginkgo.Describe("kubelet GMSA support", func() {
@@ -98,7 +98,7 @@ var _ = SIGDescribe("[Feature:Windows] [Feature:WindowsGMSA] GMSA Kubelet [Slow]
 					// note that the "eventually" part seems to be needed to account for the fact that powershell containers
 					// are a bit slow to become responsive, even when docker reports them as running.
 					gomega.Eventually(func() bool {
-						output, err = framework.RunKubectl("exec", namespaceOption, podName, containerOption, "--", "nltest", "/PARENTDOMAIN")
+						output, err = framework.RunKubectl(f.Namespace.Name, "exec", namespaceOption, podName, containerOption, "--", "nltest", "/PARENTDOMAIN")
 						return err == nil
 					}, 1*time.Minute, 1*time.Second).Should(gomega.BeTrue())
 

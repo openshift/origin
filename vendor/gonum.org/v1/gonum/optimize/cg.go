@@ -127,7 +127,6 @@ func (cg *CG) Init(dim, tasks int) int {
 func (cg *CG) Run(operation chan<- Task, result <-chan Task, tasks []Task) {
 	cg.status, cg.err = localOptimizer{}.run(cg, cg.GradStopThreshold, operation, result, tasks)
 	close(operation)
-	return
 }
 
 func (cg *CG) initLocal(loc *Location) (Operation, error) {

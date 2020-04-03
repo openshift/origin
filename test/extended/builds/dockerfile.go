@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 
 	g "github.com/onsi/ginkgo"
@@ -55,7 +56,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking the buildconfig content")
-				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("busybox", metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "busybox", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile))
@@ -70,7 +71,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("getting the build container image reference from ImageStream")
-				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("busybox:custom", metav1.GetOptions{})
+				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "busybox:custom", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = imageutil.ImageWithMetadata(&image.Image)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -84,7 +85,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking the buildconfig content")
-				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("centos", metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "centos", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile2))
@@ -101,14 +102,14 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("getting the built container image reference from ImageStream")
-				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("centos:latest", metav1.GetOptions{})
+				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "centos:latest", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = imageutil.ImageWithMetadata(&image.Image)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(image.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.User).To(o.Equal("1001"))
 
 				g.By("checking for the imported tag")
-				_, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("centos:7", metav1.GetOptions{})
+				_, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "centos:7", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
@@ -118,7 +119,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking the buildconfig content")
-				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("scratch", metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "scratch", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile3))
 

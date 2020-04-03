@@ -149,8 +149,6 @@ type TestContextType struct {
 	FeatureGates map[string]bool
 	// Node e2e specific test context
 	NodeTestContextType
-	// Monitoring solution that is used in current cluster.
-	ClusterMonitoringMode string
 
 	// Indicates what path the kubernetes-anywhere is installed on
 	KubernetesAnywherePath string
@@ -169,6 +167,12 @@ type TestContextType struct {
 
 	// ProgressReportURL is the URL which progress updates will be posted to as tests complete. If empty, no updates are sent.
 	ProgressReportURL string
+
+	// SriovdpConfigMapFile is the path to the ConfigMap to configure the SRIOV device plugin on this host.
+	SriovdpConfigMapFile string
+
+	// SpecSummaryOutput is the file to write ginkgo.SpecSummary objects to as tests complete. Useful for debugging and test introspection.
+	SpecSummaryOutput string
 }
 
 // NodeKillerConfig describes configuration of NodeKiller -- a utility to
@@ -297,6 +301,7 @@ func RegisterCommonFlags(flags *flag.FlagSet) {
 	flags.StringVar(&TestContext.KubectlPath, "kubectl-path", "kubectl", "The kubectl binary to use. For development, you might use 'cluster/kubectl.sh' here.")
 
 	flags.StringVar(&TestContext.ProgressReportURL, "progress-report-url", "", "The URL to POST progress updates to as the suite runs to assist in aiding integrations. If empty, no messages sent.")
+	flags.StringVar(&TestContext.SpecSummaryOutput, "spec-dump", "", "The file to dump all ginkgo.SpecSummary to after tests run. If empty, no objects are saved/printed.")
 }
 
 // RegisterClusterFlags registers flags specific to the cluster e2e test suite.
@@ -315,7 +320,6 @@ func RegisterClusterFlags(flags *flag.FlagSet) {
 	flags.StringVar(&TestContext.Prefix, "prefix", "e2e", "A prefix to be added to cloud resources created during testing.")
 	flags.StringVar(&TestContext.MasterOSDistro, "master-os-distro", "debian", "The OS distribution of cluster master (debian, ubuntu, gci, coreos, or custom).")
 	flags.StringVar(&TestContext.NodeOSDistro, "node-os-distro", "debian", "The OS distribution of cluster VM instances (debian, ubuntu, gci, coreos, or custom).")
-	flags.StringVar(&TestContext.ClusterMonitoringMode, "cluster-monitoring-mode", "standalone", "The monitoring solution that is used in the cluster.")
 	flags.StringVar(&TestContext.ClusterDNSDomain, "dns-domain", "cluster.local", "The DNS Domain of the cluster.")
 
 	// TODO: Flags per provider?  Rename gce-project/gce-zone?

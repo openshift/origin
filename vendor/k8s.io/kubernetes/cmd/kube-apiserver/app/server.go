@@ -49,13 +49,16 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	"k8s.io/apiserver/pkg/endpoints/request"
+	genericfeatures "k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/server/egressselector"
 	"k8s.io/apiserver/pkg/server/filters"
 	serveroptions "k8s.io/apiserver/pkg/server/options"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage/etcd3/preflight"
 	"k8s.io/apiserver/pkg/util/feature"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	utilflowcontrol "k8s.io/apiserver/pkg/util/flowcontrol"
 	"k8s.io/apiserver/pkg/util/term"
 	"k8s.io/apiserver/pkg/util/webhook"
 	clientgoinformers "k8s.io/client-go/informers"
@@ -217,7 +220,7 @@ func CreateServerChain(completedOptions completedServerRunOptions, stopCh <-chan
 
 	// If additional API servers are added, they should be gated.
 	apiExtensionsConfig, err := createAPIExtensionsConfig(*kubeAPIServerConfig.GenericConfig, kubeAPIServerConfig.ExtraConfig.VersionedInformers, pluginInitializer, completedOptions.ServerRunOptions, completedOptions.MasterCount,
-		serviceResolver, webhook.NewDefaultAuthenticationInfoResolverWrapper(proxyTransport, kubeAPIServerConfig.GenericConfig.LoopbackClientConfig))
+		serviceResolver, webhook.NewDefaultAuthenticationInfoResolverWrapper(proxyTransport, kubeAPIServerConfig.GenericConfig.EgressSelector, kubeAPIServerConfig.GenericConfig.LoopbackClientConfig))
 	if err != nil {
 		return nil, err
 	}
@@ -427,6 +430,32 @@ func CreateKubeAPIServerConfig(
 	if config.GenericConfig.EgressSelector != nil {
 		// Use the config.GenericConfig.EgressSelector lookup to find the dialer to connect to the kubelet
 		config.ExtraConfig.KubeletClientConfig.Lookup = config.GenericConfig.EgressSelector.Lookup
+
+		// Use the config.GenericConfig.EgressSelector lookup as the transport used by the "proxy" subresources.
+		networkContext := egressselector.Cluster.AsNetworkContext()
+		dialer, err := config.GenericConfig.EgressSelector.Lookup(networkContext)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+		c := proxyTransport.Clone()
+		c.DialContext = dialer
+		config.ExtraConfig.ProxyTransport = c
+	}
+
+	if utilfeature.DefaultFeatureGate.Enabled(features.ServiceAccountIssuerDiscovery) {
+		// Load the public keys.
+		var pubKeys []interface{}
+		for _, f := range s.Authentication.ServiceAccounts.KeyFiles {
+			keys, err := keyutil.PublicKeysFromFile(f)
+			if err != nil {
+				return nil, nil, nil, nil, fmt.Errorf("failed to parse key file %q: %v", f, err)
+			}
+			pubKeys = append(pubKeys, keys...)
+		}
+		// Plumb the required metadata through ExtraConfig.
+		config.ExtraConfig.ServiceAccountIssuerURL = s.Authentication.ServiceAccounts.Issuer
+		config.ExtraConfig.ServiceAccountJWKSURI = s.Authentication.ServiceAccounts.JWKSURI
+		config.ExtraConfig.ServiceAccountPublicKeys = pubKeys
 	}
 
 	return config, insecureServingInfo, serviceResolver, pluginInitializers, nil
@@ -520,13 +549,13 @@ func buildGenericConfig(
 	}
 	versionedInformers = clientgoinformers.NewSharedInformerFactory(clientgoExternalClient, 10*time.Minute)
 
-	genericConfig.Authentication.Authenticator, genericConfig.OpenAPIConfig.SecurityDefinitions, err = BuildAuthenticator(s, clientgoExternalClient, versionedInformers)
+	genericConfig.Authentication.Authenticator, genericConfig.OpenAPIConfig.SecurityDefinitions, err = BuildAuthenticator(s, genericConfig.EgressSelector, clientgoExternalClient, versionedInformers)
 	if err != nil {
 		lastErr = fmt.Errorf("invalid authentication config: %v", err)
 		return
 	}
 
-	genericConfig.Authorization.Authorizer, genericConfig.RuleResolver, err = BuildAuthorizer(s, versionedInformers)
+	genericConfig.Authorization.Authorizer, genericConfig.RuleResolver, err = BuildAuthorizer(s, genericConfig.EgressSelector, versionedInformers)
 	if err != nil {
 		lastErr = fmt.Errorf("invalid authorization config: %v", err)
 		return
@@ -542,7 +571,7 @@ func buildGenericConfig(
 	}
 	serviceResolver = buildServiceResolver(s.EnableAggregatorRouting, genericConfig.LoopbackClientConfig.Host, versionedInformers)
 
-	authInfoResolverWrapper := webhook.NewDefaultAuthenticationInfoResolverWrapper(proxyTransport, genericConfig.LoopbackClientConfig)
+	authInfoResolverWrapper := webhook.NewDefaultAuthenticationInfoResolverWrapper(proxyTransport, genericConfig.EgressSelector, genericConfig.LoopbackClientConfig)
 
 	lastErr = s.Audit.ApplyTo(
 		genericConfig,
@@ -558,7 +587,7 @@ func buildGenericConfig(
 		return
 	}
 
-	pluginInitializers, admissionPostStartHook, err = admissionConfig.New(proxyTransport, serviceResolver)
+	pluginInitializers, admissionPostStartHook, err = admissionConfig.New(proxyTransport, genericConfig.EgressSelector, serviceResolver)
 	if err != nil {
 		lastErr = fmt.Errorf("failed to create admission plugin initializer: %v", err)
 		return
@@ -582,11 +611,15 @@ func buildGenericConfig(
 		lastErr = fmt.Errorf("failed to initialize admission: %v", err)
 	}
 
+	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIPriorityAndFairness) && s.GenericServerRunOptions.EnablePriorityAndFairness {
+		genericConfig.FlowControl = BuildPriorityAndFairness(s, clientgoExternalClient, versionedInformers)
+	}
+
 	return
 }
 
 // BuildAuthenticator constructs the authenticator
-func BuildAuthenticator(s *options.ServerRunOptions, extclient clientgoclientset.Interface, versionedInformer clientgoinformers.SharedInformerFactory) (authenticator.Request, *spec.SecurityDefinitions, error) {
+func BuildAuthenticator(s *options.ServerRunOptions, EgressSelector *egressselector.EgressSelector, extclient clientgoclientset.Interface, versionedInformer clientgoinformers.SharedInformerFactory) (authenticator.Request, *spec.SecurityDefinitions, error) {
 	authenticatorConfig, err := s.Authentication.ToAuthenticationConfig()
 	if err != nil {
 		return nil, nil, err
@@ -603,13 +636,40 @@ func BuildAuthenticator(s *options.ServerRunOptions, extclient clientgoclientset
 		versionedInformer.Core().V1().Secrets().Lister().Secrets(metav1.NamespaceSystem),
 	)
 
+	if EgressSelector != nil {
+		egressDialer, err := EgressSelector.Lookup(egressselector.Master.AsNetworkContext())
+		if err != nil {
+			return nil, nil, err
+		}
+		authenticatorConfig.CustomDial = egressDialer
+	}
+
 	return authenticatorConfig.New()
 }
 
 // BuildAuthorizer constructs the authorizer
-func BuildAuthorizer(s *options.ServerRunOptions, versionedInformers clientgoinformers.SharedInformerFactory) (authorizer.Authorizer, authorizer.RuleResolver, error) {
+func BuildAuthorizer(s *options.ServerRunOptions, EgressSelector *egressselector.EgressSelector, versionedInformers clientgoinformers.SharedInformerFactory) (authorizer.Authorizer, authorizer.RuleResolver, error) {
 	authorizationConfig := s.Authorization.ToAuthorizationConfig(versionedInformers)
+
+	if EgressSelector != nil {
+		egressDialer, err := EgressSelector.Lookup(egressselector.Master.AsNetworkContext())
+		if err != nil {
+			return nil, nil, err
+		}
+		authorizationConfig.CustomDial = egressDialer
+	}
+
 	return authorizationConfig.New()
+}
+
+// BuildPriorityAndFairness constructs the guts of the API Priority and Fairness filter
+func BuildPriorityAndFairness(s *options.ServerRunOptions, extclient clientgoclientset.Interface, versionedInformer clientgoinformers.SharedInformerFactory) utilflowcontrol.Interface {
+	return utilflowcontrol.New(
+		versionedInformer,
+		extclient.FlowcontrolV1alpha1(),
+		s.GenericServerRunOptions.MaxRequestsInFlight+s.GenericServerRunOptions.MaxMutatingRequestsInFlight,
+		s.GenericServerRunOptions.RequestTimeout/4,
+	)
 }
 
 // completedServerRunOptions is a private wrapper that enforces a call of Complete() before Run can be invoked.

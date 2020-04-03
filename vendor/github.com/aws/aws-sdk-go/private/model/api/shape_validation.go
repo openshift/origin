@@ -48,7 +48,7 @@ var validationGoCodeTmpls = template.Must(
 		}).
 		Parse(`
 {{ define "requiredValue" -}}
-    if s.{{ .Name }} == nil { 
+    if s.{{ .Name }} == nil {
 		invalidParams.Add(request.NewErrParamRequired("{{ .Name }}"))
     }
 {{- end }}
@@ -71,7 +71,7 @@ var validationGoCodeTmpls = template.Must(
 	}
 {{- end }}
 {{ define "nestedMapList" -}}
-    if s.{{ .Name }} != nil { 
+    if s.{{ .Name }} != nil {
 		for i, v := range s.{{ .Name }} {
 			if v == nil { continue }
 			if err := v.Validate(); err != nil {
@@ -81,7 +81,7 @@ var validationGoCodeTmpls = template.Must(
 	}
 {{- end }}
 {{ define "nestedStruct" -}}
-    if s.{{ .Name }} != nil { 
+    if s.{{ .Name }} != nil {
 		if err := s.{{ .Name }}.Validate(); err != nil {
 			invalidParams.AddNested("{{ .Name }}", err.(request.ErrInvalidParams))
 		}

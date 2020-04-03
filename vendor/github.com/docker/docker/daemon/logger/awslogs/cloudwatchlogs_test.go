@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -21,8 +22,8 @@ import (
 	"github.com/docker/docker/daemon/logger"
 	"github.com/docker/docker/daemon/logger/loggerutils"
 	"github.com/docker/docker/dockerversion"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 )
 
 const (
@@ -59,6 +60,63 @@ func testEventBatch(events []wrappedEvent) *eventBatch {
 	return batch
 }
 
+func TestNewStreamConfig(t *testing.T) {
+	tests := []struct {
+		logStreamName      string
+		logGroupName       string
+		logCreateGroup     string
+		logNonBlocking     string
+		forceFlushInterval string
+		maxBufferedEvents  string
+		datetimeFormat     string
+		multilinePattern   string
+		shouldErr          bool
+		testName           string
+	}{
+		{"", groupName, "", "", "", "", "", "", false, "defaults"},
+		{"", groupName, "invalid create group", "", "", "", "", "", true, "invalid create group"},
+		{"", groupName, "", "", "invalid flush interval", "", "", "", true, "invalid flush interval"},
+		{"", groupName, "", "", "", "invalid max buffered events", "", "", true, "invalid max buffered events"},
+		{"", groupName, "", "", "", "", "", "n{1001}", true, "invalid multiline pattern"},
+		{"", groupName, "", "", "15", "", "", "", false, "flush interval at 15"},
+		{"", groupName, "", "", "", "1024", "", "", false, "max buffered events at 1024"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.testName, func(t *testing.T) {
+			cfg := map[string]string{
+				logGroupKey:           tc.logGroupName,
+				logCreateGroupKey:     tc.logCreateGroup,
+				"mode":                tc.logNonBlocking,
+				forceFlushIntervalKey: tc.forceFlushInterval,
+				maxBufferedEventsKey:  tc.maxBufferedEvents,
+				logStreamKey:          tc.logStreamName,
+				datetimeFormatKey:     tc.datetimeFormat,
+				multilinePatternKey:   tc.multilinePattern,
+			}
+
+			info := logger.Info{
+				Config: cfg,
+			}
+			logStreamConfig, err := newStreamConfig(info)
+			if tc.shouldErr {
+				assert.Check(t, err != nil, "Expected an error")
+			} else {
+				assert.Check(t, err == nil, "Unexpected error")
+				assert.Check(t, logStreamConfig.logGroupName == tc.logGroupName, "Unexpected logGroupName")
+				if tc.forceFlushInterval != "" {
+					forceFlushIntervalAsInt, _ := strconv.Atoi(info.Config[forceFlushIntervalKey])
+					assert.Check(t, logStreamConfig.forceFlushInterval == time.Duration(forceFlushIntervalAsInt)*time.Second, "Unexpected forceFlushInterval")
+				}
+				if tc.maxBufferedEvents != "" {
+					maxBufferedEvents, _ := strconv.Atoi(info.Config[maxBufferedEventsKey])
+					assert.Check(t, logStreamConfig.maxBufferedEvents == maxBufferedEvents, "Unexpected maxBufferedEvents")
+				}
+			}
+		})
+	}
+}
+
 func TestNewAWSLogsClientUserAgentHandler(t *testing.T) {
 	info := logger.Info{
 		Config: map[string]string{
@@ -67,13 +125,11 @@ func TestNewAWSLogsClientUserAgentHandler(t *testing.T) {
 	}
 
 	client, err := newAWSLogsClient(info)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NilError(t, err)
+
 	realClient, ok := client.(*cloudwatchlogs.CloudWatchLogs)
-	if !ok {
-		t.Fatal("Could not cast client to cloudwatchlogs.CloudWatchLogs")
-	}
+	assert.Check(t, ok, "Could not cast client to cloudwatchlogs.CloudWatchLogs")
+
 	buildHandlerList := realClient.Handlers.Build
 	request := &request.Request{
 		HTTPRequest: &http.Request{
@@ -90,6 +146,26 @@ func TestNewAWSLogsClientUserAgentHandler(t *testing.T) {
 	}
 }
 
+func TestNewAWSLogsClientAWSLogsEndpoint(t *testing.T) {
+	endpoint := "mock-endpoint"
+	info := logger.Info{
+		Config: map[string]string{
+			regionKey:   "us-east-1",
+			endpointKey: endpoint,
+		},
+	}
+
+	client, err := newAWSLogsClient(info)
+	assert.NilError(t, err)
+
+	realClient, ok := client.(*cloudwatchlogs.CloudWatchLogs)
+	assert.Check(t, ok, "Could not cast client to cloudwatchlogs.CloudWatchLogs")
+
+	endpointWithScheme := realClient.Endpoint
+	expectedEndpointWithScheme := "https://" + endpoint
+	assert.Equal(t, endpointWithScheme, expectedEndpointWithScheme, "Wrong endpoint")
+}
+
 func TestNewAWSLogsClientRegionDetect(t *testing.T) {
 	info := logger.Info{
 		Config: map[string]string{},
@@ -104,9 +180,7 @@ func TestNewAWSLogsClientRegionDetect(t *testing.T) {
 	}
 
 	_, err := newAWSLogsClient(info)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NilError(t, err)
 }
 
 func TestCreateSuccess(t *testing.T) {
@@ -196,9 +270,7 @@ func TestCreateAlreadyExists(t *testing.T) {
 
 	err := stream.create()
 
-	if err != nil {
-		t.Fatal("Expected nil err")
-	}
+	assert.NilError(t, err)
 }
 
 func TestLogClosed(t *testing.T) {
@@ -242,9 +314,8 @@ func TestLogBlocking(t *testing.T) {
 	}
 	select {
 	case err := <-errorCh:
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NilError(t, err)
+
 	case <-time.After(30 * time.Second):
 		t.Fatal("timed out waiting for read")
 	}
@@ -258,9 +329,7 @@ func TestLogNonBlockingBufferEmpty(t *testing.T) {
 		logNonBlocking: true,
 	}
 	err := stream.Log(&logger.Message{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NilError(t, err)
 }
 
 func TestLogNonBlockingBufferFull(t *testing.T) {
@@ -751,10 +820,10 @@ func TestCollectBatchMultilinePatternMaxEventAge(t *testing.T) {
 		Timestamp: time.Now().Add(time.Second),
 	})
 
-	// Fire ticker batchPublishFrequency seconds later
-	ticks <- time.Now().Add(batchPublishFrequency + time.Second)
+	// Fire ticker defaultForceFlushInterval seconds later
+	ticks <- time.Now().Add(defaultForceFlushInterval + time.Second)
 
-	// Verify single multiline event is flushed after maximum event buffer age (batchPublishFrequency)
+	// Verify single multiline event is flushed after maximum event buffer age (defaultForceFlushInterval)
 	argument := <-mockClient.putLogEventsArgument
 	assert.Check(t, argument != nil, "Expected non-nil PutLogEventsInput")
 	assert.Check(t, is.Equal(1, len(argument.LogEvents)), "Expected single multiline event")
@@ -766,8 +835,8 @@ func TestCollectBatchMultilinePatternMaxEventAge(t *testing.T) {
 		Timestamp: time.Now().Add(time.Second),
 	})
 
-	// Fire ticker another batchPublishFrequency seconds later
-	ticks <- time.Now().Add(2*batchPublishFrequency + time.Second)
+	// Fire ticker another defaultForceFlushInterval seconds later
+	ticks <- time.Now().Add(2*defaultForceFlushInterval + time.Second)
 
 	// Verify the event buffer is truly flushed - we should only receive a single event
 	argument = <-mockClient.putLogEventsArgument
@@ -869,7 +938,7 @@ func TestCollectBatchMultilinePatternMaxEventSize(t *testing.T) {
 	})
 
 	// Fire ticker
-	ticks <- time.Now().Add(batchPublishFrequency)
+	ticks <- time.Now().Add(defaultForceFlushInterval)
 
 	// Verify multiline events
 	// We expect a maximum sized event with no new line characters and a
@@ -927,6 +996,62 @@ func TestCollectBatchClose(t *testing.T) {
 	}
 }
 
+func TestEffectiveLen(t *testing.T) {
+	tests := []struct {
+		str            string
+		effectiveBytes int
+	}{
+		{"Hello", 5},
+		{string([]byte{1, 2, 3, 4}), 4},
+		{"🙃", 4},
+		{string([]byte{0xFF, 0xFF, 0xFF, 0xFF}), 12},
+		{"He\xff\xffo", 9},
+		{"", 0},
+	}
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%d/%s", i, tc.str), func(t *testing.T) {
+			assert.Equal(t, tc.effectiveBytes, effectiveLen(tc.str))
+		})
+	}
+}
+
+func TestFindValidSplit(t *testing.T) {
+	tests := []struct {
+		str               string
+		maxEffectiveBytes int
+		splitOffset       int
+		effectiveBytes    int
+	}{
+		{"", 10, 0, 0},
+		{"Hello", 6, 5, 5},
+		{"Hello", 2, 2, 2},
+		{"Hello", 0, 0, 0},
+		{"🙃", 3, 0, 0},
+		{"🙃", 4, 4, 4},
+		{string([]byte{'a', 0xFF}), 2, 1, 1},
+		{string([]byte{'a', 0xFF}), 4, 2, 4},
+	}
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%d/%s", i, tc.str), func(t *testing.T) {
+			splitOffset, effectiveBytes := findValidSplit(tc.str, tc.maxEffectiveBytes)
+			assert.Equal(t, tc.splitOffset, splitOffset, "splitOffset")
+			assert.Equal(t, tc.effectiveBytes, effectiveBytes, "effectiveBytes")
+			t.Log(tc.str[:tc.splitOffset])
+			t.Log(tc.str[tc.splitOffset:])
+		})
+	}
+}
+
+func TestProcessEventEmoji(t *testing.T) {
+	stream := &logStream{}
+	batch := &eventBatch{}
+	bytes := []byte(strings.Repeat("🙃", maximumBytesPerEvent/4+1))
+	stream.processEvent(batch, bytes, 0)
+	assert.Equal(t, 2, len(batch.batch), "should be two events in the batch")
+	assert.Equal(t, strings.Repeat("🙃", maximumBytesPerEvent/4), aws.StringValue(batch.batch[0].inputLogEvent.Message))
+	assert.Equal(t, "🙃", aws.StringValue(batch.batch[1].inputLogEvent.Message))
+}
+
 func TestCollectBatchLineSplit(t *testing.T) {
 	mockClient := newMockClient()
 	stream := &logStream{
@@ -973,6 +1098,55 @@ func TestCollectBatchLineSplit(t *testing.T) {
 	}
 	if *argument.LogEvents[1].Message != "B" {
 		t.Errorf("Expected message to be %s but was %s", "B", *argument.LogEvents[1].Message)
+	}
+}
+
+func TestCollectBatchLineSplitWithBinary(t *testing.T) {
+	mockClient := newMockClient()
+	stream := &logStream{
+		client:        mockClient,
+		logGroupName:  groupName,
+		logStreamName: streamName,
+		sequenceToken: aws.String(sequenceToken),
+		messages:      make(chan *logger.Message),
+	}
+	mockClient.putLogEventsResult <- &putLogEventsResult{
+		successResult: &cloudwatchlogs.PutLogEventsOutput{
+			NextSequenceToken: aws.String(nextSequenceToken),
+		},
+	}
+	var ticks = make(chan time.Time)
+	newTicker = func(_ time.Duration) *time.Ticker {
+		return &time.Ticker{
+			C: ticks,
+		}
+	}
+
+	d := make(chan bool)
+	close(d)
+	go stream.collectBatch(d)
+
+	longline := strings.Repeat("\xFF", maximumBytesPerEvent/3) // 0xFF is counted as the 3-byte utf8.RuneError
+	stream.Log(&logger.Message{
+		Line:      []byte(longline + "\xFD"),
+		Timestamp: time.Time{},
+	})
+
+	// no ticks
+	stream.Close()
+
+	argument := <-mockClient.putLogEventsArgument
+	if argument == nil {
+		t.Fatal("Expected non-nil PutLogEventsInput")
+	}
+	if len(argument.LogEvents) != 2 {
+		t.Errorf("Expected LogEvents to contain 2 elements, but contains %d", len(argument.LogEvents))
+	}
+	if *argument.LogEvents[0].Message != longline {
+		t.Errorf("Expected message to be %s but was %s", longline, *argument.LogEvents[0].Message)
+	}
+	if *argument.LogEvents[1].Message != "\xFD" {
+		t.Errorf("Expected message to be %s but was %s", "\xFD", *argument.LogEvents[1].Message)
 	}
 }
 
@@ -1114,6 +1288,83 @@ func TestCollectBatchMaxTotalBytes(t *testing.T) {
 	}
 }
 
+func TestCollectBatchMaxTotalBytesWithBinary(t *testing.T) {
+	expectedPuts := 2
+	mockClient := newMockClientBuffered(expectedPuts)
+	stream := &logStream{
+		client:        mockClient,
+		logGroupName:  groupName,
+		logStreamName: streamName,
+		sequenceToken: aws.String(sequenceToken),
+		messages:      make(chan *logger.Message),
+	}
+	for i := 0; i < expectedPuts; i++ {
+		mockClient.putLogEventsResult <- &putLogEventsResult{
+			successResult: &cloudwatchlogs.PutLogEventsOutput{
+				NextSequenceToken: aws.String(nextSequenceToken),
+			},
+		}
+	}
+
+	var ticks = make(chan time.Time)
+	newTicker = func(_ time.Duration) *time.Ticker {
+		return &time.Ticker{
+			C: ticks,
+		}
+	}
+
+	d := make(chan bool)
+	close(d)
+	go stream.collectBatch(d)
+
+	// maxline is the maximum line that could be submitted after
+	// accounting for its overhead.
+	maxline := strings.Repeat("\xFF", (maximumBytesPerPut-perEventBytes)/3) // 0xFF is counted as the 3-byte utf8.RuneError
+	// This will be split and batched up to the `maximumBytesPerPut'
+	// (+/- `maximumBytesPerEvent'). This /should/ be aligned, but
+	// should also tolerate an offset within that range.
+	stream.Log(&logger.Message{
+		Line:      []byte(maxline),
+		Timestamp: time.Time{},
+	})
+	stream.Log(&logger.Message{
+		Line:      []byte("B"),
+		Timestamp: time.Time{},
+	})
+
+	// no ticks, guarantee batch by size (and chan close)
+	stream.Close()
+
+	argument := <-mockClient.putLogEventsArgument
+	if argument == nil {
+		t.Fatal("Expected non-nil PutLogEventsInput")
+	}
+
+	// Should total to the maximum allowed bytes.
+	eventBytes := 0
+	for _, event := range argument.LogEvents {
+		eventBytes += effectiveLen(*event.Message)
+	}
+	eventsOverhead := len(argument.LogEvents) * perEventBytes
+	payloadTotal := eventBytes + eventsOverhead
+	// lowestMaxBatch allows the payload to be offset if the messages
+	// don't lend themselves to align with the maximum event size.
+	lowestMaxBatch := maximumBytesPerPut - maximumBytesPerEvent
+
+	if payloadTotal > maximumBytesPerPut {
+		t.Errorf("Expected <= %d bytes but was %d", maximumBytesPerPut, payloadTotal)
+	}
+	if payloadTotal < lowestMaxBatch {
+		t.Errorf("Batch to be no less than %d but was %d", lowestMaxBatch, payloadTotal)
+	}
+
+	argument = <-mockClient.putLogEventsArgument
+	message := *argument.LogEvents[len(argument.LogEvents)-1].Message
+	if message[len(message)-1:] != "B" {
+		t.Errorf("Expected message to be %s but was %s", "B", message[len(message)-1:])
+	}
+}
+
 func TestCollectBatchWithDuplicateTimestamps(t *testing.T) {
 	mockClient := newMockClient()
 	stream := &logStream{
@@ -1226,6 +1477,64 @@ func TestValidateLogOptionsDatetimeFormatAndMultilinePattern(t *testing.T) {
 	assert.Check(t, is.Equal(err.Error(), conflictingLogOptionsError), "Received invalid error")
 }
 
+func TestValidateLogOptionsForceFlushIntervalSeconds(t *testing.T) {
+	tests := []struct {
+		input     string
+		shouldErr bool
+	}{
+		{"0", true},
+		{"-1", true},
+		{"a", true},
+		{"10", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			cfg := map[string]string{
+				forceFlushIntervalKey: tc.input,
+				logGroupKey:           groupName,
+			}
+
+			err := ValidateLogOpt(cfg)
+			if tc.shouldErr {
+				expectedErr := "must specify a positive integer for log opt 'awslogs-force-flush-interval-seconds': " + tc.input
+				assert.Error(t, err, expectedErr)
+			} else {
+				assert.NilError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateLogOptionsMaxBufferedEvents(t *testing.T) {
+	tests := []struct {
+		input     string
+		shouldErr bool
+	}{
+		{"0", true},
+		{"-1", true},
+		{"a", true},
+		{"10", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			cfg := map[string]string{
+				maxBufferedEventsKey: tc.input,
+				logGroupKey:          groupName,
+			}
+
+			err := ValidateLogOpt(cfg)
+			if tc.shouldErr {
+				expectedErr := "must specify a positive integer for log opt 'awslogs-max-buffered-events': " + tc.input
+				assert.Error(t, err, expectedErr)
+			} else {
+				assert.NilError(t, err)
+			}
+		})
+	}
+}
+
 func TestCreateTagSuccess(t *testing.T) {
 	mockClient := newMockClient()
 	info := logger.Info{
@@ -1246,9 +1555,7 @@ func TestCreateTagSuccess(t *testing.T) {
 
 	err := stream.create()
 
-	if err != nil {
-		t.Errorf("Received unexpected err: %v\n", err)
-	}
+	assert.NilError(t, err)
 	argument := <-mockClient.createLogStreamArgument
 
 	if *argument.LogStreamName != "test-container/container-abcdefghijklmnopqrstuvwxyz01234567890" {
@@ -1340,7 +1647,6 @@ func TestNewAWSLogsClientCredentialEnvironmentVariable(t *testing.T) {
 
 	assert.Check(t, is.Equal(expectedAccessKeyID, creds.AccessKeyID))
 	assert.Check(t, is.Equal(expectedSecretAccessKey, creds.SecretAccessKey))
-
 }
 
 func TestNewAWSLogsClientCredentialSharedFile(t *testing.T) {

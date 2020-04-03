@@ -10,12 +10,18 @@ import (
 	"golang.org/x/tools/internal/lsp/protocol"
 	"golang.org/x/tools/internal/lsp/source"
 	"golang.org/x/tools/internal/span"
+	"golang.org/x/tools/internal/telemetry/log"
+	"golang.org/x/tools/internal/telemetry/tag"
 )
 
 func (s *Server) signatureHelp(ctx context.Context, params *protocol.TextDocumentPositionParams) (*protocol.SignatureHelp, error) {
 	uri := span.NewURI(params.TextDocument.URI)
 	view := s.session.ViewOf(uri)
-	f, m, err := getGoFile(ctx, view, uri)
+	f, err := getGoFile(ctx, view, uri)
+	if err != nil {
+		return nil, err
+	}
+	m, err := getMapper(ctx, f)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +35,7 @@ func (s *Server) signatureHelp(ctx context.Context, params *protocol.TextDocumen
 	}
 	info, err := source.SignatureHelp(ctx, f, rng.Start)
 	if err != nil {
-		s.session.Logger().Infof(ctx, "no signature help for %s:%v:%v : %s", uri, int(params.Position.Line), int(params.Position.Character), err)
+		log.Print(ctx, "no signature help", tag.Of("At", rng), tag.Of("Failure", err))
 		return nil, nil
 	}
 	return toProtocolSignatureHelp(info), nil

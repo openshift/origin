@@ -27,7 +27,9 @@ func TestInteg_00_DescribeClusters(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := cloudhsmv2.New(sess)
 	params := &cloudhsmv2.DescribeClustersInput{}
-	_, err := svc.DescribeClustersWithContext(ctx, params)
+	_, err := svc.DescribeClustersWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_ListTags(t *testing.T) {
 	params := &cloudhsmv2.ListTagsInput{
 		ResourceId: aws.String("bogus-arn"),
 	}
-	_, err := svc.ListTagsWithContext(ctx, params)
+	_, err := svc.ListTagsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

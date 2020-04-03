@@ -17,6 +17,7 @@ limitations under the License.
 package node
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sort"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2ekubelet "k8s.io/kubernetes/test/e2e/framework/kubelet"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 	testutils "k8s.io/kubernetes/test/utils"
 
@@ -47,15 +49,15 @@ var _ = SIGDescribe("NodeProblemDetector [DisabledForLargeClusters]", func() {
 	f := framework.NewDefaultFramework("node-problem-detector")
 
 	ginkgo.BeforeEach(func() {
-		framework.SkipUnlessSSHKeyPresent()
-		framework.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
-		framework.SkipUnlessProviderIs("gce", "gke")
-		framework.SkipUnlessNodeOSDistroIs("gci", "ubuntu")
+		e2eskipper.SkipUnlessSSHKeyPresent()
+		e2eskipper.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
+		e2eskipper.SkipUnlessProviderIs("gce", "gke")
+		e2eskipper.SkipUnlessNodeOSDistroIs("gci", "ubuntu")
 		e2enode.WaitForTotalHealthy(f.ClientSet, time.Minute)
 	})
 
 	ginkgo.It("should run without error", func() {
-		framework.SkipUnlessSSHKeyPresent()
+		e2eskipper.SkipUnlessSSHKeyPresent()
 
 		ginkgo.By("Getting all nodes and their SSH-able IP addresses")
 		nodes, err := e2enode.GetReadySchedulableNodes(f.ClientSet)
@@ -192,7 +194,7 @@ var _ = SIGDescribe("NodeProblemDetector [DisabledForLargeClusters]", func() {
 })
 
 func verifyEvents(f *framework.Framework, options metav1.ListOptions, num int, reason, nodeName string) error {
-	events, err := f.ClientSet.CoreV1().Events(metav1.NamespaceDefault).List(options)
+	events, err := f.ClientSet.CoreV1().Events(metav1.NamespaceDefault).List(context.TODO(), options)
 	if err != nil {
 		return err
 	}
@@ -210,7 +212,7 @@ func verifyEvents(f *framework.Framework, options metav1.ListOptions, num int, r
 }
 
 func verifyEventExists(f *framework.Framework, options metav1.ListOptions, reason, nodeName string) error {
-	events, err := f.ClientSet.CoreV1().Events(metav1.NamespaceDefault).List(options)
+	events, err := f.ClientSet.CoreV1().Events(metav1.NamespaceDefault).List(context.TODO(), options)
 	if err != nil {
 		return err
 	}
@@ -223,7 +225,7 @@ func verifyEventExists(f *framework.Framework, options metav1.ListOptions, reaso
 }
 
 func verifyNodeCondition(f *framework.Framework, condition v1.NodeConditionType, status v1.ConditionStatus, reason, nodeName string) error {
-	node, err := f.ClientSet.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	node, err := f.ClientSet.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

@@ -269,3 +269,33 @@ func TestEncodeAliasedUnixTime(t *testing.T) {
 		t.Errorf("expect %v, got %v", e, a)
 	}
 }
+
+func TestEncoderFieldByIndex(t *testing.T) {
+	type (
+		Middle struct{ Inner int }
+		Outer  struct{ *Middle }
+	)
+
+	// nil embedded struct
+	outer := Outer{}
+	outerFields := unionStructFields(reflect.TypeOf(outer), MarshalOptions{})
+	innerField, _ := outerFields.FieldByName("Inner")
+
+	_, found := encoderFieldByIndex(reflect.ValueOf(&outer).Elem(), innerField.Index)
+	if found != false {
+		t.Error("expected found to be false when embedded struct is nil")
+	}
+
+	// non-nil embedded struct
+	outer = Outer{Middle: &Middle{Inner: 3}}
+	outerFields = unionStructFields(reflect.TypeOf(outer), MarshalOptions{})
+	innerField, _ = outerFields.FieldByName("Inner")
+
+	f, found := encoderFieldByIndex(reflect.ValueOf(&outer).Elem(), innerField.Index)
+	if !found {
+		t.Error("expected found to be true")
+	}
+	if f.Kind() != reflect.Int || f.Int() != int64(outer.Inner) {
+		t.Error("expected f to be of kind Int with value equal to outer.Inner")
+	}
+}

@@ -13,8 +13,8 @@ import (
 )
 
 // Gravitational is the universal gravitational constant (G), the proportionality constant connecting the gravitational force between two bodies.
-// The dimensions of Gravitational are m^3 kg^-1 s^-2. The standard uncertainty of the constant is 3.1e-15 m^3 kg^-1 s^-2.
-const Gravitational = gravitationalUnits(6.67408e-11)
+// The dimensions of Gravitational are m^3 kg^-1 s^-2. The standard uncertainty of the constant is 1.5e-15 m^3 kg^-1 s^-2.
+const Gravitational = gravitationalUnits(6.6743e-11)
 
 type gravitationalUnits float64
 

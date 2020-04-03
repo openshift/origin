@@ -9,6 +9,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -19,7 +20,18 @@ import (
 	"testing"
 )
 
+// The following shell command alias is used in the comments
+// throughout this file:
+// alias b64raw="base64 -w0 | tr -d '=' | tr '/+' '_-'"
+
 const (
+	// Modulus in raw base64:
+	// 4xgZ3eRPkwoRvy7qeRUbmMDe0V-xH9eWLdu0iheeLlrmD2mqWXfP9IeSKApbn34
+	// g8TuAS9g5zhq8ELQ3kmjr-KV86GAMgI6VAcGlq3QrzpTCf_30Ab7-zawrfRaFON
+	// a1HwEzPY1KHnGVkxJc85gNkwYI9SY2RHXtvln3zs5wITNrdosqEXeaIkVYBEhbh
+	// Nu54pp3kxo6TuWLi9e6pXeWetEwmlBwtWZlPoib2j3TxLBksKZfoyFyek380mHg
+	// JAumQ_I2fjj98_97mk3ihOY4AgVdCDj1z_GCoZkG5Rq7nbCGyosyKWyDX00Zs-n
+	// NqVhoLeIvXC4nnWdJMZ6rogxyQQ
 	testKeyPEM = `
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEA4xgZ3eRPkwoRvy7qeRUbmMDe0V+xH9eWLdu0iheeLlrmD2mq
@@ -82,7 +94,7 @@ GGnm6rb+NnWR9DIopM0nKNkToWoF/hzopxu4Ae/GsQ==
 `
 	// 1. openssl ec -in key.pem -noout -text
 	// 2. remove first byte, 04 (the header); the rest is X and Y
-	// 3. convert each with: echo <val> | xxd -r -p | base64 -w 100 | tr -d '=' | tr '/+' '_-'
+	// 3. convert each with: echo <val> | xxd -r -p | b64raw
 	testKeyECPubX    = "5lhEug5xK4xBDZ2nAbaxLtaLiv85bxJ7ePd1dkO23HQ"
 	testKeyECPubY    = "4aiK72sBeUAGkv0TaLsmwokYUYyNxGsS5EMIKwsNIKk"
 	testKeyEC384PubX = "MyrY_jLNLx6E1-Xc79_y-WDFzlriOVCkYyYoKWoWAqlw9gQNY9BP9sbeb5T3_oJt"
@@ -91,7 +103,7 @@ GGnm6rb+NnWR9DIopM0nKNkToWoF/hzopxu4Ae/GsQ==
 	testKeyEC512PubY = "AXbmSeogEiDlDwz0Gc670YYByFzC3c7tEMeap7CckkOtuN0Yaebqtv42dZH0MiikzSco2ROhagX-HOinG7gB78ax"
 
 	// echo -n '{"crv":"P-256","kty":"EC","x":"<testKeyECPubX>","y":"<testKeyECPubY>"}' | \
-	// openssl dgst -binary -sha256 | base64 | tr -d '=' | tr '/+' '_-'
+	// openssl dgst -binary -sha256 | b64raw
 	testKeyECThumbprint = "zedj-Bd1Zshp8KLePv2MB-lJ_Hagp7wAwdkA0NUTniU"
 )
 
@@ -140,7 +152,7 @@ func TestJWSEncodeJSON(t *testing.T) {
 	// JWS signed with testKey and "nonce" as the nonce value
 	// JSON-serialized JWS fields are split for easier testing
 	const (
-		// {"alg":"RS256","jwk":{"e":"AQAB","kty":"RSA","n":"..."},"nonce":"nonce"}
+		// {"alg":"RS256","jwk":{"e":"AQAB","kty":"RSA","n":"..."},"nonce":"nonce","url":"url"}
 		protected = "eyJhbGciOiJSUzI1NiIsImp3ayI6eyJlIjoiQVFBQiIsImt0eSI6" +
 			"IlJTQSIsIm4iOiI0eGdaM2VSUGt3b1J2eTdxZVJVYm1NRGUwVi14" +
 			"SDllV0xkdTBpaGVlTGxybUQybXFXWGZQOUllU0tBcGJuMzRnOFR1" +
@@ -151,19 +163,20 @@ func TestJWSEncodeJSON(t *testing.T) {
 			"bFBvaWIyajNUeExCa3NLWmZveUZ5ZWszODBtSGdKQXVtUV9JMmZq" +
 			"ajk4Xzk3bWszaWhPWTRBZ1ZkQ0RqMXpfR0NvWmtHNVJxN25iQ0d5" +
 			"b3N5S1d5RFgwMFpzLW5OcVZob0xlSXZYQzRubldkSk1aNnJvZ3h5" +
-			"UVEifSwibm9uY2UiOiJub25jZSJ9"
+			"UVEifSwibm9uY2UiOiJub25jZSIsInVybCI6InVybCJ9"
 		// {"Msg":"Hello JWS"}
-		payload   = "eyJNc2ciOiJIZWxsbyBKV1MifQ"
-		signature = "eAGUikStX_UxyiFhxSLMyuyBcIB80GeBkFROCpap2sW3EmkU_ggF" +
-			"knaQzxrTfItICSAXsCLIquZ5BbrSWA_4vdEYrwWtdUj7NqFKjHRa" +
-			"zpLHcoR7r1rEHvkoP1xj49lS5fc3Wjjq8JUhffkhGbWZ8ZVkgPdC" +
-			"4tMBWiQDoth-x8jELP_3LYOB_ScUXi2mETBawLgOT2K8rA0Vbbmx" +
-			"hWNlOWuUf-8hL5YX4IOEwsS8JK_TrTq5Zc9My0zHJmaieqDV0UlP" +
-			"k0onFjPFkGm7MrPSgd0MqRG-4vSAg2O4hDo7rKv4n8POjjXlNQvM" +
-			"9IPLr8qZ7usYBKhEGwX3yq_eicAwBw"
+		payload = "eyJNc2ciOiJIZWxsbyBKV1MifQ"
+		// printf '<protected>.<payload>' | openssl dgst -binary -sha256 -sign testKey | b64raw
+		signature = "YFyl_xz1E7TR-3E1bIuASTr424EgCvBHjt25WUFC2VaDjXYV0Rj_" +
+			"Hd3dJ_2IRqBrXDZZ2n4ZeA_4mm3QFwmwyeDwe2sWElhb82lCZ8iX" +
+			"uFnjeOmSOjx-nWwPa5ibCXzLq13zZ-OBV1Z4oN_TuailQeRoSfA3" +
+			"nO8gG52mv1x2OMQ5MAFtt8jcngBLzts4AyhI6mBJ2w7Yaj3ZCriq" +
+			"DWA3GLFvvHdW1Ba9Z01wtGT2CuZI7DUk_6Qj1b3BkBGcoKur5C9i" +
+			"bUJtCkABwBMvBQNyD3MmXsrRFRTgvVlyU_yMaucYm7nmzEr_2PaQ" +
+			"50rFt_9qOfJ4sfbLtG1Wwae57BQx1g"
 	)
 
-	b, err := jwsEncodeJSON(claims, testKey, "nonce")
+	b, err := jwsEncodeJSON(claims, testKey, noKeyID, "nonce", "url")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,6 +195,46 @@ func TestJWSEncodeJSON(t *testing.T) {
 	}
 }
 
+func TestJWSEncodeKID(t *testing.T) {
+	kid := keyID("https://example.org/account/1")
+	claims := struct{ Msg string }{"Hello JWS"}
+	// JWS signed with testKeyEC
+	const (
+		// {"alg":"ES256","kid":"https://example.org/account/1","nonce":"nonce","url":"url"}
+		protected = "eyJhbGciOiJFUzI1NiIsImtpZCI6Imh0dHBzOi8vZXhhbXBsZS5" +
+			"vcmcvYWNjb3VudC8xIiwibm9uY2UiOiJub25jZSIsInVybCI6InVybCJ9"
+		// {"Msg":"Hello JWS"}
+		payload = "eyJNc2ciOiJIZWxsbyBKV1MifQ"
+	)
+
+	b, err := jwsEncodeJSON(claims, testKeyEC, kid, "nonce", "url")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var jws struct{ Protected, Payload, Signature string }
+	if err := json.Unmarshal(b, &jws); err != nil {
+		t.Fatal(err)
+	}
+	if jws.Protected != protected {
+		t.Errorf("protected:\n%s\nwant:\n%s", jws.Protected, protected)
+	}
+	if jws.Payload != payload {
+		t.Errorf("payload:\n%s\nwant:\n%s", jws.Payload, payload)
+	}
+
+	sig, err := base64.RawURLEncoding.DecodeString(jws.Signature)
+	if err != nil {
+		t.Fatalf("jws.Signature: %v", err)
+	}
+	r, s := big.NewInt(0), big.NewInt(0)
+	r.SetBytes(sig[:len(sig)/2])
+	s.SetBytes(sig[len(sig)/2:])
+	h := sha256.Sum256([]byte(protected + "." + payload))
+	if !ecdsa.Verify(testKeyEC.Public().(*ecdsa.PublicKey), h[:], r, s) {
+		t.Error("invalid signature")
+	}
+}
+
 func TestJWSEncodeJSONEC(t *testing.T) {
 	tt := []struct {
 		key      *ecdsa.PrivateKey
@@ -194,7 +247,7 @@ func TestJWSEncodeJSONEC(t *testing.T) {
 	}
 	for i, test := range tt {
 		claims := struct{ Msg string }{"Hello JWS"}
-		b, err := jwsEncodeJSON(claims, test.key, "nonce")
+		b, err := jwsEncodeJSON(claims, test.key, noKeyID, "nonce", "url")
 		if err != nil {
 			t.Errorf("%d: %v", i, err)
 			continue
@@ -212,6 +265,8 @@ func TestJWSEncodeJSONEC(t *testing.T) {
 		var head struct {
 			Alg   string
 			Nonce string
+			URL   string `json:"url"`
+			KID   string `json:"kid"`
 			JWK   struct {
 				Crv string
 				Kty string
@@ -227,6 +282,13 @@ func TestJWSEncodeJSONEC(t *testing.T) {
 		}
 		if head.Nonce != "nonce" {
 			t.Errorf("%d: head.Nonce = %q; want nonce", i, head.Nonce)
+		}
+		if head.URL != "url" {
+			t.Errorf("%d: head.URL = %q; want 'url'", i, head.URL)
+		}
+		if head.KID != "" {
+			// We used noKeyID in jwsEncodeJSON: expect no kid value.
+			t.Errorf("%d: head.KID = %q; want empty", i, head.KID)
 		}
 		if head.JWK.Crv != test.crv {
 			t.Errorf("%d: head.JWK.Crv = %q; want %q", i, head.JWK.Crv, test.crv)
@@ -256,18 +318,27 @@ func (s *customTestSigner) Sign(io.Reader, []byte, crypto.SignerOpts) ([]byte, e
 func TestJWSEncodeJSONCustom(t *testing.T) {
 	claims := struct{ Msg string }{"hello"}
 	const (
-		// printf '{"Msg":"hello"}' | base64 | tr -d '=' | tr '/+' '_-'
+		// printf '{"Msg":"hello"}' | b64raw
 		payload = "eyJNc2ciOiJoZWxsbyJ9"
-		// printf 'testsig' | base64 | tr -d '='
+		// printf 'testsig' | b64raw
 		testsig = "dGVzdHNpZw"
 
-		// printf '{"alg":"ES256","jwk":{"crv":"P-256","kty":"EC","x":<testKeyECPubY>,"y":<testKeyECPubY>,"nonce":"nonce"}' | \
-		// base64 | tr -d '=' | tr '/+' '_-'
-		es256phead = "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IjVsaEV1" +
-			"ZzV4SzR4QkRaMm5BYmF4THRhTGl2ODVieEo3ZVBkMWRrTzIzSFEiLCJ5IjoiNGFpSzcyc0JlVUFH" +
-			"a3YwVGFMc213b2tZVVl5TnhHc1M1RU1JS3dzTklLayJ9LCJub25jZSI6Im5vbmNlIn0"
+		// the example P256 curve point from https://tools.ietf.org/html/rfc7515#appendix-A.3.1
+		// encoded as ASN.1…
+		es256stdsig = "MEUCIA7RIVN5Y2xIPC9/FVgH1AKjsigDOvl8fheBmsMWnqZlAiEA" +
+			"xQoH04w8cOXY8S2vCEpUgKZlkMXyk1Cajz9/ioOjVNU"
+		// …and RFC7518 (https://tools.ietf.org/html/rfc7518#section-3.4)
+		es256jwsig = "DtEhU3ljbEg8L38VWAfUAqOyKAM6-Xx-F4GawxaepmXFCgfTjDxw" +
+			"5djxLa8ISlSApmWQxfKTUJqPP3-Kg6NU1Q"
 
-		// {"alg":"RS256","jwk":{"e":"AQAB","kty":"RSA","n":"..."},"nonce":"nonce"}
+		// printf '{"alg":"ES256","jwk":{"crv":"P-256","kty":"EC","x":<testKeyECPubY>,"y":<testKeyECPubY>},"nonce":"nonce","url":"url"}' | b64raw
+		es256phead = "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0" +
+			"eSI6IkVDIiwieCI6IjVsaEV1ZzV4SzR4QkRaMm5BYmF4THRhTGl2" +
+			"ODVieEo3ZVBkMWRrTzIzSFEiLCJ5IjoiNGFpSzcyc0JlVUFHa3Yw" +
+			"VGFMc213b2tZVVl5TnhHc1M1RU1JS3dzTklLayJ9LCJub25jZSI6" +
+			"Im5vbmNlIiwidXJsIjoidXJsIn0"
+
+		// {"alg":"RS256","jwk":{"e":"AQAB","kty":"RSA","n":"..."},"nonce":"nonce","url":"url"}
 		rs256phead = "eyJhbGciOiJSUzI1NiIsImp3ayI6eyJlIjoiQVFBQiIsImt0eSI6" +
 			"IlJTQSIsIm4iOiI0eGdaM2VSUGt3b1J2eTdxZVJVYm1NRGUwVi14" +
 			"SDllV0xkdTBpaGVlTGxybUQybXFXWGZQOUllU0tBcGJuMzRnOFR1" +
@@ -278,24 +349,30 @@ func TestJWSEncodeJSONCustom(t *testing.T) {
 			"bFBvaWIyajNUeExCa3NLWmZveUZ5ZWszODBtSGdKQXVtUV9JMmZq" +
 			"ajk4Xzk3bWszaWhPWTRBZ1ZkQ0RqMXpfR0NvWmtHNVJxN25iQ0d5" +
 			"b3N5S1d5RFgwMFpzLW5OcVZob0xlSXZYQzRubldkSk1aNnJvZ3h5" +
-			"UVEifSwibm9uY2UiOiJub25jZSJ9"
+			"UVEifSwibm9uY2UiOiJub25jZSIsInVybCI6InVybCJ9"
 	)
 
 	tt := []struct {
-		alg, phead string
-		pub        crypto.PublicKey
+		alg, phead    string
+		pub           crypto.PublicKey
+		stdsig, jwsig string
 	}{
-		{"RS256", rs256phead, testKey.Public()},
-		{"ES256", es256phead, testKeyEC.Public()},
+		{"ES256", es256phead, testKeyEC.Public(), es256stdsig, es256jwsig},
+		{"RS256", rs256phead, testKey.Public(), testsig, testsig},
 	}
 	for _, tc := range tt {
 		tc := tc
 		t.Run(tc.alg, func(t *testing.T) {
+			stdsig, err := base64.RawStdEncoding.DecodeString(tc.stdsig)
+			if err != nil {
+				t.Errorf("couldn't decode test vector: %v", err)
+			}
 			signer := &customTestSigner{
-				sig: []byte("testsig"),
+				sig: stdsig,
 				pub: tc.pub,
 			}
-			b, err := jwsEncodeJSON(claims, signer, "nonce")
+
+			b, err := jwsEncodeJSON(claims, signer, noKeyID, "nonce", "url")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -309,8 +386,8 @@ func TestJWSEncodeJSONCustom(t *testing.T) {
 			if j.Payload != payload {
 				t.Errorf("j.Payload = %q\nwant %q", j.Payload, payload)
 			}
-			if j.Signature != testsig {
-				t.Errorf("j.Signature = %q\nwant %q", j.Signature, testsig)
+			if j.Signature != tc.jwsig {
+				t.Errorf("j.Signature = %q\nwant %q", j.Signature, tc.jwsig)
 			}
 		})
 	}
@@ -352,10 +429,8 @@ func TestJWKThumbprintRSA(t *testing.T) {
 func TestJWKThumbprintEC(t *testing.T) {
 	// Key example from RFC 7520
 	// expected was computed with
-	// echo -n '{"crv":"P-521","kty":"EC","x":"<base64X>","y":"<base64Y>"}' | \
-	// openssl dgst -binary -sha256 | \
-	// base64 | \
-	// tr -d '=' | tr '/+' '_-'
+	// printf '{"crv":"P-521","kty":"EC","x":"<base64X>","y":"<base64Y>"}' | \
+	// openssl dgst -binary -sha256 | b64raw
 	const (
 		base64X = "AHKZLLOsCOzz5cY97ewNUajB957y-C-U88c3v13nmGZx6sYl_oJXu9A5RkT" +
 			"KqjqvjyekWF-7ytDyRXYgCF5cj0Kt"

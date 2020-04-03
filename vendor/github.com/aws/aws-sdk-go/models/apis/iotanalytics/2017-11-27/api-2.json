@@ -631,6 +631,18 @@
         "batchPutMessageErrorEntries":{"shape":"BatchPutMessageErrorEntries"}
       }
     },
+    "BucketKeyExpression":{
+      "type":"string",
+      "max":255,
+      "min":1,
+      "pattern":"^[a-zA-Z0-9!_.*'()/{}:-]*$"
+    },
+    "BucketName":{
+      "type":"string",
+      "max":255,
+      "min":3,
+      "pattern":"^[a-zA-Z0-9.\\-_]*$"
+    },
     "CancelPipelineReprocessingRequest":{
       "type":"structure",
       "required":[
@@ -659,6 +671,7 @@
       "type":"structure",
       "members":{
         "name":{"shape":"ChannelName"},
+        "storage":{"shape":"ChannelStorage"},
         "arn":{"shape":"ChannelArn"},
         "status":{"shape":"ChannelStatus"},
         "retentionPeriod":{"shape":"RetentionPeriod"},
@@ -699,6 +712,20 @@
         "DELETING"
       ]
     },
+    "ChannelStorage":{
+      "type":"structure",
+      "members":{
+        "serviceManagedS3":{"shape":"ServiceManagedChannelS3Storage"},
+        "customerManagedS3":{"shape":"CustomerManagedChannelS3Storage"}
+      }
+    },
+    "ChannelStorageSummary":{
+      "type":"structure",
+      "members":{
+        "serviceManagedS3":{"shape":"ServiceManagedChannelS3StorageSummary"},
+        "customerManagedS3":{"shape":"CustomerManagedChannelS3StorageSummary"}
+      }
+    },
     "ChannelSummaries":{
       "type":"list",
       "member":{"shape":"ChannelSummary"}
@@ -707,6 +734,7 @@
       "type":"structure",
       "members":{
         "channelName":{"shape":"ChannelName"},
+        "channelStorage":{"shape":"ChannelStorageSummary"},
         "status":{"shape":"ChannelStatus"},
         "creationTime":{"shape":"Timestamp"},
         "lastUpdateTime":{"shape":"Timestamp"}
@@ -738,6 +766,7 @@
       "required":["channelName"],
       "members":{
         "channelName":{"shape":"ChannelName"},
+        "channelStorage":{"shape":"ChannelStorage"},
         "retentionPeriod":{"shape":"RetentionPeriod"},
         "tags":{"shape":"TagList"}
       }
@@ -779,6 +808,7 @@
         "triggers":{"shape":"DatasetTriggers"},
         "contentDeliveryRules":{"shape":"DatasetContentDeliveryRules"},
         "retentionPeriod":{"shape":"RetentionPeriod"},
+        "versioningConfiguration":{"shape":"VersioningConfiguration"},
         "tags":{"shape":"TagList"}
       }
     },
@@ -795,6 +825,7 @@
       "required":["datastoreName"],
       "members":{
         "datastoreName":{"shape":"DatastoreName"},
+        "datastoreStorage":{"shape":"DatastoreStorage"},
         "retentionPeriod":{"shape":"RetentionPeriod"},
         "tags":{"shape":"TagList"}
       }
@@ -826,6 +857,46 @@
         "pipelineArn":{"shape":"PipelineArn"}
       }
     },
+    "CustomerManagedChannelS3Storage":{
+      "type":"structure",
+      "required":[
+        "bucket",
+        "roleArn"
+      ],
+      "members":{
+        "bucket":{"shape":"BucketName"},
+        "keyPrefix":{"shape":"S3KeyPrefix"},
+        "roleArn":{"shape":"RoleArn"}
+      }
+    },
+    "CustomerManagedChannelS3StorageSummary":{
+      "type":"structure",
+      "members":{
+        "bucket":{"shape":"BucketName"},
+        "keyPrefix":{"shape":"S3KeyPrefix"},
+        "roleArn":{"shape":"RoleArn"}
+      }
+    },
+    "CustomerManagedDatastoreS3Storage":{
+      "type":"structure",
+      "required":[
+        "bucket",
+        "roleArn"
+      ],
+      "members":{
+        "bucket":{"shape":"BucketName"},
+        "keyPrefix":{"shape":"S3KeyPrefix"},
+        "roleArn":{"shape":"RoleArn"}
+      }
+    },
+    "CustomerManagedDatastoreS3StorageSummary":{
+      "type":"structure",
+      "members":{
+        "bucket":{"shape":"BucketName"},
+        "keyPrefix":{"shape":"S3KeyPrefix"},
+        "roleArn":{"shape":"RoleArn"}
+      }
+    },
     "Dataset":{
       "type":"structure",
       "members":{
@@ -837,7 +908,8 @@
         "status":{"shape":"DatasetStatus"},
         "creationTime":{"shape":"Timestamp"},
         "lastUpdateTime":{"shape":"Timestamp"},
-        "retentionPeriod":{"shape":"RetentionPeriod"}
+        "retentionPeriod":{"shape":"RetentionPeriod"},
+        "versioningConfiguration":{"shape":"VersioningConfiguration"}
       }
     },
     "DatasetAction":{
@@ -884,7 +956,8 @@
     "DatasetContentDeliveryDestination":{
       "type":"structure",
       "members":{
-        "iotEventsDestinationConfiguration":{"shape":"IotEventsDestinationConfiguration"}
+        "iotEventsDestinationConfiguration":{"shape":"IotEventsDestinationConfiguration"},
+        "s3DestinationConfiguration":{"shape":"S3DestinationConfiguration"}
       }
     },
     "DatasetContentDeliveryRule":{
@@ -926,7 +999,8 @@
         "version":{"shape":"DatasetContentVersion"},
         "status":{"shape":"DatasetContentStatus"},
         "creationTime":{"shape":"Timestamp"},
-        "scheduleTime":{"shape":"Timestamp"}
+        "scheduleTime":{"shape":"Timestamp"},
+        "completionTime":{"shape":"Timestamp"}
       }
     },
     "DatasetContentVersion":{
@@ -998,6 +1072,7 @@
       "type":"structure",
       "members":{
         "name":{"shape":"DatastoreName"},
+        "storage":{"shape":"DatastoreStorage"},
         "arn":{"shape":"DatastoreArn"},
         "status":{"shape":"DatastoreStatus"},
         "retentionPeriod":{"shape":"RetentionPeriod"},
@@ -1037,6 +1112,20 @@
         "DELETING"
       ]
     },
+    "DatastoreStorage":{
+      "type":"structure",
+      "members":{
+        "serviceManagedS3":{"shape":"ServiceManagedDatastoreS3Storage"},
+        "customerManagedS3":{"shape":"CustomerManagedDatastoreS3Storage"}
+      }
+    },
+    "DatastoreStorageSummary":{
+      "type":"structure",
+      "members":{
+        "serviceManagedS3":{"shape":"ServiceManagedDatastoreS3StorageSummary"},
+        "customerManagedS3":{"shape":"CustomerManagedDatastoreS3StorageSummary"}
+      }
+    },
     "DatastoreSummaries":{
       "type":"list",
       "member":{"shape":"DatastoreSummary"}
@@ -1045,6 +1134,7 @@
       "type":"structure",
       "members":{
         "datastoreName":{"shape":"DatastoreName"},
+        "datastoreStorage":{"shape":"DatastoreStorageSummary"},
         "status":{"shape":"DatastoreStatus"},
         "creationTime":{"shape":"Timestamp"},
         "lastUpdateTime":{"shape":"Timestamp"}
@@ -1296,6 +1386,29 @@
         "timestamp":{"shape":"Timestamp"},
         "status":{"shape":"DatasetContentStatus"}
       }
+    },
+    "GlueConfiguration":{
+      "type":"structure",
+      "required":[
+        "tableName",
+        "databaseName"
+      ],
+      "members":{
+        "tableName":{"shape":"GlueTableName"},
+        "databaseName":{"shape":"GlueDatabaseName"}
+      }
+    },
+    "GlueDatabaseName":{
+      "type":"string",
+      "max":150,
+      "min":1,
+      "pattern":"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\t]*"
+    },
+    "GlueTableName":{
+      "type":"string",
+      "max":150,
+      "min":1,
+      "pattern":"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\t]*"
     },
     "Image":{
       "type":"string",
@@ -1555,6 +1668,11 @@
       "max":250,
       "min":1
     },
+    "MaxVersions":{
+      "type":"integer",
+      "max":1000,
+      "min":1
+    },
     "Message":{
       "type":"structure",
       "required":[
@@ -1770,6 +1888,26 @@
         "logResult":{"shape":"LogResult"}
       }
     },
+    "S3DestinationConfiguration":{
+      "type":"structure",
+      "required":[
+        "bucket",
+        "key",
+        "roleArn"
+      ],
+      "members":{
+        "bucket":{"shape":"BucketName"},
+        "key":{"shape":"BucketKeyExpression"},
+        "glueConfiguration":{"shape":"GlueConfiguration"},
+        "roleArn":{"shape":"RoleArn"}
+      }
+    },
+    "S3KeyPrefix":{
+      "type":"string",
+      "max":255,
+      "min":1,
+      "pattern":"^[a-zA-Z0-9!_.*'()/{}:-]*/$"
+    },
     "SampleChannelDataRequest":{
       "type":"structure",
       "required":["channelName"],
@@ -1819,6 +1957,26 @@
         "name":{"shape":"ActivityName"},
         "attributes":{"shape":"AttributeNames"},
         "next":{"shape":"ActivityName"}
+      }
+    },
+    "ServiceManagedChannelS3Storage":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "ServiceManagedChannelS3StorageSummary":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "ServiceManagedDatastoreS3Storage":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "ServiceManagedDatastoreS3StorageSummary":{
+      "type":"structure",
+      "members":{
       }
     },
     "ServiceUnavailableException":{
@@ -1936,6 +2094,7 @@
       }
     },
     "UnlimitedRetentionPeriod":{"type":"boolean"},
+    "UnlimitedVersioning":{"type":"boolean"},
     "UntagResourceRequest":{
       "type":"structure",
       "required":[
@@ -1969,6 +2128,7 @@
           "location":"uri",
           "locationName":"channelName"
         },
+        "channelStorage":{"shape":"ChannelStorage"},
         "retentionPeriod":{"shape":"RetentionPeriod"}
       }
     },
@@ -1987,7 +2147,8 @@
         "actions":{"shape":"DatasetActions"},
         "triggers":{"shape":"DatasetTriggers"},
         "contentDeliveryRules":{"shape":"DatasetContentDeliveryRules"},
-        "retentionPeriod":{"shape":"RetentionPeriod"}
+        "retentionPeriod":{"shape":"RetentionPeriod"},
+        "versioningConfiguration":{"shape":"VersioningConfiguration"}
       }
     },
     "UpdateDatastoreRequest":{
@@ -1999,7 +2160,8 @@
           "location":"uri",
           "locationName":"datastoreName"
         },
-        "retentionPeriod":{"shape":"RetentionPeriod"}
+        "retentionPeriod":{"shape":"RetentionPeriod"},
+        "datastoreStorage":{"shape":"DatastoreStorage"}
       }
     },
     "UpdatePipelineRequest":{
@@ -2041,6 +2203,13 @@
       "member":{"shape":"Variable"},
       "max":50,
       "min":0
+    },
+    "VersioningConfiguration":{
+      "type":"structure",
+      "members":{
+        "unlimited":{"shape":"UnlimitedVersioning"},
+        "maxVersions":{"shape":"MaxVersions"}
+      }
     },
     "VolumeSizeInGB":{
       "type":"integer",

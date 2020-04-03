@@ -17,7 +17,7 @@ limitations under the License.
 package node
 
 import (
-	"crypto/tls"
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -54,9 +54,9 @@ var _ = SIGDescribe("Pods Extended", func() {
 		/*
 			Release : v1.15
 			Testname: Pods, delete grace period
-			Description: Create a pod, make sure it is running. Create a 'kubectl local proxy', capture the port the proxy is listening. Using the http client send a ‘delete’ with gracePeriodSeconds=30. Pod SHOULD get deleted within 30 seconds.
+			Description: Create a pod, make sure it is running. Using the http client send a 'delete' with gracePeriodSeconds=30. Pod SHOULD get deleted within 30 seconds.
 		*/
-		framework.ConformanceIt("should be submitted and removed", func() {
+		ginkgo.It("should be submitted and removed [Flaky]", func() {
 			ginkgo.By("creating the pod")
 			name := "pod-submit-remove-" + string(uuid.NewUUID())
 			value := strconv.Itoa(time.Now().Nanosecond())
@@ -71,8 +71,9 @@ var _ = SIGDescribe("Pods Extended", func() {
 				Spec: v1.PodSpec{
 					Containers: []v1.Container{
 						{
-							Name:  "nginx",
-							Image: imageutils.GetE2EImage(imageutils.Nginx),
+							Name:  "agnhost",
+							Image: imageutils.GetE2EImage(imageutils.Agnhost),
+							Args:  []string{"pause"},
 						},
 					},
 				},
@@ -81,7 +82,7 @@ var _ = SIGDescribe("Pods Extended", func() {
 			ginkgo.By("setting up selector")
 			selector := labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
 			options := metav1.ListOptions{LabelSelector: selector.String()}
-			pods, err := podClient.List(options)
+			pods, err := podClient.List(context.TODO(), options)
 			framework.ExpectNoError(err, "failed to query for pod")
 			framework.ExpectEqual(len(pods.Items), 0)
 			options = metav1.ListOptions{
@@ -95,7 +96,7 @@ var _ = SIGDescribe("Pods Extended", func() {
 			ginkgo.By("verifying the pod is in kubernetes")
 			selector = labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
 			options = metav1.ListOptions{LabelSelector: selector.String()}
-			pods, err = podClient.List(options)
+			pods, err = podClient.List(context.TODO(), options)
 			framework.ExpectNoError(err, "failed to query for pod")
 			framework.ExpectEqual(len(pods.Items), 1)
 
@@ -103,47 +104,19 @@ var _ = SIGDescribe("Pods Extended", func() {
 			// may be carried out immediately rather than gracefully.
 			framework.ExpectNoError(f.WaitForPodRunning(pod.Name))
 			// save the running pod
-			pod, err = podClient.Get(pod.Name, metav1.GetOptions{})
+			pod, err = podClient.Get(context.TODO(), pod.Name, metav1.GetOptions{})
 			framework.ExpectNoError(err, "failed to GET scheduled pod")
 
-			// start local proxy, so we can send graceful deletion over query string, rather than body parameter
-			cmd := framework.KubectlCmd("proxy", "-p", "0")
-			stdout, stderr, err := framework.StartCmdAndStreamOutput(cmd)
-			framework.ExpectNoError(err, "failed to start up proxy")
-			defer stdout.Close()
-			defer stderr.Close()
-			defer framework.TryKill(cmd)
-			buf := make([]byte, 128)
-			var n int
-			n, err = stdout.Read(buf)
-			framework.ExpectNoError(err, "failed to read from kubectl proxy stdout")
-			output := string(buf[:n])
-			proxyRegexp := regexp.MustCompile("Starting to serve on 127.0.0.1:([0-9]+)")
-			match := proxyRegexp.FindStringSubmatch(output)
-			framework.ExpectEqual(len(match), 2)
-			port, err := strconv.Atoi(match[1])
-			framework.ExpectNoError(err, "failed to convert port into string")
-
-			endpoint := fmt.Sprintf("http://localhost:%d/api/v1/namespaces/%s/pods/%s?gracePeriodSeconds=30", port, pod.Namespace, pod.Name)
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			}
-			client := &http.Client{Transport: tr}
-			req, err := http.NewRequest("DELETE", endpoint, nil)
-			framework.ExpectNoError(err, "failed to create http request")
-
 			ginkgo.By("deleting the pod gracefully")
-			rsp, err := client.Do(req)
-			framework.ExpectNoError(err, "failed to use http client to send delete")
-			framework.ExpectEqual(rsp.StatusCode, http.StatusOK, "failed to delete gracefully by client request")
 			var lastPod v1.Pod
-			err = json.NewDecoder(rsp.Body).Decode(&lastPod)
-			framework.ExpectNoError(err, "failed to decode graceful termination proxy response")
-
-			defer rsp.Body.Close()
+			var statusCode int
+			err = f.ClientSet.CoreV1().RESTClient().Delete().AbsPath("/api/v1/namespaces", pod.Namespace, "pods", pod.Name).Param("gracePeriodSeconds", "30").Do(context.TODO()).StatusCode(&statusCode).Into(&lastPod)
+			framework.ExpectNoError(err, "failed to use http client to send delete")
+			framework.ExpectEqual(statusCode, http.StatusOK, "failed to delete gracefully by client request")
 
 			ginkgo.By("verifying the kubelet observed the termination notice")
 
+			start := time.Now()
 			err = wait.Poll(time.Second*5, time.Second*30, func() (bool, error) {
 				podList, err := e2ekubelet.GetKubeletPods(f.ClientSet, pod.Spec.NodeName)
 				if err != nil {
@@ -151,13 +124,15 @@ var _ = SIGDescribe("Pods Extended", func() {
 					return false, nil
 				}
 				for _, kubeletPod := range podList.Items {
-					if pod.Name != kubeletPod.Name {
+					if pod.Name != kubeletPod.Name || pod.Namespace != kubeletPod.Namespace {
 						continue
 					}
 					if kubeletPod.ObjectMeta.DeletionTimestamp == nil {
 						framework.Logf("deletion has not yet been observed")
 						return false, nil
 					}
+					data, _ := json.Marshal(kubeletPod)
+					framework.Logf("start=%s, now=%s, kubelet pod: %s", start, time.Now(), string(data))
 					return false, nil
 				}
 				framework.Logf("no pod exists with the name we were looking for, assuming the termination request was observed and completed")
@@ -170,7 +145,7 @@ var _ = SIGDescribe("Pods Extended", func() {
 
 			selector = labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
 			options = metav1.ListOptions{LabelSelector: selector.String()}
-			pods, err = podClient.List(options)
+			pods, err = podClient.List(context.TODO(), options)
 			framework.ExpectNoError(err, "failed to query for pods")
 			framework.ExpectEqual(len(pods.Items), 0)
 
@@ -201,8 +176,9 @@ var _ = SIGDescribe("Pods Extended", func() {
 				Spec: v1.PodSpec{
 					Containers: []v1.Container{
 						{
-							Name:  "nginx",
-							Image: imageutils.GetE2EImage(imageutils.Nginx),
+							Name:  "agnhost",
+							Image: imageutils.GetE2EImage(imageutils.Agnhost),
+							Args:  []string{"pause"},
 							Resources: v1.ResourceRequirements{
 								Limits: v1.ResourceList{
 									v1.ResourceCPU:    resource.MustParse("100m"),
@@ -222,7 +198,7 @@ var _ = SIGDescribe("Pods Extended", func() {
 			podClient.Create(pod)
 
 			ginkgo.By("verifying QOS class is set on the pod")
-			pod, err := podClient.Get(name, metav1.GetOptions{})
+			pod, err := podClient.Get(context.TODO(), name, metav1.GetOptions{})
 			framework.ExpectNoError(err, "failed to query for pod")
 			framework.ExpectEqual(pod.Status.QOSClass, v1.PodQOSGuaranteed)
 		})
@@ -236,6 +212,8 @@ var _ = SIGDescribe("Pods Extended", func() {
 
 		ginkgo.It("should never report success for a pending container", func() {
 			ginkgo.By("creating pods that should always exit 1 and terminating the pod after a random delay")
+
+			var reBug88766 = regexp.MustCompile(`rootfs_linux.*kubernetes\.io~secret.*no such file or directory`)
 
 			var (
 				lock sync.Mutex
@@ -291,7 +269,7 @@ var _ = SIGDescribe("Pods Extended", func() {
 						ch := make(chan []watch.Event)
 						go func() {
 							defer close(ch)
-							w, err := podClient.Watch(metav1.ListOptions{
+							w, err := podClient.Watch(context.TODO(), metav1.ListOptions{
 								ResourceVersion: created.ResourceVersion,
 								FieldSelector:   fmt.Sprintf("metadata.name=%s", pod.Name),
 							})
@@ -314,7 +292,7 @@ var _ = SIGDescribe("Pods Extended", func() {
 
 						t := time.Duration(rand.Intn(delay)) * time.Millisecond
 						time.Sleep(t)
-						err := podClient.Delete(pod.Name, nil)
+						err := podClient.Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
 						framework.ExpectNoError(err, "failed to delete pod")
 
 						events, ok := <-ch
@@ -363,19 +341,19 @@ var _ = SIGDescribe("Pods Extended", func() {
 							}
 							hasRunningContainers = status.State.Waiting == nil && status.State.Terminated == nil
 							if t != nil {
-								switch t.ExitCode {
-								case 1:
+								if !t.FinishedAt.Time.IsZero() {
+									duration = t.FinishedAt.Sub(t.StartedAt.Time)
+									completeDuration = t.FinishedAt.Sub(pod.CreationTimestamp.Time)
+								}
+
+								defer func() { hasTerminated = true }()
+								switch {
+								case t.ExitCode == 1:
 									// expected
-									if !t.FinishedAt.Time.IsZero() {
-										duration = t.FinishedAt.Sub(t.StartedAt.Time)
-										completeDuration = t.FinishedAt.Sub(pod.CreationTimestamp.Time)
-									}
-									hasTerminated = true
+								case t.ExitCode == 128 && (t.Reason == "StartError" || t.Reason == "ContainerCannotRun") && reBug88766.MatchString(t.Message):
+									// pod volume teardown races with container start in CRI, which reports a failure
+									framework.Logf("pod %s on node %s failed with the symptoms of https://github.com/kubernetes/kubernetes/issues/88766")
 								default:
-									if !hasTerminated {
-										framework.Logf("Pod %s listed as terminating with container exit code %d", pod.Name, t.ExitCode)
-									}
-									hasTerminated = true
 									return fmt.Errorf("pod %s on node %s container unexpected exit code %d: start=%s end=%s reason=%s message=%s", pod.Name, pod.Spec.NodeName, t.ExitCode, t.StartedAt, t.FinishedAt, t.Reason, t.Message)
 								}
 							}

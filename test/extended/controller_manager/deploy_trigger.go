@@ -1,6 +1,7 @@
 package controller_manager
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -38,12 +39,12 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		config.Namespace = namespace
 		config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{{Type: "Manual"}}
 
-		dc, err := adminAppsClient.DeploymentConfigs(namespace).Create(config)
+		dc, err := adminAppsClient.DeploymentConfigs(namespace).Create(context.Background(), config, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 		}
 
-		rcWatch, err := kc.CoreV1().ReplicationControllers(namespace).Watch(metav1.ListOptions{ResourceVersion: dc.ResourceVersion})
+		rcWatch, err := kc.CoreV1().ReplicationControllers(namespace).Watch(context.Background(), metav1.ListOptions{ResourceVersion: dc.ResourceVersion})
 		if err != nil {
 			t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 		}
@@ -57,7 +58,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 
 		retryErr := retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
 			var err error
-			config, err = adminAppsClient.DeploymentConfigs(namespace).Instantiate(config.Name, request)
+			config, err = adminAppsClient.DeploymentConfigs(namespace).Instantiate(context.Background(), config.Name, request, metav1.CreateOptions{})
 			return err
 		})
 		if retryErr != nil {
@@ -111,17 +112,17 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		config.Namespace = oc.Namespace()
 		config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{OkImageChangeTrigger()}
 
-		configWatch, err := projectAdminAppsClient.DeploymentConfigs(oc.Namespace()).Watch(metav1.ListOptions{})
+		configWatch, err := projectAdminAppsClient.DeploymentConfigs(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't subscribe to deploymentconfigs %v", err)
 		}
 		defer configWatch.Stop()
 
-		if imageStream, err = projectAdminImageClient.ImageStreams(oc.Namespace()).Create(imageStream); err != nil {
+		if imageStream, err = projectAdminImageClient.ImageStreams(oc.Namespace()).Create(context.Background(), imageStream, metav1.CreateOptions{}); err != nil {
 			t.Fatalf("Couldn't create imagestream: %v", err)
 		}
 
-		imageWatch, err := projectAdminImageClient.ImageStreams(oc.Namespace()).Watch(metav1.ListOptions{})
+		imageWatch, err := projectAdminImageClient.ImageStreams(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't subscribe to imagestreams: %v", err)
 		}
@@ -142,7 +143,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 					DockerImageReference: updatedPullSpec,
 				},
 			}
-			if _, err := projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping); err != nil {
+			if _, err := projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), mapping, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
@@ -161,7 +162,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			}
 		}
 
-		if config, err = projectAdminAppsClient.DeploymentConfigs(oc.Namespace()).Create(config); err != nil {
+		if config, err = projectAdminAppsClient.DeploymentConfigs(oc.Namespace()).Create(context.Background(), config, metav1.CreateOptions{}); err != nil {
 			t.Fatalf("Couldn't create deploymentconfig: %v", err)
 		}
 
@@ -210,11 +211,11 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: ImageStreamName}}
 		var err error
 
-		if imageStream, err = adminImageClient.ImageStreams(oc.Namespace()).Create(imageStream); err != nil {
+		if imageStream, err = adminImageClient.ImageStreams(oc.Namespace()).Create(context.Background(), imageStream, metav1.CreateOptions{}); err != nil {
 			t.Fatalf("Couldn't create imagestream: %v", err)
 		}
 
-		imageWatch, err := adminImageClient.ImageStreams(oc.Namespace()).Watch(metav1.ListOptions{})
+		imageWatch, err := adminImageClient.ImageStreams(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't subscribe to imagestreams: %v", err)
 		}
@@ -236,7 +237,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		}
 
 		createTagEvent := func(mapping *imagev1.ImageStreamMapping) {
-			if _, err := adminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping); err != nil {
+			if _, err := adminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), mapping, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
@@ -263,7 +264,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			}
 		}
 
-		configWatch, err := adminAppsClient.DeploymentConfigs(oc.Namespace()).Watch(metav1.ListOptions{})
+		configWatch, err := adminAppsClient.DeploymentConfigs(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't subscribe to deploymentconfigs: %v", err)
 		}
@@ -273,7 +274,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		config.Namespace = oc.Namespace()
 		config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{OkImageChangeTrigger()}
 		config.Spec.Triggers[0].ImageChangeParams.Automatic = false
-		if config, err = adminAppsClient.DeploymentConfigs(oc.Namespace()).Create(config); err != nil {
+		if config, err = adminAppsClient.DeploymentConfigs(oc.Namespace()).Create(context.Background(), config, metav1.CreateOptions{}); err != nil {
 			t.Fatalf("Couldn't create deploymentconfig: %v", err)
 		}
 
@@ -342,13 +343,13 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		}
 		retryErr := retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
 			var err error
-			config, err = adminAppsClient.DeploymentConfigs(oc.Namespace()).Instantiate(config.Name, request)
+			config, err = adminAppsClient.DeploymentConfigs(oc.Namespace()).Instantiate(context.Background(), config.Name, request, metav1.CreateOptions{})
 			return err
 		})
 		if retryErr != nil {
 			t.Fatalf("Couldn't instantiate deployment config %q: %v", request.Name, err)
 		}
-		config, err = adminAppsClient.DeploymentConfigs(config.Namespace).Get(config.Name, metav1.GetOptions{})
+		config, err = adminAppsClient.DeploymentConfigs(config.Namespace).Get(context.Background(), config.Name, metav1.GetOptions{})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -393,20 +394,20 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		secondTrigger.ImageChangeParams.From.Name = imageutil.JoinImageStreamTag("sample", imagev1.DefaultImageTag)
 		config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{firstTrigger, secondTrigger}
 
-		configWatch, err := adminAppsClient.DeploymentConfigs(oc.Namespace()).Watch(metav1.ListOptions{})
+		configWatch, err := adminAppsClient.DeploymentConfigs(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't subscribe to deploymentconfigs %v", err)
 		}
 		defer configWatch.Stop()
 
-		if imageStream, err = adminImageClient.ImageStreams(oc.Namespace()).Create(imageStream); err != nil {
+		if imageStream, err = adminImageClient.ImageStreams(oc.Namespace()).Create(context.Background(), imageStream, metav1.CreateOptions{}); err != nil {
 			t.Fatalf("Couldn't create imagestream %q: %v", imageStream.Name, err)
 		}
-		if secondImageStream, err = adminImageClient.ImageStreams(oc.Namespace()).Create(secondImageStream); err != nil {
+		if secondImageStream, err = adminImageClient.ImageStreams(oc.Namespace()).Create(context.Background(), secondImageStream, metav1.CreateOptions{}); err != nil {
 			t.Fatalf("Couldn't create imagestream %q: %v", secondImageStream.Name, err)
 		}
 
-		imageWatch, err := adminImageClient.ImageStreams(oc.Namespace()).Watch(metav1.ListOptions{})
+		imageWatch, err := adminImageClient.ImageStreams(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't subscribe to imagestreams: %v", err)
 		}
@@ -428,7 +429,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 					DockerImageReference: pullSpec,
 				},
 			}
-			if _, err := adminImageClient.ImageStreamMappings(oc.Namespace()).Create(mapping); err != nil {
+			if _, err := adminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), mapping, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
@@ -450,7 +451,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			}
 		}
 
-		if config, err = adminAppsClient.DeploymentConfigs(oc.Namespace()).Create(config); err != nil {
+		if config, err = adminAppsClient.DeploymentConfigs(oc.Namespace()).Create(context.Background(), config, metav1.CreateOptions{}); err != nil {
 			t.Fatalf("Couldn't create deploymentconfig: %v", err)
 		}
 
@@ -545,14 +546,14 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		config.Namespace = namespace
 		config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{{Type: appsv1.DeploymentTriggerOnConfigChange}}
 
-		rcWatch, err := kc.CoreV1().ReplicationControllers(namespace).Watch(metav1.ListOptions{})
+		rcWatch, err := kc.CoreV1().ReplicationControllers(namespace).Watch(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't subscribe to Deployments %v", err)
 		}
 		defer rcWatch.Stop()
 
 		// submit the initial deployment config
-		config, err = adminAppsClient.DeploymentConfigs(namespace).Create(config)
+		config, err = adminAppsClient.DeploymentConfigs(namespace).Create(context.Background(), config, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 		}
@@ -573,7 +574,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
 		// get this live or conflicts will never end up resolved
 		retryErr := retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
-			liveDeployment, err := kc.CoreV1().ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
+			liveDeployment, err := kc.CoreV1().ReplicationControllers(deployment.Namespace).Get(context.Background(), deployment.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
@@ -581,7 +582,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			liveDeployment.Annotations[appsv1.DeploymentStatusAnnotation] = string(appsv1.DeploymentStatusComplete)
 
 			// update the deployment
-			_, err = kc.CoreV1().ReplicationControllers(namespace).Update(liveDeployment)
+			_, err = kc.CoreV1().ReplicationControllers(namespace).Update(context.Background(), liveDeployment, metav1.UpdateOptions{})
 			return err
 		})
 		if retryErr != nil {
@@ -598,7 +599,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		// Update the config with a new environment variable and observe a new deployment
 		// coming up.
 		retryErr = retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
-			latest, err := adminAppsClient.DeploymentConfigs(namespace).Get(config.Name, metav1.GetOptions{})
+			latest, err := adminAppsClient.DeploymentConfigs(namespace).Get(context.Background(), config.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
@@ -611,7 +612,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			}
 
 			// update the config
-			_, err = adminAppsClient.DeploymentConfigs(namespace).Update(latest)
+			_, err = adminAppsClient.DeploymentConfigs(namespace).Update(context.Background(), latest, metav1.UpdateOptions{})
 			return err
 		})
 		if retryErr != nil {
@@ -620,12 +621,12 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 
 		if retryErr := retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
 			// submit a new config with an updated environment variable
-			newConfig, err := adminAppsClient.DeploymentConfigs(namespace).Get(config.Name, metav1.GetOptions{})
+			newConfig, err := adminAppsClient.DeploymentConfigs(namespace).Get(context.Background(), config.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
 			newConfig.Spec.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
-			_, err = adminAppsClient.DeploymentConfigs(namespace).Update(newConfig)
+			_, err = adminAppsClient.DeploymentConfigs(namespace).Update(context.Background(), newConfig, metav1.UpdateOptions{})
 			return err
 		}); retryErr != nil {
 			t.Fatal(retryErr)

@@ -27,7 +27,9 @@ func TestInteg_00_DescribeLoadBalancers(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := elbv2.New(sess)
 	params := &elbv2.DescribeLoadBalancersInput{}
-	_, err := svc.DescribeLoadBalancersWithContext(ctx, params)
+	_, err := svc.DescribeLoadBalancersWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -43,7 +45,9 @@ func TestInteg_01_DescribeLoadBalancers(t *testing.T) {
 			aws.String("fake_load_balancer"),
 		},
 	}
-	_, err := svc.DescribeLoadBalancersWithContext(ctx, params)
+	_, err := svc.DescribeLoadBalancersWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

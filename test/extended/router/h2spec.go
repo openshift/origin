@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -48,7 +49,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(oc.KubeFramework().Namespace.Name)
-			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
+			if routes, _ := client.List(context.Background(), metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}
 			exutil.DumpPodLogsStartingWith("h2spec", oc)
@@ -249,7 +250,7 @@ func getHostnameForRoute(oc *exutil.CLI, routeName string) string {
 	var hostname string
 	ns := oc.KubeFramework().Namespace.Name
 	err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-		route, err := oc.RouteClient().RouteV1().Routes(ns).Get(routeName, metav1.GetOptions{})
+		route, err := oc.RouteClient().RouteV1().Routes(ns).Get(context.Background(), routeName, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Error getting hostname for route %q: %v", routeName, err)
 			return false, err

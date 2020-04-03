@@ -1,0 +1,32 @@
+version: v1.0
+name: CI Build
+
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+
+blocks:
+  - name: Run tests
+    task:
+      prologue:
+        commands:
+          - checkout
+          - sem-version go 1.12
+          - go get -d ./...
+          - go build ./...
+          - sudo pip3 install https://github.com/amluto/virtme/archive/538f1e756139a6b57a4780e7ceb3ac6bcaa4fe6f.zip
+          - sudo apt-get -y update
+          - sudo apt-get install -y qemu-system-x86
+      jobs:
+      - name: Test building on other OS and arch
+        commands:
+          - GOOS=darwin go build ./...
+          - GOARCH=arm GOARM=6 go build ./...
+          - GOARCH=arm64 go build ./...
+      - name: Test on 5.0.13
+        commands:
+          - timeout -s KILL 60s ./run-tests.sh 5.0.13
+      - name: Test on 4.19.40
+        commands:
+          - timeout -s KILL 60s ./run-tests.sh 4.19.40

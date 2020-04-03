@@ -183,3 +183,34 @@ func ExampleEKS_ListClusters_shared00() {
 
 	fmt.Println(result)
 }
+
+// To list tags for a cluster
+//
+// This example lists all of the tags for the `beta` cluster.
+func ExampleEKS_ListTagsForResource_shared00() {
+	svc := eks.New(session.New())
+	input := &eks.ListTagsForResourceInput{
+		ResourceArn: aws.String("arn:aws:eks:us-west-2:012345678910:cluster/beta"),
+	}
+
+	result, err := svc.ListTagsForResource(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case eks.ErrCodeBadRequestException:
+				fmt.Println(eks.ErrCodeBadRequestException, aerr.Error())
+			case eks.ErrCodeNotFoundException:
+				fmt.Println(eks.ErrCodeNotFoundException, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+		return
+	}
+
+	fmt.Println(result)
+}

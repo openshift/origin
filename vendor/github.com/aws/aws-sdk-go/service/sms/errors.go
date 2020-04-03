@@ -2,6 +2,10 @@
 
 package sms
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeInternalError for service response error code
@@ -72,3 +76,17 @@ const (
 	// and ensure that you are using the correct access keys.
 	ErrCodeUnauthorizedOperationException = "UnauthorizedOperationException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"InternalError":                        newErrorInternalError,
+	"InvalidParameterException":            newErrorInvalidParameterException,
+	"MissingRequiredParameterException":    newErrorMissingRequiredParameterException,
+	"NoConnectorsAvailableException":       newErrorNoConnectorsAvailableException,
+	"OperationNotPermittedException":       newErrorOperationNotPermittedException,
+	"ReplicationJobAlreadyExistsException": newErrorReplicationJobAlreadyExistsException,
+	"ReplicationJobNotFoundException":      newErrorReplicationJobNotFoundException,
+	"ReplicationRunLimitExceededException": newErrorReplicationRunLimitExceededException,
+	"ServerCannotBeReplicatedException":    newErrorServerCannotBeReplicatedException,
+	"TemporarilyUnavailableException":      newErrorTemporarilyUnavailableException,
+	"UnauthorizedOperationException":       newErrorUnauthorizedOperationException,
+}

@@ -8,109 +8,103 @@ import:
 # kube first
 - package: k8s.io/api
   repo:    https://github.com/openshift/kubernetes-api.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/apiextensions-apiserver
   repo:    https://github.com/openshift/kubernetes-apiextensions-apiserver.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/apimachinery
   repo:    https://github.com/openshift/kubernetes-apimachinery.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/apiserver
   repo:    https://github.com/openshift/kubernetes-apiserver.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/client-go
   repo:    https://github.com/openshift/kubernetes-client-go.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/cli-runtime
   repo:    https://github.com/openshift/kubernetes-cli-runtime.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/cloud-provider
   repo:    https://github.com/openshift/kubernetes-cloud-provider.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/cluster-bootstrap
   repo:    https://github.com/openshift/kubernetes-cluster-bootstrap.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/code-generator
   repo:    https://github.com/openshift/kubernetes-code-generator.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/component-base
   repo:    https://github.com/openshift/kubernetes-component-base.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/csi-translation-lib
   repo:    https://github.com/openshift/kubernetes-csi-translation-lib.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/kube-aggregator
   repo:    https://github.com/openshift/kubernetes-kube-aggregator.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/kube-controller-manager
   repo:    https://github.com/openshift/kubernetes-kube-controller-manager.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/kubectl
   repo:    https://github.com/openshift/kubernetes-kubectl.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/kubelet
   repo:    https://github.com/openshift/kubernetes-kubelet.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/kube-proxy
   repo:    https://github.com/openshift/kubernetes-kube-proxy.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/kube-scheduler
   repo:    https://github.com/openshift/kubernetes-kube-scheduler.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/legacy-cloud-providers
   repo:    https://github.com/openshift/kubernetes-legacy-cloud-providers.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/metrics
   repo:    https://github.com/openshift/kubernetes-metrics.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/sample-apiserver
   repo:    https://github.com/openshift/kubernetes-sample-apiserver.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/sample-cli-plugin
   repo:    https://github.com/openshift/kubernetes-sample-cli-plugin.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/sample-controller
   repo:    https://github.com/openshift/kubernetes-sample-controller.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/kubernetes
   repo:    https://github.com/openshift/kubernetes.git
-  version: origin-4.5-kubernetes-1.17.1
+  version: origin-4.5-kubernetes-1.18.0-rc.1
 - package: k8s.io/cri-api
   repo:    https://github.com/openshift/kubernetes-cri-api
-  version: origin-4.5-kubernetes-1.17.1
-- package: k8s.io/node-api
-  repo:    https://github.com/openshift/kubernetes-node-api
-  version: origin-4.5-kubernetes-1.17.1
-# this matches the 1.17 branch from kube
+  version: origin-4.5-kubernetes-1.18.0-rc.1
+# this matches the 1.18 branch from kube
 - package: k8s.io/gengo
-  version: 26a664648505d962332bda642b27306bc10d1082
+  version: 36b2048a9120
 - package: k8s.io/utils
-  version: e782cd3c129fc98ee807f3c889c0f26eb7c9daf5
+  version: 0a110f9eb7ab
 - package: k8s.io/kube-openapi
-  version: 30be4d16710ac61bce31eb28a01054596fe6a9f1
+  version: bf4fb3bd569c
 - package: k8s.io/klog
   version: v1.0.0
 - package: gopkg.in/yaml.v2
-  version: v2.2.4
-- package: sigs.k8s.io/structured-merge-diff
-  version: b1b620dd3f06c352be11cbf3dda1a04606bbf10a
+  version: v2.2.8
+- package: sigs.k8s.io/structured-merge-diff/v3
+  repo:    https://github.com/openshift/structured-merge-diff
+  version: origin-4.5-v3.0.0
 - package: github.com/google/cadvisor
   version: v0.35.0
 
-# for gengo
-- package: golang.org/x/tools/imports
-  version: 6e04913cbbac05c5c0c9d8f237717e292f700e76
-
 # pin for etcd
 - package: google.golang.org/grpc
-  version: v1.23.0
+  version: v1.26.0
 
 - package: github.com/coreos/etcd
   version: v3.3.17
 - package: github.com/coreos/bbolt
   version: v1.3.3
 - package: github.com/ugorji/go
-  version: bdcc60b419d136a85cdf2e7cbcac34b3f1cd6e57
+  version: d75b2dcb6bc8
 
 # openshift second
 - package: github.com/openshift/api
@@ -127,12 +121,10 @@ import:
   repo:    https://github.com/openshift/onsi-ginkgo.git
   version: origin-4.5
 # these need to match the kubelet
-# TODO(node): recheck these levels
 - package: github.com/docker/distribution
-  repo:    https://github.com/openshift/docker-distribution.git
-  version: image-registry-3.11
+  version: v2.7.1
 - package: github.com/docker/docker
-  version: a9fbbdc8dd8794b20af358382ab780559bca589d
+  version: be7ac8be2ae072032a4005e8f232be3fc57e4127
 
 # ours: shared with kube, but forced by openshift
 # master: co-exist with klog
@@ -187,7 +179,7 @@ import:
   version: 5213b809086156e6e2b262a41394993fcff97439
 
 - package: github.com/opencontainers/runc
-  version: v1.0.0-rc9
+  version: v1.0.0-rc10
 
 # required by opencontainers
 - package: github.com/sirupsen/logrus
@@ -209,13 +201,13 @@ import:
 - package: github.com/go-openapi/swag
   version: v0.19.5
 - package: golang.org/x/crypto
-  version: 57b3e21c3d56
+  version: bac4c82f6975
 # GOMOD for golang.org/x/crypto asks for this version of x/sys, which includes things we need
 # we wouldn't need this line if glide paid attention to gomod
 - package: golang.org/x/sys
-  version: fde4db37ae7a
+  version: 742c48ecaeb7
 - package: golang.org/x/net
-  version: ba9fcec4b297
+  version: 13f9640d40b9
 - package: github.com/agnivade/levenshtein
   version: v1.0.1
 - package: github.com/andreyvit/diff

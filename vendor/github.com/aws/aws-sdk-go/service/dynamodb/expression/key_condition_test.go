@@ -22,9 +22,9 @@ const (
 	// invalidKeyConditionOperand error will occur when an invalid OperandBuilder is used as
 	// an argument
 	invalidKeyConditionOperand = "BuildOperand error"
-	// invalidAndFormat error will occur when the first key condition is not an equal
-	// clause or if the second key condition is an and condition.
-	invalidAndFormat = "invalid parameter: KeyConditionBuilder"
+	// invalidKeyConditionFormat error will occur when the first key condition is not an equal
+	// clause or if more then one And condition is provided
+	invalidKeyConditionFormat = "buildKeyCondition error: invalid key condition constructed"
 )
 
 func TestKeyCompare(t *testing.T) {
@@ -336,12 +336,12 @@ func TestKeyAnd(t *testing.T) {
 		{
 			name:  "first condition is not equal",
 			input: Key("foo").LessThan(Value(5)).And(Key("bar").BeginsWith("baz")),
-			err:   invalidAndFormat,
+			err:   invalidKeyConditionFormat,
 		},
 		{
-			name:  "second condition is and",
+			name:  "more then one condition on key",
 			input: Key("foo").Equal(Value(5)).And(Key("bar").Equal(Value(1)).And(Key("baz").BeginsWith("yar"))),
-			err:   invalidAndFormat,
+			err:   invalidKeyConditionFormat,
 		},
 		{
 			name:  "operand error",

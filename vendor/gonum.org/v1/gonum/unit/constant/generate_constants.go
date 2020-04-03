@@ -19,58 +19,55 @@ import (
 )
 
 const (
-	elementaryCharge = 1.6021766208e-19
-	fineStructure    = 7.2973525664e-3
+	elementaryCharge = 1.602176634e-19
+	fineStructure    = 7.2973525693e-3
 	lightSpeed       = 2.99792458e8
-	planck           = 6.626070040e-34
+	planck           = 6.62607015e-34
 )
 
 var constants = []Constant{
 	{
-		Name: "AtomicMass", Value: 1.660539040e-27,
+		Name: "AtomicMass", Value: 1.66053906660e-27,
 		Dimensions:  []Dimension{{massName, 1}},
 		Comment:     "AtomicMass is the atomic mass constant (mᵤ), one twelfth of the mass of an unbound atom of carbon-12 at rest and in its ground state.",
-		Uncertainty: 0.000000020e-27,
+		Uncertainty: 0.00000000050e-27,
 	},
 	{
-		Name: "Avogadro", Value: 6.022140857e23,
-		Dimensions:  []Dimension{{moleName, -1}},
-		Comment:     "Avogadro is the Avogadro constant (A), the number of constituent particles contained in one mole of a substance.",
-		Uncertainty: 0.000000074e23,
+		Name: "Avogadro", Value: 6.02214076e23,
+		Dimensions: []Dimension{{moleName, -1}},
+		Comment:    "Avogadro is the Avogadro constant (A), the number of constituent particles contained in one mole of a substance.",
 	},
 	{
-		Name: "Boltzmann", Value: 1.38064852e-23,
-		Dimensions:  []Dimension{{massName, 1}, {lengthName, 2}, {timeName, -2}, {temperatureName, -1}},
-		Comment:     "Boltzmann is the Boltzmann constant (k), it relates the average relative kinetic energy of particles in a gas with the temperature of the gas.",
-		Uncertainty: 0.00000079e-23,
+		Name: "Boltzmann", Value: 1.380649e-23,
+		Dimensions: []Dimension{{massName, 1}, {lengthName, 2}, {timeName, -2}, {temperatureName, -1}},
+		Comment:    "Boltzmann is the Boltzmann constant (k), it relates the average relative kinetic energy of particles in a gas with the temperature of the gas.",
 	},
 	{
 		Name: "ElectricConstant", Value: 1 / (4 * math.Pi * 1e-7 * lightSpeed * lightSpeed),
-		Dimensions: []Dimension{{currentName, 2}, {timeName, 4}, {massName, -1}, {lengthName, -3}},
-		Comment:    "ElectricConstant is the electric constant (ε₀), the value of the absolute dielectric permittivity of classical vacuum.",
+		Dimensions:  []Dimension{{currentName, 2}, {timeName, 4}, {massName, -1}, {lengthName, -3}},
+		Comment:     "ElectricConstant is the electric constant (ε₀), the value of the absolute dielectric permittivity of classical vacuum.",
+		Uncertainty: 0.0000000013e-12,
 	},
 	{
 		Name: "ElementaryCharge", Value: elementaryCharge,
-		Dimensions:  []Dimension{{currentName, 1}, {timeName, 1}},
-		Comment:     "ElementaryCharge, is the elementary charge constant (e), the magnitude of electric charge carried by a single proton or electron.",
-		Uncertainty: 0.0000000098e-19,
+		Dimensions: []Dimension{{currentName, 1}, {timeName, 1}},
+		Comment:    "ElementaryCharge, is the elementary charge constant (e), the magnitude of electric charge carried by a single proton or electron.",
 	},
 	{
-		Name: "Faraday", Value: 96485.33289,
-		Dimensions:  []Dimension{{currentName, 1}, {timeName, 1}, {moleName, -1}},
-		Comment:     "Faraday is the Faraday constant, the magnitude of electric charge per mole of electrons.",
-		Uncertainty: 0.00059,
+		Name: "Faraday", Value: 96485.33212,
+		Dimensions: []Dimension{{currentName, 1}, {timeName, 1}, {moleName, -1}},
+		Comment:    "Faraday is the Faraday constant, the magnitude of electric charge per mole of electrons.",
 	},
 	{
 		Name: "FineStructure", Value: fineStructure,
 		Comment:     "FineStructure is the fine structure constant (α), it describes the strength of the electromagnetic interaction between elementary charged particles.",
-		Uncertainty: 0.0000000017e-3,
+		Uncertainty: 0.0000000011e-3,
 	},
 	{
-		Name: "Gravitational", Value: 6.67408e-11,
+		Name: "Gravitational", Value: 6.67430e-11,
 		Dimensions:  []Dimension{{massName, -1}, {lengthName, 3}, {timeName, -2}},
 		Comment:     "Gravitational is the universal gravitational constant (G), the proportionality constant connecting the gravitational force between two bodies.",
-		Uncertainty: 0.00031e-11,
+		Uncertainty: 0.00015e-11,
 	},
 	{
 		Name: "LightSpeedInVacuum", Value: lightSpeed,
@@ -79,14 +76,14 @@ var constants = []Constant{
 	},
 	{
 		Name: "MagneticConstant", Value: 2 * fineStructure * planck / (elementaryCharge * elementaryCharge * lightSpeed),
-		Dimensions: []Dimension{{currentName, 2}, {timeName, 4}, {massName, -1}, {lengthName, -3}},
-		Comment:    "MagneticConstant is the magnetic constant (μ₀), the magnetic permeability in a classical vacuum.",
+		Dimensions:  []Dimension{{currentName, 2}, {timeName, 4}, {massName, -1}, {lengthName, -3}},
+		Comment:     "MagneticConstant is the magnetic constant (μ₀), the magnetic permeability in a classical vacuum.",
+		Uncertainty: 0.00000000019e-6,
 	},
 	{
 		Name: "Planck", Value: planck,
-		Dimensions:  []Dimension{{massName, 1}, {lengthName, 2}, {timeName, -1}},
-		Comment:     "Planck is the Planck constant (h), it relates the energy carried by a photon to its frequency.",
-		Uncertainty: 0.000000081e-34,
+		Dimensions: []Dimension{{massName, 1}, {lengthName, 2}, {timeName, -1}},
+		Comment:    "Planck is the Planck constant (h), it relates the energy carried by a photon to its frequency.",
 	},
 	{
 		Name: "StandardGravity", Value: 9.80665,

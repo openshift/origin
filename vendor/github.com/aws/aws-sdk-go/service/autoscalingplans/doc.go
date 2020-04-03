@@ -12,8 +12,9 @@
 // Currently, predictive scaling is only available for Amazon EC2 Auto Scaling
 // groups.
 //
-// For more information about AWS Auto Scaling, see the AWS Auto Scaling User
-// Guide (http://docs.aws.amazon.com/autoscaling/plans/userguide/what-is-aws-auto-scaling.html).
+// For more information about AWS Auto Scaling, including information about
+// granting IAM users required permissions for AWS Auto Scaling actions, see
+// the AWS Auto Scaling User Guide (https://docs.aws.amazon.com/autoscaling/plans/userguide/what-is-aws-auto-scaling.html).
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/autoscaling-plans-2018-01-06 for more information on this service.
 //

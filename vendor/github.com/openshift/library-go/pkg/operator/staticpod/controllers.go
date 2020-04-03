@@ -7,11 +7,13 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/staticresourcecontroller"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/loglevel"
 	"github.com/openshift/library-go/pkg/operator/revisioncontroller"
@@ -52,7 +54,8 @@ type staticPodOperatorControllerBuilder struct {
 	operandName       string
 
 	// installer information
-	installCommand []string
+	installCommand           []string
+	installerPodMutationFunc installer.InstallerPodMutationFunc
 
 	// pruning information
 	pruneCommand []string
@@ -83,6 +86,9 @@ type Builder interface {
 	WithResources(operandNamespace, staticPodName string, revisionConfigMaps, revisionSecrets []revisioncontroller.RevisionResource) Builder
 	WithCerts(certDir string, certConfigMaps, certSecrets []revisioncontroller.RevisionResource) Builder
 	WithInstaller(command []string) Builder
+	// WithCustomInstaller allows mutating the installer pod definition just before
+	// the installer pod is created for a revision.
+	WithCustomInstaller(command []string, installerPodMutationFunc installer.InstallerPodMutationFunc) Builder
 	WithPruning(command []string, staticPodPrefix string) Builder
 	ToControllers() (manager.ControllerManager, error)
 }
@@ -124,6 +130,17 @@ func (b *staticPodOperatorControllerBuilder) WithCerts(certDir string, certConfi
 
 func (b *staticPodOperatorControllerBuilder) WithInstaller(command []string) Builder {
 	b.installCommand = command
+	b.installerPodMutationFunc = func(pod *corev1.Pod, nodeName string, operatorSpec *operatorv1.StaticPodOperatorSpec, revision int32) error {
+		return nil
+	}
+	return b
+}
+
+// WithCustomInstaller allows mutating the installer pod definition just before
+// the installer pod is created for a revision.
+func (b *staticPodOperatorControllerBuilder) WithCustomInstaller(command []string, installerPodMutationFunc installer.InstallerPodMutationFunc) Builder {
+	b.installCommand = command
+	b.installerPodMutationFunc = installerPodMutationFunc
 	return b
 }
 
@@ -186,6 +203,8 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (manager.Controller
 			b.certDir,
 			b.certConfigMaps,
 			b.certSecrets,
+		).WithInstallerPodMutationFn(
+			b.installerPodMutationFunc,
 		), 1)
 
 		manager.WithController(installerstate.NewInstallerStateController(

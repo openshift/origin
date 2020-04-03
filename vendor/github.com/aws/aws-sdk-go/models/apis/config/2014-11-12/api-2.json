@@ -84,6 +84,18 @@
         {"shape":"NoSuchConfigurationRecorderException"}
       ]
     },
+    "DeleteConformancePack":{
+      "name":"DeleteConformancePack",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteConformancePackRequest"},
+      "errors":[
+        {"shape":"NoSuchConformancePackException"},
+        {"shape":"ResourceInUseException"}
+      ]
+    },
     "DeleteDeliveryChannel":{
       "name":"DeleteDeliveryChannel",
       "http":{
@@ -109,6 +121,32 @@
         {"shape":"ResourceInUseException"}
       ]
     },
+    "DeleteOrganizationConfigRule":{
+      "name":"DeleteOrganizationConfigRule",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteOrganizationConfigRuleRequest"},
+      "errors":[
+        {"shape":"NoSuchOrganizationConfigRuleException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"OrganizationAccessDeniedException"}
+      ]
+    },
+    "DeleteOrganizationConformancePack":{
+      "name":"DeleteOrganizationConformancePack",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteOrganizationConformancePackRequest"},
+      "errors":[
+        {"shape":"NoSuchOrganizationConformancePackException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"OrganizationAccessDeniedException"}
+      ]
+    },
     "DeletePendingAggregationRequest":{
       "name":"DeletePendingAggregationRequest",
       "http":{
@@ -118,6 +156,43 @@
       "input":{"shape":"DeletePendingAggregationRequestRequest"},
       "errors":[
         {"shape":"InvalidParameterValueException"}
+      ]
+    },
+    "DeleteRemediationConfiguration":{
+      "name":"DeleteRemediationConfiguration",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteRemediationConfigurationRequest"},
+      "output":{"shape":"DeleteRemediationConfigurationResponse"},
+      "errors":[
+        {"shape":"NoSuchRemediationConfigurationException"},
+        {"shape":"RemediationInProgressException"}
+      ]
+    },
+    "DeleteRemediationExceptions":{
+      "name":"DeleteRemediationExceptions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteRemediationExceptionsRequest"},
+      "output":{"shape":"DeleteRemediationExceptionsResponse"},
+      "errors":[
+        {"shape":"NoSuchRemediationExceptionException"}
+      ]
+    },
+    "DeleteResourceConfig":{
+      "name":"DeleteResourceConfig",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteResourceConfigRequest"},
+      "errors":[
+        {"shape":"ValidationException"},
+        {"shape":"NoRunningConfigurationRecorderException"}
       ]
     },
     "DeleteRetentionConfiguration":{
@@ -283,6 +358,49 @@
         {"shape":"NoSuchConfigurationRecorderException"}
       ]
     },
+    "DescribeConformancePackCompliance":{
+      "name":"DescribeConformancePackCompliance",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeConformancePackComplianceRequest"},
+      "output":{"shape":"DescribeConformancePackComplianceResponse"},
+      "errors":[
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"InvalidParameterValueException"},
+        {"shape":"NoSuchConfigRuleInConformancePackException"},
+        {"shape":"NoSuchConformancePackException"}
+      ]
+    },
+    "DescribeConformancePackStatus":{
+      "name":"DescribeConformancePackStatus",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeConformancePackStatusRequest"},
+      "output":{"shape":"DescribeConformancePackStatusResponse"},
+      "errors":[
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"}
+      ]
+    },
+    "DescribeConformancePacks":{
+      "name":"DescribeConformancePacks",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeConformancePacksRequest"},
+      "output":{"shape":"DescribeConformancePacksResponse"},
+      "errors":[
+        {"shape":"NoSuchConformancePackException"},
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"}
+      ]
+    },
     "DescribeDeliveryChannelStatus":{
       "name":"DescribeDeliveryChannelStatus",
       "http":{
@@ -307,6 +425,66 @@
         {"shape":"NoSuchDeliveryChannelException"}
       ]
     },
+    "DescribeOrganizationConfigRuleStatuses":{
+      "name":"DescribeOrganizationConfigRuleStatuses",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeOrganizationConfigRuleStatusesRequest"},
+      "output":{"shape":"DescribeOrganizationConfigRuleStatusesResponse"},
+      "errors":[
+        {"shape":"NoSuchOrganizationConfigRuleException"},
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"OrganizationAccessDeniedException"}
+      ]
+    },
+    "DescribeOrganizationConfigRules":{
+      "name":"DescribeOrganizationConfigRules",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeOrganizationConfigRulesRequest"},
+      "output":{"shape":"DescribeOrganizationConfigRulesResponse"},
+      "errors":[
+        {"shape":"NoSuchOrganizationConfigRuleException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"InvalidLimitException"},
+        {"shape":"OrganizationAccessDeniedException"}
+      ]
+    },
+    "DescribeOrganizationConformancePackStatuses":{
+      "name":"DescribeOrganizationConformancePackStatuses",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeOrganizationConformancePackStatusesRequest"},
+      "output":{"shape":"DescribeOrganizationConformancePackStatusesResponse"},
+      "errors":[
+        {"shape":"NoSuchOrganizationConformancePackException"},
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"OrganizationAccessDeniedException"}
+      ]
+    },
+    "DescribeOrganizationConformancePacks":{
+      "name":"DescribeOrganizationConformancePacks",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeOrganizationConformancePacksRequest"},
+      "output":{"shape":"DescribeOrganizationConformancePacksResponse"},
+      "errors":[
+        {"shape":"NoSuchOrganizationConformancePackException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"InvalidLimitException"},
+        {"shape":"OrganizationAccessDeniedException"}
+      ]
+    },
     "DescribePendingAggregationRequests":{
       "name":"DescribePendingAggregationRequests",
       "http":{
@@ -319,6 +497,41 @@
         {"shape":"InvalidParameterValueException"},
         {"shape":"InvalidNextTokenException"},
         {"shape":"InvalidLimitException"}
+      ]
+    },
+    "DescribeRemediationConfigurations":{
+      "name":"DescribeRemediationConfigurations",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeRemediationConfigurationsRequest"},
+      "output":{"shape":"DescribeRemediationConfigurationsResponse"}
+    },
+    "DescribeRemediationExceptions":{
+      "name":"DescribeRemediationExceptions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeRemediationExceptionsRequest"},
+      "output":{"shape":"DescribeRemediationExceptionsResponse"},
+      "errors":[
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"InvalidParameterValueException"}
+      ]
+    },
+    "DescribeRemediationExecutionStatus":{
+      "name":"DescribeRemediationExecutionStatus",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeRemediationExecutionStatusRequest"},
+      "output":{"shape":"DescribeRemediationExecutionStatusResponse"},
+      "errors":[
+        {"shape":"NoSuchRemediationConfigurationException"},
+        {"shape":"InvalidNextTokenException"}
       ]
     },
     "DescribeRetentionConfigurations":{
@@ -441,6 +654,36 @@
         {"shape":"InvalidParameterValueException"}
       ]
     },
+    "GetConformancePackComplianceDetails":{
+      "name":"GetConformancePackComplianceDetails",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetConformancePackComplianceDetailsRequest"},
+      "output":{"shape":"GetConformancePackComplianceDetailsResponse"},
+      "errors":[
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"NoSuchConformancePackException"},
+        {"shape":"NoSuchConfigRuleInConformancePackException"},
+        {"shape":"InvalidParameterValueException"}
+      ]
+    },
+    "GetConformancePackComplianceSummary":{
+      "name":"GetConformancePackComplianceSummary",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetConformancePackComplianceSummaryRequest"},
+      "output":{"shape":"GetConformancePackComplianceSummaryResponse"},
+      "errors":[
+        {"shape":"NoSuchConformancePackException"},
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"}
+      ]
+    },
     "GetDiscoveredResourceCounts":{
       "name":"GetDiscoveredResourceCounts",
       "http":{
@@ -453,6 +696,36 @@
         {"shape":"ValidationException"},
         {"shape":"InvalidLimitException"},
         {"shape":"InvalidNextTokenException"}
+      ]
+    },
+    "GetOrganizationConfigRuleDetailedStatus":{
+      "name":"GetOrganizationConfigRuleDetailedStatus",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetOrganizationConfigRuleDetailedStatusRequest"},
+      "output":{"shape":"GetOrganizationConfigRuleDetailedStatusResponse"},
+      "errors":[
+        {"shape":"NoSuchOrganizationConfigRuleException"},
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"OrganizationAccessDeniedException"}
+      ]
+    },
+    "GetOrganizationConformancePackDetailedStatus":{
+      "name":"GetOrganizationConformancePackDetailedStatus",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetOrganizationConformancePackDetailedStatusRequest"},
+      "output":{"shape":"GetOrganizationConformancePackDetailedStatusResponse"},
+      "errors":[
+        {"shape":"NoSuchOrganizationConformancePackException"},
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"OrganizationAccessDeniedException"}
       ]
     },
     "GetResourceConfigHistory":{
@@ -500,6 +773,21 @@
         {"shape":"InvalidLimitException"},
         {"shape":"InvalidNextTokenException"},
         {"shape":"NoAvailableConfigurationRecorderException"}
+      ]
+    },
+    "ListTagsForResource":{
+      "name":"ListTagsForResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTagsForResourceRequest"},
+      "output":{"shape":"ListTagsForResourceResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ValidationException"},
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"}
       ]
     },
     "PutAggregationAuthorization":{
@@ -560,6 +848,22 @@
         {"shape":"InvalidRecordingGroupException"}
       ]
     },
+    "PutConformancePack":{
+      "name":"PutConformancePack",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutConformancePackRequest"},
+      "output":{"shape":"PutConformancePackResponse"},
+      "errors":[
+        {"shape":"InsufficientPermissionsException"},
+        {"shape":"ConformancePackTemplateValidationException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"InvalidParameterValueException"},
+        {"shape":"MaxNumberOfConformancePacksExceededException"}
+      ]
+    },
     "PutDeliveryChannel":{
       "name":"PutDeliveryChannel",
       "http":{
@@ -591,6 +895,83 @@
         {"shape":"NoSuchConfigRuleException"}
       ]
     },
+    "PutOrganizationConfigRule":{
+      "name":"PutOrganizationConfigRule",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutOrganizationConfigRuleRequest"},
+      "output":{"shape":"PutOrganizationConfigRuleResponse"},
+      "errors":[
+        {"shape":"MaxNumberOfOrganizationConfigRulesExceededException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"InvalidParameterValueException"},
+        {"shape":"ValidationException"},
+        {"shape":"OrganizationAccessDeniedException"},
+        {"shape":"NoAvailableOrganizationException"},
+        {"shape":"OrganizationAllFeaturesNotEnabledException"},
+        {"shape":"InsufficientPermissionsException"}
+      ]
+    },
+    "PutOrganizationConformancePack":{
+      "name":"PutOrganizationConformancePack",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutOrganizationConformancePackRequest"},
+      "output":{"shape":"PutOrganizationConformancePackResponse"},
+      "errors":[
+        {"shape":"MaxNumberOfOrganizationConformancePacksExceededException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"ValidationException"},
+        {"shape":"OrganizationAccessDeniedException"},
+        {"shape":"InsufficientPermissionsException"},
+        {"shape":"OrganizationConformancePackTemplateValidationException"},
+        {"shape":"OrganizationAllFeaturesNotEnabledException"},
+        {"shape":"NoAvailableOrganizationException"}
+      ]
+    },
+    "PutRemediationConfigurations":{
+      "name":"PutRemediationConfigurations",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutRemediationConfigurationsRequest"},
+      "output":{"shape":"PutRemediationConfigurationsResponse"},
+      "errors":[
+        {"shape":"InsufficientPermissionsException"},
+        {"shape":"InvalidParameterValueException"}
+      ]
+    },
+    "PutRemediationExceptions":{
+      "name":"PutRemediationExceptions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutRemediationExceptionsRequest"},
+      "output":{"shape":"PutRemediationExceptionsResponse"},
+      "errors":[
+        {"shape":"InvalidParameterValueException"}
+      ]
+    },
+    "PutResourceConfig":{
+      "name":"PutResourceConfig",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutResourceConfigRequest"},
+      "errors":[
+        {"shape":"ValidationException"},
+        {"shape":"InsufficientPermissionsException"},
+        {"shape":"NoRunningConfigurationRecorderException"},
+        {"shape":"MaxActiveResourcesExceededException"}
+      ]
+    },
     "PutRetentionConfiguration":{
       "name":"PutRetentionConfiguration",
       "http":{
@@ -602,6 +983,20 @@
       "errors":[
         {"shape":"InvalidParameterValueException"},
         {"shape":"MaxNumberOfRetentionConfigurationsExceededException"}
+      ]
+    },
+    "SelectResourceConfig":{
+      "name":"SelectResourceConfig",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"SelectResourceConfigRequest"},
+      "output":{"shape":"SelectResourceConfigResponse"},
+      "errors":[
+        {"shape":"InvalidExpressionException"},
+        {"shape":"InvalidLimitException"},
+        {"shape":"InvalidNextTokenException"}
       ]
     },
     "StartConfigRulesEvaluation":{
@@ -631,6 +1026,20 @@
         {"shape":"NoAvailableDeliveryChannelException"}
       ]
     },
+    "StartRemediationExecution":{
+      "name":"StartRemediationExecution",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartRemediationExecutionRequest"},
+      "output":{"shape":"StartRemediationExecutionResponse"},
+      "errors":[
+        {"shape":"InvalidParameterValueException"},
+        {"shape":"InsufficientPermissionsException"},
+        {"shape":"NoSuchRemediationConfigurationException"}
+      ]
+    },
     "StopConfigurationRecorder":{
       "name":"StopConfigurationRecorder",
       "http":{
@@ -640,6 +1049,31 @@
       "input":{"shape":"StopConfigurationRecorderRequest"},
       "errors":[
         {"shape":"NoSuchConfigurationRecorderException"}
+      ]
+    },
+    "TagResource":{
+      "name":"TagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"TagResourceRequest"},
+      "errors":[
+        {"shape":"ValidationException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"TooManyTagsException"}
+      ]
+    },
+    "UntagResource":{
+      "name":"UntagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UntagResourceRequest"},
+      "errors":[
+        {"shape":"ValidationException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     }
   },
@@ -780,6 +1214,28 @@
       "min":1
     },
     "AllSupported":{"type":"boolean"},
+    "AmazonResourceName":{
+      "type":"string",
+      "max":256,
+      "min":1
+    },
+    "Annotation":{
+      "type":"string",
+      "max":256,
+      "min":0
+    },
+    "AutoRemediationAttemptSeconds":{
+      "type":"long",
+      "box":true,
+      "max":2678000,
+      "min":1
+    },
+    "AutoRemediationAttempts":{
+      "type":"integer",
+      "box":true,
+      "max":25,
+      "min":1
+    },
     "AvailabilityZone":{"type":"string"},
     "AwsRegion":{
       "type":"string",
@@ -1008,12 +1464,13 @@
     },
     "ConfigRuleName":{
       "type":"string",
-      "max":64,
-      "min":1
+      "max":128,
+      "min":1,
+      "pattern":".*\\S.*"
     },
     "ConfigRuleNames":{
       "type":"list",
-      "member":{"shape":"StringWithCharLimit64"},
+      "member":{"shape":"ConfigRuleName"},
       "max":25,
       "min":0
     },
@@ -1150,6 +1607,216 @@
       "member":{"shape":"ConfigurationRecorderStatus"}
     },
     "ConfigurationStateId":{"type":"string"},
+    "ConformancePackArn":{
+      "type":"string",
+      "max":2048,
+      "min":1
+    },
+    "ConformancePackComplianceFilters":{
+      "type":"structure",
+      "members":{
+        "ConfigRuleNames":{"shape":"ConformancePackConfigRuleNames"},
+        "ComplianceType":{"shape":"ConformancePackComplianceType"}
+      }
+    },
+    "ConformancePackComplianceResourceIds":{
+      "type":"list",
+      "member":{"shape":"StringWithCharLimit256"},
+      "max":5,
+      "min":0
+    },
+    "ConformancePackComplianceSummary":{
+      "type":"structure",
+      "required":[
+        "ConformancePackName",
+        "ConformancePackComplianceStatus"
+      ],
+      "members":{
+        "ConformancePackName":{"shape":"ConformancePackName"},
+        "ConformancePackComplianceStatus":{"shape":"ConformancePackComplianceType"}
+      }
+    },
+    "ConformancePackComplianceSummaryList":{
+      "type":"list",
+      "member":{"shape":"ConformancePackComplianceSummary"},
+      "max":5,
+      "min":1
+    },
+    "ConformancePackComplianceType":{
+      "type":"string",
+      "enum":[
+        "COMPLIANT",
+        "NON_COMPLIANT"
+      ]
+    },
+    "ConformancePackConfigRuleNames":{
+      "type":"list",
+      "member":{"shape":"StringWithCharLimit64"},
+      "max":10,
+      "min":0
+    },
+    "ConformancePackDetail":{
+      "type":"structure",
+      "required":[
+        "ConformancePackName",
+        "ConformancePackArn",
+        "ConformancePackId",
+        "DeliveryS3Bucket"
+      ],
+      "members":{
+        "ConformancePackName":{"shape":"ConformancePackName"},
+        "ConformancePackArn":{"shape":"ConformancePackArn"},
+        "ConformancePackId":{"shape":"ConformancePackId"},
+        "DeliveryS3Bucket":{"shape":"DeliveryS3Bucket"},
+        "DeliveryS3KeyPrefix":{"shape":"DeliveryS3KeyPrefix"},
+        "ConformancePackInputParameters":{"shape":"ConformancePackInputParameters"},
+        "LastUpdateRequestedTime":{"shape":"Date"},
+        "CreatedBy":{"shape":"StringWithCharLimit256"}
+      }
+    },
+    "ConformancePackDetailList":{
+      "type":"list",
+      "member":{"shape":"ConformancePackDetail"},
+      "max":25,
+      "min":0
+    },
+    "ConformancePackEvaluationFilters":{
+      "type":"structure",
+      "members":{
+        "ConfigRuleNames":{"shape":"ConformancePackConfigRuleNames"},
+        "ComplianceType":{"shape":"ConformancePackComplianceType"},
+        "ResourceType":{"shape":"StringWithCharLimit256"},
+        "ResourceIds":{"shape":"ConformancePackComplianceResourceIds"}
+      }
+    },
+    "ConformancePackEvaluationResult":{
+      "type":"structure",
+      "required":[
+        "ComplianceType",
+        "EvaluationResultIdentifier",
+        "ConfigRuleInvokedTime",
+        "ResultRecordedTime"
+      ],
+      "members":{
+        "ComplianceType":{"shape":"ConformancePackComplianceType"},
+        "EvaluationResultIdentifier":{"shape":"EvaluationResultIdentifier"},
+        "ConfigRuleInvokedTime":{"shape":"Date"},
+        "ResultRecordedTime":{"shape":"Date"},
+        "Annotation":{"shape":"Annotation"}
+      }
+    },
+    "ConformancePackId":{
+      "type":"string",
+      "max":1024,
+      "min":1
+    },
+    "ConformancePackInputParameter":{
+      "type":"structure",
+      "required":[
+        "ParameterName",
+        "ParameterValue"
+      ],
+      "members":{
+        "ParameterName":{"shape":"ParameterName"},
+        "ParameterValue":{"shape":"ParameterValue"}
+      }
+    },
+    "ConformancePackInputParameters":{
+      "type":"list",
+      "member":{"shape":"ConformancePackInputParameter"},
+      "max":60,
+      "min":0
+    },
+    "ConformancePackName":{
+      "type":"string",
+      "max":256,
+      "min":1,
+      "pattern":"[a-zA-Z][-a-zA-Z0-9]*"
+    },
+    "ConformancePackNamesList":{
+      "type":"list",
+      "member":{"shape":"ConformancePackName"},
+      "max":25,
+      "min":0
+    },
+    "ConformancePackNamesToSummarizeList":{
+      "type":"list",
+      "member":{"shape":"ConformancePackName"},
+      "max":5,
+      "min":1
+    },
+    "ConformancePackRuleCompliance":{
+      "type":"structure",
+      "members":{
+        "ConfigRuleName":{"shape":"ConfigRuleName"},
+        "ComplianceType":{"shape":"ConformancePackComplianceType"}
+      }
+    },
+    "ConformancePackRuleComplianceList":{
+      "type":"list",
+      "member":{"shape":"ConformancePackRuleCompliance"},
+      "max":1000,
+      "min":0
+    },
+    "ConformancePackRuleEvaluationResultsList":{
+      "type":"list",
+      "member":{"shape":"ConformancePackEvaluationResult"},
+      "max":100,
+      "min":0
+    },
+    "ConformancePackState":{
+      "type":"string",
+      "enum":[
+        "CREATE_IN_PROGRESS",
+        "CREATE_COMPLETE",
+        "CREATE_FAILED",
+        "DELETE_IN_PROGRESS",
+        "DELETE_FAILED"
+      ]
+    },
+    "ConformancePackStatusDetail":{
+      "type":"structure",
+      "required":[
+        "ConformancePackName",
+        "ConformancePackId",
+        "ConformancePackArn",
+        "ConformancePackState",
+        "StackArn",
+        "LastUpdateRequestedTime"
+      ],
+      "members":{
+        "ConformancePackName":{"shape":"ConformancePackName"},
+        "ConformancePackId":{"shape":"ConformancePackId"},
+        "ConformancePackArn":{"shape":"ConformancePackArn"},
+        "ConformancePackState":{"shape":"ConformancePackState"},
+        "StackArn":{"shape":"StackArn"},
+        "ConformancePackStatusReason":{"shape":"ConformancePackStatusReason"},
+        "LastUpdateRequestedTime":{"shape":"Date"},
+        "LastUpdateCompletedTime":{"shape":"Date"}
+      }
+    },
+    "ConformancePackStatusDetailsList":{
+      "type":"list",
+      "member":{"shape":"ConformancePackStatusDetail"},
+      "max":25,
+      "min":0
+    },
+    "ConformancePackStatusReason":{
+      "type":"string",
+      "max":2000,
+      "min":0
+    },
+    "ConformancePackTemplateValidationException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "CosmosPageLimit":{
+      "type":"integer",
+      "max":100,
+      "min":0
+    },
     "Date":{"type":"timestamp"},
     "DeleteAggregationAuthorizationRequest":{
       "type":"structure",
@@ -1183,6 +1850,13 @@
         "ConfigurationRecorderName":{"shape":"RecorderName"}
       }
     },
+    "DeleteConformancePackRequest":{
+      "type":"structure",
+      "required":["ConformancePackName"],
+      "members":{
+        "ConformancePackName":{"shape":"ConformancePackName"}
+      }
+    },
     "DeleteDeliveryChannelRequest":{
       "type":"structure",
       "required":["DeliveryChannelName"],
@@ -1202,6 +1876,20 @@
       "members":{
       }
     },
+    "DeleteOrganizationConfigRuleRequest":{
+      "type":"structure",
+      "required":["OrganizationConfigRuleName"],
+      "members":{
+        "OrganizationConfigRuleName":{"shape":"OrganizationConfigRuleName"}
+      }
+    },
+    "DeleteOrganizationConformancePackRequest":{
+      "type":"structure",
+      "required":["OrganizationConformancePackName"],
+      "members":{
+        "OrganizationConformancePackName":{"shape":"OrganizationConformancePackName"}
+      }
+    },
     "DeletePendingAggregationRequestRequest":{
       "type":"structure",
       "required":[
@@ -1211,6 +1899,47 @@
       "members":{
         "RequesterAccountId":{"shape":"AccountId"},
         "RequesterAwsRegion":{"shape":"AwsRegion"}
+      }
+    },
+    "DeleteRemediationConfigurationRequest":{
+      "type":"structure",
+      "required":["ConfigRuleName"],
+      "members":{
+        "ConfigRuleName":{"shape":"ConfigRuleName"},
+        "ResourceType":{"shape":"String"}
+      }
+    },
+    "DeleteRemediationConfigurationResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DeleteRemediationExceptionsRequest":{
+      "type":"structure",
+      "required":[
+        "ConfigRuleName",
+        "ResourceKeys"
+      ],
+      "members":{
+        "ConfigRuleName":{"shape":"ConfigRuleName"},
+        "ResourceKeys":{"shape":"RemediationExceptionResourceKeys"}
+      }
+    },
+    "DeleteRemediationExceptionsResponse":{
+      "type":"structure",
+      "members":{
+        "FailedBatches":{"shape":"FailedDeleteRemediationExceptionsBatches"}
+      }
+    },
+    "DeleteResourceConfigRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceType",
+        "ResourceId"
+      ],
+      "members":{
+        "ResourceType":{"shape":"ResourceTypeString"},
+        "ResourceId":{"shape":"ResourceId"}
       }
     },
     "DeleteRetentionConfigurationRequest":{
@@ -1263,6 +1992,16 @@
     "DeliveryChannelStatusList":{
       "type":"list",
       "member":{"shape":"DeliveryChannelStatus"}
+    },
+    "DeliveryS3Bucket":{
+      "type":"string",
+      "max":63,
+      "min":3
+    },
+    "DeliveryS3KeyPrefix":{
+      "type":"string",
+      "max":1024,
+      "min":1
     },
     "DeliveryStatus":{
       "type":"string",
@@ -1420,6 +2159,63 @@
         "ConfigurationRecorders":{"shape":"ConfigurationRecorderList"}
       }
     },
+    "DescribeConformancePackComplianceLimit":{
+      "type":"integer",
+      "max":1000,
+      "min":0
+    },
+    "DescribeConformancePackComplianceRequest":{
+      "type":"structure",
+      "required":["ConformancePackName"],
+      "members":{
+        "ConformancePackName":{"shape":"ConformancePackName"},
+        "Filters":{"shape":"ConformancePackComplianceFilters"},
+        "Limit":{"shape":"DescribeConformancePackComplianceLimit"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeConformancePackComplianceResponse":{
+      "type":"structure",
+      "required":[
+        "ConformancePackName",
+        "ConformancePackRuleComplianceList"
+      ],
+      "members":{
+        "ConformancePackName":{"shape":"ConformancePackName"},
+        "ConformancePackRuleComplianceList":{"shape":"ConformancePackRuleComplianceList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeConformancePackStatusRequest":{
+      "type":"structure",
+      "members":{
+        "ConformancePackNames":{"shape":"ConformancePackNamesList"},
+        "Limit":{"shape":"PageSizeLimit"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeConformancePackStatusResponse":{
+      "type":"structure",
+      "members":{
+        "ConformancePackStatusDetails":{"shape":"ConformancePackStatusDetailsList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeConformancePacksRequest":{
+      "type":"structure",
+      "members":{
+        "ConformancePackNames":{"shape":"ConformancePackNamesList"},
+        "Limit":{"shape":"PageSizeLimit"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeConformancePacksResponse":{
+      "type":"structure",
+      "members":{
+        "ConformancePackDetails":{"shape":"ConformancePackDetailList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
     "DescribeDeliveryChannelStatusRequest":{
       "type":"structure",
       "members":{
@@ -1444,6 +2240,66 @@
         "DeliveryChannels":{"shape":"DeliveryChannelList"}
       }
     },
+    "DescribeOrganizationConfigRuleStatusesRequest":{
+      "type":"structure",
+      "members":{
+        "OrganizationConfigRuleNames":{"shape":"OrganizationConfigRuleNames"},
+        "Limit":{"shape":"CosmosPageLimit"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeOrganizationConfigRuleStatusesResponse":{
+      "type":"structure",
+      "members":{
+        "OrganizationConfigRuleStatuses":{"shape":"OrganizationConfigRuleStatuses"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeOrganizationConfigRulesRequest":{
+      "type":"structure",
+      "members":{
+        "OrganizationConfigRuleNames":{"shape":"OrganizationConfigRuleNames"},
+        "Limit":{"shape":"CosmosPageLimit"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeOrganizationConfigRulesResponse":{
+      "type":"structure",
+      "members":{
+        "OrganizationConfigRules":{"shape":"OrganizationConfigRules"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeOrganizationConformancePackStatusesRequest":{
+      "type":"structure",
+      "members":{
+        "OrganizationConformancePackNames":{"shape":"OrganizationConformancePackNames"},
+        "Limit":{"shape":"CosmosPageLimit"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeOrganizationConformancePackStatusesResponse":{
+      "type":"structure",
+      "members":{
+        "OrganizationConformancePackStatuses":{"shape":"OrganizationConformancePackStatuses"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeOrganizationConformancePacksRequest":{
+      "type":"structure",
+      "members":{
+        "OrganizationConformancePackNames":{"shape":"OrganizationConformancePackNames"},
+        "Limit":{"shape":"CosmosPageLimit"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeOrganizationConformancePacksResponse":{
+      "type":"structure",
+      "members":{
+        "OrganizationConformancePacks":{"shape":"OrganizationConformancePacks"},
+        "NextToken":{"shape":"String"}
+      }
+    },
     "DescribePendingAggregationRequestsLimit":{
       "type":"integer",
       "max":20,
@@ -1460,6 +2316,53 @@
       "type":"structure",
       "members":{
         "PendingAggregationRequests":{"shape":"PendingAggregationRequestList"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeRemediationConfigurationsRequest":{
+      "type":"structure",
+      "required":["ConfigRuleNames"],
+      "members":{
+        "ConfigRuleNames":{"shape":"ConfigRuleNames"}
+      }
+    },
+    "DescribeRemediationConfigurationsResponse":{
+      "type":"structure",
+      "members":{
+        "RemediationConfigurations":{"shape":"RemediationConfigurations"}
+      }
+    },
+    "DescribeRemediationExceptionsRequest":{
+      "type":"structure",
+      "required":["ConfigRuleName"],
+      "members":{
+        "ConfigRuleName":{"shape":"ConfigRuleName"},
+        "ResourceKeys":{"shape":"RemediationExceptionResourceKeys"},
+        "Limit":{"shape":"Limit"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeRemediationExceptionsResponse":{
+      "type":"structure",
+      "members":{
+        "RemediationExceptions":{"shape":"RemediationExceptions"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeRemediationExecutionStatusRequest":{
+      "type":"structure",
+      "required":["ConfigRuleName"],
+      "members":{
+        "ConfigRuleName":{"shape":"ConfigRuleName"},
+        "ResourceKeys":{"shape":"ResourceKeys"},
+        "Limit":{"shape":"Limit"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "DescribeRemediationExecutionStatusResponse":{
+      "type":"structure",
+      "members":{
+        "RemediationExecutionStatuses":{"shape":"RemediationExecutionStatuses"},
         "NextToken":{"shape":"String"}
       }
     },
@@ -1543,6 +2446,67 @@
       "type":"string",
       "enum":["aws.config"]
     },
+    "ExcludedAccounts":{
+      "type":"list",
+      "member":{"shape":"AccountId"},
+      "max":1000,
+      "min":0
+    },
+    "ExecutionControls":{
+      "type":"structure",
+      "members":{
+        "SsmControls":{"shape":"SsmControls"}
+      }
+    },
+    "Expression":{
+      "type":"string",
+      "max":4096,
+      "min":1
+    },
+    "FailedDeleteRemediationExceptionsBatch":{
+      "type":"structure",
+      "members":{
+        "FailureMessage":{"shape":"String"},
+        "FailedItems":{"shape":"RemediationExceptionResourceKeys"}
+      }
+    },
+    "FailedDeleteRemediationExceptionsBatches":{
+      "type":"list",
+      "member":{"shape":"FailedDeleteRemediationExceptionsBatch"}
+    },
+    "FailedRemediationBatch":{
+      "type":"structure",
+      "members":{
+        "FailureMessage":{"shape":"String"},
+        "FailedItems":{"shape":"RemediationConfigurations"}
+      }
+    },
+    "FailedRemediationBatches":{
+      "type":"list",
+      "member":{"shape":"FailedRemediationBatch"}
+    },
+    "FailedRemediationExceptionBatch":{
+      "type":"structure",
+      "members":{
+        "FailureMessage":{"shape":"String"},
+        "FailedItems":{"shape":"RemediationExceptions"}
+      }
+    },
+    "FailedRemediationExceptionBatches":{
+      "type":"list",
+      "member":{"shape":"FailedRemediationExceptionBatch"}
+    },
+    "FieldInfo":{
+      "type":"structure",
+      "members":{
+        "Name":{"shape":"FieldName"}
+      }
+    },
+    "FieldInfoList":{
+      "type":"list",
+      "member":{"shape":"FieldInfo"}
+    },
+    "FieldName":{"type":"string"},
     "GetAggregateComplianceDetailsByConfigRuleRequest":{
       "type":"structure",
       "required":[
@@ -1680,6 +2644,46 @@
         "ComplianceSummariesByResourceType":{"shape":"ComplianceSummariesByResourceType"}
       }
     },
+    "GetConformancePackComplianceDetailsLimit":{
+      "type":"integer",
+      "max":100,
+      "min":0
+    },
+    "GetConformancePackComplianceDetailsRequest":{
+      "type":"structure",
+      "required":["ConformancePackName"],
+      "members":{
+        "ConformancePackName":{"shape":"ConformancePackName"},
+        "Filters":{"shape":"ConformancePackEvaluationFilters"},
+        "Limit":{"shape":"GetConformancePackComplianceDetailsLimit"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "GetConformancePackComplianceDetailsResponse":{
+      "type":"structure",
+      "required":["ConformancePackName"],
+      "members":{
+        "ConformancePackName":{"shape":"ConformancePackName"},
+        "ConformancePackRuleEvaluationResults":{"shape":"ConformancePackRuleEvaluationResultsList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "GetConformancePackComplianceSummaryRequest":{
+      "type":"structure",
+      "required":["ConformancePackNames"],
+      "members":{
+        "ConformancePackNames":{"shape":"ConformancePackNamesToSummarizeList"},
+        "Limit":{"shape":"PageSizeLimit"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "GetConformancePackComplianceSummaryResponse":{
+      "type":"structure",
+      "members":{
+        "ConformancePackComplianceSummaryList":{"shape":"ConformancePackComplianceSummaryList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
     "GetDiscoveredResourceCountsRequest":{
       "type":"structure",
       "members":{
@@ -1694,6 +2698,40 @@
         "totalDiscoveredResources":{"shape":"Long"},
         "resourceCounts":{"shape":"ResourceCounts"},
         "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "GetOrganizationConfigRuleDetailedStatusRequest":{
+      "type":"structure",
+      "required":["OrganizationConfigRuleName"],
+      "members":{
+        "OrganizationConfigRuleName":{"shape":"OrganizationConfigRuleName"},
+        "Filters":{"shape":"StatusDetailFilters"},
+        "Limit":{"shape":"CosmosPageLimit"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "GetOrganizationConfigRuleDetailedStatusResponse":{
+      "type":"structure",
+      "members":{
+        "OrganizationConfigRuleDetailedStatus":{"shape":"OrganizationConfigRuleDetailedStatus"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "GetOrganizationConformancePackDetailedStatusRequest":{
+      "type":"structure",
+      "required":["OrganizationConformancePackName"],
+      "members":{
+        "OrganizationConformancePackName":{"shape":"OrganizationConformancePackName"},
+        "Filters":{"shape":"OrganizationResourceDetailedStatusFilters"},
+        "Limit":{"shape":"CosmosPageLimit"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "GetOrganizationConformancePackDetailedStatusResponse":{
+      "type":"structure",
+      "members":{
+        "OrganizationConformancePackDetailedStatuses":{"shape":"OrganizationConformancePackDetailedStatuses"},
+        "NextToken":{"shape":"String"}
       }
     },
     "GetResourceConfigHistoryRequest":{
@@ -1760,6 +2798,12 @@
       "exception":true
     },
     "InvalidDeliveryChannelNameException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidExpressionException":{
       "type":"structure",
       "members":{
       },
@@ -1877,7 +2921,29 @@
         "nextToken":{"shape":"NextToken"}
       }
     },
+    "ListTagsForResourceRequest":{
+      "type":"structure",
+      "required":["ResourceArn"],
+      "members":{
+        "ResourceArn":{"shape":"AmazonResourceName"},
+        "Limit":{"shape":"Limit"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListTagsForResourceResponse":{
+      "type":"structure",
+      "members":{
+        "Tags":{"shape":"TagList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
     "Long":{"type":"long"},
+    "MaxActiveResourcesExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "MaxNumberOfConfigRulesExceededException":{
       "type":"structure",
       "members":{
@@ -1890,7 +2956,25 @@
       },
       "exception":true
     },
+    "MaxNumberOfConformancePacksExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "MaxNumberOfDeliveryChannelsExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "MaxNumberOfOrganizationConfigRulesExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "MaxNumberOfOrganizationConformancePacksExceededException":{
       "type":"structure",
       "members":{
       },
@@ -1911,6 +2995,36 @@
         "Twelve_Hours",
         "TwentyFour_Hours"
       ]
+    },
+    "MemberAccountRuleStatus":{
+      "type":"string",
+      "enum":[
+        "CREATE_SUCCESSFUL",
+        "CREATE_IN_PROGRESS",
+        "CREATE_FAILED",
+        "DELETE_SUCCESSFUL",
+        "DELETE_FAILED",
+        "DELETE_IN_PROGRESS",
+        "UPDATE_SUCCESSFUL",
+        "UPDATE_IN_PROGRESS",
+        "UPDATE_FAILED"
+      ]
+    },
+    "MemberAccountStatus":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "ConfigRuleName",
+        "MemberAccountRuleStatus"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "ConfigRuleName":{"shape":"StringWithCharLimit64"},
+        "MemberAccountRuleStatus":{"shape":"MemberAccountRuleStatus"},
+        "ErrorCode":{"shape":"String"},
+        "ErrorMessage":{"shape":"String"},
+        "LastUpdateTime":{"shape":"Date"}
+      }
     },
     "MessageType":{
       "type":"string",
@@ -1959,6 +3073,12 @@
       },
       "exception":true
     },
+    "NoSuchConfigRuleInConformancePackException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "NoSuchConfigurationAggregatorException":{
       "type":"structure",
       "members":{
@@ -1971,7 +3091,37 @@
       },
       "exception":true
     },
+    "NoSuchConformancePackException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "NoSuchDeliveryChannelException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "NoSuchOrganizationConfigRuleException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "NoSuchOrganizationConformancePackException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "NoSuchRemediationConfigurationException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "NoSuchRemediationExceptionException":{
       "type":"structure",
       "members":{
       },
@@ -2005,6 +3155,230 @@
       },
       "exception":true
     },
+    "OrganizationConfigRule":{
+      "type":"structure",
+      "required":[
+        "OrganizationConfigRuleName",
+        "OrganizationConfigRuleArn"
+      ],
+      "members":{
+        "OrganizationConfigRuleName":{"shape":"OrganizationConfigRuleName"},
+        "OrganizationConfigRuleArn":{"shape":"StringWithCharLimit256"},
+        "OrganizationManagedRuleMetadata":{"shape":"OrganizationManagedRuleMetadata"},
+        "OrganizationCustomRuleMetadata":{"shape":"OrganizationCustomRuleMetadata"},
+        "ExcludedAccounts":{"shape":"ExcludedAccounts"},
+        "LastUpdateTime":{"shape":"Date"}
+      }
+    },
+    "OrganizationConfigRuleDetailedStatus":{
+      "type":"list",
+      "member":{"shape":"MemberAccountStatus"}
+    },
+    "OrganizationConfigRuleName":{
+      "type":"string",
+      "max":64,
+      "min":1,
+      "pattern":".*\\S.*"
+    },
+    "OrganizationConfigRuleNames":{
+      "type":"list",
+      "member":{"shape":"StringWithCharLimit64"},
+      "max":25,
+      "min":0
+    },
+    "OrganizationConfigRuleStatus":{
+      "type":"structure",
+      "required":[
+        "OrganizationConfigRuleName",
+        "OrganizationRuleStatus"
+      ],
+      "members":{
+        "OrganizationConfigRuleName":{"shape":"OrganizationConfigRuleName"},
+        "OrganizationRuleStatus":{"shape":"OrganizationRuleStatus"},
+        "ErrorCode":{"shape":"String"},
+        "ErrorMessage":{"shape":"String"},
+        "LastUpdateTime":{"shape":"Date"}
+      }
+    },
+    "OrganizationConfigRuleStatuses":{
+      "type":"list",
+      "member":{"shape":"OrganizationConfigRuleStatus"}
+    },
+    "OrganizationConfigRuleTriggerType":{
+      "type":"string",
+      "enum":[
+        "ConfigurationItemChangeNotification",
+        "OversizedConfigurationItemChangeNotification",
+        "ScheduledNotification"
+      ]
+    },
+    "OrganizationConfigRuleTriggerTypes":{
+      "type":"list",
+      "member":{"shape":"OrganizationConfigRuleTriggerType"}
+    },
+    "OrganizationConfigRules":{
+      "type":"list",
+      "member":{"shape":"OrganizationConfigRule"}
+    },
+    "OrganizationConformancePack":{
+      "type":"structure",
+      "required":[
+        "OrganizationConformancePackName",
+        "OrganizationConformancePackArn",
+        "DeliveryS3Bucket",
+        "LastUpdateTime"
+      ],
+      "members":{
+        "OrganizationConformancePackName":{"shape":"OrganizationConformancePackName"},
+        "OrganizationConformancePackArn":{"shape":"StringWithCharLimit256"},
+        "DeliveryS3Bucket":{"shape":"DeliveryS3Bucket"},
+        "DeliveryS3KeyPrefix":{"shape":"DeliveryS3KeyPrefix"},
+        "ConformancePackInputParameters":{"shape":"ConformancePackInputParameters"},
+        "ExcludedAccounts":{"shape":"ExcludedAccounts"},
+        "LastUpdateTime":{"shape":"Date"}
+      }
+    },
+    "OrganizationConformancePackDetailedStatus":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "ConformancePackName",
+        "Status"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "ConformancePackName":{"shape":"StringWithCharLimit256"},
+        "Status":{"shape":"OrganizationResourceDetailedStatus"},
+        "ErrorCode":{"shape":"String"},
+        "ErrorMessage":{"shape":"String"},
+        "LastUpdateTime":{"shape":"Date"}
+      }
+    },
+    "OrganizationConformancePackDetailedStatuses":{
+      "type":"list",
+      "member":{"shape":"OrganizationConformancePackDetailedStatus"}
+    },
+    "OrganizationConformancePackName":{
+      "type":"string",
+      "max":128,
+      "min":1,
+      "pattern":"[a-zA-Z][-a-zA-Z0-9]*"
+    },
+    "OrganizationConformancePackNames":{
+      "type":"list",
+      "member":{"shape":"OrganizationConformancePackName"},
+      "max":25,
+      "min":0
+    },
+    "OrganizationConformancePackStatus":{
+      "type":"structure",
+      "required":[
+        "OrganizationConformancePackName",
+        "Status"
+      ],
+      "members":{
+        "OrganizationConformancePackName":{"shape":"OrganizationConformancePackName"},
+        "Status":{"shape":"OrganizationResourceStatus"},
+        "ErrorCode":{"shape":"String"},
+        "ErrorMessage":{"shape":"String"},
+        "LastUpdateTime":{"shape":"Date"}
+      }
+    },
+    "OrganizationConformancePackStatuses":{
+      "type":"list",
+      "member":{"shape":"OrganizationConformancePackStatus"}
+    },
+    "OrganizationConformancePackTemplateValidationException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "OrganizationConformancePacks":{
+      "type":"list",
+      "member":{"shape":"OrganizationConformancePack"}
+    },
+    "OrganizationCustomRuleMetadata":{
+      "type":"structure",
+      "required":[
+        "LambdaFunctionArn",
+        "OrganizationConfigRuleTriggerTypes"
+      ],
+      "members":{
+        "Description":{"shape":"StringWithCharLimit256Min0"},
+        "LambdaFunctionArn":{"shape":"StringWithCharLimit256"},
+        "OrganizationConfigRuleTriggerTypes":{"shape":"OrganizationConfigRuleTriggerTypes"},
+        "InputParameters":{"shape":"StringWithCharLimit2048"},
+        "MaximumExecutionFrequency":{"shape":"MaximumExecutionFrequency"},
+        "ResourceTypesScope":{"shape":"ResourceTypesScope"},
+        "ResourceIdScope":{"shape":"StringWithCharLimit768"},
+        "TagKeyScope":{"shape":"StringWithCharLimit128"},
+        "TagValueScope":{"shape":"StringWithCharLimit256"}
+      }
+    },
+    "OrganizationManagedRuleMetadata":{
+      "type":"structure",
+      "required":["RuleIdentifier"],
+      "members":{
+        "Description":{"shape":"StringWithCharLimit256Min0"},
+        "RuleIdentifier":{"shape":"StringWithCharLimit256"},
+        "InputParameters":{"shape":"StringWithCharLimit2048"},
+        "MaximumExecutionFrequency":{"shape":"MaximumExecutionFrequency"},
+        "ResourceTypesScope":{"shape":"ResourceTypesScope"},
+        "ResourceIdScope":{"shape":"StringWithCharLimit768"},
+        "TagKeyScope":{"shape":"StringWithCharLimit128"},
+        "TagValueScope":{"shape":"StringWithCharLimit256"}
+      }
+    },
+    "OrganizationResourceDetailedStatus":{
+      "type":"string",
+      "enum":[
+        "CREATE_SUCCESSFUL",
+        "CREATE_IN_PROGRESS",
+        "CREATE_FAILED",
+        "DELETE_SUCCESSFUL",
+        "DELETE_FAILED",
+        "DELETE_IN_PROGRESS",
+        "UPDATE_SUCCESSFUL",
+        "UPDATE_IN_PROGRESS",
+        "UPDATE_FAILED"
+      ]
+    },
+    "OrganizationResourceDetailedStatusFilters":{
+      "type":"structure",
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "Status":{"shape":"OrganizationResourceDetailedStatus"}
+      }
+    },
+    "OrganizationResourceStatus":{
+      "type":"string",
+      "enum":[
+        "CREATE_SUCCESSFUL",
+        "CREATE_IN_PROGRESS",
+        "CREATE_FAILED",
+        "DELETE_SUCCESSFUL",
+        "DELETE_FAILED",
+        "DELETE_IN_PROGRESS",
+        "UPDATE_SUCCESSFUL",
+        "UPDATE_IN_PROGRESS",
+        "UPDATE_FAILED"
+      ]
+    },
+    "OrganizationRuleStatus":{
+      "type":"string",
+      "enum":[
+        "CREATE_SUCCESSFUL",
+        "CREATE_IN_PROGRESS",
+        "CREATE_FAILED",
+        "DELETE_SUCCESSFUL",
+        "DELETE_FAILED",
+        "DELETE_IN_PROGRESS",
+        "UPDATE_SUCCESSFUL",
+        "UPDATE_IN_PROGRESS",
+        "UPDATE_FAILED"
+      ]
+    },
     "OversizedConfigurationItemException":{
       "type":"structure",
       "members":{
@@ -2018,6 +3392,21 @@
         "AWS"
       ]
     },
+    "PageSizeLimit":{
+      "type":"integer",
+      "max":20,
+      "min":0
+    },
+    "ParameterName":{
+      "type":"string",
+      "max":255,
+      "min":0
+    },
+    "ParameterValue":{
+      "type":"string",
+      "max":4096,
+      "min":0
+    },
     "PendingAggregationRequest":{
       "type":"structure",
       "members":{
@@ -2029,6 +3418,12 @@
       "type":"list",
       "member":{"shape":"PendingAggregationRequest"}
     },
+    "Percentage":{
+      "type":"integer",
+      "box":true,
+      "max":100,
+      "min":1
+    },
     "PutAggregationAuthorizationRequest":{
       "type":"structure",
       "required":[
@@ -2037,7 +3432,8 @@
       ],
       "members":{
         "AuthorizedAccountId":{"shape":"AccountId"},
-        "AuthorizedAwsRegion":{"shape":"AwsRegion"}
+        "AuthorizedAwsRegion":{"shape":"AwsRegion"},
+        "Tags":{"shape":"TagsList"}
       }
     },
     "PutAggregationAuthorizationResponse":{
@@ -2050,7 +3446,8 @@
       "type":"structure",
       "required":["ConfigRule"],
       "members":{
-        "ConfigRule":{"shape":"ConfigRule"}
+        "ConfigRule":{"shape":"ConfigRule"},
+        "Tags":{"shape":"TagsList"}
       }
     },
     "PutConfigurationAggregatorRequest":{
@@ -2059,7 +3456,8 @@
       "members":{
         "ConfigurationAggregatorName":{"shape":"ConfigurationAggregatorName"},
         "AccountAggregationSources":{"shape":"AccountAggregationSourceList"},
-        "OrganizationAggregationSource":{"shape":"OrganizationAggregationSource"}
+        "OrganizationAggregationSource":{"shape":"OrganizationAggregationSource"},
+        "Tags":{"shape":"TagsList"}
       }
     },
     "PutConfigurationAggregatorResponse":{
@@ -2073,6 +3471,27 @@
       "required":["ConfigurationRecorder"],
       "members":{
         "ConfigurationRecorder":{"shape":"ConfigurationRecorder"}
+      }
+    },
+    "PutConformancePackRequest":{
+      "type":"structure",
+      "required":[
+        "ConformancePackName",
+        "DeliveryS3Bucket"
+      ],
+      "members":{
+        "ConformancePackName":{"shape":"ConformancePackName"},
+        "TemplateS3Uri":{"shape":"TemplateS3Uri"},
+        "TemplateBody":{"shape":"TemplateBody"},
+        "DeliveryS3Bucket":{"shape":"DeliveryS3Bucket"},
+        "DeliveryS3KeyPrefix":{"shape":"DeliveryS3KeyPrefix"},
+        "ConformancePackInputParameters":{"shape":"ConformancePackInputParameters"}
+      }
+    },
+    "PutConformancePackResponse":{
+      "type":"structure",
+      "members":{
+        "ConformancePackArn":{"shape":"ConformancePackArn"}
       }
     },
     "PutDeliveryChannelRequest":{
@@ -2097,6 +3516,93 @@
         "FailedEvaluations":{"shape":"Evaluations"}
       }
     },
+    "PutOrganizationConfigRuleRequest":{
+      "type":"structure",
+      "required":["OrganizationConfigRuleName"],
+      "members":{
+        "OrganizationConfigRuleName":{"shape":"OrganizationConfigRuleName"},
+        "OrganizationManagedRuleMetadata":{"shape":"OrganizationManagedRuleMetadata"},
+        "OrganizationCustomRuleMetadata":{"shape":"OrganizationCustomRuleMetadata"},
+        "ExcludedAccounts":{"shape":"ExcludedAccounts"}
+      }
+    },
+    "PutOrganizationConfigRuleResponse":{
+      "type":"structure",
+      "members":{
+        "OrganizationConfigRuleArn":{"shape":"StringWithCharLimit256"}
+      }
+    },
+    "PutOrganizationConformancePackRequest":{
+      "type":"structure",
+      "required":[
+        "OrganizationConformancePackName",
+        "DeliveryS3Bucket"
+      ],
+      "members":{
+        "OrganizationConformancePackName":{"shape":"OrganizationConformancePackName"},
+        "TemplateS3Uri":{"shape":"TemplateS3Uri"},
+        "TemplateBody":{"shape":"TemplateBody"},
+        "DeliveryS3Bucket":{"shape":"DeliveryS3Bucket"},
+        "DeliveryS3KeyPrefix":{"shape":"DeliveryS3KeyPrefix"},
+        "ConformancePackInputParameters":{"shape":"ConformancePackInputParameters"},
+        "ExcludedAccounts":{"shape":"ExcludedAccounts"}
+      }
+    },
+    "PutOrganizationConformancePackResponse":{
+      "type":"structure",
+      "members":{
+        "OrganizationConformancePackArn":{"shape":"StringWithCharLimit256"}
+      }
+    },
+    "PutRemediationConfigurationsRequest":{
+      "type":"structure",
+      "required":["RemediationConfigurations"],
+      "members":{
+        "RemediationConfigurations":{"shape":"RemediationConfigurations"}
+      }
+    },
+    "PutRemediationConfigurationsResponse":{
+      "type":"structure",
+      "members":{
+        "FailedBatches":{"shape":"FailedRemediationBatches"}
+      }
+    },
+    "PutRemediationExceptionsRequest":{
+      "type":"structure",
+      "required":[
+        "ConfigRuleName",
+        "ResourceKeys"
+      ],
+      "members":{
+        "ConfigRuleName":{"shape":"ConfigRuleName"},
+        "ResourceKeys":{"shape":"RemediationExceptionResourceKeys"},
+        "Message":{"shape":"StringWithCharLimit1024"},
+        "ExpirationTime":{"shape":"Date"}
+      }
+    },
+    "PutRemediationExceptionsResponse":{
+      "type":"structure",
+      "members":{
+        "FailedBatches":{"shape":"FailedRemediationExceptionBatches"}
+      }
+    },
+    "PutResourceConfigRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceType",
+        "SchemaVersionId",
+        "ResourceId",
+        "Configuration"
+      ],
+      "members":{
+        "ResourceType":{"shape":"ResourceTypeString"},
+        "SchemaVersionId":{"shape":"SchemaVersionId"},
+        "ResourceId":{"shape":"ResourceId"},
+        "ResourceName":{"shape":"ResourceName"},
+        "Configuration":{"shape":"Configuration"},
+        "Tags":{"shape":"Tags"}
+      }
+    },
     "PutRetentionConfigurationRequest":{
       "type":"structure",
       "required":["RetentionPeriodInDays"],
@@ -2108,6 +3614,12 @@
       "type":"structure",
       "members":{
         "RetentionConfiguration":{"shape":"RetentionConfiguration"}
+      }
+    },
+    "QueryInfo":{
+      "type":"structure",
+      "members":{
+        "SelectFields":{"shape":"FieldInfoList"}
       }
     },
     "RecorderName":{
@@ -2156,6 +3668,137 @@
       "member":{"shape":"Relationship"}
     },
     "RelationshipName":{"type":"string"},
+    "RemediationConfiguration":{
+      "type":"structure",
+      "required":[
+        "ConfigRuleName",
+        "TargetType",
+        "TargetId"
+      ],
+      "members":{
+        "ConfigRuleName":{"shape":"ConfigRuleName"},
+        "TargetType":{"shape":"RemediationTargetType"},
+        "TargetId":{"shape":"StringWithCharLimit256"},
+        "TargetVersion":{"shape":"String"},
+        "Parameters":{"shape":"RemediationParameters"},
+        "ResourceType":{"shape":"String"},
+        "Automatic":{"shape":"Boolean"},
+        "ExecutionControls":{"shape":"ExecutionControls"},
+        "MaximumAutomaticAttempts":{"shape":"AutoRemediationAttempts"},
+        "RetryAttemptSeconds":{"shape":"AutoRemediationAttemptSeconds"},
+        "Arn":{"shape":"StringWithCharLimit1024"},
+        "CreatedByService":{"shape":"StringWithCharLimit1024"}
+      }
+    },
+    "RemediationConfigurations":{
+      "type":"list",
+      "member":{"shape":"RemediationConfiguration"},
+      "max":25,
+      "min":0
+    },
+    "RemediationException":{
+      "type":"structure",
+      "required":[
+        "ConfigRuleName",
+        "ResourceType",
+        "ResourceId"
+      ],
+      "members":{
+        "ConfigRuleName":{"shape":"ConfigRuleName"},
+        "ResourceType":{"shape":"StringWithCharLimit256"},
+        "ResourceId":{"shape":"StringWithCharLimit1024"},
+        "Message":{"shape":"StringWithCharLimit1024"},
+        "ExpirationTime":{"shape":"Date"}
+      }
+    },
+    "RemediationExceptionResourceKey":{
+      "type":"structure",
+      "members":{
+        "ResourceType":{"shape":"StringWithCharLimit256"},
+        "ResourceId":{"shape":"StringWithCharLimit1024"}
+      }
+    },
+    "RemediationExceptionResourceKeys":{
+      "type":"list",
+      "member":{"shape":"RemediationExceptionResourceKey"},
+      "max":100,
+      "min":1
+    },
+    "RemediationExceptions":{
+      "type":"list",
+      "member":{"shape":"RemediationException"},
+      "max":25,
+      "min":0
+    },
+    "RemediationExecutionState":{
+      "type":"string",
+      "enum":[
+        "QUEUED",
+        "IN_PROGRESS",
+        "SUCCEEDED",
+        "FAILED"
+      ]
+    },
+    "RemediationExecutionStatus":{
+      "type":"structure",
+      "members":{
+        "ResourceKey":{"shape":"ResourceKey"},
+        "State":{"shape":"RemediationExecutionState"},
+        "StepDetails":{"shape":"RemediationExecutionSteps"},
+        "InvocationTime":{"shape":"Date"},
+        "LastUpdatedTime":{"shape":"Date"}
+      }
+    },
+    "RemediationExecutionStatuses":{
+      "type":"list",
+      "member":{"shape":"RemediationExecutionStatus"}
+    },
+    "RemediationExecutionStep":{
+      "type":"structure",
+      "members":{
+        "Name":{"shape":"String"},
+        "State":{"shape":"RemediationExecutionStepState"},
+        "ErrorMessage":{"shape":"String"},
+        "StartTime":{"shape":"Date"},
+        "StopTime":{"shape":"Date"}
+      }
+    },
+    "RemediationExecutionStepState":{
+      "type":"string",
+      "enum":[
+        "SUCCEEDED",
+        "PENDING",
+        "FAILED"
+      ]
+    },
+    "RemediationExecutionSteps":{
+      "type":"list",
+      "member":{"shape":"RemediationExecutionStep"}
+    },
+    "RemediationInProgressException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "RemediationParameterValue":{
+      "type":"structure",
+      "members":{
+        "ResourceValue":{"shape":"ResourceValue"},
+        "StaticValue":{"shape":"StaticValue"}
+      }
+    },
+    "RemediationParameters":{
+      "type":"map",
+      "key":{"shape":"StringWithCharLimit256"},
+      "value":{"shape":"RemediationParameterValue"},
+      "max":25,
+      "min":0
+    },
+    "RemediationTargetType":{
+      "type":"string",
+      "enum":["SSM_DOCUMENT"]
+    },
     "ResourceCount":{
       "type":"structure",
       "members":{
@@ -2252,6 +3895,12 @@
       },
       "exception":true
     },
+    "ResourceNotFoundException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "ResourceType":{
       "type":"string",
       "enum":[
@@ -2270,66 +3919,118 @@
         "AWS::EC2::VPC",
         "AWS::EC2::VPNConnection",
         "AWS::EC2::VPNGateway",
+        "AWS::EC2::RegisteredHAInstance",
+        "AWS::EC2::NatGateway",
+        "AWS::EC2::EgressOnlyInternetGateway",
+        "AWS::EC2::VPCEndpoint",
+        "AWS::EC2::VPCEndpointService",
+        "AWS::EC2::FlowLog",
+        "AWS::EC2::VPCPeeringConnection",
         "AWS::IAM::Group",
         "AWS::IAM::Policy",
         "AWS::IAM::Role",
         "AWS::IAM::User",
+        "AWS::ElasticLoadBalancingV2::LoadBalancer",
         "AWS::ACM::Certificate",
         "AWS::RDS::DBInstance",
+        "AWS::RDS::DBParameterGroup",
+        "AWS::RDS::DBOptionGroup",
         "AWS::RDS::DBSubnetGroup",
         "AWS::RDS::DBSecurityGroup",
         "AWS::RDS::DBSnapshot",
+        "AWS::RDS::DBCluster",
+        "AWS::RDS::DBClusterParameterGroup",
+        "AWS::RDS::DBClusterSnapshot",
         "AWS::RDS::EventSubscription",
-        "AWS::ElasticLoadBalancingV2::LoadBalancer",
         "AWS::S3::Bucket",
-        "AWS::SSM::ManagedInstanceInventory",
+        "AWS::S3::AccountPublicAccessBlock",
         "AWS::Redshift::Cluster",
         "AWS::Redshift::ClusterSnapshot",
         "AWS::Redshift::ClusterParameterGroup",
         "AWS::Redshift::ClusterSecurityGroup",
         "AWS::Redshift::ClusterSubnetGroup",
         "AWS::Redshift::EventSubscription",
+        "AWS::SSM::ManagedInstanceInventory",
         "AWS::CloudWatch::Alarm",
         "AWS::CloudFormation::Stack",
-        "AWS::DynamoDB::Table",
+        "AWS::ElasticLoadBalancing::LoadBalancer",
         "AWS::AutoScaling::AutoScalingGroup",
         "AWS::AutoScaling::LaunchConfiguration",
         "AWS::AutoScaling::ScalingPolicy",
         "AWS::AutoScaling::ScheduledAction",
+        "AWS::DynamoDB::Table",
         "AWS::CodeBuild::Project",
         "AWS::WAF::RateBasedRule",
         "AWS::WAF::Rule",
+        "AWS::WAF::RuleGroup",
         "AWS::WAF::WebACL",
         "AWS::WAFRegional::RateBasedRule",
         "AWS::WAFRegional::Rule",
+        "AWS::WAFRegional::RuleGroup",
         "AWS::WAFRegional::WebACL",
         "AWS::CloudFront::Distribution",
         "AWS::CloudFront::StreamingDistribution",
-        "AWS::WAF::RuleGroup",
-        "AWS::WAFRegional::RuleGroup",
+        "AWS::Lambda::Alias",
         "AWS::Lambda::Function",
         "AWS::ElasticBeanstalk::Application",
         "AWS::ElasticBeanstalk::ApplicationVersion",
         "AWS::ElasticBeanstalk::Environment",
-        "AWS::ElasticLoadBalancing::LoadBalancer",
+        "AWS::MobileHub::Project",
         "AWS::XRay::EncryptionConfig",
         "AWS::SSM::AssociationCompliance",
         "AWS::SSM::PatchCompliance",
         "AWS::Shield::Protection",
         "AWS::ShieldRegional::Protection",
         "AWS::Config::ResourceCompliance",
-        "AWS::CodePipeline::Pipeline"
+        "AWS::LicenseManager::LicenseConfiguration",
+        "AWS::ApiGateway::DomainName",
+        "AWS::ApiGateway::Method",
+        "AWS::ApiGateway::Stage",
+        "AWS::ApiGateway::RestApi",
+        "AWS::ApiGatewayV2::DomainName",
+        "AWS::ApiGatewayV2::Stage",
+        "AWS::ApiGatewayV2::Api",
+        "AWS::CodePipeline::Pipeline",
+        "AWS::ServiceCatalog::CloudFormationProvisionedProduct",
+        "AWS::ServiceCatalog::CloudFormationProduct",
+        "AWS::ServiceCatalog::Portfolio"
       ]
     },
     "ResourceTypeList":{
       "type":"list",
       "member":{"shape":"ResourceType"}
     },
+    "ResourceTypeString":{
+      "type":"string",
+      "max":196,
+      "min":1
+    },
     "ResourceTypes":{
       "type":"list",
       "member":{"shape":"StringWithCharLimit256"},
       "max":20,
       "min":0
+    },
+    "ResourceTypesScope":{
+      "type":"list",
+      "member":{"shape":"StringWithCharLimit256"},
+      "max":100,
+      "min":0
+    },
+    "ResourceValue":{
+      "type":"structure",
+      "required":["Value"],
+      "members":{
+        "Value":{"shape":"ResourceValueType"}
+      }
+    },
+    "ResourceValueType":{
+      "type":"string",
+      "enum":["RESOURCE_ID"]
+    },
+    "Results":{
+      "type":"list",
+      "member":{"shape":"String"}
     },
     "RetentionConfiguration":{
       "type":"structure",
@@ -2368,6 +4069,12 @@
       "max":50,
       "min":0
     },
+    "SchemaVersionId":{
+      "type":"string",
+      "max":128,
+      "min":1,
+      "pattern":"[A-Za-z0-9-]+"
+    },
     "Scope":{
       "type":"structure",
       "members":{
@@ -2375,6 +4082,23 @@
         "TagKey":{"shape":"StringWithCharLimit128"},
         "TagValue":{"shape":"StringWithCharLimit256"},
         "ComplianceResourceId":{"shape":"BaseResourceId"}
+      }
+    },
+    "SelectResourceConfigRequest":{
+      "type":"structure",
+      "required":["Expression"],
+      "members":{
+        "Expression":{"shape":"Expression"},
+        "Limit":{"shape":"Limit"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "SelectResourceConfigResponse":{
+      "type":"structure",
+      "members":{
+        "Results":{"shape":"Results"},
+        "QueryInfo":{"shape":"QueryInfo"},
+        "NextToken":{"shape":"NextToken"}
       }
     },
     "Source":{
@@ -2403,6 +4127,18 @@
       "max":25,
       "min":0
     },
+    "SsmControls":{
+      "type":"structure",
+      "members":{
+        "ConcurrentExecutionRatePercentage":{"shape":"Percentage"},
+        "ErrorPercentage":{"shape":"Percentage"}
+      }
+    },
+    "StackArn":{
+      "type":"string",
+      "max":2048,
+      "min":1
+    },
     "StartConfigRulesEvaluationRequest":{
       "type":"structure",
       "members":{
@@ -2419,6 +4155,44 @@
       "required":["ConfigurationRecorderName"],
       "members":{
         "ConfigurationRecorderName":{"shape":"RecorderName"}
+      }
+    },
+    "StartRemediationExecutionRequest":{
+      "type":"structure",
+      "required":[
+        "ConfigRuleName",
+        "ResourceKeys"
+      ],
+      "members":{
+        "ConfigRuleName":{"shape":"ConfigRuleName"},
+        "ResourceKeys":{"shape":"ResourceKeys"}
+      }
+    },
+    "StartRemediationExecutionResponse":{
+      "type":"structure",
+      "members":{
+        "FailureMessage":{"shape":"String"},
+        "FailedItems":{"shape":"ResourceKeys"}
+      }
+    },
+    "StaticParameterValues":{
+      "type":"list",
+      "member":{"shape":"StringWithCharLimit256"},
+      "max":25,
+      "min":0
+    },
+    "StaticValue":{
+      "type":"structure",
+      "required":["Values"],
+      "members":{
+        "Values":{"shape":"StaticParameterValues"}
+      }
+    },
+    "StatusDetailFilters":{
+      "type":"structure",
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "MemberAccountRuleStatus":{"shape":"MemberAccountRuleStatus"}
       }
     },
     "StopConfigurationRecorderRequest":{
@@ -2439,14 +4213,29 @@
       "max":128,
       "min":1
     },
+    "StringWithCharLimit2048":{
+      "type":"string",
+      "max":2048,
+      "min":1
+    },
     "StringWithCharLimit256":{
       "type":"string",
       "max":256,
       "min":1
     },
+    "StringWithCharLimit256Min0":{
+      "type":"string",
+      "max":256,
+      "min":0
+    },
     "StringWithCharLimit64":{
       "type":"string",
       "max":64,
+      "min":1
+    },
+    "StringWithCharLimit768":{
+      "type":"string",
+      "max":768,
       "min":1
     },
     "SupplementaryConfiguration":{
@@ -2456,14 +4245,88 @@
     },
     "SupplementaryConfigurationName":{"type":"string"},
     "SupplementaryConfigurationValue":{"type":"string"},
+    "Tag":{
+      "type":"structure",
+      "members":{
+        "Key":{"shape":"TagKey"},
+        "Value":{"shape":"TagValue"}
+      }
+    },
+    "TagKey":{
+      "type":"string",
+      "max":128,
+      "min":1
+    },
+    "TagKeyList":{
+      "type":"list",
+      "member":{"shape":"TagKey"},
+      "max":50,
+      "min":1
+    },
+    "TagList":{
+      "type":"list",
+      "member":{"shape":"Tag"},
+      "max":50,
+      "min":1
+    },
+    "TagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceArn",
+        "Tags"
+      ],
+      "members":{
+        "ResourceArn":{"shape":"AmazonResourceName"},
+        "Tags":{"shape":"TagList"}
+      }
+    },
+    "TagValue":{
+      "type":"string",
+      "max":256,
+      "min":0
+    },
     "Tags":{
       "type":"map",
       "key":{"shape":"Name"},
       "value":{"shape":"Value"}
     },
+    "TagsList":{
+      "type":"list",
+      "member":{"shape":"Tag"},
+      "max":50,
+      "min":0
+    },
+    "TemplateBody":{
+      "type":"string",
+      "max":51200,
+      "min":1
+    },
+    "TemplateS3Uri":{
+      "type":"string",
+      "max":1024,
+      "min":1,
+      "pattern":"s3://.*"
+    },
+    "TooManyTagsException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "UnprocessedResourceIdentifierList":{
       "type":"list",
       "member":{"shape":"AggregateResourceIdentifier"}
+    },
+    "UntagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceArn",
+        "TagKeys"
+      ],
+      "members":{
+        "ResourceArn":{"shape":"AmazonResourceName"},
+        "TagKeys":{"shape":"TagKeyList"}
+      }
     },
     "ValidationException":{
       "type":"structure",

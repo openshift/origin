@@ -6,6 +6,7 @@
     "jsonVersion":"1.1",
     "protocol":"json",
     "serviceFullName":"AWS Migration Hub",
+    "serviceId":"Migration Hub",
     "signatureVersion":"v4",
     "targetPrefix":"AWSMigrationHub",
     "uid":"AWSMigrationHub-2017-05-31"
@@ -26,7 +27,8 @@
         {"shape":"DryRunOperation"},
         {"shape":"UnauthorizedOperation"},
         {"shape":"InvalidInputException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "AssociateDiscoveredResource":{
@@ -45,7 +47,8 @@
         {"shape":"UnauthorizedOperation"},
         {"shape":"InvalidInputException"},
         {"shape":"PolicyErrorException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "CreateProgressUpdateStream":{
@@ -62,7 +65,8 @@
         {"shape":"ServiceUnavailableException"},
         {"shape":"DryRunOperation"},
         {"shape":"UnauthorizedOperation"},
-        {"shape":"InvalidInputException"}
+        {"shape":"InvalidInputException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "DeleteProgressUpdateStream":{
@@ -80,7 +84,8 @@
         {"shape":"DryRunOperation"},
         {"shape":"UnauthorizedOperation"},
         {"shape":"InvalidInputException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "DescribeApplicationState":{
@@ -97,7 +102,8 @@
         {"shape":"ServiceUnavailableException"},
         {"shape":"InvalidInputException"},
         {"shape":"PolicyErrorException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "DescribeMigrationTask":{
@@ -113,7 +119,8 @@
         {"shape":"InternalServerError"},
         {"shape":"ServiceUnavailableException"},
         {"shape":"InvalidInputException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "DisassociateCreatedArtifact":{
@@ -131,7 +138,8 @@
         {"shape":"DryRunOperation"},
         {"shape":"UnauthorizedOperation"},
         {"shape":"InvalidInputException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "DisassociateDiscoveredResource":{
@@ -149,7 +157,8 @@
         {"shape":"DryRunOperation"},
         {"shape":"UnauthorizedOperation"},
         {"shape":"InvalidInputException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "ImportMigrationTask":{
@@ -167,7 +176,24 @@
         {"shape":"DryRunOperation"},
         {"shape":"UnauthorizedOperation"},
         {"shape":"InvalidInputException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
+      ]
+    },
+    "ListApplicationStates":{
+      "name":"ListApplicationStates",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListApplicationStatesRequest"},
+      "output":{"shape":"ListApplicationStatesResult"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "ListCreatedArtifacts":{
@@ -183,7 +209,8 @@
         {"shape":"InternalServerError"},
         {"shape":"ServiceUnavailableException"},
         {"shape":"InvalidInputException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "ListDiscoveredResources":{
@@ -199,7 +226,8 @@
         {"shape":"InternalServerError"},
         {"shape":"ServiceUnavailableException"},
         {"shape":"InvalidInputException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "ListMigrationTasks":{
@@ -216,7 +244,8 @@
         {"shape":"ServiceUnavailableException"},
         {"shape":"InvalidInputException"},
         {"shape":"PolicyErrorException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "ListProgressUpdateStreams":{
@@ -231,7 +260,8 @@
         {"shape":"AccessDeniedException"},
         {"shape":"InternalServerError"},
         {"shape":"ServiceUnavailableException"},
-        {"shape":"InvalidInputException"}
+        {"shape":"InvalidInputException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "NotifyApplicationState":{
@@ -250,7 +280,8 @@
         {"shape":"UnauthorizedOperation"},
         {"shape":"InvalidInputException"},
         {"shape":"PolicyErrorException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "NotifyMigrationTaskState":{
@@ -268,7 +299,8 @@
         {"shape":"DryRunOperation"},
         {"shape":"UnauthorizedOperation"},
         {"shape":"InvalidInputException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     },
     "PutResourceAttributes":{
@@ -286,7 +318,8 @@
         {"shape":"DryRunOperation"},
         {"shape":"UnauthorizedOperation"},
         {"shape":"InvalidInputException"},
-        {"shape":"ResourceNotFoundException"}
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"HomeRegionNotSetException"}
       ]
     }
   },
@@ -302,6 +335,26 @@
       "type":"string",
       "max":1600,
       "min":1
+    },
+    "ApplicationIds":{
+      "type":"list",
+      "member":{"shape":"ApplicationId"},
+      "max":100,
+      "min":1
+    },
+    "ApplicationState":{
+      "type":"structure",
+      "members":{
+        "ApplicationId":{"shape":"ApplicationId"},
+        "ApplicationStatus":{"shape":"ApplicationStatus"},
+        "LastUpdatedTime":{"shape":"UpdateDateTime"}
+      }
+    },
+    "ApplicationStateList":{
+      "type":"list",
+      "member":{"shape":"ApplicationState"},
+      "max":1000,
+      "min":0
     },
     "ApplicationStatus":{
       "type":"string",
@@ -497,6 +550,13 @@
       "exception":true
     },
     "ErrorMessage":{"type":"string"},
+    "HomeRegionNotSetException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
+    },
     "ImportMigrationTaskRequest":{
       "type":"structure",
       "required":[
@@ -534,6 +594,21 @@
       "member":{"shape":"ResourceAttribute"},
       "max":100,
       "min":0
+    },
+    "ListApplicationStatesRequest":{
+      "type":"structure",
+      "members":{
+        "ApplicationIds":{"shape":"ApplicationIds"},
+        "NextToken":{"shape":"Token"},
+        "MaxResults":{"shape":"MaxResults"}
+      }
+    },
+    "ListApplicationStatesResult":{
+      "type":"structure",
+      "members":{
+        "ApplicationStateList":{"shape":"ApplicationStateList"},
+        "NextToken":{"shape":"Token"}
+      }
     },
     "ListCreatedArtifactsRequest":{
       "type":"structure",
@@ -666,6 +741,7 @@
       "members":{
         "ApplicationId":{"shape":"ApplicationId"},
         "Status":{"shape":"ApplicationStatus"},
+        "UpdateDateTime":{"shape":"UpdateDateTime"},
         "DryRun":{"shape":"DryRun"}
       }
     },

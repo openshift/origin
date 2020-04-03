@@ -31,6 +31,32 @@ type ConsoleSpec struct {
 	Customization ConsoleCustomization `json:"customization"`
 	// providers contains configuration for using specific service providers.
 	Providers ConsoleProviders `json:"providers"`
+	// route contains hostname and secret reference that contains the serving certificate.
+	// If a custom route is specified, a new route will be created with the
+	// provided hostname, under which console will be available.
+	// In case of custom hostname uses the default routing suffix of the cluster,
+	// the Secret specification for a serving certificate will not be needed.
+	// In case of custom hostname points to an arbitrary domain, manual DNS configurations steps are necessary.
+	// The default console route will be maintained to reserve the default hostname
+	// for console if the custom route is removed.
+	// If not specified, default route will be used.
+	// +optional
+	Route ConsoleConfigRoute `json:"route"`
+}
+
+// ConsoleConfigRoute holds information on external route access to console.
+type ConsoleConfigRoute struct {
+	// hostname is the desired custom domain under which console will be available.
+	Hostname string `json:"hostname"`
+	// secret points to secret in the openshift-config namespace that contains custom
+	// certificate and key and needs to be created manually by the cluster admin.
+	// Referenced Secret is required to contain following key value pairs:
+	// - "tls.crt" - to specifies custom certificate
+	// - "tls.key" - to specifies private key of the custom certificate
+	// If the custom hostname uses the default routing suffix of the cluster,
+	// the Secret specification for a serving certificate will not be needed.
+	// +optional
+	Secret configv1.SecretNameReference `json:"secret"`
 }
 
 // ConsoleStatus defines the observed status of the Console.

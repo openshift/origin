@@ -27,7 +27,9 @@ func TestInteg_00_ListDocuments(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := ssm.New(sess)
 	params := &ssm.ListDocumentsInput{}
-	_, err := svc.ListDocumentsWithContext(ctx, params)
+	_, err := svc.ListDocumentsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_GetDocument(t *testing.T) {
 	params := &ssm.GetDocumentInput{
 		Name: aws.String("'fake-name'"),
 	}
-	_, err := svc.GetDocumentWithContext(ctx, params)
+	_, err := svc.GetDocumentWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

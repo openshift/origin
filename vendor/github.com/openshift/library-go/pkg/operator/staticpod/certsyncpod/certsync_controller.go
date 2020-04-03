@@ -72,7 +72,7 @@ func (c *CertSyncController) sync(ctx context.Context, syncCtx factory.SyncConte
 
 		case apierrors.IsNotFound(err) && cm.Optional:
 			// Check with the live call it is really missing
-			configMap, err = c.configmapGetter.Get(cm.Name, metav1.GetOptions{})
+			configMap, err = c.configmapGetter.Get(ctx, cm.Name, metav1.GetOptions{})
 			if err == nil {
 				klog.Infof("Caches are stale. They don't see configmap '%s/%s', yet it is present", configMap.Namespace, configMap.Name)
 				// We will get re-queued when we observe the change
@@ -122,7 +122,7 @@ func (c *CertSyncController) sync(ctx context.Context, syncCtx factory.SyncConte
 		klog.V(2).Infof("Syncing updated configmap '%s/%s'.", configMap.Namespace, configMap.Name)
 
 		// We need to do a live get here so we don't overwrite a newer file with one from a stale cache
-		configMap, err = c.configmapGetter.Get(configMap.Name, metav1.GetOptions{})
+		configMap, err = c.configmapGetter.Get(ctx, configMap.Name, metav1.GetOptions{})
 		if err != nil {
 			// Even if the error is not exists we will act on it when caches catch up
 			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting configmap: %s/%s: %v", c.namespace, cm.Name, err)
@@ -169,7 +169,7 @@ func (c *CertSyncController) sync(ctx context.Context, syncCtx factory.SyncConte
 
 		case apierrors.IsNotFound(err) && s.Optional:
 			// Check with the live call it is really missing
-			secret, err = c.secretGetter.Get(s.Name, metav1.GetOptions{})
+			secret, err = c.secretGetter.Get(ctx, s.Name, metav1.GetOptions{})
 			if err == nil {
 				klog.Infof("Caches are stale. They don't see secret '%s/%s', yet it is present", secret.Namespace, secret.Name)
 				// We will get re-queued when we observe the change
@@ -226,7 +226,7 @@ func (c *CertSyncController) sync(ctx context.Context, syncCtx factory.SyncConte
 		klog.V(2).Infof("Syncing updated secret '%s/%s'.", secret.Namespace, secret.Name)
 
 		// We need to do a live get here so we don't overwrite a newer file with one from a stale cache
-		secret, err = c.secretGetter.Get(secret.Name, metav1.GetOptions{})
+		secret, err = c.secretGetter.Get(ctx, secret.Name, metav1.GetOptions{})
 		if err != nil {
 			// Even if the error is not exists we will act on it when caches catch up
 			c.eventRecorder.Warningf("CertificateUpdateFailed", "Failed getting secret: %s/%s: %v", c.namespace, s.Name, err)

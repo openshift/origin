@@ -29,7 +29,7 @@ function setup-os-params {
   # Reset core_pattern. On GCI, the default core_pattern pipes the core dumps to
   # /sbin/crash_reporter which is more restrictive in saving crash dumps. So for
   # now, set a generic core_pattern that users can work with.
-  echo "core.%e.%p.%t" > /proc/sys/kernel/core_pattern
+  echo "/core.%e.%p.%t" > /proc/sys/kernel/core_pattern
 }
 
 # secure_random generates a secure random string of bytes. This function accepts
@@ -464,7 +464,7 @@ function append_or_replace_prefixed_line {
   local -r tmpfile="$(mktemp -t filtered.XXXX --tmpdir=${dirname})"
 
   touch "${file}"
-  awk "substr(\$0,0,length(\"${prefix}\")) != \"${prefix}\" { print }" "${file}" > "${tmpfile}"
+  awk -v pfx="${prefix}" 'substr($0,1,length(pfx)) != pfx { print }' "${file}" > "${tmpfile}"
   echo "${prefix}${suffix}" >> "${tmpfile}"
   mv "${tmpfile}" "${file}"
 }
@@ -652,8 +652,13 @@ function create-master-auth {
     append_or_replace_prefixed_line "${known_tokens_csv}" "${GCE_GLBC_TOKEN},"                "system:controller:glbc,uid:system:controller:glbc"
   fi
   if [[ -n "${ADDON_MANAGER_TOKEN:-}" ]]; then
-    append_or_replace_prefixed_line "${known_tokens_csv}" "${ADDON_MANAGER_TOKEN},"   "system:addon-manager,uid:system:addon-manager,system:masters"
+    append_or_replace_prefixed_line "${known_tokens_csv}" "${ADDON_MANAGER_TOKEN},"           "system:addon-manager,uid:system:addon-manager,system:masters"
   fi
+  if [[ -n "${KONNECTIVITY_SERVER_TOKEN:-}" ]]; then
+    append_or_replace_prefixed_line "${known_tokens_csv}" "${KONNECTIVITY_SERVER_TOKEN},"     "system:konnectivity-server,uid:system:konnectivity-server"
+    create-kubeconfig "konnectivity-server" ${KONNECTIVITY_SERVER_TOKEN}
+  fi
+
   if [[ -n "${EXTRA_STATIC_AUTH_COMPONENTS:-}" ]]; then
     # Create a static Bearer token and kubeconfig for extra, comma-separated components.
     IFS="," read -r -a extra_components <<< "${EXTRA_STATIC_AUTH_COMPONENTS:-}"
@@ -801,25 +806,46 @@ contexts:
 EOF
   fi
   if [[ "${ENABLE_EGRESS_VIA_KONNECTIVITY_SERVICE:-false}" == "true" ]]; then
-    cat <<EOF >/etc/srv/kubernetes/egress_selector_configuration.yaml
+    if [[ "${KONNECTIVITY_SERVICE_PROXY_PROTOCOL_MODE:-grpc}" == 'grpc' ]]; then
+      cat <<EOF >/etc/srv/kubernetes/egress_selector_configuration.yaml
 apiVersion: apiserver.k8s.io/v1alpha1
 kind: EgressSelectorConfiguration
 egressSelections:
 - name: cluster
   connection:
-    type: http-connect
-    httpConnect:
-      url: https://127.0.0.1:8131
-      caBundle: /etc/srv/kubernetes/pki/konnectivity-server/ca.crt
-      clientKey: /etc/srv/kubernetes/pki/konnectivity-server/client.key
-      clientCert: /etc/srv/kubernetes/pki/konnectivity-server/client.crt
+    proxyProtocol: GRPC
+    transport:
+      uds:
+        udsName: /etc/srv/kubernetes/konnectivity-server/konnectivity-server.socket
 - name: master
   connection:
-    type: direct
+    proxyProtocol: Direct
 - name: etcd
   connection:
-    type: direct
+    proxyProtocol: Direct
 EOF
+    elif [[ "${KONNECTIVITY_SERVICE_PROXY_PROTOCOL_MODE:-grpc}" == 'http-connect' ]]; then
+      cat <<EOF >/etc/srv/kubernetes/egress_selector_configuration.yaml
+apiVersion: apiserver.k8s.io/v1alpha1
+kind: EgressSelectorConfiguration
+egressSelections:
+- name: cluster
+  connection:
+    proxyProtocol: HTTPConnect
+    transport:
+      uds:
+        udsName: /etc/srv/kubernetes/konnectivity-server/konnectivity-server.socket
+- name: master
+  connection:
+    proxyProtocol: Direct
+- name: etcd
+  connection:
+    proxyProtocol: Direct
+EOF
+    else
+      echo "KONNECTIVITY_SERVICE_PROXY_PROTOCOL_MODE must be set to either grpc or http-connect"
+      exit 1
+    fi
   fi
 
   if [[ -n "${WEBHOOK_GKE_EXEC_AUTH:-}" ]]; then
@@ -1527,7 +1553,7 @@ function start-kube-proxy {
 # $5: pod name, which should be either etcd or etcd-events
 function prepare-etcd-manifest {
   local host_name=${ETCD_HOSTNAME:-$(hostname -s)}
-  local host_ip=$(python -c "import socket;print(socket.gethostbyname(\"${host_name}\"))")
+  local host_ip=$(${PYTHON} -c "import socket;print(socket.gethostbyname(\"${host_name}\"))")
   local etcd_cluster=""
   local cluster_state="new"
   local etcd_protocol="http"
@@ -1645,9 +1671,8 @@ function start-etcd-servers {
 
 # Replaces the variables in the konnectivity-server manifest file with the real values, and then
 # copy the file to the manifest dir
-# $1: value for variable "server_port"
-# $2: value for variable "agent_port"
-# $3: value for bariable "admin_port"
+# $1: value for variable "agent_port"
+# $2: value for bariable "admin_port"
 function prepare-konnectivity-server-manifest {
   local -r temp_file="/tmp/konnectivity-server.yaml"
   params=()
@@ -1655,24 +1680,32 @@ function prepare-konnectivity-server-manifest {
   params+=("--log-file=/var/log/konnectivity-server.log")
   params+=("--logtostderr=false")
   params+=("--log-file-max-size=0")
-  params+=("--server-ca-cert=${KONNECTIVITY_SERVER_CA_CERT_PATH}")
-  params+=("--server-cert=${KONNECTIVITY_SERVER_CERT_PATH}")
-  params+=("--server-key=${KONNECTIVITY_SERVER_KEY_PATH}")
-  params+=("--cluster-ca-cert=${KONNECTIVITY_AGENT_CA_CERT_PATH}")
-  params+=("--cluster-cert=${KONNECTIVITY_AGENT_CERT_PATH}")
-  params+=("--cluster-key=${KONNECTIVITY_AGENT_KEY_PATH}")
-  params+=("--mode=http-connect")
-  params+=("--server-port=$1")
-  params+=("--agent-port=$2")
-  params+=("--admin-port=$3")
+  params+=("--uds-name=/etc/srv/kubernetes/konnectivity-server/konnectivity-server.socket")
+  params+=("--cluster-cert=/etc/srv/kubernetes/pki/apiserver.crt")
+  params+=("--cluster-key=/etc/srv/kubernetes/pki/apiserver.key")
+  if [[ "${KONNECTIVITY_SERVICE_PROXY_PROTOCOL_MODE:-grpc}" == 'grpc' ]]; then
+    params+=("--mode=grpc")
+  elif [[ "${KONNECTIVITY_SERVICE_PROXY_PROTOCOL_MODE:-grpc}" == 'http-connect' ]]; then
+    params+=("--mode=http-connect")
+  else
+    echo "KONNECTIVITY_SERVICE_PROXY_PROTOCOL_MODE must be set to either grpc or http-connect"
+    exit 1
+  fi
+
+  params+=("--server-port=0")
+  params+=("--agent-port=$1")
+  params+=("--admin-port=$2")
+  params+=("--agent-namespace=kube-system")
+  params+=("--agent-service-account=konnectivity-agent")
+  params+=("--kubeconfig=/etc/srv/kubernetes/konnectivity-server/kubeconfig")
+  params+=("--authentication-audience=system:konnectivity-server")
   konnectivity_args=""
   for param in "${params[@]}"; do
     konnectivity_args+=", \"${param}\""
   done
   sed -i -e "s@{{ *konnectivity_args *}}@${konnectivity_args}@g" "${temp_file}"
-  sed -i -e "s@{{ *server_port *}}@$1@g" "${temp_file}"
-  sed -i -e "s@{{ *agent_port *}}@$2@g" "${temp_file}"
-  sed -i -e "s@{{ *admin_port *}}@$3@g" "${temp_file}"
+  sed -i -e "s@{{ *agent_port *}}@$1@g" "${temp_file}"
+  sed -i -e "s@{{ *admin_port *}}@$2@g" "${temp_file}"
   sed -i -e "s@{{ *liveness_probe_initial_delay *}}@30@g" "${temp_file}"
   mv "${temp_file}" /etc/kubernetes/manifests
 }
@@ -1683,7 +1716,7 @@ function prepare-konnectivity-server-manifest {
 function start-konnectivity-server {
   echo "Start konnectivity server pods"
   prepare-log-file /var/log/konnectivity-server.log
-  prepare-konnectivity-server-manifest "8131" "8132" "8133"
+  prepare-konnectivity-server-manifest "8132" "8133"
 }
 
 # Calculates the following variables based on env variables, which will be used
@@ -2324,63 +2357,7 @@ EOF
     prepare-kube-proxy-manifest-variables "$src_dir/kube-proxy/kube-proxy-ds.yaml"
     setup-addon-manifests "addons" "kube-proxy"
   fi
-  # Setup cluster monitoring using heapster
-  if [[ "${ENABLE_CLUSTER_MONITORING:-}" == "influxdb" ]] || \
-     [[ "${ENABLE_CLUSTER_MONITORING:-}" == "google" ]] || \
-     [[ "${ENABLE_CLUSTER_MONITORING:-}" == "stackdriver" ]] || \
-     [[ "${ENABLE_CLUSTER_MONITORING:-}" == "standalone" ]] || \
-     [[ "${ENABLE_CLUSTER_MONITORING:-}" == "googleinfluxdb" ]]; then
-    local -r file_dir="cluster-monitoring/${ENABLE_CLUSTER_MONITORING}"
-    setup-addon-manifests "addons" "cluster-monitoring"
-    setup-addon-manifests "addons" "${file_dir}"
-    # Replace the salt configurations with variable values.
-    base_metrics_memory="${HEAPSTER_GCP_BASE_MEMORY:-140Mi}"
-    base_eventer_memory="190Mi"
-    base_metrics_cpu="${HEAPSTER_GCP_BASE_CPU:-80m}"
-    nanny_memory="90Mi"
-    local heapster_min_cluster_size="16"
-    local metrics_memory_per_node="${HEAPSTER_GCP_MEMORY_PER_NODE:-4}"
-    local -r metrics_cpu_per_node="${HEAPSTER_GCP_CPU_PER_NODE:-0.5}"
-    local -r eventer_memory_per_node="500"
-    local -r nanny_memory_per_node="200"
-    if [[ "${ENABLE_SYSTEM_ADDON_RESOURCE_OPTIMIZATIONS:-}" == "true" ]]; then
-      base_metrics_memory="${HEAPSTER_GCP_BASE_MEMORY:-100Mi}"
-      base_metrics_cpu="${HEAPSTER_GCP_BASE_CPU:-10m}"
-      metrics_memory_per_node="${HEAPSTER_GCP_MEMORY_PER_NODE:-4}"
-      heapster_min_cluster_size="5"
-    fi
-    if [[ -n "${NUM_NODES:-}" && "${NUM_NODES}" -ge 1 ]]; then
-      num_kube_nodes="$((${NUM_NODES}+1))"
-      nanny_memory="$((${num_kube_nodes} * ${nanny_memory_per_node} + 90 * 1024))Ki"
-    fi
-    controller_yaml="${dst_dir}/${file_dir}"
-    if [[ "${ENABLE_CLUSTER_MONITORING:-}" == "googleinfluxdb" ]]; then
-      controller_yaml="${controller_yaml}/heapster-controller-combined.yaml"
-    else
-      controller_yaml="${controller_yaml}/heapster-controller.yaml"
-    fi
-
-    sed -i -e "s@{{ cluster_name }}@${CLUSTER_NAME}@g" "${controller_yaml}"
-    sed -i -e "s@{{ cluster_location }}@${ZONE}@g" "${controller_yaml}"
-    sed -i -e "s@{{ *base_metrics_memory *}}@${base_metrics_memory}@g" "${controller_yaml}"
-    sed -i -e "s@{{ *base_metrics_cpu *}}@${base_metrics_cpu}@g" "${controller_yaml}"
-    sed -i -e "s@{{ *base_eventer_memory *}}@${base_eventer_memory}@g" "${controller_yaml}"
-    sed -i -e "s@{{ *metrics_memory_per_node *}}@${metrics_memory_per_node}@g" "${controller_yaml}"
-    sed -i -e "s@{{ *eventer_memory_per_node *}}@${eventer_memory_per_node}@g" "${controller_yaml}"
-    sed -i -e "s@{{ *nanny_memory *}}@${nanny_memory}@g" "${controller_yaml}"
-    sed -i -e "s@{{ *metrics_cpu_per_node *}}@${metrics_cpu_per_node}@g" "${controller_yaml}"
-    sed -i -e "s@{{ *heapster_min_cluster_size *}}@${heapster_min_cluster_size}@g" "${controller_yaml}"
-    update-prometheus-to-sd-parameters ${controller_yaml}
-
-    if [[ "${ENABLE_CLUSTER_MONITORING:-}" == "stackdriver" ]]; then
-      use_old_resources="${HEAPSTER_USE_OLD_STACKDRIVER_RESOURCES:-true}"
-      use_new_resources="${HEAPSTER_USE_NEW_STACKDRIVER_RESOURCES:-false}"
-      sed -i -e "s@{{ use_old_resources }}@${use_old_resources}@g" "${controller_yaml}"
-      sed -i -e "s@{{ use_new_resources }}@${use_new_resources}@g" "${controller_yaml}"
-    fi
-  fi
-  if [[ "${ENABLE_CLUSTER_MONITORING:-}" == "stackdriver" ]] ||
-     ([[ "${ENABLE_CLUSTER_LOGGING:-}" == "true" ]] &&
+  if ([[ "${ENABLE_CLUSTER_LOGGING:-}" == "true" ]] &&
      [[ "${LOGGING_DESTINATION:-}" == "gcp" ]]); then
     if [[ "${ENABLE_METADATA_AGENT:-}" == "stackdriver" ]]; then
       metadata_agent_cpu_request="${METADATA_AGENT_CPU_REQUEST:-40m}"
@@ -2532,7 +2509,7 @@ function setup-node-termination-handler-manifest {
 }
 
 function setup-konnectivity-agent-manifest {
-    local -r manifest="/etc/kubernetes/addons/konnectivity-agent/daemonset.yaml"
+    local -r manifest="/etc/kubernetes/addons/konnectivity-agent/konnectivity-agent-ds.yaml"
     sed -i "s|__APISERVER_IP__|${KUBERNETES_MASTER_NAME}|g" "${manifest}"
 }
 
@@ -2619,6 +2596,11 @@ EOF
 function override-kubectl {
     echo "overriding kubectl"
     echo "export PATH=${KUBE_HOME}/bin:\$PATH" > /etc/profile.d/kube_env.sh
+
+    # source the file explicitly otherwise we have
+    # issues on a ubuntu OS image finding the kubectl
+    source /etc/profile.d/kube_env.sh
+
     # Add ${KUBE_HOME}/bin into sudoer secure path.
     local sudo_path
     sudo_path=$(sudo env | grep "^PATH=")
@@ -2719,8 +2701,6 @@ EOF
       cni_template_path=""
     fi
   fi
-  # Reuse docker group for containerd.
-  local containerd_gid="$(cat /etc/group | grep ^docker: | cut -d: -f 3)"
   cat > "${config_path}" <<EOF
 # Kubernetes doesn't use containerd restart manager.
 disabled_plugins = ["restart"]
@@ -2728,9 +2708,6 @@ oom_score = -999
 
 [debug]
   level = "${CONTAINERD_LOG_LEVEL:-"info"}"
-
-[grpc]
-  gid = ${containerd_gid}
 
 [plugins.cri]
   stream_server_address = "127.0.0.1"
@@ -2742,6 +2719,25 @@ oom_score = -999
 [plugins.cri.registry.mirrors."docker.io"]
   endpoint = ["https://mirror.gcr.io","https://registry-1.docker.io"]
 EOF
+
+  if [[ "${CONTAINER_RUNTIME_TEST_HANDLER:-}" == "true" ]]; then
+  cat >> "${config_path}" <<EOF
+# Setup a runtime with the magic name ("test-handler") used for Kubernetes
+# runtime class tests ...
+[plugins.cri.containerd.runtimes.test-handler]
+  runtime_type = "io.containerd.runtime.v1.linux"
+EOF
+  fi
+
+  # Reuse docker group for containerd.
+  local containerd_gid="$(cat /etc/group | grep ^docker: | cut -d: -f 3)"
+  if [[ ! -z "${containerd_gid:-}" ]]; then
+    cat >> "${config_path}" <<EOF
+# reuse id of the docker group
+[grpc]
+  gid = ${containerd_gid}
+EOF
+  fi
   chmod 644 "${config_path}"
 
   echo "Restart containerd to load the config change"
@@ -2772,13 +2768,28 @@ function main() {
   CONTAINERIZED_MOUNTER_HOME="${KUBE_HOME}/containerized_mounter"
   PV_RECYCLER_OVERRIDE_TEMPLATE="${KUBE_HOME}/kube-manifests/kubernetes/pv-recycler-template.yaml"
 
+  if [[ "$(python -V 2>&1)" =~ "Python 2" ]]; then
+    # found python2, just use that
+    PYTHON="python"
+  elif [[ -f "/usr/bin/python2.7" ]]; then
+    # System python not defaulted to python 2 but using 2.7 during migration
+    PYTHON="/usr/bin/python2.7"
+  else
+    # No python2 either by default, let's see if we can find python3
+    PYTHON="python3"
+    if ! command -v ${PYTHON} >/dev/null 2>&1; then
+      echo "ERROR Python not found. Aborting."
+      exit 2
+    fi
+  fi
+  echo "Version : " $(${PYTHON} -V 2>&1)
+
   if [[ ! -e "${KUBE_HOME}/kube-env" ]]; then
     echo "The ${KUBE_HOME}/kube-env file does not exist!! Terminate cluster initialization."
     exit 1
   fi
 
   source "${KUBE_HOME}/kube-env"
-
 
   if [[ -f "${KUBE_HOME}/kubelet-config.yaml" ]]; then
     echo "Found Kubelet config file at ${KUBE_HOME}/kubelet-config.yaml"
@@ -2806,6 +2817,10 @@ function main() {
   if [[ "${ENABLE_APISERVER_INSECURE_PORT:-false}" != "true" ]]; then
     KUBE_BOOTSTRAP_TOKEN="$(secure_random 32)"
   fi
+  if [[ "${ENABLE_EGRESS_VIA_KONNECTIVITY_SERVICE:-false}" == "true" ]]; then
+    KONNECTIVITY_SERVER_TOKEN="$(secure_random 32)"
+  fi
+
 
   setup-os-params
   config-ip-firewall

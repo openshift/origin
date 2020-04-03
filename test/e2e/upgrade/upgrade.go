@@ -165,7 +165,7 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 		}, nil
 	}
 
-	cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
+	cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 	}
 
 	// trigger the update
-	cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
+	cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -279,7 +279,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 		Force:   true,
 	}
 	cv.Spec.DesiredUpdate = &desired
-	updated, err := c.ConfigV1().ClusterVersions().Update(cv)
+	updated, err := c.ConfigV1().ClusterVersions().Update(context.Background(), cv, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -326,12 +326,12 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 				Force: true,
 			}
 			if err := retry.RetryOnConflict(wait.Backoff{Steps: 10, Duration: time.Second}, func() error {
-				cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
+				cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
 				cv.Spec.DesiredUpdate = &desired
-				cv, err = c.ConfigV1().ClusterVersions().Update(cv)
+				cv, err = c.ConfigV1().ClusterVersions().Update(context.Background(), cv, metav1.UpdateOptions{})
 				if err == nil {
 					updated = cv
 				}
@@ -362,7 +362,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 			Version:  "v1",
 			Resource: "machineconfigpools",
 		})
-		pools, err := mcps.List(metav1.ListOptions{})
+		pools, err := mcps.List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			framework.Logf("error getting pools %v", err)
 			return false, nil
@@ -387,7 +387,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 
 // TODO(runcom): drop this when MCO types are in openshift/api and we can use the typed client directly
 func IsPoolUpdated(dc dynamic.NamespaceableResourceInterface, name string) (bool, error) {
-	pool, err := dc.Get(name, metav1.GetOptions{})
+	pool, err := dc.Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		framework.Logf("error getting pool %s: %v", name, err)
 		return false, nil

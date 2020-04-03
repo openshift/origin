@@ -28,7 +28,7 @@ type versionMonitor struct {
 
 // Check returns the current ClusterVersion and a string summarizing the status.
 func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update) (*configv1.ClusterVersion, string, error) {
-	cv, err := m.client.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
+	cv, err := m.client.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 	if err != nil {
 		msg := fmt.Sprintf("unable to retrieve cluster version during upgrade: %v", err)
 		framework.Logf(msg)
@@ -100,7 +100,7 @@ func (m *versionMonitor) ShouldUpgradeAbort(abortAt int) bool {
 	if abortAt == 0 {
 		return false
 	}
-	coList, err := m.client.ConfigV1().ClusterOperators().List(metav1.ListOptions{})
+	coList, err := m.client.ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		framework.Logf("Unable to retrieve cluster operators, cannot check completion percentage")
 		return false
@@ -127,7 +127,7 @@ func (m *versionMonitor) Output() {
 		data, _ := json.MarshalIndent(m.lastCV, "", "  ")
 		framework.Logf("Cluster version:\n%s", data)
 	}
-	if coList, err := m.client.ConfigV1().ClusterOperators().List(metav1.ListOptions{}); err == nil {
+	if coList, err := m.client.ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{}); err == nil {
 		buf := &bytes.Buffer{}
 		tw := tabwriter.NewWriter(buf, 0, 2, 1, ' ', 0)
 		fmt.Fprintf(tw, "NAME\tA F P\tVERSION\tMESSAGE\n")
@@ -163,7 +163,7 @@ func (m *versionMonitor) Disrupt(ctx context.Context, kubeClient kubernetes.Inte
 		if ctx.Err() != nil {
 			return
 		}
-		nodes, err := kubeClient.CoreV1().Nodes().List(metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
+		nodes, err := kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
 		if err != nil || len(nodes.Items) == 0 {
 			framework.Logf("Unable to find nodes to reboot: %v", err)
 			continue
@@ -278,7 +278,7 @@ func triggerReboot(kubeClient kubernetes.Interface, target string, attempt int, 
 	isTrue := true
 	zero := int64(0)
 	name := fmt.Sprintf("reboot-%s-%d", target, attempt)
-	_, err := kubeClient.CoreV1().Pods("kube-system").Create(&corev1.Pod{
+	_, err := kubeClient.CoreV1().Pods("kube-system").Create(context.Background(), &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Annotations: map[string]string{
@@ -322,7 +322,7 @@ func triggerReboot(kubeClient kubernetes.Interface, target string, attempt int, 
 				},
 			},
 		},
-	})
+	}, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		return triggerReboot(kubeClient, target, attempt+1, rebootHard)
 	}

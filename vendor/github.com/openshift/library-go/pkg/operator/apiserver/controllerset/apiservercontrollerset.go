@@ -11,9 +11,14 @@ import (
 	"github.com/openshift/library-go/pkg/operator/apiserver/controller/apiservice"
 	"github.com/openshift/library-go/pkg/operator/apiserver/controller/nsfinalizer"
 	"github.com/openshift/library-go/pkg/operator/apiserver/controller/workload"
+	"github.com/openshift/library-go/pkg/operator/encryption"
+	"github.com/openshift/library-go/pkg/operator/encryption/controllers"
+	"github.com/openshift/library-go/pkg/operator/encryption/controllers/migrators"
+	"github.com/openshift/library-go/pkg/operator/encryption/statemachine"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/loglevel"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+	"github.com/openshift/library-go/pkg/operator/revisioncontroller"
 	"github.com/openshift/library-go/pkg/operator/staticresourcecontroller"
 	"github.com/openshift/library-go/pkg/operator/status"
 	"github.com/openshift/library-go/pkg/operator/unsupportedconfigoverridescontroller"
@@ -23,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	apiregistrationv1client "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
@@ -50,10 +56,7 @@ func (cw *controllerWrapper) prepare() (controller, error) {
 	return cw.controller, nil
 }
 
-// APIServerControllerSet is a set of controllers that maintain a deployment of
-// an API server and the namespace it's running in
-//
-// TODO: add workload and encryption controllers
+// APIServerControllerSet is a set of controllers that maintain a deployment of an API server and the namespace it's running in
 type APIServerControllerSet struct {
 	operatorClient v1helpers.OperatorClient
 	eventRecorder  events.Recorder
@@ -65,6 +68,8 @@ type APIServerControllerSet struct {
 	finalizerController             controllerWrapper
 	staticResourceController        controllerWrapper
 	workloadController              controllerWrapper
+	revisionController              controllerWrapper
+	encryptionControllers           controllerWrapper
 }
 
 func NewAPIServerControllerSet(
@@ -246,6 +251,66 @@ func (cs *APIServerControllerSet) WithoutWorkloadController() *APIServerControll
 	return cs
 }
 
+func (cs *APIServerControllerSet) WithRevisionController(
+	targetNamespace string,
+	configMaps []revisioncontroller.RevisionResource,
+	secrets []revisioncontroller.RevisionResource,
+	kubeInformersForTargetNamespace kubeinformers.SharedInformerFactory,
+	revisionClient revisioncontroller.LatestRevisionClient,
+	configMapGetter corev1client.ConfigMapsGetter,
+	secretGetter corev1client.SecretsGetter,
+) *APIServerControllerSet {
+	cs.revisionController.controller = revisioncontroller.NewRevisionController(
+		targetNamespace,
+		configMaps,
+		secrets,
+		kubeInformersForTargetNamespace,
+		revisionClient,
+		configMapGetter,
+		secretGetter,
+		cs.eventRecorder,
+	)
+	return cs
+}
+
+func (cs *APIServerControllerSet) WithoutRevisionController() *APIServerControllerSet {
+	cs.revisionController.controller = nil
+	cs.workloadController.emptyAllowed = true
+	return cs
+}
+
+func (cs *APIServerControllerSet) WithEncryptionControllers(
+	component string,
+	provider controllers.Provider,
+	deployer statemachine.Deployer,
+	migrator migrators.Migrator,
+	secretsClient corev1.SecretsGetter,
+	apiServerClient configv1client.APIServerInterface,
+	apiServerInformer configv1informers.APIServerInformer,
+	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
+) *APIServerControllerSet {
+	cs.encryptionControllers.controller = encryption.NewControllers(
+		component,
+		provider,
+		deployer,
+		migrator,
+		cs.operatorClient,
+		apiServerClient,
+		apiServerInformer,
+		kubeInformersForNamespaces,
+		secretsClient,
+		cs.eventRecorder,
+	)
+
+	return cs
+}
+
+func (cs *APIServerControllerSet) WithoutEncryptionControllers() *APIServerControllerSet {
+	cs.encryptionControllers.controller = nil
+	cs.encryptionControllers.emptyAllowed = true
+	return cs
+}
+
 func (cs *APIServerControllerSet) PrepareRun() (preparedAPIServerControllerSet, error) {
 	prepared := []controller{}
 	errs := []error{}
@@ -258,6 +323,8 @@ func (cs *APIServerControllerSet) PrepareRun() (preparedAPIServerControllerSet, 
 		"finalizerController":             cs.finalizerController,
 		"staticResourceController":        cs.staticResourceController,
 		"workloadController":              cs.workloadController,
+		"revisionController":              cs.revisionController,
+		"encryptionControllers":           cs.encryptionControllers,
 	} {
 		c, err := cw.prepare()
 		if err != nil {

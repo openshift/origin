@@ -2,6 +2,10 @@
 
 package marketplaceentitlementservice
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeInternalServiceErrorException for service response error code
@@ -23,3 +27,9 @@ const (
 	// The calls to the GetEntitlements API are throttled.
 	ErrCodeThrottlingException = "ThrottlingException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"InternalServiceErrorException": newErrorInternalServiceErrorException,
+	"InvalidParameterException":     newErrorInvalidParameterException,
+	"ThrottlingException":           newErrorThrottlingException,
+}

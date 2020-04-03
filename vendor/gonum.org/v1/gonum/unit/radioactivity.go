@@ -16,29 +16,7 @@ import (
 // Radioactivity represents a rate of radioactive decay in becquerels.
 type Radioactivity float64
 
-const (
-	Yottabecquerel Radioactivity = 1e24
-	Zettabecquerel Radioactivity = 1e21
-	Exabecquerel   Radioactivity = 1e18
-	Petabecquerel  Radioactivity = 1e15
-	Terabecquerel  Radioactivity = 1e12
-	Gigabecquerel  Radioactivity = 1e9
-	Megabecquerel  Radioactivity = 1e6
-	Kilobecquerel  Radioactivity = 1e3
-	Hectobecquerel Radioactivity = 1e2
-	Decabecquerel  Radioactivity = 1e1
-	Becquerel      Radioactivity = 1.0
-	Decibecquerel  Radioactivity = 1e-1
-	Centibecquerel Radioactivity = 1e-2
-	Millibecquerel Radioactivity = 1e-3
-	Microbecquerel Radioactivity = 1e-6
-	Nanobecquerel  Radioactivity = 1e-9
-	Picobecquerel  Radioactivity = 1e-12
-	Femtobecquerel Radioactivity = 1e-15
-	Attobecquerel  Radioactivity = 1e-18
-	Zeptobecquerel Radioactivity = 1e-21
-	Yoctobecquerel Radioactivity = 1e-24
-)
+const Becquerel Radioactivity = 1
 
 // Unit converts the Radioactivity to a *Unit
 func (r Radioactivity) Unit() *Unit {

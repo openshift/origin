@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -13,11 +15,12 @@ import (
 	"github.com/docker/docker/integration-cli/cli"
 	"github.com/docker/docker/integration-cli/cli/build"
 	"github.com/docker/docker/internal/test/request"
+	"github.com/docker/docker/pkg/parsers/kernel"
 	"github.com/go-check/check"
 )
 
 func (s *DockerSuite) TestAPIImagesFilter(c *check.C) {
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 
@@ -55,6 +58,15 @@ func (s *DockerSuite) TestAPIImagesFilter(c *check.C) {
 }
 
 func (s *DockerSuite) TestAPIImagesSaveAndLoad(c *check.C) {
+	if runtime.GOOS == "windows" {
+		v, err := kernel.GetKernelVersion()
+		c.Assert(err, checker.IsNil)
+		build, _ := strconv.Atoi(strings.Split(strings.SplitN(v.String(), " ", 3)[2][1:], ".")[0])
+		if build == 16299 {
+			c.Skip("Temporarily disabled on RS3 builds")
+		}
+	}
+
 	testRequires(c, Network)
 	buildImageSuccessfully(c, "saveandload", build.WithDockerfile("FROM busybox\nENV FOO bar"))
 	id := getIDByName(c, "saveandload")
@@ -76,7 +88,7 @@ func (s *DockerSuite) TestAPIImagesSaveAndLoad(c *check.C) {
 }
 
 func (s *DockerSuite) TestAPIImagesDelete(c *check.C) {
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 
@@ -100,7 +112,7 @@ func (s *DockerSuite) TestAPIImagesDelete(c *check.C) {
 }
 
 func (s *DockerSuite) TestAPIImagesHistory(c *check.C) {
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 
@@ -126,7 +138,16 @@ func (s *DockerSuite) TestAPIImagesHistory(c *check.C) {
 }
 
 func (s *DockerSuite) TestAPIImagesImportBadSrc(c *check.C) {
-	testRequires(c, Network, SameHostDaemon)
+	if runtime.GOOS == "windows" {
+		v, err := kernel.GetKernelVersion()
+		c.Assert(err, checker.IsNil)
+		build, _ := strconv.Atoi(strings.Split(strings.SplitN(v.String(), " ", 3)[2][1:], ".")[0])
+		if build == 16299 {
+			c.Skip("Temporarily disabled on RS3 builds")
+		}
+	}
+
+	testRequires(c, Network, testEnv.IsLocalDaemon)
 
 	server := httptest.NewServer(http.NewServeMux())
 	defer server.Close()

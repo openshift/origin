@@ -66,7 +66,7 @@ func StartAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Con
 
 	m.AddSampler(
 		StartSampling(ctx, m, time.Second, func(previous bool) (condition *Condition, next bool) {
-			_, err := pollingClient.Namespaces().Get("kube-system", metav1.GetOptions{})
+			_, err := pollingClient.Namespaces().Get(ctx, "kube-system", metav1.GetOptions{})
 			switch {
 			case err == nil && !previous:
 				condition = &Condition{
@@ -91,7 +91,7 @@ func StartAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Con
 
 	m.AddSampler(
 		StartSampling(ctx, m, time.Second, func(previous bool) (condition *Condition, next bool) {
-			_, err := openshiftPollingClient.ImageStreams("openshift-apiserver").Get("missing", metav1.GetOptions{})
+			_, err := openshiftPollingClient.ImageStreams("openshift-apiserver").Get(ctx, "missing", metav1.GetOptions{})
 			if !errors.IsUnexpectedServerError(err) && errors.IsNotFound(err) {
 				err = nil
 			}

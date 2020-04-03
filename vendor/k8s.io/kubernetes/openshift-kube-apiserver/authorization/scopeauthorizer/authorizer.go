@@ -1,8 +1,8 @@
 package scopeauthorizer
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"

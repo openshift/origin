@@ -1,6 +1,7 @@
 package images
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
@@ -247,7 +248,7 @@ RUN echo %s > /3
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("starting a test build")
-	bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(isName, metav1.GetOptions{})
+	bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), isName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile))
 
@@ -256,7 +257,7 @@ RUN echo %s > /3
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By(fmt.Sprintf("checking for the imported tag: %s", istName))
-	ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(istName, metav1.GetOptions{})
+	ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), istName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	return isName, ist.Image.Name

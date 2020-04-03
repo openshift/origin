@@ -2,6 +2,7 @@ package operators
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 	"text/tabwriter"
@@ -38,11 +39,11 @@ var _ = g.Describe("[sig-arch] Managed cluster should recover", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// remember the initial set of operators
-		operators, err := configClient.ClusterOperators().List(metav1.ListOptions{})
+		operators, err := configClient.ClusterOperators().List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// delete all daemonsets in openshift-* namespaces
-		all, err := c.CoreV1().Namespaces().List(metav1.ListOptions{})
+		all, err := c.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 		for _, ns := range all.Items {
 			switch {
@@ -55,23 +56,23 @@ var _ = g.Describe("[sig-arch] Managed cluster should recover", func() {
 			background := metav1.DeletePropagationBackground
 			if deployments {
 				g.By(fmt.Sprintf("Deleting deployments in namespace %s", ns.Name))
-				err := c.AppsV1().Deployments(ns.Name).DeleteCollection(&metav1.DeleteOptions{GracePeriodSeconds: &one, PropagationPolicy: &background}, metav1.ListOptions{})
+				err := c.AppsV1().Deployments(ns.Name).DeleteCollection(context.Background(), metav1.DeleteOptions{GracePeriodSeconds: &one, PropagationPolicy: &background}, metav1.ListOptions{})
 				o.Expect(err).ToNot(o.HaveOccurred())
 			}
 			if daemonsets {
 				g.By(fmt.Sprintf("Deleting daemonsets in namespace %s", ns.Name))
-				err := c.AppsV1().DaemonSets(ns.Name).DeleteCollection(&metav1.DeleteOptions{GracePeriodSeconds: &one, PropagationPolicy: &background}, metav1.ListOptions{})
+				err := c.AppsV1().DaemonSets(ns.Name).DeleteCollection(context.Background(), metav1.DeleteOptions{GracePeriodSeconds: &one, PropagationPolicy: &background}, metav1.ListOptions{})
 				o.Expect(err).ToNot(o.HaveOccurred())
 			}
 			if secrets {
 				g.By(fmt.Sprintf("Deleting non-generated secrets in namespace %s", ns.Name))
-				secrets, err := c.CoreV1().Secrets(ns.Name).List(metav1.ListOptions{})
+				secrets, err := c.CoreV1().Secrets(ns.Name).List(context.Background(), metav1.ListOptions{})
 				o.Expect(err).ToNot(o.HaveOccurred())
 				for _, secret := range secrets.Items {
 					if !serviceAccountSecrets && len(secret.Annotations["kubernetes.io/service-account.name"]) > 0 {
 						continue
 					}
-					err := c.CoreV1().Secrets(secret.Namespace).Delete(secret.Name, nil)
+					err := c.CoreV1().Secrets(secret.Namespace).Delete(context.Background(), secret.Name, metav1.DeleteOptions{})
 					o.Expect(err).ToNot(o.HaveOccurred())
 				}
 			}
@@ -80,14 +81,14 @@ var _ = g.Describe("[sig-arch] Managed cluster should recover", func() {
 		// delete all cluster operators
 		g.By("Deleting all cluster operators")
 		foreground := metav1.DeletePropagationForeground
-		err = configClient.ClusterOperators().DeleteCollection(&metav1.DeleteOptions{PropagationPolicy: &foreground}, metav1.ListOptions{})
+		err = configClient.ClusterOperators().DeleteCollection(context.Background(), metav1.DeleteOptions{PropagationPolicy: &foreground}, metav1.ListOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.By("Waiting for all cluster operators to recover")
 		var currentOperators *config.ClusterOperatorList
 		var healthy []config.ClusterOperator
 		err = wait.PollImmediate(5*time.Second, 20*time.Minute, func() (bool, error) {
-			currentOperators, err = configClient.ClusterOperators().List(metav1.ListOptions{})
+			currentOperators, err = configClient.ClusterOperators().List(context.Background(), metav1.ListOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			healthy = nil

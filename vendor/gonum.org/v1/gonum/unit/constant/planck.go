@@ -13,8 +13,8 @@ import (
 )
 
 // Planck is the Planck constant (h), it relates the energy carried by a photon to its frequency.
-// The dimensions of Planck are kg m^2 s^-1. The standard uncertainty of the constant is 8.1e-42 kg m^2 s^-1.
-const Planck = planckUnits(6.62607004e-34)
+// The dimensions of Planck are kg m^2 s^-1. The constant is exact.
+const Planck = planckUnits(6.62607015e-34)
 
 type planckUnits float64
 

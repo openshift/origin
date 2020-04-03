@@ -2,18 +2,22 @@
   "version": "2.0",
   "service": "<p>AWS AppSync provides API actions for creating and interacting with data sources using GraphQL from your application.</p>",
   "operations": {
+    "CreateApiCache": "<p>Creates a cache for the GraphQL API.</p>",
     "CreateApiKey": "<p>Creates a unique key that you can distribute to clients who are executing your API.</p>",
     "CreateDataSource": "<p>Creates a <code>DataSource</code> object.</p>",
     "CreateFunction": "<p>Creates a <code>Function</code> object.</p> <p>A function is a reusable entity. Multiple functions can be used to compose the resolver logic.</p>",
     "CreateGraphqlApi": "<p>Creates a <code>GraphqlApi</code> object.</p>",
     "CreateResolver": "<p>Creates a <code>Resolver</code> object.</p> <p>A resolver converts incoming requests into a format that a data source can understand and converts the data source's responses into GraphQL.</p>",
     "CreateType": "<p>Creates a <code>Type</code> object.</p>",
+    "DeleteApiCache": "<p>Deletes an <code>ApiCache</code> object.</p>",
     "DeleteApiKey": "<p>Deletes an API key.</p>",
     "DeleteDataSource": "<p>Deletes a <code>DataSource</code> object.</p>",
     "DeleteFunction": "<p>Deletes a <code>Function</code>.</p>",
     "DeleteGraphqlApi": "<p>Deletes a <code>GraphqlApi</code> object.</p>",
     "DeleteResolver": "<p>Deletes a <code>Resolver</code> object.</p>",
     "DeleteType": "<p>Deletes a <code>Type</code> object.</p>",
+    "FlushApiCache": "<p>Flushes an <code>ApiCache</code> object.</p>",
+    "GetApiCache": "<p>Retrieves an <code>ApiCache</code> object.</p>",
     "GetDataSource": "<p>Retrieves a <code>DataSource</code> object.</p>",
     "GetFunction": "<p>Get a <code>Function</code>.</p>",
     "GetGraphqlApi": "<p>Retrieves a <code>GraphqlApi</code> object.</p>",
@@ -27,8 +31,12 @@
     "ListGraphqlApis": "<p>Lists your GraphQL APIs.</p>",
     "ListResolvers": "<p>Lists the resolvers for a given API and type.</p>",
     "ListResolversByFunction": "<p>List the resolvers that are associated with a specific function.</p>",
+    "ListTagsForResource": "<p>Lists the tags for a resource.</p>",
     "ListTypes": "<p>Lists the types for a given API.</p>",
     "StartSchemaCreation": "<p>Adds a new schema to your GraphQL API.</p> <p>This operation is asynchronous. Use to determine when it has completed.</p>",
+    "TagResource": "<p>Tags a resource with user-supplied tags.</p>",
+    "UntagResource": "<p>Untags a resource.</p>",
+    "UpdateApiCache": "<p>Updates the cache for the GraphQL API.</p>",
     "UpdateApiKey": "<p>Updates an API key.</p>",
     "UpdateDataSource": "<p>Updates a <code>DataSource</code> object.</p>",
     "UpdateFunction": "<p>Updates a <code>Function</code> object.</p>",
@@ -37,6 +45,55 @@
     "UpdateType": "<p>Updates a <code>Type</code> object.</p>"
   },
   "shapes": {
+    "AccessDeniedException": {
+      "base": "<p>You do not have access to perform this operation on this resource.</p>",
+      "refs": {
+      }
+    },
+    "AdditionalAuthenticationProvider": {
+      "base": "<p>Describes an additional authentication provider.</p>",
+      "refs": {
+        "AdditionalAuthenticationProviders$member": null
+      }
+    },
+    "AdditionalAuthenticationProviders": {
+      "base": null,
+      "refs": {
+        "CreateGraphqlApiRequest$additionalAuthenticationProviders": "<p>A list of additional authentication providers for the <code>GraphqlApi</code> API.</p>",
+        "GraphqlApi$additionalAuthenticationProviders": "<p>A list of additional authentication providers for the <code>GraphqlApi</code> API.</p>",
+        "UpdateGraphqlApiRequest$additionalAuthenticationProviders": "<p>A list of additional authentication providers for the <code>GraphqlApi</code> API.</p>"
+      }
+    },
+    "ApiCache": {
+      "base": null,
+      "refs": {
+        "CreateApiCacheResponse$apiCache": "<p>The <code>ApiCache</code> object.</p>",
+        "GetApiCacheResponse$apiCache": null,
+        "UpdateApiCacheResponse$apiCache": "<p>The <code>ApiCache</code> object.</p>"
+      }
+    },
+    "ApiCacheStatus": {
+      "base": null,
+      "refs": {
+        "ApiCache$status": "<p>The cache instance status.</p> <ul> <li> <p> <b>AVAILABLE</b>: The instance is available for use.</p> </li> <li> <p> <b>CREATING</b>: The instance is currently creating.</p> </li> <li> <p> <b>DELETING</b>: The instance is currently deleting.</p> </li> <li> <p> <b>MODIFYING</b>: The instance is currently modifying.</p> </li> <li> <p> <b>FAILED</b>: The instance has failed creation.</p> </li> </ul>"
+      }
+    },
+    "ApiCacheType": {
+      "base": null,
+      "refs": {
+        "ApiCache$type": "<p>The cache instance type.</p> <ul> <li> <p> <b>T2_SMALL</b>: A t2.small instance type.</p> </li> <li> <p> <b>T2_MEDIUM</b>: A t2.medium instance type.</p> </li> <li> <p> <b>R4_LARGE</b>: A r4.large instance type.</p> </li> <li> <p> <b>R4_XLARGE</b>: A r4.xlarge instance type.</p> </li> <li> <p> <b>R4_2XLARGE</b>: A r4.2xlarge instance type.</p> </li> <li> <p> <b>R4_4XLARGE</b>: A r4.4xlarge instance type.</p> </li> <li> <p> <b>R4_8XLARGE</b>: A r4.8xlarge instance type.</p> </li> </ul>",
+        "CreateApiCacheRequest$type": "<p>The cache instance type.</p> <ul> <li> <p> <b>T2_SMALL</b>: A t2.small instance type.</p> </li> <li> <p> <b>T2_MEDIUM</b>: A t2.medium instance type.</p> </li> <li> <p> <b>R4_LARGE</b>: A r4.large instance type.</p> </li> <li> <p> <b>R4_XLARGE</b>: A r4.xlarge instance type.</p> </li> <li> <p> <b>R4_2XLARGE</b>: A r4.2xlarge instance type.</p> </li> <li> <p> <b>R4_4XLARGE</b>: A r4.4xlarge instance type.</p> </li> <li> <p> <b>R4_8XLARGE</b>: A r4.8xlarge instance type.</p> </li> </ul>",
+        "UpdateApiCacheRequest$type": "<p>The cache instance type.</p> <ul> <li> <p> <b>T2_SMALL</b>: A t2.small instance type.</p> </li> <li> <p> <b>T2_MEDIUM</b>: A t2.medium instance type.</p> </li> <li> <p> <b>R4_LARGE</b>: A r4.large instance type.</p> </li> <li> <p> <b>R4_XLARGE</b>: A r4.xlarge instance type.</p> </li> <li> <p> <b>R4_2XLARGE</b>: A r4.2xlarge instance type.</p> </li> <li> <p> <b>R4_4XLARGE</b>: A r4.4xlarge instance type.</p> </li> <li> <p> <b>R4_8XLARGE</b>: A r4.8xlarge instance type.</p> </li> </ul>"
+      }
+    },
+    "ApiCachingBehavior": {
+      "base": null,
+      "refs": {
+        "ApiCache$apiCachingBehavior": "<p>Caching behavior.</p> <ul> <li> <p> <b>FULL_REQUEST_CACHING</b>: All requests are fully cached.</p> </li> <li> <p> <b>PER_RESOLVER_CACHING</b>: Individual resovlers that you specify are cached.</p> </li> </ul>",
+        "CreateApiCacheRequest$apiCachingBehavior": "<p>Caching behavior.</p> <ul> <li> <p> <b>FULL_REQUEST_CACHING</b>: All requests are fully cached.</p> </li> <li> <p> <b>PER_RESOLVER_CACHING</b>: Individual resovlers that you specify are cached.</p> </li> </ul>",
+        "UpdateApiCacheRequest$apiCachingBehavior": "<p>Caching behavior.</p> <ul> <li> <p> <b>FULL_REQUEST_CACHING</b>: All requests are fully cached.</p> </li> <li> <p> <b>PER_RESOLVER_CACHING</b>: Individual resovlers that you specify are cached.</p> </li> </ul>"
+      }
+    },
     "ApiKey": {
       "base": "<p>Describes an API key.</p> <p>Customers invoke AWS AppSync GraphQL API operations with API keys as an identity mechanism. There are two key versions:</p> <p> <b>da1</b>: This version was introduced at launch in November 2017. These keys always expire after 7 days. Key expiration is managed by Amazon DynamoDB TTL. The keys ceased to be valid after February 21, 2018 and should not be used after that date.</p> <ul> <li> <p> <code>ListApiKeys</code> returns the expiration time in milliseconds.</p> </li> <li> <p> <code>CreateApiKey</code> returns the expiration time in milliseconds.</p> </li> <li> <p> <code>UpdateApiKey</code> is not available for this key version.</p> </li> <li> <p> <code>DeleteApiKey</code> deletes the item from the table.</p> </li> <li> <p>Expiration is stored in Amazon DynamoDB as milliseconds. This results in a bug where keys are not automatically deleted because DynamoDB expects the TTL to be stored in seconds. As a one-time action, we will delete these keys from the table after February 21, 2018.</p> </li> </ul> <p> <b>da2</b>: This version was introduced in February 2018 when AppSync added support to extend key expiration.</p> <ul> <li> <p> <code>ListApiKeys</code> returns the expiration time in seconds.</p> </li> <li> <p> <code>CreateApiKey</code> returns the expiration time in seconds and accepts a user-provided expiration time in seconds.</p> </li> <li> <p> <code>UpdateApiKey</code> returns the expiration time in seconds and accepts a user-provided expiration time in seconds. Key expiration can only be updated while the key has not expired.</p> </li> <li> <p> <code>DeleteApiKey</code> deletes the item from the table.</p> </li> <li> <p>Expiration is stored in Amazon DynamoDB as seconds.</p> </li> </ul>",
       "refs": {
@@ -69,7 +126,8 @@
     "AuthenticationType": {
       "base": null,
       "refs": {
-        "CreateGraphqlApiRequest$authenticationType": "<p>The authentication type: API key, AWS IAM, or Amazon Cognito user pools.</p>",
+        "AdditionalAuthenticationProvider$authenticationType": "<p>The authentication type: API key, AWS IAM, OIDC, or Amazon Cognito user pools.</p>",
+        "CreateGraphqlApiRequest$authenticationType": "<p>The authentication type: API key, AWS IAM, OIDC, or Amazon Cognito user pools.</p>",
         "GraphqlApi$authenticationType": "<p>The authentication type.</p>",
         "UpdateGraphqlApiRequest$authenticationType": "<p>The new authentication type for the <code>GraphqlApi</code> object.</p>"
       }
@@ -107,11 +165,65 @@
     "Boolean": {
       "base": null,
       "refs": {
-        "DynamodbDataSourceConfig$useCallerCredentials": "<p>Set to TRUE to use Amazon Cognito credentials with this data source.</p>"
+        "ApiCache$transitEncryptionEnabled": "<p>Transit encryption flag when connecting to cache. This setting cannot be updated after creation.</p>",
+        "ApiCache$atRestEncryptionEnabled": "<p>At rest encryption flag for cache. This setting cannot be updated after creation.</p>",
+        "CreateApiCacheRequest$transitEncryptionEnabled": "<p>Transit encryption flag when connecting to cache. This setting cannot be updated after creation.</p>",
+        "CreateApiCacheRequest$atRestEncryptionEnabled": "<p>At rest encryption flag for cache. This setting cannot be updated after creation.</p>",
+        "DynamodbDataSourceConfig$useCallerCredentials": "<p>Set to TRUE to use Amazon Cognito credentials with this data source.</p>",
+        "DynamodbDataSourceConfig$versioned": "<p>Set to TRUE to use Conflict Detection and Resolution with this data source.</p>",
+        "LogConfig$excludeVerboseContent": "<p>Set to TRUE to exclude sections that contain information such as headers, context, and evaluated mapping templates, regardless of logging level.</p>"
+      }
+    },
+    "BooleanValue": {
+      "base": null,
+      "refs": {
+        "GetIntrospectionSchemaRequest$includeDirectives": "<p>A flag that specifies whether the schema introspection should contain directives.</p>"
+      }
+    },
+    "CachingConfig": {
+      "base": "<p>The caching configuration for a resolver that has caching enabled.</p>",
+      "refs": {
+        "CreateResolverRequest$cachingConfig": "<p>The caching configuration for the resolver.</p>",
+        "Resolver$cachingConfig": "<p>The caching configuration for the resolver.</p>",
+        "UpdateResolverRequest$cachingConfig": "<p>The caching configuration for the resolver.</p>"
+      }
+    },
+    "CachingKeys": {
+      "base": null,
+      "refs": {
+        "CachingConfig$cachingKeys": "<p>The caching keys for a resolver that has caching enabled.</p> <p>Valid values are entries from the <code>$context.identity</code> and <code>$context.arguments</code> maps.</p>"
+      }
+    },
+    "CognitoUserPoolConfig": {
+      "base": "<p>Describes an Amazon Cognito user pool configuration.</p>",
+      "refs": {
+        "AdditionalAuthenticationProvider$userPoolConfig": "<p>The Amazon Cognito user pool configuration.</p>"
       }
     },
     "ConcurrentModificationException": {
       "base": "<p>Another modification is in progress at this time and it must complete before you can make your change. </p>",
+      "refs": {
+      }
+    },
+    "ConflictDetectionType": {
+      "base": null,
+      "refs": {
+        "SyncConfig$conflictDetection": "<p>The Conflict Detection strategy to use.</p> <ul> <li> <p> <b>VERSION</b>: Detect conflicts based on object versions for this resolver.</p> </li> <li> <p> <b>NONE</b>: Do not detect conflicts when executing this resolver.</p> </li> </ul>"
+      }
+    },
+    "ConflictHandlerType": {
+      "base": null,
+      "refs": {
+        "SyncConfig$conflictHandler": "<p>The Conflict Resolution strategy to perform in the event of a conflict.</p> <ul> <li> <p> <b>OPTIMISTIC_CONCURRENCY</b>: Resolve conflicts by rejecting mutations when versions do not match the latest version at the server.</p> </li> <li> <p> <b>AUTOMERGE</b>: Resolve conflicts with the Automerge conflict resolution strategy.</p> </li> <li> <p> <b>LAMBDA</b>: Resolve conflicts with a Lambda function supplied in the LambdaConflictHandlerConfig.</p> </li> </ul>"
+      }
+    },
+    "CreateApiCacheRequest": {
+      "base": "<p>Represents the input of a <code>CreateApiCache</code> operation.</p>",
+      "refs": {
+      }
+    },
+    "CreateApiCacheResponse": {
+      "base": "<p>Represents the output of a <code>CreateApiCache</code> operation.</p>",
       "refs": {
       }
     },
@@ -204,6 +316,16 @@
         "UserPoolConfig$defaultAction": "<p>The action that you want your GraphQL API to take when a request that uses Amazon Cognito user pool authentication doesn't match the Amazon Cognito user pool configuration.</p>"
       }
     },
+    "DeleteApiCacheRequest": {
+      "base": "<p>Represents the input of a <code>DeleteApiCache</code> operation.</p>",
+      "refs": {
+      }
+    },
+    "DeleteApiCacheResponse": {
+      "base": "<p>Represents the output of a <code>DeleteApiCache</code> operation.</p>",
+      "refs": {
+      }
+    },
     "DeleteApiKeyRequest": {
       "base": null,
       "refs": {
@@ -264,6 +386,12 @@
       "refs": {
       }
     },
+    "DeltaSyncConfig": {
+      "base": "<p>Describes a Delta Sync configuration.</p>",
+      "refs": {
+        "DynamodbDataSourceConfig$deltaSyncConfig": "<p>The <code>DeltaSyncConfig</code> for a versioned datasource.</p>"
+      }
+    },
     "DynamodbDataSourceConfig": {
       "base": "<p>Describes an Amazon DynamoDB data source configuration.</p>",
       "refs": {
@@ -294,6 +422,16 @@
         "LogConfig$fieldLogLevel": "<p>The field logging level. Values can be NONE, ERROR, or ALL. </p> <ul> <li> <p> <b>NONE</b>: No field-level logs are captured.</p> </li> <li> <p> <b>ERROR</b>: Logs the following information only for the fields that are in error:</p> <ul> <li> <p>The error section in the server response.</p> </li> <li> <p>Field-level errors.</p> </li> <li> <p>The generated request/response functions that got resolved for error fields.</p> </li> </ul> </li> <li> <p> <b>ALL</b>: The following information is logged for all fields in the query:</p> <ul> <li> <p>Field-level tracing information.</p> </li> <li> <p>The generated request/response functions that got resolved for each field.</p> </li> </ul> </li> </ul>"
       }
     },
+    "FlushApiCacheRequest": {
+      "base": "<p>Represents the input of a <code>FlushApiCache</code> operation.</p>",
+      "refs": {
+      }
+    },
+    "FlushApiCacheResponse": {
+      "base": "<p>Represents the output of a <code>FlushApiCache</code> operation.</p>",
+      "refs": {
+      }
+    },
     "FunctionConfiguration": {
       "base": "<p>A function is a reusable entity. Multiple functions can be used to compose the resolver logic.</p>",
       "refs": {
@@ -313,6 +451,16 @@
       "base": null,
       "refs": {
         "PipelineConfig$functions": "<p>A list of <code>Function</code> objects.</p>"
+      }
+    },
+    "GetApiCacheRequest": {
+      "base": "<p>Represents the input of a <code>GetApiCache</code> operation.</p>",
+      "refs": {
+      }
+    },
+    "GetApiCacheResponse": {
+      "base": "<p>Represents the output of a <code>GetApiCache</code> operation.</p>",
+      "refs": {
       }
     },
     "GetDataSourceRequest": {
@@ -418,6 +566,12 @@
       "refs": {
       }
     },
+    "LambdaConflictHandlerConfig": {
+      "base": null,
+      "refs": {
+        "SyncConfig$lambdaConflictHandlerConfig": "<p>The <code>LambdaConflictHandlerConfig</code> when configuring LAMBDA as the Conflict Handler.</p>"
+      }
+    },
     "LambdaDataSourceConfig": {
       "base": "<p>Describes an AWS Lambda data source configuration.</p>",
       "refs": {
@@ -491,6 +645,16 @@
       "refs": {
       }
     },
+    "ListTagsForResourceRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "ListTagsForResourceResponse": {
+      "base": null,
+      "refs": {
+      }
+    },
     "ListTypesRequest": {
       "base": null,
       "refs": {
@@ -512,10 +676,16 @@
     "Long": {
       "base": null,
       "refs": {
+        "ApiCache$ttl": "<p>TTL in seconds for cache entries.</p> <p>Valid values are between 1 and 3600 seconds.</p>",
         "ApiKey$expires": "<p>The time after which the API key expires. The date is represented as seconds since the epoch, rounded down to the nearest hour.</p>",
+        "CachingConfig$ttl": "<p>The TTL in seconds for a resolver that has caching enabled.</p> <p>Valid values are between 1 and 3600 seconds.</p>",
+        "CreateApiCacheRequest$ttl": "<p>TTL in seconds for cache entries.</p> <p>Valid values are between 1 and 3600 seconds.</p>",
         "CreateApiKeyRequest$expires": "<p>The time from creation time after which the API key expires. The date is represented as seconds since the epoch, rounded down to the nearest hour. The default value for this parameter is 7 days from creation time. For more information, see .</p>",
+        "DeltaSyncConfig$baseTableTTL": "<p>The number of minutes an Item is stored in the datasource.</p>",
+        "DeltaSyncConfig$deltaSyncTableTTL": "<p>The number of minutes a Delta Sync log entry is stored in the Delta Sync table.</p>",
         "OpenIDConnectConfig$iatTTL": "<p>The number of milliseconds a token is valid after being issued to a user.</p>",
         "OpenIDConnectConfig$authTTL": "<p>The number of milliseconds a token is valid after being authenticated.</p>",
+        "UpdateApiCacheRequest$ttl": "<p>TTL in seconds for cache entries.</p> <p>Valid values are between 1 and 3600 seconds.</p>",
         "UpdateApiKeyRequest$expires": "<p>The time from update time after which the API key expires. The date is represented as seconds since the epoch. For more information, see .</p>"
       }
     },
@@ -562,6 +732,7 @@
     "OpenIDConnectConfig": {
       "base": "<p>Describes an OpenID Connect configuration.</p>",
       "refs": {
+        "AdditionalAuthenticationProvider$openIDConnectConfig": "<p>The OpenID Connect configuration.</p>",
         "CreateGraphqlApiRequest$openIDConnectConfig": "<p>The OpenID Connect configuration.</p>",
         "GraphqlApi$openIDConnectConfig": "<p>The OpenID Connect configuration.</p>",
         "UpdateGraphqlApiRequest$openIDConnectConfig": "<p>The OpenID Connect configuration for the <code>GraphqlApi</code> object.</p>"
@@ -644,6 +815,14 @@
         "ListResolversResponse$resolvers": "<p>The <code>Resolver</code> objects.</p>"
       }
     },
+    "ResourceArn": {
+      "base": null,
+      "refs": {
+        "ListTagsForResourceRequest$resourceArn": "<p>The <code>GraphqlApi</code> ARN.</p>",
+        "TagResourceRequest$resourceArn": "<p>The <code>GraphqlApi</code> ARN.</p>",
+        "UntagResourceRequest$resourceArn": "<p>The <code>GraphqlApi</code> ARN.</p>"
+      }
+    },
     "ResourceName": {
       "base": null,
       "refs": {
@@ -684,8 +863,8 @@
     "SchemaStatus": {
       "base": null,
       "refs": {
-        "GetSchemaCreationStatusResponse$status": "<p>The current state of the schema (PROCESSING, ACTIVE, or DELETING). Once the schema is in the ACTIVE state, you can add data.</p>",
-        "StartSchemaCreationResponse$status": "<p>The current state of the schema (PROCESSING, ACTIVE, or DELETING). When the schema is in the ACTIVE state, you can add data.</p>"
+        "GetSchemaCreationStatusResponse$status": "<p>The current state of the schema (PROCESSING, FAILED, SUCCESS, or NOT_APPLICABLE). When the schema is in the ACTIVE state, you can add data.</p>",
+        "StartSchemaCreationResponse$status": "<p>The current state of the schema (PROCESSING, FAILED, SUCCESS, or NOT_APPLICABLE). When the schema is in the ACTIVE state, you can add data.</p>"
       }
     },
     "StartSchemaCreationRequest": {
@@ -701,6 +880,7 @@
     "String": {
       "base": null,
       "refs": {
+        "AccessDeniedException$message": null,
         "ApiKey$id": "<p>The API key ID.</p>",
         "ApiKey$description": "<p>A description of the purpose of the API key.</p>",
         "ApiKeyLimitExceededException$message": null,
@@ -708,6 +888,11 @@
         "ApiLimitExceededException$message": null,
         "AwsIamConfig$signingRegion": "<p>The signing region for AWS IAM authorization.</p>",
         "AwsIamConfig$signingServiceName": "<p>The signing service name for AWS IAM authorization.</p>",
+        "CachingKeys$member": null,
+        "CognitoUserPoolConfig$userPoolId": "<p>The user pool ID.</p>",
+        "CognitoUserPoolConfig$awsRegion": "<p>The AWS Region in which the user pool was created.</p>",
+        "CognitoUserPoolConfig$appIdClientRegex": "<p>A regular expression for validating the incoming Amazon Cognito user pool app client ID.</p>",
+        "CreateApiCacheRequest$apiId": "<p>The GraphQL API Id.</p>",
         "CreateApiKeyRequest$apiId": "<p>The ID for your GraphQL API.</p>",
         "CreateApiKeyRequest$description": "<p>A description of the purpose of the API key.</p>",
         "CreateDataSourceRequest$apiId": "<p>The API ID for the GraphQL API for the <code>DataSource</code>.</p>",
@@ -723,6 +908,7 @@
         "DataSource$dataSourceArn": "<p>The data source ARN.</p>",
         "DataSource$description": "<p>The description of the data source.</p>",
         "DataSource$serviceRoleArn": "<p>The AWS IAM service role ARN for the data source. The system assumes this role when accessing the data source.</p>",
+        "DeleteApiCacheRequest$apiId": "<p>The API ID.</p>",
         "DeleteApiKeyRequest$apiId": "<p>The API ID.</p>",
         "DeleteApiKeyRequest$id": "<p>The ID for the API key.</p>",
         "DeleteDataSourceRequest$apiId": "<p>The API ID.</p>",
@@ -730,15 +916,18 @@
         "DeleteGraphqlApiRequest$apiId": "<p>The API ID.</p>",
         "DeleteResolverRequest$apiId": "<p>The API ID.</p>",
         "DeleteTypeRequest$apiId": "<p>The API ID.</p>",
+        "DeltaSyncConfig$deltaSyncTableName": "<p>The Delta Sync table name.</p>",
         "DynamodbDataSourceConfig$tableName": "<p>The table name.</p>",
         "DynamodbDataSourceConfig$awsRegion": "<p>The AWS Region.</p>",
         "ElasticsearchDataSourceConfig$endpoint": "<p>The endpoint.</p>",
         "ElasticsearchDataSourceConfig$awsRegion": "<p>The AWS Region.</p>",
+        "FlushApiCacheRequest$apiId": "<p>The API ID.</p>",
         "FunctionConfiguration$functionId": "<p>A unique ID representing the <code>Function</code> object.</p>",
         "FunctionConfiguration$functionArn": "<p>The ARN of the <code>Function</code> object.</p>",
         "FunctionConfiguration$description": "<p>The <code>Function</code> description.</p>",
         "FunctionConfiguration$functionVersion": "<p>The version of the request mapping template. Currently only the 2018-05-29 version of the template is supported.</p>",
         "FunctionsIds$member": null,
+        "GetApiCacheRequest$apiId": "<p>The API ID.</p>",
         "GetDataSourceRequest$apiId": "<p>The API ID.</p>",
         "GetFunctionRequest$apiId": "<p>The GraphQL API ID.</p>",
         "GetGraphqlApiRequest$apiId": "<p>The API ID for the GraphQL API.</p>",
@@ -751,6 +940,7 @@
         "GraphqlApi$arn": "<p>The ARN.</p>",
         "HttpDataSourceConfig$endpoint": "<p>The HTTP URL endpoint. You can either specify the domain name or IP, and port combination, and the URL scheme must be HTTP or HTTPS. If the port is not specified, AWS AppSync uses the default port 80 for the HTTP endpoint and port 443 for HTTPS endpoints.</p>",
         "InternalFailureException$message": null,
+        "LambdaConflictHandlerConfig$lambdaConflictHandlerArn": "<p>The Arn for the Lambda function to use as the Conflict Handler.</p>",
         "LambdaDataSourceConfig$lambdaFunctionArn": "<p>The ARN for the Lambda function.</p>",
         "LimitExceededException$message": null,
         "ListApiKeysRequest$apiId": "<p>The API ID.</p>",
@@ -778,6 +968,7 @@
         "Type$arn": "<p>The type ARN.</p>",
         "Type$definition": "<p>The type definition.</p>",
         "UnauthorizedException$message": null,
+        "UpdateApiCacheRequest$apiId": "<p>The GraphQL API Id.</p>",
         "UpdateApiKeyRequest$apiId": "<p>The ID for the GraphQL API.</p>",
         "UpdateApiKeyRequest$id": "<p>The API key ID.</p>",
         "UpdateApiKeyRequest$description": "<p>A description of the purpose of the API key.</p>",
@@ -795,6 +986,52 @@
         "UserPoolConfig$userPoolId": "<p>The user pool ID.</p>",
         "UserPoolConfig$awsRegion": "<p>The AWS Region in which the user pool was created.</p>",
         "UserPoolConfig$appIdClientRegex": "<p>A regular expression for validating the incoming Amazon Cognito user pool app client ID.</p>"
+      }
+    },
+    "SyncConfig": {
+      "base": "<p>Describes a Sync configuration for a resolver.</p> <p>Contains information on which Conflict Detection as well as Resolution strategy should be performed when the resolver is invoked.</p>",
+      "refs": {
+        "CreateResolverRequest$syncConfig": "<p>The <code>SyncConfig</code> for a resolver attached to a versioned datasource.</p>",
+        "Resolver$syncConfig": "<p>The <code>SyncConfig</code> for a resolver attached to a versioned datasource.</p>",
+        "UpdateResolverRequest$syncConfig": "<p>The <code>SyncConfig</code> for a resolver attached to a versioned datasource.</p>"
+      }
+    },
+    "TagKey": {
+      "base": "<p>The key for the tag.</p>",
+      "refs": {
+        "TagKeyList$member": null,
+        "TagMap$key": null
+      }
+    },
+    "TagKeyList": {
+      "base": null,
+      "refs": {
+        "UntagResourceRequest$tagKeys": "<p>A list of <code>TagKey</code> objects.</p>"
+      }
+    },
+    "TagMap": {
+      "base": "<p>A map with keys of <code>TagKey</code> objects and values of <code>TagValue</code> objects.</p>",
+      "refs": {
+        "CreateGraphqlApiRequest$tags": "<p>A <code>TagMap</code> object.</p>",
+        "GraphqlApi$tags": "<p>The tags.</p>",
+        "ListTagsForResourceResponse$tags": "<p>A <code>TagMap</code> object.</p>",
+        "TagResourceRequest$tags": "<p>A <code>TagMap</code> object.</p>"
+      }
+    },
+    "TagResourceRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "TagResourceResponse": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "TagValue": {
+      "base": "<p>The value for the tag.</p>",
+      "refs": {
+        "TagMap$value": null
       }
     },
     "Type": {
@@ -824,6 +1061,26 @@
     },
     "UnauthorizedException": {
       "base": "<p>You are not authorized to perform this operation.</p>",
+      "refs": {
+      }
+    },
+    "UntagResourceRequest": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "UntagResourceResponse": {
+      "base": null,
+      "refs": {
+      }
+    },
+    "UpdateApiCacheRequest": {
+      "base": "<p>Represents the input of a <code>UpdateApiCache</code> operation.</p>",
+      "refs": {
+      }
+    },
+    "UpdateApiCacheResponse": {
+      "base": "<p>Represents the output of a <code>UpdateApiCache</code> operation.</p>",
       "refs": {
       }
     },

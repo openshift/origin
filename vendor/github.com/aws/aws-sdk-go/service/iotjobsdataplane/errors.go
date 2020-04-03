@@ -2,6 +2,10 @@
 
 package iotjobsdataplane
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeCertificateValidationException for service response error code
@@ -51,3 +55,13 @@ const (
 	// The rate exceeds the limit.
 	ErrCodeThrottlingException = "ThrottlingException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"CertificateValidationException":  newErrorCertificateValidationException,
+	"InvalidRequestException":         newErrorInvalidRequestException,
+	"InvalidStateTransitionException": newErrorInvalidStateTransitionException,
+	"ResourceNotFoundException":       newErrorResourceNotFoundException,
+	"ServiceUnavailableException":     newErrorServiceUnavailableException,
+	"TerminalStateException":          newErrorTerminalStateException,
+	"ThrottlingException":             newErrorThrottlingException,
+}

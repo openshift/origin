@@ -16,29 +16,7 @@ import (
 // Torque represents a torque in Newton metres.
 type Torque float64
 
-const (
-	Yottanewtonmetre Torque = 1e24
-	Zettanewtonmetre Torque = 1e21
-	Exanewtonmetre   Torque = 1e18
-	Petanewtonmetre  Torque = 1e15
-	Teranewtonmetre  Torque = 1e12
-	Giganewtonmetre  Torque = 1e9
-	Meganewtonmetre  Torque = 1e6
-	Kilonewtonmetre  Torque = 1e3
-	Hectonewtonmetre Torque = 1e2
-	Decanewtonmetre  Torque = 1e1
-	Newtonmetre      Torque = 1.0
-	Decinewtonmetre  Torque = 1e-1
-	Centinewtonmetre Torque = 1e-2
-	Millinewtonmetre Torque = 1e-3
-	Micronewtonmetre Torque = 1e-6
-	Nanonewtonmetre  Torque = 1e-9
-	Piconewtonmetre  Torque = 1e-12
-	Femtonewtonmetre Torque = 1e-15
-	Attonewtonmetre  Torque = 1e-18
-	Zeptonewtonmetre Torque = 1e-21
-	Yoctonewtonmetre Torque = 1e-24
-)
+const Newtonmetre Torque = 1
 
 // Unit converts the Torque to a *Unit
 func (t Torque) Unit() *Unit {

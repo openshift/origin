@@ -40,7 +40,9 @@ func ExamplePC() {
 	// Project the data onto the first 2 principal components.
 	k := 2
 	var proj mat.Dense
-	proj.Mul(iris, pc.VectorsTo(nil).Slice(0, d, 0, k))
+	var vec mat.Dense
+	pc.VectorsTo(&vec)
+	proj.Mul(iris, vec.Slice(0, d, 0, k))
 
 	fmt.Printf("proj = %.4f", mat.Formatted(&proj, mat.Prefix("       ")))
 

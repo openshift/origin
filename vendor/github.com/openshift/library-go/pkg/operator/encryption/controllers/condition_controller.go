@@ -1,22 +1,18 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
 
-	operatorv1 "github.com/openshift/api/operator/v1"
-
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/encryption/encryptionconfig"
 	"github.com/openshift/library-go/pkg/operator/encryption/state"
 	"github.com/openshift/library-go/pkg/operator/encryption/statemachine"
@@ -24,61 +20,50 @@ import (
 	operatorv1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
-const (
-	conditionWorkKey = "key"
-)
-
 // conditionController maintains the Encrypted condition. It sets it to true iff there is a
 // fully migrated read-key in the current config, and no later key is of identity type.
 type conditionController struct {
 	operatorClient operatorv1helpers.OperatorClient
 
-	queue         workqueue.RateLimitingInterface
-	eventRecorder events.Recorder
-
-	preRunCachesSynced []cache.InformerSynced
-
-	encryptedGRs []schema.GroupResource
-
 	encryptionSecretSelector metav1.ListOptions
 
 	deployer     statemachine.Deployer
+	provider     Provider
 	secretClient corev1client.SecretsGetter
 }
 
 func NewConditionController(
+	provider Provider,
 	deployer statemachine.Deployer,
 	operatorClient operatorv1helpers.OperatorClient,
 	kubeInformersForNamespaces operatorv1helpers.KubeInformersForNamespaces,
 	secretClient corev1client.SecretsGetter,
 	encryptionSecretSelector metav1.ListOptions,
 	eventRecorder events.Recorder,
-	encryptedGRs []schema.GroupResource,
-) *conditionController {
+) factory.Controller {
 	c := &conditionController{
 		operatorClient: operatorClient,
 
-		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "EncryptionConditionController"),
-		eventRecorder: eventRecorder.WithComponentSuffix("encryption-condition-controller"),
-
-		encryptedGRs: encryptedGRs,
-
 		encryptionSecretSelector: encryptionSecretSelector,
 		deployer:                 deployer,
+		provider:                 provider,
 		secretClient:             secretClient,
 	}
 
-	c.preRunCachesSynced = setUpInformers(deployer, operatorClient, kubeInformersForNamespaces, c.eventHandler())
-
-	return c
+	return factory.New().WithInformers(
+		kubeInformersForNamespaces.InformersFor("openshift-config-managed").Core().V1().Secrets().Informer(),
+		operatorClient.Informer(),
+		deployer,
+	).ResyncEvery(time.Second).WithSync(c.sync).ToController("EncryptionConditionController", eventRecorder.WithComponentSuffix("encryption-condition-controller"))
 }
 
-func (c *conditionController) sync() error {
-	if ready, err := shouldRunEncryptionController(c.operatorClient); err != nil || !ready {
+func (c *conditionController) sync(ctx context.Context, syncContext factory.SyncContext) error {
+	if ready, err := shouldRunEncryptionController(c.operatorClient, c.provider.ShouldRunEncryptionControllers); err != nil || !ready {
 		return err // we will get re-kicked when the operator status updates
 	}
 
-	currentConfig, desiredState, foundSecrets, transitioningReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, c.encryptedGRs)
+	encryptedGRs := c.provider.EncryptedGRs()
+	currentConfig, desiredState, foundSecrets, transitioningReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, encryptedGRs)
 	if err != nil || len(transitioningReason) > 0 {
 		return err
 	}
@@ -87,7 +72,7 @@ func (c *conditionController) sync() error {
 		Type:    "Encrypted",
 		Status:  operatorv1.ConditionTrue,
 		Reason:  "EncryptionCompleted",
-		Message: fmt.Sprintf("All resources encrypted: %s", grString(c.encryptedGRs)),
+		Message: fmt.Sprintf("All resources encrypted: %s", grString(encryptedGRs)),
 	}
 	currentState, _ := encryptionconfig.ToEncryptionState(currentConfig, foundSecrets)
 
@@ -103,7 +88,7 @@ func (c *conditionController) sync() error {
 				continue
 			}
 
-			if allMigrated(c.encryptedGRs, s.WriteKey.Migrated.Resources) {
+			if allMigrated(encryptedGRs, s.WriteKey.Migrated.Resources) {
 				cond.Status = operatorv1.ConditionFalse
 				cond.Reason = "DecryptionCompleted"
 				cond.Message = "Encryption mode set to identity and everything is decrypted"
@@ -118,7 +103,7 @@ func (c *conditionController) sync() error {
 	if cond.Status == operatorv1.ConditionTrue {
 		// now that the desired state look like it won't lead to identity as write-key, test the current state
 	NextResource:
-		for _, gr := range c.encryptedGRs {
+		for _, gr := range encryptedGRs {
 			s, ok := currentState[gr]
 			if !ok {
 				cond.Status = operatorv1.ConditionFalse
@@ -128,7 +113,7 @@ func (c *conditionController) sync() error {
 			}
 
 			if s.WriteKey.Mode == state.Identity {
-				if allMigrated(c.encryptedGRs, s.WriteKey.Migrated.Resources) {
+				if allMigrated(encryptedGRs, s.WriteKey.Migrated.Resources) {
 					cond.Status = operatorv1.ConditionFalse
 					cond.Reason = "DecryptionCompleted"
 					cond.Message = "Encryption mode set to identity and everything is decrypted"
@@ -182,55 +167,6 @@ func migratedSet(grs []schema.GroupResource) sets.String {
 		migrated.Insert(gr.String())
 	}
 	return migrated
-}
-
-func (c *conditionController) Run(stopCh <-chan struct{}) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting EncryptionConditionController")
-	defer klog.Infof("Shutting down EncryptionConditionController")
-	if !cache.WaitForCacheSync(stopCh, c.preRunCachesSynced...) {
-		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
-		return
-	}
-
-	// only start one worker
-	go wait.Until(c.runWorker, time.Second, stopCh)
-
-	<-stopCh
-}
-
-func (c *conditionController) runWorker() {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *conditionController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with: %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-func (c *conditionController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(conditionWorkKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(conditionWorkKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(conditionWorkKey) },
-	}
 }
 
 func grString(grs []schema.GroupResource) string {

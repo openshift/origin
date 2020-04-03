@@ -2,6 +2,10 @@
 
 package snowball
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeClusterLimitExceededException for service response error code
@@ -71,3 +75,15 @@ const (
 	// If the issue persists, contact AWS Support.
 	ErrCodeUnsupportedAddressException = "UnsupportedAddressException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ClusterLimitExceededException":    newErrorClusterLimitExceededException,
+	"Ec2RequestFailedException":        newErrorEc2RequestFailedException,
+	"InvalidAddressException":          newErrorInvalidAddressException,
+	"InvalidInputCombinationException": newErrorInvalidInputCombinationException,
+	"InvalidJobStateException":         newErrorInvalidJobStateException,
+	"InvalidNextTokenException":        newErrorInvalidNextTokenException,
+	"InvalidResourceException":         newErrorInvalidResourceException,
+	"KMSRequestFailedException":        newErrorKMSRequestFailedException,
+	"UnsupportedAddressException":      newErrorUnsupportedAddressException,
+}

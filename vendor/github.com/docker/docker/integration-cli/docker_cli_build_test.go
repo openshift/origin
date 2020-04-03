@@ -16,7 +16,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/moby/buildkit/frontend/dockerfile/command"
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli"
 	"github.com/docker/docker/integration-cli/cli/build"
@@ -25,9 +24,11 @@ import (
 	"github.com/docker/docker/internal/test/fakestorage"
 	"github.com/docker/docker/internal/testutil"
 	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/system"
 	"github.com/go-check/check"
-	"github.com/gotestyourself/gotestyourself/icmd"
+	"github.com/moby/buildkit/frontend/dockerfile/command"
 	"github.com/opencontainers/go-digest"
+	"gotest.tools/icmd"
 )
 
 func (s *DockerSuite) TestBuildJSONEmptyRun(c *check.C) {
@@ -655,7 +656,7 @@ func (s *DockerSuite) TestBuildCopyWildcard(c *check.C) {
 			"file2.txt":                     "test2",
 			"dir/nested_file":               "nested file",
 			"dir/nested_dir/nest_nest_file": "2 times nested",
-			"dirt": "dirty",
+			"dirt":                          "dirty",
 		}))
 	defer ctx.Close()
 
@@ -1012,10 +1013,6 @@ func (s *DockerSuite) TestBuildAddBadLinksVolume(c *check.C) {
 		ADD foo.txt /x/`
 		targetFile = "foo.txt"
 	)
-	var (
-		name       = "test-link-absolute-volume"
-		dockerfile = ""
-	)
 
 	tempDir, err := ioutil.TempDir("", "test-link-absolute-volume-temp-")
 	if err != nil {
@@ -1023,7 +1020,7 @@ func (s *DockerSuite) TestBuildAddBadLinksVolume(c *check.C) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	dockerfile = fmt.Sprintf(dockerfileTemplate, tempDir)
+	dockerfile := fmt.Sprintf(dockerfileTemplate, tempDir)
 	nonExistingFile := filepath.Join(tempDir, targetFile)
 
 	ctx := fakecontext.New(c, "", fakecontext.WithDockerfile(dockerfile))
@@ -1040,7 +1037,7 @@ func (s *DockerSuite) TestBuildAddBadLinksVolume(c *check.C) {
 		c.Fatal(err)
 	}
 
-	buildImageSuccessfully(c, name, build.WithExternalBuildContext(ctx))
+	buildImageSuccessfully(c, "test-link-absolute-volume", build.WithExternalBuildContext(ctx))
 	if _, err := os.Stat(nonExistingFile); err == nil || err != nil && !os.IsNotExist(err) {
 		c.Fatalf("%s shouldn't have been written and it shouldn't exist", nonExistingFile)
 	}
@@ -1050,7 +1047,7 @@ func (s *DockerSuite) TestBuildAddBadLinksVolume(c *check.C) {
 // Issue #5270 - ensure we throw a better error than "unexpected EOF"
 // when we can't access files in the context.
 func (s *DockerSuite) TestBuildWithInaccessibleFilesInContext(c *check.C) {
-	testRequires(c, DaemonIsLinux, UnixCli, SameHostDaemon) // test uses chown/chmod: not available on windows
+	testRequires(c, DaemonIsLinux, UnixCli, testEnv.IsLocalDaemon) // test uses chown/chmod: not available on windows
 
 	{
 		name := "testbuildinaccessiblefiles"
@@ -1513,7 +1510,7 @@ func (s *DockerSuite) TestBuildPATH(c *check.C) {
 }
 
 func (s *DockerSuite) TestBuildContextCleanup(c *check.C) {
-	testRequires(c, SameHostDaemon)
+	testRequires(c, testEnv.IsLocalDaemon)
 
 	name := "testbuildcontextcleanup"
 	entries, err := ioutil.ReadDir(filepath.Join(testEnv.DaemonInfo.DockerRootDir, "tmp"))
@@ -1535,7 +1532,7 @@ func (s *DockerSuite) TestBuildContextCleanup(c *check.C) {
 }
 
 func (s *DockerSuite) TestBuildContextCleanupFailedBuild(c *check.C) {
-	testRequires(c, SameHostDaemon)
+	testRequires(c, testEnv.IsLocalDaemon)
 
 	name := "testbuildcontextcleanup"
 	entries, err := ioutil.ReadDir(filepath.Join(testEnv.DaemonInfo.DockerRootDir, "tmp"))
@@ -2534,7 +2531,7 @@ func (s *DockerSuite) TestBuildDockerignoringBadExclusion(c *check.C) {
 		build.WithFile(".dockerignore", "!\n"),
 	)).Assert(c, icmd.Expected{
 		ExitCode: 1,
-		Err:      "error checking context: 'illegal exclusion pattern: \"!\"",
+		Err:      `illegal exclusion pattern: "!"`,
 	})
 }
 
@@ -3206,7 +3203,7 @@ func (s *DockerSuite) TestBuildCmdShDashC(c *check.C) {
 	res := inspectFieldJSON(c, name, "Config.Cmd")
 	expected := `["/bin/sh","-c","echo cmd"]`
 	if testEnv.OSType == "windows" {
-		expected = `["cmd","/S","/C","echo cmd"]`
+		expected = `["cmd /S /C echo cmd"]`
 	}
 	if res != expected {
 		c.Fatalf("Expected value %s not in Config.Cmd: %s", expected, res)
@@ -3279,7 +3276,7 @@ func (s *DockerSuite) TestBuildEntrypointCanBeOverriddenByChildInspect(c *check.
 	)
 
 	if testEnv.OSType == "windows" {
-		expected = `["cmd","/S","/C","echo quux"]`
+		expected = `["cmd /S /C echo quux"]`
 	}
 
 	buildImageSuccessfully(c, name, build.WithDockerfile("FROM busybox\nENTRYPOINT /foo/bar"))
@@ -3335,9 +3332,6 @@ func (s *DockerSuite) TestBuildVerifySingleQuoteFails(c *check.C) {
 	// it should barf on it.
 	name := "testbuildsinglequotefails"
 	expectedExitCode := 2
-	if testEnv.OSType == "windows" {
-		expectedExitCode = 127
-	}
 
 	buildImageSuccessfully(c, name, build.WithDockerfile(`FROM busybox
 		CMD [ '/bin/sh', '-c', 'echo hi' ]`))
@@ -3368,8 +3362,8 @@ func (s *DockerSuite) TestBuildWithTabs(c *check.C) {
 	expected1 := `["/bin/sh","-c","echo\tone\t\ttwo"]`
 	expected2 := `["/bin/sh","-c","echo\u0009one\u0009\u0009two"]` // syntactically equivalent, and what Go 1.3 generates
 	if testEnv.OSType == "windows" {
-		expected1 = `["cmd","/S","/C","echo\tone\t\ttwo"]`
-		expected2 = `["cmd","/S","/C","echo\u0009one\u0009\u0009two"]` // syntactically equivalent, and what Go 1.3 generates
+		expected1 = `["cmd /S /C echo\tone\t\ttwo"]`
+		expected2 = `["cmd /S /C echo\u0009one\u0009\u0009two"]` // syntactically equivalent, and what Go 1.3 generates
 	}
 	if res != expected1 && res != expected2 {
 		c.Fatalf("Missing tabs.\nGot: %s\nExp: %s or %s", res, expected1, expected2)
@@ -3605,6 +3599,11 @@ func (s *DockerSuite) TestBuildSymlinkBreakout(c *check.C) {
 	name := "testbuildsymlinkbreakout"
 	tmpdir, err := ioutil.TempDir("", name)
 	c.Assert(err, check.IsNil)
+
+	// See https://github.com/moby/moby/pull/37770 for reason for next line.
+	tmpdir, err = system.GetLongPathName(tmpdir)
+	c.Assert(err, check.IsNil)
+
 	defer os.RemoveAll(tmpdir)
 	ctx := filepath.Join(tmpdir, "context")
 	if err := os.MkdirAll(ctx, 0755); err != nil {
@@ -3972,7 +3971,7 @@ func (s *DockerSuite) TestBuildEmptyStringVolume(c *check.C) {
 }
 
 func (s *DockerSuite) TestBuildContainerWithCgroupParent(c *check.C) {
-	testRequires(c, SameHostDaemon, DaemonIsLinux)
+	testRequires(c, testEnv.IsLocalDaemon, DaemonIsLinux)
 
 	cgroupParent := "test"
 	data, err := ioutil.ReadFile("/proc/self/cgroup")
@@ -5336,25 +5335,45 @@ func (s *DockerSuite) TestBuildEscapeNotBackslashWordTest(c *check.C) {
 	})
 }
 
-// #22868. Make sure shell-form CMD is marked as escaped in the config of the image
+// #22868. Make sure shell-form CMD is not marked as escaped in the config of the image,
+// but an exec-form CMD is marked.
 func (s *DockerSuite) TestBuildCmdShellArgsEscaped(c *check.C) {
 	testRequires(c, DaemonIsWindows)
-	name := "testbuildcmdshellescaped"
-	buildImageSuccessfully(c, name, build.WithDockerfile(`
+	name1 := "testbuildcmdshellescapedshellform"
+	buildImageSuccessfully(c, name1, build.WithDockerfile(`
   FROM `+minimalBaseImage()+`
   CMD "ipconfig"
   `))
-	res := inspectFieldJSON(c, name, "Config.ArgsEscaped")
+	res := inspectFieldJSON(c, name1, "Config.ArgsEscaped")
 	if res != "true" {
 		c.Fatalf("CMD did not update Config.ArgsEscaped on image: %v", res)
 	}
-	dockerCmd(c, "run", "--name", "inspectme", name)
-	dockerCmd(c, "wait", "inspectme")
-	res = inspectFieldJSON(c, name, "Config.Cmd")
+	dockerCmd(c, "run", "--name", "inspectme1", name1)
+	dockerCmd(c, "wait", "inspectme1")
+	res = inspectFieldJSON(c, name1, "Config.Cmd")
 
-	if res != `["cmd","/S","/C","\"ipconfig\""]` {
-		c.Fatalf("CMD was not escaped Config.Cmd: got %v", res)
+	if res != `["cmd /S /C \"ipconfig\""]` {
+		c.Fatalf("CMD incorrect in Config.Cmd: got %v", res)
 	}
+
+	// Now in JSON/exec-form
+	name2 := "testbuildcmdshellescapedexecform"
+	buildImageSuccessfully(c, name2, build.WithDockerfile(`
+  FROM `+minimalBaseImage()+`
+  CMD ["ipconfig"]
+  `))
+	res = inspectFieldJSON(c, name2, "Config.ArgsEscaped")
+	if res != "false" {
+		c.Fatalf("CMD set Config.ArgsEscaped on image: %v", res)
+	}
+	dockerCmd(c, "run", "--name", "inspectme2", name2)
+	dockerCmd(c, "wait", "inspectme2")
+	res = inspectFieldJSON(c, name2, "Config.Cmd")
+
+	if res != `["ipconfig"]` {
+		c.Fatalf("CMD incorrect in Config.Cmd: got %v", res)
+	}
+
 }
 
 // Test case for #24912.
@@ -6056,13 +6075,7 @@ FROM busybox
 WORKDIR /foo/bar
 `))
 	out, _ := dockerCmd(c, "inspect", "--format", "{{ json .Config.Cmd }}", image)
-
-	// The Windows busybox image has a blank `cmd`
-	lookingFor := `["sh"]`
-	if testEnv.OSType == "windows" {
-		lookingFor = "null"
-	}
-	c.Assert(strings.TrimSpace(out), checker.Equals, lookingFor)
+	c.Assert(strings.TrimSpace(out), checker.Equals, `["sh"]`)
 
 	image = "testworkdirlabelimagecmd"
 	buildImageSuccessfully(c, image, build.WithDockerfile(`
@@ -6072,7 +6085,7 @@ LABEL a=b
 `))
 
 	out, _ = dockerCmd(c, "inspect", "--format", "{{ json .Config.Cmd }}", image)
-	c.Assert(strings.TrimSpace(out), checker.Equals, lookingFor)
+	c.Assert(strings.TrimSpace(out), checker.Equals, `["sh"]`)
 }
 
 // Test case for 28902/28909
@@ -6157,7 +6170,11 @@ CMD echo foo
 `))
 
 	out, _ := dockerCmd(c, "inspect", "--format", "{{ json .Config.Cmd }}", "build2")
-	c.Assert(strings.TrimSpace(out), checker.Equals, `["/bin/sh","-c","echo foo"]`)
+	expected := `["/bin/sh","-c","echo foo"]`
+	if testEnv.OSType == "windows" {
+		expected = `["/bin/sh -c echo foo"]`
+	}
+	c.Assert(strings.TrimSpace(out), checker.Equals, expected)
 }
 
 // FIXME(vdemeester) should migrate to docker/cli tests

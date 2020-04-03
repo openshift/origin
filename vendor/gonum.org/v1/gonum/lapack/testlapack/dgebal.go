@@ -151,7 +151,7 @@ func testDgebal(t *testing.T, impl Dgebaler, job lapack.BalanceJob, a blas64.Gen
 			blas64.Swap(blas64.Vector{N: n, Data: p.Data[j:], Inc: p.Stride},
 				blas64.Vector{N: n, Data: p.Data[int(scale[j]):], Inc: p.Stride})
 		}
-		// Compute P^T*A*P and store into want.
+		// Compute Pᵀ*A*P and store into want.
 		ap := zeros(n, n, n)
 		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, want, p, 0, ap)
 		blas64.Gemm(blas.Trans, blas.NoTrans, 1, p, ap, 0, want)

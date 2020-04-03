@@ -27,7 +27,9 @@ func TestInteg_00_ListPolicies(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := iot.New(sess)
 	params := &iot.ListPoliciesInput{}
-	_, err := svc.ListPoliciesWithContext(ctx, params)
+	_, err := svc.ListPoliciesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeThing(t *testing.T) {
 	params := &iot.DescribeThingInput{
 		ThingName: aws.String("fake-thing"),
 	}
-	_, err := svc.DescribeThingWithContext(ctx, params)
+	_, err := svc.DescribeThingWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

@@ -356,6 +356,10 @@ type GreengrassAPI interface {
 	ListSubscriptionDefinitionsWithContext(aws.Context, *greengrass.ListSubscriptionDefinitionsInput, ...request.Option) (*greengrass.ListSubscriptionDefinitionsOutput, error)
 	ListSubscriptionDefinitionsRequest(*greengrass.ListSubscriptionDefinitionsInput) (*request.Request, *greengrass.ListSubscriptionDefinitionsOutput)
 
+	ListTagsForResource(*greengrass.ListTagsForResourceInput) (*greengrass.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *greengrass.ListTagsForResourceInput, ...request.Option) (*greengrass.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*greengrass.ListTagsForResourceInput) (*request.Request, *greengrass.ListTagsForResourceOutput)
+
 	ResetDeployments(*greengrass.ResetDeploymentsInput) (*greengrass.ResetDeploymentsOutput, error)
 	ResetDeploymentsWithContext(aws.Context, *greengrass.ResetDeploymentsInput, ...request.Option) (*greengrass.ResetDeploymentsOutput, error)
 	ResetDeploymentsRequest(*greengrass.ResetDeploymentsInput) (*request.Request, *greengrass.ResetDeploymentsOutput)
@@ -367,6 +371,14 @@ type GreengrassAPI interface {
 	StopBulkDeployment(*greengrass.StopBulkDeploymentInput) (*greengrass.StopBulkDeploymentOutput, error)
 	StopBulkDeploymentWithContext(aws.Context, *greengrass.StopBulkDeploymentInput, ...request.Option) (*greengrass.StopBulkDeploymentOutput, error)
 	StopBulkDeploymentRequest(*greengrass.StopBulkDeploymentInput) (*request.Request, *greengrass.StopBulkDeploymentOutput)
+
+	TagResource(*greengrass.TagResourceInput) (*greengrass.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *greengrass.TagResourceInput, ...request.Option) (*greengrass.TagResourceOutput, error)
+	TagResourceRequest(*greengrass.TagResourceInput) (*request.Request, *greengrass.TagResourceOutput)
+
+	UntagResource(*greengrass.UntagResourceInput) (*greengrass.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *greengrass.UntagResourceInput, ...request.Option) (*greengrass.UntagResourceOutput, error)
+	UntagResourceRequest(*greengrass.UntagResourceInput) (*request.Request, *greengrass.UntagResourceOutput)
 
 	UpdateConnectivityInfo(*greengrass.UpdateConnectivityInfoInput) (*greengrass.UpdateConnectivityInfoOutput, error)
 	UpdateConnectivityInfoWithContext(aws.Context, *greengrass.UpdateConnectivityInfoInput, ...request.Option) (*greengrass.UpdateConnectivityInfoOutput, error)

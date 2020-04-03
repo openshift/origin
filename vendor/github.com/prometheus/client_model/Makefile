@@ -13,50 +13,16 @@
 
 KEY_ID ?= _DEFINE_ME_
 
-all: cpp go java python ruby
+all: go
 
 SUFFIXES:
-
-cpp: cpp/metrics.pb.cc cpp/metrics.pb.h
-
-cpp/metrics.pb.cc: metrics.proto
-	protoc $< --cpp_out=cpp/
-
-cpp/metrics.pb.h: metrics.proto
-	protoc $< --cpp_out=cpp/
 
 go: go/metrics.pb.go
 
 go/metrics.pb.go: metrics.proto
 	protoc $< --go_out=import_path=github.com/prometheus/client_model/,paths=source_relative:go/
 
-java: src/main/java/io/prometheus/client/Metrics.java pom.xml
-	mvn clean compile package
-
-src/main/java/io/prometheus/client/Metrics.java: metrics.proto
-	protoc $< --java_out=src/main/java
-
-python: python/prometheus/client/model/metrics_pb2.py
-
-python/prometheus/client/model/metrics_pb2.py: metrics.proto
-	mkdir -p python/prometheus/client/model
-	protoc $< --python_out=python/prometheus/client/model
-
-ruby:
-	$(MAKE) -C ruby build
-
 clean:
-	-rm -rf cpp/*
 	-rm -rf go/*
-	-rm -rf java/*
-	-rm -rf python/*
-	-$(MAKE) -C ruby clean
-	-mvn clean
 
-maven-deploy-snapshot: java
-	mvn clean deploy -Dgpg.keyname=$(KEY_ID) -DperformRelease=true
-
-maven-deploy-release: java
-	mvn clean release:clean release:prepare release:perform -Dgpg.keyname=$(KEY_ID) -DperformRelease=true
-
-.PHONY: all clean cpp go java maven-deploy-snapshot maven-deploy-release python ruby
+.PHONY: all clean go

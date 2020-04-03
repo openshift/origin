@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	routev1 "github.com/openshift/api/route/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -23,7 +25,7 @@ var routesResource = schema.GroupVersionResource{Group: "route.openshift.io", Ve
 var routesKind = schema.GroupVersionKind{Group: "route.openshift.io", Version: "v1", Kind: "Route"}
 
 // Get takes name of the route, and returns the corresponding route object, and an error if there is any.
-func (c *FakeRoutes) Get(name string, options v1.GetOptions) (result *routev1.Route, err error) {
+func (c *FakeRoutes) Get(ctx context.Context, name string, options v1.GetOptions) (result *routev1.Route, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(routesResource, c.ns, name), &routev1.Route{})
 
@@ -34,7 +36,7 @@ func (c *FakeRoutes) Get(name string, options v1.GetOptions) (result *routev1.Ro
 }
 
 // List takes label and field selectors, and returns the list of Routes that match those selectors.
-func (c *FakeRoutes) List(opts v1.ListOptions) (result *routev1.RouteList, err error) {
+func (c *FakeRoutes) List(ctx context.Context, opts v1.ListOptions) (result *routev1.RouteList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(routesResource, routesKind, c.ns, opts), &routev1.RouteList{})
 
@@ -56,14 +58,14 @@ func (c *FakeRoutes) List(opts v1.ListOptions) (result *routev1.RouteList, err e
 }
 
 // Watch returns a watch.Interface that watches the requested routes.
-func (c *FakeRoutes) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeRoutes) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(routesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a route and creates it.  Returns the server's representation of the route, and an error, if there is any.
-func (c *FakeRoutes) Create(route *routev1.Route) (result *routev1.Route, err error) {
+func (c *FakeRoutes) Create(ctx context.Context, route *routev1.Route, opts v1.CreateOptions) (result *routev1.Route, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(routesResource, c.ns, route), &routev1.Route{})
 
@@ -74,7 +76,7 @@ func (c *FakeRoutes) Create(route *routev1.Route) (result *routev1.Route, err er
 }
 
 // Update takes the representation of a route and updates it. Returns the server's representation of the route, and an error, if there is any.
-func (c *FakeRoutes) Update(route *routev1.Route) (result *routev1.Route, err error) {
+func (c *FakeRoutes) Update(ctx context.Context, route *routev1.Route, opts v1.UpdateOptions) (result *routev1.Route, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(routesResource, c.ns, route), &routev1.Route{})
 
@@ -86,7 +88,7 @@ func (c *FakeRoutes) Update(route *routev1.Route) (result *routev1.Route, err er
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeRoutes) UpdateStatus(route *routev1.Route) (*routev1.Route, error) {
+func (c *FakeRoutes) UpdateStatus(ctx context.Context, route *routev1.Route, opts v1.UpdateOptions) (*routev1.Route, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(routesResource, "status", c.ns, route), &routev1.Route{})
 
@@ -97,7 +99,7 @@ func (c *FakeRoutes) UpdateStatus(route *routev1.Route) (*routev1.Route, error) 
 }
 
 // Delete takes name of the route and deletes it. Returns an error if one occurs.
-func (c *FakeRoutes) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeRoutes) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(routesResource, c.ns, name), &routev1.Route{})
 
@@ -105,15 +107,15 @@ func (c *FakeRoutes) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeRoutes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(routesResource, c.ns, listOptions)
+func (c *FakeRoutes) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(routesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &routev1.RouteList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched route.
-func (c *FakeRoutes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *routev1.Route, err error) {
+func (c *FakeRoutes) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *routev1.Route, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(routesResource, c.ns, name, pt, data, subresources...), &routev1.Route{})
 

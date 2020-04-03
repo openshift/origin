@@ -20,14 +20,14 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 				return
 			default:
 			}
-			events, err := client.CoreV1().Events("").List(metav1.ListOptions{Limit: 1})
+			events, err := client.CoreV1().Events("").List(ctx, metav1.ListOptions{Limit: 1})
 			if err != nil {
 				continue
 			}
 			rv := events.ResourceVersion
 
 			for expired := false; !expired; {
-				w, err := client.CoreV1().Events("").Watch(metav1.ListOptions{ResourceVersion: rv})
+				w, err := client.CoreV1().Events("").Watch(ctx, metav1.ListOptions{ResourceVersion: rv})
 				if err != nil {
 					if errors.IsResourceExpired(err) {
 						break

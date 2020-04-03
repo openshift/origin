@@ -1,0 +1,55 @@
+name: Build
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: "0 0 * * 4"
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        go_version:
+          - 1.13
+          - 1.14
+        os:
+          - macos
+          - ubuntu
+          - windows
+        goarch:
+          - 386
+          - amd64
+        exclude:
+          - os: macos
+            goarch: 386
+
+    name: test (${{ matrix.os }}/go-${{ matrix.go_version }}/${{ matrix.goarch }})
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - uses: actions/setup-go@master
+        id: go
+        with:
+          stable: false
+          go-version: ${{ matrix.go_version }}
+
+      - uses: actions/checkout@master
+
+      - run: go mod download
+
+      - run: make lint
+        env:
+          GOFLAGS: -mod=readonly
+
+      - run: make gotest
+        env:
+          GOARCH: ${{ matrix.goarch }}
+          GOPROXY: off
+
+      - run: make integration
+        if: matrix.os != 'macos' && matrix.goarch == 'amd64'
+        env:
+          GOFLAGS: -mod=readonly

@@ -229,7 +229,7 @@ func zkscltest(t *testing.T, x []float64, is []int, tol float64, n int, yr, yi [
 	yiamos := make([]float64, len(yi))
 	copy(yiamos, yi)
 	ZRRamos, ZRIamos, FNUamos, Namos, YRamos, YIamos, NZamos, RZRamos, RZIamos, ASCLEamos, TOLamos, ELIMamos :=
-		Zkscl(ZRR, ZRI, FNU, n, yramos, yiamos, NZ, RZR, RZI, ASCLE, tol, ELIM)
+		Zkscl(ZRR, ZRI, FNU, n, yramos, yiamos, RZR, RZI, ASCLE, tol, ELIM)
 
 	sameF64(t, "zkscl zrr", ZRRfort, ZRRamos)
 	sameF64(t, "zkscl zri", ZRIfort, ZRIamos)
@@ -265,7 +265,7 @@ func zmlritest(t *testing.T, x []float64, is []int, tol float64, n int, yr, yi [
 	yiamos := make([]float64, len(yi))
 	copy(yiamos, yi)
 	ZRamos, ZIamos, FNUamos, KODEamos, Namos, YRamos, YIamos, NZamos, TOLamos :=
-		Zmlri(ZR, ZI, FNU, KODE, n, yramos, yiamos, NZ, tol)
+		Zmlri(ZR, ZI, FNU, KODE, n, yramos, yiamos, tol)
 
 	sameF64(t, "zmlri zr", ZRfort, ZRamos)
 	sameF64(t, "zmlri zi", ZIfort, ZIamos)
@@ -358,7 +358,7 @@ func zasyitest(t *testing.T, x []float64, is []int, tol float64, n int, yr, yi [
 	yiamos := make([]float64, len(yi))
 	copy(yiamos, yi)
 	ZRamos, ZIamos, FNUamos, KODEamos, Namos, YRamos, YIamos, NZamos, RLamos, TOLamos, ELIMamos, ALIMamos :=
-		Zasyi(ZR, ZI, FNU, KODE, n, yramos, yiamos, NZ, RL, tol, ELIM, ALIM)
+		Zasyi(ZR, ZI, FNU, KODE, n, yramos, yiamos, RL, tol, ELIM, ALIM)
 
 	sameF64(t, "zasyi zr", ZRfort, ZRamos)
 	sameF64(t, "zasyi zr", ZIfort, ZIamos)
@@ -396,7 +396,7 @@ func zbknutest(t *testing.T, x []float64, is []int, tol float64, n int, yr, yi [
 	yiamos := make([]float64, len(yi))
 	copy(yiamos, yi)
 	ZRamos, ZIamos, FNUamos, KODEamos, Namos, YRamos, YIamos, NZamos, TOLamos, ELIMamos, ALIMamos :=
-		Zbknu(ZR, ZI, FNU, KODE, n, yramos, yiamos, NZ, tol, ELIM, ALIM)
+		Zbknu(ZR, ZI, FNU, KODE, n, yramos, yiamos, tol, ELIM, ALIM)
 
 	sameF64(t, "zbknu zr", ZRfort, ZRamos)
 	sameF64(t, "zbknu zr", ZIfort, ZIamos)
@@ -418,12 +418,13 @@ func zairytest(t *testing.T, x []float64, kode, id int) {
 	KODE := kode
 	ID := id
 
-	AIRfort, AIIfort, NZfort := zairyOrig(ZR, ZI, ID, KODE)
-	AIRamos, AIIamos, NZamos := Zairy(ZR, ZI, ID, KODE)
+	AIRfort, AIIfort, NZfort, IERRfort := zairyOrig(ZR, ZI, ID, KODE)
+	AIRamos, AIIamos, NZamos, IERRamos := Zairy(ZR, ZI, ID, KODE)
 
 	sameF64Approx(t, "zairy air", AIRfort, AIRamos, 1e-12)
 	sameF64Approx(t, "zairy aii", AIIfort, AIIamos, 1e-12)
 	sameInt(t, "zairy nz", NZfort, NZamos)
+	sameInt(t, "zairy ierr", IERRfort, IERRamos)
 }
 
 func zacaitest(t *testing.T, x []float64, is []int, tol float64, n int, yr, yi []float64, kode int) {
@@ -449,7 +450,7 @@ func zacaitest(t *testing.T, x []float64, is []int, tol float64, n int, yr, yi [
 	yiamos := make([]float64, len(yi))
 	copy(yiamos, yi)
 	ZRamos, ZIamos, FNUamos, KODEamos, MRamos, Namos, YRamos, YIamos, NZamos, RLamos, TOLamos, ELIMamos, ALIMamos :=
-		Zacai(ZR, ZI, FNU, KODE, MR, n, yramos, yiamos, NZ, RL, tol, ELIM, ALIM)
+		Zacai(ZR, ZI, FNU, KODE, MR, n, yramos, yiamos, RL, tol, ELIM, ALIM)
 
 	sameF64(t, "zacai zr", ZRfort, ZRamos)
 	sameF64(t, "zacai zi", ZIfort, ZIamos)

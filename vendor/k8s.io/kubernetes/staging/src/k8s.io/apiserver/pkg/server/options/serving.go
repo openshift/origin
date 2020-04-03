@@ -143,13 +143,13 @@ func (s *SecureServingOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.IPVar(&s.BindAddress, "bind-address", s.BindAddress, ""+
 		"The IP address on which to listen for the --secure-port port. The "+
 		"associated interface(s) must be reachable by the rest of the cluster, and by CLI/web "+
-		"clients. If blank, all interfaces will be used (0.0.0.0 for all IPv4 interfaces and :: for all IPv6 interfaces).")
+		"clients. If blank or an unspecified address (0.0.0.0 or ::), all interfaces will be used.")
 
 	desc := "The port on which to serve HTTPS with authentication and authorization."
 	if s.Required {
-		desc += "It cannot be switched off with 0."
+		desc += " It cannot be switched off with 0."
 	} else {
-		desc += "If 0, don't serve HTTPS at all."
+		desc += " If 0, don't serve HTTPS at all."
 	}
 	fs.IntVar(&s.BindPort, "secure-port", s.BindPort, desc)
 
@@ -289,8 +289,7 @@ func (s *SecureServingOptions) MaybeDefaultWithSelfSignedCerts(publicAddress str
 
 	if !canReadCertAndKey {
 		// add either the bind address or localhost to the valid alternates
-		bindIP := s.BindAddress.String()
-		if bindIP == "0.0.0.0" {
+		if s.BindAddress.IsUnspecified() {
 			alternateDNS = append(alternateDNS, "localhost")
 		} else {
 			alternateIPs = append(alternateIPs, s.BindAddress)

@@ -44,8 +44,8 @@ http_archive(
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "a391df56b95d4721004b10cd3fcc63ad4cc8fb2ce165453d1b78ce59162afe29",
-    urls = mirror("https://github.com/bazelbuild/rules_go/releases/download/v0.19.9/rules_go-v0.19.9.tar.gz"),
+    sha256 = "62bedd372f125fe62c16c0cc2ad9d7a2b6a1171d639933a5651a729fdce497fc",
+    urls = mirror("https://github.com/bazelbuild/rules_go/releases/download/v0.20.7/rules_go-v0.20.7.tar.gz"),
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
@@ -53,7 +53,7 @@ load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_depe
 go_rules_dependencies()
 
 go_register_toolchains(
-    go_version = "1.13.5",
+    go_version = "1.13.8",
 )
 
 http_archive(
@@ -73,11 +73,11 @@ container_repositories()
 load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 
 container_pull(
-    name = "debian_jessie",
-    digest = "sha256:e25703ee6ab5b2fac31510323d959cdae31eebdf48e88891c549e55b25ad7e94",
-    registry = "index.docker.io",
-    repository = "library/debian",
-    tag = "jessie",  # ignored when digest provided, but kept here for documentation.
+    name = "distroless_base",
+    digest = "sha256:7fa7445dfbebae4f4b7ab0e6ef99276e96075ae42584af6286ba080750d6dfe5",
+    registry = "gcr.io",
+    repository = "distroless/base",
+    tag = "latest",  # ignored when digest provided, but kept here for documentation.
 )
 
 load("//build:workspace.bzl", "release_dependencies")

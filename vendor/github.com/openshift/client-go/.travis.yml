@@ -1,7 +1,7 @@
 language: go
 
 go:
-  - "1.11"
+  - "1.13"
 
 script:
   - make verify build build-examples

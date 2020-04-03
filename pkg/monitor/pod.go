@@ -17,7 +17,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 	podInformer := cache.NewSharedIndexInformer(
 		NewErrorRecordingListWatcher(m, &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				items, err := client.CoreV1().Pods("").List(options)
+				items, err := client.CoreV1().Pods("").List(ctx, options)
 				if err == nil {
 					last := 0
 					for i := range items.Items {
@@ -35,7 +35,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				return items, err
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				w, err := client.CoreV1().Pods("").Watch(options)
+				w, err := client.CoreV1().Pods("").Watch(ctx, options)
 				if err == nil {
 					w = watch.Filter(w, func(in watch.Event) (watch.Event, bool) {
 						return in, filterToSystemNamespaces(in.Object)

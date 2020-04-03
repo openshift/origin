@@ -74,11 +74,11 @@ func (c *XRay) BatchGetTracesRequest(input *BatchGetTracesInput) (req *request.R
 // See the AWS API reference guide for AWS X-Ray's
 // API operation BatchGetTraces for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/BatchGetTraces
@@ -114,7 +114,7 @@ func (c *XRay) BatchGetTracesWithContext(ctx aws.Context, input *BatchGetTracesI
 //    // Example iterating over at most 3 pages of a BatchGetTraces operation.
 //    pageNum := 0
 //    err := client.BatchGetTracesPages(params,
-//        func(page *BatchGetTracesOutput, lastPage bool) bool {
+//        func(page *xray.BatchGetTracesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -146,10 +146,12 @@ func (c *XRay) BatchGetTracesPagesWithContext(ctx aws.Context, input *BatchGetTr
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*BatchGetTracesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*BatchGetTracesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -206,11 +208,11 @@ func (c *XRay) CreateGroupRequest(input *CreateGroupInput) (req *request.Request
 // See the AWS API reference guide for AWS X-Ray's
 // API operation CreateGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/CreateGroup
@@ -294,14 +296,14 @@ func (c *XRay) CreateSamplingRuleRequest(input *CreateSamplingRuleInput) (req *r
 // See the AWS API reference guide for AWS X-Ray's
 // API operation CreateSamplingRule for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
-//   * ErrCodeRuleLimitExceededException "RuleLimitExceededException"
+//   * RuleLimitExceededException
 //   You have reached the maximum number of sampling rules.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/CreateSamplingRule
@@ -380,11 +382,11 @@ func (c *XRay) DeleteGroupRequest(input *DeleteGroupInput) (req *request.Request
 // See the AWS API reference guide for AWS X-Ray's
 // API operation DeleteGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/DeleteGroup
@@ -462,11 +464,11 @@ func (c *XRay) DeleteSamplingRuleRequest(input *DeleteSamplingRuleInput) (req *r
 // See the AWS API reference guide for AWS X-Ray's
 // API operation DeleteSamplingRule for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/DeleteSamplingRule
@@ -544,11 +546,11 @@ func (c *XRay) GetEncryptionConfigRequest(input *GetEncryptionConfigInput) (req 
 // See the AWS API reference guide for AWS X-Ray's
 // API operation GetEncryptionConfig for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetEncryptionConfig
@@ -626,11 +628,11 @@ func (c *XRay) GetGroupRequest(input *GetGroupInput) (req *request.Request, outp
 // See the AWS API reference guide for AWS X-Ray's
 // API operation GetGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetGroup
@@ -686,6 +688,12 @@ func (c *XRay) GetGroupsRequest(input *GetGroupsInput) (req *request.Request, ou
 		Name:       opGetGroups,
 		HTTPMethod: "POST",
 		HTTPPath:   "/Groups",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -708,11 +716,11 @@ func (c *XRay) GetGroupsRequest(input *GetGroupsInput) (req *request.Request, ou
 // See the AWS API reference guide for AWS X-Ray's
 // API operation GetGroups for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetGroups
@@ -735,6 +743,58 @@ func (c *XRay) GetGroupsWithContext(ctx aws.Context, input *GetGroupsInput, opts
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+// GetGroupsPages iterates over the pages of a GetGroups operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetGroups method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetGroups operation.
+//    pageNum := 0
+//    err := client.GetGroupsPages(params,
+//        func(page *xray.GetGroupsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *XRay) GetGroupsPages(input *GetGroupsInput, fn func(*GetGroupsOutput, bool) bool) error {
+	return c.GetGroupsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetGroupsPagesWithContext same as GetGroupsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *XRay) GetGroupsPagesWithContext(ctx aws.Context, input *GetGroupsInput, fn func(*GetGroupsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetGroupsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetGroupsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetGroupsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
 }
 
 const opGetSamplingRules = "GetSamplingRules"
@@ -768,6 +828,12 @@ func (c *XRay) GetSamplingRulesRequest(input *GetSamplingRulesInput) (req *reque
 		Name:       opGetSamplingRules,
 		HTTPMethod: "POST",
 		HTTPPath:   "/GetSamplingRules",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -790,11 +856,11 @@ func (c *XRay) GetSamplingRulesRequest(input *GetSamplingRulesInput) (req *reque
 // See the AWS API reference guide for AWS X-Ray's
 // API operation GetSamplingRules for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetSamplingRules
@@ -817,6 +883,58 @@ func (c *XRay) GetSamplingRulesWithContext(ctx aws.Context, input *GetSamplingRu
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+// GetSamplingRulesPages iterates over the pages of a GetSamplingRules operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetSamplingRules method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetSamplingRules operation.
+//    pageNum := 0
+//    err := client.GetSamplingRulesPages(params,
+//        func(page *xray.GetSamplingRulesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *XRay) GetSamplingRulesPages(input *GetSamplingRulesInput, fn func(*GetSamplingRulesOutput, bool) bool) error {
+	return c.GetSamplingRulesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetSamplingRulesPagesWithContext same as GetSamplingRulesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *XRay) GetSamplingRulesPagesWithContext(ctx aws.Context, input *GetSamplingRulesInput, fn func(*GetSamplingRulesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetSamplingRulesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetSamplingRulesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetSamplingRulesOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
 }
 
 const opGetSamplingStatisticSummaries = "GetSamplingStatisticSummaries"
@@ -850,6 +968,12 @@ func (c *XRay) GetSamplingStatisticSummariesRequest(input *GetSamplingStatisticS
 		Name:       opGetSamplingStatisticSummaries,
 		HTTPMethod: "POST",
 		HTTPPath:   "/SamplingStatisticSummaries",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -872,11 +996,11 @@ func (c *XRay) GetSamplingStatisticSummariesRequest(input *GetSamplingStatisticS
 // See the AWS API reference guide for AWS X-Ray's
 // API operation GetSamplingStatisticSummaries for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetSamplingStatisticSummaries
@@ -899,6 +1023,58 @@ func (c *XRay) GetSamplingStatisticSummariesWithContext(ctx aws.Context, input *
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+// GetSamplingStatisticSummariesPages iterates over the pages of a GetSamplingStatisticSummaries operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetSamplingStatisticSummaries method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetSamplingStatisticSummaries operation.
+//    pageNum := 0
+//    err := client.GetSamplingStatisticSummariesPages(params,
+//        func(page *xray.GetSamplingStatisticSummariesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *XRay) GetSamplingStatisticSummariesPages(input *GetSamplingStatisticSummariesInput, fn func(*GetSamplingStatisticSummariesOutput, bool) bool) error {
+	return c.GetSamplingStatisticSummariesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetSamplingStatisticSummariesPagesWithContext same as GetSamplingStatisticSummariesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *XRay) GetSamplingStatisticSummariesPagesWithContext(ctx aws.Context, input *GetSamplingStatisticSummariesInput, fn func(*GetSamplingStatisticSummariesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetSamplingStatisticSummariesInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetSamplingStatisticSummariesRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetSamplingStatisticSummariesOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
 }
 
 const opGetSamplingTargets = "GetSamplingTargets"
@@ -954,11 +1130,11 @@ func (c *XRay) GetSamplingTargetsRequest(input *GetSamplingTargetsInput) (req *r
 // See the AWS API reference guide for AWS X-Ray's
 // API operation GetSamplingTargets for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetSamplingTargets
@@ -1036,8 +1212,9 @@ func (c *XRay) GetServiceGraphRequest(input *GetServiceGraphInput) (req *request
 // Retrieves a document that describes services that process incoming requests,
 // and downstream services that they call as a result. Root services process
 // incoming requests and make calls to downstream services. Root services are
-// applications that use the AWS X-Ray SDK. Downstream services can be other
-// applications, AWS resources, HTTP web APIs, or SQL databases.
+// applications that use the AWS X-Ray SDK (https://docs.aws.amazon.com/xray/index.html).
+// Downstream services can be other applications, AWS resources, HTTP web APIs,
+// or SQL databases.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1046,11 +1223,11 @@ func (c *XRay) GetServiceGraphRequest(input *GetServiceGraphInput) (req *request
 // See the AWS API reference guide for AWS X-Ray's
 // API operation GetServiceGraph for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetServiceGraph
@@ -1086,7 +1263,7 @@ func (c *XRay) GetServiceGraphWithContext(ctx aws.Context, input *GetServiceGrap
 //    // Example iterating over at most 3 pages of a GetServiceGraph operation.
 //    pageNum := 0
 //    err := client.GetServiceGraphPages(params,
-//        func(page *GetServiceGraphOutput, lastPage bool) bool {
+//        func(page *xray.GetServiceGraphOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1118,10 +1295,152 @@ func (c *XRay) GetServiceGraphPagesWithContext(ctx aws.Context, input *GetServic
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*GetServiceGraphOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*GetServiceGraphOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
+	return p.Err()
+}
+
+const opGetTimeSeriesServiceStatistics = "GetTimeSeriesServiceStatistics"
+
+// GetTimeSeriesServiceStatisticsRequest generates a "aws/request.Request" representing the
+// client's request for the GetTimeSeriesServiceStatistics operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetTimeSeriesServiceStatistics for more information on using the GetTimeSeriesServiceStatistics
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetTimeSeriesServiceStatisticsRequest method.
+//    req, resp := client.GetTimeSeriesServiceStatisticsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetTimeSeriesServiceStatistics
+func (c *XRay) GetTimeSeriesServiceStatisticsRequest(input *GetTimeSeriesServiceStatisticsInput) (req *request.Request, output *GetTimeSeriesServiceStatisticsOutput) {
+	op := &request.Operation{
+		Name:       opGetTimeSeriesServiceStatistics,
+		HTTPMethod: "POST",
+		HTTPPath:   "/TimeSeriesServiceStatistics",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetTimeSeriesServiceStatisticsInput{}
+	}
+
+	output = &GetTimeSeriesServiceStatisticsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetTimeSeriesServiceStatistics API operation for AWS X-Ray.
+//
+// Get an aggregation of service statistics defined by a specific time range.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS X-Ray's
+// API operation GetTimeSeriesServiceStatistics for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is missing required parameters or has invalid parameters.
+//
+//   * ThrottledException
+//   The request exceeds the maximum number of requests per second.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetTimeSeriesServiceStatistics
+func (c *XRay) GetTimeSeriesServiceStatistics(input *GetTimeSeriesServiceStatisticsInput) (*GetTimeSeriesServiceStatisticsOutput, error) {
+	req, out := c.GetTimeSeriesServiceStatisticsRequest(input)
+	return out, req.Send()
+}
+
+// GetTimeSeriesServiceStatisticsWithContext is the same as GetTimeSeriesServiceStatistics with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetTimeSeriesServiceStatistics for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *XRay) GetTimeSeriesServiceStatisticsWithContext(ctx aws.Context, input *GetTimeSeriesServiceStatisticsInput, opts ...request.Option) (*GetTimeSeriesServiceStatisticsOutput, error) {
+	req, out := c.GetTimeSeriesServiceStatisticsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetTimeSeriesServiceStatisticsPages iterates over the pages of a GetTimeSeriesServiceStatistics operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetTimeSeriesServiceStatistics method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetTimeSeriesServiceStatistics operation.
+//    pageNum := 0
+//    err := client.GetTimeSeriesServiceStatisticsPages(params,
+//        func(page *xray.GetTimeSeriesServiceStatisticsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *XRay) GetTimeSeriesServiceStatisticsPages(input *GetTimeSeriesServiceStatisticsInput, fn func(*GetTimeSeriesServiceStatisticsOutput, bool) bool) error {
+	return c.GetTimeSeriesServiceStatisticsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetTimeSeriesServiceStatisticsPagesWithContext same as GetTimeSeriesServiceStatisticsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *XRay) GetTimeSeriesServiceStatisticsPagesWithContext(ctx aws.Context, input *GetTimeSeriesServiceStatisticsInput, fn func(*GetTimeSeriesServiceStatisticsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetTimeSeriesServiceStatisticsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetTimeSeriesServiceStatisticsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetTimeSeriesServiceStatisticsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
 	return p.Err()
 }
 
@@ -1184,11 +1503,11 @@ func (c *XRay) GetTraceGraphRequest(input *GetTraceGraphInput) (req *request.Req
 // See the AWS API reference guide for AWS X-Ray's
 // API operation GetTraceGraph for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetTraceGraph
@@ -1224,7 +1543,7 @@ func (c *XRay) GetTraceGraphWithContext(ctx aws.Context, input *GetTraceGraphInp
 //    // Example iterating over at most 3 pages of a GetTraceGraph operation.
 //    pageNum := 0
 //    err := client.GetTraceGraphPages(params,
-//        func(page *GetTraceGraphOutput, lastPage bool) bool {
+//        func(page *xray.GetTraceGraphOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1256,10 +1575,12 @@ func (c *XRay) GetTraceGraphPagesWithContext(ctx aws.Context, input *GetTraceGra
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*GetTraceGraphOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*GetTraceGraphOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1313,7 +1634,7 @@ func (c *XRay) GetTraceSummariesRequest(input *GetTraceSummariesInput) (req *req
 
 // GetTraceSummaries API operation for AWS X-Ray.
 //
-// Retrieves IDs and metadata for traces available for a specified time frame
+// Retrieves IDs and annotations for traces available for a specified time frame
 // using an optional filter. To get the full traces, pass the trace IDs to BatchGetTraces.
 //
 // A filter expression can target traced requests that hit specific service
@@ -1328,7 +1649,7 @@ func (c *XRay) GetTraceSummariesRequest(input *GetTraceSummariesInput) (req *req
 // annotation.account = "12345"
 //
 // For a full list of indexed fields and keywords that you can use in filter
-// expressions, see Using Filter Expressions (http://docs.aws.amazon.com/xray/latest/devguide/xray-console-filters.html)
+// expressions, see Using Filter Expressions (https://docs.aws.amazon.com/xray/latest/devguide/xray-console-filters.html)
 // in the AWS X-Ray Developer Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1338,11 +1659,11 @@ func (c *XRay) GetTraceSummariesRequest(input *GetTraceSummariesInput) (req *req
 // See the AWS API reference guide for AWS X-Ray's
 // API operation GetTraceSummaries for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/GetTraceSummaries
@@ -1378,7 +1699,7 @@ func (c *XRay) GetTraceSummariesWithContext(ctx aws.Context, input *GetTraceSumm
 //    // Example iterating over at most 3 pages of a GetTraceSummaries operation.
 //    pageNum := 0
 //    err := client.GetTraceSummariesPages(params,
-//        func(page *GetTraceSummariesOutput, lastPage bool) bool {
+//        func(page *xray.GetTraceSummariesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1410,10 +1731,12 @@ func (c *XRay) GetTraceSummariesPagesWithContext(ctx aws.Context, input *GetTrac
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*GetTraceSummariesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*GetTraceSummariesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1470,11 +1793,11 @@ func (c *XRay) PutEncryptionConfigRequest(input *PutEncryptionConfigInput) (req 
 // See the AWS API reference guide for AWS X-Ray's
 // API operation PutEncryptionConfig for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/PutEncryptionConfig
@@ -1553,11 +1876,11 @@ func (c *XRay) PutTelemetryRecordsRequest(input *PutTelemetryRecordsInput) (req 
 // See the AWS API reference guide for AWS X-Ray's
 // API operation PutTelemetryRecords for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/PutTelemetryRecords
@@ -1626,10 +1949,10 @@ func (c *XRay) PutTraceSegmentsRequest(input *PutTraceSegmentsInput) (req *reque
 
 // PutTraceSegments API operation for AWS X-Ray.
 //
-// Uploads segment documents to AWS X-Ray. The X-Ray SDK generates segment documents
-// and sends them to the X-Ray daemon, which uploads them in batches. A segment
-// document can be a completed segment, an in-progress segment, or an array
-// of subsegments.
+// Uploads segment documents to AWS X-Ray. The X-Ray SDK (https://docs.aws.amazon.com/xray/index.html)
+// generates segment documents and sends them to the X-Ray daemon, which uploads
+// them in batches. A segment document can be a completed segment, an in-progress
+// segment, or an array of subsegments.
 //
 // Segments must include the following fields. For the full segment document
 // schema, see AWS X-Ray Segment Documents (https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html)
@@ -1680,11 +2003,11 @@ func (c *XRay) PutTraceSegmentsRequest(input *PutTraceSegmentsInput) (req *reque
 // See the AWS API reference guide for AWS X-Ray's
 // API operation PutTraceSegments for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/PutTraceSegments
@@ -1762,11 +2085,11 @@ func (c *XRay) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request
 // See the AWS API reference guide for AWS X-Ray's
 // API operation UpdateGroup for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/UpdateGroup
@@ -1844,11 +2167,11 @@ func (c *XRay) UpdateSamplingRuleRequest(input *UpdateSamplingRuleInput) (req *r
 // See the AWS API reference guide for AWS X-Ray's
 // API operation UpdateSamplingRule for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidRequestException "InvalidRequestException"
+// Returned Error Types:
+//   * InvalidRequestException
 //   The request is missing required parameters or has invalid parameters.
 //
-//   * ErrCodeThrottledException "ThrottledException"
+//   * ThrottledException
 //   The request exceeds the maximum number of requests per second.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/xray-2016-04-12/UpdateSamplingRule
@@ -2047,7 +2370,7 @@ func (s *BackendConnectionErrors) SetUnknownHostCount(v int64) *BackendConnectio
 type BatchGetTracesInput struct {
 	_ struct{} `type:"structure"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 
 	// Specify the trace IDs of requests for which to retrieve segments.
@@ -2094,7 +2417,7 @@ func (s *BatchGetTracesInput) SetTraceIds(v []*string) *BatchGetTracesInput {
 type BatchGetTracesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 
 	// Full traces for the specified requests.
@@ -2136,7 +2459,7 @@ type CreateGroupInput struct {
 	_ struct{} `type:"structure"`
 
 	// The filter expression defining criteria by which to group traces.
-	FilterExpression *string `min:"1" type:"string"`
+	FilterExpression *string `type:"string"`
 
 	// The case-sensitive name of the new group. Default is a reserved name and
 	// names must be unique.
@@ -2158,9 +2481,6 @@ func (s CreateGroupInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateGroupInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateGroupInput"}
-	if s.FilterExpression != nil && len(*s.FilterExpression) < 1 {
-		invalidParams.Add(request.NewErrParamMinLen("FilterExpression", 1))
-	}
 	if s.GroupName == nil {
 		invalidParams.Add(request.NewErrParamRequired("GroupName"))
 	}
@@ -3032,7 +3352,7 @@ func (s *GetGroupOutput) SetGroup(v *Group) *GetGroupOutput {
 type GetGroupsInput struct {
 	_ struct{} `type:"structure"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `min:"1" type:"string"`
 }
 
@@ -3071,7 +3391,7 @@ type GetGroupsOutput struct {
 	// The collection of all active groups.
 	Groups []*GroupSummary `type:"list"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 }
 
@@ -3100,7 +3420,7 @@ func (s *GetGroupsOutput) SetNextToken(v string) *GetGroupsOutput {
 type GetSamplingRulesInput struct {
 	_ struct{} `type:"structure"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 }
 
@@ -3123,7 +3443,7 @@ func (s *GetSamplingRulesInput) SetNextToken(v string) *GetSamplingRulesInput {
 type GetSamplingRulesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 
 	// Rule definitions and metadata.
@@ -3155,7 +3475,7 @@ func (s *GetSamplingRulesOutput) SetSamplingRuleRecords(v []*SamplingRuleRecord)
 type GetSamplingStatisticSummariesInput struct {
 	_ struct{} `type:"structure"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 }
 
@@ -3178,7 +3498,7 @@ func (s *GetSamplingStatisticSummariesInput) SetNextToken(v string) *GetSampling
 type GetSamplingStatisticSummariesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 
 	// Information about the number of requests instrumented for each sampling rule.
@@ -3312,7 +3632,7 @@ type GetServiceGraphInput struct {
 	// The name of a group to generate a graph based on.
 	GroupName *string `min:"1" type:"string"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 
 	// The start of the time frame for which to generate a graph.
@@ -3394,7 +3714,7 @@ type GetServiceGraphOutput struct {
 	// The end of the time frame for which the graph was generated.
 	EndTime *time.Time `type:"timestamp"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 
 	// The services that have processed a traced request during the specified time
@@ -3445,10 +3765,161 @@ func (s *GetServiceGraphOutput) SetStartTime(v time.Time) *GetServiceGraphOutput
 	return s
 }
 
+type GetTimeSeriesServiceStatisticsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The end of the time frame for which to aggregate statistics.
+	//
+	// EndTime is a required field
+	EndTime *time.Time `type:"timestamp" required:"true"`
+
+	// A filter expression defining entities that will be aggregated for statistics.
+	// Supports ID, service, and edge functions. If no selector expression is specified,
+	// edge statistics are returned.
+	EntitySelectorExpression *string `min:"1" type:"string"`
+
+	// The ARN of the group for which to pull statistics from.
+	GroupARN *string `min:"1" type:"string"`
+
+	// The case-sensitive name of the group for which to pull statistics from.
+	GroupName *string `min:"1" type:"string"`
+
+	// Pagination token.
+	NextToken *string `type:"string"`
+
+	// Aggregation period in seconds.
+	Period *int64 `type:"integer"`
+
+	// The start of the time frame for which to aggregate statistics.
+	//
+	// StartTime is a required field
+	StartTime *time.Time `type:"timestamp" required:"true"`
+}
+
+// String returns the string representation
+func (s GetTimeSeriesServiceStatisticsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetTimeSeriesServiceStatisticsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTimeSeriesServiceStatisticsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTimeSeriesServiceStatisticsInput"}
+	if s.EndTime == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndTime"))
+	}
+	if s.EntitySelectorExpression != nil && len(*s.EntitySelectorExpression) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EntitySelectorExpression", 1))
+	}
+	if s.GroupARN != nil && len(*s.GroupARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GroupARN", 1))
+	}
+	if s.GroupName != nil && len(*s.GroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GroupName", 1))
+	}
+	if s.StartTime == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartTime"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *GetTimeSeriesServiceStatisticsInput) SetEndTime(v time.Time) *GetTimeSeriesServiceStatisticsInput {
+	s.EndTime = &v
+	return s
+}
+
+// SetEntitySelectorExpression sets the EntitySelectorExpression field's value.
+func (s *GetTimeSeriesServiceStatisticsInput) SetEntitySelectorExpression(v string) *GetTimeSeriesServiceStatisticsInput {
+	s.EntitySelectorExpression = &v
+	return s
+}
+
+// SetGroupARN sets the GroupARN field's value.
+func (s *GetTimeSeriesServiceStatisticsInput) SetGroupARN(v string) *GetTimeSeriesServiceStatisticsInput {
+	s.GroupARN = &v
+	return s
+}
+
+// SetGroupName sets the GroupName field's value.
+func (s *GetTimeSeriesServiceStatisticsInput) SetGroupName(v string) *GetTimeSeriesServiceStatisticsInput {
+	s.GroupName = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetTimeSeriesServiceStatisticsInput) SetNextToken(v string) *GetTimeSeriesServiceStatisticsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPeriod sets the Period field's value.
+func (s *GetTimeSeriesServiceStatisticsInput) SetPeriod(v int64) *GetTimeSeriesServiceStatisticsInput {
+	s.Period = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *GetTimeSeriesServiceStatisticsInput) SetStartTime(v time.Time) *GetTimeSeriesServiceStatisticsInput {
+	s.StartTime = &v
+	return s
+}
+
+type GetTimeSeriesServiceStatisticsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A flag indicating whether or not a group's filter expression has been consistent,
+	// or if a returned aggregation may show statistics from an older version of
+	// the group's filter expression.
+	ContainsOldGroupVersions *bool `type:"boolean"`
+
+	// Pagination token.
+	NextToken *string `type:"string"`
+
+	// The collection of statistics.
+	TimeSeriesServiceStatistics []*TimeSeriesServiceStatistics `type:"list"`
+}
+
+// String returns the string representation
+func (s GetTimeSeriesServiceStatisticsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetTimeSeriesServiceStatisticsOutput) GoString() string {
+	return s.String()
+}
+
+// SetContainsOldGroupVersions sets the ContainsOldGroupVersions field's value.
+func (s *GetTimeSeriesServiceStatisticsOutput) SetContainsOldGroupVersions(v bool) *GetTimeSeriesServiceStatisticsOutput {
+	s.ContainsOldGroupVersions = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetTimeSeriesServiceStatisticsOutput) SetNextToken(v string) *GetTimeSeriesServiceStatisticsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTimeSeriesServiceStatistics sets the TimeSeriesServiceStatistics field's value.
+func (s *GetTimeSeriesServiceStatisticsOutput) SetTimeSeriesServiceStatistics(v []*TimeSeriesServiceStatistics) *GetTimeSeriesServiceStatisticsOutput {
+	s.TimeSeriesServiceStatistics = v
+	return s
+}
+
 type GetTraceGraphInput struct {
 	_ struct{} `type:"structure"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 
 	// Trace IDs of requests for which to generate a service graph.
@@ -3495,7 +3966,7 @@ func (s *GetTraceGraphInput) SetTraceIds(v []*string) *GetTraceGraphInput {
 type GetTraceGraphOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Pagination token. Not used.
+	// Pagination token.
 	NextToken *string `type:"string"`
 
 	// The services that have processed one of the specified requests.
@@ -3534,7 +4005,7 @@ type GetTraceSummariesInput struct {
 
 	// Specify a filter expression to retrieve trace summaries for services or requests
 	// that meet certain requirements.
-	FilterExpression *string `min:"1" type:"string"`
+	FilterExpression *string `type:"string"`
 
 	// Specify the pagination token returned by a previous request to retrieve the
 	// next page of results.
@@ -3543,10 +4014,18 @@ type GetTraceSummariesInput struct {
 	// Set to true to get summaries for only a subset of available traces.
 	Sampling *bool `type:"boolean"`
 
+	// A paramater to indicate whether to enable sampling on trace summaries. Input
+	// parameters are Name and Value.
+	SamplingStrategy *SamplingStrategy `type:"structure"`
+
 	// The start of the time frame for which to retrieve traces.
 	//
 	// StartTime is a required field
 	StartTime *time.Time `type:"timestamp" required:"true"`
+
+	// A parameter to indicate whether to query trace summaries by TraceId or Event
+	// time.
+	TimeRangeType *string `type:"string" enum:"TimeRangeType"`
 }
 
 // String returns the string representation
@@ -3564,9 +4043,6 @@ func (s *GetTraceSummariesInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetTraceSummariesInput"}
 	if s.EndTime == nil {
 		invalidParams.Add(request.NewErrParamRequired("EndTime"))
-	}
-	if s.FilterExpression != nil && len(*s.FilterExpression) < 1 {
-		invalidParams.Add(request.NewErrParamMinLen("FilterExpression", 1))
 	}
 	if s.StartTime == nil {
 		invalidParams.Add(request.NewErrParamRequired("StartTime"))
@@ -3602,9 +4078,21 @@ func (s *GetTraceSummariesInput) SetSampling(v bool) *GetTraceSummariesInput {
 	return s
 }
 
+// SetSamplingStrategy sets the SamplingStrategy field's value.
+func (s *GetTraceSummariesInput) SetSamplingStrategy(v *SamplingStrategy) *GetTraceSummariesInput {
+	s.SamplingStrategy = v
+	return s
+}
+
 // SetStartTime sets the StartTime field's value.
 func (s *GetTraceSummariesInput) SetStartTime(v time.Time) *GetTraceSummariesInput {
 	s.StartTime = &v
+	return s
+}
+
+// SetTimeRangeType sets the TimeRangeType field's value.
+func (s *GetTraceSummariesInput) SetTimeRangeType(v string) *GetTraceSummariesInput {
+	s.TimeRangeType = &v
 	return s
 }
 
@@ -3619,7 +4107,8 @@ type GetTraceSummariesOutput struct {
 	// most most recent results, closest to the end of the time frame.
 	NextToken *string `type:"string"`
 
-	// Trace IDs and metadata for traces that were found in the specified time frame.
+	// Trace IDs and annotations for traces that were found in the specified time
+	// frame.
 	TraceSummaries []*TraceSummary `type:"list"`
 
 	// The total number of traces processed, including traces that did not match
@@ -3863,6 +4352,62 @@ func (s *InstanceIdDetail) SetId(v string) *InstanceIdDetail {
 	return s
 }
 
+// The request is missing required parameters or has invalid parameters.
+type InvalidRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidRequestException(v protocol.ResponseMetadata) error {
+	return &InvalidRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidRequestException) Code() string {
+	return "InvalidRequestException"
+}
+
+// Message returns the exception's message.
+func (s InvalidRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidRequestException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidRequestException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type PutEncryptionConfigInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3871,6 +4416,7 @@ type PutEncryptionConfigInput struct {
 	//    * Alias - The name of the key. For example, alias/MyKey.
 	//
 	//    * Key ID - The KMS key ID of the key. For example, ae4aa6d49-a4d8-9df9-a475-4ff6d7898456.
+	//    AWS X-Ray does not support asymmetric CMKs.
 	//
 	//    * ARN - The full Amazon Resource Name of the key ID or alias. For example,
 	//    arn:aws:kms:us-east-2:123456789012:key/ae4aa6d49-a4d8-9df9-a475-4ff6d7898456.
@@ -4284,6 +4830,62 @@ func (s *RootCauseException) SetMessage(v string) *RootCauseException {
 func (s *RootCauseException) SetName(v string) *RootCauseException {
 	s.Name = &v
 	return s
+}
+
+// You have reached the maximum number of sampling rules.
+type RuleLimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s RuleLimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RuleLimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorRuleLimitExceededException(v protocol.ResponseMetadata) error {
+	return &RuleLimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s RuleLimitExceededException) Code() string {
+	return "RuleLimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s RuleLimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s RuleLimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s RuleLimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s RuleLimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s RuleLimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // A sampling rule that services use to decide whether to instrument a request.
@@ -4850,6 +5452,39 @@ func (s *SamplingStatisticsDocument) SetTimestamp(v time.Time) *SamplingStatisti
 	return s
 }
 
+// The name and value of a sampling rule to apply to a trace summary.
+type SamplingStrategy struct {
+	_ struct{} `type:"structure"`
+
+	// The name of a sampling rule.
+	Name *string `type:"string" enum:"SamplingStrategyName"`
+
+	// The value of a sampling rule.
+	Value *float64 `type:"double"`
+}
+
+// String returns the string representation
+func (s SamplingStrategy) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SamplingStrategy) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *SamplingStrategy) SetName(v string) *SamplingStrategy {
+	s.Name = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *SamplingStrategy) SetValue(v float64) *SamplingStrategy {
+	s.Value = &v
+	return s
+}
+
 // Temporary changes to a sampling rule configuration. To meet the global sampling
 // target for a rule, X-Ray calculates a new reservoir for each service based
 // on the recent sampling results of all services that called GetSamplingTargets.
@@ -5281,6 +5916,113 @@ func (s *TelemetryRecord) SetTimestamp(v time.Time) *TelemetryRecord {
 	return s
 }
 
+// The request exceeds the maximum number of requests per second.
+type ThrottledException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ThrottledException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ThrottledException) GoString() string {
+	return s.String()
+}
+
+func newErrorThrottledException(v protocol.ResponseMetadata) error {
+	return &ThrottledException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ThrottledException) Code() string {
+	return "ThrottledException"
+}
+
+// Message returns the exception's message.
+func (s ThrottledException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ThrottledException) OrigErr() error {
+	return nil
+}
+
+func (s ThrottledException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ThrottledException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ThrottledException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// A list of TimeSeriesStatistic structures.
+type TimeSeriesServiceStatistics struct {
+	_ struct{} `type:"structure"`
+
+	// Response statistics for an edge.
+	EdgeSummaryStatistics *EdgeStatistics `type:"structure"`
+
+	// The response time histogram for the selected entities.
+	ResponseTimeHistogram []*HistogramEntry `type:"list"`
+
+	// Response statistics for a service.
+	ServiceSummaryStatistics *ServiceStatistics `type:"structure"`
+
+	// Timestamp of the window for which statistics are aggregated.
+	Timestamp *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation
+func (s TimeSeriesServiceStatistics) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TimeSeriesServiceStatistics) GoString() string {
+	return s.String()
+}
+
+// SetEdgeSummaryStatistics sets the EdgeSummaryStatistics field's value.
+func (s *TimeSeriesServiceStatistics) SetEdgeSummaryStatistics(v *EdgeStatistics) *TimeSeriesServiceStatistics {
+	s.EdgeSummaryStatistics = v
+	return s
+}
+
+// SetResponseTimeHistogram sets the ResponseTimeHistogram field's value.
+func (s *TimeSeriesServiceStatistics) SetResponseTimeHistogram(v []*HistogramEntry) *TimeSeriesServiceStatistics {
+	s.ResponseTimeHistogram = v
+	return s
+}
+
+// SetServiceSummaryStatistics sets the ServiceSummaryStatistics field's value.
+func (s *TimeSeriesServiceStatistics) SetServiceSummaryStatistics(v *ServiceStatistics) *TimeSeriesServiceStatistics {
+	s.ServiceSummaryStatistics = v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *TimeSeriesServiceStatistics) SetTimestamp(v time.Time) *TimeSeriesServiceStatistics {
+	s.Timestamp = &v
+	return s
+}
+
 // A collection of segment documents with matching trace IDs.
 type Trace struct {
 	_ struct{} `type:"structure"`
@@ -5349,10 +6091,10 @@ type TraceSummary struct {
 	// segments.
 	FaultRootCauses []*FaultRootCause `type:"list"`
 
-	// One or more of the segment documents has a 400 series error.
+	// The root segment document has a 400 series error.
 	HasError *bool `type:"boolean"`
 
-	// One or more of the segment documents has a 500 series error.
+	// The root segment document has a 500 series error.
 	HasFault *bool `type:"boolean"`
 
 	// One or more of the segment documents has a 429 throttling error.
@@ -5370,6 +6112,9 @@ type TraceSummary struct {
 
 	// One or more of the segment documents is in progress.
 	IsPartial *bool `type:"boolean"`
+
+	// The matched time stamp of a defined event.
+	MatchedEventTime *time.Time `type:"timestamp"`
 
 	// A list of resource ARNs for any resource corresponding to the trace segments.
 	ResourceARNs []*ResourceARNDetail `type:"list"`
@@ -5479,6 +6224,12 @@ func (s *TraceSummary) SetInstanceIds(v []*InstanceIdDetail) *TraceSummary {
 // SetIsPartial sets the IsPartial field's value.
 func (s *TraceSummary) SetIsPartial(v bool) *TraceSummary {
 	s.IsPartial = &v
+	return s
+}
+
+// SetMatchedEventTime sets the MatchedEventTime field's value.
+func (s *TraceSummary) SetMatchedEventTime(v time.Time) *TraceSummary {
+	s.MatchedEventTime = &v
 	return s
 }
 
@@ -5640,7 +6391,7 @@ type UpdateGroupInput struct {
 	_ struct{} `type:"structure"`
 
 	// The updated filter expression defining criteria by which to group traces.
-	FilterExpression *string `min:"1" type:"string"`
+	FilterExpression *string `type:"string"`
 
 	// The ARN that was generated upon creation.
 	GroupARN *string `min:"1" type:"string"`
@@ -5662,9 +6413,6 @@ func (s UpdateGroupInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *UpdateGroupInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateGroupInput"}
-	if s.FilterExpression != nil && len(*s.FilterExpression) < 1 {
-		invalidParams.Add(request.NewErrParamMinLen("FilterExpression", 1))
-	}
 	if s.GroupARN != nil && len(*s.GroupARN) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("GroupARN", 1))
 	}
@@ -5834,4 +6582,20 @@ const (
 
 	// EncryptionTypeKms is a EncryptionType enum value
 	EncryptionTypeKms = "KMS"
+)
+
+const (
+	// SamplingStrategyNamePartialScan is a SamplingStrategyName enum value
+	SamplingStrategyNamePartialScan = "PartialScan"
+
+	// SamplingStrategyNameFixedRate is a SamplingStrategyName enum value
+	SamplingStrategyNameFixedRate = "FixedRate"
+)
+
+const (
+	// TimeRangeTypeTraceId is a TimeRangeType enum value
+	TimeRangeTypeTraceId = "TraceId"
+
+	// TimeRangeTypeEvent is a TimeRangeType enum value
+	TimeRangeTypeEvent = "Event"
 )

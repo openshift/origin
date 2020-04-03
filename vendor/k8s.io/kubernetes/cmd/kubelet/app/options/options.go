@@ -219,7 +219,7 @@ func NewKubeletFlags() *KubeletFlags {
 		SeccompProfileRoot:                  filepath.Join(defaultRootDir, "seccomp"),
 		// prior to the introduction of this flag, there was a hardcoded cap of 50 images
 		NodeStatusMaxImages:         50,
-		EnableCAdvisorJSONEndpoints: true,
+		EnableCAdvisorJSONEndpoints: false,
 	}
 }
 
@@ -240,7 +240,7 @@ func ValidateKubeletFlags(f *KubeletFlags) error {
 		}
 	}
 	// disabled because we set node-role.kubernetes.io/master
-	// TODO(node): reenable this validation
+	// TODO(node): reenable this validation as per https://bugzilla.redhat.com/show_bug.cgi?id=1814320
 	/*
 		if len(unknownLabels) > 0 {
 			return fmt.Errorf("unknown 'kubernetes.io' or 'k8s.io' labels specified with --node-labels: %v\n--node-labels in the 'kubernetes.io' namespace must begin with an allowed prefix (%s) or be in the specifically allowed set (%s)", unknownLabels.List(), strings.Join(kubeletapis.KubeletLabelNamespaces(), ", "), strings.Join(kubeletapis.KubeletLabels(), ", "))

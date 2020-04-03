@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
@@ -118,13 +119,13 @@ var _ = g.Describe("[sig-cli] CLI", func() {
 		ns = oc.Namespace()
 		cli := oc.KubeFramework().PodClient()
 
-		_, err := oc.KubeClient().RbacV1().RoleBindings(ns).Create(&rbacv1.RoleBinding{
+		_, err := oc.KubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), &rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: "edit-for-builder"},
 			RoleRef:    rbacv1.RoleRef{Kind: "ClusterRole", Name: "edit"},
 			Subjects: []rbacv1.Subject{
 				{Kind: "ServiceAccount", Name: "builder"},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		pod := cli.Create(cliPodWithImage(oc, "busybox:latest", heredoc.Docf(`

@@ -199,7 +199,7 @@ var _ = framework.KubeDescribe("InitContainer [NodeConformance]", func() {
 		}
 		framework.Logf("PodSpec: initContainers in spec.initContainers")
 		startedPod := podClient.Create(pod)
-		w, err := podClient.Watch(metav1.SingleObject(startedPod.ObjectMeta))
+		w, err := podClient.Watch(context.TODO(), metav1.SingleObject(startedPod.ObjectMeta))
 		framework.ExpectNoError(err, "error watching a pod")
 		wr := watch.NewRecorder(w)
 		ctx, cancel := watchtools.ContextWithOptionalTimeout(context.Background(), framework.PodStartTimeout)
@@ -215,7 +215,7 @@ var _ = framework.KubeDescribe("InitContainer [NodeConformance]", func() {
 
 		framework.ExpectEqual(len(endPod.Status.InitContainerStatuses), 2)
 		for _, status := range endPod.Status.InitContainerStatuses {
-			gomega.Expect(status.Ready).To(gomega.BeTrue())
+			framework.ExpectEqual(status.Ready, true)
 			gomega.Expect(status.State.Terminated).NotTo(gomega.BeNil())
 			gomega.Expect(status.State.Terminated.ExitCode).To(gomega.BeZero())
 		}
@@ -269,7 +269,7 @@ var _ = framework.KubeDescribe("InitContainer [NodeConformance]", func() {
 		}
 		framework.Logf("PodSpec: initContainers in spec.initContainers")
 		startedPod := podClient.Create(pod)
-		w, err := podClient.Watch(metav1.SingleObject(startedPod.ObjectMeta))
+		w, err := podClient.Watch(context.TODO(), metav1.SingleObject(startedPod.ObjectMeta))
 		framework.ExpectNoError(err, "error watching a pod")
 		wr := watch.NewRecorder(w)
 		ctx, cancel := watchtools.ContextWithOptionalTimeout(context.Background(), framework.PodStartTimeout)
@@ -285,7 +285,7 @@ var _ = framework.KubeDescribe("InitContainer [NodeConformance]", func() {
 
 		framework.ExpectEqual(len(endPod.Status.InitContainerStatuses), 2)
 		for _, status := range endPod.Status.InitContainerStatuses {
-			gomega.Expect(status.Ready).To(gomega.BeTrue())
+			framework.ExpectEqual(status.Ready, true)
 			gomega.Expect(status.State.Terminated).NotTo(gomega.BeNil())
 			gomega.Expect(status.State.Terminated.ExitCode).To(gomega.BeZero())
 		}
@@ -340,7 +340,7 @@ var _ = framework.KubeDescribe("InitContainer [NodeConformance]", func() {
 		}
 		framework.Logf("PodSpec: initContainers in spec.initContainers")
 		startedPod := podClient.Create(pod)
-		w, err := podClient.Watch(metav1.SingleObject(startedPod.ObjectMeta))
+		w, err := podClient.Watch(context.TODO(), metav1.SingleObject(startedPod.ObjectMeta))
 		framework.ExpectNoError(err, "error watching a pod")
 
 		wr := watch.NewRecorder(w)
@@ -457,7 +457,7 @@ var _ = framework.KubeDescribe("InitContainer [NodeConformance]", func() {
 		framework.Logf("PodSpec: initContainers in spec.initContainers")
 		startedPod := podClient.Create(pod)
 
-		w, err := podClient.Watch(metav1.SingleObject(startedPod.ObjectMeta))
+		w, err := podClient.Watch(context.TODO(), metav1.SingleObject(startedPod.ObjectMeta))
 		framework.ExpectNoError(err, "error watching a pod")
 
 		wr := watch.NewRecorder(w)

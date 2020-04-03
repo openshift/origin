@@ -16,29 +16,7 @@ import (
 // Energy represents a quantity of energy in Joules.
 type Energy float64
 
-const (
-	Yottajoule Energy = 1e24
-	Zettajoule Energy = 1e21
-	Exajoule   Energy = 1e18
-	Petajoule  Energy = 1e15
-	Terajoule  Energy = 1e12
-	Gigajoule  Energy = 1e9
-	Megajoule  Energy = 1e6
-	Kilojoule  Energy = 1e3
-	Hectojoule Energy = 1e2
-	Decajoule  Energy = 1e1
-	Joule      Energy = 1.0
-	Decijoule  Energy = 1e-1
-	Centijoule Energy = 1e-2
-	Millijoule Energy = 1e-3
-	Microjoule Energy = 1e-6
-	Nanojoule  Energy = 1e-9
-	Picojoule  Energy = 1e-12
-	Femtojoule Energy = 1e-15
-	Attojoule  Energy = 1e-18
-	Zeptojoule Energy = 1e-21
-	Yoctojoule Energy = 1e-24
-)
+const Joule Energy = 1
 
 // Unit converts the Energy to a *Unit
 func (e Energy) Unit() *Unit {

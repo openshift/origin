@@ -192,9 +192,9 @@ func (c *CLI) SetupProject() {
 	framework.Logf("The user is now %q", c.Username())
 
 	framework.Logf("Creating project %q", newNamespace)
-	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(&projectv1.ProjectRequest{
+	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
-	})
+	}, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	c.kubeFramework.AddNamespacesToDelete(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: newNamespace}})
@@ -237,11 +237,11 @@ func (c *CLI) SetupProject() {
 		lw := &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = fieldSelector
-				return c.KubeClient().RbacV1().RoleBindings(newNamespace).List(options)
+				return c.KubeClient().RbacV1().RoleBindings(newNamespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = fieldSelector
-				return c.KubeClient().RbacV1().RoleBindings(newNamespace).Watch(options)
+				return c.KubeClient().RbacV1().RoleBindings(newNamespace).Watch(context.Background(), options)
 			},
 		}
 
@@ -270,12 +270,12 @@ func (c *CLI) CreateProject() string {
 	requiresTestStart()
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
 	framework.Logf("Creating project %q", newNamespace)
-	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(&projectv1.ProjectRequest{
+	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
-	})
+	}, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	actualNs, err := c.AdminKubeClient().CoreV1().Namespaces().Get(newNamespace, metav1.GetOptions{})
+	actualNs, err := c.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), newNamespace, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	c.kubeFramework.AddNamespacesToDelete(actualNs)
 
@@ -304,7 +304,7 @@ func (c *CLI) TeardownProject() {
 
 	dynamicClient := c.AdminDynamicClient()
 	for _, resource := range c.resourcesToDelete {
-		err := dynamicClient.Resource(resource.Resource).Namespace(resource.Namespace).Delete(resource.Name, nil)
+		err := dynamicClient.Resource(resource.Resource).Namespace(resource.Namespace).Delete(context.Background(), resource.Name, metav1.DeleteOptions{})
 		framework.Logf("Deleted %v, err: %v", resource, err)
 	}
 }
@@ -658,9 +658,9 @@ func (c *CLI) AddResourceToDelete(resource schema.GroupVersionResource, metadata
 }
 
 func (c *CLI) CreateUser(prefix string) *userv1.User {
-	user, err := c.AdminUserClient().UserV1().Users().Create(&userv1.User{
+	user, err := c.AdminUserClient().UserV1().Users().Create(context.Background(), &userv1.User{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: prefix + c.Namespace()},
-	})
+	}, metav1.CreateOptions{})
 	if err != nil {
 		FatalErr(err)
 	}
@@ -670,16 +670,17 @@ func (c *CLI) CreateUser(prefix string) *userv1.User {
 }
 
 func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
+	ctx := context.Background()
 	userClient := c.AdminUserClient()
 
-	user, err := userClient.UserV1().Users().Get(username, metav1.GetOptions{})
+	user, err := userClient.UserV1().Users().Get(ctx, username, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		FatalErr(err)
 	}
 	if err != nil {
-		user, err = userClient.UserV1().Users().Create(&userv1.User{
+		user, err = userClient.UserV1().Users().Create(ctx, &userv1.User{
 			ObjectMeta: metav1.ObjectMeta{Name: username},
-		})
+		}, metav1.CreateOptions{})
 		if err != nil {
 			FatalErr(err)
 		}
@@ -688,10 +689,10 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 
 	oauthClient := c.AdminOauthClient()
 	oauthClientName := "e2e-client-" + c.Namespace()
-	oauthClientObj, err := oauthClient.OauthV1().OAuthClients().Create(&oauthv1.OAuthClient{
+	oauthClientObj, err := oauthClient.OauthV1().OAuthClients().Create(ctx, &oauthv1.OAuthClient{
 		ObjectMeta:  metav1.ObjectMeta{Name: oauthClientName},
 		GrantMethod: oauthv1.GrantHandlerAuto,
-	})
+	}, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		FatalErr(err)
 	}
@@ -705,14 +706,14 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 	for i := len(accesstoken); i < 32; i++ {
 		accesstoken += "A"
 	}
-	token, err := oauthClient.OauthV1().OAuthAccessTokens().Create(&oauthv1.OAuthAccessToken{
+	token, err := oauthClient.OauthV1().OAuthAccessTokens().Create(ctx, &oauthv1.OAuthAccessToken{
 		ObjectMeta:  metav1.ObjectMeta{Name: accesstoken},
 		ClientName:  oauthClientName,
 		UserName:    username,
 		UserUID:     string(user.UID),
 		Scopes:      []string{"user:full"},
 		RedirectURI: "https://localhost:8443/oauth/token/implicit",
-	})
+	}, metav1.CreateOptions{})
 	if err != nil {
 		FatalErr(err)
 	}
@@ -762,7 +763,7 @@ func (c *CLI) WaitForAccessDenied(review *kubeauthorizationv1.SelfSubjectAccessR
 
 func waitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizationv1.SelfSubjectAccessReview) error {
 	return wait.Poll(time.Second, time.Minute, func() (bool, error) {
-		response, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(review)
+		response, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), review, metav1.CreateOptions{})
 		if err != nil {
 			return false, err
 		}

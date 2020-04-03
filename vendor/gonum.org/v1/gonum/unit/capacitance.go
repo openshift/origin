@@ -16,29 +16,7 @@ import (
 // Capacitance represents an electrical capacitance in Farads.
 type Capacitance float64
 
-const (
-	Yottafarad Capacitance = 1e24
-	Zettafarad Capacitance = 1e21
-	Exafarad   Capacitance = 1e18
-	Petafarad  Capacitance = 1e15
-	Terafarad  Capacitance = 1e12
-	Gigafarad  Capacitance = 1e9
-	Megafarad  Capacitance = 1e6
-	Kilofarad  Capacitance = 1e3
-	Hectofarad Capacitance = 1e2
-	Decafarad  Capacitance = 1e1
-	Farad      Capacitance = 1.0
-	Decifarad  Capacitance = 1e-1
-	Centifarad Capacitance = 1e-2
-	Millifarad Capacitance = 1e-3
-	Microfarad Capacitance = 1e-6
-	Nanofarad  Capacitance = 1e-9
-	Picofarad  Capacitance = 1e-12
-	Femtofarad Capacitance = 1e-15
-	Attofarad  Capacitance = 1e-18
-	Zeptofarad Capacitance = 1e-21
-	Yoctofarad Capacitance = 1e-24
-)
+const Farad Capacitance = 1
 
 // Unit converts the Capacitance to a *Unit
 func (cp Capacitance) Unit() *Unit {

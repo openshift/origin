@@ -9,7 +9,9 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 type fakeInformer struct {
@@ -31,6 +33,52 @@ func (f *fakeInformer) HasSynced() bool {
 	defer func() { f.hasSyncedCount++; f.Unlock() }()
 	time.Sleep(f.hasSyncedDelay)
 	return true
+}
+
+func TestBaseController_Reconcile(t *testing.T) {
+	operatorClient := v1helpers.NewFakeOperatorClient(
+		&operatorv1.OperatorSpec{},
+		&operatorv1.OperatorStatus{},
+		nil,
+	)
+	c := &baseController{
+		name:               "TestController",
+		syncDegradedClient: operatorClient,
+	}
+
+	c.sync = func(ctx context.Context, controllerContext SyncContext) error {
+		return nil
+	}
+	if err := c.reconcile(context.TODO(), NewSyncContext("TestController", eventstesting.NewTestingEventRecorder(t))); err != nil {
+		t.Fatal(err)
+	}
+	_, status, _, err := operatorClient.GetOperatorState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !v1helpers.IsOperatorConditionPresentAndEqual(status.Conditions, "TestControllerDegraded", "False") {
+		t.Fatalf("expected TestControllerDegraded to be False, got %#v", status.Conditions)
+	}
+	c.sync = func(ctx context.Context, controllerContext SyncContext) error {
+		return fmt.Errorf("error")
+	}
+	if err := c.reconcile(context.TODO(), NewSyncContext("TestController", eventstesting.NewTestingEventRecorder(t))); err == nil {
+		t.Fatal("expected error, got none")
+	}
+	_, status, _, err = operatorClient.GetOperatorState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !v1helpers.IsOperatorConditionPresentAndEqual(status.Conditions, "TestControllerDegraded", "True") {
+		t.Fatalf("expected TestControllerDegraded to be False, got %#v", status.Conditions)
+	}
+	condition := v1helpers.FindOperatorCondition(status.Conditions, "TestControllerDegraded")
+	if condition.Reason != "SyncError" {
+		t.Errorf("expected condition reason 'SyncError', got %q", condition.Reason)
+	}
+	if condition.Message != "error" {
+		t.Errorf("expected condition message 'error', got %q", condition.Message)
+	}
 }
 
 func TestBaseController_Run(t *testing.T) {

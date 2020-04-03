@@ -31,6 +31,7 @@ type RegistryList struct {
 	DockerLibraryRegistry   string `yaml:"dockerLibraryRegistry"`
 	DockerGluster           string `yaml:"dockerGluster"`
 	E2eRegistry             string `yaml:"e2eRegistry"`
+	PromoterE2eRegistry     string `yaml:"promoterE2eRegistry"`
 	InvalidRegistry         string `yaml:"invalidRegistry"`
 	GcRegistry              string `yaml:"gcRegistry"`
 	GcrReleaseRegistry      string `yaml:"gcrReleaseRegistry"`
@@ -69,6 +70,8 @@ func initReg() RegistryList {
 		DockerLibraryRegistry:   "docker.io/library",
 		DockerGluster:           "docker.io/gluster",
 		E2eRegistry:             "gcr.io/kubernetes-e2e-test-images",
+		// TODO: After the domain flip, this should instead be k8s.gcr.io/k8s-artifacts-prod/e2e-test-images
+		PromoterE2eRegistry:     "us.gcr.io/k8s-artifacts-prod/e2e-test-images",
 		InvalidRegistry:         "invalid.com/invalid",
 		GcRegistry:              "k8s.gcr.io",
 		GcrReleaseRegistry:      "gcr.io/gke-release",
@@ -100,6 +103,7 @@ var (
 	dockerLibraryRegistry   = registry.DockerLibraryRegistry
 	dockerGluster           = registry.DockerGluster
 	e2eRegistry             = registry.E2eRegistry
+	promoterE2eRegistry     = registry.PromoterE2eRegistry
 	gcAuthenticatedRegistry = registry.GcAuthenticatedRegistry
 	gcRegistry              = registry.GcRegistry
 	gcrReleaseRegistry      = registry.GcrReleaseRegistry
@@ -136,8 +140,6 @@ const (
 	CudaVectorAdd
 	// CudaVectorAdd2 image
 	CudaVectorAdd2
-	// Dnsutils image
-	Dnsutils
 	// EchoServer image
 	EchoServer
 	// Etcd image
@@ -187,14 +189,10 @@ const (
 	RegressionIssue74839
 	// ResourceConsumer image
 	ResourceConsumer
-	// ResourceController image
-	ResourceController
 	// SdDummyExporter image
 	SdDummyExporter
 	// StartupScript image
 	StartupScript
-	// TestWebserver image
-	TestWebserver
 	// VolumeNFSServer image
 	VolumeNFSServer
 	// VolumeISCSIServer image
@@ -207,17 +205,16 @@ const (
 
 func initImageConfigs() map[int]Config {
 	configs := map[int]Config{}
-	configs[Agnhost] = Config{e2eRegistry, "agnhost", "2.8"}
+	configs[Agnhost] = Config{promoterE2eRegistry, "agnhost", "2.12"}
 	configs[AgnhostPrivate] = Config{PrivateRegistry, "agnhost", "2.6"}
 	configs[AuthenticatedAlpine] = Config{gcAuthenticatedRegistry, "alpine", "3.7"}
 	configs[AuthenticatedWindowsNanoServer] = Config{gcAuthenticatedRegistry, "windows-nanoserver", "v1"}
-	configs[APIServer] = Config{e2eRegistry, "sample-apiserver", "1.10"}
+	configs[APIServer] = Config{e2eRegistry, "sample-apiserver", "1.17"}
 	configs[AppArmorLoader] = Config{e2eRegistry, "apparmor-loader", "1.0"}
 	configs[BusyBox] = Config{dockerLibraryRegistry, "busybox", "1.29"}
 	configs[CheckMetadataConcealment] = Config{e2eRegistry, "metadata-concealment", "1.2"}
 	configs[CudaVectorAdd] = Config{e2eRegistry, "cuda-vector-add", "1.0"}
 	configs[CudaVectorAdd2] = Config{e2eRegistry, "cuda-vector-add", "2.0"}
-	configs[Dnsutils] = Config{e2eRegistry, "dnsutils", "1.1"}
 	configs[EchoServer] = Config{e2eRegistry, "echoserver", "2.2"}
 	configs[Etcd] = Config{gcRegistry, "etcd", "3.4.3"}
 	configs[GlusterDynamicProvisioner] = Config{dockerGluster, "glusterdynamic-provisioner", "v1.0"}
@@ -236,17 +233,15 @@ func initImageConfigs() map[int]Config {
 	configs[Nonewprivs] = Config{e2eRegistry, "nonewprivs", "1.0"}
 	configs[NonRoot] = Config{e2eRegistry, "nonroot", "1.0"}
 	// Pause - when these values are updated, also update cmd/kubelet/app/options/container_runtime.go
-	configs[Pause] = Config{gcRegistry, "pause", "3.1"}
+	configs[Pause] = Config{gcRegistry, "pause", "3.2"}
 	configs[Perl] = Config{dockerLibraryRegistry, "perl", "5.26"}
 	configs[PrometheusDummyExporter] = Config{gcRegistry, "prometheus-dummy-exporter", "v0.1.0"}
 	configs[PrometheusToSd] = Config{gcRegistry, "prometheus-to-sd", "v0.5.0"}
 	configs[Redis] = Config{dockerLibraryRegistry, "redis", "5.0.5-alpine"}
 	configs[RegressionIssue74839] = Config{e2eRegistry, "regression-issue-74839-amd64", "1.0"}
 	configs[ResourceConsumer] = Config{e2eRegistry, "resource-consumer", "1.5"}
-	configs[ResourceController] = Config{e2eRegistry, "resource-consumer-controller", "1.0"}
 	configs[SdDummyExporter] = Config{gcRegistry, "sd-dummy-exporter", "v0.2.0"}
 	configs[StartupScript] = Config{googleContainerRegistry, "startup-script", "v1"}
-	configs[TestWebserver] = Config{e2eRegistry, "test-webserver", "1.0"}
 	configs[VolumeNFSServer] = Config{e2eRegistry, "volume/nfs", "1.0"}
 	configs[VolumeISCSIServer] = Config{e2eRegistry, "volume/iscsi", "2.0"}
 	configs[VolumeGlusterServer] = Config{e2eRegistry, "volume/gluster", "1.0"}

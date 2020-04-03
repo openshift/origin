@@ -53,7 +53,7 @@ func Dgebd2Test(t *testing.T, impl Dgebd2er) {
 		// transformation.
 		impl.Dgebd2(m, n, a, lda, d, e, tauQ, tauP, work)
 
-		// Check that it holds Q^T * A * P = B where B is represented by
+		// Check that it holds Qᵀ * A * P = B where B is represented by
 		// d and e.
 		checkBidiagonal(t, m, n, nb, a, lda, d, e, tauP, tauQ, aCopy)
 	}

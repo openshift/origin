@@ -49,9 +49,9 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 		o.Expect(err).NotTo(o.HaveOccurred(), "port forward output not in expected format: %s", output)
 
 		coreV1 := oc.AdminKubeClient().CoreV1()
-		etcdConfigMap, err := coreV1.ConfigMaps("openshift-config").Get("etcd-ca-bundle", metav1.GetOptions{})
+		etcdConfigMap, err := coreV1.ConfigMaps("openshift-config").Get(context.Background(), "etcd-ca-bundle", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		etcdSecret, err := coreV1.Secrets("openshift-config").Get("etcd-client", metav1.GetOptions{})
+		etcdSecret, err := coreV1.Secrets("openshift-config").Get(context.Background(), "etcd-client", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		tlsConfig, err := restclient.TLSConfigFor(&restclient.Config{

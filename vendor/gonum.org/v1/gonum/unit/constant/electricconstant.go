@@ -13,7 +13,7 @@ import (
 )
 
 // ElectricConstant is the electric constant (ε₀), the value of the absolute dielectric permittivity of classical vacuum.
-// The dimensions of ElectricConstant are A^2 s^4 kg^-1 m^-3. The constant is exact.
+// The dimensions of ElectricConstant are A^2 s^4 kg^-1 m^-3. The standard uncertainty of the constant is 1.3e-21 A^2 s^4 kg^-1 m^-3.
 const ElectricConstant = electricConstantUnits(8.854187817620389e-12)
 
 type electricConstantUnits float64

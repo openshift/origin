@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -36,12 +37,12 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 		var err error
 
 		// must read the templateinstance before the build/dc
-		templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+		templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), templateinstance.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 
-		build, err := cli.BuildClient().BuildV1().Builds(cli.Namespace()).Get("simple-example-1", metav1.GetOptions{})
+		build, err := cli.BuildClient().BuildV1().Builds(cli.Namespace()).Get(context.Background(), "simple-example-1", metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				err = nil
@@ -49,7 +50,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			return false, err
 		}
 
-		dc, err := cli.AppsClient().AppsV1().DeploymentConfigs(cli.Namespace()).Get("simple-example", metav1.GetOptions{})
+		dc, err := cli.AppsClient().AppsV1().DeploymentConfigs(cli.Namespace()).Get(context.Background(), "simple-example", metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				err = nil
@@ -108,7 +109,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			err = cli.Run("create").Args("-f", templatefixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			template, err = cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Get("simple-example", metav1.GetOptions{})
+			template, err = cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Get(context.Background(), "simple-example", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -134,7 +135,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			}
 
 			g.By("instantiating the templateinstance")
-			templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(templateinstance)
+			templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(context.Background(), templateinstance, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build and dc to settle")
@@ -150,7 +151,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			g.By("waiting for the templateinstance to indicate ready")
 			// in principle, this should happen within 20 seconds
 			err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-				templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), templateinstance.Name, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -174,14 +175,14 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			var err error
 
-			secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(&v1.Secret{
+			secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(context.Background(), &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "secret",
 				},
 				Data: map[string][]byte{
 					"SOURCE_REPOSITORY_URL": []byte("https://bad"),
 				},
-			})
+			}, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			templateinstance = &templatev1.TemplateInstance{
@@ -197,7 +198,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			}
 
 			g.By("instantiating the templateinstance")
-			templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(templateinstance)
+			templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(context.Background(), templateinstance, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build and dc to settle")
@@ -213,7 +214,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			g.By("waiting for the templateinstance to indicate failed")
 			// in principle, this should happen within 20 seconds
 			err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-				templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), templateinstance.Name, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

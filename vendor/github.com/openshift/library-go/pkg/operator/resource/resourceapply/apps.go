@@ -1,6 +1,8 @@
 package resourceapply
 
 import (
+	"context"
+
 	"k8s.io/klog"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -20,9 +22,9 @@ func ApplyDeployment(client appsclientv1.DeploymentsGetter, recorder events.Reco
 		required.Annotations = map[string]string{}
 	}
 	required.Annotations["operator.openshift.io/pull-spec"] = required.Spec.Template.Spec.Containers[0].Image
-	existing, err := client.Deployments(required.Namespace).Get(required.Name, metav1.GetOptions{})
+	existing, err := client.Deployments(required.Namespace).Get(context.TODO(), required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.Deployments(required.Namespace).Create(required)
+		actual, err := client.Deployments(required.Namespace).Create(context.TODO(), required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -59,7 +61,7 @@ func ApplyDeployment(client appsclientv1.DeploymentsGetter, recorder events.Reco
 		klog.Infof("Deployment %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, toWrite))
 	}
 
-	actual, err := client.Deployments(required.Namespace).Update(toWrite)
+	actual, err := client.Deployments(required.Namespace).Update(context.TODO(), toWrite, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -70,9 +72,9 @@ func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, recorder events.Record
 		required.Annotations = map[string]string{}
 	}
 	required.Annotations["operator.openshift.io/pull-spec"] = required.Spec.Template.Spec.Containers[0].Image
-	existing, err := client.DaemonSets(required.Namespace).Get(required.Name, metav1.GetOptions{})
+	existing, err := client.DaemonSets(required.Namespace).Get(context.TODO(), required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.DaemonSets(required.Namespace).Create(required)
+		actual, err := client.DaemonSets(required.Namespace).Create(context.TODO(), required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -108,7 +110,7 @@ func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, recorder events.Record
 	if klog.V(4) {
 		klog.Infof("DaemonSet %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, toWrite))
 	}
-	actual, err := client.DaemonSets(required.Namespace).Update(toWrite)
+	actual, err := client.DaemonSets(required.Namespace).Update(context.TODO(), toWrite, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }

@@ -171,7 +171,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 	}
 	m.AddSampler(
 		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitor.Condition, next bool) {
-			data, err := continuousClient.Get().AbsPath("echo").Param("msg", "Hello").DoRaw()
+			data, err := continuousClient.Get().AbsPath("echo").Param("msg", "Hello").DoRaw(ctx)
 			if err == nil && !bytes.Contains(data, []byte("Hello")) {
 				err = fmt.Errorf("service returned success but did not contain the correct body contents: %q", string(data))
 			}
@@ -223,7 +223,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 	}
 	m.AddSampler(
 		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitor.Condition, next bool) {
-			data, err := client.Get().AbsPath("echo").Param("msg", "Hello").DoRaw()
+			data, err := client.Get().AbsPath("echo").Param("msg", "Hello").DoRaw(ctx)
 			if err == nil && !bytes.Contains(data, []byte("Hello")) {
 				err = fmt.Errorf("service returned success but did not contain the correct body contents: %q", string(data))
 			}

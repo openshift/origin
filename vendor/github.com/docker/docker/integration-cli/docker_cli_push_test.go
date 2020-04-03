@@ -14,7 +14,7 @@ import (
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli/build"
 	"github.com/go-check/check"
-	"github.com/gotestyourself/gotestyourself/icmd"
+	"gotest.tools/icmd"
 )
 
 // Pushing an image to a private registry.
@@ -27,10 +27,6 @@ func testPushBusyboxImage(c *check.C) {
 }
 
 func (s *DockerRegistrySuite) TestPushBusyboxImage(c *check.C) {
-	testPushBusyboxImage(c)
-}
-
-func (s *DockerSchema1RegistrySuite) TestPushBusyboxImage(c *check.C) {
 	testPushBusyboxImage(c)
 }
 
@@ -53,10 +49,6 @@ func (s *DockerRegistrySuite) TestPushUntagged(c *check.C) {
 	testPushUntagged(c)
 }
 
-func (s *DockerSchema1RegistrySuite) TestPushUntagged(c *check.C) {
-	testPushUntagged(c)
-}
-
 func testPushBadTag(c *check.C) {
 	repoName := fmt.Sprintf("%v/dockercli/busybox:latest", privateRegistryURL)
 	expected := "does not exist"
@@ -67,10 +59,6 @@ func testPushBadTag(c *check.C) {
 }
 
 func (s *DockerRegistrySuite) TestPushBadTag(c *check.C) {
-	testPushBadTag(c)
-}
-
-func (s *DockerSchema1RegistrySuite) TestPushBadTag(c *check.C) {
 	testPushBadTag(c)
 }
 
@@ -115,10 +103,6 @@ func (s *DockerRegistrySuite) TestPushMultipleTags(c *check.C) {
 	testPushMultipleTags(c)
 }
 
-func (s *DockerSchema1RegistrySuite) TestPushMultipleTags(c *check.C) {
-	testPushMultipleTags(c)
-}
-
 func testPushEmptyLayer(c *check.C) {
 	repoName := fmt.Sprintf("%v/dockercli/emptylayer", privateRegistryURL)
 	emptyTarball, err := ioutil.TempFile("", "empty_tarball")
@@ -143,10 +127,6 @@ func testPushEmptyLayer(c *check.C) {
 }
 
 func (s *DockerRegistrySuite) TestPushEmptyLayer(c *check.C) {
-	testPushEmptyLayer(c)
-}
-
-func (s *DockerSchema1RegistrySuite) TestPushEmptyLayer(c *check.C) {
 	testPushEmptyLayer(c)
 }
 
@@ -200,10 +180,6 @@ func (s *DockerRegistrySuite) TestConcurrentPush(c *check.C) {
 	testConcurrentPush(c)
 }
 
-func (s *DockerSchema1RegistrySuite) TestConcurrentPush(c *check.C) {
-	testConcurrentPush(c)
-}
-
 func (s *DockerRegistrySuite) TestCrossRepositoryLayerPush(c *check.C) {
 	sourceRepoName := fmt.Sprintf("%v/dockercli/busybox", privateRegistryURL)
 	// tag the image to upload it to the private registry
@@ -245,44 +221,11 @@ func (s *DockerRegistrySuite) TestCrossRepositoryLayerPush(c *check.C) {
 	c.Assert(out4, check.Equals, "hello world")
 }
 
-func (s *DockerSchema1RegistrySuite) TestCrossRepositoryLayerPushNotSupported(c *check.C) {
-	sourceRepoName := fmt.Sprintf("%v/dockercli/busybox", privateRegistryURL)
-	// tag the image to upload it to the private registry
-	dockerCmd(c, "tag", "busybox", sourceRepoName)
-	// push the image to the registry
-	out1, _, err := dockerCmdWithError("push", sourceRepoName)
-	c.Assert(err, check.IsNil, check.Commentf("pushing the image to the private registry has failed: %s", out1))
-	// ensure that none of the layers were mounted from another repository during push
-	c.Assert(strings.Contains(out1, "Mounted from"), check.Equals, false)
-
-	digest1 := reference.DigestRegexp.FindString(out1)
-	c.Assert(len(digest1), checker.GreaterThan, 0, check.Commentf("no digest found for pushed manifest"))
-
-	destRepoName := fmt.Sprintf("%v/dockercli/crossrepopush", privateRegistryURL)
-	// retag the image to upload the same layers to another repo in the same registry
-	dockerCmd(c, "tag", "busybox", destRepoName)
-	// push the image to the registry
-	out2, _, err := dockerCmdWithError("push", destRepoName)
-	c.Assert(err, check.IsNil, check.Commentf("pushing the image to the private registry has failed: %s", out2))
-	// schema1 registry should not support cross-repo layer mounts, so ensure that this does not happen
-	c.Assert(strings.Contains(out2, "Mounted from"), check.Equals, false)
-
-	digest2 := reference.DigestRegexp.FindString(out2)
-	c.Assert(len(digest2), checker.GreaterThan, 0, check.Commentf("no digest found for pushed manifest"))
-	c.Assert(digest1, check.Not(check.Equals), digest2)
-
-	// ensure that we can pull and run the second pushed repository
-	dockerCmd(c, "rmi", destRepoName)
-	dockerCmd(c, "pull", destRepoName)
-	out3, _ := dockerCmd(c, "run", destRepoName, "echo", "-n", "hello world")
-	c.Assert(out3, check.Equals, "hello world")
-}
-
 func (s *DockerRegistryAuthHtpasswdSuite) TestPushNoCredentialsNoRetry(c *check.C) {
 	repoName := fmt.Sprintf("%s/busybox", privateRegistryURL)
 	dockerCmd(c, "tag", "busybox", repoName)
 	out, _, err := dockerCmdWithError("push", repoName)
-	c.Assert(err, check.NotNil, check.Commentf(out))
+	c.Assert(err, check.NotNil, check.Commentf("%s", out))
 	c.Assert(out, check.Not(checker.Contains), "Retrying")
 	c.Assert(out, checker.Contains, "no basic auth credentials")
 }
@@ -293,7 +236,7 @@ func (s *DockerSuite) TestPushToCentralRegistryUnauthorized(c *check.C) {
 	repoName := "test/busybox"
 	dockerCmd(c, "tag", "busybox", repoName)
 	out, _, err := dockerCmdWithError("push", repoName)
-	c.Assert(err, check.NotNil, check.Commentf(out))
+	c.Assert(err, check.NotNil, check.Commentf("%s", out))
 	c.Assert(out, check.Not(checker.Contains), "Retrying")
 }
 
@@ -322,7 +265,7 @@ func (s *DockerRegistryAuthTokenSuite) TestPushTokenServiceUnauthResponse(c *che
 	repoName := fmt.Sprintf("%s/busybox", privateRegistryURL)
 	dockerCmd(c, "tag", "busybox", repoName)
 	out, _, err := dockerCmdWithError("push", repoName)
-	c.Assert(err, check.NotNil, check.Commentf(out))
+	c.Assert(err, check.NotNil, check.Commentf("%s", out))
 	c.Assert(out, checker.Not(checker.Contains), "Retrying")
 	c.Assert(out, checker.Contains, "unauthorized: a message")
 }
@@ -334,7 +277,7 @@ func (s *DockerRegistryAuthTokenSuite) TestPushMisconfiguredTokenServiceResponse
 	repoName := fmt.Sprintf("%s/busybox", privateRegistryURL)
 	dockerCmd(c, "tag", "busybox", repoName)
 	out, _, err := dockerCmdWithError("push", repoName)
-	c.Assert(err, check.NotNil, check.Commentf(out))
+	c.Assert(err, check.NotNil, check.Commentf("%s", out))
 	c.Assert(out, checker.Not(checker.Contains), "Retrying")
 	split := strings.Split(out, "\n")
 	c.Assert(split[len(split)-2], check.Equals, "unauthorized: authentication required")
@@ -347,7 +290,7 @@ func (s *DockerRegistryAuthTokenSuite) TestPushMisconfiguredTokenServiceResponse
 	repoName := fmt.Sprintf("%s/busybox", privateRegistryURL)
 	dockerCmd(c, "tag", "busybox", repoName)
 	out, _, err := dockerCmdWithError("push", repoName)
-	c.Assert(err, check.NotNil, check.Commentf(out))
+	c.Assert(err, check.NotNil, check.Commentf("%s", out))
 	// TODO: isolate test so that it can be guaranteed that the 503 will trigger xfer retries
 	//c.Assert(out, checker.Contains, "Retrying")
 	//c.Assert(out, checker.Not(checker.Contains), "Retrying in 15")
@@ -362,7 +305,7 @@ func (s *DockerRegistryAuthTokenSuite) TestPushMisconfiguredTokenServiceResponse
 	repoName := fmt.Sprintf("%s/busybox", privateRegistryURL)
 	dockerCmd(c, "tag", "busybox", repoName)
 	out, _, err := dockerCmdWithError("push", repoName)
-	c.Assert(err, check.NotNil, check.Commentf(out))
+	c.Assert(err, check.NotNil, check.Commentf("%s", out))
 	c.Assert(out, checker.Not(checker.Contains), "Retrying")
 	split := strings.Split(out, "\n")
 	c.Assert(split[len(split)-2], checker.Contains, "error parsing HTTP 403 response body: ")
@@ -375,7 +318,7 @@ func (s *DockerRegistryAuthTokenSuite) TestPushMisconfiguredTokenServiceResponse
 	repoName := fmt.Sprintf("%s/busybox", privateRegistryURL)
 	dockerCmd(c, "tag", "busybox", repoName)
 	out, _, err := dockerCmdWithError("push", repoName)
-	c.Assert(err, check.NotNil, check.Commentf(out))
+	c.Assert(err, check.NotNil, check.Commentf("%s", out))
 	c.Assert(out, checker.Not(checker.Contains), "Retrying")
 	split := strings.Split(out, "\n")
 	c.Assert(split[len(split)-2], check.Equals, "authorization server did not include a token in the response")

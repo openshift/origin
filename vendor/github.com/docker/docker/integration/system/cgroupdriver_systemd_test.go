@@ -9,7 +9,8 @@ import (
 	"github.com/docker/docker/integration/internal/container"
 	"github.com/docker/docker/internal/test/daemon"
 
-	"github.com/gotestyourself/gotestyourself/assert"
+	"gotest.tools/assert"
+	"gotest.tools/skip"
 )
 
 // hasSystemd checks whether the host was booted with systemd as its init
@@ -27,30 +28,28 @@ func hasSystemd() bool {
 // memory limit can be set when using systemd cgroupdriver.
 //  https://github.com/moby/moby/issues/35123
 func TestCgroupDriverSystemdMemoryLimit(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
+	skip.If(t, !hasSystemd())
 	t.Parallel()
 
-	if !hasSystemd() {
-		t.Skip("systemd not available")
-	}
-
 	d := daemon.New(t)
-	client, err := d.NewClient()
-	assert.NilError(t, err)
+	c := d.NewClientT(t)
+
 	d.StartWithBusybox(t, "--exec-opt", "native.cgroupdriver=systemd", "--iptables=false")
 	defer d.Stop(t)
 
 	const mem = 64 * 1024 * 1024 // 64 MB
 
 	ctx := context.Background()
-	ctrID := container.Create(t, ctx, client, func(c *container.TestContainerConfig) {
-		c.HostConfig.Resources.Memory = mem
+	ctrID := container.Create(t, ctx, c, func(ctr *container.TestContainerConfig) {
+		ctr.HostConfig.Resources.Memory = mem
 	})
-	defer client.ContainerRemove(ctx, ctrID, types.ContainerRemoveOptions{Force: true})
+	defer c.ContainerRemove(ctx, ctrID, types.ContainerRemoveOptions{Force: true})
 
-	err = client.ContainerStart(ctx, ctrID, types.ContainerStartOptions{})
+	err := c.ContainerStart(ctx, ctrID, types.ContainerStartOptions{})
 	assert.NilError(t, err)
 
-	s, err := client.ContainerInspect(ctx, ctrID)
+	s, err := c.ContainerInspect(ctx, ctrID)
 	assert.NilError(t, err)
 	assert.Equal(t, s.HostConfig.Memory, mem)
 }

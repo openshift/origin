@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -90,7 +91,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have container 
 				pods, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), imageSourceLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(pods)).To(o.Equal(1))
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pods[0], metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the pod to contain the file from the input image")
@@ -117,7 +118,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have container 
 				pods, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), imageDockerLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(pods)).To(o.Equal(1))
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pods[0], metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the pod to contain the file from the input image")
@@ -144,7 +145,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have container 
 				pods, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), sourceBuildLabel, exutil.CheckPodNoOp, 1, 4*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(pods)).To(o.Equal(1))
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pods[0], metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				foundEnv := false
@@ -189,7 +190,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have container 
 				pods, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), dockerBuildLabel, exutil.CheckPodNoOp, 1, 4*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(pods)).To(o.Equal(1))
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pods[0], metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				foundEnv := false
@@ -234,7 +235,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have container 
 				pods, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), customBuildLabel, exutil.CheckPodNoOp, 1, 4*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(pods)).To(o.Equal(1))
-				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pods[0], metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				foundBuildEnv := false

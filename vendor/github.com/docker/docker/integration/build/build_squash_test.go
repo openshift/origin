@@ -9,18 +9,30 @@ import (
 	"testing"
 
 	"github.com/docker/docker/api/types"
+	dclient "github.com/docker/docker/client"
 	"github.com/docker/docker/integration/internal/container"
+	"github.com/docker/docker/internal/test/daemon"
 	"github.com/docker/docker/internal/test/fakecontext"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
-	"github.com/gotestyourself/gotestyourself/skip"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+	"gotest.tools/skip"
 )
 
 func TestBuildSquashParent(t *testing.T) {
-	skip.If(t, !testEnv.DaemonInfo.ExperimentalBuild)
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 
-	client := testEnv.APIClient()
+	var client dclient.APIClient
+	if !testEnv.DaemonInfo.ExperimentalBuild {
+		skip.If(t, testEnv.IsRemoteDaemon, "cannot run daemon when remote daemon")
+
+		d := daemon.New(t, daemon.WithExperimental)
+		d.StartWithBusybox(t)
+		defer d.Stop(t)
+		client = d.NewClientT(t)
+	} else {
+		client = testEnv.APIClient()
+	}
 
 	dockerfile := `
 		FROM busybox

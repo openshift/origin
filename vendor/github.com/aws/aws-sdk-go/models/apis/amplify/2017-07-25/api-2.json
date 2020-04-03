@@ -29,6 +29,22 @@
         {"shape":"DependentServiceFailureException"}
       ]
     },
+    "CreateBackendEnvironment":{
+      "name":"CreateBackendEnvironment",
+      "http":{
+        "method":"POST",
+        "requestUri":"/apps/{appId}/backendenvironments"
+      },
+      "input":{"shape":"CreateBackendEnvironmentRequest"},
+      "output":{"shape":"CreateBackendEnvironmentResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"NotFoundException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
     "CreateBranch":{
       "name":"CreateBranch",
       "http":{
@@ -46,6 +62,21 @@
         {"shape":"DependentServiceFailureException"}
       ]
     },
+    "CreateDeployment":{
+      "name":"CreateDeployment",
+      "http":{
+        "method":"POST",
+        "requestUri":"/apps/{appId}/branches/{branchName}/deployments"
+      },
+      "input":{"shape":"CreateDeploymentRequest"},
+      "output":{"shape":"CreateDeploymentResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
     "CreateDomainAssociation":{
       "name":"CreateDomainAssociation",
       "http":{
@@ -54,6 +85,23 @@
       },
       "input":{"shape":"CreateDomainAssociationRequest"},
       "output":{"shape":"CreateDomainAssociationResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"NotFoundException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"DependentServiceFailureException"}
+      ]
+    },
+    "CreateWebhook":{
+      "name":"CreateWebhook",
+      "http":{
+        "method":"POST",
+        "requestUri":"/apps/{appId}/webhooks"
+      },
+      "input":{"shape":"CreateWebhookRequest"},
+      "output":{"shape":"CreateWebhookResult"},
       "errors":[
         {"shape":"BadRequestException"},
         {"shape":"UnauthorizedException"},
@@ -75,6 +123,22 @@
         {"shape":"BadRequestException"},
         {"shape":"NotFoundException"},
         {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"DependentServiceFailureException"}
+      ]
+    },
+    "DeleteBackendEnvironment":{
+      "name":"DeleteBackendEnvironment",
+      "http":{
+        "method":"DELETE",
+        "requestUri":"/apps/{appId}/backendenvironments/{environmentName}"
+      },
+      "input":{"shape":"DeleteBackendEnvironmentRequest"},
+      "output":{"shape":"DeleteBackendEnvironmentResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"NotFoundException"},
         {"shape":"InternalFailureException"},
         {"shape":"DependentServiceFailureException"}
       ]
@@ -127,6 +191,37 @@
         {"shape":"LimitExceededException"}
       ]
     },
+    "DeleteWebhook":{
+      "name":"DeleteWebhook",
+      "http":{
+        "method":"DELETE",
+        "requestUri":"/webhooks/{webhookId}"
+      },
+      "input":{"shape":"DeleteWebhookRequest"},
+      "output":{"shape":"DeleteWebhookResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"NotFoundException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
+    "GenerateAccessLogs":{
+      "name":"GenerateAccessLogs",
+      "http":{
+        "method":"POST",
+        "requestUri":"/apps/{appId}/accesslogs"
+      },
+      "input":{"shape":"GenerateAccessLogsRequest"},
+      "output":{"shape":"GenerateAccessLogsResult"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"}
+      ]
+    },
     "GetApp":{
       "name":"GetApp",
       "http":{
@@ -139,6 +234,37 @@
         {"shape":"BadRequestException"},
         {"shape":"NotFoundException"},
         {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"}
+      ]
+    },
+    "GetArtifactUrl":{
+      "name":"GetArtifactUrl",
+      "http":{
+        "method":"GET",
+        "requestUri":"/artifacts/{artifactId}"
+      },
+      "input":{"shape":"GetArtifactUrlRequest"},
+      "output":{"shape":"GetArtifactUrlResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"NotFoundException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
+    "GetBackendEnvironment":{
+      "name":"GetBackendEnvironment",
+      "http":{
+        "method":"GET",
+        "requestUri":"/apps/{appId}/backendenvironments/{environmentName}"
+      },
+      "input":{"shape":"GetBackendEnvironmentRequest"},
+      "output":{"shape":"GetBackendEnvironmentResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"NotFoundException"},
         {"shape":"InternalFailureException"}
       ]
     },
@@ -188,6 +314,22 @@
         {"shape":"LimitExceededException"}
       ]
     },
+    "GetWebhook":{
+      "name":"GetWebhook",
+      "http":{
+        "method":"GET",
+        "requestUri":"/webhooks/{webhookId}"
+      },
+      "input":{"shape":"GetWebhookRequest"},
+      "output":{"shape":"GetWebhookResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"NotFoundException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
     "ListApps":{
       "name":"ListApps",
       "http":{
@@ -196,6 +338,35 @@
       },
       "input":{"shape":"ListAppsRequest"},
       "output":{"shape":"ListAppsResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"}
+      ]
+    },
+    "ListArtifacts":{
+      "name":"ListArtifacts",
+      "http":{
+        "method":"GET",
+        "requestUri":"/apps/{appId}/branches/{branchName}/jobs/{jobId}/artifacts"
+      },
+      "input":{"shape":"ListArtifactsRequest"},
+      "output":{"shape":"ListArtifactsResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
+    "ListBackendEnvironments":{
+      "name":"ListBackendEnvironments",
+      "http":{
+        "method":"GET",
+        "requestUri":"/apps/{appId}/backendenvironments"
+      },
+      "input":{"shape":"ListBackendEnvironmentsRequest"},
+      "output":{"shape":"ListBackendEnvironmentsResult"},
       "errors":[
         {"shape":"BadRequestException"},
         {"shape":"UnauthorizedException"},
@@ -245,6 +416,51 @@
         {"shape":"LimitExceededException"}
       ]
     },
+    "ListTagsForResource":{
+      "name":"ListTagsForResource",
+      "http":{
+        "method":"GET",
+        "requestUri":"/tags/{resourceArn}"
+      },
+      "input":{"shape":"ListTagsForResourceRequest"},
+      "output":{"shape":"ListTagsForResourceResponse"},
+      "errors":[
+        {"shape":"InternalFailureException"},
+        {"shape":"BadRequestException"},
+        {"shape":"ResourceNotFoundException"}
+      ]
+    },
+    "ListWebhooks":{
+      "name":"ListWebhooks",
+      "http":{
+        "method":"GET",
+        "requestUri":"/apps/{appId}/webhooks"
+      },
+      "input":{"shape":"ListWebhooksRequest"},
+      "output":{"shape":"ListWebhooksResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
+    "StartDeployment":{
+      "name":"StartDeployment",
+      "http":{
+        "method":"POST",
+        "requestUri":"/apps/{appId}/branches/{branchName}/deployments/start"
+      },
+      "input":{"shape":"StartDeploymentRequest"},
+      "output":{"shape":"StartDeploymentResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"NotFoundException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
     "StartJob":{
       "name":"StartJob",
       "http":{
@@ -275,6 +491,34 @@
         {"shape":"InternalFailureException"},
         {"shape":"NotFoundException"},
         {"shape":"LimitExceededException"}
+      ]
+    },
+    "TagResource":{
+      "name":"TagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/tags/{resourceArn}"
+      },
+      "input":{"shape":"TagResourceRequest"},
+      "output":{"shape":"TagResourceResponse"},
+      "errors":[
+        {"shape":"InternalFailureException"},
+        {"shape":"BadRequestException"},
+        {"shape":"ResourceNotFoundException"}
+      ]
+    },
+    "UntagResource":{
+      "name":"UntagResource",
+      "http":{
+        "method":"DELETE",
+        "requestUri":"/tags/{resourceArn}"
+      },
+      "input":{"shape":"UntagResourceRequest"},
+      "output":{"shape":"UntagResourceResponse"},
+      "errors":[
+        {"shape":"InternalFailureException"},
+        {"shape":"BadRequestException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "UpdateApp":{
@@ -323,9 +567,30 @@
         {"shape":"InternalFailureException"},
         {"shape":"DependentServiceFailureException"}
       ]
+    },
+    "UpdateWebhook":{
+      "name":"UpdateWebhook",
+      "http":{
+        "method":"POST",
+        "requestUri":"/webhooks/{webhookId}"
+      },
+      "input":{"shape":"UpdateWebhookRequest"},
+      "output":{"shape":"UpdateWebhookResult"},
+      "errors":[
+        {"shape":"BadRequestException"},
+        {"shape":"UnauthorizedException"},
+        {"shape":"NotFoundException"},
+        {"shape":"InternalFailureException"},
+        {"shape":"DependentServiceFailureException"}
+      ]
     }
   },
   "shapes":{
+    "AccessToken":{
+      "type":"string",
+      "max":255,
+      "min":1
+    },
     "ActiveJobId":{
       "type":"string",
       "max":1000
@@ -350,7 +615,7 @@
         "appId":{"shape":"AppId"},
         "appArn":{"shape":"AppArn"},
         "name":{"shape":"Name"},
-        "tags":{"shape":"Tags"},
+        "tags":{"shape":"TagMap"},
         "description":{"shape":"Description"},
         "repository":{"shape":"Repository"},
         "platform":{"shape":"Platform"},
@@ -364,7 +629,10 @@
         "basicAuthCredentials":{"shape":"BasicAuthCredentials"},
         "customRules":{"shape":"CustomRules"},
         "productionBranch":{"shape":"ProductionBranch"},
-        "buildSpec":{"shape":"BuildSpec"}
+        "buildSpec":{"shape":"BuildSpec"},
+        "enableAutoBranchCreation":{"shape":"EnableAutoBranchCreation"},
+        "autoBranchCreationPatterns":{"shape":"AutoBranchCreationPatterns"},
+        "autoBranchCreationConfig":{"shape":"AutoBranchCreationConfig"}
       }
     },
     "AppArn":{
@@ -380,9 +648,94 @@
       "type":"list",
       "member":{"shape":"App"}
     },
+    "Artifact":{
+      "type":"structure",
+      "required":[
+        "artifactFileName",
+        "artifactId"
+      ],
+      "members":{
+        "artifactFileName":{"shape":"ArtifactFileName"},
+        "artifactId":{"shape":"ArtifactId"}
+      }
+    },
+    "ArtifactFileName":{
+      "type":"string",
+      "max":1000
+    },
+    "ArtifactId":{
+      "type":"string",
+      "max":255
+    },
+    "ArtifactUrl":{
+      "type":"string",
+      "max":1000
+    },
+    "Artifacts":{
+      "type":"list",
+      "member":{"shape":"Artifact"}
+    },
     "ArtifactsUrl":{
       "type":"string",
       "max":1000
+    },
+    "AssociatedResource":{
+      "type":"string",
+      "max":2048,
+      "min":1
+    },
+    "AssociatedResources":{
+      "type":"list",
+      "member":{"shape":"AssociatedResource"}
+    },
+    "AutoBranchCreationConfig":{
+      "type":"structure",
+      "members":{
+        "stage":{"shape":"Stage"},
+        "framework":{"shape":"Framework"},
+        "enableAutoBuild":{"shape":"EnableAutoBuild"},
+        "environmentVariables":{"shape":"EnvironmentVariables"},
+        "basicAuthCredentials":{"shape":"BasicAuthCredentials"},
+        "enableBasicAuth":{"shape":"EnableBasicAuth"},
+        "buildSpec":{"shape":"BuildSpec"},
+        "enablePullRequestPreview":{"shape":"EnablePullRequestPreview"},
+        "pullRequestEnvironmentName":{"shape":"PullRequestEnvironmentName"}
+      }
+    },
+    "AutoBranchCreationPattern":{
+      "type":"string",
+      "max":2048,
+      "min":1
+    },
+    "AutoBranchCreationPatterns":{
+      "type":"list",
+      "member":{"shape":"AutoBranchCreationPattern"}
+    },
+    "BackendEnvironment":{
+      "type":"structure",
+      "required":[
+        "backendEnvironmentArn",
+        "environmentName",
+        "createTime",
+        "updateTime"
+      ],
+      "members":{
+        "backendEnvironmentArn":{"shape":"BackendEnvironmentArn"},
+        "environmentName":{"shape":"EnvironmentName"},
+        "stackName":{"shape":"StackName"},
+        "deploymentArtifacts":{"shape":"DeploymentArtifacts"},
+        "createTime":{"shape":"CreateTime"},
+        "updateTime":{"shape":"UpdateTime"}
+      }
+    },
+    "BackendEnvironmentArn":{
+      "type":"string",
+      "max":1000,
+      "min":1
+    },
+    "BackendEnvironments":{
+      "type":"list",
+      "member":{"shape":"BackendEnvironment"}
     },
     "BadRequestException":{
       "type":"structure",
@@ -403,6 +756,7 @@
         "branchName",
         "description",
         "stage",
+        "displayName",
         "enableNotification",
         "createTime",
         "updateTime",
@@ -413,13 +767,14 @@
         "activeJobId",
         "totalNumberOfJobs",
         "enableBasicAuth",
-        "ttl"
+        "ttl",
+        "enablePullRequestPreview"
       ],
       "members":{
         "branchArn":{"shape":"BranchArn"},
         "branchName":{"shape":"BranchName"},
         "description":{"shape":"Description"},
-        "tags":{"shape":"Tags"},
+        "tags":{"shape":"TagMap"},
         "stage":{"shape":"Stage"},
         "displayName":{"shape":"DisplayName"},
         "enableNotification":{"shape":"EnableNotification"},
@@ -435,7 +790,13 @@
         "thumbnailUrl":{"shape":"ThumbnailUrl"},
         "basicAuthCredentials":{"shape":"BasicAuthCredentials"},
         "buildSpec":{"shape":"BuildSpec"},
-        "ttl":{"shape":"TTL"}
+        "ttl":{"shape":"TTL"},
+        "associatedResources":{"shape":"AssociatedResources"},
+        "enablePullRequestPreview":{"shape":"EnablePullRequestPreview"},
+        "pullRequestEnvironmentName":{"shape":"PullRequestEnvironmentName"},
+        "destinationBranch":{"shape":"BranchName"},
+        "sourceBranch":{"shape":"BranchName"},
+        "backendEnvironmentArn":{"shape":"BackendEnvironmentArn"}
       }
     },
     "BranchArn":{
@@ -461,6 +822,7 @@
       "type":"string",
       "max":1000
     },
+    "Code":{"type":"string"},
     "CommitId":{
       "type":"string",
       "max":255
@@ -475,14 +837,10 @@
       "max":2048,
       "min":1
     },
+    "Context":{"type":"string"},
     "CreateAppRequest":{
       "type":"structure",
-      "required":[
-        "name",
-        "repository",
-        "platform",
-        "oauthToken"
-      ],
+      "required":["name"],
       "members":{
         "name":{"shape":"Name"},
         "description":{"shape":"Description"},
@@ -490,13 +848,17 @@
         "platform":{"shape":"Platform"},
         "iamServiceRoleArn":{"shape":"ServiceRoleArn"},
         "oauthToken":{"shape":"OauthToken"},
+        "accessToken":{"shape":"AccessToken"},
         "environmentVariables":{"shape":"EnvironmentVariables"},
         "enableBranchAutoBuild":{"shape":"EnableBranchAutoBuild"},
         "enableBasicAuth":{"shape":"EnableBasicAuth"},
         "basicAuthCredentials":{"shape":"BasicAuthCredentials"},
         "customRules":{"shape":"CustomRules"},
-        "tags":{"shape":"Tags"},
-        "buildSpec":{"shape":"BuildSpec"}
+        "tags":{"shape":"TagMap"},
+        "buildSpec":{"shape":"BuildSpec"},
+        "enableAutoBranchCreation":{"shape":"EnableAutoBranchCreation"},
+        "autoBranchCreationPatterns":{"shape":"AutoBranchCreationPatterns"},
+        "autoBranchCreationConfig":{"shape":"AutoBranchCreationConfig"}
       }
     },
     "CreateAppResult":{
@@ -504,6 +866,30 @@
       "required":["app"],
       "members":{
         "app":{"shape":"App"}
+      }
+    },
+    "CreateBackendEnvironmentRequest":{
+      "type":"structure",
+      "required":[
+        "appId",
+        "environmentName"
+      ],
+      "members":{
+        "appId":{
+          "shape":"AppId",
+          "location":"uri",
+          "locationName":"appId"
+        },
+        "environmentName":{"shape":"EnvironmentName"},
+        "stackName":{"shape":"StackName"},
+        "deploymentArtifacts":{"shape":"DeploymentArtifacts"}
+      }
+    },
+    "CreateBackendEnvironmentResult":{
+      "type":"structure",
+      "required":["backendEnvironment"],
+      "members":{
+        "backendEnvironment":{"shape":"BackendEnvironment"}
       }
     },
     "CreateBranchRequest":{
@@ -527,9 +913,13 @@
         "environmentVariables":{"shape":"EnvironmentVariables"},
         "basicAuthCredentials":{"shape":"BasicAuthCredentials"},
         "enableBasicAuth":{"shape":"EnableBasicAuth"},
-        "tags":{"shape":"Tags"},
+        "tags":{"shape":"TagMap"},
         "buildSpec":{"shape":"BuildSpec"},
-        "ttl":{"shape":"TTL"}
+        "ttl":{"shape":"TTL"},
+        "displayName":{"shape":"DisplayName"},
+        "enablePullRequestPreview":{"shape":"EnablePullRequestPreview"},
+        "pullRequestEnvironmentName":{"shape":"PullRequestEnvironmentName"},
+        "backendEnvironmentArn":{"shape":"BackendEnvironmentArn"}
       }
     },
     "CreateBranchResult":{
@@ -537,6 +927,38 @@
       "required":["branch"],
       "members":{
         "branch":{"shape":"Branch"}
+      }
+    },
+    "CreateDeploymentRequest":{
+      "type":"structure",
+      "required":[
+        "appId",
+        "branchName"
+      ],
+      "members":{
+        "appId":{
+          "shape":"AppId",
+          "location":"uri",
+          "locationName":"appId"
+        },
+        "branchName":{
+          "shape":"BranchName",
+          "location":"uri",
+          "locationName":"branchName"
+        },
+        "fileMap":{"shape":"FileMap"}
+      }
+    },
+    "CreateDeploymentResult":{
+      "type":"structure",
+      "required":[
+        "fileUploadUrls",
+        "zipUploadUrl"
+      ],
+      "members":{
+        "jobId":{"shape":"JobId"},
+        "fileUploadUrls":{"shape":"FileUploadUrls"},
+        "zipUploadUrl":{"shape":"UploadUrl"}
       }
     },
     "CreateDomainAssociationRequest":{
@@ -565,6 +987,29 @@
       }
     },
     "CreateTime":{"type":"timestamp"},
+    "CreateWebhookRequest":{
+      "type":"structure",
+      "required":[
+        "appId",
+        "branchName"
+      ],
+      "members":{
+        "appId":{
+          "shape":"AppId",
+          "location":"uri",
+          "locationName":"appId"
+        },
+        "branchName":{"shape":"BranchName"},
+        "description":{"shape":"Description"}
+      }
+    },
+    "CreateWebhookResult":{
+      "type":"structure",
+      "required":["webhook"],
+      "members":{
+        "webhook":{"shape":"Webhook"}
+      }
+    },
     "CustomDomain":{
       "type":"string",
       "max":255
@@ -616,6 +1061,32 @@
       "required":["app"],
       "members":{
         "app":{"shape":"App"}
+      }
+    },
+    "DeleteBackendEnvironmentRequest":{
+      "type":"structure",
+      "required":[
+        "appId",
+        "environmentName"
+      ],
+      "members":{
+        "appId":{
+          "shape":"AppId",
+          "location":"uri",
+          "locationName":"appId"
+        },
+        "environmentName":{
+          "shape":"EnvironmentName",
+          "location":"uri",
+          "locationName":"environmentName"
+        }
+      }
+    },
+    "DeleteBackendEnvironmentResult":{
+      "type":"structure",
+      "required":["backendEnvironment"],
+      "members":{
+        "backendEnvironment":{"shape":"BackendEnvironment"}
       }
     },
     "DeleteBranchRequest":{
@@ -702,6 +1173,24 @@
         "jobSummary":{"shape":"JobSummary"}
       }
     },
+    "DeleteWebhookRequest":{
+      "type":"structure",
+      "required":["webhookId"],
+      "members":{
+        "webhookId":{
+          "shape":"WebhookId",
+          "location":"uri",
+          "locationName":"webhookId"
+        }
+      }
+    },
+    "DeleteWebhookResult":{
+      "type":"structure",
+      "required":["webhook"],
+      "members":{
+        "webhook":{"shape":"Webhook"}
+      }
+    },
     "DependentServiceFailureException":{
       "type":"structure",
       "members":{
@@ -709,6 +1198,11 @@
       },
       "error":{"httpStatusCode":503},
       "exception":true
+    },
+    "DeploymentArtifacts":{
+      "type":"string",
+      "max":1000,
+      "min":1
     },
     "Description":{
       "type":"string",
@@ -726,7 +1220,6 @@
         "enableAutoSubDomain",
         "domainStatus",
         "statusReason",
-        "certificateVerificationDNSRecord",
         "subDomains"
       ],
       "members":{
@@ -763,14 +1256,19 @@
         "IN_PROGRESS",
         "AVAILABLE",
         "PENDING_DEPLOYMENT",
-        "FAILED"
+        "FAILED",
+        "CREATING",
+        "REQUESTING_CERTIFICATE",
+        "UPDATING"
       ]
     },
+    "EnableAutoBranchCreation":{"type":"boolean"},
     "EnableAutoBuild":{"type":"boolean"},
     "EnableAutoSubDomain":{"type":"boolean"},
     "EnableBasicAuth":{"type":"boolean"},
     "EnableBranchAutoBuild":{"type":"boolean"},
     "EnableNotification":{"type":"boolean"},
+    "EnablePullRequestPreview":{"type":"boolean"},
     "EndTime":{"type":"timestamp"},
     "EnvKey":{
       "type":"string",
@@ -779,6 +1277,11 @@
     "EnvValue":{
       "type":"string",
       "max":1000
+    },
+    "EnvironmentName":{
+      "type":"string",
+      "max":255,
+      "min":1
     },
     "EnvironmentVariables":{
       "type":"map",
@@ -789,9 +1292,46 @@
       "type":"string",
       "max":255
     },
+    "FileMap":{
+      "type":"map",
+      "key":{"shape":"FileName"},
+      "value":{"shape":"MD5Hash"}
+    },
+    "FileName":{
+      "type":"string",
+      "max":255
+    },
+    "FileUploadUrls":{
+      "type":"map",
+      "key":{"shape":"FileName"},
+      "value":{"shape":"UploadUrl"}
+    },
     "Framework":{
       "type":"string",
       "max":255
+    },
+    "GenerateAccessLogsRequest":{
+      "type":"structure",
+      "required":[
+        "domainName",
+        "appId"
+      ],
+      "members":{
+        "startTime":{"shape":"StartTime"},
+        "endTime":{"shape":"EndTime"},
+        "domainName":{"shape":"DomainName"},
+        "appId":{
+          "shape":"AppId",
+          "location":"uri",
+          "locationName":"appId"
+        }
+      }
+    },
+    "GenerateAccessLogsResult":{
+      "type":"structure",
+      "members":{
+        "logUrl":{"shape":"LogUrl"}
+      }
     },
     "GetAppRequest":{
       "type":"structure",
@@ -809,6 +1349,54 @@
       "required":["app"],
       "members":{
         "app":{"shape":"App"}
+      }
+    },
+    "GetArtifactUrlRequest":{
+      "type":"structure",
+      "required":["artifactId"],
+      "members":{
+        "artifactId":{
+          "shape":"ArtifactId",
+          "location":"uri",
+          "locationName":"artifactId"
+        }
+      }
+    },
+    "GetArtifactUrlResult":{
+      "type":"structure",
+      "required":[
+        "artifactId",
+        "artifactUrl"
+      ],
+      "members":{
+        "artifactId":{"shape":"ArtifactId"},
+        "artifactUrl":{"shape":"ArtifactUrl"}
+      }
+    },
+    "GetBackendEnvironmentRequest":{
+      "type":"structure",
+      "required":[
+        "appId",
+        "environmentName"
+      ],
+      "members":{
+        "appId":{
+          "shape":"AppId",
+          "location":"uri",
+          "locationName":"appId"
+        },
+        "environmentName":{
+          "shape":"EnvironmentName",
+          "location":"uri",
+          "locationName":"environmentName"
+        }
+      }
+    },
+    "GetBackendEnvironmentResult":{
+      "type":"structure",
+      "required":["backendEnvironment"],
+      "members":{
+        "backendEnvironment":{"shape":"BackendEnvironment"}
       }
     },
     "GetBranchRequest":{
@@ -895,6 +1483,24 @@
         "job":{"shape":"Job"}
       }
     },
+    "GetWebhookRequest":{
+      "type":"structure",
+      "required":["webhookId"],
+      "members":{
+        "webhookId":{
+          "shape":"WebhookId",
+          "location":"uri",
+          "locationName":"webhookId"
+        }
+      }
+    },
+    "GetWebhookResult":{
+      "type":"structure",
+      "required":["webhook"],
+      "members":{
+        "webhook":{"shape":"Webhook"}
+      }
+    },
     "InternalFailureException":{
       "type":"structure",
       "members":{
@@ -972,6 +1578,7 @@
       "enum":[
         "RELEASE",
         "RETRY",
+        "MANUAL",
         "WEB_HOOK"
       ],
       "max":10
@@ -1005,6 +1612,79 @@
       "required":["apps"],
       "members":{
         "apps":{"shape":"Apps"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListArtifactsRequest":{
+      "type":"structure",
+      "required":[
+        "appId",
+        "branchName",
+        "jobId"
+      ],
+      "members":{
+        "appId":{
+          "shape":"AppId",
+          "location":"uri",
+          "locationName":"appId"
+        },
+        "branchName":{
+          "shape":"BranchName",
+          "location":"uri",
+          "locationName":"branchName"
+        },
+        "jobId":{
+          "shape":"JobId",
+          "location":"uri",
+          "locationName":"jobId"
+        },
+        "nextToken":{
+          "shape":"NextToken",
+          "location":"querystring",
+          "locationName":"nextToken"
+        },
+        "maxResults":{
+          "shape":"MaxResults",
+          "location":"querystring",
+          "locationName":"maxResults"
+        }
+      }
+    },
+    "ListArtifactsResult":{
+      "type":"structure",
+      "required":["artifacts"],
+      "members":{
+        "artifacts":{"shape":"Artifacts"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListBackendEnvironmentsRequest":{
+      "type":"structure",
+      "required":["appId"],
+      "members":{
+        "appId":{
+          "shape":"AppId",
+          "location":"uri",
+          "locationName":"appId"
+        },
+        "environmentName":{"shape":"EnvironmentName"},
+        "nextToken":{
+          "shape":"NextToken",
+          "location":"querystring",
+          "locationName":"nextToken"
+        },
+        "maxResults":{
+          "shape":"MaxResults",
+          "location":"querystring",
+          "locationName":"maxResults"
+        }
+      }
+    },
+    "ListBackendEnvironmentsResult":{
+      "type":"structure",
+      "required":["backendEnvironments"],
+      "members":{
+        "backendEnvironments":{"shape":"BackendEnvironments"},
         "nextToken":{"shape":"NextToken"}
       }
     },
@@ -1103,9 +1783,59 @@
         "nextToken":{"shape":"NextToken"}
       }
     },
+    "ListTagsForResourceRequest":{
+      "type":"structure",
+      "required":["resourceArn"],
+      "members":{
+        "resourceArn":{
+          "shape":"ResourceArn",
+          "location":"uri",
+          "locationName":"resourceArn"
+        }
+      }
+    },
+    "ListTagsForResourceResponse":{
+      "type":"structure",
+      "members":{
+        "tags":{"shape":"TagMap"}
+      }
+    },
+    "ListWebhooksRequest":{
+      "type":"structure",
+      "required":["appId"],
+      "members":{
+        "appId":{
+          "shape":"AppId",
+          "location":"uri",
+          "locationName":"appId"
+        },
+        "nextToken":{
+          "shape":"NextToken",
+          "location":"querystring",
+          "locationName":"nextToken"
+        },
+        "maxResults":{
+          "shape":"MaxResults",
+          "location":"querystring",
+          "locationName":"maxResults"
+        }
+      }
+    },
+    "ListWebhooksResult":{
+      "type":"structure",
+      "required":["webhooks"],
+      "members":{
+        "webhooks":{"shape":"Webhooks"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
     "LogUrl":{
       "type":"string",
       "max":1000
+    },
+    "MD5Hash":{
+      "type":"string",
+      "max":32
     },
     "MaxResults":{
       "type":"integer",
@@ -1135,12 +1865,7 @@
     },
     "Platform":{
       "type":"string",
-      "enum":[
-        "IOS",
-        "ANDROID",
-        "WEB",
-        "REACT_NATIVE"
-      ]
+      "enum":["WEB"]
     },
     "ProductionBranch":{
       "type":"structure",
@@ -1151,9 +1876,30 @@
         "branchName":{"shape":"BranchName"}
       }
     },
+    "PullRequestEnvironmentName":{
+      "type":"string",
+      "max":20
+    },
     "Repository":{
       "type":"string",
       "max":1000
+    },
+    "ResourceArn":{
+      "type":"string",
+      "pattern":"^arn:aws:amplify:.*"
+    },
+    "ResourceNotFoundException":{
+      "type":"structure",
+      "required":[
+        "code",
+        "message"
+      ],
+      "members":{
+        "code":{"shape":"Code"},
+        "message":{"shape":"ErrorMessage"}
+      },
+      "error":{"httpStatusCode":404},
+      "exception":true
     },
     "Screenshots":{
       "type":"map",
@@ -1170,14 +1916,52 @@
       "max":2048,
       "min":1
     },
+    "SourceUrl":{
+      "type":"string",
+      "max":1000
+    },
+    "StackName":{
+      "type":"string",
+      "max":255,
+      "min":1
+    },
     "Stage":{
       "type":"string",
       "enum":[
         "PRODUCTION",
         "BETA",
         "DEVELOPMENT",
-        "EXPERIMENTAL"
+        "EXPERIMENTAL",
+        "PULL_REQUEST"
       ]
+    },
+    "StartDeploymentRequest":{
+      "type":"structure",
+      "required":[
+        "appId",
+        "branchName"
+      ],
+      "members":{
+        "appId":{
+          "shape":"AppId",
+          "location":"uri",
+          "locationName":"appId"
+        },
+        "branchName":{
+          "shape":"BranchName",
+          "location":"uri",
+          "locationName":"branchName"
+        },
+        "jobId":{"shape":"JobId"},
+        "sourceUrl":{"shape":"SourceUrl"}
+      }
+    },
+    "StartDeploymentResult":{
+      "type":"structure",
+      "required":["jobSummary"],
+      "members":{
+        "jobSummary":{"shape":"JobSummary"}
+      }
     },
     "StartJobRequest":{
       "type":"structure",
@@ -1215,7 +1999,7 @@
     "StartTime":{"type":"timestamp"},
     "Status":{
       "type":"string",
-      "max":3,
+      "max":7,
       "min":3
     },
     "StatusReason":{
@@ -1237,7 +2021,11 @@
         "endTime":{"shape":"EndTime"},
         "logUrl":{"shape":"LogUrl"},
         "artifactsUrl":{"shape":"ArtifactsUrl"},
-        "screenshots":{"shape":"Screenshots"}
+        "testArtifactsUrl":{"shape":"TestArtifactsUrl"},
+        "testConfigUrl":{"shape":"TestConfigUrl"},
+        "screenshots":{"shape":"Screenshots"},
+        "statusReason":{"shape":"StatusReason"},
+        "context":{"shape":"Context"}
       }
     },
     "StepName":{
@@ -1317,21 +2105,59 @@
     "TTL":{"type":"string"},
     "TagKey":{
       "type":"string",
-      "max":1000
+      "max":128,
+      "min":1,
+      "pattern":"^(?!aws:)[a-zA-Z+-=._:/]+$"
+    },
+    "TagKeyList":{
+      "type":"list",
+      "member":{"shape":"TagKey"},
+      "max":50,
+      "min":1
+    },
+    "TagMap":{
+      "type":"map",
+      "key":{"shape":"TagKey"},
+      "value":{"shape":"TagValue"},
+      "max":50,
+      "min":1
+    },
+    "TagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "resourceArn",
+        "tags"
+      ],
+      "members":{
+        "resourceArn":{
+          "shape":"ResourceArn",
+          "location":"uri",
+          "locationName":"resourceArn"
+        },
+        "tags":{"shape":"TagMap"}
+      }
+    },
+    "TagResourceResponse":{
+      "type":"structure",
+      "members":{
+      }
     },
     "TagValue":{
       "type":"string",
-      "max":1000
-    },
-    "Tags":{
-      "type":"map",
-      "key":{"shape":"TagKey"},
-      "value":{"shape":"TagValue"}
+      "max":256
     },
     "Target":{
       "type":"string",
       "max":2048,
       "min":1
+    },
+    "TestArtifactsUrl":{
+      "type":"string",
+      "max":1000
+    },
+    "TestConfigUrl":{
+      "type":"string",
+      "max":1000
     },
     "ThumbnailName":{
       "type":"string",
@@ -1354,6 +2180,30 @@
       "error":{"httpStatusCode":401},
       "exception":true
     },
+    "UntagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "resourceArn",
+        "tagKeys"
+      ],
+      "members":{
+        "resourceArn":{
+          "shape":"ResourceArn",
+          "location":"uri",
+          "locationName":"resourceArn"
+        },
+        "tagKeys":{
+          "shape":"TagKeyList",
+          "location":"querystring",
+          "locationName":"tagKeys"
+        }
+      }
+    },
+    "UntagResourceResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "UpdateAppRequest":{
       "type":"structure",
       "required":["appId"],
@@ -1372,7 +2222,13 @@
         "enableBasicAuth":{"shape":"EnableBasicAuth"},
         "basicAuthCredentials":{"shape":"BasicAuthCredentials"},
         "customRules":{"shape":"CustomRules"},
-        "buildSpec":{"shape":"BuildSpec"}
+        "buildSpec":{"shape":"BuildSpec"},
+        "enableAutoBranchCreation":{"shape":"EnableAutoBranchCreation"},
+        "autoBranchCreationPatterns":{"shape":"AutoBranchCreationPatterns"},
+        "autoBranchCreationConfig":{"shape":"AutoBranchCreationConfig"},
+        "repository":{"shape":"Repository"},
+        "oauthToken":{"shape":"OauthToken"},
+        "accessToken":{"shape":"AccessToken"}
       }
     },
     "UpdateAppResult":{
@@ -1408,7 +2264,11 @@
         "basicAuthCredentials":{"shape":"BasicAuthCredentials"},
         "enableBasicAuth":{"shape":"EnableBasicAuth"},
         "buildSpec":{"shape":"BuildSpec"},
-        "ttl":{"shape":"TTL"}
+        "ttl":{"shape":"TTL"},
+        "displayName":{"shape":"DisplayName"},
+        "enablePullRequestPreview":{"shape":"EnablePullRequestPreview"},
+        "pullRequestEnvironmentName":{"shape":"PullRequestEnvironmentName"},
+        "backendEnvironmentArn":{"shape":"BackendEnvironmentArn"}
       }
     },
     "UpdateBranchResult":{
@@ -1448,6 +2308,67 @@
       }
     },
     "UpdateTime":{"type":"timestamp"},
-    "Verified":{"type":"boolean"}
+    "UpdateWebhookRequest":{
+      "type":"structure",
+      "required":["webhookId"],
+      "members":{
+        "webhookId":{
+          "shape":"WebhookId",
+          "location":"uri",
+          "locationName":"webhookId"
+        },
+        "branchName":{"shape":"BranchName"},
+        "description":{"shape":"Description"}
+      }
+    },
+    "UpdateWebhookResult":{
+      "type":"structure",
+      "required":["webhook"],
+      "members":{
+        "webhook":{"shape":"Webhook"}
+      }
+    },
+    "UploadUrl":{
+      "type":"string",
+      "max":1000
+    },
+    "Verified":{"type":"boolean"},
+    "Webhook":{
+      "type":"structure",
+      "required":[
+        "webhookArn",
+        "webhookId",
+        "webhookUrl",
+        "branchName",
+        "description",
+        "createTime",
+        "updateTime"
+      ],
+      "members":{
+        "webhookArn":{"shape":"WebhookArn"},
+        "webhookId":{"shape":"WebhookId"},
+        "webhookUrl":{"shape":"WebhookUrl"},
+        "branchName":{"shape":"BranchName"},
+        "description":{"shape":"Description"},
+        "createTime":{"shape":"CreateTime"},
+        "updateTime":{"shape":"UpdateTime"}
+      }
+    },
+    "WebhookArn":{
+      "type":"string",
+      "max":1000
+    },
+    "WebhookId":{
+      "type":"string",
+      "max":255
+    },
+    "WebhookUrl":{
+      "type":"string",
+      "max":1000
+    },
+    "Webhooks":{
+      "type":"list",
+      "member":{"shape":"Webhook"}
+    }
   }
 }

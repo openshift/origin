@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -52,11 +53,11 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 	}
 
 	var networkPlugin string
-	if networkConfig, err := client.ConfigV1().Networks().Get("cluster", metav1.GetOptions{}); err == nil {
+	if networkConfig, err := client.ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{}); err == nil {
 		networkPlugin = networkConfig.Spec.NetworkType
 	}
 
-	infra, err := client.ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
+	infra, err := client.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 		}, nil
 	}
 
-	masters, err := coreClient.CoreV1().Nodes().List(metav1.ListOptions{
+	masters, err := coreClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: "node-role.kubernetes.io/master=",
 	})
 	if err != nil {
@@ -82,7 +83,7 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 	}
 	zones.Delete("")
 
-	nonMasters, err := coreClient.CoreV1().Nodes().List(metav1.ListOptions{
+	nonMasters, err := coreClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: "!node-role.kubernetes.io/master",
 	})
 	if err != nil {

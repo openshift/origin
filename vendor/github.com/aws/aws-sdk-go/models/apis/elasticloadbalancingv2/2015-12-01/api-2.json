@@ -73,7 +73,8 @@
         {"shape":"TooManyRegistrationsForTargetIdException"},
         {"shape":"TooManyTargetsException"},
         {"shape":"TooManyActionsException"},
-        {"shape":"InvalidLoadBalancerActionException"}
+        {"shape":"InvalidLoadBalancerActionException"},
+        {"shape":"TooManyUniqueTargetGroupsPerLoadBalancerException"}
       ]
     },
     "CreateLoadBalancer":{
@@ -127,7 +128,8 @@
         {"shape":"TooManyTargetsException"},
         {"shape":"UnsupportedProtocolException"},
         {"shape":"TooManyActionsException"},
-        {"shape":"InvalidLoadBalancerActionException"}
+        {"shape":"InvalidLoadBalancerActionException"},
+        {"shape":"TooManyUniqueTargetGroupsPerLoadBalancerException"}
       ]
     },
     "CreateTargetGroup":{
@@ -424,7 +426,8 @@
         {"shape":"TooManyRegistrationsForTargetIdException"},
         {"shape":"TooManyTargetsException"},
         {"shape":"TooManyActionsException"},
-        {"shape":"InvalidLoadBalancerActionException"}
+        {"shape":"InvalidLoadBalancerActionException"},
+        {"shape":"TooManyUniqueTargetGroupsPerLoadBalancerException"}
       ]
     },
     "ModifyLoadBalancerAttributes":{
@@ -464,7 +467,8 @@
         {"shape":"TargetGroupNotFoundException"},
         {"shape":"UnsupportedProtocolException"},
         {"shape":"TooManyActionsException"},
-        {"shape":"InvalidLoadBalancerActionException"}
+        {"shape":"InvalidLoadBalancerActionException"},
+        {"shape":"TooManyUniqueTargetGroupsPerLoadBalancerException"}
       ]
     },
     "ModifyTargetGroup":{
@@ -635,7 +639,8 @@
         "AuthenticateCognitoConfig":{"shape":"AuthenticateCognitoActionConfig"},
         "Order":{"shape":"ActionOrder"},
         "RedirectConfig":{"shape":"RedirectActionConfig"},
-        "FixedResponseConfig":{"shape":"FixedResponseActionConfig"}
+        "FixedResponseConfig":{"shape":"FixedResponseActionConfig"},
+        "ForwardConfig":{"shape":"ForwardActionConfig"}
       }
     },
     "ActionOrder":{
@@ -766,8 +771,7 @@
         "AuthorizationEndpoint",
         "TokenEndpoint",
         "UserInfoEndpoint",
-        "ClientId",
-        "ClientSecret"
+        "ClientId"
       ],
       "members":{
         "Issuer":{"shape":"AuthenticateOidcActionIssuer"},
@@ -780,7 +784,8 @@
         "Scope":{"shape":"AuthenticateOidcActionScope"},
         "SessionTimeout":{"shape":"AuthenticateOidcActionSessionTimeout"},
         "AuthenticationRequestExtraParams":{"shape":"AuthenticateOidcActionAuthenticationRequestExtraParams"},
-        "OnUnauthenticatedRequest":{"shape":"AuthenticateOidcActionConditionalBehaviorEnum"}
+        "OnUnauthenticatedRequest":{"shape":"AuthenticateOidcActionConditionalBehaviorEnum"},
+        "UseExistingClientSecret":{"shape":"AuthenticateOidcActionUseExistingClientSecret"}
       }
     },
     "AuthenticateOidcActionIssuer":{"type":"string"},
@@ -788,6 +793,7 @@
     "AuthenticateOidcActionSessionCookieName":{"type":"string"},
     "AuthenticateOidcActionSessionTimeout":{"type":"long"},
     "AuthenticateOidcActionTokenEndpoint":{"type":"string"},
+    "AuthenticateOidcActionUseExistingClientSecret":{"type":"boolean"},
     "AuthenticateOidcActionUserInfoEndpoint":{"type":"string"},
     "AvailabilityZone":{
       "type":"structure",
@@ -1241,6 +1247,13 @@
       "type":"string",
       "pattern":"^(2|4|5)\\d\\d$"
     },
+    "ForwardActionConfig":{
+      "type":"structure",
+      "members":{
+        "TargetGroups":{"shape":"TargetGroupList"},
+        "TargetGroupStickinessConfig":{"shape":"TargetGroupStickinessConfig"}
+      }
+    },
     "HealthCheckEnabled":{"type":"boolean"},
     "HealthCheckIntervalSeconds":{
       "type":"integer",
@@ -1268,7 +1281,27 @@
       },
       "exception":true
     },
+    "HostHeaderConditionConfig":{
+      "type":"structure",
+      "members":{
+        "Values":{"shape":"ListOfString"}
+      }
+    },
     "HttpCode":{"type":"string"},
+    "HttpHeaderConditionConfig":{
+      "type":"structure",
+      "members":{
+        "HttpHeaderName":{"shape":"HttpHeaderConditionName"},
+        "Values":{"shape":"ListOfString"}
+      }
+    },
+    "HttpHeaderConditionName":{"type":"string"},
+    "HttpRequestMethodConditionConfig":{
+      "type":"structure",
+      "members":{
+        "Values":{"shape":"ListOfString"}
+      }
+    },
     "IncompatibleProtocolsException":{
       "type":"structure",
       "members":{
@@ -1423,7 +1456,8 @@
       "type":"structure",
       "members":{
         "IpAddress":{"shape":"IpAddress"},
-        "AllocationId":{"shape":"AllocationId"}
+        "AllocationId":{"shape":"AllocationId"},
+        "PrivateIPv4Address":{"shape":"PrivateIPv4Address"}
       }
     },
     "LoadBalancerAddresses":{
@@ -1626,6 +1660,12 @@
       "max":1024,
       "min":1
     },
+    "PathPatternConditionConfig":{
+      "type":"structure",
+      "members":{
+        "Values":{"shape":"ListOfString"}
+      }
+    },
     "Port":{
       "type":"integer",
       "max":65535,
@@ -1642,14 +1682,34 @@
       },
       "exception":true
     },
+    "PrivateIPv4Address":{"type":"string"},
     "ProtocolEnum":{
       "type":"string",
       "enum":[
         "HTTP",
         "HTTPS",
         "TCP",
-        "TLS"
+        "TLS",
+        "UDP",
+        "TCP_UDP"
       ]
+    },
+    "QueryStringConditionConfig":{
+      "type":"structure",
+      "members":{
+        "Values":{"shape":"QueryStringKeyValuePairList"}
+      }
+    },
+    "QueryStringKeyValuePair":{
+      "type":"structure",
+      "members":{
+        "Key":{"shape":"StringValue"},
+        "Value":{"shape":"StringValue"}
+      }
+    },
+    "QueryStringKeyValuePairList":{
+      "type":"list",
+      "member":{"shape":"QueryStringKeyValuePair"}
     },
     "RedirectActionConfig":{
       "type":"structure",
@@ -1773,7 +1833,13 @@
       "type":"structure",
       "members":{
         "Field":{"shape":"ConditionFieldName"},
-        "Values":{"shape":"ListOfString"}
+        "Values":{"shape":"ListOfString"},
+        "HostHeaderConfig":{"shape":"HostHeaderConditionConfig"},
+        "PathPatternConfig":{"shape":"PathPatternConditionConfig"},
+        "HttpHeaderConfig":{"shape":"HttpHeaderConditionConfig"},
+        "QueryStringConfig":{"shape":"QueryStringConditionConfig"},
+        "HttpRequestMethodConfig":{"shape":"HttpRequestMethodConditionConfig"},
+        "SourceIpConfig":{"shape":"SourceIpConditionConfig"}
       }
     },
     "RuleConditionList":{
@@ -1889,6 +1955,12 @@
         "AvailabilityZones":{"shape":"AvailabilityZones"}
       }
     },
+    "SourceIpConditionConfig":{
+      "type":"structure",
+      "members":{
+        "Values":{"shape":"ListOfString"}
+      }
+    },
     "SslPolicies":{
       "type":"list",
       "member":{"shape":"SslPolicy"}
@@ -1919,7 +1991,8 @@
       "type":"structure",
       "members":{
         "SubnetId":{"shape":"SubnetId"},
-        "AllocationId":{"shape":"AllocationId"}
+        "AllocationId":{"shape":"AllocationId"},
+        "PrivateIPv4Address":{"shape":"PrivateIPv4Address"}
       }
     },
     "SubnetMappings":{
@@ -2048,6 +2121,10 @@
       "type":"list",
       "member":{"shape":"TargetGroupAttribute"}
     },
+    "TargetGroupList":{
+      "type":"list",
+      "member":{"shape":"TargetGroupTuple"}
+    },
     "TargetGroupName":{"type":"string"},
     "TargetGroupNames":{
       "type":"list",
@@ -2064,6 +2141,23 @@
       },
       "exception":true
     },
+    "TargetGroupStickinessConfig":{
+      "type":"structure",
+      "members":{
+        "Enabled":{"shape":"TargetGroupStickinessEnabled"},
+        "DurationSeconds":{"shape":"TargetGroupStickinessDurationSeconds"}
+      }
+    },
+    "TargetGroupStickinessDurationSeconds":{"type":"integer"},
+    "TargetGroupStickinessEnabled":{"type":"boolean"},
+    "TargetGroupTuple":{
+      "type":"structure",
+      "members":{
+        "TargetGroupArn":{"shape":"TargetGroupArn"},
+        "Weight":{"shape":"TargetGroupWeight"}
+      }
+    },
+    "TargetGroupWeight":{"type":"integer"},
     "TargetGroups":{
       "type":"list",
       "member":{"shape":"TargetGroup"}
@@ -2219,6 +2313,17 @@
       },
       "error":{
         "code":"TooManyTargets",
+        "httpStatusCode":400,
+        "senderFault":true
+      },
+      "exception":true
+    },
+    "TooManyUniqueTargetGroupsPerLoadBalancerException":{
+      "type":"structure",
+      "members":{
+      },
+      "error":{
+        "code":"TooManyUniqueTargetGroupsPerLoadBalancer",
         "httpStatusCode":400,
         "senderFault":true
       },

@@ -20,6 +20,11 @@ func makeWriteHeadersRequest(streamID uint32) FrameWriteRequest {
 	return FrameWriteRequest{&writeResHeaders{streamID: streamID, httpResCode: 200}, st, nil}
 }
 
+func makeHandlerPanicRST(streamID uint32) FrameWriteRequest {
+	st := &stream{id: streamID}
+	return FrameWriteRequest{&handlerPanicRST{StreamID: streamID}, st, nil}
+}
+
 func checkConsume(wr FrameWriteRequest, nbytes int32, want []FrameWriteRequest) error {
 	consumed, rest, n := wr.Consume(nbytes)
 	var wantConsumed, wantRest FrameWriteRequest

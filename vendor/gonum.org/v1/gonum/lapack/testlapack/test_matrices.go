@@ -126,9 +126,9 @@ func (c Circulant) Eigenvalues() []complex128 {
 }
 
 // Clement is a generally non-symmetric matrix given by
-//  A[i,j] = i+1,  if j == i+1,
-//         = n-i,  if j == i-1,
-//         = 0,    otherwise.
+//  A[i,j] = i+1  if j == i+1,
+//         = n-i  if j == i-1,
+//         = 0    otherwise.
 // For example, for n=5,
 //      [ . 1 . . . ]
 //      [ 4 . 2 . . ]
@@ -162,8 +162,8 @@ func (c Clement) Eigenvalues() []complex128 {
 }
 
 // Creation is a singular non-symmetric matrix given by
-//  A[i,j] = i,  if j == i-1,
-//         = 0,  otherwise.
+//  A[i,j] = i  if j == i-1,
+//         = 0  otherwise.
 // For example, for n=5,
 //      [ . . . . . ]
 //      [ 1 . . . . ]
@@ -187,8 +187,8 @@ func (c Creation) Eigenvalues() []complex128 {
 }
 
 // Diagonal is a diagonal matrix given by
-//  A[i,j] = i+1,  if i == j,
-//         = 0,    otherwise.
+//  A[i,j] = i+1  if i == j,
+//         = 0    otherwise.
 // For example, for n=5,
 //      [ 1 . . . . ]
 //      [ . 2 . . . ]
@@ -217,8 +217,8 @@ func (d Diagonal) Eigenvalues() []complex128 {
 }
 
 // Downshift is a non-singular upper Hessenberg matrix given by
-//  A[i,j] = 1,  if (i-j+n)%n == 1,
-//         = 0,  otherwise.
+//  A[i,j] = 1  if (i-j+n)%n == 1,
+//         = 0  otherwise.
 // For example, for n=5,
 //      [ . . . . 1 ]
 //      [ 1 . . . . ]

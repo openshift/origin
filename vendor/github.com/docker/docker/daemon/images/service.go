@@ -3,16 +3,17 @@ package images // import "github.com/docker/docker/daemon/images"
 import (
 	"context"
 	"os"
+	"runtime"
 
 	"github.com/docker/docker/container"
 	daemonevents "github.com/docker/docker/daemon/events"
+	"github.com/docker/docker/distribution"
 	"github.com/docker/docker/distribution/metadata"
 	"github.com/docker/docker/distribution/xfer"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/layer"
 	dockerreference "github.com/docker/docker/reference"
 	"github.com/docker/docker/registry"
-	"github.com/docker/libtrust"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -38,7 +39,6 @@ type ImageServiceConfig struct {
 	MaxConcurrentUploads      int
 	ReferenceStore            dockerreference.Store
 	RegistryService           registry.Service
-	TrustKey                  libtrust.PrivateKey
 }
 
 // NewImageService returns a new ImageService from a configuration
@@ -54,7 +54,6 @@ func NewImageService(config ImageServiceConfig) *ImageService {
 		layerStores:               config.LayerStores,
 		referenceStore:            config.ReferenceStore,
 		registryService:           config.RegistryService,
-		trustKey:                  config.TrustKey,
 		uploadManager:             xfer.NewLayerUploadManager(config.MaxConcurrentUploads),
 	}
 }
@@ -70,8 +69,27 @@ type ImageService struct {
 	pruneRunning              int32
 	referenceStore            dockerreference.Store
 	registryService           registry.Service
-	trustKey                  libtrust.PrivateKey
 	uploadManager             *xfer.LayerUploadManager
+}
+
+// DistributionServices provides daemon image storage services
+type DistributionServices struct {
+	DownloadManager   distribution.RootFSDownloadManager
+	V2MetadataService metadata.V2MetadataService
+	LayerStore        layer.Store // TODO: lcow
+	ImageStore        image.Store
+	ReferenceStore    dockerreference.Store
+}
+
+// DistributionServices return services controlling daemon image storage
+func (i *ImageService) DistributionServices() DistributionServices {
+	return DistributionServices{
+		DownloadManager:   i.downloadManager,
+		V2MetadataService: metadata.NewV2MetadataService(i.distributionMetadataStore),
+		LayerStore:        i.layerStores[runtime.GOOS],
+		ImageStore:        i.imageStore,
+		ReferenceStore:    i.referenceStore,
+	}
 }
 
 // CountImages returns the number of images stored by ImageService
@@ -183,8 +201,6 @@ func (i *ImageService) LayerDiskUsage(ctx context.Context) (int64, error) {
 				if err == nil {
 					if _, ok := layerRefs[l.ChainID()]; ok {
 						allLayersSize += size
-					} else {
-						logrus.Warnf("found leaked image layer %v", l.ChainID())
 					}
 				} else {
 					logrus.Warnf("failed to get diff size for layer %v", l.ChainID())

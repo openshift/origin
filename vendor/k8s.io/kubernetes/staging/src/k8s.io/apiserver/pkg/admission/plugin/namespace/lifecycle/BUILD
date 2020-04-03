@@ -8,10 +8,7 @@ load(
 
 go_library(
     name = "go_default_library",
-    srcs = [
-        "admission.go",
-        "patch.go",
-    ],
+    srcs = ["admission.go"],
     importmap = "k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle",
     importpath = "k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle",
     deps = [

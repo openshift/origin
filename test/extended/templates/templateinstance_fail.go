@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -32,7 +33,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance creation wit
 			g.By("waiting for error to appear")
 			var templateinstance *templatev1.TemplateInstance
 			err = wait.Poll(time.Second, 1*time.Minute, func() (bool, error) {
-				templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get("invalidtemplateinstance", metav1.GetOptions{})
+				templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), "invalidtemplateinstance", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

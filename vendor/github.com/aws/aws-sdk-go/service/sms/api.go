@@ -3,6 +3,7 @@
 package sms
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -66,21 +67,21 @@ func (c *SMS) CreateAppRequest(input *CreateAppInput) (req *request.Request, out
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation CreateApp for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/CreateApp
@@ -160,33 +161,33 @@ func (c *SMS) CreateReplicationJobRequest(input *CreateReplicationJobInput) (req
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation CreateReplicationJob for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
-//   * ErrCodeServerCannotBeReplicatedException "ServerCannotBeReplicatedException"
+//   * ServerCannotBeReplicatedException
 //   The specified server cannot be replicated.
 //
-//   * ErrCodeReplicationJobAlreadyExistsException "ReplicationJobAlreadyExistsException"
+//   * ReplicationJobAlreadyExistsException
 //   The specified replication job already exists.
 //
-//   * ErrCodeNoConnectorsAvailableException "NoConnectorsAvailableException"
+//   * NoConnectorsAvailableException
 //   There are no connectors available.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeTemporarilyUnavailableException "TemporarilyUnavailableException"
+//   * TemporarilyUnavailableException
 //   The service is temporarily unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/CreateReplicationJob
@@ -267,21 +268,21 @@ func (c *SMS) DeleteAppRequest(input *DeleteAppInput) (req *request.Request, out
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation DeleteApp for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/DeleteApp
@@ -360,21 +361,21 @@ func (c *SMS) DeleteAppLaunchConfigurationRequest(input *DeleteAppLaunchConfigur
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation DeleteAppLaunchConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/DeleteAppLaunchConfiguration
@@ -453,21 +454,21 @@ func (c *SMS) DeleteAppReplicationConfigurationRequest(input *DeleteAppReplicati
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation DeleteAppReplicationConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/DeleteAppReplicationConfiguration
@@ -550,21 +551,21 @@ func (c *SMS) DeleteReplicationJobRequest(input *DeleteReplicationJobInput) (req
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation DeleteReplicationJob for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
-//   * ErrCodeReplicationJobNotFoundException "ReplicationJobNotFoundException"
+//   * ReplicationJobNotFoundException
 //   The specified replication job does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/DeleteReplicationJob
@@ -643,18 +644,18 @@ func (c *SMS) DeleteServerCatalogRequest(input *DeleteServerCatalogInput) (req *
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation DeleteServerCatalog for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/DeleteServerCatalog
@@ -736,18 +737,18 @@ func (c *SMS) DisassociateConnectorRequest(input *DisassociateConnectorInput) (r
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation DisassociateConnector for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+// Returned Error Types:
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/DisassociateConnector
@@ -826,21 +827,21 @@ func (c *SMS) GenerateChangeSetRequest(input *GenerateChangeSetInput) (req *requ
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation GenerateChangeSet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/GenerateChangeSet
@@ -919,21 +920,21 @@ func (c *SMS) GenerateTemplateRequest(input *GenerateTemplateInput) (req *reques
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation GenerateTemplate for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/GenerateTemplate
@@ -1011,21 +1012,21 @@ func (c *SMS) GetAppRequest(input *GetAppInput) (req *request.Request, output *G
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation GetApp for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/GetApp
@@ -1103,21 +1104,21 @@ func (c *SMS) GetAppLaunchConfigurationRequest(input *GetAppLaunchConfigurationI
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation GetAppLaunchConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/GetAppLaunchConfiguration
@@ -1195,21 +1196,21 @@ func (c *SMS) GetAppReplicationConfigurationRequest(input *GetAppReplicationConf
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation GetAppReplicationConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/GetAppReplicationConfiguration
@@ -1293,8 +1294,8 @@ func (c *SMS) GetConnectorsRequest(input *GetConnectorsInput) (req *request.Requ
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation GetConnectors for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
@@ -1331,7 +1332,7 @@ func (c *SMS) GetConnectorsWithContext(ctx aws.Context, input *GetConnectorsInpu
 //    // Example iterating over at most 3 pages of a GetConnectors operation.
 //    pageNum := 0
 //    err := client.GetConnectorsPages(params,
-//        func(page *GetConnectorsOutput, lastPage bool) bool {
+//        func(page *sms.GetConnectorsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1363,10 +1364,12 @@ func (c *SMS) GetConnectorsPagesWithContext(ctx aws.Context, input *GetConnector
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*GetConnectorsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*GetConnectorsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1429,14 +1432,14 @@ func (c *SMS) GetReplicationJobsRequest(input *GetReplicationJobsInput) (req *re
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation GetReplicationJobs for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
@@ -1473,7 +1476,7 @@ func (c *SMS) GetReplicationJobsWithContext(ctx aws.Context, input *GetReplicati
 //    // Example iterating over at most 3 pages of a GetReplicationJobs operation.
 //    pageNum := 0
 //    err := client.GetReplicationJobsPages(params,
-//        func(page *GetReplicationJobsOutput, lastPage bool) bool {
+//        func(page *sms.GetReplicationJobsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1505,10 +1508,12 @@ func (c *SMS) GetReplicationJobsPagesWithContext(ctx aws.Context, input *GetRepl
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*GetReplicationJobsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*GetReplicationJobsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1571,14 +1576,14 @@ func (c *SMS) GetReplicationRunsRequest(input *GetReplicationRunsInput) (req *re
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation GetReplicationRuns for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
@@ -1615,7 +1620,7 @@ func (c *SMS) GetReplicationRunsWithContext(ctx aws.Context, input *GetReplicati
 //    // Example iterating over at most 3 pages of a GetReplicationRuns operation.
 //    pageNum := 0
 //    err := client.GetReplicationRunsPages(params,
-//        func(page *GetReplicationRunsOutput, lastPage bool) bool {
+//        func(page *sms.GetReplicationRunsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1647,10 +1652,12 @@ func (c *SMS) GetReplicationRunsPagesWithContext(ctx aws.Context, input *GetRepl
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*GetReplicationRunsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*GetReplicationRunsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1715,8 +1722,8 @@ func (c *SMS) GetServersRequest(input *GetServersInput) (req *request.Request, o
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation GetServers for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
@@ -1753,7 +1760,7 @@ func (c *SMS) GetServersWithContext(ctx aws.Context, input *GetServersInput, opt
 //    // Example iterating over at most 3 pages of a GetServers operation.
 //    pageNum := 0
 //    err := client.GetServersPages(params,
-//        func(page *GetServersOutput, lastPage bool) bool {
+//        func(page *sms.GetServersOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1785,10 +1792,12 @@ func (c *SMS) GetServersPagesWithContext(ctx aws.Context, input *GetServersInput
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*GetServersOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*GetServersOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1850,21 +1859,21 @@ func (c *SMS) ImportServerCatalogRequest(input *ImportServerCatalogInput) (req *
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation ImportServerCatalog for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeNoConnectorsAvailableException "NoConnectorsAvailableException"
+//   * NoConnectorsAvailableException
 //   There are no connectors available.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/ImportServerCatalog
@@ -1943,21 +1952,21 @@ func (c *SMS) LaunchAppRequest(input *LaunchAppInput) (req *request.Request, out
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation LaunchApp for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/LaunchApp
@@ -2035,21 +2044,21 @@ func (c *SMS) ListAppsRequest(input *ListAppsInput) (req *request.Request, outpu
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation ListApps for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/ListApps
@@ -2128,21 +2137,21 @@ func (c *SMS) PutAppLaunchConfigurationRequest(input *PutAppLaunchConfigurationI
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation PutAppLaunchConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/PutAppLaunchConfiguration
@@ -2221,21 +2230,21 @@ func (c *SMS) PutAppReplicationConfigurationRequest(input *PutAppReplicationConf
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation PutAppReplicationConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/PutAppReplicationConfiguration
@@ -2314,21 +2323,21 @@ func (c *SMS) StartAppReplicationRequest(input *StartAppReplicationInput) (req *
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation StartAppReplication for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/StartAppReplication
@@ -2411,21 +2420,21 @@ func (c *SMS) StartOnDemandReplicationRunRequest(input *StartOnDemandReplication
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation StartOnDemandReplicationRun for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
-//   * ErrCodeReplicationRunLimitExceededException "ReplicationRunLimitExceededException"
+//   * ReplicationRunLimitExceededException
 //   You have exceeded the number of on-demand replication runs you can request
 //   in a 24-hour period.
 //
@@ -2505,21 +2514,21 @@ func (c *SMS) StopAppReplicationRequest(input *StopAppReplicationInput) (req *re
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation StopAppReplication for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/StopAppReplication
@@ -2598,21 +2607,21 @@ func (c *SMS) TerminateAppRequest(input *TerminateAppInput) (req *request.Reques
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation TerminateApp for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/TerminateApp
@@ -2690,21 +2699,21 @@ func (c *SMS) UpdateAppRequest(input *UpdateAppInput) (req *request.Request, out
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation UpdateApp for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+// Returned Error Types:
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/UpdateApp
@@ -2783,30 +2792,30 @@ func (c *SMS) UpdateReplicationJobRequest(input *UpdateReplicationJobInput) (req
 // See the AWS API reference guide for AWS Server Migration Service's
 // API operation UpdateReplicationJob for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   A specified parameter is not valid.
 //
-//   * ErrCodeMissingRequiredParameterException "MissingRequiredParameterException"
+//   * MissingRequiredParameterException
 //   A required parameter is missing.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not allowed.
 //
-//   * ErrCodeUnauthorizedOperationException "UnauthorizedOperationException"
+//   * UnauthorizedOperationException
 //   You lack permissions needed to perform this operation. Check your IAM policies,
 //   and ensure that you are using the correct access keys.
 //
-//   * ErrCodeServerCannotBeReplicatedException "ServerCannotBeReplicatedException"
+//   * ServerCannotBeReplicatedException
 //   The specified server cannot be replicated.
 //
-//   * ErrCodeReplicationJobNotFoundException "ReplicationJobNotFoundException"
+//   * ReplicationJobNotFoundException
 //   The specified replication job does not exist.
 //
-//   * ErrCodeInternalError "InternalError"
+//   * InternalError
 //   An internal error occurred.
 //
-//   * ErrCodeTemporarilyUnavailableException "TemporarilyUnavailableException"
+//   * TemporarilyUnavailableException
 //   The service is temporarily unavailable.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24/UpdateReplicationJob
@@ -4279,6 +4288,118 @@ func (s ImportServerCatalogOutput) GoString() string {
 	return s.String()
 }
 
+// An internal error occurred.
+type InternalError struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalError) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalError(v protocol.ResponseMetadata) error {
+	return &InternalError{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalError) Code() string {
+	return "InternalError"
+}
+
+// Message returns the exception's message.
+func (s InternalError) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalError) OrigErr() error {
+	return nil
+}
+
+func (s InternalError) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalError) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalError) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// A specified parameter is not valid.
+type InvalidParameterException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidParameterException) Code() string {
+	return "InvalidParameterException"
+}
+
+// Message returns the exception's message.
+func (s InvalidParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidParameterException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidParameterException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidParameterException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type LaunchAppInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4431,6 +4552,174 @@ func (s *ListAppsOutput) SetApps(v []*AppSummary) *ListAppsOutput {
 func (s *ListAppsOutput) SetNextToken(v string) *ListAppsOutput {
 	s.NextToken = &v
 	return s
+}
+
+// A required parameter is missing.
+type MissingRequiredParameterException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s MissingRequiredParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MissingRequiredParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorMissingRequiredParameterException(v protocol.ResponseMetadata) error {
+	return &MissingRequiredParameterException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s MissingRequiredParameterException) Code() string {
+	return "MissingRequiredParameterException"
+}
+
+// Message returns the exception's message.
+func (s MissingRequiredParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s MissingRequiredParameterException) OrigErr() error {
+	return nil
+}
+
+func (s MissingRequiredParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s MissingRequiredParameterException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s MissingRequiredParameterException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// There are no connectors available.
+type NoConnectorsAvailableException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s NoConnectorsAvailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NoConnectorsAvailableException) GoString() string {
+	return s.String()
+}
+
+func newErrorNoConnectorsAvailableException(v protocol.ResponseMetadata) error {
+	return &NoConnectorsAvailableException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s NoConnectorsAvailableException) Code() string {
+	return "NoConnectorsAvailableException"
+}
+
+// Message returns the exception's message.
+func (s NoConnectorsAvailableException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s NoConnectorsAvailableException) OrigErr() error {
+	return nil
+}
+
+func (s NoConnectorsAvailableException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s NoConnectorsAvailableException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s NoConnectorsAvailableException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// This operation is not allowed.
+type OperationNotPermittedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s OperationNotPermittedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OperationNotPermittedException) GoString() string {
+	return s.String()
+}
+
+func newErrorOperationNotPermittedException(v protocol.ResponseMetadata) error {
+	return &OperationNotPermittedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s OperationNotPermittedException) Code() string {
+	return "OperationNotPermittedException"
+}
+
+// Message returns the exception's message.
+func (s OperationNotPermittedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s OperationNotPermittedException) OrigErr() error {
+	return nil
+}
+
+func (s OperationNotPermittedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s OperationNotPermittedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s OperationNotPermittedException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type PutAppLaunchConfigurationInput struct {
@@ -4726,6 +5015,118 @@ func (s *ReplicationJob) SetVmServer(v *VmServer) *ReplicationJob {
 	return s
 }
 
+// The specified replication job already exists.
+type ReplicationJobAlreadyExistsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ReplicationJobAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplicationJobAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorReplicationJobAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &ReplicationJobAlreadyExistsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ReplicationJobAlreadyExistsException) Code() string {
+	return "ReplicationJobAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s ReplicationJobAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ReplicationJobAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s ReplicationJobAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ReplicationJobAlreadyExistsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ReplicationJobAlreadyExistsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified replication job does not exist.
+type ReplicationJobNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ReplicationJobNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplicationJobNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorReplicationJobNotFoundException(v protocol.ResponseMetadata) error {
+	return &ReplicationJobNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ReplicationJobNotFoundException) Code() string {
+	return "ReplicationJobNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ReplicationJobNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ReplicationJobNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ReplicationJobNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ReplicationJobNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ReplicationJobNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Represents a replication run.
 type ReplicationRun struct {
 	_ struct{} `type:"structure"`
@@ -4853,6 +5254,63 @@ func (s *ReplicationRun) SetType(v string) *ReplicationRun {
 	return s
 }
 
+// You have exceeded the number of on-demand replication runs you can request
+// in a 24-hour period.
+type ReplicationRunLimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ReplicationRunLimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplicationRunLimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorReplicationRunLimitExceededException(v protocol.ResponseMetadata) error {
+	return &ReplicationRunLimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ReplicationRunLimitExceededException) Code() string {
+	return "ReplicationRunLimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s ReplicationRunLimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ReplicationRunLimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s ReplicationRunLimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ReplicationRunLimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ReplicationRunLimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Details of the current stage of a replication run.
 type ReplicationRunStageDetails struct {
 	_ struct{} `type:"structure"`
@@ -4977,6 +5435,62 @@ func (s *Server) SetServerType(v string) *Server {
 func (s *Server) SetVmServer(v *VmServer) *Server {
 	s.VmServer = v
 	return s
+}
+
+// The specified server cannot be replicated.
+type ServerCannotBeReplicatedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ServerCannotBeReplicatedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ServerCannotBeReplicatedException) GoString() string {
+	return s.String()
+}
+
+func newErrorServerCannotBeReplicatedException(v protocol.ResponseMetadata) error {
+	return &ServerCannotBeReplicatedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ServerCannotBeReplicatedException) Code() string {
+	return "ServerCannotBeReplicatedException"
+}
+
+// Message returns the exception's message.
+func (s ServerCannotBeReplicatedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ServerCannotBeReplicatedException) OrigErr() error {
+	return nil
+}
+
+func (s ServerCannotBeReplicatedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ServerCannotBeReplicatedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ServerCannotBeReplicatedException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // A logical grouping of servers.
@@ -5240,7 +5754,7 @@ type ServerReplicationParameters struct {
 	// KMS key ID for replication jobs that produce encrypted AMIs. Can be any of
 	// the following:
 	//
-	// KMS key ID
+	//    * KMS key ID
 	//
 	//    * KMS key alias
 	//
@@ -5248,7 +5762,8 @@ type ServerReplicationParameters struct {
 	//
 	//    * ARN referring to KMS key alias
 	//
-	//  If encrypted is true
+	// If encrypted is true but a KMS key id is not specified, the customer's default
+	// KMS key for EBS is used.
 	KmsKeyId *string `locationName:"kmsKeyId" type:"string"`
 
 	// License type for creating a replication job for the server.
@@ -5492,6 +6007,57 @@ func (s *Tag) SetValue(v string) *Tag {
 	return s
 }
 
+// The service is temporarily unavailable.
+type TemporarilyUnavailableException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+}
+
+// String returns the string representation
+func (s TemporarilyUnavailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TemporarilyUnavailableException) GoString() string {
+	return s.String()
+}
+
+func newErrorTemporarilyUnavailableException(v protocol.ResponseMetadata) error {
+	return &TemporarilyUnavailableException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TemporarilyUnavailableException) Code() string {
+	return "TemporarilyUnavailableException"
+}
+
+// Message returns the exception's message.
+func (s TemporarilyUnavailableException) Message() string {
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TemporarilyUnavailableException) OrigErr() error {
+	return nil
+}
+
+func (s TemporarilyUnavailableException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TemporarilyUnavailableException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TemporarilyUnavailableException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type TerminateAppInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5527,6 +6093,63 @@ func (s TerminateAppOutput) String() string {
 // GoString returns the string representation
 func (s TerminateAppOutput) GoString() string {
 	return s.String()
+}
+
+// You lack permissions needed to perform this operation. Check your IAM policies,
+// and ensure that you are using the correct access keys.
+type UnauthorizedOperationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnauthorizedOperationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnauthorizedOperationException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnauthorizedOperationException(v protocol.ResponseMetadata) error {
+	return &UnauthorizedOperationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnauthorizedOperationException) Code() string {
+	return "UnauthorizedOperationException"
+}
+
+// Message returns the exception's message.
+func (s UnauthorizedOperationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnauthorizedOperationException) OrigErr() error {
+	return nil
+}
+
+func (s UnauthorizedOperationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnauthorizedOperationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnauthorizedOperationException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type UpdateAppInput struct {
@@ -5654,7 +6277,7 @@ type UpdateReplicationJobInput struct {
 	// KMS key ID for replication jobs that produce encrypted AMIs. Can be any of
 	// the following:
 	//
-	// KMS key ID
+	//    * KMS key ID
 	//
 	//    * KMS key alias
 	//
@@ -5662,7 +6285,8 @@ type UpdateReplicationJobInput struct {
 	//
 	//    * ARN referring to KMS key alias
 	//
-	//  If encrypted is true
+	// If encrypted is true but a KMS key id is not specified, the customer's default
+	// KMS key for EBS is used.
 	KmsKeyId *string `locationName:"kmsKeyId" type:"string"`
 
 	// The license type to be used for the AMI created by a successful replication

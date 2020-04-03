@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/openshift/api/operator/v1"
@@ -21,15 +22,15 @@ type IngressControllersGetter interface {
 
 // IngressControllerInterface has methods to work with IngressController resources.
 type IngressControllerInterface interface {
-	Create(*v1.IngressController) (*v1.IngressController, error)
-	Update(*v1.IngressController) (*v1.IngressController, error)
-	UpdateStatus(*v1.IngressController) (*v1.IngressController, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
-	Get(name string, options metav1.GetOptions) (*v1.IngressController, error)
-	List(opts metav1.ListOptions) (*v1.IngressControllerList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.IngressController, err error)
+	Create(ctx context.Context, ingressController *v1.IngressController, opts metav1.CreateOptions) (*v1.IngressController, error)
+	Update(ctx context.Context, ingressController *v1.IngressController, opts metav1.UpdateOptions) (*v1.IngressController, error)
+	UpdateStatus(ctx context.Context, ingressController *v1.IngressController, opts metav1.UpdateOptions) (*v1.IngressController, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.IngressController, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.IngressControllerList, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.IngressController, err error)
 	IngressControllerExpansion
 }
 
@@ -48,20 +49,20 @@ func newIngressControllers(c *OperatorV1Client, namespace string) *ingressContro
 }
 
 // Get takes name of the ingressController, and returns the corresponding ingressController object, and an error if there is any.
-func (c *ingressControllers) Get(name string, options metav1.GetOptions) (result *v1.IngressController, err error) {
+func (c *ingressControllers) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.IngressController, err error) {
 	result = &v1.IngressController{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("ingresscontrollers").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of IngressControllers that match those selectors.
-func (c *ingressControllers) List(opts metav1.ListOptions) (result *v1.IngressControllerList, err error) {
+func (c *ingressControllers) List(ctx context.Context, opts metav1.ListOptions) (result *v1.IngressControllerList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -72,13 +73,13 @@ func (c *ingressControllers) List(opts metav1.ListOptions) (result *v1.IngressCo
 		Resource("ingresscontrollers").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested ingressControllers.
-func (c *ingressControllers) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *ingressControllers) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -89,87 +90,90 @@ func (c *ingressControllers) Watch(opts metav1.ListOptions) (watch.Interface, er
 		Resource("ingresscontrollers").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a ingressController and creates it.  Returns the server's representation of the ingressController, and an error, if there is any.
-func (c *ingressControllers) Create(ingressController *v1.IngressController) (result *v1.IngressController, err error) {
+func (c *ingressControllers) Create(ctx context.Context, ingressController *v1.IngressController, opts metav1.CreateOptions) (result *v1.IngressController, err error) {
 	result = &v1.IngressController{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("ingresscontrollers").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(ingressController).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a ingressController and updates it. Returns the server's representation of the ingressController, and an error, if there is any.
-func (c *ingressControllers) Update(ingressController *v1.IngressController) (result *v1.IngressController, err error) {
+func (c *ingressControllers) Update(ctx context.Context, ingressController *v1.IngressController, opts metav1.UpdateOptions) (result *v1.IngressController, err error) {
 	result = &v1.IngressController{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("ingresscontrollers").
 		Name(ingressController.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(ingressController).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *ingressControllers) UpdateStatus(ingressController *v1.IngressController) (result *v1.IngressController, err error) {
+func (c *ingressControllers) UpdateStatus(ctx context.Context, ingressController *v1.IngressController, opts metav1.UpdateOptions) (result *v1.IngressController, err error) {
 	result = &v1.IngressController{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("ingresscontrollers").
 		Name(ingressController.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(ingressController).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the ingressController and deletes it. Returns an error if one occurs.
-func (c *ingressControllers) Delete(name string, options *metav1.DeleteOptions) error {
+func (c *ingressControllers) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("ingresscontrollers").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *ingressControllers) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (c *ingressControllers) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("ingresscontrollers").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched ingressController.
-func (c *ingressControllers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.IngressController, err error) {
+func (c *ingressControllers) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.IngressController, err error) {
 	result = &v1.IngressController{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("ingresscontrollers").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

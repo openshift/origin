@@ -27,7 +27,9 @@ func TestInteg_00_ListFunctions(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := lambda.New(sess)
 	params := &lambda.ListFunctionsInput{}
-	_, err := svc.ListFunctionsWithContext(ctx, params)
+	_, err := svc.ListFunctionsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_Invoke(t *testing.T) {
 	params := &lambda.InvokeInput{
 		FunctionName: aws.String("bogus-function"),
 	}
-	_, err := svc.InvokeWithContext(ctx, params)
+	_, err := svc.InvokeWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

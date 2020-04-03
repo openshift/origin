@@ -151,8 +151,8 @@ tests:
 	} {
 		var cc stat.CC
 		var corrs []float64
-		var pVecs, qVecs *mat.Dense
-		var phiVs, psiVs *mat.Dense
+		var pVecs, qVecs mat.Dense
+		var phiVs, psiVs mat.Dense
 		for j := 0; j < 2; j++ {
 			err := cc.CanonicalCorrelations(test.xdata, test.ydata, test.weights)
 			if err != nil {
@@ -161,30 +161,30 @@ tests:
 			}
 
 			corrs = cc.CorrsTo(corrs)
-			pVecs = cc.LeftTo(pVecs, true)
-			qVecs = cc.RightTo(qVecs, true)
-			phiVs = cc.LeftTo(phiVs, false)
-			psiVs = cc.RightTo(psiVs, false)
+			cc.LeftTo(&pVecs, true)
+			cc.RightTo(&qVecs, true)
+			cc.LeftTo(&phiVs, false)
+			cc.RightTo(&psiVs, false)
 
 			if !floats.EqualApprox(corrs, test.wantCorrs, test.epsilon) {
 				t.Errorf("%d use %d: unexpected variance result got:%v, want:%v",
 					i, j, corrs, test.wantCorrs)
 			}
-			if !mat.EqualApprox(pVecs, test.wantpVecs, test.epsilon) {
+			if !mat.EqualApprox(&pVecs, test.wantpVecs, test.epsilon) {
 				t.Errorf("%d use %d: unexpected CCA result got:\n%v\nwant:\n%v",
-					i, j, mat.Formatted(pVecs), mat.Formatted(test.wantpVecs))
+					i, j, mat.Formatted(&pVecs), mat.Formatted(test.wantpVecs))
 			}
-			if !mat.EqualApprox(qVecs, test.wantqVecs, test.epsilon) {
+			if !mat.EqualApprox(&qVecs, test.wantqVecs, test.epsilon) {
 				t.Errorf("%d use %d: unexpected CCA result got:\n%v\nwant:\n%v",
-					i, j, mat.Formatted(qVecs), mat.Formatted(test.wantqVecs))
+					i, j, mat.Formatted(&qVecs), mat.Formatted(test.wantqVecs))
 			}
-			if !mat.EqualApprox(phiVs, test.wantphiVs, test.epsilon) {
+			if !mat.EqualApprox(&phiVs, test.wantphiVs, test.epsilon) {
 				t.Errorf("%d use %d: unexpected CCA result got:\n%v\nwant:\n%v",
-					i, j, mat.Formatted(phiVs), mat.Formatted(test.wantphiVs))
+					i, j, mat.Formatted(&phiVs), mat.Formatted(test.wantphiVs))
 			}
-			if !mat.EqualApprox(psiVs, test.wantpsiVs, test.epsilon) {
+			if !mat.EqualApprox(&psiVs, test.wantpsiVs, test.epsilon) {
 				t.Errorf("%d use %d: unexpected CCA result got:\n%v\nwant:\n%v",
-					i, j, mat.Formatted(psiVs), mat.Formatted(test.wantpsiVs))
+					i, j, mat.Formatted(&psiVs), mat.Formatted(test.wantpsiVs))
 			}
 		}
 	}

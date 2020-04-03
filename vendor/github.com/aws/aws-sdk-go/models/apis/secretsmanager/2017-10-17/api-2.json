@@ -429,7 +429,8 @@
           "box":true
         },
         "Tags":{"shape":"TagListType"},
-        "VersionIdsToStages":{"shape":"SecretVersionsToStagesMapType"}
+        "VersionIdsToStages":{"shape":"SecretVersionsToStagesMapType"},
+        "OwningService":{"shape":"OwningServiceType"}
       }
     },
     "DescriptionType":{
@@ -643,7 +644,12 @@
     },
     "NonEmptyResourcePolicyType":{
       "type":"string",
-      "max":4096,
+      "max":20480,
+      "min":1
+    },
+    "OwningServiceType":{
+      "type":"string",
+      "max":128,
       "min":1
     },
     "PasswordLengthType":{
@@ -702,7 +708,8 @@
     "RandomPasswordType":{
       "type":"string",
       "max":4096,
-      "min":0
+      "min":0,
+      "sensitive":true
     },
     "RecoveryWindowInDaysType":{"type":"long"},
     "RequireEachIncludedTypeType":{"type":"boolean"},
@@ -780,7 +787,7 @@
     },
     "SecretBinaryType":{
       "type":"blob",
-      "max":4096,
+      "max":10240,
       "min":0,
       "sensitive":true
     },
@@ -816,7 +823,8 @@
         },
         "DeletedDate":{"shape":"DeletedDateType"},
         "Tags":{"shape":"TagListType"},
-        "SecretVersionsToStages":{"shape":"SecretVersionsToStagesMapType"}
+        "SecretVersionsToStages":{"shape":"SecretVersionsToStagesMapType"},
+        "OwningService":{"shape":"OwningServiceType"}
       }
     },
     "SecretListType":{
@@ -830,7 +838,7 @@
     },
     "SecretStringType":{
       "type":"string",
-      "max":4096,
+      "max":10240,
       "min":0,
       "sensitive":true
     },

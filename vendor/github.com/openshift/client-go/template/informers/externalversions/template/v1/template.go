@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	templatev1 "github.com/openshift/api/template/v1"
@@ -45,13 +46,13 @@ func NewFilteredTemplateInformer(client versioned.Interface, namespace string, r
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TemplateV1().Templates(namespace).List(options)
+				return client.TemplateV1().Templates(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TemplateV1().Templates(namespace).Watch(options)
+				return client.TemplateV1().Templates(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&templatev1.Template{},

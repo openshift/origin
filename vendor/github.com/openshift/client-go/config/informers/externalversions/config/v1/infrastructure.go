@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -44,13 +45,13 @@ func NewFilteredInfrastructureInformer(client versioned.Interface, resyncPeriod 
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ConfigV1().Infrastructures().List(options)
+				return client.ConfigV1().Infrastructures().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ConfigV1().Infrastructures().Watch(options)
+				return client.ConfigV1().Infrastructures().Watch(context.TODO(), options)
 			},
 		},
 		&configv1.Infrastructure{},

@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"context"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -66,7 +68,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the deployment to complete")
-			deploy, derr := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get(a58, metav1.GetOptions{})
+			deploy, derr := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get(context.Background(), a58, metav1.GetOptions{})
 			if kapierrs.IsNotFound(derr) {
 				// if deployment is not there we're working with old new-app producing deployment configs
 				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), a58, 1, true, oc)

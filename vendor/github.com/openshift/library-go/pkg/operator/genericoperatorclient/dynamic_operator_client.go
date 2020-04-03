@@ -1,6 +1,7 @@
 package genericoperatorclient
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"time"
@@ -81,7 +82,7 @@ func (c dynamicOperatorClient) UpdateOperatorSpec(resourceVersion string, spec *
 		return nil, "", err
 	}
 
-	ret, err := c.client.Update(copy, metav1.UpdateOptions{})
+	ret, err := c.client.Update(context.TODO(), copy, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, "", err
 	}
@@ -109,7 +110,7 @@ func (c dynamicOperatorClient) UpdateOperatorStatus(resourceVersion string, stat
 		return nil, err
 	}
 
-	ret, err := c.client.UpdateStatus(copy, metav1.UpdateOptions{})
+	ret, err := c.client.UpdateStatus(context.TODO(), copy, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}

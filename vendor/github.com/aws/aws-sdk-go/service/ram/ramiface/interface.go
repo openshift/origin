@@ -68,6 +68,10 @@ type RAMAPI interface {
 	AssociateResourceShareWithContext(aws.Context, *ram.AssociateResourceShareInput, ...request.Option) (*ram.AssociateResourceShareOutput, error)
 	AssociateResourceShareRequest(*ram.AssociateResourceShareInput) (*request.Request, *ram.AssociateResourceShareOutput)
 
+	AssociateResourceSharePermission(*ram.AssociateResourceSharePermissionInput) (*ram.AssociateResourceSharePermissionOutput, error)
+	AssociateResourceSharePermissionWithContext(aws.Context, *ram.AssociateResourceSharePermissionInput, ...request.Option) (*ram.AssociateResourceSharePermissionOutput, error)
+	AssociateResourceSharePermissionRequest(*ram.AssociateResourceSharePermissionInput) (*request.Request, *ram.AssociateResourceSharePermissionOutput)
+
 	CreateResourceShare(*ram.CreateResourceShareInput) (*ram.CreateResourceShareOutput, error)
 	CreateResourceShareWithContext(aws.Context, *ram.CreateResourceShareInput, ...request.Option) (*ram.CreateResourceShareOutput, error)
 	CreateResourceShareRequest(*ram.CreateResourceShareInput) (*request.Request, *ram.CreateResourceShareOutput)
@@ -80,9 +84,17 @@ type RAMAPI interface {
 	DisassociateResourceShareWithContext(aws.Context, *ram.DisassociateResourceShareInput, ...request.Option) (*ram.DisassociateResourceShareOutput, error)
 	DisassociateResourceShareRequest(*ram.DisassociateResourceShareInput) (*request.Request, *ram.DisassociateResourceShareOutput)
 
+	DisassociateResourceSharePermission(*ram.DisassociateResourceSharePermissionInput) (*ram.DisassociateResourceSharePermissionOutput, error)
+	DisassociateResourceSharePermissionWithContext(aws.Context, *ram.DisassociateResourceSharePermissionInput, ...request.Option) (*ram.DisassociateResourceSharePermissionOutput, error)
+	DisassociateResourceSharePermissionRequest(*ram.DisassociateResourceSharePermissionInput) (*request.Request, *ram.DisassociateResourceSharePermissionOutput)
+
 	EnableSharingWithAwsOrganization(*ram.EnableSharingWithAwsOrganizationInput) (*ram.EnableSharingWithAwsOrganizationOutput, error)
 	EnableSharingWithAwsOrganizationWithContext(aws.Context, *ram.EnableSharingWithAwsOrganizationInput, ...request.Option) (*ram.EnableSharingWithAwsOrganizationOutput, error)
 	EnableSharingWithAwsOrganizationRequest(*ram.EnableSharingWithAwsOrganizationInput) (*request.Request, *ram.EnableSharingWithAwsOrganizationOutput)
+
+	GetPermission(*ram.GetPermissionInput) (*ram.GetPermissionOutput, error)
+	GetPermissionWithContext(aws.Context, *ram.GetPermissionInput, ...request.Option) (*ram.GetPermissionOutput, error)
+	GetPermissionRequest(*ram.GetPermissionInput) (*request.Request, *ram.GetPermissionOutput)
 
 	GetResourcePolicies(*ram.GetResourcePoliciesInput) (*ram.GetResourcePoliciesOutput, error)
 	GetResourcePoliciesWithContext(aws.Context, *ram.GetResourcePoliciesInput, ...request.Option) (*ram.GetResourcePoliciesOutput, error)
@@ -112,6 +124,17 @@ type RAMAPI interface {
 	GetResourceSharesPages(*ram.GetResourceSharesInput, func(*ram.GetResourceSharesOutput, bool) bool) error
 	GetResourceSharesPagesWithContext(aws.Context, *ram.GetResourceSharesInput, func(*ram.GetResourceSharesOutput, bool) bool, ...request.Option) error
 
+	ListPendingInvitationResources(*ram.ListPendingInvitationResourcesInput) (*ram.ListPendingInvitationResourcesOutput, error)
+	ListPendingInvitationResourcesWithContext(aws.Context, *ram.ListPendingInvitationResourcesInput, ...request.Option) (*ram.ListPendingInvitationResourcesOutput, error)
+	ListPendingInvitationResourcesRequest(*ram.ListPendingInvitationResourcesInput) (*request.Request, *ram.ListPendingInvitationResourcesOutput)
+
+	ListPendingInvitationResourcesPages(*ram.ListPendingInvitationResourcesInput, func(*ram.ListPendingInvitationResourcesOutput, bool) bool) error
+	ListPendingInvitationResourcesPagesWithContext(aws.Context, *ram.ListPendingInvitationResourcesInput, func(*ram.ListPendingInvitationResourcesOutput, bool) bool, ...request.Option) error
+
+	ListPermissions(*ram.ListPermissionsInput) (*ram.ListPermissionsOutput, error)
+	ListPermissionsWithContext(aws.Context, *ram.ListPermissionsInput, ...request.Option) (*ram.ListPermissionsOutput, error)
+	ListPermissionsRequest(*ram.ListPermissionsInput) (*request.Request, *ram.ListPermissionsOutput)
+
 	ListPrincipals(*ram.ListPrincipalsInput) (*ram.ListPrincipalsOutput, error)
 	ListPrincipalsWithContext(aws.Context, *ram.ListPrincipalsInput, ...request.Option) (*ram.ListPrincipalsOutput, error)
 	ListPrincipalsRequest(*ram.ListPrincipalsInput) (*request.Request, *ram.ListPrincipalsOutput)
@@ -119,12 +142,20 @@ type RAMAPI interface {
 	ListPrincipalsPages(*ram.ListPrincipalsInput, func(*ram.ListPrincipalsOutput, bool) bool) error
 	ListPrincipalsPagesWithContext(aws.Context, *ram.ListPrincipalsInput, func(*ram.ListPrincipalsOutput, bool) bool, ...request.Option) error
 
+	ListResourceSharePermissions(*ram.ListResourceSharePermissionsInput) (*ram.ListResourceSharePermissionsOutput, error)
+	ListResourceSharePermissionsWithContext(aws.Context, *ram.ListResourceSharePermissionsInput, ...request.Option) (*ram.ListResourceSharePermissionsOutput, error)
+	ListResourceSharePermissionsRequest(*ram.ListResourceSharePermissionsInput) (*request.Request, *ram.ListResourceSharePermissionsOutput)
+
 	ListResources(*ram.ListResourcesInput) (*ram.ListResourcesOutput, error)
 	ListResourcesWithContext(aws.Context, *ram.ListResourcesInput, ...request.Option) (*ram.ListResourcesOutput, error)
 	ListResourcesRequest(*ram.ListResourcesInput) (*request.Request, *ram.ListResourcesOutput)
 
 	ListResourcesPages(*ram.ListResourcesInput, func(*ram.ListResourcesOutput, bool) bool) error
 	ListResourcesPagesWithContext(aws.Context, *ram.ListResourcesInput, func(*ram.ListResourcesOutput, bool) bool, ...request.Option) error
+
+	PromoteResourceShareCreatedFromPolicy(*ram.PromoteResourceShareCreatedFromPolicyInput) (*ram.PromoteResourceShareCreatedFromPolicyOutput, error)
+	PromoteResourceShareCreatedFromPolicyWithContext(aws.Context, *ram.PromoteResourceShareCreatedFromPolicyInput, ...request.Option) (*ram.PromoteResourceShareCreatedFromPolicyOutput, error)
+	PromoteResourceShareCreatedFromPolicyRequest(*ram.PromoteResourceShareCreatedFromPolicyInput) (*request.Request, *ram.PromoteResourceShareCreatedFromPolicyOutput)
 
 	RejectResourceShareInvitation(*ram.RejectResourceShareInvitationInput) (*ram.RejectResourceShareInvitationOutput, error)
 	RejectResourceShareInvitationWithContext(aws.Context, *ram.RejectResourceShareInvitationInput, ...request.Option) (*ram.RejectResourceShareInvitationOutput, error)

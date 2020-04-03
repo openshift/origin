@@ -2,6 +2,10 @@
 
 package comprehend
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeBatchSizeLimitExceededException for service response error code
@@ -10,6 +14,13 @@ const (
 	// The number of documents in the request exceeds the limit of 25. Try your
 	// request again with fewer documents.
 	ErrCodeBatchSizeLimitExceededException = "BatchSizeLimitExceededException"
+
+	// ErrCodeConcurrentModificationException for service response error code
+	// "ConcurrentModificationException".
+	//
+	// Concurrent modification of the tags associated with an Amazon Comprehend
+	// resource is not supported.
+	ErrCodeConcurrentModificationException = "ConcurrentModificationException"
 
 	// ErrCodeInternalServerException for service response error code
 	// "InternalServerException".
@@ -20,8 +31,7 @@ const (
 	// ErrCodeInvalidFilterException for service response error code
 	// "InvalidFilterException".
 	//
-	// The filter specified for the ListDocumentClassificationJobs operation is
-	// invalid. Specify a different filter.
+	// The filter specified for the operation is invalid. Specify a different filter.
 	ErrCodeInvalidFilterException = "InvalidFilterException"
 
 	// ErrCodeInvalidRequestException for service response error code
@@ -35,6 +45,13 @@ const (
 	//
 	// The specified job was not found. Check the job ID and try again.
 	ErrCodeJobNotFoundException = "JobNotFoundException"
+
+	// ErrCodeKmsKeyValidationException for service response error code
+	// "KmsKeyValidationException".
+	//
+	// The KMS customer managed key (CMK) entered cannot be validated. Verify the
+	// key and re-enter it.
+	ErrCodeKmsKeyValidationException = "KmsKeyValidationException"
 
 	// ErrCodeResourceInUseException for service response error code
 	// "ResourceInUseException".
@@ -76,12 +93,47 @@ const (
 	// The number of requests exceeds the limit. Resubmit your request later.
 	ErrCodeTooManyRequestsException = "TooManyRequestsException"
 
+	// ErrCodeTooManyTagKeysException for service response error code
+	// "TooManyTagKeysException".
+	//
+	// The request contains more tag keys than can be associated with a resource
+	// (50 tag keys per resource).
+	ErrCodeTooManyTagKeysException = "TooManyTagKeysException"
+
+	// ErrCodeTooManyTagsException for service response error code
+	// "TooManyTagsException".
+	//
+	// The request contains more tags than can be associated with a resource (50
+	// tags per resource). The maximum number of tags includes both existing tags
+	// and those included in your current request.
+	ErrCodeTooManyTagsException = "TooManyTagsException"
+
 	// ErrCodeUnsupportedLanguageException for service response error code
 	// "UnsupportedLanguageException".
 	//
 	// Amazon Comprehend can't process the language of the input text. For all custom
 	// entity recognition APIs (such as CreateEntityRecognizer), only English is
-	// accepted. For most other APIs, Amazon Comprehend accepts only English or
-	// Spanish text.
+	// accepted. For most other APIs, such as those for Custom Classification, Amazon
+	// Comprehend accepts text in all supported languages. For a list of supported
+	// languages, see supported-languages.
 	ErrCodeUnsupportedLanguageException = "UnsupportedLanguageException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"BatchSizeLimitExceededException": newErrorBatchSizeLimitExceededException,
+	"ConcurrentModificationException": newErrorConcurrentModificationException,
+	"InternalServerException":         newErrorInternalServerException,
+	"InvalidFilterException":          newErrorInvalidFilterException,
+	"InvalidRequestException":         newErrorInvalidRequestException,
+	"JobNotFoundException":            newErrorJobNotFoundException,
+	"KmsKeyValidationException":       newErrorKmsKeyValidationException,
+	"ResourceInUseException":          newErrorResourceInUseException,
+	"ResourceLimitExceededException":  newErrorResourceLimitExceededException,
+	"ResourceNotFoundException":       newErrorResourceNotFoundException,
+	"ResourceUnavailableException":    newErrorResourceUnavailableException,
+	"TextSizeLimitExceededException":  newErrorTextSizeLimitExceededException,
+	"TooManyRequestsException":        newErrorTooManyRequestsException,
+	"TooManyTagKeysException":         newErrorTooManyTagKeysException,
+	"TooManyTagsException":            newErrorTooManyTagsException,
+	"UnsupportedLanguageException":    newErrorUnsupportedLanguageException,
+}

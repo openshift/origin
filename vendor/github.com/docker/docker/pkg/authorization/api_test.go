@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
 )
 
 func TestPeerCertificateMarshalJSON(t *testing.T) {
 	template := &x509.Certificate{
-		IsCA: true,
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 		SubjectKeyId:          []byte{1, 2, 3},
 		SerialNumber:          big.NewInt(1234),

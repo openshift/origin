@@ -59,7 +59,7 @@ var degradedConditionNames = []string{
 }
 
 func (c *InstallerStateController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
-	pods, err := c.podsGetter.Pods(c.targetNamespace).List(metav1.ListOptions{
+	pods, err := c.podsGetter.Pods(c.targetNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{"app": "installer"}).String(),
 	})
 	if err != nil {
@@ -83,7 +83,7 @@ func (c *InstallerStateController) sync(ctx context.Context, syncCtx factory.Syn
 	foundConditions = append(foundConditions, c.handlePendingInstallerPods(syncCtx.Recorder(), pendingPods)...)
 
 	// handle networking conditions that are based on events
-	networkConditions, err := c.handlePendingInstallerPodsNetworkEvents(syncCtx.Recorder(), pendingPods)
+	networkConditions, err := c.handlePendingInstallerPodsNetworkEvents(ctx, syncCtx.Recorder(), pendingPods)
 	if err != nil {
 		return err
 	}
@@ -111,12 +111,12 @@ func (c *InstallerStateController) sync(ctx context.Context, syncCtx factory.Syn
 	return nil
 }
 
-func (c *InstallerStateController) handlePendingInstallerPodsNetworkEvents(recorder events.Recorder, pods []*v1.Pod) ([]operatorv1.OperatorCondition, error) {
+func (c *InstallerStateController) handlePendingInstallerPodsNetworkEvents(ctx context.Context, recorder events.Recorder, pods []*v1.Pod) ([]operatorv1.OperatorCondition, error) {
 	conditions := []operatorv1.OperatorCondition{}
 	if len(pods) == 0 {
 		return conditions, nil
 	}
-	namespaceEvents, err := c.eventsGetter.Events(c.targetNamespace).List(metav1.ListOptions{})
+	namespaceEvents, err := c.eventsGetter.Events(c.targetNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

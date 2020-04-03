@@ -124,13 +124,14 @@ func (ImageRegistryConfigStoragePVC) SwaggerDoc() map[string]string {
 }
 
 var map_ImageRegistryConfigStorageS3 = map[string]string{
-	"":               "ImageRegistryConfigStorageS3 holds the information to configure the registry to use the AWS S3 service for backend storage https://docs.docker.com/registry/storage-drivers/s3/",
-	"bucket":         "bucket is the bucket name in which you want to store the registry's data. Optional, will be generated if not provided.",
-	"region":         "region is the AWS region in which your bucket exists. Optional, will be set based on the installed AWS Region.",
-	"regionEndpoint": "regionEndpoint is the endpoint for S3 compatible storage services. Optional, defaults based on the Region that is provided.",
-	"encrypt":        "encrypt specifies whether the registry stores the image in encrypted format or not. Optional, defaults to false.",
-	"keyID":          "keyID is the KMS key ID to use for encryption. Optional, Encrypt must be true, or this parameter is ignored.",
-	"cloudFront":     "cloudFront configures Amazon Cloudfront as the storage middleware in a registry.",
+	"":                   "ImageRegistryConfigStorageS3 holds the information to configure the registry to use the AWS S3 service for backend storage https://docs.docker.com/registry/storage-drivers/s3/",
+	"bucket":             "bucket is the bucket name in which you want to store the registry's data. Optional, will be generated if not provided.",
+	"region":             "region is the AWS region in which your bucket exists. Optional, will be set based on the installed AWS Region.",
+	"regionEndpoint":     "regionEndpoint is the endpoint for S3 compatible storage services. Optional, defaults based on the Region that is provided.",
+	"encrypt":            "encrypt specifies whether the registry stores the image in encrypted format or not. Optional, defaults to false.",
+	"keyID":              "keyID is the KMS key ID to use for encryption. Optional, Encrypt must be true, or this parameter is ignored.",
+	"cloudFront":         "cloudFront configures Amazon Cloudfront as the storage middleware in a registry.",
+	"virtualHostedStyle": "virtualHostedStyle enables using S3 virtual hosted style bucket paths with a custom RegionEndpoint Optional, defaults to false.",
 }
 
 func (ImageRegistryConfigStorageS3) SwaggerDoc() map[string]string {

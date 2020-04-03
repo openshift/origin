@@ -2,6 +2,10 @@
 
 package cognitosync
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeAlreadyStreamedException for service response error code
@@ -83,3 +87,19 @@ const (
 	// Thrown if the request is throttled.
 	ErrCodeTooManyRequestsException = "TooManyRequestsException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"AlreadyStreamedException":             newErrorAlreadyStreamedException,
+	"ConcurrentModificationException":      newErrorConcurrentModificationException,
+	"DuplicateRequestException":            newErrorDuplicateRequestException,
+	"InternalErrorException":               newErrorInternalErrorException,
+	"InvalidConfigurationException":        newErrorInvalidConfigurationException,
+	"InvalidLambdaFunctionOutputException": newErrorInvalidLambdaFunctionOutputException,
+	"InvalidParameterException":            newErrorInvalidParameterException,
+	"LambdaThrottledException":             newErrorLambdaThrottledException,
+	"LimitExceededException":               newErrorLimitExceededException,
+	"NotAuthorizedException":               newErrorNotAuthorizedException,
+	"ResourceConflictException":            newErrorResourceConflictException,
+	"ResourceNotFoundException":            newErrorResourceNotFoundException,
+	"TooManyRequestsException":             newErrorTooManyRequestsException,
+}

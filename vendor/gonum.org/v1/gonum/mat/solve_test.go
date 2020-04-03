@@ -217,7 +217,7 @@ func TestSolve(t *testing.T) {
 		x.Solve(a, b)
 
 		// Test that the normal equations hold.
-		// A^T * A * x = A^T * b
+		// Aᵀ * A * x = Aᵀ * b
 		var tmp, lhs, rhs Dense
 		tmp.Mul(a.T(), a)
 		lhs.Mul(&tmp, &x)
@@ -272,7 +272,7 @@ func TestSolveVec(t *testing.T) {
 		x.SolveVec(a, b)
 
 		// Test that the normal equations hold.
-		// A^T * A * x = A^T * b
+		// Aᵀ * A * x = Aᵀ * b
 		var tmp, lhs, rhs Dense
 		tmp.Mul(a.T(), a)
 		lhs.Mul(&tmp, &x)

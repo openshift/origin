@@ -27,7 +27,9 @@ func TestInteg_00_DescribeLogGroups(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := cloudwatchlogs.New(sess)
 	params := &cloudwatchlogs.DescribeLogGroupsInput{}
-	_, err := svc.DescribeLogGroupsWithContext(ctx, params)
+	_, err := svc.DescribeLogGroupsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -42,7 +44,9 @@ func TestInteg_01_GetLogEvents(t *testing.T) {
 		LogGroupName:  aws.String("fakegroup"),
 		LogStreamName: aws.String("fakestream"),
 	}
-	_, err := svc.GetLogEventsWithContext(ctx, params)
+	_, err := svc.GetLogEventsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

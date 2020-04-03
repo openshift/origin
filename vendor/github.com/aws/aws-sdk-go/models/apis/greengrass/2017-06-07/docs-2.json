@@ -76,9 +76,12 @@
     "ListResourceDefinitions" : "Retrieves a list of resource definitions.",
     "ListSubscriptionDefinitionVersions" : "Lists the versions of a subscription definition.",
     "ListSubscriptionDefinitions" : "Retrieves a list of subscription definitions.",
+    "ListTagsForResource" : "Retrieves a list of resource tags for a resource arn.",
     "ResetDeployments" : "Resets a group's deployments.",
     "StartBulkDeployment" : "Deploys multiple groups in one operation. This action starts the bulk deployment of a specified set of group versions. Each group version deployment will be triggered with an adaptive rate that has a fixed upper limit. We recommend that you include an ''X-Amzn-Client-Token'' token in every ''StartBulkDeployment'' request. These requests are idempotent with respect to the token and the request parameters.",
     "StopBulkDeployment" : "Stops the execution of a bulk deployment. This action returns a status of ''Stopping'' until the deployment is stopped. You cannot start a new bulk deployment while a previous deployment is in the ''Stopping'' state. This action doesn't rollback completed deployments or cancel pending deployments.",
+    "TagResource" : "Adds tags to a Greengrass resource. Valid resources are 'Group', 'ConnectorDefinition', 'CoreDefinition', 'DeviceDefinition', 'FunctionDefinition', 'LoggerDefinition', 'SubscriptionDefinition', 'ResourceDefinition', and 'BulkDeployment'.",
+    "UntagResource" : "Remove resource tags from a Greengrass Resource.",
     "UpdateConnectivityInfo" : "Updates the connectivity information for the core. Any devices that belong to the group which has this core will receive this information in order to find the location of the core and connect to it.",
     "UpdateConnectorDefinition" : "Updates a connector definition.",
     "UpdateCoreDefinition" : "Updates a core definition.",
@@ -210,10 +213,10 @@
       }
     },
     "DeploymentType" : {
-      "base" : "The type of deployment.",
+      "base" : "The type of deployment. When used for ''CreateDeployment'', only ''NewDeployment'' and ''Redeployment'' are valid.",
       "refs" : {
         "BulkDeploymentResult$DeploymentType" : "The type of the deployment.",
-        "CreateDeploymentRequest$DeploymentType" : "The type of deployment. When used in ''CreateDeployment'', only ''NewDeployment'' and ''Redeployment'' are valid.",
+        "CreateDeploymentRequest$DeploymentType" : "The type of deployment. When used for ''CreateDeployment'', only ''NewDeployment'' and ''Redeployment'' are valid.",
         "Deployment$DeploymentType" : "The type of the deployment.",
         "GetDeploymentStatusResponse$DeploymentType" : "The type of the deployment."
       }
@@ -288,13 +291,13 @@
       }
     },
     "FunctionDefaultConfig" : {
-      "base" : "Default configuration that will apply to all Lambda functions in the group.",
+      "base" : "The default configuration that applies to all Lambda functions in the group. Individual Lambda functions can override these settings.",
       "refs" : {
-        "FunctionDefinitionVersion$DefaultConfig" : "Default configuration that will apply to all Lambda functions in this function definition version"
+        "FunctionDefinitionVersion$DefaultConfig" : "The default configuration that applies to all Lambda functions in this function definition version. Individual Lambda functions can override these settings."
       }
     },
     "FunctionDefaultExecutionConfig" : {
-      "base" : "Configuration that defines the default containerization used for when running Lambda functions in the group. Individual Lambda functions can be override this setting.",
+      "base" : "Configuration information that specifies how a Lambda function runs. ",
       "refs" : {
         "FunctionDefaultConfig$Execution" : null
       }
@@ -306,7 +309,7 @@
       }
     },
     "FunctionExecutionConfig" : {
-      "base" : "Configuration information that specifies how the Lambda function runs. ",
+      "base" : "Configuration information that specifies how a Lambda function runs. ",
       "refs" : {
         "FunctionConfigurationEnvironment$Execution" : "Configuration related to executing the Lambda function"
       }
@@ -314,12 +317,11 @@
     "FunctionIsolationMode" : {
       "base" : "Specifies whether the Lambda function runs in a Greengrass container (default) or without containerization. Unless your scenario requires that you run without containerization, we recommend that you run in a Greengrass container. Omit this value to run the Lambda function with the default containerization for the group.",
       "refs" : {
-        "FunctionDefaultExecutionConfig$IsolationMode" : null,
         "FunctionExecutionConfig$IsolationMode" : null
       }
     },
     "FunctionRunAsConfig" : {
-      "base" : "Specifies the user and/or group whose permissions are used when running the Lambda function. You can specify one or both values to override the default values (ggc_user/ggc_group). We recommend that you avoid running as root unless absolutely necessary to minimize the risk of unintended changes or malicious attacks. To run as root, you must set IsolationMode to NoContainer and you must update config.json in greengrass-root/config to set allowFunctionsToRunAsRoot to yes.",
+      "base" : "Specifies the user and group whose permissions are used when running the Lambda function. You can specify one or both values to override the default values. We recommend that you avoid running as root unless absolutely necessary to minimize the risk of unintended changes or malicious attacks. To run as root, you must set ''IsolationMode'' to ''NoContainer'' and update config.json in ''greengrass-root/config'' to set ''allowFunctionsToRunAsRoot'' to ''yes''.",
       "refs" : {
         "FunctionExecutionConfig$RunAs" : null
       }
@@ -490,7 +492,8 @@
     "Permission" : {
       "base" : "The type of permission a function has to access a resource.",
       "refs" : {
-        "ResourceAccessPolicy$Permission" : "The permissions that the Lambda function has to the resource. Can be one of ''rw'' (read/write) or ''ro'' (read-only)."
+        "ResourceAccessPolicy$Permission" : "The permissions that the Lambda function has to the resource. Can be one of ''rw'' (read/write) or ''ro'' (read-only).",
+        "ResourceDownloadOwnerSetting$GroupPermission" : "The permissions that the group owner has to the resource. Valid values are ''rw'' (read/write) or ''ro'' (read-only)."
       }
     },
     "ResetDeploymentsRequest" : {
@@ -523,6 +526,13 @@
       "base" : "Information about a resource definition version.",
       "refs" : {
         "GetResourceDefinitionVersionResponse$Definition" : "Information about the definition."
+      }
+    },
+    "ResourceDownloadOwnerSetting" : {
+      "base" : "The owner setting for downloaded machine learning resources.",
+      "refs" : {
+        "S3MachineLearningModelResourceData$OwnerSetting" : null,
+        "SageMakerMachineLearningModelResourceData$OwnerSetting" : null
       }
     },
     "S3MachineLearningModelResourceData" : {
@@ -573,6 +583,14 @@
       "base" : "Information about a subscription definition version.",
       "refs" : {
         "GetSubscriptionDefinitionVersionResponse$Definition" : "Information about the subscription definition version."
+      }
+    },
+    "Tags" : {
+      "base" : "The key-value pair for the resource tag.",
+      "refs" : {
+        "DefinitionInformation$Tags" : "Tag(s) attached to the resource arn.",
+        "GetBulkDeploymentStatusResponse$Tags" : "Tag(s) attached to the resource arn.",
+        "StartBulkDeploymentRequest$Tags" : "Tag(s) to add to the new resource."
       }
     },
     "UpdateAgentLogLevel" : {
@@ -637,8 +655,8 @@
         "ConnectivityInfo$PortNumber" : "The port of the Greengrass core. Usually 8883.",
         "FunctionConfiguration$MemorySize" : "The memory size, in KB, which the function requires. This setting is not applicable and should be cleared when you run the Lambda function without containerization.",
         "FunctionConfiguration$Timeout" : "The allowed function execution time, after which Lambda should terminate the function. This timeout still applies to pinned Lambda functions for each request.",
-        "FunctionRunAsConfig$Gid" : "The Group ID whose permissions are used to run a Lambda function.",
-        "FunctionRunAsConfig$Uid" : "The User ID whose permissions are used to run a Lambda function.",
+        "FunctionRunAsConfig$Gid" : "The group ID whose permissions are used to run a Lambda function.",
+        "FunctionRunAsConfig$Uid" : "The user ID whose permissions are used to run a Lambda function.",
         "Logger$Space" : "The amount of file space, in KB, to use if the local file system is used for logging purposes."
       }
     },
@@ -737,7 +755,7 @@
     "__string" : {
       "base" : null,
       "refs" : {
-        "AssociateRoleToGroupRequest$RoleArn" : "The ARN of the role you wish to associate with this group.",
+        "AssociateRoleToGroupRequest$RoleArn" : "The ARN of the role you wish to associate with this group. The existence of the role is not validated.",
         "AssociateRoleToGroupResponse$AssociatedAt" : "The time, in milliseconds since the epoch, when the role ARN was associated with the group.",
         "AssociateServiceRoleToAccountRequest$RoleArn" : "The ARN of the service role you wish to associate with your account.",
         "AssociateServiceRoleToAccountResponse$AssociatedAt" : "The time when the service role was associated with the account.",
@@ -747,7 +765,7 @@
         "BulkDeploymentResult$CreatedAt" : "The time, in ISO format, when the deployment was created.",
         "BulkDeploymentResult$DeploymentArn" : "The ARN of the group deployment.",
         "BulkDeploymentResult$DeploymentId" : "The ID of the group deployment.",
-        "BulkDeploymentResult$DeploymentStatus" : "The current status of the group deployment: ''Pending'', ''InProgress'', ''Success'', or ''Failure''.",
+        "BulkDeploymentResult$DeploymentStatus" : "The current status of the group deployment: ''InProgress'', ''Building'', ''Success'', or ''Failure''.",
         "BulkDeploymentResult$ErrorMessage" : "The error message for a failed deployment",
         "BulkDeploymentResult$GroupArn" : "The ARN of the Greengrass group.",
         "ConnectivityInfo$HostAddress" : "The endpoint for the Greengrass core. Can be an IP address or DNS.",
@@ -765,12 +783,13 @@
         "CreateGroupCertificateAuthorityResponse$GroupCertificateAuthorityArn" : "The ARN of the group certificate authority.",
         "CreateSoftwareUpdateJobResponse$IotJobArn" : "The IoT Job ARN corresponding to this update.",
         "CreateSoftwareUpdateJobResponse$IotJobId" : "The IoT Job Id corresponding to this update.",
+        "CreateSoftwareUpdateJobResponse$PlatformSoftwareVersion" : "The software version installed on the device or devices after the update.",
         "DefinitionInformation$Arn" : "The ARN of the definition.",
         "DefinitionInformation$CreationTimestamp" : "The time, in milliseconds since the epoch, when the definition was created.",
         "DefinitionInformation$Id" : "The ID of the definition.",
         "DefinitionInformation$LastUpdatedTimestamp" : "The time, in milliseconds since the epoch, when the definition was last updated.",
-        "DefinitionInformation$LatestVersion" : "The latest version of the definition.",
-        "DefinitionInformation$LatestVersionArn" : "The ARN of the latest version of the definition.",
+        "DefinitionInformation$LatestVersion" : "The ID of the latest version associated with the definition.",
+        "DefinitionInformation$LatestVersionArn" : "The ARN of the latest version associated with the definition.",
         "DefinitionInformation$Name" : "The name of the definition.",
         "Deployment$CreatedAt" : "The time, in milliseconds since the epoch, when the deployment was created.",
         "Deployment$DeploymentArn" : "The ARN of the deployment.",
@@ -803,7 +822,7 @@
         "GetCoreDefinitionVersionResponse$Id" : "The ID of the core definition version.",
         "GetCoreDefinitionVersionResponse$NextToken" : "The token for the next set of results, or ''null'' if there are no additional results.",
         "GetCoreDefinitionVersionResponse$Version" : "The version of the core definition version.",
-        "GetDeploymentStatusResponse$DeploymentStatus" : "The status of the deployment: ''Pending'', ''InProgress'', ''Success'', or ''Failure''.",
+        "GetDeploymentStatusResponse$DeploymentStatus" : "The status of the deployment: ''InProgress'', ''Building'', ''Success'', or ''Failure''.",
         "GetDeploymentStatusResponse$ErrorMessage" : "Error message",
         "GetDeploymentStatusResponse$UpdatedAt" : "The time, in milliseconds since the epoch, when the deployment status was updated.",
         "GetDeviceDefinitionVersionResponse$Arn" : "The ARN of the device definition version.",
@@ -821,8 +840,8 @@
         "GetGroupCertificateAuthorityResponse$PemEncodedCertificate" : "The PEM encoded certificate for the group.",
         "GetGroupVersionResponse$Arn" : "The ARN of the group version.",
         "GetGroupVersionResponse$CreationTimestamp" : "The time, in milliseconds since the epoch, when the group version was created.",
-        "GetGroupVersionResponse$Id" : "The ID of the group version.",
-        "GetGroupVersionResponse$Version" : "The unique ID for the version of the group.",
+        "GetGroupVersionResponse$Id" : "The ID of the group that the version is associated with.",
+        "GetGroupVersionResponse$Version" : "The ID of the group version.",
         "GetLoggerDefinitionVersionResponse$Arn" : "The ARN of the logger definition version.",
         "GetLoggerDefinitionVersionResponse$CreationTimestamp" : "The time, in milliseconds since the epoch, when the logger definition version was created.",
         "GetLoggerDefinitionVersionResponse$Id" : "The ID of the logger definition version.",
@@ -847,8 +866,8 @@
         "GroupInformation$CreationTimestamp" : "The time, in milliseconds since the epoch, when the group was created.",
         "GroupInformation$Id" : "The ID of the group.",
         "GroupInformation$LastUpdatedTimestamp" : "The time, in milliseconds since the epoch, when the group was last updated.",
-        "GroupInformation$LatestVersion" : "The latest version of the group.",
-        "GroupInformation$LatestVersionArn" : "The ARN of the latest version of the group.",
+        "GroupInformation$LatestVersion" : "The ID of the latest version associated with the group.",
+        "GroupInformation$LatestVersionArn" : "The ARN of the latest version associated with the group.",
         "GroupInformation$Name" : "The name of the group.",
         "GroupOwnerSetting$GroupOwner" : "The name of the Linux OS group whose privileges will be added to the Lambda process. This field is optional.",
         "GroupVersion$ConnectorDefinitionVersionArn" : "The ARN of the connector definition version for this group.",
@@ -873,6 +892,7 @@
         "Resource$Id" : "The resource ID, used to refer to a resource in the Lambda function configuration. Max length is 128 characters with pattern ''[a-zA-Z0-9:_-]+''. This must be unique within a Greengrass group.",
         "Resource$Name" : "The descriptive resource name, which is displayed on the AWS IoT Greengrass console. Max length 128 characters with pattern ''[a-zA-Z0-9:_-]+''. This must be unique within a Greengrass group.",
         "ResourceAccessPolicy$ResourceId" : "The ID of the resource. (This ID is assigned to the resource when you create the resource definiton.)",
+        "ResourceDownloadOwnerSetting$GroupOwner" : "The group owner of the resource. This is the name of an existing Linux OS group on the system or a GID. The group's permissions are added to the Lambda process.",
         "S3MachineLearningModelResourceData$DestinationPath" : "The absolute local path of the resource inside the Lambda environment.",
         "S3MachineLearningModelResourceData$S3Uri" : "The URI of the source model in an S3 bucket. The model package must be in tar.gz or .zip format.",
         "SageMakerMachineLearningModelResourceData$DestinationPath" : "The absolute local path of the resource inside the Lambda environment.",
@@ -884,16 +904,17 @@
         "StartBulkDeploymentResponse$BulkDeploymentId" : "The ID of the bulk deployment.",
         "Subscription$Id" : "A descriptive or arbitrary ID for the subscription. This value must be unique within the subscription definition version. Max length is 128 characters with pattern ''[a-zA-Z0-9:_-]+''.",
         "Subscription$Source" : "The source of the subscription. Can be a thing ARN, a Lambda function ARN, a connector ARN, 'cloud' (which represents the AWS IoT cloud), or 'GGShadowService'.",
-        "Subscription$Subject" : "The subject of the message.",
+        "Subscription$Subject" : "The MQTT topic used to route the message.",
         "Subscription$Target" : "Where the message is sent to. Can be a thing ARN, a Lambda function ARN, a connector ARN, 'cloud' (which represents the AWS IoT cloud), or 'GGShadowService'.",
+        "Tags$member" : null,
         "UpdateConnectivityInfoResponse$Message" : "A message about the connectivity info update request.",
         "UpdateConnectivityInfoResponse$Version" : "The new version of the connectivity info.",
         "UpdateGroupCertificateConfigurationRequest$CertificateExpiryInMilliseconds" : "The amount of time remaining before the certificate expires, in milliseconds.",
         "UpdateTargets$member" : null,
         "VersionInformation$Arn" : "The ARN of the version.",
         "VersionInformation$CreationTimestamp" : "The time, in milliseconds since the epoch, when the version was created.",
-        "VersionInformation$Id" : "The ID of the version.",
-        "VersionInformation$Version" : "The unique ID of the version.",
+        "VersionInformation$Id" : "The ID of the parent definition that the version is associated with.",
+        "VersionInformation$Version" : "The ID of the version.",
         "__listOf__string$member" : null,
         "__mapOf__string$member" : null
       }

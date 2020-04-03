@@ -1,19 +1,21 @@
+// +build go1.7
+
 package session
 
 import (
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/awstesting"
+	"github.com/aws/aws-sdk-go/internal/sdktesting"
 	"github.com/aws/aws-sdk-go/internal/shareddefaults"
 )
 
 func TestLoadEnvConfig_Creds(t *testing.T) {
-	env := awstesting.StashEnv()
-	defer awstesting.PopEnv(env)
-
 	cases := []struct {
 		Env map[string]string
 		Val credentials.Value
@@ -75,24 +77,30 @@ func TestLoadEnvConfig_Creds(t *testing.T) {
 		},
 	}
 
-	for _, c := range cases {
-		os.Clearenv()
+	for i, c := range cases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			restoreEnvFn := sdktesting.StashEnv()
+			defer restoreEnvFn()
+			for k, v := range c.Env {
+				os.Setenv(k, v)
+			}
 
-		for k, v := range c.Env {
-			os.Setenv(k, v)
-		}
+			cfg, err := loadEnvConfig()
+			if err != nil {
+				t.Fatalf("failed to load env config, %v", err)
+			}
+			if !reflect.DeepEqual(c.Val, cfg.Creds) {
+				t.Errorf("expect credentials to match.\n%s",
+					awstesting.SprintExpectActual(c.Val, cfg.Creds))
+			}
+		})
 
-		cfg := loadEnvConfig()
-		if !reflect.DeepEqual(c.Val, cfg.Creds) {
-			t.Errorf("expect credentials to match.\n%s",
-				awstesting.SprintExpectActual(c.Val, cfg.Creds))
-		}
 	}
 }
 
 func TestLoadEnvConfig(t *testing.T) {
-	env := awstesting.StashEnv()
-	defer awstesting.PopEnv(env)
+	restoreEnvFn := sdktesting.StashEnv()
+	defer restoreEnvFn()
 
 	cases := []struct {
 		Env                 map[string]string
@@ -264,32 +272,71 @@ func TestLoadEnvConfig(t *testing.T) {
 				SharedConfigFile:      "/path/to/config/file",
 			},
 		},
+		{
+			Env: map[string]string{
+				"AWS_STS_REGIONAL_ENDPOINTS": "regional",
+			},
+			Config: envConfig{
+				STSRegionalEndpoint:   endpoints.RegionalSTSEndpoint,
+				SharedCredentialsFile: shareddefaults.SharedCredentialsFilename(),
+				SharedConfigFile:      shareddefaults.SharedConfigFilename(),
+			},
+		},
+		{
+			Env: map[string]string{
+				"AWS_S3_US_EAST_1_REGIONAL_ENDPOINT": "regional",
+			},
+			Config: envConfig{
+				S3UsEast1RegionalEndpoint: endpoints.RegionalS3UsEast1Endpoint,
+				SharedCredentialsFile:     shareddefaults.SharedCredentialsFilename(),
+				SharedConfigFile:          shareddefaults.SharedConfigFilename(),
+			},
+		},
+		{
+			Env: map[string]string{
+				"AWS_S3_USE_ARN_REGION": "true",
+			},
+			Config: envConfig{
+				S3UseARNRegion:        true,
+				SharedCredentialsFile: shareddefaults.SharedCredentialsFilename(),
+				SharedConfigFile:      shareddefaults.SharedConfigFilename(),
+			},
+		},
 	}
 
-	for _, c := range cases {
-		os.Clearenv()
+	for i, c := range cases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			restoreEnvFn = sdktesting.StashEnv()
+			defer restoreEnvFn()
+			for k, v := range c.Env {
+				os.Setenv(k, v)
+			}
 
-		for k, v := range c.Env {
-			os.Setenv(k, v)
-		}
+			var cfg envConfig
+			var err error
+			if c.UseSharedConfigCall {
+				cfg, err = loadSharedEnvConfig()
+				if err != nil {
+					t.Errorf("failed to load shared env config, %v", err)
+				}
+			} else {
+				cfg, err = loadEnvConfig()
+				if err != nil {
+					t.Errorf("failed to load env config, %v", err)
+				}
+			}
 
-		var cfg envConfig
-		if c.UseSharedConfigCall {
-			cfg = loadSharedEnvConfig()
-		} else {
-			cfg = loadEnvConfig()
-		}
-
-		if !reflect.DeepEqual(c.Config, cfg) {
-			t.Errorf("expect config to match.\n%s",
-				awstesting.SprintExpectActual(c.Config, cfg))
-		}
+			if !reflect.DeepEqual(c.Config, cfg) {
+				t.Errorf("expect config to match.\n%s",
+					awstesting.SprintExpectActual(c.Config, cfg))
+			}
+		})
 	}
 }
 
 func TestSetEnvValue(t *testing.T) {
-	env := awstesting.StashEnv()
-	defer awstesting.PopEnv(env)
+	restoreEnvFn := sdktesting.StashEnv()
+	defer restoreEnvFn()
 
 	os.Setenv("empty_key", "")
 	os.Setenv("second_key", "2")

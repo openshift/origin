@@ -1,6 +1,8 @@
 package oauth
 
 import (
+	"context"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -38,8 +40,8 @@ var _ = g.Describe("[sig-auth][Feature:HTPasswdAuth] HTPasswd IDP", func() {
 		token, err := tokenReqOpts.RequestToken()
 		o.Expect(err).ToNot(o.HaveOccurred())
 		defer func() {
-			oc.AdminUserClient().UserV1().Users().Delete("testuser", &metav1.DeleteOptions{})
-			oc.AdminUserClient().UserV1().Identities().Delete("htpasswd:testuser", &metav1.DeleteOptions{})
+			oc.AdminUserClient().UserV1().Users().Delete(context.Background(), "testuser", metav1.DeleteOptions{})
+			oc.AdminUserClient().UserV1().Identities().Delete(context.Background(), "htpasswd:testuser", metav1.DeleteOptions{})
 		}()
 		tokenUser, err := utiloauth.GetUserForToken(oc.AdminConfig(), token, "testuser")
 		o.Expect(err).ToNot(o.HaveOccurred())

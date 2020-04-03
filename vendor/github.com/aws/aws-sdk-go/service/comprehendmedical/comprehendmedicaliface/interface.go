@@ -26,7 +26,7 @@ import (
 //    // myFunc uses an SDK service client to make a request to
 //    // AWS Comprehend Medical.
 //    func myFunc(svc comprehendmedicaliface.ComprehendMedicalAPI) bool {
-//        // Make svc.DetectEntities request
+//        // Make svc.DescribeEntitiesDetectionV2Job request
 //    }
 //
 //    func main() {
@@ -42,7 +42,7 @@ import (
 //    type mockComprehendMedicalClient struct {
 //        comprehendmedicaliface.ComprehendMedicalAPI
 //    }
-//    func (m *mockComprehendMedicalClient) DetectEntities(input *comprehendmedical.DetectEntitiesInput) (*comprehendmedical.DetectEntitiesOutput, error) {
+//    func (m *mockComprehendMedicalClient) DescribeEntitiesDetectionV2Job(input *comprehendmedical.DescribeEntitiesDetectionV2JobInput) (*comprehendmedical.DescribeEntitiesDetectionV2JobOutput, error) {
 //        // mock response/functionality
 //    }
 //
@@ -60,13 +60,57 @@ import (
 // and waiters. Its suggested to use the pattern above for testing, or using
 // tooling to generate mocks to satisfy the interfaces.
 type ComprehendMedicalAPI interface {
+	DescribeEntitiesDetectionV2Job(*comprehendmedical.DescribeEntitiesDetectionV2JobInput) (*comprehendmedical.DescribeEntitiesDetectionV2JobOutput, error)
+	DescribeEntitiesDetectionV2JobWithContext(aws.Context, *comprehendmedical.DescribeEntitiesDetectionV2JobInput, ...request.Option) (*comprehendmedical.DescribeEntitiesDetectionV2JobOutput, error)
+	DescribeEntitiesDetectionV2JobRequest(*comprehendmedical.DescribeEntitiesDetectionV2JobInput) (*request.Request, *comprehendmedical.DescribeEntitiesDetectionV2JobOutput)
+
+	DescribePHIDetectionJob(*comprehendmedical.DescribePHIDetectionJobInput) (*comprehendmedical.DescribePHIDetectionJobOutput, error)
+	DescribePHIDetectionJobWithContext(aws.Context, *comprehendmedical.DescribePHIDetectionJobInput, ...request.Option) (*comprehendmedical.DescribePHIDetectionJobOutput, error)
+	DescribePHIDetectionJobRequest(*comprehendmedical.DescribePHIDetectionJobInput) (*request.Request, *comprehendmedical.DescribePHIDetectionJobOutput)
+
 	DetectEntities(*comprehendmedical.DetectEntitiesInput) (*comprehendmedical.DetectEntitiesOutput, error)
 	DetectEntitiesWithContext(aws.Context, *comprehendmedical.DetectEntitiesInput, ...request.Option) (*comprehendmedical.DetectEntitiesOutput, error)
 	DetectEntitiesRequest(*comprehendmedical.DetectEntitiesInput) (*request.Request, *comprehendmedical.DetectEntitiesOutput)
 
+	DetectEntitiesV2(*comprehendmedical.DetectEntitiesV2Input) (*comprehendmedical.DetectEntitiesV2Output, error)
+	DetectEntitiesV2WithContext(aws.Context, *comprehendmedical.DetectEntitiesV2Input, ...request.Option) (*comprehendmedical.DetectEntitiesV2Output, error)
+	DetectEntitiesV2Request(*comprehendmedical.DetectEntitiesV2Input) (*request.Request, *comprehendmedical.DetectEntitiesV2Output)
+
 	DetectPHI(*comprehendmedical.DetectPHIInput) (*comprehendmedical.DetectPHIOutput, error)
 	DetectPHIWithContext(aws.Context, *comprehendmedical.DetectPHIInput, ...request.Option) (*comprehendmedical.DetectPHIOutput, error)
 	DetectPHIRequest(*comprehendmedical.DetectPHIInput) (*request.Request, *comprehendmedical.DetectPHIOutput)
+
+	InferICD10CM(*comprehendmedical.InferICD10CMInput) (*comprehendmedical.InferICD10CMOutput, error)
+	InferICD10CMWithContext(aws.Context, *comprehendmedical.InferICD10CMInput, ...request.Option) (*comprehendmedical.InferICD10CMOutput, error)
+	InferICD10CMRequest(*comprehendmedical.InferICD10CMInput) (*request.Request, *comprehendmedical.InferICD10CMOutput)
+
+	InferRxNorm(*comprehendmedical.InferRxNormInput) (*comprehendmedical.InferRxNormOutput, error)
+	InferRxNormWithContext(aws.Context, *comprehendmedical.InferRxNormInput, ...request.Option) (*comprehendmedical.InferRxNormOutput, error)
+	InferRxNormRequest(*comprehendmedical.InferRxNormInput) (*request.Request, *comprehendmedical.InferRxNormOutput)
+
+	ListEntitiesDetectionV2Jobs(*comprehendmedical.ListEntitiesDetectionV2JobsInput) (*comprehendmedical.ListEntitiesDetectionV2JobsOutput, error)
+	ListEntitiesDetectionV2JobsWithContext(aws.Context, *comprehendmedical.ListEntitiesDetectionV2JobsInput, ...request.Option) (*comprehendmedical.ListEntitiesDetectionV2JobsOutput, error)
+	ListEntitiesDetectionV2JobsRequest(*comprehendmedical.ListEntitiesDetectionV2JobsInput) (*request.Request, *comprehendmedical.ListEntitiesDetectionV2JobsOutput)
+
+	ListPHIDetectionJobs(*comprehendmedical.ListPHIDetectionJobsInput) (*comprehendmedical.ListPHIDetectionJobsOutput, error)
+	ListPHIDetectionJobsWithContext(aws.Context, *comprehendmedical.ListPHIDetectionJobsInput, ...request.Option) (*comprehendmedical.ListPHIDetectionJobsOutput, error)
+	ListPHIDetectionJobsRequest(*comprehendmedical.ListPHIDetectionJobsInput) (*request.Request, *comprehendmedical.ListPHIDetectionJobsOutput)
+
+	StartEntitiesDetectionV2Job(*comprehendmedical.StartEntitiesDetectionV2JobInput) (*comprehendmedical.StartEntitiesDetectionV2JobOutput, error)
+	StartEntitiesDetectionV2JobWithContext(aws.Context, *comprehendmedical.StartEntitiesDetectionV2JobInput, ...request.Option) (*comprehendmedical.StartEntitiesDetectionV2JobOutput, error)
+	StartEntitiesDetectionV2JobRequest(*comprehendmedical.StartEntitiesDetectionV2JobInput) (*request.Request, *comprehendmedical.StartEntitiesDetectionV2JobOutput)
+
+	StartPHIDetectionJob(*comprehendmedical.StartPHIDetectionJobInput) (*comprehendmedical.StartPHIDetectionJobOutput, error)
+	StartPHIDetectionJobWithContext(aws.Context, *comprehendmedical.StartPHIDetectionJobInput, ...request.Option) (*comprehendmedical.StartPHIDetectionJobOutput, error)
+	StartPHIDetectionJobRequest(*comprehendmedical.StartPHIDetectionJobInput) (*request.Request, *comprehendmedical.StartPHIDetectionJobOutput)
+
+	StopEntitiesDetectionV2Job(*comprehendmedical.StopEntitiesDetectionV2JobInput) (*comprehendmedical.StopEntitiesDetectionV2JobOutput, error)
+	StopEntitiesDetectionV2JobWithContext(aws.Context, *comprehendmedical.StopEntitiesDetectionV2JobInput, ...request.Option) (*comprehendmedical.StopEntitiesDetectionV2JobOutput, error)
+	StopEntitiesDetectionV2JobRequest(*comprehendmedical.StopEntitiesDetectionV2JobInput) (*request.Request, *comprehendmedical.StopEntitiesDetectionV2JobOutput)
+
+	StopPHIDetectionJob(*comprehendmedical.StopPHIDetectionJobInput) (*comprehendmedical.StopPHIDetectionJobOutput, error)
+	StopPHIDetectionJobWithContext(aws.Context, *comprehendmedical.StopPHIDetectionJobInput, ...request.Option) (*comprehendmedical.StopPHIDetectionJobOutput, error)
+	StopPHIDetectionJobRequest(*comprehendmedical.StopPHIDetectionJobInput) (*request.Request, *comprehendmedical.StopPHIDetectionJobOutput)
 }
 
 var _ ComprehendMedicalAPI = (*comprehendmedical.ComprehendMedical)(nil)

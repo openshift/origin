@@ -582,7 +582,7 @@ function generate(files: string[], options: ts.CompilerOptions): void {
       }
       if (x[0].goType == 'bool') {  // take it
         if (x[1].goType == 'RenameOptions') {
-          return ({goType: 'RenameOptions', gostuff: getText(node)})
+          return ({goType: 'interface{}', gostuff: getText(node)})
         }
         return ({goType: 'bool', gostuff: getText(node)})
       }
@@ -927,7 +927,7 @@ let byName = new Map<string, Struct>();
     // consts are unique. (Go consts are package-level, but Typescript's are
     // not.) Use suffixes to minimize changes to gopls.
     let pref = new Map<string, string>(
-        [['DiagnosticSeverity', 'Severity']])  // typeName->prefix
+      [['DiagnosticSeverity', 'Severity'], ['WatchKind', 'Watch']])  // typeName->prefix
     let suff = new Map<string, string>([
       ['CompletionItemKind', 'Completion'], ['InsertTextFormat', 'TextFormat']
     ])

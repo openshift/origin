@@ -1127,7 +1127,7 @@ func TestInstallerController_manageInstallationPods(t *testing.T) {
 				eventRecorder:       tt.fields.eventRecorder,
 				installerPodImageFn: tt.fields.installerPodImageFn,
 			}
-			got, err := c.manageInstallationPods(tt.args.operatorSpec, tt.args.originalOperatorStatus, tt.args.resourceVersion)
+			got, err := c.manageInstallationPods(context.TODO(), tt.args.operatorSpec, tt.args.originalOperatorStatus, tt.args.resourceVersion)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("InstallerController.manageInstallationPods() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1284,7 +1284,7 @@ func TestNodeToStartRevisionWith(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			fakeGetStaticPodState := func(nodeName string) (state staticPodState, revision, reason string, errs []string, err error) {
+			fakeGetStaticPodState := func(ctx context.Context, nodeName string) (state staticPodState, revision, reason string, errs []string, err error) {
 				for _, p := range test.pods {
 					if p.name == nodeName {
 						return p.state, strconv.Itoa(int(p.revision)), "", nil, nil
@@ -1292,7 +1292,7 @@ func TestNodeToStartRevisionWith(t *testing.T) {
 				}
 				return staticPodStatePending, "", "", nil, errors.NewNotFound(schema.GroupResource{Resource: "pods"}, nodeName)
 			}
-			i, _, err := nodeToStartRevisionWith(fakeGetStaticPodState, test.nodes)
+			i, _, err := nodeToStartRevisionWith(context.TODO(), fakeGetStaticPodState, test.nodes)
 			if err == nil && test.expectedErr {
 				t.Fatalf("expected error, got none")
 			}
@@ -1466,7 +1466,7 @@ func TestEnsureRequiredResources(t *testing.T) {
 				secretsGetter:    client.CoreV1(),
 			}
 
-			actual := c.ensureRequiredResourcesExist(test.revisionNumber)
+			actual := c.ensureRequiredResourcesExist(context.TODO(), test.revisionNumber)
 			switch {
 			case len(test.expectedErr) == 0 && actual == nil:
 			case len(test.expectedErr) == 0 && actual != nil:

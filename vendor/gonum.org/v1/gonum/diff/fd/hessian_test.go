@@ -73,11 +73,12 @@ var hessianTestCases = []struct {
 func TestHessian(t *testing.T) {
 	for cas, test := range hessianTestCases {
 		n := len(test.x)
-		got := Hessian(nil, test.h.Func, test.x, test.settings)
+		var got mat.SymDense
+		Hessian(&got, test.h.Func, test.x, test.settings)
 		want := mat.NewSymDense(n, nil)
 		test.h.Hess(want, test.x)
-		if !mat.EqualApprox(got, want, test.tol) {
-			t.Errorf("Cas %d: Hessian mismatch\ngot=\n%0.4v\nwant=\n%0.4v\n", cas, mat.Formatted(got), mat.Formatted(want))
+		if !mat.EqualApprox(&got, want, test.tol) {
+			t.Errorf("Cas %d: Hessian mismatch\ngot=\n%0.4v\nwant=\n%0.4v\n", cas, mat.Formatted(&got), mat.Formatted(want))
 		}
 
 		// Test that concurrency works.
@@ -86,9 +87,10 @@ func TestHessian(t *testing.T) {
 			settings = &Settings{}
 		}
 		settings.Concurrent = true
-		got2 := Hessian(nil, test.h.Func, test.x, settings)
-		if !mat.EqualApprox(got, got2, 1e-5) {
-			t.Errorf("Cas %d: Hessian mismatch concurrent\ngot=\n%0.6v\nwant=\n%0.6v\n", cas, mat.Formatted(got2), mat.Formatted(got))
+		var got2 mat.SymDense
+		Hessian(&got2, test.h.Func, test.x, settings)
+		if !mat.EqualApprox(&got, &got2, 1e-5) {
+			t.Errorf("Cas %d: Hessian mismatch concurrent\ngot=\n%0.6v\nwant=\n%0.6v\n", cas, mat.Formatted(&got2), mat.Formatted(&got))
 		}
 	}
 }

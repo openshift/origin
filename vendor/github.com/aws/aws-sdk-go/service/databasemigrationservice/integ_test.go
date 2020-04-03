@@ -27,7 +27,9 @@ func TestInteg_00_DescribeEndpoints(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := databasemigrationservice.New(sess)
 	params := &databasemigrationservice.DescribeEndpointsInput{}
-	_, err := svc.DescribeEndpointsWithContext(ctx, params)
+	_, err := svc.DescribeEndpointsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeTableStatistics(t *testing.T) {
 	params := &databasemigrationservice.DescribeTableStatisticsInput{
 		ReplicationTaskArn: aws.String("arn:aws:acm:region:123456789012"),
 	}
-	_, err := svc.DescribeTableStatisticsWithContext(ctx, params)
+	_, err := svc.DescribeTableStatisticsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

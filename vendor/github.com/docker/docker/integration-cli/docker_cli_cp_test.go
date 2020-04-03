@@ -12,7 +12,7 @@ import (
 
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/go-check/check"
-	"github.com/gotestyourself/gotestyourself/icmd"
+	"gotest.tools/icmd"
 )
 
 const (
@@ -243,7 +243,7 @@ func (s *DockerSuite) TestCpFromSymlinkToDirectory(c *check.C) {
 	if err == nil {
 		out = fmt.Sprintf("target name was copied: %q - %q", stat.Mode(), stat.Name())
 	}
-	c.Assert(err, checker.NotNil, check.Commentf(out))
+	c.Assert(err, checker.NotNil, check.Commentf("%s", out))
 
 	// It *should* have copied the directory using the asked name "dir_link".
 	stat, err = os.Lstat(expectedPath)
@@ -256,7 +256,7 @@ func (s *DockerSuite) TestCpFromSymlinkToDirectory(c *check.C) {
 // container.
 func (s *DockerSuite) TestCpToSymlinkToDirectory(c *check.C) {
 	testRequires(c, DaemonIsLinux)
-	testRequires(c, SameHostDaemon) // Requires local volume mount bind.
+	testRequires(c, testEnv.IsLocalDaemon) // Requires local volume mount bind.
 
 	testVol, err := ioutil.TempDir("", "test-cp-to-symlink-to-dir-")
 	c.Assert(err, checker.IsNil)
@@ -315,7 +315,7 @@ func (s *DockerSuite) TestCpToSymlinkToDirectory(c *check.C) {
 	if err == nil {
 		out = fmt.Sprintf("target name was copied: %q - %q", stat.Mode(), stat.Name())
 	}
-	c.Assert(err, checker.NotNil, check.Commentf(out))
+	c.Assert(err, checker.NotNil, check.Commentf("%s", out))
 
 	// It *should* have copied the directory using the asked name "dir_link".
 	stat, err = os.Lstat(expectedPath)
@@ -379,7 +379,7 @@ func (s *DockerSuite) TestCpSymlinkComponent(c *check.C) {
 
 // Check that cp with unprivileged user doesn't return any error
 func (s *DockerSuite) TestCpUnprivilegedUser(c *check.C) {
-	testRequires(c, DaemonIsLinux, SameHostDaemon)
+	testRequires(c, DaemonIsLinux, testEnv.IsLocalDaemon)
 	testRequires(c, UnixCli) // uses chmod/su: not available on windows
 
 	out, _ := dockerCmd(c, "run", "-d", "busybox", "/bin/sh", "-c", "touch "+cpTestName)
@@ -404,7 +404,7 @@ func (s *DockerSuite) TestCpUnprivilegedUser(c *check.C) {
 
 func (s *DockerSuite) TestCpSpecialFiles(c *check.C) {
 	testRequires(c, DaemonIsLinux)
-	testRequires(c, SameHostDaemon)
+	testRequires(c, testEnv.IsLocalDaemon)
 
 	outDir, err := ioutil.TempDir("", "cp-test-special-files")
 	c.Assert(err, checker.IsNil)
@@ -423,6 +423,7 @@ func (s *DockerSuite) TestCpSpecialFiles(c *check.C) {
 
 	expected := readContainerFile(c, containerID, "resolv.conf")
 	actual, err := ioutil.ReadFile(outDir + "/resolv.conf")
+	c.Assert(err, checker.IsNil)
 
 	// Expected copied file to be duplicate of the container resolvconf
 	c.Assert(bytes.Equal(actual, expected), checker.True)
@@ -432,6 +433,7 @@ func (s *DockerSuite) TestCpSpecialFiles(c *check.C) {
 
 	expected = readContainerFile(c, containerID, "hosts")
 	actual, err = ioutil.ReadFile(outDir + "/hosts")
+	c.Assert(err, checker.IsNil)
 
 	// Expected copied file to be duplicate of the container hosts
 	c.Assert(bytes.Equal(actual, expected), checker.True)
@@ -451,7 +453,7 @@ func (s *DockerSuite) TestCpVolumePath(c *check.C) {
 	//  stat /tmp/cp-test-volumepath851508420/test gets permission denied for the user
 	testRequires(c, NotUserNamespace)
 	testRequires(c, DaemonIsLinux)
-	testRequires(c, SameHostDaemon)
+	testRequires(c, testEnv.IsLocalDaemon)
 
 	tmpDir, err := ioutil.TempDir("", "cp-test-volumepath")
 	c.Assert(err, checker.IsNil)
@@ -558,7 +560,7 @@ func (s *DockerSuite) TestCpToStdout(c *check.C) {
 }
 
 func (s *DockerSuite) TestCpNameHasColon(c *check.C) {
-	testRequires(c, SameHostDaemon, DaemonIsLinux)
+	testRequires(c, testEnv.IsLocalDaemon, DaemonIsLinux)
 
 	out, _ := dockerCmd(c, "run", "-d", "busybox", "/bin/sh", "-c", "echo lololol > /te:s:t")
 
@@ -639,6 +641,7 @@ func (s *DockerSuite) TestCpSymlinkFromConToHostFollowSymlink(c *check.C) {
 
 	expected := []byte(cpContainerContents)
 	actual, err := ioutil.ReadFile(expectedPath)
+	c.Assert(err, checker.IsNil)
 
 	if !bytes.Equal(actual, expected) {
 		c.Fatalf("Expected copied file to be duplicate of the container symbol link target")

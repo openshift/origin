@@ -64,6 +64,10 @@ type TranscribeServiceAPI interface {
 	CreateVocabularyWithContext(aws.Context, *transcribeservice.CreateVocabularyInput, ...request.Option) (*transcribeservice.CreateVocabularyOutput, error)
 	CreateVocabularyRequest(*transcribeservice.CreateVocabularyInput) (*request.Request, *transcribeservice.CreateVocabularyOutput)
 
+	CreateVocabularyFilter(*transcribeservice.CreateVocabularyFilterInput) (*transcribeservice.CreateVocabularyFilterOutput, error)
+	CreateVocabularyFilterWithContext(aws.Context, *transcribeservice.CreateVocabularyFilterInput, ...request.Option) (*transcribeservice.CreateVocabularyFilterOutput, error)
+	CreateVocabularyFilterRequest(*transcribeservice.CreateVocabularyFilterInput) (*request.Request, *transcribeservice.CreateVocabularyFilterOutput)
+
 	DeleteTranscriptionJob(*transcribeservice.DeleteTranscriptionJobInput) (*transcribeservice.DeleteTranscriptionJobOutput, error)
 	DeleteTranscriptionJobWithContext(aws.Context, *transcribeservice.DeleteTranscriptionJobInput, ...request.Option) (*transcribeservice.DeleteTranscriptionJobOutput, error)
 	DeleteTranscriptionJobRequest(*transcribeservice.DeleteTranscriptionJobInput) (*request.Request, *transcribeservice.DeleteTranscriptionJobOutput)
@@ -72,6 +76,10 @@ type TranscribeServiceAPI interface {
 	DeleteVocabularyWithContext(aws.Context, *transcribeservice.DeleteVocabularyInput, ...request.Option) (*transcribeservice.DeleteVocabularyOutput, error)
 	DeleteVocabularyRequest(*transcribeservice.DeleteVocabularyInput) (*request.Request, *transcribeservice.DeleteVocabularyOutput)
 
+	DeleteVocabularyFilter(*transcribeservice.DeleteVocabularyFilterInput) (*transcribeservice.DeleteVocabularyFilterOutput, error)
+	DeleteVocabularyFilterWithContext(aws.Context, *transcribeservice.DeleteVocabularyFilterInput, ...request.Option) (*transcribeservice.DeleteVocabularyFilterOutput, error)
+	DeleteVocabularyFilterRequest(*transcribeservice.DeleteVocabularyFilterInput) (*request.Request, *transcribeservice.DeleteVocabularyFilterOutput)
+
 	GetTranscriptionJob(*transcribeservice.GetTranscriptionJobInput) (*transcribeservice.GetTranscriptionJobOutput, error)
 	GetTranscriptionJobWithContext(aws.Context, *transcribeservice.GetTranscriptionJobInput, ...request.Option) (*transcribeservice.GetTranscriptionJobOutput, error)
 	GetTranscriptionJobRequest(*transcribeservice.GetTranscriptionJobInput) (*request.Request, *transcribeservice.GetTranscriptionJobOutput)
@@ -79,6 +87,10 @@ type TranscribeServiceAPI interface {
 	GetVocabulary(*transcribeservice.GetVocabularyInput) (*transcribeservice.GetVocabularyOutput, error)
 	GetVocabularyWithContext(aws.Context, *transcribeservice.GetVocabularyInput, ...request.Option) (*transcribeservice.GetVocabularyOutput, error)
 	GetVocabularyRequest(*transcribeservice.GetVocabularyInput) (*request.Request, *transcribeservice.GetVocabularyOutput)
+
+	GetVocabularyFilter(*transcribeservice.GetVocabularyFilterInput) (*transcribeservice.GetVocabularyFilterOutput, error)
+	GetVocabularyFilterWithContext(aws.Context, *transcribeservice.GetVocabularyFilterInput, ...request.Option) (*transcribeservice.GetVocabularyFilterOutput, error)
+	GetVocabularyFilterRequest(*transcribeservice.GetVocabularyFilterInput) (*request.Request, *transcribeservice.GetVocabularyFilterOutput)
 
 	ListTranscriptionJobs(*transcribeservice.ListTranscriptionJobsInput) (*transcribeservice.ListTranscriptionJobsOutput, error)
 	ListTranscriptionJobsWithContext(aws.Context, *transcribeservice.ListTranscriptionJobsInput, ...request.Option) (*transcribeservice.ListTranscriptionJobsOutput, error)
@@ -94,6 +106,13 @@ type TranscribeServiceAPI interface {
 	ListVocabulariesPages(*transcribeservice.ListVocabulariesInput, func(*transcribeservice.ListVocabulariesOutput, bool) bool) error
 	ListVocabulariesPagesWithContext(aws.Context, *transcribeservice.ListVocabulariesInput, func(*transcribeservice.ListVocabulariesOutput, bool) bool, ...request.Option) error
 
+	ListVocabularyFilters(*transcribeservice.ListVocabularyFiltersInput) (*transcribeservice.ListVocabularyFiltersOutput, error)
+	ListVocabularyFiltersWithContext(aws.Context, *transcribeservice.ListVocabularyFiltersInput, ...request.Option) (*transcribeservice.ListVocabularyFiltersOutput, error)
+	ListVocabularyFiltersRequest(*transcribeservice.ListVocabularyFiltersInput) (*request.Request, *transcribeservice.ListVocabularyFiltersOutput)
+
+	ListVocabularyFiltersPages(*transcribeservice.ListVocabularyFiltersInput, func(*transcribeservice.ListVocabularyFiltersOutput, bool) bool) error
+	ListVocabularyFiltersPagesWithContext(aws.Context, *transcribeservice.ListVocabularyFiltersInput, func(*transcribeservice.ListVocabularyFiltersOutput, bool) bool, ...request.Option) error
+
 	StartTranscriptionJob(*transcribeservice.StartTranscriptionJobInput) (*transcribeservice.StartTranscriptionJobOutput, error)
 	StartTranscriptionJobWithContext(aws.Context, *transcribeservice.StartTranscriptionJobInput, ...request.Option) (*transcribeservice.StartTranscriptionJobOutput, error)
 	StartTranscriptionJobRequest(*transcribeservice.StartTranscriptionJobInput) (*request.Request, *transcribeservice.StartTranscriptionJobOutput)
@@ -101,6 +120,10 @@ type TranscribeServiceAPI interface {
 	UpdateVocabulary(*transcribeservice.UpdateVocabularyInput) (*transcribeservice.UpdateVocabularyOutput, error)
 	UpdateVocabularyWithContext(aws.Context, *transcribeservice.UpdateVocabularyInput, ...request.Option) (*transcribeservice.UpdateVocabularyOutput, error)
 	UpdateVocabularyRequest(*transcribeservice.UpdateVocabularyInput) (*request.Request, *transcribeservice.UpdateVocabularyOutput)
+
+	UpdateVocabularyFilter(*transcribeservice.UpdateVocabularyFilterInput) (*transcribeservice.UpdateVocabularyFilterOutput, error)
+	UpdateVocabularyFilterWithContext(aws.Context, *transcribeservice.UpdateVocabularyFilterInput, ...request.Option) (*transcribeservice.UpdateVocabularyFilterOutput, error)
+	UpdateVocabularyFilterRequest(*transcribeservice.UpdateVocabularyFilterInput) (*request.Request, *transcribeservice.UpdateVocabularyFilterOutput)
 }
 
 var _ TranscribeServiceAPI = (*transcribeservice.TranscribeService)(nil)

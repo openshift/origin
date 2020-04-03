@@ -27,7 +27,9 @@ func TestInteg_00_DescribeRepositories(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := ecr.New(sess)
 	params := &ecr.DescribeRepositoriesInput{}
-	_, err := svc.DescribeRepositoriesWithContext(ctx, params)
+	_, err := svc.DescribeRepositoriesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_ListImages(t *testing.T) {
 	params := &ecr.ListImagesInput{
 		RepositoryName: aws.String("not-a-real-repository"),
 	}
-	_, err := svc.ListImagesWithContext(ctx, params)
+	_, err := svc.ListImagesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

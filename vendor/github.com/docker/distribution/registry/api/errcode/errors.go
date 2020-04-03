@@ -81,9 +81,6 @@ func (ec ErrorCode) WithMessage(message string) Error {
 // WithDetail creates a new Error struct based on the passed-in info and
 // set the Detail property appropriately
 func (ec ErrorCode) WithDetail(detail interface{}) Error {
-	if err, ok := detail.(Error); ok {
-		return err
-	}
 	return Error{
 		Code:    ec,
 		Message: ec.Message(),

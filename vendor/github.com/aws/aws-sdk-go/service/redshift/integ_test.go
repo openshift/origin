@@ -27,7 +27,9 @@ func TestInteg_00_DescribeClusterVersions(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := redshift.New(sess)
 	params := &redshift.DescribeClusterVersionsInput{}
-	_, err := svc.DescribeClusterVersionsWithContext(ctx, params)
+	_, err := svc.DescribeClusterVersionsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeClusters(t *testing.T) {
 	params := &redshift.DescribeClustersInput{
 		ClusterIdentifier: aws.String("fake-cluster"),
 	}
-	_, err := svc.DescribeClustersWithContext(ctx, params)
+	_, err := svc.DescribeClustersWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

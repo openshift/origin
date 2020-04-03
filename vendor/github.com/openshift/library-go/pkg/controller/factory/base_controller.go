@@ -10,16 +10,22 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+
+	operatorv1 "github.com/openshift/api/operator/v1"
+
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+	operatorv1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 // baseController represents generic Kubernetes controller boiler-plate
 type baseController struct {
-	name           string
-	cachesToSync   []cache.InformerSynced
-	sync           func(ctx context.Context, controllerContext SyncContext) error
-	syncContext    SyncContext
-	resyncEvery    time.Duration
-	postStartHooks []PostStartHook
+	name               string
+	cachesToSync       []cache.InformerSynced
+	sync               func(ctx context.Context, controllerContext SyncContext) error
+	syncContext        SyncContext
+	syncDegradedClient operatorv1helpers.OperatorClient
+	resyncEvery        time.Duration
+	postStartHooks     []PostStartHook
 }
 
 var _ Controller = &baseController{}
@@ -128,6 +134,33 @@ func (c *baseController) runWorker(queueCtx context.Context) {
 	workerWaitGroup.Wait()
 }
 
+// reconcile wraps the sync() call and if operator client is set, it handle the degraded condition if sync() returns an error.
+func (c *baseController) reconcile(ctx context.Context, syncCtx SyncContext) error {
+	err := c.sync(ctx, syncCtx)
+	if c.syncDegradedClient == nil {
+		return err
+	}
+	if err != nil {
+		_, _, updateErr := v1helpers.UpdateStatus(c.syncDegradedClient, v1helpers.UpdateConditionFn(operatorv1.OperatorCondition{
+			Type:    c.name + "Degraded",
+			Status:  operatorv1.ConditionTrue,
+			Reason:  "SyncError",
+			Message: err.Error(),
+		}))
+		if updateErr != nil {
+			klog.Warningf("Updating status of %q failed: %w", c.Name(), updateErr)
+		}
+		return err
+	}
+	_, _, updateErr := v1helpers.UpdateStatus(c.syncDegradedClient,
+		v1helpers.UpdateConditionFn(operatorv1.OperatorCondition{
+			Type:   c.name + "Degraded",
+			Status: operatorv1.ConditionFalse,
+			Reason: "AsExpected",
+		}))
+	return updateErr
+}
+
 func (c *baseController) processNextWorkItem(queueCtx context.Context) {
 	key, quit := c.syncContext.Queue().Get()
 	if quit {
@@ -143,7 +176,7 @@ func (c *baseController) processNextWorkItem(queueCtx context.Context) {
 		return
 	}
 
-	if err := c.sync(queueCtx, syncCtx); err != nil {
+	if err := c.reconcile(queueCtx, syncCtx); err != nil {
 		utilruntime.HandleError(fmt.Errorf("%q controller failed to sync %q, err: %w", c.name, key, err))
 		c.syncContext.Queue().AddRateLimited(key)
 		return

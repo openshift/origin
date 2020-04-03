@@ -28,6 +28,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/conditions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -50,12 +51,14 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 
 	g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
-			e2e.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
+			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 		}
 		oc.SetupProject()
 		ns := oc.Namespace()
 		execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-		defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+		defer func() {
+			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+		}()
 
 		tests := map[string]bool{
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
@@ -68,7 +71,9 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		oc.SetupProject()
 		ns := oc.Namespace()
 		execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-		defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+		defer func() {
+			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+		}()
 
 		tests := map[string]bool{
 			// should have constantly firing a watchdog alert
@@ -81,13 +86,15 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 
 	g.It("shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster", func() {
 		if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
-			e2e.Skipf("Telemetry is disabled")
+			e2eskipper.Skipf("Telemetry is disabled")
 		}
 		oc.SetupProject()
 		ns := oc.Namespace()
 
 		execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-		defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+		defer func() {
+			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+		}()
 
 		tests := map[string]bool{
 			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
@@ -120,13 +127,15 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 	g.Describe("when installed on the cluster", func() {
 		g.It("should report telemetry if a cloud.openshift.com token is present", func() {
 			if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
-				e2e.Skipf("Telemetry is disabled")
+				e2eskipper.Skipf("Telemetry is disabled")
 			}
 			oc.SetupProject()
 			ns := oc.Namespace()
 
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
 
 			tests := map[string]bool{
 				// Should have successfully sent at least some metrics to
@@ -148,7 +157,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
 
 			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
@@ -272,7 +283,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
 
 			tests := map[string]bool{
 				// should have constantly firing a watchdog alert
@@ -286,7 +299,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
 
 			tests := map[string]bool{
 				// track infrastructure type
@@ -309,7 +324,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
 
 			tests := map[string]bool{
 				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"} >= 1`: true,
@@ -320,7 +337,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
 
 			tests := map[string]bool{
 				`prometheus_rule_evaluation_failures_total >= 1`: false,
@@ -332,7 +351,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				oc.SetupProject()
 				ns := oc.Namespace()
 				execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-				defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+				defer func() {
+					oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+				}()
 
 				tests := map[string]bool{
 					//something
@@ -343,12 +364,14 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		})
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early]", func() {
 			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
-				e2e.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
+				e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 			}
 			oc.SetupProject()
 			ns := oc.Namespace()
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
 
 			tests := map[string]bool{
 				// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
@@ -361,7 +384,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			ns := oc.Namespace()
 
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
 
 			var lastErrs []error
 			o.Expect(wait.PollImmediate(10*time.Second, 4*time.Minute, func() (bool, error) {
@@ -562,7 +587,7 @@ func getInsecureURLViaPod(ns, execPodName, url string) (string, error) {
 }
 
 func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountName string, timeout time.Duration) error {
-	w, err := c.CoreV1().ServiceAccounts(ns).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: serviceAccountName}))
+	w, err := c.CoreV1().ServiceAccounts(ns).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: serviceAccountName}))
 	if err != nil {
 		return err
 	}
@@ -573,14 +598,14 @@ func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountN
 }
 
 func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
-	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get("prometheus-k8s", metav1.GetOptions{})
+	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
 	if kapierrs.IsNotFound(err) {
 		return "", "", false
 	}
 
 	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
 	for i := 0; i < 30; i++ {
-		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(metav1.ListOptions{})
+		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		for _, secret := range secrets.Items {
 			if secret.Type != v1.SecretTypeServiceAccountToken {
@@ -604,7 +629,7 @@ func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
 }
 
 func hasPullSecret(client clientset.Interface, name string) bool {
-	scrt, err := client.CoreV1().Secrets("openshift-config").Get("pull-secret", metav1.GetOptions{})
+	scrt, err := client.CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
 	if err != nil {
 		if kapierrs.IsNotFound(err) {
 			return false

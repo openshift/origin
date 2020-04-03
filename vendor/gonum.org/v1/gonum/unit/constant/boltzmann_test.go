@@ -16,13 +16,13 @@ func TestBoltzmannFormat(t *testing.T) {
 		format string
 		want   string
 	}{
-		{"%v", "1.38064852e-23 kg m^2 K^-1 s^-2"},
+		{"%v", "1.380649e-23 kg m^2 K^-1 s^-2"},
 		{"%.1v", "1e-23 kg m^2 K^-1 s^-2"},
 		{"%50.1v", "                            1e-23 kg m^2 K^-1 s^-2"},
-		{"%50v", "                   1.38064852e-23 kg m^2 K^-1 s^-2"},
-		{"%1v", "1.38064852e-23 kg m^2 K^-1 s^-2"},
-		{"%#v", "constant.boltzmannUnits(1.38064852e-23)"},
-		{"%s", "%!s(constant.boltzmannUnits=1.38064852e-23 kg m^2 K^-1 s^-2)"},
+		{"%50v", "                     1.380649e-23 kg m^2 K^-1 s^-2"},
+		{"%1v", "1.380649e-23 kg m^2 K^-1 s^-2"},
+		{"%#v", "constant.boltzmannUnits(1.380649e-23)"},
+		{"%s", "%!s(constant.boltzmannUnits=1.380649e-23 kg m^2 K^-1 s^-2)"},
 	} {
 		got := fmt.Sprintf(test.format, Boltzmann)
 		if got != test.want {

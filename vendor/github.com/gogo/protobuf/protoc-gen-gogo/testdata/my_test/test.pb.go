@@ -21,7 +21,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type HatType int32
 
@@ -743,34 +743,34 @@ type isCommunique_Union interface {
 }
 
 type Communique_Number struct {
-	Number int32 `protobuf:"varint,5,opt,name=number,oneof"`
+	Number int32 `protobuf:"varint,5,opt,name=number,oneof" json:"number,omitempty"`
 }
 type Communique_Name struct {
-	Name string `protobuf:"bytes,6,opt,name=name,oneof"`
+	Name string `protobuf:"bytes,6,opt,name=name,oneof" json:"name,omitempty"`
 }
 type Communique_Data struct {
-	Data []byte `protobuf:"bytes,7,opt,name=data,oneof"`
+	Data []byte `protobuf:"bytes,7,opt,name=data,oneof" json:"data,omitempty"`
 }
 type Communique_TempC struct {
-	TempC float64 `protobuf:"fixed64,8,opt,name=temp_c,json=tempC,oneof"`
+	TempC float64 `protobuf:"fixed64,8,opt,name=temp_c,json=tempC,oneof" json:"temp_c,omitempty"`
 }
 type Communique_Height struct {
-	Height float32 `protobuf:"fixed32,9,opt,name=height,oneof"`
+	Height float32 `protobuf:"fixed32,9,opt,name=height,oneof" json:"height,omitempty"`
 }
 type Communique_Today struct {
-	Today Days `protobuf:"varint,10,opt,name=today,enum=my.test.Days,oneof"`
+	Today Days `protobuf:"varint,10,opt,name=today,enum=my.test.Days,oneof" json:"today,omitempty"`
 }
 type Communique_Maybe struct {
-	Maybe bool `protobuf:"varint,11,opt,name=maybe,oneof"`
+	Maybe bool `protobuf:"varint,11,opt,name=maybe,oneof" json:"maybe,omitempty"`
 }
 type Communique_Delta_ struct {
-	Delta int32 `protobuf:"zigzag32,12,opt,name=delta,oneof"`
+	Delta int32 `protobuf:"zigzag32,12,opt,name=delta,oneof" json:"delta,omitempty"`
 }
 type Communique_Msg struct {
-	Msg *Reply `protobuf:"bytes,16,opt,name=msg,oneof"`
+	Msg *Reply `protobuf:"bytes,16,opt,name=msg,oneof" json:"msg,omitempty"`
 }
 type Communique_Somegroup struct {
-	Somegroup *Communique_SomeGroup `protobuf:"group,14,opt,name=SomeGroup,json=somegroup,oneof"`
+	Somegroup *Communique_SomeGroup `protobuf:"group,14,opt,name=SomeGroup,json=somegroup,oneof" json:"somegroup,omitempty"`
 }
 
 func (*Communique_Number) isCommunique_Union()    {}
@@ -868,9 +868,9 @@ func (m *Communique) GetSomegroup() *Communique_SomeGroup {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Communique) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Communique_OneofMarshaler, _Communique_OneofUnmarshaler, _Communique_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Communique) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*Communique_Number)(nil),
 		(*Communique_Name)(nil),
 		(*Communique_Data)(nil),
@@ -882,182 +882,6 @@ func (*Communique) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) er
 		(*Communique_Msg)(nil),
 		(*Communique_Somegroup)(nil),
 	}
-}
-
-func _Communique_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Communique)
-	// union
-	switch x := m.Union.(type) {
-	case *Communique_Number:
-		_ = b.EncodeVarint(5<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(uint64(x.Number))
-	case *Communique_Name:
-		_ = b.EncodeVarint(6<<3 | proto.WireBytes)
-		_ = b.EncodeStringBytes(x.Name)
-	case *Communique_Data:
-		_ = b.EncodeVarint(7<<3 | proto.WireBytes)
-		_ = b.EncodeRawBytes(x.Data)
-	case *Communique_TempC:
-		_ = b.EncodeVarint(8<<3 | proto.WireFixed64)
-		_ = b.EncodeFixed64(math.Float64bits(x.TempC))
-	case *Communique_Height:
-		_ = b.EncodeVarint(9<<3 | proto.WireFixed32)
-		_ = b.EncodeFixed32(uint64(math.Float32bits(x.Height)))
-	case *Communique_Today:
-		_ = b.EncodeVarint(10<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(uint64(x.Today))
-	case *Communique_Maybe:
-		t := uint64(0)
-		if x.Maybe {
-			t = 1
-		}
-		_ = b.EncodeVarint(11<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(t)
-	case *Communique_Delta_:
-		_ = b.EncodeVarint(12<<3 | proto.WireVarint)
-		_ = b.EncodeZigzag32(uint64(x.Delta))
-	case *Communique_Msg:
-		_ = b.EncodeVarint(16<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Msg); err != nil {
-			return err
-		}
-	case *Communique_Somegroup:
-		_ = b.EncodeVarint(14<<3 | proto.WireStartGroup)
-		if err := b.Marshal(x.Somegroup); err != nil {
-			return err
-		}
-		_ = b.EncodeVarint(14<<3 | proto.WireEndGroup)
-	case nil:
-	default:
-		return fmt.Errorf("Communique.Union has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Communique_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Communique)
-	switch tag {
-	case 5: // union.number
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Union = &Communique_Number{int32(x)}
-		return true, err
-	case 6: // union.name
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Union = &Communique_Name{x}
-		return true, err
-	case 7: // union.data
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeRawBytes(true)
-		m.Union = &Communique_Data{x}
-		return true, err
-	case 8: // union.temp_c
-		if wire != proto.WireFixed64 {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeFixed64()
-		m.Union = &Communique_TempC{math.Float64frombits(x)}
-		return true, err
-	case 9: // union.height
-		if wire != proto.WireFixed32 {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeFixed32()
-		m.Union = &Communique_Height{math.Float32frombits(uint32(x))}
-		return true, err
-	case 10: // union.today
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Union = &Communique_Today{Days(x)}
-		return true, err
-	case 11: // union.maybe
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Union = &Communique_Maybe{x != 0}
-		return true, err
-	case 12: // union.delta
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeZigzag32()
-		m.Union = &Communique_Delta_{int32(x)}
-		return true, err
-	case 16: // union.msg
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Reply)
-		err := b.DecodeMessage(msg)
-		m.Union = &Communique_Msg{msg}
-		return true, err
-	case 14: // union.somegroup
-		if wire != proto.WireStartGroup {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Communique_SomeGroup)
-		err := b.DecodeGroup(msg)
-		m.Union = &Communique_Somegroup{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Communique_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Communique)
-	// union
-	switch x := m.Union.(type) {
-	case *Communique_Number:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.Number))
-	case *Communique_Name:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Name)))
-		n += len(x.Name)
-	case *Communique_Data:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Data)))
-		n += len(x.Data)
-	case *Communique_TempC:
-		n += 1 // tag and wire
-		n += 8
-	case *Communique_Height:
-		n += 1 // tag and wire
-		n += 4
-	case *Communique_Today:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.Today))
-	case *Communique_Maybe:
-		n += 1 // tag and wire
-		n += 1
-	case *Communique_Delta_:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64((uint32(x.Delta) << 1) ^ uint32((int32(x.Delta) >> 31))))
-	case *Communique_Msg:
-		s := proto.Size(x.Msg)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Communique_Somegroup:
-		n += 1 // tag and wire
-		n += proto.Size(x.Somegroup)
-		n += 1 // tag and wire
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type Communique_SomeGroup struct {

@@ -43,7 +43,7 @@ func DpotriTest(t *testing.T, impl Dpotrier) {
 					Dlatm1(d, 3, 10000, false, 2, rnd)
 
 					// Construct a positive definite matrix A as
-					//  A = U * D * U^T
+					//  A = U * D * Uᵀ
 					// where U is a random orthogonal matrix.
 					a := make([]float64, n*lda)
 					Dlagsy(n, 0, d, a, lda, rnd, make([]float64, 2*n))

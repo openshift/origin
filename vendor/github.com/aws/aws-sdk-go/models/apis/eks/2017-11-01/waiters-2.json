@@ -49,6 +49,43 @@
           "state": "success"
         }
       ]
+    },
+    "NodegroupActive": {
+      "delay": 30,
+      "operation": "DescribeNodegroup",
+      "maxAttempts": 80,
+      "acceptors": [
+        {
+          "expected": "CREATE_FAILED",
+          "matcher": "path",
+          "state": "failure",
+          "argument": "nodegroup.status"
+        },
+        {
+          "expected": "ACTIVE",
+          "matcher": "path",
+          "state": "success",
+          "argument": "nodegroup.status"
+        }
+      ]
+    },
+    "NodegroupDeleted": {
+      "delay": 30,
+      "operation": "DescribeNodegroup",
+      "maxAttempts": 40,
+      "acceptors": [
+        {
+          "expected": "DELETE_FAILED",
+          "matcher": "path",
+          "state": "failure",
+          "argument": "nodegroup.status"
+        },
+        {
+          "expected": "ResourceNotFoundException",
+          "matcher": "error",
+          "state": "success"
+        }
+      ]
     }
   }
 }

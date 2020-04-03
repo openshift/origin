@@ -26,7 +26,7 @@ import (
 //    // myFunc uses an SDK service client to make a request to
 //    // Amazon EC2 Container Service.
 //    func myFunc(svc ecsiface.ECSAPI) bool {
-//        // Make svc.CreateCluster request
+//        // Make svc.CreateCapacityProvider request
 //    }
 //
 //    func main() {
@@ -42,7 +42,7 @@ import (
 //    type mockECSClient struct {
 //        ecsiface.ECSAPI
 //    }
-//    func (m *mockECSClient) CreateCluster(input *ecs.CreateClusterInput) (*ecs.CreateClusterOutput, error) {
+//    func (m *mockECSClient) CreateCapacityProvider(input *ecs.CreateCapacityProviderInput) (*ecs.CreateCapacityProviderOutput, error) {
 //        // mock response/functionality
 //    }
 //
@@ -60,6 +60,10 @@ import (
 // and waiters. Its suggested to use the pattern above for testing, or using
 // tooling to generate mocks to satisfy the interfaces.
 type ECSAPI interface {
+	CreateCapacityProvider(*ecs.CreateCapacityProviderInput) (*ecs.CreateCapacityProviderOutput, error)
+	CreateCapacityProviderWithContext(aws.Context, *ecs.CreateCapacityProviderInput, ...request.Option) (*ecs.CreateCapacityProviderOutput, error)
+	CreateCapacityProviderRequest(*ecs.CreateCapacityProviderInput) (*request.Request, *ecs.CreateCapacityProviderOutput)
+
 	CreateCluster(*ecs.CreateClusterInput) (*ecs.CreateClusterOutput, error)
 	CreateClusterWithContext(aws.Context, *ecs.CreateClusterInput, ...request.Option) (*ecs.CreateClusterOutput, error)
 	CreateClusterRequest(*ecs.CreateClusterInput) (*request.Request, *ecs.CreateClusterOutput)
@@ -67,6 +71,10 @@ type ECSAPI interface {
 	CreateService(*ecs.CreateServiceInput) (*ecs.CreateServiceOutput, error)
 	CreateServiceWithContext(aws.Context, *ecs.CreateServiceInput, ...request.Option) (*ecs.CreateServiceOutput, error)
 	CreateServiceRequest(*ecs.CreateServiceInput) (*request.Request, *ecs.CreateServiceOutput)
+
+	CreateTaskSet(*ecs.CreateTaskSetInput) (*ecs.CreateTaskSetOutput, error)
+	CreateTaskSetWithContext(aws.Context, *ecs.CreateTaskSetInput, ...request.Option) (*ecs.CreateTaskSetOutput, error)
+	CreateTaskSetRequest(*ecs.CreateTaskSetInput) (*request.Request, *ecs.CreateTaskSetOutput)
 
 	DeleteAccountSetting(*ecs.DeleteAccountSettingInput) (*ecs.DeleteAccountSettingOutput, error)
 	DeleteAccountSettingWithContext(aws.Context, *ecs.DeleteAccountSettingInput, ...request.Option) (*ecs.DeleteAccountSettingOutput, error)
@@ -84,6 +92,10 @@ type ECSAPI interface {
 	DeleteServiceWithContext(aws.Context, *ecs.DeleteServiceInput, ...request.Option) (*ecs.DeleteServiceOutput, error)
 	DeleteServiceRequest(*ecs.DeleteServiceInput) (*request.Request, *ecs.DeleteServiceOutput)
 
+	DeleteTaskSet(*ecs.DeleteTaskSetInput) (*ecs.DeleteTaskSetOutput, error)
+	DeleteTaskSetWithContext(aws.Context, *ecs.DeleteTaskSetInput, ...request.Option) (*ecs.DeleteTaskSetOutput, error)
+	DeleteTaskSetRequest(*ecs.DeleteTaskSetInput) (*request.Request, *ecs.DeleteTaskSetOutput)
+
 	DeregisterContainerInstance(*ecs.DeregisterContainerInstanceInput) (*ecs.DeregisterContainerInstanceOutput, error)
 	DeregisterContainerInstanceWithContext(aws.Context, *ecs.DeregisterContainerInstanceInput, ...request.Option) (*ecs.DeregisterContainerInstanceOutput, error)
 	DeregisterContainerInstanceRequest(*ecs.DeregisterContainerInstanceInput) (*request.Request, *ecs.DeregisterContainerInstanceOutput)
@@ -91,6 +103,10 @@ type ECSAPI interface {
 	DeregisterTaskDefinition(*ecs.DeregisterTaskDefinitionInput) (*ecs.DeregisterTaskDefinitionOutput, error)
 	DeregisterTaskDefinitionWithContext(aws.Context, *ecs.DeregisterTaskDefinitionInput, ...request.Option) (*ecs.DeregisterTaskDefinitionOutput, error)
 	DeregisterTaskDefinitionRequest(*ecs.DeregisterTaskDefinitionInput) (*request.Request, *ecs.DeregisterTaskDefinitionOutput)
+
+	DescribeCapacityProviders(*ecs.DescribeCapacityProvidersInput) (*ecs.DescribeCapacityProvidersOutput, error)
+	DescribeCapacityProvidersWithContext(aws.Context, *ecs.DescribeCapacityProvidersInput, ...request.Option) (*ecs.DescribeCapacityProvidersOutput, error)
+	DescribeCapacityProvidersRequest(*ecs.DescribeCapacityProvidersInput) (*request.Request, *ecs.DescribeCapacityProvidersOutput)
 
 	DescribeClusters(*ecs.DescribeClustersInput) (*ecs.DescribeClustersOutput, error)
 	DescribeClustersWithContext(aws.Context, *ecs.DescribeClustersInput, ...request.Option) (*ecs.DescribeClustersOutput, error)
@@ -108,6 +124,10 @@ type ECSAPI interface {
 	DescribeTaskDefinitionWithContext(aws.Context, *ecs.DescribeTaskDefinitionInput, ...request.Option) (*ecs.DescribeTaskDefinitionOutput, error)
 	DescribeTaskDefinitionRequest(*ecs.DescribeTaskDefinitionInput) (*request.Request, *ecs.DescribeTaskDefinitionOutput)
 
+	DescribeTaskSets(*ecs.DescribeTaskSetsInput) (*ecs.DescribeTaskSetsOutput, error)
+	DescribeTaskSetsWithContext(aws.Context, *ecs.DescribeTaskSetsInput, ...request.Option) (*ecs.DescribeTaskSetsOutput, error)
+	DescribeTaskSetsRequest(*ecs.DescribeTaskSetsInput) (*request.Request, *ecs.DescribeTaskSetsOutput)
+
 	DescribeTasks(*ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error)
 	DescribeTasksWithContext(aws.Context, *ecs.DescribeTasksInput, ...request.Option) (*ecs.DescribeTasksOutput, error)
 	DescribeTasksRequest(*ecs.DescribeTasksInput) (*request.Request, *ecs.DescribeTasksOutput)
@@ -123,6 +143,9 @@ type ECSAPI interface {
 	ListAttributes(*ecs.ListAttributesInput) (*ecs.ListAttributesOutput, error)
 	ListAttributesWithContext(aws.Context, *ecs.ListAttributesInput, ...request.Option) (*ecs.ListAttributesOutput, error)
 	ListAttributesRequest(*ecs.ListAttributesInput) (*request.Request, *ecs.ListAttributesOutput)
+
+	ListAttributesPages(*ecs.ListAttributesInput, func(*ecs.ListAttributesOutput, bool) bool) error
+	ListAttributesPagesWithContext(aws.Context, *ecs.ListAttributesInput, func(*ecs.ListAttributesOutput, bool) bool, ...request.Option) error
 
 	ListClusters(*ecs.ListClustersInput) (*ecs.ListClustersOutput, error)
 	ListClustersWithContext(aws.Context, *ecs.ListClustersInput, ...request.Option) (*ecs.ListClustersOutput, error)
@@ -174,9 +197,17 @@ type ECSAPI interface {
 	PutAccountSettingWithContext(aws.Context, *ecs.PutAccountSettingInput, ...request.Option) (*ecs.PutAccountSettingOutput, error)
 	PutAccountSettingRequest(*ecs.PutAccountSettingInput) (*request.Request, *ecs.PutAccountSettingOutput)
 
+	PutAccountSettingDefault(*ecs.PutAccountSettingDefaultInput) (*ecs.PutAccountSettingDefaultOutput, error)
+	PutAccountSettingDefaultWithContext(aws.Context, *ecs.PutAccountSettingDefaultInput, ...request.Option) (*ecs.PutAccountSettingDefaultOutput, error)
+	PutAccountSettingDefaultRequest(*ecs.PutAccountSettingDefaultInput) (*request.Request, *ecs.PutAccountSettingDefaultOutput)
+
 	PutAttributes(*ecs.PutAttributesInput) (*ecs.PutAttributesOutput, error)
 	PutAttributesWithContext(aws.Context, *ecs.PutAttributesInput, ...request.Option) (*ecs.PutAttributesOutput, error)
 	PutAttributesRequest(*ecs.PutAttributesInput) (*request.Request, *ecs.PutAttributesOutput)
+
+	PutClusterCapacityProviders(*ecs.PutClusterCapacityProvidersInput) (*ecs.PutClusterCapacityProvidersOutput, error)
+	PutClusterCapacityProvidersWithContext(aws.Context, *ecs.PutClusterCapacityProvidersInput, ...request.Option) (*ecs.PutClusterCapacityProvidersOutput, error)
+	PutClusterCapacityProvidersRequest(*ecs.PutClusterCapacityProvidersInput) (*request.Request, *ecs.PutClusterCapacityProvidersOutput)
 
 	RegisterContainerInstance(*ecs.RegisterContainerInstanceInput) (*ecs.RegisterContainerInstanceOutput, error)
 	RegisterContainerInstanceWithContext(aws.Context, *ecs.RegisterContainerInstanceInput, ...request.Option) (*ecs.RegisterContainerInstanceOutput, error)
@@ -198,6 +229,10 @@ type ECSAPI interface {
 	StopTaskWithContext(aws.Context, *ecs.StopTaskInput, ...request.Option) (*ecs.StopTaskOutput, error)
 	StopTaskRequest(*ecs.StopTaskInput) (*request.Request, *ecs.StopTaskOutput)
 
+	SubmitAttachmentStateChanges(*ecs.SubmitAttachmentStateChangesInput) (*ecs.SubmitAttachmentStateChangesOutput, error)
+	SubmitAttachmentStateChangesWithContext(aws.Context, *ecs.SubmitAttachmentStateChangesInput, ...request.Option) (*ecs.SubmitAttachmentStateChangesOutput, error)
+	SubmitAttachmentStateChangesRequest(*ecs.SubmitAttachmentStateChangesInput) (*request.Request, *ecs.SubmitAttachmentStateChangesOutput)
+
 	SubmitContainerStateChange(*ecs.SubmitContainerStateChangeInput) (*ecs.SubmitContainerStateChangeOutput, error)
 	SubmitContainerStateChangeWithContext(aws.Context, *ecs.SubmitContainerStateChangeInput, ...request.Option) (*ecs.SubmitContainerStateChangeOutput, error)
 	SubmitContainerStateChangeRequest(*ecs.SubmitContainerStateChangeInput) (*request.Request, *ecs.SubmitContainerStateChangeOutput)
@@ -214,6 +249,10 @@ type ECSAPI interface {
 	UntagResourceWithContext(aws.Context, *ecs.UntagResourceInput, ...request.Option) (*ecs.UntagResourceOutput, error)
 	UntagResourceRequest(*ecs.UntagResourceInput) (*request.Request, *ecs.UntagResourceOutput)
 
+	UpdateClusterSettings(*ecs.UpdateClusterSettingsInput) (*ecs.UpdateClusterSettingsOutput, error)
+	UpdateClusterSettingsWithContext(aws.Context, *ecs.UpdateClusterSettingsInput, ...request.Option) (*ecs.UpdateClusterSettingsOutput, error)
+	UpdateClusterSettingsRequest(*ecs.UpdateClusterSettingsInput) (*request.Request, *ecs.UpdateClusterSettingsOutput)
+
 	UpdateContainerAgent(*ecs.UpdateContainerAgentInput) (*ecs.UpdateContainerAgentOutput, error)
 	UpdateContainerAgentWithContext(aws.Context, *ecs.UpdateContainerAgentInput, ...request.Option) (*ecs.UpdateContainerAgentOutput, error)
 	UpdateContainerAgentRequest(*ecs.UpdateContainerAgentInput) (*request.Request, *ecs.UpdateContainerAgentOutput)
@@ -225,6 +264,14 @@ type ECSAPI interface {
 	UpdateService(*ecs.UpdateServiceInput) (*ecs.UpdateServiceOutput, error)
 	UpdateServiceWithContext(aws.Context, *ecs.UpdateServiceInput, ...request.Option) (*ecs.UpdateServiceOutput, error)
 	UpdateServiceRequest(*ecs.UpdateServiceInput) (*request.Request, *ecs.UpdateServiceOutput)
+
+	UpdateServicePrimaryTaskSet(*ecs.UpdateServicePrimaryTaskSetInput) (*ecs.UpdateServicePrimaryTaskSetOutput, error)
+	UpdateServicePrimaryTaskSetWithContext(aws.Context, *ecs.UpdateServicePrimaryTaskSetInput, ...request.Option) (*ecs.UpdateServicePrimaryTaskSetOutput, error)
+	UpdateServicePrimaryTaskSetRequest(*ecs.UpdateServicePrimaryTaskSetInput) (*request.Request, *ecs.UpdateServicePrimaryTaskSetOutput)
+
+	UpdateTaskSet(*ecs.UpdateTaskSetInput) (*ecs.UpdateTaskSetOutput, error)
+	UpdateTaskSetWithContext(aws.Context, *ecs.UpdateTaskSetInput, ...request.Option) (*ecs.UpdateTaskSetOutput, error)
+	UpdateTaskSetRequest(*ecs.UpdateTaskSetInput) (*request.Request, *ecs.UpdateTaskSetOutput)
 
 	WaitUntilServicesInactive(*ecs.DescribeServicesInput) error
 	WaitUntilServicesInactiveWithContext(aws.Context, *ecs.DescribeServicesInput, ...request.WaiterOption) error

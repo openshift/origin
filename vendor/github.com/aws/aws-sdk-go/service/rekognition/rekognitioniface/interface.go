@@ -68,6 +68,14 @@ type RekognitionAPI interface {
 	CreateCollectionWithContext(aws.Context, *rekognition.CreateCollectionInput, ...request.Option) (*rekognition.CreateCollectionOutput, error)
 	CreateCollectionRequest(*rekognition.CreateCollectionInput) (*request.Request, *rekognition.CreateCollectionOutput)
 
+	CreateProject(*rekognition.CreateProjectInput) (*rekognition.CreateProjectOutput, error)
+	CreateProjectWithContext(aws.Context, *rekognition.CreateProjectInput, ...request.Option) (*rekognition.CreateProjectOutput, error)
+	CreateProjectRequest(*rekognition.CreateProjectInput) (*request.Request, *rekognition.CreateProjectOutput)
+
+	CreateProjectVersion(*rekognition.CreateProjectVersionInput) (*rekognition.CreateProjectVersionOutput, error)
+	CreateProjectVersionWithContext(aws.Context, *rekognition.CreateProjectVersionInput, ...request.Option) (*rekognition.CreateProjectVersionOutput, error)
+	CreateProjectVersionRequest(*rekognition.CreateProjectVersionInput) (*request.Request, *rekognition.CreateProjectVersionOutput)
+
 	CreateStreamProcessor(*rekognition.CreateStreamProcessorInput) (*rekognition.CreateStreamProcessorOutput, error)
 	CreateStreamProcessorWithContext(aws.Context, *rekognition.CreateStreamProcessorInput, ...request.Option) (*rekognition.CreateStreamProcessorOutput, error)
 	CreateStreamProcessorRequest(*rekognition.CreateStreamProcessorInput) (*request.Request, *rekognition.CreateStreamProcessorOutput)
@@ -88,9 +96,27 @@ type RekognitionAPI interface {
 	DescribeCollectionWithContext(aws.Context, *rekognition.DescribeCollectionInput, ...request.Option) (*rekognition.DescribeCollectionOutput, error)
 	DescribeCollectionRequest(*rekognition.DescribeCollectionInput) (*request.Request, *rekognition.DescribeCollectionOutput)
 
+	DescribeProjectVersions(*rekognition.DescribeProjectVersionsInput) (*rekognition.DescribeProjectVersionsOutput, error)
+	DescribeProjectVersionsWithContext(aws.Context, *rekognition.DescribeProjectVersionsInput, ...request.Option) (*rekognition.DescribeProjectVersionsOutput, error)
+	DescribeProjectVersionsRequest(*rekognition.DescribeProjectVersionsInput) (*request.Request, *rekognition.DescribeProjectVersionsOutput)
+
+	DescribeProjectVersionsPages(*rekognition.DescribeProjectVersionsInput, func(*rekognition.DescribeProjectVersionsOutput, bool) bool) error
+	DescribeProjectVersionsPagesWithContext(aws.Context, *rekognition.DescribeProjectVersionsInput, func(*rekognition.DescribeProjectVersionsOutput, bool) bool, ...request.Option) error
+
+	DescribeProjects(*rekognition.DescribeProjectsInput) (*rekognition.DescribeProjectsOutput, error)
+	DescribeProjectsWithContext(aws.Context, *rekognition.DescribeProjectsInput, ...request.Option) (*rekognition.DescribeProjectsOutput, error)
+	DescribeProjectsRequest(*rekognition.DescribeProjectsInput) (*request.Request, *rekognition.DescribeProjectsOutput)
+
+	DescribeProjectsPages(*rekognition.DescribeProjectsInput, func(*rekognition.DescribeProjectsOutput, bool) bool) error
+	DescribeProjectsPagesWithContext(aws.Context, *rekognition.DescribeProjectsInput, func(*rekognition.DescribeProjectsOutput, bool) bool, ...request.Option) error
+
 	DescribeStreamProcessor(*rekognition.DescribeStreamProcessorInput) (*rekognition.DescribeStreamProcessorOutput, error)
 	DescribeStreamProcessorWithContext(aws.Context, *rekognition.DescribeStreamProcessorInput, ...request.Option) (*rekognition.DescribeStreamProcessorOutput, error)
 	DescribeStreamProcessorRequest(*rekognition.DescribeStreamProcessorInput) (*request.Request, *rekognition.DescribeStreamProcessorOutput)
+
+	DetectCustomLabels(*rekognition.DetectCustomLabelsInput) (*rekognition.DetectCustomLabelsOutput, error)
+	DetectCustomLabelsWithContext(aws.Context, *rekognition.DetectCustomLabelsInput, ...request.Option) (*rekognition.DetectCustomLabelsOutput, error)
+	DetectCustomLabelsRequest(*rekognition.DetectCustomLabelsInput) (*request.Request, *rekognition.DetectCustomLabelsOutput)
 
 	DetectFaces(*rekognition.DetectFacesInput) (*rekognition.DetectFacesOutput, error)
 	DetectFacesWithContext(aws.Context, *rekognition.DetectFacesInput, ...request.Option) (*rekognition.DetectFacesOutput, error)
@@ -215,13 +241,27 @@ type RekognitionAPI interface {
 	StartPersonTrackingWithContext(aws.Context, *rekognition.StartPersonTrackingInput, ...request.Option) (*rekognition.StartPersonTrackingOutput, error)
 	StartPersonTrackingRequest(*rekognition.StartPersonTrackingInput) (*request.Request, *rekognition.StartPersonTrackingOutput)
 
+	StartProjectVersion(*rekognition.StartProjectVersionInput) (*rekognition.StartProjectVersionOutput, error)
+	StartProjectVersionWithContext(aws.Context, *rekognition.StartProjectVersionInput, ...request.Option) (*rekognition.StartProjectVersionOutput, error)
+	StartProjectVersionRequest(*rekognition.StartProjectVersionInput) (*request.Request, *rekognition.StartProjectVersionOutput)
+
 	StartStreamProcessor(*rekognition.StartStreamProcessorInput) (*rekognition.StartStreamProcessorOutput, error)
 	StartStreamProcessorWithContext(aws.Context, *rekognition.StartStreamProcessorInput, ...request.Option) (*rekognition.StartStreamProcessorOutput, error)
 	StartStreamProcessorRequest(*rekognition.StartStreamProcessorInput) (*request.Request, *rekognition.StartStreamProcessorOutput)
 
+	StopProjectVersion(*rekognition.StopProjectVersionInput) (*rekognition.StopProjectVersionOutput, error)
+	StopProjectVersionWithContext(aws.Context, *rekognition.StopProjectVersionInput, ...request.Option) (*rekognition.StopProjectVersionOutput, error)
+	StopProjectVersionRequest(*rekognition.StopProjectVersionInput) (*request.Request, *rekognition.StopProjectVersionOutput)
+
 	StopStreamProcessor(*rekognition.StopStreamProcessorInput) (*rekognition.StopStreamProcessorOutput, error)
 	StopStreamProcessorWithContext(aws.Context, *rekognition.StopStreamProcessorInput, ...request.Option) (*rekognition.StopStreamProcessorOutput, error)
 	StopStreamProcessorRequest(*rekognition.StopStreamProcessorInput) (*request.Request, *rekognition.StopStreamProcessorOutput)
+
+	WaitUntilProjectVersionRunning(*rekognition.DescribeProjectVersionsInput) error
+	WaitUntilProjectVersionRunningWithContext(aws.Context, *rekognition.DescribeProjectVersionsInput, ...request.WaiterOption) error
+
+	WaitUntilProjectVersionTrainingCompleted(*rekognition.DescribeProjectVersionsInput) error
+	WaitUntilProjectVersionTrainingCompletedWithContext(aws.Context, *rekognition.DescribeProjectVersionsInput, ...request.WaiterOption) error
 }
 
 var _ RekognitionAPI = (*rekognition.Rekognition)(nil)

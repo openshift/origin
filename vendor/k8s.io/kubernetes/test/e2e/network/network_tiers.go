@@ -31,6 +31,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/providers/gce"
 	e2eservice "k8s.io/kubernetes/test/e2e/framework/service"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	gcecloud "k8s.io/legacy-cloud-providers/gce"
 
 	"github.com/onsi/ginkgo"
@@ -44,13 +45,13 @@ var _ = SIGDescribe("Services [Feature:GCEAlphaFeature][Slow]", func() {
 
 	ginkgo.BeforeEach(func() {
 		// This test suite requires the GCE environment.
-		framework.SkipUnlessProviderIs("gce")
+		e2eskipper.SkipUnlessProviderIs("gce")
 		cs = f.ClientSet
 	})
 
 	ginkgo.AfterEach(func() {
 		if ginkgo.CurrentGinkgoTestDescription().Failed {
-			e2eservice.DescribeSvc(f.Namespace.Name)
+			DescribeSvc(f.Namespace.Name)
 		}
 		for _, lb := range serviceLBNames {
 			framework.Logf("cleaning gce resource for %s", lb)
@@ -134,7 +135,7 @@ var _ = SIGDescribe("Services [Feature:GCEAlphaFeature][Slow]", func() {
 		framework.ExpectEqual(svcTier, cloud.NetworkTierStandard)
 
 		// Wait until the ingress IP changes and verifies the LB.
-		ingressIP = waitAndVerifyLBWithTier(jig, ingressIP, createTimeout, lagTimeout)
+		waitAndVerifyLBWithTier(jig, ingressIP, createTimeout, lagTimeout)
 	})
 })
 

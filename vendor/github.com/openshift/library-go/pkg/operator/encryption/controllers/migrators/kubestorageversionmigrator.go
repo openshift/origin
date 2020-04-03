@@ -1,6 +1,7 @@
 package migrators
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -31,6 +32,17 @@ type KubeStorageVersionMigrator struct {
 	discoveryClient discovery.ServerResourcesInterface
 	client          kubemigratorclient.Interface
 	informer        migrationv1alpha1informer.Interface
+	cacheSynced     func() bool
+}
+
+func (m *KubeStorageVersionMigrator) AddEventHandler(handler cache.ResourceEventHandler) {
+	informer := m.informer.StorageVersionMigrations().Informer()
+	informer.AddEventHandler(handler)
+	m.cacheSynced = informer.HasSynced
+}
+
+func (m *KubeStorageVersionMigrator) HasSynced() bool {
+	return m.cacheSynced()
 }
 
 func (m *KubeStorageVersionMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, ts time.Time, err error) {
@@ -52,7 +64,7 @@ func (m *KubeStorageVersionMigrator) EnsureMigration(gr schema.GroupResource, wr
 		}
 		return false, nil, time.Time{}, nil
 	} else if err == nil {
-		if err := m.client.MigrationV1alpha1().StorageVersionMigrations().Delete(name, &metav1.DeleteOptions{
+		if err := m.client.MigrationV1alpha1().StorageVersionMigrations().Delete(context.TODO(), name, metav1.DeleteOptions{
 			Preconditions: &metav1.Preconditions{ResourceVersion: &migration.ResourceVersion},
 		}); err != nil && !errors.IsNotFound(err) {
 			return false, nil, time.Time{}, err
@@ -64,7 +76,7 @@ func (m *KubeStorageVersionMigrator) EnsureMigration(gr schema.GroupResource, wr
 		return false, nil, time.Time{}, err
 	}
 
-	_, err = m.client.MigrationV1alpha1().StorageVersionMigrations().Create(&migrationv1alpha1.StorageVersionMigration{
+	_, err = m.client.MigrationV1alpha1().StorageVersionMigrations().Create(context.TODO(), &migrationv1alpha1.StorageVersionMigration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Annotations: map[string]string{
@@ -78,25 +90,17 @@ func (m *KubeStorageVersionMigrator) EnsureMigration(gr schema.GroupResource, wr
 				Resource: gr.Resource,
 			},
 		},
-	})
+	}, metav1.CreateOptions{})
 
 	return false, nil, time.Time{}, err
 }
 
 func (m *KubeStorageVersionMigrator) PruneMigration(gr schema.GroupResource) error {
 	name := migrationResourceName(gr)
-	if err := m.client.MigrationV1alpha1().StorageVersionMigrations().Delete(name, &metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+	if err := m.client.MigrationV1alpha1().StorageVersionMigrations().Delete(context.TODO(), name, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 	return nil
-}
-
-func (m *KubeStorageVersionMigrator) AddEventHandler(handler cache.ResourceEventHandler) []cache.InformerSynced {
-	informer := m.informer.StorageVersionMigrations().Informer()
-
-	informer.AddEventHandler(handler)
-
-	return []cache.InformerSynced{informer.HasSynced}
 }
 
 func migrationResourceName(gr schema.GroupResource) string {
