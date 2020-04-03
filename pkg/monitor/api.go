@@ -149,7 +149,13 @@ func findNodeCondition(status []corev1.NodeCondition, name corev1.NodeConditionT
 
 func locateEvent(event *corev1.Event) string {
 	if len(event.InvolvedObject.Namespace) > 0 {
+		if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+			return fmt.Sprintf("ns/%s %s/%s node/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
+		}
 		return fmt.Sprintf("ns/%s %s/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
+	}
+	if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
 	}
 	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
 }
@@ -163,7 +169,7 @@ func locateNode(node *corev1.Node) string {
 }
 
 func locatePodContainer(pod *corev1.Pod, containerName string) string {
-	return fmt.Sprintf("ns/%s pod/%s node/%s container=%s", pod.Namespace, pod.Name, pod.Spec.NodeName, containerName)
+	return fmt.Sprintf("ns/%s pod/%s node/%s container/%s", pod.Namespace, pod.Name, pod.Spec.NodeName, containerName)
 }
 
 func filterToSystemNamespaces(obj runtime.Object) bool {
