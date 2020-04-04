@@ -204,6 +204,8 @@ var (
 			`\[sig-network\] Services should be able to switch session affinity for service with type clusterIP`,
 			`\[sig-network\] Services should have session affinity work for NodePort service`,
 			`\[sig-network\] Services should have session affinity work for service with type clusterIP`,
+			`\[sig-network\] Services should have session affinity timeout work for NodePort service`,
+			`\[sig-network\] Services should have session affinity timeout work for service with type clusterIP`,
 			// SDN-587: OVN-Kubernetes doesn't support hairpin services
 			`\[sig-network\] Services should allow pods to hairpin back to themselves through services`,
 			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
