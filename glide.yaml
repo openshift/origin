@@ -212,3 +212,7 @@ import:
   version: v1.0.1
 - package: github.com/andreyvit/diff
   version: c7f18ee00883
+
+# Used in openshift-tests
+- package: github.com/mfojtik/ci-monitor-operator
+  version: master

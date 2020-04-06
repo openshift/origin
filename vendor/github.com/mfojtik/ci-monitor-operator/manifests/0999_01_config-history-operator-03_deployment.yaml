@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: ci-monitor-operator
+  name: ci-monitor-operator
+  labels:
+    app: ci-monitor-operator
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ci-monitor-operator
+  template:
+    metadata:
+      name: ci-monitor-operator
+      labels:
+        app: ci-monitor-operator
+    spec:
+      serviceAccountName: ci-monitor-operator
+      volumes:
+        - name: config
+          configMap:
+            name: ci-monitor-operator-config
+        - name: repository
+          emptyDir: {}
+      containers:
+        - name: gitserver
+          image: quay.io/mfojtik/ci-monitor-operator:v0.1-git
+          imagePullPolicy: Always # Change this when the operator is stable
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+          volumeMounts:
+            - mountPath: /repository
+              name: repository
+          ports:
+            - containerPort: 8080
+              name: gitserver
+              protocol: TCP
+          command: ["ci-monitor-operator", "gitserver"]
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
+          env:
+            - name: OPERATOR_IMAGE
+              value: quay.io/mfojtik/ci-monitor-operator:v0.1-git
+            - name: OPERAND_IMAGE_VERSION
+              value: "0.0.1-snapshot-config-history"
+            - name: OPERATOR_IMAGE_VERSION
+              value: "0.0.1-snapshot"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          terminationMessagePolicy: FallbackToLogsOnError
+        - name: operator
+          image: quay.io/mfojtik/ci-monitor-operator:v0.1-git
+          imagePullPolicy: Always # Change this when the operator is stable
+          volumeMounts:
+          - mountPath: /var/run/configmaps/config
+            name: config
+          - mountPath: /repository
+            name: repository
+          ports:
+            - containerPort: 8443
+              name: metrics
+              protocol: TCP
+          command: ["ci-monitor-operator", "operator"]
+          args: ["--config=/var/run/configmaps/config/config.yaml", "--v=5"]
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
+          env:
+            - name: OPERATOR_IMAGE
+              value: quay.io/mfojtik/ci-monitor-operator:v0.1-git
+            - name: OPERAND_IMAGE_VERSION
+              value: "0.0.1-snapshot-config-history"
+            - name: OPERATOR_IMAGE_VERSION
+              value: "0.0.1-snapshot"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          terminationMessagePolicy: FallbackToLogsOnError

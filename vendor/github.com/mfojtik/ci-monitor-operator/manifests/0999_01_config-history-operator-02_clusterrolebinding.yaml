@@ -1,0 +1,11 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:openshift:operator:ci-monitor-operator
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin # TODO: This should be cluster-viewer
+subjects:
+  - kind: ServiceAccount
+    namespace: ci-monitor-operator
+    name: ci-monitor-operator

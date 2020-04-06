@@ -154,19 +154,15 @@ func TestSkipPermissionChange(t *testing.T) {
 
 			mask := rwMask
 
+			if test.sgidMatch {
+				mask |= os.ModeSetgid
+			}
+
 			if test.permissionMatch {
 				mask |= execMask
 
 			}
-			if test.sgidMatch {
-				mask |= os.ModeSetgid
-				mask = info.Mode() | mask
-			} else {
-				nosgidPerm := info.Mode() &^ os.ModeSetgid
-				mask = nosgidPerm | mask
-			}
-
-			err = os.Chmod(tmpDir, mask)
+			err = os.Chmod(tmpDir, info.Mode()|mask)
 			if err != nil {
 				t.Errorf("Chmod failed on %v: %v", tmpDir, err)
 			}
@@ -210,8 +206,7 @@ func TestSetVolumeOwnership(t *testing.T) {
 
 				// create a subdirectory with invalid permissions
 				rogueDir := filepath.Join(path, "roguedir")
-				nosgidPerm := info.Mode() &^ os.ModeSetgid
-				err = os.Mkdir(rogueDir, nosgidPerm)
+				err = os.Mkdir(rogueDir, info.Mode())
 				if err != nil {
 					return err
 				}

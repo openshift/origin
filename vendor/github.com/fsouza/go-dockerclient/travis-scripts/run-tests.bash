@@ -4,8 +4,8 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-make lint gotest
+make test
 
-if [[ $TRAVIS_OS_NAME == "linux" || $TRAVIS_OS_NAME == "windows" ]]; then
+if [[ $TRAVIS_OS_NAME == "linux" ]]; then
 	make integration
 fi

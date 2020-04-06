@@ -1,5 +1,5 @@
-hash: e403b7e634290af493a804c6ccbb66df34c0c122713947d692383de8b43807f5
-updated: 2020-04-02T14:45:44.756289069-07:00
+hash: 973ffb466e4ea752e2d967a3cae5e8fdbccb93c7877a7b014dacb80d6b172194
+updated: 2020-04-06T10:47:34.239144-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -98,7 +98,7 @@ imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
-  version: c7c1fbc02894e7114f06f6a4d9ab31eee2225bdb
+  version: ee1a9a0726d2ae45f54118cac878c990d4016ded
 - name: github.com/chai2010/gettext-go
   version: c6fed771bfd517099caf0f7a961671fa8ed08723
   subpackages:
@@ -213,6 +213,7 @@ imports:
   - client
   - daemon/logger/jsonfilelog/jsonlog
   - errdefs
+  - opts
   - pkg/archive
   - pkg/fileutils
   - pkg/homedir
@@ -240,6 +241,7 @@ imports:
 - name: github.com/docker/libnetwork
   version: c8a5fca4a6529415d24c9066fd833b87012bcd79
   subpackages:
+  - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
   version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
@@ -255,6 +257,15 @@ imports:
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:
   - log
+- name: github.com/emirpasic/gods
+  version: 80e934ed68b9084f386ae25f74f839aaecfb54d8
+  subpackages:
+  - containers
+  - lists
+  - lists/arraylist
+  - trees
+  - trees/binaryheap
+  - utils
 - name: github.com/euank/go-kmsg-parser
   version: 5ba4d492e455a77d25dcf0d2c4acc9f2afebef4e
   subpackages:
@@ -268,9 +279,9 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/fsouza/go-dockerclient
-  version: a407903ea405b3a902d95084fc7b1f6f16d21a59
+  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
 - name: github.com/getsentry/raven-go
-  version: 5c24d5110e0e198d9ae16f1f3465366085001d92
+  version: c977f96e109525a5d8fa10a19165341f601f38b0
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/go-openapi/analysis
@@ -346,7 +357,7 @@ imports:
 - name: github.com/gonum/floats
   version: c233463c7e827fd71a8cdb62dfda0e98f7c39ad5
 - name: github.com/gonum/graph
-  version: 678096d81a4bff34d364a7ee4ecf11cc198f8ae2
+  version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
   subpackages:
   - encoding/dot
   - formats/dot
@@ -533,6 +544,10 @@ imports:
   version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/jbenet/go-context
+  version: d14ea06fba99483203c19d92cfcd13ebe73135f4
+  subpackages:
+  - io
 - name: github.com/JeffAshton/win_pdh
   version: 76bb4ee9f0ab50f77826f2a2ee7fb9d3880d6ec2
 - name: github.com/jmespath/go-jmespath
@@ -545,6 +560,8 @@ imports:
   version: a0ff2567cfb70903282db057e799fd826784d41d
 - name: github.com/karrick/godirwalk
   version: 2de2192f9e35ce981c152a873ed943b93b79ced4
+- name: github.com/kevinburke/ssh_config
+  version: 01f96b0aa0cdcaa93f9495f89bbc6cb5a992ce6e
 - name: github.com/konsorten/go-windows-terminal-sequences
   version: 5c8c8bd35d3832f5d134ae1e1e375b69a4d25242
 - name: github.com/lestrrat-go/jspointer
@@ -601,6 +618,15 @@ imports:
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
   - pbutil
+- name: github.com/mfojtik/ci-monitor-operator
+  version: acc69612af451092c56ff841233981c802f6908e
+  subpackages:
+  - pkg/cmd/operator
+  - pkg/controller/clusteroperatormetric
+  - pkg/controller/configmonitor
+  - pkg/operator
+  - pkg/storage
+  - pkg/version
 - name: github.com/Microsoft/go-winio
   version: 6c72808b55902eae4c5943626030429ff20f3b63
   subpackages:
@@ -631,6 +657,8 @@ imports:
   version: 9ebdce4bb98934573700a3bfc2f8e791934a578d
 - name: github.com/mistifyio/go-zfs
   version: cdc0f941c4d0e0e94d85348285568d921891e138
+- name: github.com/mitchellh/go-homedir
+  version: af06845cf3004701891bf4fdb884bfe4920b3727
 - name: github.com/mitchellh/go-wordwrap
   version: 9e67c67572bc5dd02aef930e2b0ae3c02a4b5a5c
 - name: github.com/mitchellh/mapstructure
@@ -784,7 +812,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: d622f787076a8ff7a9b1bd78bbf5de9842a1ad6f
+  version: 263ee09c7716fae62cf956eb6155ed7c1bc0ad2b
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -833,6 +861,9 @@ imports:
   - config/clientset/versioned
   - config/clientset/versioned/scheme
   - config/clientset/versioned/typed/config/v1
+  - config/informers/externalversions/config/v1
+  - config/informers/externalversions/internalinterfaces
+  - config/listers/config/v1
   - image/clientset/versioned
   - image/clientset/versioned/scheme
   - image/clientset/versioned/typed/image/v1
@@ -920,7 +951,13 @@ imports:
   - pkg/config/clusteroperator/v1helpers
   - pkg/config/configdefaults
   - pkg/config/helpers
+  - pkg/config/leaderelection
+  - pkg/config/serving
   - pkg/config/validation
+  - pkg/controller/controllercmd
+  - pkg/controller/factory
+  - pkg/controller/fileobserver
+  - pkg/controller/metrics
   - pkg/crypto
   - pkg/git
   - pkg/image/dockerv1client
@@ -1003,6 +1040,10 @@ imports:
   version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
 - name: github.com/seccomp/libseccomp-golang
   version: 689e3c1541a84461afc49c1c87352a6cedf72e9c
+- name: github.com/sergi/go-diff
+  version: 1744e2970ca51c86172c8190fadad617561ed6e7
+  subpackages:
+  - diffmatchpatch
 - name: github.com/sirupsen/logrus
   version: 839c75faf7f98a33d445d181f3018b5c3409a45e
 - name: github.com/soheilhy/cmux
@@ -1021,6 +1062,12 @@ imports:
   version: 2e9d26c8c37aae03e3f9d4e90b7116f5accb7cab
 - name: github.com/spf13/viper
   version: 9e56dacc08fbbf8c9ee2dbc717553c758ce42bc9
+- name: github.com/src-d/gcfg
+  version: 1ac3a1ac202429a54835fe8408a92880156b489d
+  subpackages:
+  - scanner
+  - token
+  - types
 - name: github.com/storageos/go-api
   version: 343b3eff91fcc84b0165e252eb843f5fd720fa4e
   subpackages:
@@ -1084,6 +1131,8 @@ imports:
   - vim25/soap
   - vim25/types
   - vim25/xml
+- name: github.com/xanzy/ssh-agent
+  version: 6a3e2ff9e7c564f36873c2e36413f634534f1c44
 - name: github.com/xiang90/probing
   version: 43a291ad63a214a207fefbf03c7d9d78b703162b
 - name: go.etcd.io/bbolt
@@ -1218,6 +1267,7 @@ imports:
   subpackages:
   - bcrypt
   - blowfish
+  - cast5
   - chacha20
   - cryptobyte
   - cryptobyte/asn1
@@ -1226,13 +1276,21 @@ imports:
   - ed25519/internal/edwards25519
   - internal/subtle
   - nacl/secretbox
+  - openpgp
+  - openpgp/armor
+  - openpgp/elgamal
+  - openpgp/errors
+  - openpgp/packet
+  - openpgp/s2k
   - pbkdf2
   - pkcs12
   - pkcs12/internal/rc2
   - poly1305
   - salsa20/salsa
   - ssh
+  - ssh/agent
   - ssh/internal/bcrypt_pbkdf
+  - ssh/knownhosts
   - ssh/terminal
 - name: golang.org/x/net
   version: 13f9640d40b9cc418fb53703dfbd177679788ceb
@@ -1446,6 +1504,56 @@ imports:
   - cipher
   - json
   - jwt
+- name: gopkg.in/src-d/go-billy.v4
+  version: 780403cfc1bc95ff4d07e7b26db40a6186c5326e
+  subpackages:
+  - helper/chroot
+  - helper/polyfill
+  - osfs
+  - util
+- name: gopkg.in/src-d/go-git.v4
+  version: 0d1a009cbb604db18be960db5f1525b99a55d727
+  subpackages:
+  - config
+  - internal/revision
+  - internal/url
+  - plumbing
+  - plumbing/cache
+  - plumbing/filemode
+  - plumbing/format/config
+  - plumbing/format/diff
+  - plumbing/format/gitignore
+  - plumbing/format/idxfile
+  - plumbing/format/index
+  - plumbing/format/objfile
+  - plumbing/format/packfile
+  - plumbing/format/pktline
+  - plumbing/object
+  - plumbing/protocol/packp
+  - plumbing/protocol/packp/capability
+  - plumbing/protocol/packp/sideband
+  - plumbing/revlist
+  - plumbing/storer
+  - plumbing/transport
+  - plumbing/transport/client
+  - plumbing/transport/file
+  - plumbing/transport/git
+  - plumbing/transport/http
+  - plumbing/transport/internal/common
+  - plumbing/transport/server
+  - plumbing/transport/ssh
+  - storage
+  - storage/filesystem
+  - storage/filesystem/dotgit
+  - storage/memory
+  - utils/binary
+  - utils/diff
+  - utils/ioutil
+  - utils/merkletrie
+  - utils/merkletrie/filesystem
+  - utils/merkletrie/index
+  - utils/merkletrie/internal/frame
+  - utils/merkletrie/noder
 - name: gopkg.in/tomb.v1
   version: dd632973f1e7218eb1089048e0798ec9ae7dceb8
 - name: gopkg.in/warnings.v0
@@ -1772,6 +1880,8 @@ imports:
   - discovery/cached/memory
   - discovery/fake
   - dynamic
+  - dynamic/dynamicinformer
+  - dynamic/dynamiclister
   - informers
   - informers/admissionregistration
   - informers/admissionregistration/v1
@@ -2213,7 +2323,7 @@ imports:
   - pkg/apis/deviceplugin/v1beta1
   - pkg/apis/pluginregistration/v1
 - name: k8s.io/kubernetes
-  version: 5227b6f968eb46decfbb2d42e9827448a9b3910d
+  version: 3ee09fda8c72ef2489803eb69faec1e1f497302d
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app

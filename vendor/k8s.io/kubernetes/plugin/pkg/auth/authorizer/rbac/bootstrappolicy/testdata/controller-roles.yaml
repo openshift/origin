@@ -495,12 +495,6 @@ items:
     - list
     - watch
   - apiGroups:
-    - ""
-    resources:
-    - services/finalizers
-    verbs:
-    - update
-  - apiGroups:
     - discovery.k8s.io
     resources:
     - endpointslices

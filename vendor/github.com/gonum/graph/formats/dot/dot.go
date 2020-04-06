@@ -8,9 +8,6 @@
 // This file is made available under a Creative Commons CC0 1.0
 // Universal Public Domain Dedication.
 
-// This repository is no longer maintained.
-// Development has moved to https://github.com/gonum/gonum.
-//
 // Package dot implements a parser for Graphviz DOT files.
 package dot
 
