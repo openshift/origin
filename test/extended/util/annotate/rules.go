@@ -23,9 +23,8 @@ var (
 
 			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
 			`\[Feature:IPv6DualStack.*\]`,
-			`version v1 should create Endpoints and EndpointSlices for Pods matching a Service`, // off by default.
-			`\[Feature:ImmutableEphemeralVolume\]`,                                              // flag gate is off
-			`\[Feature:ServiceAccountIssuerDiscovery\]`,                                         // flag gate is off
+			`\[Feature:ImmutableEphemeralVolume\]`,      // flag gate is off
+			`\[Feature:ServiceAccountIssuerDiscovery\]`, // flag gate is off
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -65,42 +64,31 @@ var (
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
 		"[Disabled:Broken]": {
-			`mount an API token into pods`,                                               // We add 6 secrets, not 1
-			`ServiceAccounts should ensure a single API token exists`,                    // We create lots of secrets
-			`unchanging, static URL paths for kubernetes api services`,                   // the test needs to exclude URLs that are not part of conformance (/logs)
-			`Simple pod should handle in-cluster config`,                                 // kubectl cp is not preserving executable bit
-			`Services should be able to up and down services`,                            // we don't have wget installed on nodes
-			`Network should set TCP CLOSE_WAIT timeout`,                                  // possibly some difference between ubuntu and fedora
-			`Services should be able to create a functioning NodePort service`,           // https://bugzilla.redhat.com/show_bug.cgi?id=1711603
-			`\[NodeFeature:Sysctls\]`,                                                    // needs SCC support
-			`should check kube-proxy urls`,                                               // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
-			`SSH`,                                                                        // TRIAGE
-			`should implement service.kubernetes.io/service-proxy-name`,                  // this is an optional test that requires SSH. sig-network
-			`should idle the service and DeploymentConfig properly`,                      // idling with a single service and DeploymentConfig
-			`should answer endpoint and wildcard queries for the cluster`,                // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
-			`should allow ingress access on one named port`,                              // https://bugzilla.redhat.com/show_bug.cgi?id=1711602
-			`ClusterDns \[Feature:Example\] should create pod that uses dns`,             // https://bugzilla.redhat.com/show_bug.cgi?id=1711601
-			`PreemptionExecutionPath runs ReplicaSets to verify preemption running path`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711606
-			`TaintBasedEvictions`,                                                        // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
-			`recreate nodes and ensure they function upon restart`,                       // https://bugzilla.redhat.com/show_bug.cgi?id=1756428
-			`\[Driver: iscsi\]`,                                                          // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
-			// TODO(workloads): reenable
-			`SchedulerPreemption`,
+			`mount an API token into pods`,                                // We add 6 secrets, not 1
+			`ServiceAccounts should ensure a single API token exists`,     // We create lots of secrets
+			`unchanging, static URL paths for kubernetes api services`,    // the test needs to exclude URLs that are not part of conformance (/logs)
+			`Services should be able to up and down services`,             // we don't have wget installed on nodes
+			`Network should set TCP CLOSE_WAIT timeout`,                   // possibly some difference between ubuntu and fedora
+			`\[NodeFeature:Sysctls\]`,                                     // needs SCC support
+			`should check kube-proxy urls`,                                // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
+			`SSH`,                                                         // TRIAGE
+			`should implement service.kubernetes.io/service-proxy-name`,   // this is an optional test that requires SSH. sig-network
+			`should idle the service and DeploymentConfig properly`,       // idling with a single service and DeploymentConfig
+			`should answer endpoint and wildcard queries for the cluster`, // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
+			`should allow ingress access on one named port`,               // https://bugzilla.redhat.com/show_bug.cgi?id=1711602
+			`recreate nodes and ensure they function upon restart`,        // https://bugzilla.redhat.com/show_bug.cgi?id=1756428
+			`\[Driver: iscsi\]`,                                           // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
 
-			// requires a 1.14 kubelet, enable when rhcos is built for 4.2
-			"when the NodeLease feature is enabled",
 			"RuntimeClass should reject",
+
+			`Services should implement service.kubernetes.io/headless`,       // requires SSH access to function, needs to be refactored
+			`ClusterDns \[Feature:Example\] should create pod that uses dns`, // doesn't use bindata, not part of kube test binary
+			`Simple pod should handle in-cluster config`,                     // kubectl cp doesn't work or is not preserving executable bit, we have this test already
 
 			// TODO(node): configure the cri handler for the runtime class to make this work
 			"should run a Pod requesting a RuntimeClass with a configured handler",
 			"should reject a Pod requesting a RuntimeClass with conflicting node selector",
 			"should run a Pod requesting a RuntimeClass with scheduling",
-
-			// TODO(sdn): reenable when openshift/sdn is rebased to 1.16
-			`Services should implement service.kubernetes.io/headless`,
-
-			// TODO(sdn): test pod fails to connect in 1.16
-			`should allow ingress access from updated pod`,
 
 			// A fix is in progress: https://github.com/openshift/origin/pull/24709
 			`Multi-AZ Clusters should spread the pods of a replication controller across zones`,
@@ -125,9 +113,6 @@ var (
 		"[Flaky]": {
 			`Job should run a job to completion when tasks sometimes fail and are not locally restarted`, // seems flaky, also may require too many resources
 			`openshift mongodb replication creating from a template`,                                     // flaking on deployment
-
-			// TODO(workloads): determine why the default secrets creation in a namespace take more than 30s
-			`create a ResourceQuota and capture the life of a secret`, // flaking on default secrets count in project
 
 			// TODO(node): test works when run alone, but not in the suite in CI
 			`\[Feature:HPA\] Horizontal pod autoscaling \(scale resource: CPU\) \[sig-autoscaling\] ReplicationController light Should scale from 1 pod to 2 pods`,
@@ -232,6 +217,7 @@ var (
 			`\[Feature:GKELocalSSD\]`,
 			`\[Feature:GKENodePool\]`,
 		},
+
 		"[Disabled:sig-cli]": {
 			// Removed in 1.18, skipping those to merge oc rebase before origin gets rebased to 1.18
 			// TODO(jchaloup): once origin is rebased to 1.18, remove the lines
