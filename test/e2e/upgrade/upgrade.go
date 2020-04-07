@@ -34,7 +34,8 @@ import (
 
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
-		&controlplane.AvailableTest{},
+		&controlplane.KubeAvailableTest{},
+		&controlplane.OpenShiftAvailableTest{},
 		&frontends.AvailableTest{},
 		&service.UpgradeTest{},
 		&upgrades.SecretUpgradeTest{},
