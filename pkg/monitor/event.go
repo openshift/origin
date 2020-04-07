@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -13,6 +14,8 @@ import (
 )
 
 func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
+	reMatchFirstQuote := regexp.MustCompile(`"([^"]+)"`)
+
 	go func() {
 		for {
 			select {
@@ -35,7 +38,10 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 					continue
 				}
 				w = watch.Filter(w, func(in watch.Event) (watch.Event, bool) {
-					return in, filterToSystemNamespaces(in.Object)
+					// TODO: gathering all events results in a 4x increase in e2e.log size, but is is
+					//       valuable enough to gather that the cost is worth it
+					// return in, filterToSystemNamespaces(in.Object)
+					return in, true
 				})
 				func() {
 					defer w.Stop()
@@ -64,11 +70,21 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 									}
 								}
 								message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
-							case "Started", "Created", "Pulling", "Pulled", "Killing":
+							case "Started", "Created", "Killing":
 								if obj.InvolvedObject.Kind == "Pod" {
 									if containerName, ok := eventForContainer(obj.InvolvedObject.FieldPath); ok {
 										message = fmt.Sprintf("container/%s reason/%s", containerName, obj.Reason)
 										break
+									}
+								}
+								message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
+							case "Pulling", "Pulled":
+								if obj.InvolvedObject.Kind == "Pod" {
+									if containerName, ok := eventForContainer(obj.InvolvedObject.FieldPath); ok {
+										if m := reMatchFirstQuote.FindStringSubmatch(obj.Message); m != nil {
+											message = fmt.Sprintf("container/%s reason/%s image/%s", containerName, obj.Reason, m[1])
+											break
+										}
 									}
 								}
 								message = fmt.Sprintf("reason/%s %s", obj.Reason, message)

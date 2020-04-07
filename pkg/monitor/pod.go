@@ -22,9 +22,9 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					last := 0
 					for i := range items.Items {
 						item := &items.Items[i]
-						if !filterToSystemNamespaces(item) {
-							continue
-						}
+						// if !filterToSystemNamespaces(item) {
+						// 	continue
+						// }
 						if i != last {
 							items.Items[last] = *item
 							last++
@@ -38,7 +38,8 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				w, err := client.CoreV1().Pods("").Watch(ctx, options)
 				if err == nil {
 					w = watch.Filter(w, func(in watch.Event) (watch.Event, bool) {
-						return in, filterToSystemNamespaces(in.Object)
+						// return in, filterToSystemNamespaces(in.Object)
+						return in, true
 					})
 				}
 				return w, err
@@ -182,7 +183,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 						Message: fmt.Sprintf("container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
 					})
 				}
-				if s.RestartCount != previous.RestartCount {
+				if s.RestartCount != previous.RestartCount && s.RestartCount != 0 {
 					conditions = append(conditions, Condition{
 						Level:   Warning,
 						Locator: locatePodContainer(pod, s.Name),
