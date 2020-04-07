@@ -6,6 +6,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -114,6 +115,42 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			build, ok := obj.(*buildv1.Build)
 			o.Expect(ok).To(o.BeTrue())
 			return build
+		}
+		checkPodResource = func(containers []v1.Container, resources configv1.BuildDefaults) {
+			defaultResources := resources.Resources
+			o.Expect(containers).NotTo(o.BeNil())
+			foundLimitCpu := false
+			foundLimitMem := false
+			foundRequestCpu := false
+			foundRequestMem := false
+			for _, container := range containers {
+				g.By(fmt.Sprintf("checking resources of container %s", container.Name))
+				o.Expect(container.Resources).NotTo(o.BeNil())
+				for name, value := range defaultResources.Limits {
+					if name == "cpu" {
+						foundLimitCpu = true
+						o.Expect(container.Resources.Limits[v1.ResourceName(name)]).To(o.Equal(value))
+					}
+					if name == "memory" {
+						foundLimitMem = true
+						o.Expect(container.Resources.Limits[v1.ResourceName(name)]).To(o.Equal(value))
+					}
+				}
+				for name, value := range defaultResources.Requests {
+					if name == "cpu" {
+						foundRequestCpu = true
+						o.Expect(container.Resources.Requests[v1.ResourceName(name)]).To(o.Equal(value))
+					}
+					if name == "memory" {
+						foundRequestMem = true
+						o.Expect(container.Resources.Requests[v1.ResourceName(name)]).To(o.Equal(value))
+					}
+				}
+			}
+			o.Expect(foundLimitCpu).To(o.BeTrue())
+			o.Expect(foundLimitMem).To(o.BeTrue())
+			o.Expect(foundRequestCpu).To(o.BeTrue())
+			o.Expect(foundRequestMem).To(o.BeTrue())
 		}
 	)
 
@@ -568,6 +605,55 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(foundTwo).To(o.BeTrue())
 			})
 
+			g.It("Apply resource configuration to build pod", func() {
+				g.By("apply resource cluster configuration")
+				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				limits := map[v1.ResourceName]resource.Quantity{v1.ResourceCPU: resource.MustParse("500m"), v1.ResourceMemory: resource.MustParse("2Gi")}
+				requests := map[v1.ResourceName]resource.Quantity{v1.ResourceCPU: resource.MustParse("100m"), v1.ResourceMemory: resource.MustParse("1Gi")}
+				buildConfig.Spec.BuildDefaults.Resources.Limits = limits
+				buildConfig.Spec.BuildDefaults.Resources.Requests = requests
+				oc.AdminConfigClient().ConfigV1().Builds().Update(context.Background(), buildConfig, metav1.UpdateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				checkOCMProgressing(operatorv1.ConditionTrue)
+				checkOCMProgressing(operatorv1.ConditionFalse)
+				g.By("verify build.config is set")
+				buildConfig, err = oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(buildConfig.Spec.BuildDefaults.Resources.Limits).NotTo(o.BeNil())
+				o.Expect(len(buildConfig.Spec.BuildDefaults.Resources.Limits)).To(o.Equal(2))
+				o.Expect(buildConfig.Spec.BuildDefaults.Resources.Requests).NotTo(o.BeNil())
+				o.Expect(len(buildConfig.Spec.BuildDefaults.Resources.Requests)).To(o.Equal(2))
+				g.By("create limitrange")
+				_, err = oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Create(context.Background(), &v1.LimitRange{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "limitrange",
+					},
+					Spec: v1.LimitRangeSpec{
+						Limits: []v1.LimitRangeItem{
+							{
+								Type: v1.LimitTypeContainer,
+								Default: v1.ResourceList{
+									v1.ResourceMemory: resource.MustParse("512Mi"),
+									v1.ResourceCPU:    resource.MustParse("250m"),
+								},
+							},
+						},
+					},
+				}, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("starting build simple-s2i-build and waiting for completion")
+				br, err := exutil.StartBuildAndWait(oc, "simple-s2i-build")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertSuccess()
+				g.By("checking build pod resources are set correctly from build default")
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), br.BuildName+"-build", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(pod.Spec.Containers[0].Resources).NotTo(o.BeNil())
+				o.Expect(pod.Spec.InitContainers[0].Resources).NotTo(o.BeNil())
+				checkPodResource(pod.Spec.Containers, buildConfig.Spec.BuildDefaults)
+				checkPodResource(pod.Spec.InitContainers, buildConfig.Spec.BuildDefaults)
+			})
 		})
 	})
 })
