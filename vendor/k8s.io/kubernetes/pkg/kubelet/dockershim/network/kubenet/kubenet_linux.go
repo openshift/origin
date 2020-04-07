@@ -40,7 +40,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 	"k8s.io/kubernetes/pkg/util/bandwidth"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	utilebtables "k8s.io/kubernetes/pkg/util/ebtables"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
@@ -100,9 +99,8 @@ type kubenetNetworkPlugin struct {
 func NewPlugin(networkPluginDirs []string) network.NetworkPlugin {
 	protocol := utiliptables.ProtocolIpv4
 	execer := utilexec.New()
-	dbus := utildbus.New()
 	sysctl := utilsysctl.New()
-	iptInterface := utiliptables.New(execer, dbus, protocol)
+	iptInterface := utiliptables.New(execer, protocol)
 	return &kubenetNetworkPlugin{
 		podIPs:            make(map[kubecontainer.ContainerID]string),
 		execer:            utilexec.New(),

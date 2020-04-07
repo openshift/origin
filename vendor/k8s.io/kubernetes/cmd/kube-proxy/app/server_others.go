@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"net"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
@@ -40,7 +40,6 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/metrics"
 	"k8s.io/kubernetes/pkg/proxy/userspace"
 	"k8s.io/kubernetes/pkg/util/configz"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	utilipset "k8s.io/kubernetes/pkg/util/ipset"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilipvs "k8s.io/kubernetes/pkg/util/ipvs"
@@ -82,13 +81,11 @@ func newProxyServer(
 	var ipvsInterface utilipvs.Interface
 	var kernelHandler ipvs.KernelHandler
 	var ipsetInterface utilipset.Interface
-	var dbus utildbus.Interface
 
 	// Create a iptables utils.
 	execer := exec.New()
 
-	dbus = utildbus.New()
-	iptInterface = utiliptables.New(execer, dbus, protocol)
+	iptInterface = utiliptables.New(execer, protocol)
 	kernelHandler = ipvs.NewLinuxKernelHandler()
 	ipsetInterface = utilipset.New(execer)
 	canUseIPVS, _ := ipvs.CanUseIPVSProxier(kernelHandler, ipsetInterface)
@@ -227,8 +224,6 @@ func newProxyServer(
 		serviceEventHandler = proxierUserspace
 		proxier = proxierUserspace
 	}
-
-	iptInterface.AddReloadFunc(proxier.Sync)
 
 	return &ProxyServer{
 		Client:                 client,

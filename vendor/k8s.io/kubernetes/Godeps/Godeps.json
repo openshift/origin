@@ -1812,11 +1812,6 @@
 			"Rev": "a0583e0143b1624142adab07e0e97fe106d99561"
 		},
 		{
-			"ImportPath": "github.com/godbus/dbus",
-			"Comment": "v3",
-			"Rev": "c7fdd8b5cd55e87b4e1f4e372cdb1db61dd6c66f"
-		},
-		{
 			"ImportPath": "github.com/gogo/protobuf/gogoproto",
 			"Comment": "v0.5",
 			"Rev": "342cbe0a04158f6dcb03ca0079991a51a4248c02"
