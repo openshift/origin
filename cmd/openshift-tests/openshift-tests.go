@@ -18,6 +18,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -46,6 +47,7 @@ func main() {
 		newRunUpgradeCommand(),
 		newRunTestCommand(),
 		newRunMonitorCommand(),
+		cmd.NewRunResourceWatchCommand(),
 	)
 
 	pflag.CommandLine = pflag.NewFlagSet("empty", pflag.ExitOnError)
