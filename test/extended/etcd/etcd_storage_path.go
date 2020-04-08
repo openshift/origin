@@ -278,9 +278,15 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"),
 		gvr("settings.k8s.io", "v1alpha1", "podpresets"),
 		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
-		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
-		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
 	)
+
+	// flowcontrol may or may not be on.  This allows us to ratchet in turning it on.
+	if flowControlResources, err := kubeClient.Discovery().ServerResourcesForGroupVersion("flowcontrol.apiserver.k8s.io/v1alpha1"); err != nil || len(flowControlResources.APIResources) == 0 {
+		removeStorageData(t, etcdStorageData,
+			gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
+			gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
+		)
+	}
 
 	// we use a different default path prefix for kube resources
 	for gvr := range etcdStorageData {
