@@ -139,6 +139,14 @@ func TestObserverPolling(t *testing.T) {
 			startWithNoFile: true,
 		},
 		{
+			// This is what controllercmd.NewCommandWithContext currently does to avoid races
+			name:              "start with non-existing file with no change, force no starting hashing",
+			setInitialContent: true,
+			startFileContent:  emptyContent,
+			evaluateActions:   observedNoChanges,
+			startWithNoFile:   true,
+		},
+		{
 			name:              "start with non-existing file that is created as empty file",
 			evaluateActions:   observedSingleFileCreated,
 			startWithNoFile:   true,
