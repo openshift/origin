@@ -196,6 +196,8 @@ var (
 			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
 			// https://github.com/ovn-org/ovn-kubernetes/issues/928
 			`\[sig-network\] Services should be rejected when no endpoints exist`,
+			// https://issues.redhat.com/browse/SDN-912
+			`\[sig-instrumentation\] Prometheus when installed on the cluster should start and expose a secured proxy and unsecured metrics`,
 		},
 
 		"[sig-node]": {
