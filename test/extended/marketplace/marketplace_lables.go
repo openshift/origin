@@ -41,7 +41,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace resources with labels prov
 	})
 
 	// OCP-21728 check the publisher,display,labels of opsrc&csc
-	g.It("[ocp-21728]create opsrc with labels", func() {
+	g.It("[ocp-21728] create opsrc with labels [Serial]", func() {
 
 		// Create one opsrc with label
 		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctestlabel", "NAMESPACE=marketplace_e2e", "LABEL=optestlabel", "DISPLAYNAME=optestlabel", "PUBLISHER=optestlabel", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
