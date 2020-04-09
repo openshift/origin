@@ -395,6 +395,8 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) error {
 			close(auditStopCh)
 			return err
 		}
+
+		s.Eventf(corev1.EventTypeNormal, "ReadyToServeRequest", "The server has started and is ready to serve request(s)")
 	}
 
 	// Now that listener have bound successfully, it is the
