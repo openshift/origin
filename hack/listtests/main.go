@@ -101,7 +101,7 @@ func main() {
 	if len(names) == 0 {
 		log.Fatalf("No tests found!")
 	}
-	sort.Sort(sort.StringSlice(names))
+	sort.Strings(names)
 	for _, test := range names {
 		fmt.Printf("%s\n", test)
 	}
