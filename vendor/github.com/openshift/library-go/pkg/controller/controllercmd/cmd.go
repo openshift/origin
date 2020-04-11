@@ -1,7 +1,6 @@
 package controllercmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -198,6 +197,11 @@ func (c *ControllerCommandConfig) AddDefaultRotationToConfig(config *operatorv1a
 			config.ServingInfo.KeyFile = filepath.Join(certDir, "tls.key")
 		} else {
 			klog.Warningf("Using insecure, self-signed certificates")
+			// If we generate our own certificates, then we want to specify empty content to avoid a starting race.  This way,
+			// if any change comes in, we will properly restart
+			startingFileContent[filepath.Join(certDir, "tls.crt")] = []byte{}
+			startingFileContent[filepath.Join(certDir, "tls.key")] = []byte{}
+
 			temporaryCertDir, err := ioutil.TempDir("", "serving-cert-")
 			if err != nil {
 				return nil, nil, err
@@ -213,11 +217,10 @@ func (c *ControllerCommandConfig) AddDefaultRotationToConfig(config *operatorv1a
 			if err != nil {
 				return nil, nil, err
 			}
-			certDir = temporaryCertDir
 
 			// force the values to be set to where we are writing the certs
-			config.ServingInfo.CertFile = filepath.Join(certDir, "tls.crt")
-			config.ServingInfo.KeyFile = filepath.Join(certDir, "tls.key")
+			config.ServingInfo.CertFile = filepath.Join(temporaryCertDir, "tls.crt")
+			config.ServingInfo.KeyFile = filepath.Join(temporaryCertDir, "tls.key")
 			// nothing can trust this, so we don't really care about hostnames
 			servingCert, err := ca.MakeServerCert(sets.NewString("localhost"), 30)
 			if err != nil {
@@ -226,16 +229,6 @@ func (c *ControllerCommandConfig) AddDefaultRotationToConfig(config *operatorv1a
 			if err := servingCert.WriteCertConfigFile(config.ServingInfo.CertFile, config.ServingInfo.KeyFile); err != nil {
 				return nil, nil, err
 			}
-			crtContent := &bytes.Buffer{}
-			keyContent := &bytes.Buffer{}
-			if err := servingCert.WriteCertConfig(crtContent, keyContent); err != nil {
-				return nil, nil, err
-			}
-
-			// If we generate our own certificates, then we want to specify empty content to avoid a starting race.  This way,
-			// if any change comes in, we will properly restart
-			startingFileContent[filepath.Join(certDir, "tls.crt")] = crtContent.Bytes()
-			startingFileContent[filepath.Join(certDir, "tls.key")] = keyContent.Bytes()
 		}
 	}
 	return startingFileContent, observedFiles, nil

@@ -181,6 +181,10 @@ import:
 - package: github.com/opencontainers/runc
   version: v1.0.0-rc10
 
+# required by openshift-tests resource watch
+- package: gopkg.in/src-d/go-git.v4
+  version: v4.13.1
+
 # required by opencontainers
 - package: github.com/sirupsen/logrus
   version: 839c75faf7f98a33d445d181f3018b5c3409a45e
