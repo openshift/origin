@@ -16,7 +16,6 @@ var _ = g.Describe("[sig-operator][Feature:Marketplace] Marketplace operatorhub 
 		marketplaceNs = "openshift-marketplace"
 	)
 	g.AfterEach(func() {
-		
 	})
 	// Test the operatorhub config impact the default opsrc"
 	g.It("operatorhub config test [Serial]", func() {
