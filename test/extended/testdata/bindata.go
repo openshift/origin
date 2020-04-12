@@ -412,6 +412,7 @@
 // test/extended/testdata/long_names/fixture.json
 // test/extended/testdata/marketplace/csc/02-csc.yaml
 // test/extended/testdata/marketplace/opsrc/02-opsrc.yaml
+// test/extended/testdata/marketplace/sub/01-subofdes.yaml
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
@@ -53404,6 +53405,45 @@ func testExtendedTestdataMarketplaceOpsrc02OpsrcYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataMarketplaceSub01SubofdesYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    channel: alpha
+    installPlanApproval: Automatic
+    name: "${NAME}"
+    source: "${SOURCE}"
+    sourceNamespace: "${NAMESPACE}"
+    startingCSV: "${CSV}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SOURCE
+- name: CSV
+`)
+
+func testExtendedTestdataMarketplaceSub01SubofdesYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMarketplaceSub01SubofdesYaml, nil
+}
+
+func testExtendedTestdataMarketplaceSub01SubofdesYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMarketplaceSub01SubofdesYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/marketplace/sub/01-subofdes.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataMultiNamespacePipelineYaml = []byte(`apiVersion: v1
 kind: Template
 labels:
@@ -59123,6 +59163,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
 	"test/extended/testdata/marketplace/csc/02-csc.yaml": testExtendedTestdataMarketplaceCsc02CscYaml,
 	"test/extended/testdata/marketplace/opsrc/02-opsrc.yaml": testExtendedTestdataMarketplaceOpsrc02OpsrcYaml,
+	"test/extended/testdata/marketplace/sub/01-subofdes.yaml": testExtendedTestdataMarketplaceSub01SubofdesYaml,
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml": testExtendedTestdataOauthserverCabundleCmYaml,
@@ -59853,6 +59894,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"opsrc": &bintree{nil, map[string]*bintree{
 						"02-opsrc.yaml": &bintree{testExtendedTestdataMarketplaceOpsrc02OpsrcYaml, map[string]*bintree{}},
+					}},
+					"sub": &bintree{nil, map[string]*bintree{
+						"01-subofdes.yaml": &bintree{testExtendedTestdataMarketplaceSub01SubofdesYaml, map[string]*bintree{}},
 					}},
 				}},
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
