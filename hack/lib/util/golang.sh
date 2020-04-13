@@ -34,3 +34,9 @@ function os::golang::verify_glide_version() {
 
 }
 readonly -f os::golang::verify_glide_version
+
+# os::golang::ensure_gomod_off ensures gomod is off
+function os::golang::ensure_gomod_off() {
+    export GO111MODULE=off
+}
+readonly -f os::golang::ensure_gomod_off

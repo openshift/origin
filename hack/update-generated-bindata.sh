@@ -2,6 +2,8 @@
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+os::golang::ensure_gomod_off
+
 go generate ./test/extended
 
 os::build::setup_env
