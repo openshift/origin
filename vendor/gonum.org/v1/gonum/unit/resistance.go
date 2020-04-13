@@ -16,29 +16,7 @@ import (
 // Resistance represents an electrical resistance, impedance or reactance in Ohms.
 type Resistance float64
 
-const (
-	Yottaohm Resistance = 1e24
-	Zettaohm Resistance = 1e21
-	Exaohm   Resistance = 1e18
-	Petaohm  Resistance = 1e15
-	Teraohm  Resistance = 1e12
-	Gigaohm  Resistance = 1e9
-	Megaohm  Resistance = 1e6
-	Kiloohm  Resistance = 1e3
-	Hectoohm Resistance = 1e2
-	Decaohm  Resistance = 1e1
-	Ohm      Resistance = 1.0
-	Deciohm  Resistance = 1e-1
-	Centiohm Resistance = 1e-2
-	Milliohm Resistance = 1e-3
-	Microohm Resistance = 1e-6
-	Nanoohm  Resistance = 1e-9
-	Picoohm  Resistance = 1e-12
-	Femtoohm Resistance = 1e-15
-	Attoohm  Resistance = 1e-18
-	Zeptoohm Resistance = 1e-21
-	Yoctoohm Resistance = 1e-24
-)
+const Ohm Resistance = 1
 
 // Unit converts the Resistance to a *Unit
 func (r Resistance) Unit() *Unit {

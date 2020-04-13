@@ -2,6 +2,10 @@
 
 package iot1clickdevicesservice
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeForbiddenException for service response error code
@@ -32,3 +36,13 @@ const (
 	// "ResourceNotFoundException".
 	ErrCodeResourceNotFoundException = "ResourceNotFoundException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ForbiddenException":           newErrorForbiddenException,
+	"InternalFailureException":     newErrorInternalFailureException,
+	"InvalidRequestException":      newErrorInvalidRequestException,
+	"PreconditionFailedException":  newErrorPreconditionFailedException,
+	"RangeNotSatisfiableException": newErrorRangeNotSatisfiableException,
+	"ResourceConflictException":    newErrorResourceConflictException,
+	"ResourceNotFoundException":    newErrorResourceNotFoundException,
+}

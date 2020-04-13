@@ -11,11 +11,11 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] builds should support proxies", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should support proxies", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-proxy.yaml")
-		oc           = exutil.NewCLI("build-proxy", exutil.KubeConfigPath())
+		oc           = exutil.NewCLI("build-proxy")
 	)
 
 	g.Context("", func() {

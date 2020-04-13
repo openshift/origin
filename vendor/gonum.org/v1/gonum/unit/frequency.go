@@ -16,29 +16,7 @@ import (
 // Frequency represents a frequency in Hertz.
 type Frequency float64
 
-const (
-	Yottahertz Frequency = 1e24
-	Zettahertz Frequency = 1e21
-	Exahertz   Frequency = 1e18
-	Petahertz  Frequency = 1e15
-	Terahertz  Frequency = 1e12
-	Gigahertz  Frequency = 1e9
-	Megahertz  Frequency = 1e6
-	Kilohertz  Frequency = 1e3
-	Hectohertz Frequency = 1e2
-	Decahertz  Frequency = 1e1
-	Hertz      Frequency = 1.0
-	Decihertz  Frequency = 1e-1
-	Centihertz Frequency = 1e-2
-	Millihertz Frequency = 1e-3
-	Microhertz Frequency = 1e-6
-	Nanohertz  Frequency = 1e-9
-	Picohertz  Frequency = 1e-12
-	Femtohertz Frequency = 1e-15
-	Attohertz  Frequency = 1e-18
-	Zeptohertz Frequency = 1e-21
-	Yoctohertz Frequency = 1e-24
-)
+const Hertz Frequency = 1
 
 // Unit converts the Frequency to a *Unit
 func (f Frequency) Unit() *Unit {

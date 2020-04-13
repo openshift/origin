@@ -20,6 +20,7 @@ package kubectl
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
@@ -36,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	testutils "k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
@@ -168,7 +170,8 @@ func (c *portForwardCommand) Stop() {
 
 // runPortForward runs port-forward, warning, this may need root functionality on some systems.
 func runPortForward(ns, podName string, port int) *portForwardCommand {
-	cmd := framework.KubectlCmd("port-forward", fmt.Sprintf("--namespace=%v", ns), podName, fmt.Sprintf(":%d", port))
+	tk := e2ekubectl.NewTestKubeconfig(framework.TestContext.CertDir, framework.TestContext.Host, framework.TestContext.KubeConfig, framework.TestContext.KubeContext, framework.TestContext.KubectlPath, ns)
+	cmd := tk.KubectlCmd("port-forward", fmt.Sprintf("--namespace=%v", ns), podName, fmt.Sprintf(":%d", port))
 	// This is somewhat ugly but is the only way to retrieve the port that was picked
 	// by the port-forward command. We don't want to hard code the port as we have no
 	// way of guaranteeing we can pick one that isn't in use, particularly on Jenkins.
@@ -205,7 +208,7 @@ func runPortForward(ns, podName string, port int) *portForwardCommand {
 func doTestConnectSendDisconnect(bindAddress string, f *framework.Framework) {
 	ginkgo.By("Creating the target pod")
 	pod := pfPod("", "10", "10", "100", fmt.Sprintf("%s", bindAddress))
-	if _, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod); err != nil {
+	if _, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{}); err != nil {
 		framework.Failf("Couldn't create pod: %v", err)
 	}
 	if err := f.WaitForPodReady(pod.Name); err != nil {
@@ -253,7 +256,7 @@ func doTestConnectSendDisconnect(bindAddress string, f *framework.Framework) {
 func doTestMustConnectSendNothing(bindAddress string, f *framework.Framework) {
 	ginkgo.By("Creating the target pod")
 	pod := pfPod("abc", "1", "1", "1", fmt.Sprintf("%s", bindAddress))
-	if _, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod); err != nil {
+	if _, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{}); err != nil {
 		framework.Failf("Couldn't create pod: %v", err)
 	}
 	if err := f.WaitForPodReady(pod.Name); err != nil {
@@ -290,7 +293,7 @@ func doTestMustConnectSendNothing(bindAddress string, f *framework.Framework) {
 func doTestMustConnectSendDisconnect(bindAddress string, f *framework.Framework) {
 	ginkgo.By("Creating the target pod")
 	pod := pfPod("abc", "10", "10", "100", fmt.Sprintf("%s", bindAddress))
-	if _, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod); err != nil {
+	if _, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{}); err != nil {
 		framework.Failf("Couldn't create pod: %v", err)
 	}
 	if err := f.WaitForPodReady(pod.Name); err != nil {
@@ -319,7 +322,9 @@ func doTestMustConnectSendDisconnect(bindAddress string, f *framework.Framework)
 	fmt.Fprint(conn, "abc")
 
 	ginkgo.By("Closing the write half of the client's connection")
-	conn.CloseWrite()
+	if err = conn.CloseWrite(); err != nil {
+		framework.Failf("Couldn't close the write half of the client's connection: %v", err)
+	}
 
 	ginkgo.By("Reading data from the local port")
 	fromServer, err := ioutil.ReadAll(conn)
@@ -328,6 +333,12 @@ func doTestMustConnectSendDisconnect(bindAddress string, f *framework.Framework)
 	}
 
 	if e, a := strings.Repeat("x", 100), string(fromServer); e != a {
+		podlogs, err := e2epod.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, "portforwardtester")
+		if err != nil {
+			framework.Logf("Failed to get logs of portforwardtester pod: %v", err)
+		} else {
+			framework.Logf("Logs of portforwardtester pod: %v", podlogs)
+		}
 		framework.Failf("Expected %q from server, got %q", e, a)
 	}
 
@@ -352,7 +363,7 @@ func doTestOverWebSockets(bindAddress string, f *framework.Framework) {
 
 	ginkgo.By("Creating the pod")
 	pod := pfPod("def", "10", "10", "100", fmt.Sprintf("%s", bindAddress))
-	if _, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod); err != nil {
+	if _, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{}); err != nil {
 		framework.Failf("Couldn't create pod: %v", err)
 	}
 	if err := f.WaitForPodReady(pod.Name); err != nil {

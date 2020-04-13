@@ -4,7 +4,8 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/tools/cache"
+
+	"github.com/openshift/library-go/pkg/controller/factory"
 )
 
 // Migrator is a resource migration mechanism.
@@ -21,7 +22,5 @@ type Migrator interface {
 	// with error or not. If there is no migration, this must not return an error.
 	PruneMigration(gr schema.GroupResource) error
 
-	// AddEventHandler registers a event handler whenever the resources change
-	// that might influence the result of Migrations().
-	AddEventHandler(handler cache.ResourceEventHandler) []cache.InformerSynced
+	factory.Informer
 }

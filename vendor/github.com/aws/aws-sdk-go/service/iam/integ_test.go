@@ -27,7 +27,9 @@ func TestInteg_00_ListUsers(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-east-1")
 	svc := iam.New(sess)
 	params := &iam.ListUsersInput{}
-	_, err := svc.ListUsersWithContext(ctx, params)
+	_, err := svc.ListUsersWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_GetUser(t *testing.T) {
 	params := &iam.GetUserInput{
 		UserName: aws.String("fake_user"),
 	}
-	_, err := svc.GetUserWithContext(ctx, params)
+	_, err := svc.GetUserWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

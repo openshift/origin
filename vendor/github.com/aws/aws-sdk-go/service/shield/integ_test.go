@@ -27,7 +27,9 @@ func TestInteg_00_ListAttacks(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-east-1")
 	svc := shield.New(sess)
 	params := &shield.ListAttacksInput{}
-	_, err := svc.ListAttacksWithContext(ctx, params)
+	_, err := svc.ListAttacksWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

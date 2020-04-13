@@ -14,7 +14,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] incremental s2i build", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] incremental s2i build", func() {
 	defer g.GinkgoRecover()
 
 	const (
@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] incremental s2i build", fu
 	var (
 		templateFixture      = exutil.FixturePath("testdata", "builds", "incremental-auth-build.json")
 		podAndServiceFixture = exutil.FixturePath("testdata", "builds", "test-build-podsvc.json")
-		oc                   = exutil.NewCLI("build-sti-inc", exutil.KubeConfigPath())
+		oc                   = exutil.NewCLI("build-sti-inc")
 	)
 
 	g.Context("", func() {

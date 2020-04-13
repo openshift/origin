@@ -1,6 +1,7 @@
 package controller_manager
 
 import (
+	"context"
 	"reflect"
 	"time"
 
@@ -90,11 +91,12 @@ func clearTransient(dc *appsv1.DeploymentConfig) {
 	dc.ObjectMeta.UID = ""
 	dc.ObjectMeta.ResourceVersion = ""
 	dc.ObjectMeta.CreationTimestamp.Time = time.Time{}
+	dc.ObjectMeta.ManagedFields = nil
 }
 
-var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
+var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("deployment-defaults", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("deployment-defaults")
 
 	g.It("TestDeploymentConfigDefaults", func() {
 		t := g.GinkgoT()
@@ -135,7 +137,7 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 			},
 		}
 		for _, tc := range ttApps {
-			appsDC, err := appsClient.AppsV1().DeploymentConfigs(namespace).Create(tc.obj)
+			appsDC, err := appsClient.AppsV1().DeploymentConfigs(namespace).Create(context.Background(), tc.obj, metav1.CreateOptions{})
 			if err != nil {
 				t.Fatalf("Failed to create DC: %v", err)
 			}

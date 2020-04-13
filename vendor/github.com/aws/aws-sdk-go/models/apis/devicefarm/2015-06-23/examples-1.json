@@ -962,7 +962,7 @@
     "ListSuites": [
       {
         "input": {
-          "arn": "arn:aws:devicefarm:us-west-2:123456789101:project:EXAMPLE-GUID-123-456",
+          "arn": "arn:aws:devicefarm:us-west-2:123456789101:job:EXAMPLE-GUID-123-456",
           "nextToken": "RW5DdDJkMWYwZjM2MzM2VHVpOHJIUXlDUXlhc2QzRGViYnc9SEXAMPLE"
         },
         "output": {
@@ -972,13 +972,13 @@
         },
         "comments": {
           "input": {
-            "arn": "You can get the Amazon Resource Name (ARN) of the project by using the list-projects CLI command.",
+            "arn": "You can get the Amazon Resource Name (ARN) of the job by using the list-jobs CLI command.",
             "nextToken": "A dynamically generated value, used for paginating results."
           },
           "output": {
           }
         },
-        "description": "The following example returns information about suites, given a specific Device Farm project.",
+        "description": "The following example returns information about suites, given a specific Device Farm job.",
         "id": "to-get-information-about-suites-1472583038218",
         "title": "To get information about suites"
       }

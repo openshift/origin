@@ -1,10 +1,12 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	authorizationapiv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -12,10 +14,11 @@ import (
 
 func WaitForSelfSAR(interval, timeout time.Duration, c kclientset.Interface, selfSAR authorizationapiv1.SelfSubjectAccessReviewSpec) error {
 	err := wait.PollImmediate(interval, timeout, func() (bool, error) {
-		res, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(
+		res, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(),
 			&authorizationapiv1.SelfSubjectAccessReview{
 				Spec: selfSAR,
 			},
+			metav1.CreateOptions{},
 		)
 		if err != nil {
 			return false, err

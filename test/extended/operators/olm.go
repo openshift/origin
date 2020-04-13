@@ -156,30 +156,50 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc           = exutil.NewCLI("olm-23440", exutil.KubeConfigPath())
-		operatorWait = 120 * time.Second
+		oc           = exutil.NewCLI("olm-23440")
+		operatorWait = 150 * time.Second
 
 		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")
 		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
 		etcdSub             = filepath.Join(buildPruningBaseDir, "etcd-subscription.yaml")
 	)
 
-	files := []string{operatorGroup, etcdSub}
+	files := []string{etcdSub}
 	g.It("can subscribe to the etcd operator", func() {
 		g.By("Cluster-admin user subscribe the operator resource")
+
+		// configure OperatorGroup before tests
+		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", operatorGroup, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
+			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "operatorgroup", "test-operator", "-o=jsonpath={.status.namespaces}").Output()
+			if err != nil {
+				e2e.Logf("Failed to get valid operatorgroup, error:%v", err)
+				return false, nil
+			}
+			if strings.Contains(output, oc.Namespace()) {
+				return true, nil
+			}
+			e2e.Logf("%#v", output)
+			return false, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		for _, v := range files {
 			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-
 		}
-		err := wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
+		err = wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
 			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "csv", "etcdoperator.v0.9.4", "-o=jsonpath={.status.phase}").Output()
 			if err != nil {
-				e2e.Failf("Failed to deploy etcdoperator.v0.9.4, error:%v", err)
-				return false, err
+				e2e.Logf("Failed to check etcdoperator.v0.9.4, error:%v, try next round", err)
+				return false, nil
 			}
+			e2e.Logf("the output is %s", output)
 			if strings.Contains(output, "Succeeded") {
 				return true, nil
 			}
@@ -190,6 +210,10 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		output, err := oc.Run("get").Args("deployments", "-n", oc.Namespace()).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(output).To(o.ContainSubstring("etcd"))
+
+		// clean up so that it doesn't emit an alert when namespace is deleted
+		_, err = oc.AsAdmin().Run("delete").Args("-n", oc.Namespace(), "csv", "etcdoperator.v0.9.4").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	// OCP-24829 - Report `Upgradeable` in OLM ClusterOperators status

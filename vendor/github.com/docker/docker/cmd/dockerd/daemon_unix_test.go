@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/docker/docker/daemon/config"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
-	"github.com/gotestyourself/gotestyourself/fs"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+	"gotest.tools/fs"
 )
 
 func TestLoadDaemonCliConfigWithDaemonFlags(t *testing.T) {
@@ -16,7 +16,7 @@ func TestLoadDaemonCliConfigWithDaemonFlags(t *testing.T) {
 	tempFile := fs.NewFile(t, "config", fs.WithContent(content))
 	defer tempFile.Remove()
 
-	opts := defaultOptions(tempFile.Path())
+	opts := defaultOptions(t, tempFile.Path())
 	opts.Debug = true
 	opts.LogLevel = "info"
 	assert.Check(t, opts.flags.Set("selinux-enabled", "true"))
@@ -37,7 +37,7 @@ func TestLoadDaemonConfigWithNetwork(t *testing.T) {
 	tempFile := fs.NewFile(t, "config", fs.WithContent(content))
 	defer tempFile.Remove()
 
-	opts := defaultOptions(tempFile.Path())
+	opts := defaultOptions(t, tempFile.Path())
 	loadedConfig, err := loadDaemonCliConfig(opts)
 	assert.NilError(t, err)
 	assert.Assert(t, loadedConfig != nil)
@@ -54,7 +54,7 @@ func TestLoadDaemonConfigWithMapOptions(t *testing.T) {
 	tempFile := fs.NewFile(t, "config", fs.WithContent(content))
 	defer tempFile.Remove()
 
-	opts := defaultOptions(tempFile.Path())
+	opts := defaultOptions(t, tempFile.Path())
 	loadedConfig, err := loadDaemonCliConfig(opts)
 	assert.NilError(t, err)
 	assert.Assert(t, loadedConfig != nil)
@@ -71,7 +71,7 @@ func TestLoadDaemonConfigWithTrueDefaultValues(t *testing.T) {
 	tempFile := fs.NewFile(t, "config", fs.WithContent(content))
 	defer tempFile.Remove()
 
-	opts := defaultOptions(tempFile.Path())
+	opts := defaultOptions(t, tempFile.Path())
 	loadedConfig, err := loadDaemonCliConfig(opts)
 	assert.NilError(t, err)
 	assert.Assert(t, loadedConfig != nil)
@@ -90,7 +90,7 @@ func TestLoadDaemonConfigWithTrueDefaultValuesLeaveDefaults(t *testing.T) {
 	tempFile := fs.NewFile(t, "config", fs.WithContent(`{}`))
 	defer tempFile.Remove()
 
-	opts := defaultOptions(tempFile.Path())
+	opts := defaultOptions(t, tempFile.Path())
 	loadedConfig, err := loadDaemonCliConfig(opts)
 	assert.NilError(t, err)
 	assert.Assert(t, loadedConfig != nil)

@@ -1,6 +1,7 @@
 package resourceapply
 
 import (
+	"context"
 	"fmt"
 
 	"k8s.io/klog"
@@ -21,9 +22,9 @@ func ApplyClusterRole(client rbacclientv1.ClusterRolesGetter, recorder events.Re
 		return nil, false, fmt.Errorf("cannot create an aggregated cluster role")
 	}
 
-	existing, err := client.ClusterRoles().Get(required.Name, metav1.GetOptions{})
+	existing, err := client.ClusterRoles().Get(context.TODO(), required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.ClusterRoles().Create(required)
+		actual, err := client.ClusterRoles().Create(context.TODO(), required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -47,7 +48,7 @@ func ApplyClusterRole(client rbacclientv1.ClusterRolesGetter, recorder events.Re
 		klog.Infof("ClusterRole %q changes: %v", required.Name, JSONPatchNoError(existing, existingCopy))
 	}
 
-	actual, err := client.ClusterRoles().Update(existingCopy)
+	actual, err := client.ClusterRoles().Update(context.TODO(), existingCopy, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -55,9 +56,9 @@ func ApplyClusterRole(client rbacclientv1.ClusterRolesGetter, recorder events.Re
 // ApplyClusterRoleBinding merges objectmeta, requires subjects and role refs
 // TODO on non-matching roleref, delete and recreate
 func ApplyClusterRoleBinding(client rbacclientv1.ClusterRoleBindingsGetter, recorder events.Recorder, required *rbacv1.ClusterRoleBinding) (*rbacv1.ClusterRoleBinding, bool, error) {
-	existing, err := client.ClusterRoleBindings().Get(required.Name, metav1.GetOptions{})
+	existing, err := client.ClusterRoleBindings().Get(context.TODO(), required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.ClusterRoleBindings().Create(required)
+		actual, err := client.ClusterRoleBindings().Create(context.TODO(), required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -100,16 +101,16 @@ func ApplyClusterRoleBinding(client rbacclientv1.ClusterRoleBindingsGetter, reco
 		klog.Infof("ClusterRoleBinding %q changes: %v", requiredCopy.Name, JSONPatchNoError(existing, existingCopy))
 	}
 
-	actual, err := client.ClusterRoleBindings().Update(existingCopy)
+	actual, err := client.ClusterRoleBindings().Update(context.TODO(), existingCopy, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, requiredCopy, err)
 	return actual, true, err
 }
 
 // ApplyRole merges objectmeta, requires rules
 func ApplyRole(client rbacclientv1.RolesGetter, recorder events.Recorder, required *rbacv1.Role) (*rbacv1.Role, bool, error) {
-	existing, err := client.Roles(required.Namespace).Get(required.Name, metav1.GetOptions{})
+	existing, err := client.Roles(required.Namespace).Get(context.TODO(), required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.Roles(required.Namespace).Create(required)
+		actual, err := client.Roles(required.Namespace).Create(context.TODO(), required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -131,7 +132,7 @@ func ApplyRole(client rbacclientv1.RolesGetter, recorder events.Recorder, requir
 	if klog.V(4) {
 		klog.Infof("Role %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, existingCopy))
 	}
-	actual, err := client.Roles(required.Namespace).Update(existingCopy)
+	actual, err := client.Roles(required.Namespace).Update(context.TODO(), existingCopy, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -139,9 +140,9 @@ func ApplyRole(client rbacclientv1.RolesGetter, recorder events.Recorder, requir
 // ApplyRoleBinding merges objectmeta, requires subjects and role refs
 // TODO on non-matching roleref, delete and recreate
 func ApplyRoleBinding(client rbacclientv1.RoleBindingsGetter, recorder events.Recorder, required *rbacv1.RoleBinding) (*rbacv1.RoleBinding, bool, error) {
-	existing, err := client.RoleBindings(required.Namespace).Get(required.Name, metav1.GetOptions{})
+	existing, err := client.RoleBindings(required.Namespace).Get(context.TODO(), required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.RoleBindings(required.Namespace).Create(required)
+		actual, err := client.RoleBindings(required.Namespace).Create(context.TODO(), required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -184,7 +185,7 @@ func ApplyRoleBinding(client rbacclientv1.RoleBindingsGetter, recorder events.Re
 		klog.Infof("RoleBinding %q changes: %v", requiredCopy.Namespace+"/"+requiredCopy.Name, JSONPatchNoError(existing, existingCopy))
 	}
 
-	actual, err := client.RoleBindings(requiredCopy.Namespace).Update(existingCopy)
+	actual, err := client.RoleBindings(requiredCopy.Namespace).Update(context.TODO(), existingCopy, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, requiredCopy, err)
 	return actual, true, err
 }

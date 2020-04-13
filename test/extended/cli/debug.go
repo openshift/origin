@@ -8,7 +8,7 @@ import (
 )
 
 var _ = g.Describe("[sig-cli][Slow] oc debug", func() {
-	oc := exutil.NewCLI("oc-debug", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("oc-debug")
 	templatePath := exutil.FixturePath("testdata", "test-cli-debug.yaml")
 
 	g.JustBeforeEach(func() {

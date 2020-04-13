@@ -1,6 +1,7 @@
 package operators
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const (
@@ -37,7 +39,7 @@ func machineSetClient(dc dynamic.Interface) dynamic.ResourceInterface {
 // listWorkerMachineSets list all worker machineSets
 func listWorkerMachineSets(dc dynamic.Interface) ([]objx.Map, error) {
 	mc := machineSetClient(dc)
-	obj, err := mc.List(metav1.ListOptions{})
+	obj, err := mc.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +70,7 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, dc dynamic.Interface, machi
 	}
 
 	// fetch nodes
-	allWorkerNodes, err := c.CoreV1().Nodes().List(metav1.ListOptions{
+	allWorkerNodes, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: nodeLabelSelectorWorker,
 	})
 	if err != nil {
@@ -82,7 +84,7 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, dc dynamic.Interface, machi
 	}
 	var nodes []*corev1.Node
 	for machineName := range machineToNodes {
-		node, err := c.CoreV1().Nodes().Get(machineToNodes[machineName], metav1.GetOptions{})
+		node, err := c.CoreV1().Nodes().Get(context.Background(), machineToNodes[machineName], metav1.GetOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get worker nodes %q: %v", machineToNodes[machineName], err)
 		}
@@ -124,14 +126,14 @@ func scaleMachineSet(name string, replicas int) error {
 		return fmt.Errorf("error calling getScaleClient: %v", err)
 	}
 
-	scale, err := scaleClient.Scales(machineAPINamespace).Get(schema.GroupResource{Group: machineAPIGroup, Resource: "MachineSet"}, name)
+	scale, err := scaleClient.Scales(machineAPINamespace).Get(context.Background(), schema.GroupResource{Group: machineAPIGroup, Resource: "MachineSet"}, name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("error calling scaleClient.Scales get: %v", err)
 	}
 
 	scaleUpdate := scale.DeepCopy()
 	scaleUpdate.Spec.Replicas = int32(replicas)
-	_, err = scaleClient.Scales(machineAPINamespace).Update(schema.GroupResource{Group: machineAPIGroup, Resource: "MachineSet"}, scaleUpdate)
+	_, err = scaleClient.Scales(machineAPINamespace).Update(context.Background(), schema.GroupResource{Group: machineAPIGroup, Resource: "MachineSet"}, scaleUpdate, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("error calling scaleClient.Scales update while setting replicas to %d: %v", err, replicas)
 	}
@@ -170,11 +172,11 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		machineSets, err := listWorkerMachineSets(dc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if len(machineSets) == 0 {
-			e2e.Skipf("Expects at least one worker machineset. Found none!!!")
+			e2eskipper.Skipf("Expects at least one worker machineset. Found none!!!")
 		}
 
 		g.By("checking initial cluster workers size")
-		nodeList, err := c.CoreV1().Nodes().List(metav1.ListOptions{
+		nodeList, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: nodeLabelSelectorWorker,
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -210,7 +212,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 
 		g.By(fmt.Sprintf("waiting for cluster to get back to original size. Final size should be %d worker nodes", initialNumberOfWorkers))
 		o.Eventually(func() bool {
-			nodeList, err := c.CoreV1().Nodes().List(metav1.ListOptions{
+			nodeList, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 				LabelSelector: nodeLabelSelectorWorker,
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -219,7 +221,8 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 			// Azure actuator takes something over 3 minutes to delete a machine.
 			// The worst observable case to delete a machine was 5m15s however.
 			// Also, there are two instances to be deleted.
-			// Rounding to 7 minutes to accomodate for future new and slower cloud providers.
-		}, 7*time.Minute, 5*time.Second).Should(o.BeTrue())
+			// Rounding to 10 minutes to accommodate for future new and slower cloud providers.
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1812240
+		}, 10*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 })

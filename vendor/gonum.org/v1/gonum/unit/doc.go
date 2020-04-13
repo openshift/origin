@@ -17,7 +17,7 @@
 // unit or a common combination of base units, named for the physical quantity
 // it represents (Length, Mass, Pressure, etc.). Each type is defined from
 // float64. The value of the float64 represents the quantity of that unit as
-// expressed in SI base units (Kilogram, Metre, Pascal, etc.). For example,
+// expressed in SI base units (kilogram, metre, Pascal, etc.). For example,
 //
 // 	height := 1.6 * unit.Metre
 // 	acc := unit.Acceleration(9.8)
@@ -33,7 +33,7 @@
 //
 // 	func main(){
 // 		t := 300 * unit.Kelvin
-// 		p := 500 * unit.Kilopascal
+// 		p := 500 * unit.Kilo * unit.Pascal
 // 		v := unitVolume(p, t) // compile-time error
 // 	}
 //
@@ -75,7 +75,7 @@
 // creates a variable "rate" which has a value of 1e-3 mol/s. Methods of
 // unit can be used to modify this value, for example:
 //
-// 	rate.Mul(1 * unit.Centimetre).Div(1 * unit.Millivolt)
+// 	rate.Mul(1 * unit.Centi * unit.Metre).Div(1 * unit.Milli * unit.Volt)
 //
 // To convert the unit back into a typed float64 value, the From methods
 // of the dimensional types should be used. From will return an error if the
@@ -98,7 +98,7 @@
 // because in this case slide is just a measurement of liquid volume. Instead,
 // a constant could be defined.
 //
-// 	const Slide unit.Volume =  0.1 * unit.Microlitre
+// 	const Slide unit.Volume =  0.1 * unit.Micro * unit.Litre
 //
 // Note that unit cannot catch all errors related to dimensionality.
 // Different physical ideas are sometimes expressed with the same dimensions

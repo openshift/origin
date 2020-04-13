@@ -1,4 +1,4 @@
-VERSION=3.7.1
+VERSION=3.9.1
 URL="https://raw.githubusercontent.com/protocolbuffers/protobuf/v${VERSION}/src/google/protobuf"
 
 regenerate:

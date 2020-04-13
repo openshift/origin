@@ -34,9 +34,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	featuregatetesting "k8s.io/component-base/featuregate/testing"
+	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/healthcheck"
 	utilproxy "k8s.io/kubernetes/pkg/proxy/util"
+	proxyutiliptables "k8s.io/kubernetes/pkg/proxy/util/iptables"
 	utilproxytest "k8s.io/kubernetes/pkg/proxy/util/testing"
 	"k8s.io/kubernetes/pkg/util/async"
 	"k8s.io/kubernetes/pkg/util/conntrack"
@@ -246,7 +250,7 @@ func TestDeleteEndpointConnections(t *testing.T) {
 			} else {
 				simErr = fmt.Errorf(tc.simulatedErr)
 			}
-			cmdFunc := func() ([]byte, error) { return []byte(cmdOutput), simErr }
+			cmdFunc := func() ([]byte, []byte, error) { return []byte(cmdOutput), nil, simErr }
 			fcmd.CombinedOutputScript = append(fcmd.CombinedOutputScript, cmdFunc)
 			fexec.CommandScript = append(fexec.CommandScript, execFunc)
 		}
@@ -335,7 +339,7 @@ type fakePortOpener struct {
 
 // OpenLocalPort fakes out the listen() and bind() used by syncProxyRules
 // to lock a local port.
-func (f *fakePortOpener) OpenLocalPort(lp *utilproxy.LocalPort) (utilproxy.Closeable, error) {
+func (f *fakePortOpener) OpenLocalPort(lp *utilproxy.LocalPort, isIPv6 bool) (utilproxy.Closeable, error) {
 	f.openPorts = append(f.openPorts, lp)
 	return nil, nil
 }
@@ -345,6 +349,7 @@ const testHostname = "test-hostname"
 func NewFakeProxier(ipt utiliptables.Interface, endpointSlicesEnabled bool) *Proxier {
 	// TODO: Call NewProxier after refactoring out the goroutine
 	// invocation into a Run() method.
+	detectLocal, _ := proxyutiliptables.NewDetectLocalByCIDR("10.0.0.0/24", ipt)
 	p := &Proxier{
 		exec:                     &fakeexec.FakeExec{},
 		serviceMap:               make(proxy.ServiceMap),
@@ -352,7 +357,7 @@ func NewFakeProxier(ipt utiliptables.Interface, endpointSlicesEnabled bool) *Pro
 		endpointsMap:             make(proxy.EndpointsMap),
 		endpointsChanges:         proxy.NewEndpointChangeTracker(testHostname, newEndpointInfo, nil, nil, endpointSlicesEnabled),
 		iptables:                 ipt,
-		clusterCIDR:              "10.0.0.0/24",
+		localDetector:            detectLocal,
 		hostname:                 testHostname,
 		portsMap:                 make(map[utilproxy.LocalPort]utilproxy.Closeable),
 		portMapper:               &fakePortOpener{[]*utilproxy.LocalPort{}},
@@ -830,6 +835,80 @@ func TestExternalIPsReject(t *testing.T) {
 	}
 }
 
+func TestOnlyLocalExternalIPs(t *testing.T) {
+	// TODO(freehan): remove this in k8s 1.19
+	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.ExternalPolicyForExternalIP, true)()
+
+	ipt := iptablestest.NewFake()
+	fp := NewFakeProxier(ipt, false)
+	svcIP := "10.20.30.41"
+	svcPort := 80
+	svcExternalIPs := "50.60.70.81"
+	svcPortName := proxy.ServicePortName{
+		NamespacedName: makeNSN("ns1", "svc1"),
+		Port:           "p80",
+	}
+
+	makeServiceMap(fp,
+		makeTestService(svcPortName.Namespace, svcPortName.Name, func(svc *v1.Service) {
+			svc.Spec.Type = "NodePort"
+			svc.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeLocal
+			svc.Spec.ClusterIP = svcIP
+			svc.Spec.ExternalIPs = []string{svcExternalIPs}
+			svc.Spec.Ports = []v1.ServicePort{{
+				Name:       svcPortName.Port,
+				Port:       int32(svcPort),
+				Protocol:   v1.ProtocolTCP,
+				TargetPort: intstr.FromInt(svcPort),
+			}}
+		}),
+	)
+	makeEndpointsMap(fp)
+	epIP1 := "10.180.0.1"
+	epIP2 := "10.180.2.1"
+	epStrLocal := fmt.Sprintf("%s:%d", epIP1, svcPort)
+	epStrNonLocal := fmt.Sprintf("%s:%d", epIP2, svcPort)
+	makeEndpointsMap(fp,
+		makeTestEndpoints(svcPortName.Namespace, svcPortName.Name, func(ept *v1.Endpoints) {
+			ept.Subsets = []v1.EndpointSubset{{
+				Addresses: []v1.EndpointAddress{{
+					IP:       epIP1,
+					NodeName: nil,
+				}, {
+					IP:       epIP2,
+					NodeName: utilpointer.StringPtr(testHostname),
+				}},
+				Ports: []v1.EndpointPort{{
+					Name:     svcPortName.Port,
+					Port:     int32(svcPort),
+					Protocol: v1.ProtocolTCP,
+				}},
+			}}
+		}),
+	)
+
+	fp.syncProxyRules()
+
+	proto := strings.ToLower(string(v1.ProtocolTCP))
+	lbChain := string(serviceLBChainName(svcPortName.String(), proto))
+
+	nonLocalEpChain := string(servicePortEndpointChainName(svcPortName.String(), strings.ToLower(string(v1.ProtocolTCP)), epStrLocal))
+	localEpChain := string(servicePortEndpointChainName(svcPortName.String(), strings.ToLower(string(v1.ProtocolTCP)), epStrNonLocal))
+
+	kubeSvcRules := ipt.GetRules(string(kubeServicesChain))
+	if !hasJump(kubeSvcRules, lbChain, svcExternalIPs, svcPort) {
+		errorf(fmt.Sprintf("Failed to find jump to xlb chain %v", lbChain), kubeSvcRules, t)
+	}
+
+	lbRules := ipt.GetRules(lbChain)
+	if hasJump(lbRules, nonLocalEpChain, "", 0) {
+		errorf(fmt.Sprintf("Found jump from lb chain %v to non-local ep %v", lbChain, epStrLocal), lbRules, t)
+	}
+	if !hasJump(lbRules, localEpChain, "", 0) {
+		errorf(fmt.Sprintf("Didn't find jump from lb chain %v to local ep %v", lbChain, epStrNonLocal), lbRules, t)
+	}
+}
+
 func TestNodePortReject(t *testing.T) {
 	ipt := iptablestest.NewFake()
 	fp := NewFakeProxier(ipt, false)
@@ -958,8 +1037,6 @@ func TestOnlyLocalLoadBalancing(t *testing.T) {
 func TestOnlyLocalNodePortsNoClusterCIDR(t *testing.T) {
 	ipt := iptablestest.NewFake()
 	fp := NewFakeProxier(ipt, false)
-	// set cluster CIDR to empty before test
-	fp.clusterCIDR = ""
 	onlyLocalNodePorts(t, fp, ipt)
 }
 
@@ -2342,8 +2419,8 @@ func TestEndpointSliceE2E(t *testing.T) {
 :KUBE-FORWARD - [0:0]
 -A KUBE-FORWARD -m conntrack --ctstate INVALID -j DROP
 -A KUBE-FORWARD -m comment --comment "kubernetes forwarding rules" -m mark --mark  -j ACCEPT
--A KUBE-FORWARD -s 10.0.0.0/24 -m comment --comment "kubernetes forwarding conntrack pod source rule" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
--A KUBE-FORWARD -m comment --comment "kubernetes forwarding conntrack pod destination rule" -d 10.0.0.0/24 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A KUBE-FORWARD -m comment --comment "kubernetes forwarding conntrack pod source rule" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A KUBE-FORWARD -m comment --comment "kubernetes forwarding conntrack pod destination rule" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 COMMIT
 *nat
 :KUBE-SERVICES - [0:0]
@@ -2358,15 +2435,15 @@ COMMIT
 -A KUBE-MARK-MASQ -j MARK --set-xmark 
 -A KUBE-SERVICES -m comment --comment "ns1/svc1: cluster IP" -m tcp -p tcp -d 172.20.1.1/32 --dport 0 ! -s 10.0.0.0/24 -j KUBE-MARK-MASQ
 -A KUBE-SERVICES -m comment --comment "ns1/svc1: cluster IP" -m tcp -p tcp -d 172.20.1.1/32 --dport 0 -j KUBE-SVC-AHZNAGK3SCETOS2T
--A KUBE-SVC-AHZNAGK3SCETOS2T -m statistic --mode random --probability 0.3333333333 -j KUBE-SEP-PXD6POUVGD2I37UY
--A KUBE-SEP-PXD6POUVGD2I37UY -s 10.0.1.1/32 -j KUBE-MARK-MASQ
--A KUBE-SEP-PXD6POUVGD2I37UY -m tcp -p tcp -j DNAT --to-destination 10.0.1.1:80
--A KUBE-SVC-AHZNAGK3SCETOS2T -m statistic --mode random --probability 0.5000000000 -j KUBE-SEP-SOKZUIT7SCEVIP33
--A KUBE-SEP-SOKZUIT7SCEVIP33 -s 10.0.1.2/32 -j KUBE-MARK-MASQ
--A KUBE-SEP-SOKZUIT7SCEVIP33 -m tcp -p tcp -j DNAT --to-destination 10.0.1.2:80
--A KUBE-SVC-AHZNAGK3SCETOS2T -j KUBE-SEP-WVE3FAB34S7NZGDJ
--A KUBE-SEP-WVE3FAB34S7NZGDJ -s 10.0.1.3/32 -j KUBE-MARK-MASQ
--A KUBE-SEP-WVE3FAB34S7NZGDJ -m tcp -p tcp -j DNAT --to-destination 10.0.1.3:80
+-A KUBE-SVC-AHZNAGK3SCETOS2T -m comment --comment ns1/svc1: -m statistic --mode random --probability 0.3333333333 -j KUBE-SEP-PXD6POUVGD2I37UY
+-A KUBE-SEP-PXD6POUVGD2I37UY -m comment --comment ns1/svc1: -s 10.0.1.1/32 -j KUBE-MARK-MASQ
+-A KUBE-SEP-PXD6POUVGD2I37UY -m comment --comment ns1/svc1: -m tcp -p tcp -j DNAT --to-destination 10.0.1.1:80
+-A KUBE-SVC-AHZNAGK3SCETOS2T -m comment --comment ns1/svc1: -m statistic --mode random --probability 0.5000000000 -j KUBE-SEP-SOKZUIT7SCEVIP33
+-A KUBE-SEP-SOKZUIT7SCEVIP33 -m comment --comment ns1/svc1: -s 10.0.1.2/32 -j KUBE-MARK-MASQ
+-A KUBE-SEP-SOKZUIT7SCEVIP33 -m comment --comment ns1/svc1: -m tcp -p tcp -j DNAT --to-destination 10.0.1.2:80
+-A KUBE-SVC-AHZNAGK3SCETOS2T -m comment --comment ns1/svc1: -j KUBE-SEP-WVE3FAB34S7NZGDJ
+-A KUBE-SEP-WVE3FAB34S7NZGDJ -m comment --comment ns1/svc1: -s 10.0.1.3/32 -j KUBE-MARK-MASQ
+-A KUBE-SEP-WVE3FAB34S7NZGDJ -m comment --comment ns1/svc1: -m tcp -p tcp -j DNAT --to-destination 10.0.1.3:80
 -A KUBE-SERVICES -m comment --comment "kubernetes service nodeports; NOTE: this must be the last rule in this chain" -m addrtype --dst-type LOCAL -j KUBE-NODEPORTS
 COMMIT
 `

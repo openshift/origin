@@ -314,6 +314,21 @@ spec:
                   enum:
                   - InterNamespaceAllowed
                   - Strict
+                wildcardPolicy:
+                  description: "wildcardPolicy describes how routes with wildcard
+                    policies should be handled for the ingress controller. WildcardPolicy
+                    controls use of routes [1] exposed by the ingress controller based
+                    on the route's wildcard policy. \n [1] https://github.com/openshift/api/blob/master/route/v1/types.go
+                    \n Note: Updating WildcardPolicy from WildcardsAllowed to WildcardsDisallowed
+                    will cause admitted routes with a wildcard policy of Subdomain
+                    to stop working. These routes must be updated to a wildcard policy
+                    of None to be readmitted by the ingress controller. \n WildcardPolicy
+                    supports WildcardsAllowed and WildcardsDisallowed values. \n If
+                    empty, defaults to \"WildcardsDisallowed\"."
+                  type: string
+                  enum:
+                  - WildcardsAllowed
+                  - WildcardsDisallowed
             routeSelector:
               description: "routeSelector is used to filter the set of Routes serviced
                 by the ingress controller. This is useful for implementing shards.

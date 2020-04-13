@@ -122,6 +122,20 @@
         {"shape":"InvalidTypeException"}
       ]
     },
+    "GetProtectionStatus":{
+      "name":"GetProtectionStatus",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetProtectionStatusRequest"},
+      "output":{"shape":"GetProtectionStatusResponse"},
+      "errors":[
+        {"shape":"InvalidInputException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InternalErrorException"}
+      ]
+    },
     "ListComplianceStatus":{
       "name":"ListComplianceStatus",
       "http":{
@@ -163,6 +177,21 @@
         {"shape":"InternalErrorException"}
       ]
     },
+    "ListTagsForResource":{
+      "name":"ListTagsForResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTagsForResourceRequest"},
+      "output":{"shape":"ListTagsForResourceResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidOperationException"},
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidInputException"}
+      ]
+    },
     "PutNotificationChannel":{
       "name":"PutNotificationChannel",
       "http":{
@@ -192,13 +221,45 @@
         {"shape":"InternalErrorException"},
         {"shape":"InvalidTypeException"}
       ]
+    },
+    "TagResource":{
+      "name":"TagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"TagResourceRequest"},
+      "output":{"shape":"TagResourceResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidOperationException"},
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
+    "UntagResource":{
+      "name":"UntagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UntagResourceRequest"},
+      "output":{"shape":"UntagResourceResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidOperationException"},
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidInputException"}
+      ]
     }
   },
   "shapes":{
     "AWSAccountId":{
       "type":"string",
       "max":1024,
-      "min":1
+      "min":1,
+      "pattern":"^[0-9]+$"
     },
     "AccountRoleStatus":{
       "type":"string",
@@ -233,7 +294,8 @@
     "CustomerPolicyScopeId":{
       "type":"string",
       "max":1024,
-      "min":1
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
     "CustomerPolicyScopeIdList":{
       "type":"list",
@@ -265,13 +327,16 @@
       "type":"string",
       "enum":[
         "AWSCONFIG",
-        "AWSWAF"
+        "AWSWAF",
+        "AWSSHIELD_ADVANCED",
+        "AWSVPC"
       ]
     },
     "DetailedInfo":{
       "type":"string",
       "max":1024,
-      "min":1
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
     "DisassociateAdminAccountRequest":{
       "type":"structure",
@@ -344,6 +409,27 @@
       "members":{
         "Policy":{"shape":"Policy"},
         "PolicyArn":{"shape":"ResourceArn"}
+      }
+    },
+    "GetProtectionStatusRequest":{
+      "type":"structure",
+      "required":["PolicyId"],
+      "members":{
+        "PolicyId":{"shape":"PolicyId"},
+        "MemberAccountId":{"shape":"AWSAccountId"},
+        "StartTime":{"shape":"TimeStamp"},
+        "EndTime":{"shape":"TimeStamp"},
+        "NextToken":{"shape":"PaginationToken"},
+        "MaxResults":{"shape":"PaginationMaxResults"}
+      }
+    },
+    "GetProtectionStatusResponse":{
+      "type":"structure",
+      "members":{
+        "AdminAccountId":{"shape":"AWSAccountId"},
+        "ServiceType":{"shape":"SecurityServiceType"},
+        "Data":{"shape":"ProtectionData"},
+        "NextToken":{"shape":"PaginationToken"}
       }
     },
     "InternalErrorException":{
@@ -430,6 +516,19 @@
         "NextToken":{"shape":"PaginationToken"}
       }
     },
+    "ListTagsForResourceRequest":{
+      "type":"structure",
+      "required":["ResourceArn"],
+      "members":{
+        "ResourceArn":{"shape":"ResourceArn"}
+      }
+    },
+    "ListTagsForResourceResponse":{
+      "type":"structure",
+      "members":{
+        "TagList":{"shape":"TagList"}
+      }
+    },
     "ManagedServiceData":{
       "type":"string",
       "max":1024,
@@ -446,7 +545,9 @@
     },
     "PaginationToken":{
       "type":"string",
-      "min":1
+      "max":4096,
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
     "Policy":{
       "type":"structure",
@@ -463,6 +564,7 @@
         "PolicyUpdateToken":{"shape":"PolicyUpdateToken"},
         "SecurityServicePolicyData":{"shape":"SecurityServicePolicyData"},
         "ResourceType":{"shape":"ResourceType"},
+        "ResourceTypeList":{"shape":"ResourceTypeList"},
         "ResourceTags":{"shape":"ResourceTags"},
         "ExcludeResourceTags":{"shape":"Boolean"},
         "RemediationEnabled":{"shape":"Boolean"},
@@ -508,7 +610,8 @@
     "PolicyId":{
       "type":"string",
       "max":36,
-      "min":36
+      "min":36,
+      "pattern":"^[a-z0-9A-Z-]{36}$"
     },
     "PolicySummary":{
       "type":"structure",
@@ -528,8 +631,10 @@
     "PolicyUpdateToken":{
       "type":"string",
       "max":1024,
-      "min":1
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
+    "ProtectionData":{"type":"string"},
     "PutNotificationChannelRequest":{
       "type":"structure",
       "required":[
@@ -545,7 +650,8 @@
       "type":"structure",
       "required":["Policy"],
       "members":{
-        "Policy":{"shape":"Policy"}
+        "Policy":{"shape":"Policy"},
+        "TagList":{"shape":"TagList"}
       }
     },
     "PutPolicyResponse":{
@@ -558,7 +664,8 @@
     "ResourceArn":{
       "type":"string",
       "max":1024,
-      "min":1
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
     "ResourceCount":{
       "type":"long",
@@ -567,12 +674,14 @@
     "ResourceId":{
       "type":"string",
       "max":1024,
-      "min":1
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
     "ResourceName":{
       "type":"string",
       "max":128,
-      "min":1
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
     "ResourceNotFoundException":{
       "type":"structure",
@@ -585,9 +694,20 @@
       "type":"structure",
       "required":["Key"],
       "members":{
-        "Key":{"shape":"TagKey"},
-        "Value":{"shape":"TagValue"}
+        "Key":{"shape":"ResourceTagKey"},
+        "Value":{"shape":"ResourceTagValue"}
       }
+    },
+    "ResourceTagKey":{
+      "type":"string",
+      "max":128,
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
+    },
+    "ResourceTagValue":{
+      "type":"string",
+      "max":256,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
     "ResourceTags":{
       "type":"list",
@@ -598,7 +718,12 @@
     "ResourceType":{
       "type":"string",
       "max":128,
-      "min":1
+      "min":1,
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
+    },
+    "ResourceTypeList":{
+      "type":"list",
+      "member":{"shape":"ResourceType"}
     },
     "SecurityServicePolicyData":{
       "type":"structure",
@@ -610,7 +735,24 @@
     },
     "SecurityServiceType":{
       "type":"string",
-      "enum":["WAF"]
+      "enum":[
+        "WAF",
+        "SHIELD_ADVANCED",
+        "SECURITY_GROUPS_COMMON",
+        "SECURITY_GROUPS_CONTENT_AUDIT",
+        "SECURITY_GROUPS_USAGE_AUDIT"
+      ]
+    },
+    "Tag":{
+      "type":"structure",
+      "required":[
+        "Key",
+        "Value"
+      ],
+      "members":{
+        "Key":{"shape":"TagKey"},
+        "Value":{"shape":"TagValue"}
+      }
     },
     "TagKey":{
       "type":"string",
@@ -618,18 +760,69 @@
       "min":1,
       "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
+    "TagKeyList":{
+      "type":"list",
+      "member":{"shape":"TagKey"},
+      "max":200,
+      "min":0
+    },
+    "TagList":{
+      "type":"list",
+      "member":{"shape":"Tag"},
+      "max":200,
+      "min":0
+    },
+    "TagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceArn",
+        "TagList"
+      ],
+      "members":{
+        "ResourceArn":{"shape":"ResourceArn"},
+        "TagList":{"shape":"TagList"}
+      }
+    },
+    "TagResourceResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "TagValue":{
       "type":"string",
       "max":256,
+      "min":0,
       "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
     "TimeStamp":{"type":"timestamp"},
+    "UntagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceArn",
+        "TagKeys"
+      ],
+      "members":{
+        "ResourceArn":{"shape":"ResourceArn"},
+        "TagKeys":{"shape":"TagKeyList"}
+      }
+    },
+    "UntagResourceResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "ViolationReason":{
       "type":"string",
       "enum":[
         "WEB_ACL_MISSING_RULE_GROUP",
         "RESOURCE_MISSING_WEB_ACL",
-        "RESOURCE_INCORRECT_WEB_ACL"
+        "RESOURCE_INCORRECT_WEB_ACL",
+        "RESOURCE_MISSING_SHIELD_PROTECTION",
+        "RESOURCE_MISSING_WEB_ACL_OR_SHIELD_PROTECTION",
+        "RESOURCE_MISSING_SECURITY_GROUP",
+        "RESOURCE_VIOLATES_AUDIT_SECURITY_GROUP",
+        "SECURITY_GROUP_UNUSED",
+        "SECURITY_GROUP_REDUNDANT"
       ]
     }
   }

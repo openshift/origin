@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 
 	g "github.com/onsi/ginkgo"
@@ -14,10 +15,10 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] build can have Dockerfile input", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have Dockerfile input", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("build-dockerfile-env", exutil.KubeConfigPath())
+		oc             = exutil.NewCLI("build-dockerfile-env")
 		dockerfileAdd  = exutil.FixturePath("testdata", "builds", "docker-add")
 		testDockerfile = `
 FROM library/busybox
@@ -31,6 +32,7 @@ USER 1001
 FROM scratch
 USER 1001
 `
+		dockerfileAddEnv = exutil.FixturePath("testdata", "builds", "docker-add", "docker-add-env")
 	)
 
 	g.Context("", func() {
@@ -54,7 +56,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking the buildconfig content")
-				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("busybox", metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "busybox", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile))
@@ -69,7 +71,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("getting the build container image reference from ImageStream")
-				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("busybox:custom", metav1.GetOptions{})
+				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "busybox:custom", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = imageutil.ImageWithMetadata(&image.Image)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -83,7 +85,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking the buildconfig content")
-				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("centos", metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "centos", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile2))
@@ -100,14 +102,14 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("getting the built container image reference from ImageStream")
-				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("centos:latest", metav1.GetOptions{})
+				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "centos:latest", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = imageutil.ImageWithMetadata(&image.Image)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(image.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.User).To(o.Equal("1001"))
 
 				g.By("checking for the imported tag")
-				_, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("centos:7", metav1.GetOptions{})
+				_, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "centos:7", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
@@ -117,7 +119,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking the buildconfig content")
-				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("scratch", metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "scratch", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile3))
 
@@ -144,6 +146,18 @@ USER 1001
 				o.Expect(logs).To(o.ContainSubstring("no such file or directory"))
 			})
 
+			g.It("testing build image with dockerfile contains a file path uses a variable in its name", func() {
+				// https://bugzilla.redhat.com/show_bug.cgi?id=1810174
+				g.By("creating a build")
+				err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name=buildah-env").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, err := exutil.StartBuildAndWait(oc, "buildah-env", fmt.Sprintf("--from-dir=%s", dockerfileAddEnv))
+				br.AssertSuccess()
+				g.By("build log should not have error about no file or directory")
+				logs, err := br.Logs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(logs).ToNot(o.ContainSubstring("/f\": no such file or directory"))
+			})
 		})
 	})
 })

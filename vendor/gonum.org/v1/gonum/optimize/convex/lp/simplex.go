@@ -59,7 +59,7 @@ const (
 
 // Simplex solves a linear program in standard form using Danzig's Simplex
 // algorithm. The standard form of a linear program is:
-//  minimize	c^T x
+//  minimize	cᵀ x
 //  s.t. 		A*x = b
 //  			x >= 0 .
 // The input tol sets how close to the optimal solution is found (specifically,
@@ -209,7 +209,7 @@ func simplex(initialBasic []int, c []float64, A mat.Matrix, b []float64, tol flo
 	// Algorithm:
 	// 1) Compute the "reduced costs" for the non-basic variables. The reduced
 	// costs are the lagrange multipliers of the constraints.
-	// 	 r = cn - an^T * ab^-T * cb
+	// 	 r = cn - anᵀ * ab¯ᵀ * cb
 	// 2) If all of the reduced costs are positive, no improvement is possible,
 	// and the solution is optimal (xn can only increase because of
 	// non-negativity constraints). Otherwise, the solution can be improved and
@@ -231,7 +231,7 @@ func simplex(initialBasic []int, c []float64, A mat.Matrix, b []float64, tol flo
 	// the intersection of several constraints. Use the Bland rule instead
 	// of the rule in step 4 to avoid cycling.
 	for {
-		// Compute reduced costs -- r = cn - an^T ab^-T cb
+		// Compute reduced costs -- r = cn - anᵀ ab¯ᵀ cb
 		var tmp mat.VecDense
 		err = tmp.SolveVec(ab.T(), cbVec)
 		if err != nil {

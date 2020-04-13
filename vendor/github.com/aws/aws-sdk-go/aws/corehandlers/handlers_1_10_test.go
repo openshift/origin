@@ -3,47 +3,42 @@
 package corehandlers_test
 
 import (
-	"crypto/tls"
+	"bytes"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/awstesting"
+	"github.com/aws/aws-sdk-go/awstesting/unit"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"golang.org/x/net/http2"
 )
 
 func TestSendHandler_HEADNoBody(t *testing.T) {
-	TLSBundleCertFile, TLSBundleKeyFile, TLSBundleCAFile, err := awstesting.CreateTLSBundleFiles()
-	if err != nil {
-		panic(err)
-	}
-	defer awstesting.CleanupTLSBundleFiles(TLSBundleCertFile, TLSBundleKeyFile, TLSBundleCAFile)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		if e, a := "HEAD", r.Method; e != a {
+			t.Errorf("expected %v method, got %v", e, a)
+		}
+		var buf bytes.Buffer
+		io.Copy(&buf, r.Body)
 
-	endpoint, err := awstesting.CreateTLSServer(TLSBundleCertFile, TLSBundleKeyFile, nil)
-	if err != nil {
-		t.Fatalf("expect no error, got %v", err)
-	}
+		if n := buf.Len(); n != 0 {
+			t.Errorf("expect empty body, got %d", n)
+		}
 
-	transport := http.DefaultTransport.(*http.Transport)
-	// test server's certificate is self-signed certificate
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	http2.ConfigureTransport(transport)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
 
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			HTTPClient:       &http.Client{},
-			Endpoint:         aws.String(endpoint),
-			Region:           aws.String("mock-region"),
-			Credentials:      credentials.AnonymousCredentials,
-			S3ForcePathStyle: aws.Bool(true),
-		},
+	svc := s3.New(unit.Session, &aws.Config{
+		Endpoint:         aws.String(server.URL),
+		Credentials:      credentials.AnonymousCredentials,
+		S3ForcePathStyle: aws.Bool(true),
+		DisableSSL:       aws.Bool(true),
 	})
-
-	svc := s3.New(sess)
 
 	req, _ := svc.HeadObjectRequest(&s3.HeadObjectInput{
 		Bucket: aws.String("bucketname"),
@@ -54,8 +49,7 @@ func TestSendHandler_HEADNoBody(t *testing.T) {
 		t.Fatalf("expect %T request body, got %T", e, a)
 	}
 
-	err = req.Send()
-	if err != nil {
+	if err := req.Send(); err != nil {
 		t.Fatalf("expect no error, got %v", err)
 	}
 	if e, a := http.StatusOK, req.HTTPResponse.StatusCode; e != a {

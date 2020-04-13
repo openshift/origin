@@ -547,7 +547,7 @@ func makeCopyOf(a Matrix) Matrix {
 		return retranspose(a, makeCopyOf(t.Untranspose()))
 	case *Dense, *basicMatrix:
 		var m Dense
-		m.Clone(a)
+		m.CloneFrom(a)
 		return returnAs(&m, t)
 	case *SymDense, *basicSymmetric:
 		n := t.(Symmetric).Symmetric()
@@ -785,7 +785,7 @@ func underlyingData(a Matrix) []float64 {
 
 // testMatrices is a list of matrix types to test.
 // This test relies on the fact that the implementations of Triangle do not
-// corrupt the value of Uplo when they are zero-valued. This test will fail
+// corrupt the value of Uplo when they are empty. This test will fail
 // if that changes (and some mechanism will need to be used to force the
 // correct TriKind to be read).
 var testMatrices = []Matrix{
@@ -925,7 +925,7 @@ func testOneInputFunc(t *testing.T,
 			var want interface{}
 			if dimsOK {
 				var aDense Dense
-				aDense.Clone(a)
+				aDense.CloneFrom(a)
 				want = denseComparison(&aDense)
 			}
 			aCopy := makeCopyOf(a)
@@ -1095,8 +1095,8 @@ func testTwoInputFunc(t *testing.T,
 				var want interface{}
 				if dimsOK {
 					var aDense, bDense Dense
-					aDense.Clone(a)
-					bDense.Clone(b)
+					aDense.CloneFrom(a)
+					bDense.CloneFrom(b)
 					want = denseComparison(&aDense, &bDense)
 				}
 				aCopy := makeCopyOf(a)
@@ -1175,7 +1175,7 @@ func testOneInput(t *testing.T,
 			var want Dense
 			if dimsOK {
 				var aDense Dense
-				aDense.Clone(a)
+				aDense.CloneFrom(a)
 				denseComparison(&want, &aDense)
 			}
 			aCopy := makeCopyOf(a)
@@ -1327,8 +1327,8 @@ func testTwoInput(t *testing.T,
 				var want Dense
 				if dimsOK {
 					var aDense, bDense Dense
-					aDense.Clone(a)
-					bDense.Clone(b)
+					aDense.CloneFrom(a)
+					bDense.CloneFrom(b)
 					denseComparison(&want, &aDense, &bDense)
 				}
 				aCopy := makeCopyOf(a)
@@ -1467,7 +1467,7 @@ func testTwoInput(t *testing.T,
 					// Ensure that b is the correct transpose type if applicable.
 					// The receiver is always a concrete type so use it.
 					bSame := receiver
-					u, ok = b.(Untransposer)
+					_, ok = b.(Untransposer)
 					if ok {
 						bSame = retranspose(b, receiver)
 					}

@@ -7,6 +7,7 @@
 package unix_test
 
 import (
+	"os"
 	"os/exec"
 	"testing"
 	"time"
@@ -15,22 +16,52 @@ import (
 )
 
 func TestSelect(t *testing.T) {
-	err := unix.Select(0, nil, nil, nil, &unix.Timeval{Sec: 0, Usec: 0})
+	n, err := unix.Select(0, nil, nil, nil, &unix.Timeval{Sec: 0, Usec: 0})
 	if err != nil {
 		t.Fatalf("Select: %v", err)
+	}
+	if n != 0 {
+		t.Fatalf("Select: expected 0 ready file descriptors, got %v", n)
 	}
 
 	dur := 150 * time.Millisecond
 	tv := unix.NsecToTimeval(int64(dur))
 	start := time.Now()
-	err = unix.Select(0, nil, nil, nil, &tv)
+	n, err = unix.Select(0, nil, nil, nil, &tv)
 	took := time.Since(start)
 	if err != nil {
 		t.Fatalf("Select: %v", err)
 	}
+	if n != 0 {
+		t.Fatalf("Select: expected 0 ready file descriptors, got %v", n)
+	}
 
 	if took < dur {
 		t.Errorf("Select: timeout should have been at least %v, got %v", dur, took)
+	}
+
+	rr, ww, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rr.Close()
+	defer ww.Close()
+
+	if _, err := ww.Write([]byte("HELLO GOPHER")); err != nil {
+		t.Fatal(err)
+	}
+
+	rFdSet := &unix.FdSet{}
+	fd := rr.Fd()
+	// FD_SET(fd, rFdSet)
+	rFdSet.Bits[fd/unix.NFDBITS] |= (1 << (fd % unix.NFDBITS))
+
+	n, err = unix.Select(int(fd+1), rFdSet, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Select: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("Select: expected 1 ready file descriptors, got %v", n)
 	}
 }
 

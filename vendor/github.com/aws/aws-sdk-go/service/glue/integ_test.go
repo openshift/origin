@@ -27,7 +27,9 @@ func TestInteg_00_GetCatalogImportStatus(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := glue.New(sess)
 	params := &glue.GetCatalogImportStatusInput{}
-	_, err := svc.GetCatalogImportStatusWithContext(ctx, params)
+	_, err := svc.GetCatalogImportStatusWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

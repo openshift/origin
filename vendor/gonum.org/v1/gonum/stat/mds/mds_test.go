@@ -112,7 +112,8 @@ var torgersonScalingTests = []struct {
 func TestTorgersonScaling(t *testing.T) {
 	for i, test := range torgersonScalingTests {
 		_, c := test.dis.Dims()
-		gotK, got, gotVals := TorgersonScaling(nil, make([]float64, c), test.dis)
+		var got mat.Dense
+		gotK, gotVals := TorgersonScaling(&got, make([]float64, c), test.dis)
 		if gotK == 0 {
 			t.Error("unexpected scaling failure")
 			continue
@@ -120,9 +121,9 @@ func TestTorgersonScaling(t *testing.T) {
 		if gotK != test.wantK {
 			t.Errorf("unexpected k for test %d: got:%d want:%d", i, gotK, test.wantK)
 		}
-		if !mat.EqualApprox(colAbs{got}, colAbs{test.want}, 1e-5) {
+		if !mat.EqualApprox(colAbs{&got}, colAbs{test.want}, 1e-5) {
 			t.Errorf("unexpected result for test %d:\ngot:\n%.5f\nwant:\n%.5f",
-				i, mat.Formatted(got), mat.Formatted(test.want))
+				i, mat.Formatted(&got), mat.Formatted(test.want))
 		}
 		if !floats.EqualApprox(gotVals, test.wantVals, 1e-10) {
 			t.Errorf("unexpected Eigenvalues for test %d:\ngot: %.12e\nwant:%.12e", i, gotVals, test.wantVals)

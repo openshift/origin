@@ -152,6 +152,9 @@ func (i *ImageService) Images(imageFilters filters.Args, all bool, withExtraAttr
 					if matchErr != nil {
 						return nil, matchErr
 					}
+					if found {
+						break
+					}
 				}
 				if !found {
 					continue
@@ -187,7 +190,15 @@ func (i *ImageService) Images(imageFilters filters.Args, all bool, withExtraAttr
 			// lazily init variables
 			if imagesMap == nil {
 				allContainers = i.containers.List()
-				allLayers = i.layerStores[img.OperatingSystem()].Map()
+
+				// allLayers is built from all layerstores combined
+				allLayers = make(map[layer.ChainID]layer.Layer)
+				for _, ls := range i.layerStores {
+					layers := ls.Map()
+					for k, v := range layers {
+						allLayers[k] = v
+					}
+				}
 				imagesMap = make(map[*image.Image]*types.ImageSummary)
 				layerRefs = make(map[layer.ChainID]int)
 			}

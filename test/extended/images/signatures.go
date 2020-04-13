@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial]
 	defer g.GinkgoRecover()
 
 	var (
-		oc                 = exutil.NewCLI("registry-signing", exutil.KubeConfigPath())
+		oc                 = exutil.NewCLI("registry-signing")
 		signerBuildFixture = exutil.FixturePath("testdata", "signer-buildconfig.yaml")
 	)
 

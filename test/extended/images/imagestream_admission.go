@@ -1,6 +1,7 @@
 package images
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -24,7 +25,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream admission", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("imagestream-admission", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("imagestream-admission")
 
 	g.It("TestImageStreamTagsAdmission", func() {
 		TestImageStreamTagsAdmission(g.GinkgoT(), oc)
@@ -50,6 +51,7 @@ func init() {
 func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 	kClient, client, fn := setupImageStreamAdmissionTest(t, oc)
 	defer fn()
+	ctx := context.Background()
 
 	for i, name := range []string{BaseImageWith1LayerDigest, BaseImageWith2LayersDigest, MiscImageDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
@@ -62,13 +64,13 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 		tag := fmt.Sprintf("tag%d", i+1)
 
 		oc.AddExplicitResourceToDelete(imagev1.GroupVersion.WithResource("images"), "", name)
-		_, err := client.ImageV1().ImageStreamMappings(oc.Namespace()).Create(&imagev1.ImageStreamMapping{
+		_, err := client.ImageV1().ImageStreamMappings(oc.Namespace()).Create(ctx, &imagev1.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "src",
 			},
 			Tag:   tag,
 			Image: *image,
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
@@ -89,7 +91,7 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	}
-	_, err := client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ist)
+	_, err := client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ctx, ist, metav1.UpdateOptions{})
 	o.Expect(err).To(o.HaveOccurred())
 	if !quotautil.IsErrorQuotaExceeded(err) {
 		t.Errorf("expected quota exceeded error, got instead: %v", err)
@@ -112,7 +114,7 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 	// we may hit cache with old limit, let's retry in such a case
 	err = wait.ExponentialBackoff(quotaExceededBackoff, func() (bool, error) {
-		_, err := client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ist)
+		_, err := client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ctx, ist, metav1.UpdateOptions{})
 		if err != nil && !quotautil.IsErrorQuotaExceeded(err) {
 			return false, err
 		}
@@ -133,7 +135,7 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	}
-	_, err = client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ist)
+	_, err = client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ctx, ist, metav1.UpdateOptions{})
 	o.Expect(err).To(o.HaveOccurred())
 	if !quotautil.IsErrorQuotaExceeded(err) {
 		t.Errorf("expected quota exceeded error, got instead: %v", err)
@@ -152,7 +154,7 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	}
-	_, err = client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ist)
+	_, err = client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ctx, ist, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	t.Log("trying to create ImageStreamTag in a new image stream")
@@ -168,7 +170,7 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	}
-	_, err = client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ist)
+	_, err = client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ctx, ist, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	limit = bumpLimit(t, oc, lrClient, limitRangeName, imagev1.ResourceImageStreamTags, "2")
@@ -188,7 +190,7 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 	// we may hit cache with old limit, let's retry in such a case
 	err = wait.ExponentialBackoff(quotaExceededBackoff, func() (bool, error) {
-		_, err := client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ist)
+		_, err := client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ctx, ist, metav1.UpdateOptions{})
 		if err != nil && !quotautil.IsErrorQuotaExceeded(err) {
 			return false, err
 		}
@@ -209,7 +211,7 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	}
-	_, err = client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ist)
+	_, err = client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ctx, ist, metav1.UpdateOptions{})
 	o.Expect(err).To(o.HaveOccurred())
 	o.Expect(quotautil.IsErrorQuotaExceeded(err)).To(o.BeTrue())
 
@@ -226,11 +228,13 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	}
-	_, err = client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ist)
+	_, err = client.ImageV1().ImageStreamTags(oc.Namespace()).Update(ctx, ist, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func TestImageStreamAdmitSpecUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
+	ctx := context.Background()
+
 	kClient, client, fn := setupImageStreamAdmissionTest(t, oc)
 	defer fn()
 
@@ -245,13 +249,13 @@ func TestImageStreamAdmitSpecUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 		tag := fmt.Sprintf("tag%d", i+1)
 
 		oc.AddExplicitResourceToDelete(imagev1.GroupVersion.WithResource("images"), "", name)
-		_, err := client.ImageV1().ImageStreamMappings(oc.Namespace()).Create(&imagev1.ImageStreamMapping{
+		_, err := client.ImageV1().ImageStreamMappings(oc.Namespace()).Create(ctx, &imagev1.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "src",
 			},
 			Tag:   tag,
 			Image: *image,
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
@@ -264,9 +268,12 @@ func TestImageStreamAdmitSpecUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 
 	t.Logf("trying to create a new image stream with a tag exceeding limit %v", limit)
 	_, err := client.ImageV1().ImageStreams(oc.Namespace()).Create(
+		ctx,
 		newImageStreamWithSpecTags("is", map[string]corev1.ObjectReference{
 			"tag1": {Kind: "ImageStreamTag", Name: "src:tag1"},
-		}))
+		}),
+		metav1.CreateOptions{},
+	)
 	o.Expect(err).To(o.HaveOccurred())
 
 	if !quotautil.IsErrorQuotaExceeded(err) {
@@ -285,10 +292,13 @@ func TestImageStreamAdmitSpecUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 	// we may hit cache with old limit, let's retry in such a case
 	err = wait.ExponentialBackoff(quotaExceededBackoff, func() (bool, error) {
 		_, err = client.ImageV1().ImageStreams(oc.Namespace()).Create(
+			ctx,
 			newImageStreamWithSpecTags("is", map[string]corev1.ObjectReference{"tag1": {
 				Kind: "ImageStreamTag",
 				Name: "src:tag1",
-			}}))
+			}}),
+			metav1.CreateOptions{},
+		)
 		if err != nil && !quotautil.IsErrorQuotaExceeded(err) {
 			return false, err
 		}
@@ -297,7 +307,7 @@ func TestImageStreamAdmitSpecUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	t.Logf("adding new tag to image stream spec exceeding limit %v", limit)
-	is, err := client.ImageV1().ImageStreams(oc.Namespace()).Get("is", metav1.GetOptions{})
+	is, err := client.ImageV1().ImageStreams(oc.Namespace()).Get(ctx, "is", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	upsertSpecTag(&is.Spec.Tags, imagev1.TagReference{
@@ -307,7 +317,7 @@ func TestImageStreamAdmitSpecUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			Name: "src:tag2",
 		},
 	})
-	_, err = client.ImageV1().ImageStreams(oc.Namespace()).Update(is)
+	_, err = client.ImageV1().ImageStreams(oc.Namespace()).Update(ctx, is, metav1.UpdateOptions{})
 	o.Expect(err).To(o.HaveOccurred())
 	if !quotautil.IsErrorQuotaExceeded(err) {
 		t.Errorf("expected quota exceeded error, got instead: %v", err)
@@ -319,7 +329,7 @@ func TestImageStreamAdmitSpecUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 
 	t.Logf("re-tagging the image under different tag")
-	is, err = client.ImageV1().ImageStreams(oc.Namespace()).Get("is", metav1.GetOptions{})
+	is, err = client.ImageV1().ImageStreams(oc.Namespace()).Get(ctx, "is", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	upsertSpecTag(&is.Spec.Tags, imagev1.TagReference{
 		Name: "1again",
@@ -328,7 +338,7 @@ func TestImageStreamAdmitSpecUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			Name: "src:tag1",
 		},
 	})
-	_, err = client.ImageV1().ImageStreams(oc.Namespace()).Update(is)
+	_, err = client.ImageV1().ImageStreams(oc.Namespace()).Update(ctx, is, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
@@ -355,6 +365,8 @@ func upsertStatusTag(tags *[]imagev1.NamedTagEventList, tagEventList imagev1.Nam
 }
 
 func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
+	ctx := context.Background()
+
 	kClient, client, fn := setupImageStreamAdmissionTest(t, oc)
 	defer fn()
 	images := []*imagev1.Image{}
@@ -370,7 +382,7 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 		images = append(images, image)
 
 		oc.AddExplicitResourceToDelete(imagev1.GroupVersion.WithResource("images"), "", name)
-		_, err := client.ImageV1().Images().Create(image)
+		_, err := client.ImageV1().Images().Create(ctx, image, metav1.CreateOptions{})
 		if err != nil && !apierrors.IsAlreadyExists(err) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
@@ -384,11 +396,11 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 	createLimitRangeOfType(t, oc, lrClient, limitRangeName, imagev1.LimitTypeImageStream, limit)
 
 	t.Logf("trying to create a new image stream with a tag exceeding limit %v", limit)
-	_, err := client.ImageV1().ImageStreams(oc.Namespace()).Create(newImageStreamWithSpecTags("is", nil))
+	_, err := client.ImageV1().ImageStreams(oc.Namespace()).Create(ctx, newImageStreamWithSpecTags("is", nil), metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	t.Logf("adding new tag to image stream status exceeding limit %v", limit)
-	is, err := client.ImageV1().ImageStreams(oc.Namespace()).Get("is", metav1.GetOptions{})
+	is, err := client.ImageV1().ImageStreams(oc.Namespace()).Get(ctx, "is", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	upsertStatusTag(&is.Status.Tags, imagev1.NamedTagEventList{
 		Tag: "tag1",
@@ -399,7 +411,7 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	})
-	_, err = client.ImageV1().ImageStreams(oc.Namespace()).UpdateStatus(is)
+	_, err = client.ImageV1().ImageStreams(oc.Namespace()).UpdateStatus(ctx, is, metav1.UpdateOptions{})
 	o.Expect(err).To(o.HaveOccurred())
 	if !quotautil.IsErrorQuotaExceeded(err) {
 		t.Errorf("expected quota exceeded error, got instead: %v", err)
@@ -411,7 +423,7 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 	limit = bumpLimit(t, oc, lrClient, limitRangeName, imagev1.ResourceImageStreamImages, "1")
 
 	t.Logf("adding new tag to image stream status below limit %v", limit)
-	is, err = client.ImageV1().ImageStreams(oc.Namespace()).Get("is", metav1.GetOptions{})
+	is, err = client.ImageV1().ImageStreams(oc.Namespace()).Get(ctx, "is", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	upsertStatusTag(&is.Status.Tags, imagev1.NamedTagEventList{
 		Tag: "tag1",
@@ -422,11 +434,11 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	})
-	_, err = client.ImageV1().ImageStreams(oc.Namespace()).UpdateStatus(is)
+	_, err = client.ImageV1().ImageStreams(oc.Namespace()).UpdateStatus(ctx, is, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	t.Logf("adding new tag to image stream status exceeding limit %v", limit)
-	is, err = client.ImageV1().ImageStreams(oc.Namespace()).Get("is", metav1.GetOptions{})
+	is, err = client.ImageV1().ImageStreams(oc.Namespace()).Get(ctx, "is", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	upsertStatusTag(&is.Status.Tags, imagev1.NamedTagEventList{
 		Tag: "tag2",
@@ -437,7 +449,7 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	})
-	_, err = client.ImageV1().ImageStreams(oc.Namespace()).UpdateStatus(is)
+	_, err = client.ImageV1().ImageStreams(oc.Namespace()).UpdateStatus(ctx, is, metav1.UpdateOptions{})
 	o.Expect(err).To(o.HaveOccurred())
 	if !quotautil.IsErrorQuotaExceeded(err) {
 		t.Errorf("expected quota exceeded error, got instead: %v", err)
@@ -447,7 +459,7 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 
 	t.Logf("re-tagging the image under different tag")
-	is, err = client.ImageV1().ImageStreams(oc.Namespace()).Get("is", metav1.GetOptions{})
+	is, err = client.ImageV1().ImageStreams(oc.Namespace()).Get(ctx, "is", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	upsertStatusTag(&is.Status.Tags, imagev1.NamedTagEventList{
 		Tag: "1again",
@@ -458,13 +470,13 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	})
-	_, err = client.ImageV1().ImageStreams(oc.Namespace()).UpdateStatus(is)
+	_, err = client.ImageV1().ImageStreams(oc.Namespace()).UpdateStatus(ctx, is, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func setupImageStreamAdmissionTest(t g.GinkgoTInterface, oc *exutil.CLI) (kubernetes.Interface, imagev1client.Interface, func()) {
 	for {
-		_, err := oc.AdminImageClient().ImageV1().ImageStreams(oc.Namespace()).Create(newImageStreamWithSpecTags("src", nil))
+		_, err := oc.AdminImageClient().ImageV1().ImageStreams(oc.Namespace()).Create(context.Background(), newImageStreamWithSpecTags("src", nil), metav1.CreateOptions{})
 		t.Logf("initing: %v", err)
 		if err != nil {
 			if errForbiddenWithRetry(err) {
@@ -508,14 +520,14 @@ func createLimitRangeOfType(t g.GinkgoTInterface, oc *exutil.CLI, lrClient corev
 	}
 
 	t.Logf("creating limit range object %q with %s limited to: %v", limitRangeName, limitType, maxLimits)
-	lr, err := lrClient.Create(lr)
+	lr, err := lrClient.Create(context.Background(), lr, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return lr
 }
 
 func bumpLimit(t g.GinkgoTInterface, oc *exutil.CLI, lrClient corev1client.LimitRangeInterface, limitRangeName string, resourceName corev1.ResourceName, limit string) corev1.ResourceList {
 	t.Logf("bump a limit on resource %q to %s", resourceName, limit)
-	lr, err := lrClient.Get(limitRangeName, metav1.GetOptions{})
+	lr, err := lrClient.Get(context.Background(), limitRangeName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	res := corev1.ResourceList{}
 
@@ -537,7 +549,7 @@ func bumpLimit(t g.GinkgoTInterface, oc *exutil.CLI, lrClient corev1client.Limit
 	if !change {
 		return res
 	}
-	_, err = lrClient.Update(lr)
+	_, err = lrClient.Update(context.Background(), lr, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return res
 }

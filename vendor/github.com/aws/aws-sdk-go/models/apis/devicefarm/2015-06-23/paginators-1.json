@@ -58,6 +58,26 @@
       "output_token": "nextToken",
       "result_key": "suites"
     },
+    "ListTestGridProjects": {
+      "input_token": "nextToken",
+      "limit_key": "maxResult",
+      "output_token": "nextToken"
+    },
+    "ListTestGridSessionActions": {
+      "input_token": "nextToken",
+      "limit_key": "maxResult",
+      "output_token": "nextToken"
+    },
+    "ListTestGridSessionArtifacts": {
+      "input_token": "nextToken",
+      "limit_key": "maxResult",
+      "output_token": "nextToken"
+    },
+    "ListTestGridSessions": {
+      "input_token": "nextToken",
+      "limit_key": "maxResult",
+      "output_token": "nextToken"
+    },
     "ListTests": {
       "input_token": "nextToken",
       "output_token": "nextToken",

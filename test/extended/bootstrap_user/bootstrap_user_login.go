@@ -1,6 +1,7 @@
 package bootstrap_user
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"strings"
@@ -10,7 +11,7 @@ import (
 	o "github.com/onsi/gomega"
 	"golang.org/x/crypto/bcrypt"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -26,7 +27,7 @@ var _ = g.Describe("[sig-auth][Feature:BootstrapUser] The bootstrap user", func(
 
 	// since login mutates the current kubeconfig we want to use NewCLI
 	// as that will give each one of our test runs a new config via SetupProject
-	oc := exutil.NewCLI("bootstrap-login", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("bootstrap-login")
 
 	g.It("should successfully login with password decoded from kubeadmin secret [Disruptive]", func() {
 		var originalPasswordHash []byte
@@ -43,7 +44,7 @@ var _ = g.Describe("[sig-auth][Feature:BootstrapUser] The bootstrap user", func(
 				return
 			}
 
-			err := oc.AsAdmin().KubeClient().CoreV1().Secrets("kube-system").Delete("kubeadmin", &metav1.DeleteOptions{})
+			err := oc.AsAdmin().KubeClient().CoreV1().Secrets("kube-system").Delete(context.Background(), "kubeadmin", metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}()
 
@@ -53,7 +54,7 @@ var _ = g.Describe("[sig-auth][Feature:BootstrapUser] The bootstrap user", func(
 		// of authenticating/creating the special kube:admin user.
 		// Testing that the installer properly generated the password/secret is the
 		// responsibility of the installer.
-		secret, err := oc.AsAdmin().KubeClient().CoreV1().Secrets("kube-system").Get("kubeadmin", metav1.GetOptions{})
+		secret, err := oc.AsAdmin().KubeClient().CoreV1().Secrets("kube-system").Get(context.Background(), "kubeadmin", metav1.GetOptions{})
 		if kerrors.IsNotFound(err) {
 			secretExists = false
 			err = nil // ignore not found

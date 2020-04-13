@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -16,7 +17,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
+var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc          *exutil.CLI
@@ -29,14 +30,14 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
-			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
+			if routes, _ := client.List(context.Background(), metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}
 			exutil.DumpPodLogsStartingWith("router-", oc)
 		}
 	})
 
-	oc = exutil.NewCLI("unprivileged-router", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("unprivileged-router")
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
@@ -64,11 +65,13 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+			}()
 
 			var routerIP string
 			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("router-scoped", metav1.GetOptions{})
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get(context.Background(), "router-scoped", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -99,7 +102,7 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 			}
 
 			g.By("checking that the route doesn't have an ingress status")
-			r, err := oc.RouteClient().RouteV1().Routes(ns).Get("route-1", metav1.GetOptions{})
+			r, err := oc.RouteClient().RouteV1().Routes(ns).Get(context.Background(), "route-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			ingress := ingressForName(r, "test-unprivileged")
 			o.Expect(ingress).To(o.BeNil())

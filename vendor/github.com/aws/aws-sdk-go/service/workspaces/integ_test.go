@@ -27,7 +27,9 @@ func TestInteg_00_DescribeWorkspaces(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := workspaces.New(sess)
 	params := &workspaces.DescribeWorkspacesInput{}
-	_, err := svc.DescribeWorkspacesWithContext(ctx, params)
+	_, err := svc.DescribeWorkspacesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DescribeWorkspaces(t *testing.T) {
 	params := &workspaces.DescribeWorkspacesInput{
 		DirectoryId: aws.String("fake-id"),
 	}
-	_, err := svc.DescribeWorkspacesWithContext(ctx, params)
+	_, err := svc.DescribeWorkspacesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

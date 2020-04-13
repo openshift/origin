@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	encryptiondeployer "github.com/openshift/library-go/pkg/operator/encryption/deployer"
 	"github.com/openshift/library-go/pkg/operator/encryption/secrets"
 	encryptiontesting "github.com/openshift/library-go/pkg/operator/encryption/testing"
@@ -638,10 +640,12 @@ func TestMigrationController(t *testing.T) {
 				ensureReplies: scenario.migratorEnsureReplies,
 				pruneReplies:  scenario.migratorPruneReplies,
 			}
+			provider := newTestProvider(scenario.targetGRs)
 
 			// act
 			target := NewMigrationController(
 				"kms",
+				provider,
 				deployer,
 				migrator,
 				fakeOperatorClient,
@@ -649,9 +653,8 @@ func TestMigrationController(t *testing.T) {
 				fakeSecretClient,
 				scenario.encryptionSecretSelector,
 				eventRecorder,
-				scenario.targetGRs,
 			)
-			err = target.sync()
+			err = target.Sync(context.TODO(), factory.NewSyncContext("test", eventRecorder))
 
 			// validate
 			if err == nil && scenario.expectedError != nil {
@@ -745,6 +748,14 @@ type fakeMigrator struct {
 	pruneReplies  map[schema.GroupResource]error
 }
 
+func (m *fakeMigrator) AddEventHandler(handler cache.ResourceEventHandler) {
+	return
+}
+
+func (m *fakeMigrator) HasSynced() bool {
+	return true
+}
+
 func (m *fakeMigrator) EnsureMigration(gr schema.GroupResource, writeKey string) (finished bool, result error, ts time.Time, err error) {
 	m.calls = append(m.calls, fmt.Sprintf("ensure:%s:%s", gr, writeKey))
 	r := m.ensureReplies[gr][writeKey]
@@ -754,8 +765,4 @@ func (m *fakeMigrator) EnsureMigration(gr schema.GroupResource, writeKey string)
 func (m *fakeMigrator) PruneMigration(gr schema.GroupResource) error {
 	m.calls = append(m.calls, fmt.Sprintf("prune:%s", gr))
 	return m.pruneReplies[gr]
-}
-
-func (m *fakeMigrator) AddEventHandler(handler cache.ResourceEventHandler) []cache.InformerSynced {
-	return nil
 }

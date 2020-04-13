@@ -39,12 +39,11 @@ func init() {
 	flag.StringVar(&accountID, "account", "",
 		"The AWS account `ID`.",
 	)
-	flag.Parse()
 }
 
 func TestMain(m *testing.M) {
 	setup()
-
+	flag.Parse()
 	os.Exit(m.Run())
 }
 

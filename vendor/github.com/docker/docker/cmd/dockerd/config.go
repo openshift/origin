@@ -12,13 +12,23 @@ import (
 const (
 	// defaultShutdownTimeout is the default shutdown timeout for the daemon
 	defaultShutdownTimeout = 15
-	// defaultTrustKeyFile is the default filename for the trust key
-	defaultTrustKeyFile = "key.json"
 )
 
 // installCommonConfigFlags adds flags to the pflag.FlagSet to configure the daemon
-func installCommonConfigFlags(conf *config.Config, flags *pflag.FlagSet) {
+func installCommonConfigFlags(conf *config.Config, flags *pflag.FlagSet) error {
 	var maxConcurrentDownloads, maxConcurrentUploads int
+	defaultPidFile, err := getDefaultPidFile()
+	if err != nil {
+		return err
+	}
+	defaultDataRoot, err := getDefaultDataRoot()
+	if err != nil {
+		return err
+	}
+	defaultExecRoot, err := getDefaultExecRoot()
+	if err != nil {
+		return err
+	}
 
 	installRegistryServiceFlags(&conf.ServiceOptions, flags)
 
@@ -29,6 +39,7 @@ func installCommonConfigFlags(conf *config.Config, flags *pflag.FlagSet) {
 	flags.StringVarP(&conf.Root, "graph", "g", defaultDataRoot, "Root of the Docker runtime")
 	flags.StringVar(&conf.ExecRoot, "exec-root", defaultExecRoot, "Root directory for execution state files")
 	flags.StringVar(&conf.ContainerdAddr, "containerd", "", "containerd grpc address")
+	flags.BoolVar(&conf.CriContainerd, "cri-containerd", false, "start containerd with cri")
 
 	// "--graph" is "soft-deprecated" in favor of "data-root". This flag was added
 	// before Docker 1.0, so won't be removed, only hidden, to discourage its usage.
@@ -64,22 +75,15 @@ func installCommonConfigFlags(conf *config.Config, flags *pflag.FlagSet) {
 
 	flags.StringVar(&conf.SwarmDefaultAdvertiseAddr, "swarm-default-advertise-addr", "", "Set default address or interface for swarm advertised address")
 	flags.BoolVar(&conf.Experimental, "experimental", false, "Enable experimental features")
-
 	flags.StringVar(&conf.MetricsAddress, "metrics-addr", "", "Set default address and port to serve the metrics api on")
 
 	flags.Var(opts.NewNamedListOptsRef("node-generic-resources", &conf.NodeGenericResources, opts.ValidateSingleGenericResource), "node-generic-resource", "Advertise user-defined resource")
 
 	flags.IntVar(&conf.NetworkControlPlaneMTU, "network-control-plane-mtu", config.DefaultNetworkMtu, "Network Control plane MTU")
 
-	// "--deprecated-key-path" is to allow configuration of the key used
-	// for the daemon ID and the deprecated image signing. It was never
-	// exposed as a command line option but is added here to allow
-	// overriding the default path in configuration.
-	flags.Var(opts.NewQuotedString(&conf.TrustKeyPath), "deprecated-key-path", "Path to key file for ID and image signing")
-	flags.MarkHidden("deprecated-key-path")
-
 	conf.MaxConcurrentDownloads = &maxConcurrentDownloads
 	conf.MaxConcurrentUploads = &maxConcurrentUploads
+	return nil
 }
 
 func installRegistryServiceFlags(options *registry.ServiceOptions, flags *pflag.FlagSet) {
@@ -90,10 +94,4 @@ func installRegistryServiceFlags(options *registry.ServiceOptions, flags *pflag.
 	flags.Var(ana, "allow-nondistributable-artifacts", "Allow push of nondistributable artifacts to registry")
 	flags.Var(mirrors, "registry-mirror", "Preferred Docker registry mirror")
 	flags.Var(insecureRegistries, "insecure-registry", "Enable insecure registry communication")
-
-	if runtime.GOOS != "windows" {
-		// TODO: Remove this flag after 3 release cycles (18.03)
-		flags.BoolVar(&options.V2Only, "disable-legacy-registry", true, "Disable contacting legacy registries")
-		flags.MarkHidden("disable-legacy-registry")
-	}
 }

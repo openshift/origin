@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "endpointset.go",
         "endpointslice_controller.go",
+        "endpointslice_tracker.go",
         "reconciler.go",
         "utils.go",
     ],
@@ -49,6 +50,7 @@ go_test(
     name = "go_default_test",
     srcs = [
         "endpointslice_controller_test.go",
+        "endpointslice_tracker_test.go",
         "reconciler_test.go",
         "utils_test.go",
     ],
@@ -70,8 +72,7 @@ go_test(
         "//staging/src/k8s.io/client-go/listers/core/v1:go_default_library",
         "//staging/src/k8s.io/client-go/testing:go_default_library",
         "//staging/src/k8s.io/client-go/tools/cache:go_default_library",
-        "//staging/src/k8s.io/component-base/metrics:go_default_library",
-        "//vendor/github.com/prometheus/client_model/go:go_default_library",
+        "//staging/src/k8s.io/component-base/metrics/testutil:go_default_library",
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/k8s.io/utils/pointer:go_default_library",
     ],

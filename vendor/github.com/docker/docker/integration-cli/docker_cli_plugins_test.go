@@ -62,10 +62,10 @@ func (ps *DockerPluginSuite) TestPluginBasicOps(c *check.C) {
 func (ps *DockerPluginSuite) TestPluginForceRemove(c *check.C) {
 	pNameWithTag := ps.getPluginRepoWithTag()
 
-	out, _, err := dockerCmdWithError("plugin", "install", "--grant-all-permissions", pNameWithTag)
+	_, _, err := dockerCmdWithError("plugin", "install", "--grant-all-permissions", pNameWithTag)
 	c.Assert(err, checker.IsNil)
 
-	out, _, err = dockerCmdWithError("plugin", "remove", pNameWithTag)
+	out, _, _ := dockerCmdWithError("plugin", "remove", pNameWithTag)
 	c.Assert(out, checker.Contains, "is enabled")
 
 	out, _, err = dockerCmdWithError("plugin", "remove", "--force", pNameWithTag)
@@ -82,7 +82,7 @@ func (s *DockerSuite) TestPluginActive(c *check.C) {
 	_, _, err = dockerCmdWithError("volume", "create", "-d", pNameWithTag, "--name", "testvol1")
 	c.Assert(err, checker.IsNil)
 
-	out, _, err := dockerCmdWithError("plugin", "disable", pNameWithTag)
+	out, _, _ := dockerCmdWithError("plugin", "disable", pNameWithTag)
 	c.Assert(out, checker.Contains, "in use")
 
 	_, _, err = dockerCmdWithError("volume", "rm", "testvol1")
@@ -98,21 +98,21 @@ func (s *DockerSuite) TestPluginActive(c *check.C) {
 
 func (s *DockerSuite) TestPluginActiveNetwork(c *check.C) {
 	testRequires(c, DaemonIsLinux, IsAmd64, Network)
-	out, _, err := dockerCmdWithError("plugin", "install", "--grant-all-permissions", npNameWithTag)
+	_, _, err := dockerCmdWithError("plugin", "install", "--grant-all-permissions", npNameWithTag)
 	c.Assert(err, checker.IsNil)
 
-	out, _, err = dockerCmdWithError("network", "create", "-d", npNameWithTag, "test")
+	out, _, err := dockerCmdWithError("network", "create", "-d", npNameWithTag, "test")
 	c.Assert(err, checker.IsNil)
 
 	nID := strings.TrimSpace(out)
 
-	out, _, err = dockerCmdWithError("plugin", "remove", npNameWithTag)
+	out, _, _ = dockerCmdWithError("plugin", "remove", npNameWithTag)
 	c.Assert(out, checker.Contains, "is in use")
 
 	_, _, err = dockerCmdWithError("network", "rm", nID)
 	c.Assert(err, checker.IsNil)
 
-	out, _, err = dockerCmdWithError("plugin", "remove", npNameWithTag)
+	out, _, _ = dockerCmdWithError("plugin", "remove", npNameWithTag)
 	c.Assert(out, checker.Contains, "is enabled")
 
 	_, _, err = dockerCmdWithError("plugin", "disable", npNameWithTag)
@@ -400,7 +400,7 @@ func (ps *DockerPluginSuite) TestPluginIDPrefix(c *check.C) {
 	c.Assert(out, checker.Contains, "false")
 
 	// Remove
-	out, _, err = dockerCmdWithError("plugin", "remove", id[:5])
+	_, _, err = dockerCmdWithError("plugin", "remove", id[:5])
 	c.Assert(err, checker.IsNil)
 	// List returns none
 	out, _, err = dockerCmdWithError("plugin", "ls")
@@ -440,7 +440,7 @@ enabled: false`, id, name)
 }
 
 func (s *DockerSuite) TestPluginUpgrade(c *check.C) {
-	testRequires(c, DaemonIsLinux, Network, SameHostDaemon, IsAmd64, NotUserNamespace)
+	testRequires(c, DaemonIsLinux, Network, testEnv.IsLocalDaemon, IsAmd64, NotUserNamespace)
 	plugin := "cpuguy83/docker-volume-driver-plugin-local:latest"
 	pluginV2 := "cpuguy83/docker-volume-driver-plugin-local:v2"
 
@@ -449,7 +449,7 @@ func (s *DockerSuite) TestPluginUpgrade(c *check.C) {
 	dockerCmd(c, "run", "--rm", "-v", "bananas:/apple", "busybox", "sh", "-c", "touch /apple/core")
 
 	out, _, err := dockerCmdWithError("plugin", "upgrade", "--grant-all-permissions", plugin, pluginV2)
-	c.Assert(err, checker.NotNil, check.Commentf(out))
+	c.Assert(err, checker.NotNil, check.Commentf("%s", out))
 	c.Assert(out, checker.Contains, "disabled before upgrading")
 
 	out, _ = dockerCmd(c, "plugin", "inspect", "--format={{.ID}}", plugin)
@@ -457,7 +457,7 @@ func (s *DockerSuite) TestPluginUpgrade(c *check.C) {
 
 	// make sure "v2" does not exists
 	_, err = os.Stat(filepath.Join(testEnv.DaemonInfo.DockerRootDir, "plugins", id, "rootfs", "v2"))
-	c.Assert(os.IsNotExist(err), checker.True, check.Commentf(out))
+	c.Assert(os.IsNotExist(err), checker.True, check.Commentf("%s", out))
 
 	dockerCmd(c, "plugin", "disable", "-f", plugin)
 	dockerCmd(c, "plugin", "upgrade", "--grant-all-permissions", "--skip-remote-check", plugin, pluginV2)
@@ -472,7 +472,7 @@ func (s *DockerSuite) TestPluginUpgrade(c *check.C) {
 }
 
 func (s *DockerSuite) TestPluginMetricsCollector(c *check.C) {
-	testRequires(c, DaemonIsLinux, Network, SameHostDaemon, IsAmd64)
+	testRequires(c, DaemonIsLinux, Network, testEnv.IsLocalDaemon, IsAmd64)
 	d := daemon.New(c, dockerBinary, dockerdBinary)
 	d.Start(c)
 	defer d.Stop(c)

@@ -1,6 +1,7 @@
 package images
 
 import (
+	"context"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
@@ -17,7 +18,7 @@ import (
 )
 
 func cliPodWithPullSecret(cli *exutil.CLI, shell string) *kapiv1.Pod {
-	sa, err := cli.KubeClient().CoreV1().ServiceAccounts(cli.Namespace()).Get("builder", metav1.GetOptions{})
+	sa, err := cli.KubeClient().CoreV1().ServiceAccounts(cli.Namespace()).Get(context.Background(), "builder", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(sa.ImagePullSecrets).NotTo(o.BeEmpty())
 	pullSecretName := sa.ImagePullSecrets[0].Name
@@ -78,10 +79,10 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		}
 	})
 
-	oc = exutil.NewCLI("image-append", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("image-append")
 
 	g.It("should create images by appending them", func() {
-		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get("php", metav1.GetOptions{})
+		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "php", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty(), "registry not yet configured?")
 		registry := strings.Split(is.Status.DockerImageRepository, "/")[0]
@@ -113,7 +114,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		`, ns, registry)))
 		cli.WaitForSuccess(pod.Name, podStartupTimeout)
 
-		istag, err := oc.ImageClient().ImageV1().ImageStreamTags(ns).Get("test:scratch1", metav1.GetOptions{})
+		istag, err := oc.ImageClient().ImageV1().ImageStreamTags(ns).Get(context.Background(), "test:scratch1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
 
@@ -125,12 +126,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Cmd).To(o.Equal([]string{"/bin/sleep"}))
 
-		istag2, err := oc.ImageClient().ImageV1().ImageStreamTags(ns).Get("test:scratch2", metav1.GetOptions{})
+		istag2, err := oc.ImageClient().ImageV1().ImageStreamTags(ns).Get(context.Background(), "test:scratch2", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag2.Image).NotTo(o.BeNil())
 		o.Expect(istag2.Image.Name).To(o.Equal(istag.Image.Name))
 
-		istag, err = oc.ImageClient().ImageV1().ImageStreamTags(ns).Get("test:busybox1", metav1.GetOptions{})
+		istag, err = oc.ImageClient().ImageV1().ImageStreamTags(ns).Get(context.Background(), "test:busybox1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
 		imageutil.ImageWithMetadataOrDie(&istag.Image)
@@ -141,7 +142,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Cmd).To(o.Equal([]string{"/bin/sleep"}))
 		busyboxLayer := istag.Image.DockerImageLayers[0].Name
 
-		istag, err = oc.ImageClient().ImageV1().ImageStreamTags(ns).Get("test:busybox2", metav1.GetOptions{})
+		istag, err = oc.ImageClient().ImageV1().ImageStreamTags(ns).Get(context.Background(), "test:busybox2", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
 		imageutil.ImageWithMetadataOrDie(&istag.Image)

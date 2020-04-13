@@ -11,11 +11,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/manifestlist"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/registry/client/transport"
 	"github.com/docker/docker/pkg/system"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -62,24 +64,30 @@ func (ld *v2LayerDescriptor) open(ctx context.Context) (distribution.ReadSeekClo
 	return rsc, err
 }
 
-func filterManifests(manifests []manifestlist.ManifestDescriptor, os string) []manifestlist.ManifestDescriptor {
-	osVersion := ""
-	if os == "windows" {
-		version := system.GetOSVersion()
-		osVersion = fmt.Sprintf("%d.%d.%d", version.MajorVersion, version.MinorVersion, version.Build)
-		logrus.Debugf("will prefer entries with version %s", osVersion)
-	}
+func filterManifests(manifests []manifestlist.ManifestDescriptor, p specs.Platform) []manifestlist.ManifestDescriptor {
+	version := system.GetOSVersion()
+	osVersion := fmt.Sprintf("%d.%d.%d", version.MajorVersion, version.MinorVersion, version.Build)
+	logrus.Debugf("will prefer Windows entries with version %s", osVersion)
 
 	var matches []manifestlist.ManifestDescriptor
+	foundWindowsMatch := false
 	for _, manifestDescriptor := range manifests {
-		if manifestDescriptor.Platform.Architecture == runtime.GOARCH && manifestDescriptor.Platform.OS == os {
+		if (manifestDescriptor.Platform.Architecture == runtime.GOARCH) &&
+			((p.OS != "" && manifestDescriptor.Platform.OS == p.OS) || // Explicit user request for an OS we know we support
+				(p.OS == "" && system.IsOSSupported(manifestDescriptor.Platform.OS))) { // No user requested OS, but one we can support
+			if strings.EqualFold("windows", manifestDescriptor.Platform.OS) {
+				if err := checkImageCompatibility("windows", manifestDescriptor.Platform.OSVersion); err != nil {
+					continue
+				}
+				foundWindowsMatch = true
+			}
 			matches = append(matches, manifestDescriptor)
-			logrus.Debugf("found match for %s/%s %s with media type %s, digest %s", os, runtime.GOARCH, manifestDescriptor.Platform.OSVersion, manifestDescriptor.MediaType, manifestDescriptor.Digest.String())
+			logrus.Debugf("found match %s/%s %s with media type %s, digest %s", manifestDescriptor.Platform.OS, runtime.GOARCH, manifestDescriptor.Platform.OSVersion, manifestDescriptor.MediaType, manifestDescriptor.Digest.String())
 		} else {
-			logrus.Debugf("ignoring %s/%s %s with media type %s, digest %s", os, runtime.GOARCH, manifestDescriptor.Platform.OSVersion, manifestDescriptor.MediaType, manifestDescriptor.Digest.String())
+			logrus.Debugf("ignoring %s/%s %s with media type %s, digest %s", manifestDescriptor.Platform.OS, manifestDescriptor.Platform.Architecture, manifestDescriptor.Platform.OSVersion, manifestDescriptor.MediaType, manifestDescriptor.Digest.String())
 		}
 	}
-	if os == "windows" {
+	if foundWindowsMatch {
 		sort.Stable(manifestsByVersion{osVersion, matches})
 	}
 	return matches
@@ -99,7 +107,8 @@ func (mbv manifestsByVersion) Less(i, j int) bool {
 	// TODO: Split version by parts and compare
 	// TODO: Prefer versions which have a greater version number
 	// Move compatible versions to the top, with no other ordering changes
-	return versionMatch(mbv.list[i].Platform.OSVersion, mbv.version) && !versionMatch(mbv.list[j].Platform.OSVersion, mbv.version)
+	return (strings.EqualFold("windows", mbv.list[i].Platform.OS) && !strings.EqualFold("windows", mbv.list[j].Platform.OS)) ||
+		(versionMatch(mbv.list[i].Platform.OSVersion, mbv.version) && !versionMatch(mbv.list[j].Platform.OSVersion, mbv.version))
 }
 
 func (mbv manifestsByVersion) Len() int {
@@ -127,4 +136,11 @@ func checkImageCompatibility(imageOS, imageOSVersion string) error {
 		}
 	}
 	return nil
+}
+
+func formatPlatform(platform specs.Platform) string {
+	if platform.OS == "" {
+		platform = platforms.DefaultSpec()
+	}
+	return fmt.Sprintf("%s %s", platforms.Format(platform), system.GetOSVersion().ToString())
 }

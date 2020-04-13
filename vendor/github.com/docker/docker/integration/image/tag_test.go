@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/docker/docker/internal/test/request"
 	"github.com/docker/docker/internal/testutil"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+	"gotest.tools/skip"
 )
 
 // tagging a named image in a new unprefixed repo should work
 func TestTagUnprefixedRepoByNameOrName(t *testing.T) {
 	defer setupTest(t)()
-	client := request.NewAPIClient(t)
+	client := testEnv.APIClient()
 	ctx := context.Background()
 
 	// By name
@@ -32,7 +32,7 @@ func TestTagUnprefixedRepoByNameOrName(t *testing.T) {
 // TODO (yongtang): Migrate to unit tests
 func TestTagInvalidReference(t *testing.T) {
 	defer setupTest(t)()
-	client := request.NewAPIClient(t)
+	client := testEnv.APIClient()
 	ctx := context.Background()
 
 	invalidRepos := []string{"fo$z$", "Foo@3cc", "Foo$3", "Foo*3", "Fo^3", "Foo!3", "F)xcz(", "fo%asd", "FOO/bar"}
@@ -71,7 +71,7 @@ func TestTagInvalidReference(t *testing.T) {
 // ensure we allow the use of valid tags
 func TestTagValidPrefixedRepo(t *testing.T) {
 	defer setupTest(t)()
-	client := request.NewAPIClient(t)
+	client := testEnv.APIClient()
 	ctx := context.Background()
 
 	validRepos := []string{"fooo/bar", "fooaa/test", "foooo:t", "HOSTNAME.DOMAIN.COM:443/foo/bar"}
@@ -85,7 +85,7 @@ func TestTagValidPrefixedRepo(t *testing.T) {
 // tag an image with an existed tag name without -f option should work
 func TestTagExistedNameWithoutForce(t *testing.T) {
 	defer setupTest(t)()
-	client := request.NewAPIClient(t)
+	client := testEnv.APIClient()
 	ctx := context.Background()
 
 	err := client.ImageTag(ctx, "busybox:latest", "busybox:test")
@@ -95,8 +95,9 @@ func TestTagExistedNameWithoutForce(t *testing.T) {
 // ensure tagging using official names works
 // ensure all tags result in the same name
 func TestTagOfficialNames(t *testing.T) {
+	skip.If(t, testEnv.OSType == "windows")
 	defer setupTest(t)()
-	client := request.NewAPIClient(t)
+	client := testEnv.APIClient()
 	ctx := context.Background()
 
 	names := []string{
@@ -126,7 +127,7 @@ func TestTagOfficialNames(t *testing.T) {
 // ensure tags can not match digests
 func TestTagMatchesDigest(t *testing.T) {
 	defer setupTest(t)()
-	client := request.NewAPIClient(t)
+	client := testEnv.APIClient()
 	ctx := context.Background()
 
 	digest := "busybox@sha256:abcdef76720241213f5303bda7704ec4c2ef75613173910a56fb1b6e20251507"

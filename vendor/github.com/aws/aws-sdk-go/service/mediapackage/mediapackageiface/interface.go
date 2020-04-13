@@ -64,6 +64,10 @@ type MediaPackageAPI interface {
 	CreateChannelWithContext(aws.Context, *mediapackage.CreateChannelInput, ...request.Option) (*mediapackage.CreateChannelOutput, error)
 	CreateChannelRequest(*mediapackage.CreateChannelInput) (*request.Request, *mediapackage.CreateChannelOutput)
 
+	CreateHarvestJob(*mediapackage.CreateHarvestJobInput) (*mediapackage.CreateHarvestJobOutput, error)
+	CreateHarvestJobWithContext(aws.Context, *mediapackage.CreateHarvestJobInput, ...request.Option) (*mediapackage.CreateHarvestJobOutput, error)
+	CreateHarvestJobRequest(*mediapackage.CreateHarvestJobInput) (*request.Request, *mediapackage.CreateHarvestJobOutput)
+
 	CreateOriginEndpoint(*mediapackage.CreateOriginEndpointInput) (*mediapackage.CreateOriginEndpointOutput, error)
 	CreateOriginEndpointWithContext(aws.Context, *mediapackage.CreateOriginEndpointInput, ...request.Option) (*mediapackage.CreateOriginEndpointOutput, error)
 	CreateOriginEndpointRequest(*mediapackage.CreateOriginEndpointInput) (*request.Request, *mediapackage.CreateOriginEndpointOutput)
@@ -80,6 +84,10 @@ type MediaPackageAPI interface {
 	DescribeChannelWithContext(aws.Context, *mediapackage.DescribeChannelInput, ...request.Option) (*mediapackage.DescribeChannelOutput, error)
 	DescribeChannelRequest(*mediapackage.DescribeChannelInput) (*request.Request, *mediapackage.DescribeChannelOutput)
 
+	DescribeHarvestJob(*mediapackage.DescribeHarvestJobInput) (*mediapackage.DescribeHarvestJobOutput, error)
+	DescribeHarvestJobWithContext(aws.Context, *mediapackage.DescribeHarvestJobInput, ...request.Option) (*mediapackage.DescribeHarvestJobOutput, error)
+	DescribeHarvestJobRequest(*mediapackage.DescribeHarvestJobInput) (*request.Request, *mediapackage.DescribeHarvestJobOutput)
+
 	DescribeOriginEndpoint(*mediapackage.DescribeOriginEndpointInput) (*mediapackage.DescribeOriginEndpointOutput, error)
 	DescribeOriginEndpointWithContext(aws.Context, *mediapackage.DescribeOriginEndpointInput, ...request.Option) (*mediapackage.DescribeOriginEndpointOutput, error)
 	DescribeOriginEndpointRequest(*mediapackage.DescribeOriginEndpointInput) (*request.Request, *mediapackage.DescribeOriginEndpointOutput)
@@ -91,12 +99,23 @@ type MediaPackageAPI interface {
 	ListChannelsPages(*mediapackage.ListChannelsInput, func(*mediapackage.ListChannelsOutput, bool) bool) error
 	ListChannelsPagesWithContext(aws.Context, *mediapackage.ListChannelsInput, func(*mediapackage.ListChannelsOutput, bool) bool, ...request.Option) error
 
+	ListHarvestJobs(*mediapackage.ListHarvestJobsInput) (*mediapackage.ListHarvestJobsOutput, error)
+	ListHarvestJobsWithContext(aws.Context, *mediapackage.ListHarvestJobsInput, ...request.Option) (*mediapackage.ListHarvestJobsOutput, error)
+	ListHarvestJobsRequest(*mediapackage.ListHarvestJobsInput) (*request.Request, *mediapackage.ListHarvestJobsOutput)
+
+	ListHarvestJobsPages(*mediapackage.ListHarvestJobsInput, func(*mediapackage.ListHarvestJobsOutput, bool) bool) error
+	ListHarvestJobsPagesWithContext(aws.Context, *mediapackage.ListHarvestJobsInput, func(*mediapackage.ListHarvestJobsOutput, bool) bool, ...request.Option) error
+
 	ListOriginEndpoints(*mediapackage.ListOriginEndpointsInput) (*mediapackage.ListOriginEndpointsOutput, error)
 	ListOriginEndpointsWithContext(aws.Context, *mediapackage.ListOriginEndpointsInput, ...request.Option) (*mediapackage.ListOriginEndpointsOutput, error)
 	ListOriginEndpointsRequest(*mediapackage.ListOriginEndpointsInput) (*request.Request, *mediapackage.ListOriginEndpointsOutput)
 
 	ListOriginEndpointsPages(*mediapackage.ListOriginEndpointsInput, func(*mediapackage.ListOriginEndpointsOutput, bool) bool) error
 	ListOriginEndpointsPagesWithContext(aws.Context, *mediapackage.ListOriginEndpointsInput, func(*mediapackage.ListOriginEndpointsOutput, bool) bool, ...request.Option) error
+
+	ListTagsForResource(*mediapackage.ListTagsForResourceInput) (*mediapackage.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *mediapackage.ListTagsForResourceInput, ...request.Option) (*mediapackage.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*mediapackage.ListTagsForResourceInput) (*request.Request, *mediapackage.ListTagsForResourceOutput)
 
 	RotateChannelCredentials(*mediapackage.RotateChannelCredentialsInput) (*mediapackage.RotateChannelCredentialsOutput, error)
 	RotateChannelCredentialsWithContext(aws.Context, *mediapackage.RotateChannelCredentialsInput, ...request.Option) (*mediapackage.RotateChannelCredentialsOutput, error)
@@ -105,6 +124,14 @@ type MediaPackageAPI interface {
 	RotateIngestEndpointCredentials(*mediapackage.RotateIngestEndpointCredentialsInput) (*mediapackage.RotateIngestEndpointCredentialsOutput, error)
 	RotateIngestEndpointCredentialsWithContext(aws.Context, *mediapackage.RotateIngestEndpointCredentialsInput, ...request.Option) (*mediapackage.RotateIngestEndpointCredentialsOutput, error)
 	RotateIngestEndpointCredentialsRequest(*mediapackage.RotateIngestEndpointCredentialsInput) (*request.Request, *mediapackage.RotateIngestEndpointCredentialsOutput)
+
+	TagResource(*mediapackage.TagResourceInput) (*mediapackage.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *mediapackage.TagResourceInput, ...request.Option) (*mediapackage.TagResourceOutput, error)
+	TagResourceRequest(*mediapackage.TagResourceInput) (*request.Request, *mediapackage.TagResourceOutput)
+
+	UntagResource(*mediapackage.UntagResourceInput) (*mediapackage.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *mediapackage.UntagResourceInput, ...request.Option) (*mediapackage.UntagResourceOutput, error)
+	UntagResourceRequest(*mediapackage.UntagResourceInput) (*request.Request, *mediapackage.UntagResourceOutput)
 
 	UpdateChannel(*mediapackage.UpdateChannelInput) (*mediapackage.UpdateChannelOutput, error)
 	UpdateChannelWithContext(aws.Context, *mediapackage.UpdateChannelInput, ...request.Option) (*mediapackage.UpdateChannelOutput, error)

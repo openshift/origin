@@ -22,11 +22,11 @@ import (
 var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("etcd-storage-path", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("etcd-storage-path").AsAdmin()
 
 	_ = g.It("should be stored at the correct location and version for all resources [Serial]", func() {
 		ctx, cancel := context.WithCancel(context.Background())
-		cmd := exec.CommandContext(ctx, "oc", "port-forward", "service/etcd", ":2379", "-n", "openshift-etcd", "--config", exutil.KubeConfigPath())
+		cmd := exec.CommandContext(ctx, "oc", "port-forward", "service/etcd", ":2379", "-n", "openshift-etcd")
 
 		defer func() {
 			cancel()
@@ -39,8 +39,9 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 		o.Expect(cmd.Start()).NotTo(o.HaveOccurred())
 
 		scanner := bufio.NewScanner(stdOut)
-		o.Expect(scanner.Scan()).To(o.BeTrue())
+		scan := scanner.Scan()
 		o.Expect(scanner.Err()).NotTo(o.HaveOccurred())
+		o.Expect(scan).To(o.BeTrue())
 		output := scanner.Text()
 
 		port := strings.TrimSuffix(strings.TrimPrefix(output, "Forwarding from 127.0.0.1:"), " -> 2379")
@@ -48,9 +49,9 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 		o.Expect(err).NotTo(o.HaveOccurred(), "port forward output not in expected format: %s", output)
 
 		coreV1 := oc.AdminKubeClient().CoreV1()
-		etcdConfigMap, err := coreV1.ConfigMaps("openshift-config").Get("etcd-ca-bundle", metav1.GetOptions{})
+		etcdConfigMap, err := coreV1.ConfigMaps("openshift-config").Get(context.Background(), "etcd-ca-bundle", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		etcdSecret, err := coreV1.Secrets("openshift-config").Get("etcd-client", metav1.GetOptions{})
+		etcdSecret, err := coreV1.Secrets("openshift-config").Get(context.Background(), "etcd-client", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		tlsConfig, err := restclient.TLSConfigFor(&restclient.Config{

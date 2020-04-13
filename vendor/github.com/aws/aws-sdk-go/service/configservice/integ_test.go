@@ -27,7 +27,9 @@ func TestInteg_00_DescribeConfigurationRecorders(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := configservice.New(sess)
 	params := &configservice.DescribeConfigurationRecordersInput{}
-	_, err := svc.DescribeConfigurationRecordersWithContext(ctx, params)
+	_, err := svc.DescribeConfigurationRecordersWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -42,7 +44,9 @@ func TestInteg_01_GetResourceConfigHistory(t *testing.T) {
 		ResourceId:   aws.String("fake-id"),
 		ResourceType: aws.String("fake-type"),
 	}
-	_, err := svc.GetResourceConfigHistoryWithContext(ctx, params)
+	_, err := svc.GetResourceConfigHistoryWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

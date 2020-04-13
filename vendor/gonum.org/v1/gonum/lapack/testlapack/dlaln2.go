@@ -97,17 +97,17 @@ func testDlaln2(t *testing.T, impl Dlaln2er, trans bool, na, nw, extra int, rnd 
 	// Compute a complex matrix
 	//  M := ca * A - w * D
 	// or
-	//  M := ca * A^T - w * D.
+	//  M := ca * Aᵀ - w * D.
 	m := make([]complex128, na*na)
 	if trans {
-		// M = ca * A^T
+		// M = ca * Aᵀ
 		for i := 0; i < na; i++ {
 			for j := 0; j < na; j++ {
 				m[i*na+j] = complex(ca*a.Data[j*a.Stride+i], 0)
 			}
 		}
 	} else {
-		// M = ca * A^T
+		// M = ca * Aᵀ
 		for i := 0; i < na; i++ {
 			for j := 0; j < na; j++ {
 				m[i*na+j] = complex(ca*a.Data[i*a.Stride+j], 0)

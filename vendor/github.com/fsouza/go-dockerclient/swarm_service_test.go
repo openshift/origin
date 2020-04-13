@@ -484,7 +484,7 @@ func TestGetServiceLogs(t *testing.T) {
 }
 
 func TestGetServicetLogsNilStdoutDoesntFail(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		prefix := []byte{1, 0, 0, 0, 0, 0, 0, 19}
 		w.Write(prefix)
 		w.Write([]byte("something happened!"))
@@ -506,7 +506,7 @@ func TestGetServicetLogsNilStdoutDoesntFail(t *testing.T) {
 }
 
 func TestGetServiceLogsNilStderrDoesntFail(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		prefix := []byte{2, 0, 0, 0, 0, 0, 0, 19}
 		w.Write(prefix)
 		w.Write([]byte("something happened!"))
@@ -577,7 +577,7 @@ func TestGetServiceLogsSpecifyingTail(t *testing.T) {
 }
 
 func TestGetServiceLogsRawTerminal(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("something happened!"))
 	}))
 	defer server.Close()

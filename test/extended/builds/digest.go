@@ -1,22 +1,23 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] completed builds should have digest of the image in their status", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status", func() {
 	defer g.GinkgoRecover()
 	var (
 		imageStreamFixture = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")
 		stiBuildFixture    = exutil.FixturePath("testdata", "builds", "test-s2i-build.json")
 		dockerBuildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build.json")
-		oc                 = exutil.NewCLI("build-sti-labels", exutil.KubeConfigPath())
+		oc                 = exutil.NewCLI("build-sti-labels")
 	)
 
 	g.Context("", func() {
@@ -74,7 +75,7 @@ func testBuildDigest(oc *exutil.CLI, buildFixture string, buildLogLevel uint) {
 		g.By("checking that the image digest has been saved to the build status")
 		o.Expect(br.Build.Status.Output.To).NotTo(o.BeNil())
 
-		ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("test:latest", v1.GetOptions{})
+		ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "test:latest", v1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(br.Build.Status.Output.To.ImageDigest).To(o.Equal(ist.Image.Name))
 	})

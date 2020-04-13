@@ -1,6 +1,7 @@
 package oauthserviceaccountclient
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -578,7 +579,7 @@ func TestGetClient(t *testing.T) {
 			grantMethod:   oauthv1.GrantHandlerPrompt,
 			decoder:       codecFactory.UniversalDecoder(),
 		}
-		client, err := getter.Get(tc.clientName, metav1.GetOptions{})
+		client, err := getter.Get(context.TODO(), tc.clientName, metav1.GetOptions{})
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:
 		case len(tc.expectedErr) == 0 && err != nil,
@@ -625,7 +626,7 @@ type fakeDelegate struct {
 	called bool
 }
 
-func (d *fakeDelegate) Get(name string, options metav1.GetOptions) (*oauthv1.OAuthClient, error) {
+func (d *fakeDelegate) Get(ctx context.Context, name string, options metav1.GetOptions) (*oauthv1.OAuthClient, error) {
 	d.called = true
 	return nil, nil
 }
@@ -1049,7 +1050,7 @@ func TestGetRedirectURIs(t *testing.T) {
 		},
 	} {
 		a := buildRouteClient(test.routes)
-		uris, errs := a.redirectURIsFromRoutes(test.namespace, test.models.getNames())
+		uris, errs := a.redirectURIsFromRoutes(context.TODO(), test.namespace, test.models.getNames())
 		if len(errs) > 0 {
 			t.Errorf("%s: unexpected redirectURIsFromRoutes errors %v", test.name, errs)
 		}
@@ -1220,7 +1221,7 @@ func TestRedirectURIsFromRoutes(t *testing.T) {
 		},
 	} {
 		a := buildRouteClient(test.routes)
-		uris, errs := a.redirectURIsFromRoutes(test.namespace, test.names)
+		uris, errs := a.redirectURIsFromRoutes(context.TODO(), test.namespace, test.names)
 		if len(errs) > 0 {
 			t.Errorf("%s: unexpected redirectURIsFromRoutes errors %v", test.name, errs)
 		}

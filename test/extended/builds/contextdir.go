@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -12,11 +13,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] builds with a context directory", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context directory", func() {
 	defer g.GinkgoRecover()
 	var (
 		appFixture            = exutil.FixturePath("testdata", "builds", "test-context-build.json")
-		oc                    = exutil.NewCLI("contextdir", exutil.KubeConfigPath())
+		oc                    = exutil.NewCLI("contextdir")
 		s2iBuildConfigName    = "s2icontext"
 		s2iBuildName          = "s2icontext-1"
 		dcName                = "frontend"
@@ -83,7 +84,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] builds with a context dire
 				assertPageContent("Hello world!")
 
 				g.By("checking the pod count")
-				pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: dcLabel.String()})
+				pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: dcLabel.String()})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(pods.Items)).To(o.Equal(1))
 

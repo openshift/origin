@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/docker/distribution/context"
-	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/opencontainers/go-digest"
 )
@@ -155,18 +154,22 @@ func TestFileReaderSeek(t *testing.T) {
 // missing or zero-length remote file. While the file may not exist, the
 // reader should not error out on creation and should return 0-bytes from the
 // read method, with an io.EOF error.
-// Not.
-// This logic is defective by design. We have not seen such race conditions.
-// On the other hand, a situation where instead of a blob an empty response
-// is returned is quite common (if you allow blob deletion).
 func TestFileReaderNonExistentFile(t *testing.T) {
 	driver := inmemory.New()
-	_, err := newFileReader(context.Background(), driver, "/doesnotexist", 10)
-	if err == nil {
-		t.Fatal("unexpected successful result")
+	fr, err := newFileReader(context.Background(), driver, "/doesnotexist", 10)
+	if err != nil {
+		t.Fatalf("unexpected error initializing reader: %v", err)
 	}
-	if _, ok := err.(storagedriver.PathNotFoundError); !ok {
-		t.Fatalf("read on missing file should return storagedriver.PathNotFoundError, got %v", err)
+
+	var buf [1024]byte
+
+	n, err := fr.Read(buf[:])
+	if n != 0 {
+		t.Fatalf("non-zero byte read reported: %d != 0", n)
+	}
+
+	if err != io.EOF {
+		t.Fatalf("read on missing file should return io.EOF, got %v", err)
 	}
 }
 

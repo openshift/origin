@@ -27,7 +27,9 @@ func TestInteg_00_DescribeVoices(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := polly.New(sess)
 	params := &polly.DescribeVoicesInput{}
-	_, err := svc.DescribeVoicesWithContext(ctx, params)
+	_, err := svc.DescribeVoicesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

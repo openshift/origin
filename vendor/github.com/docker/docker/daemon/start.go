@@ -158,6 +158,7 @@ func (daemon *Daemon) containerStart(container *container.Container, checkpoint 
 
 	if resetRestartManager {
 		container.ResetRestartManager(true)
+		container.HasBeenManuallyStopped = false
 	}
 
 	if daemon.saveApparmorConfig(container); err != nil {
@@ -176,9 +177,22 @@ func (daemon *Daemon) containerStart(container *container.Container, checkpoint 
 		return err
 	}
 
-	err = daemon.containerd.Create(context.Background(), container.ID, spec, createOptions)
+	ctx := context.TODO()
+
+	err = daemon.containerd.Create(ctx, container.ID, spec, createOptions)
 	if err != nil {
-		return translateContainerdStartErr(container.Path, container.SetExitCode, err)
+		if errdefs.IsConflict(err) {
+			logrus.WithError(err).WithField("container", container.ID).Error("Container not cleaned up from containerd from previous run")
+			// best effort to clean up old container object
+			daemon.containerd.DeleteTask(ctx, container.ID)
+			if err := daemon.containerd.Delete(ctx, container.ID); err != nil && !errdefs.IsNotFound(err) {
+				logrus.WithError(err).WithField("container", container.ID).Error("Error cleaning up stale containerd container object")
+			}
+			err = daemon.containerd.Create(ctx, container.ID, spec, createOptions)
+		}
+		if err != nil {
+			return translateContainerdStartErr(container.Path, container.SetExitCode, err)
+		}
 	}
 
 	// TODO(mlaventure): we need to specify checkpoint options here
@@ -194,7 +208,6 @@ func (daemon *Daemon) containerStart(container *container.Container, checkpoint 
 	}
 
 	container.SetRunning(pid, true)
-	container.HasBeenManuallyStopped = false
 	container.HasBeenStartedBefore = true
 	daemon.setStateCounter(container)
 
@@ -216,7 +229,7 @@ func (daemon *Daemon) containerStart(container *container.Container, checkpoint 
 func (daemon *Daemon) Cleanup(container *container.Container) {
 	daemon.releaseNetwork(container)
 
-	if err := container.UnmountIpcMount(detachMounted); err != nil {
+	if err := container.UnmountIpcMount(); err != nil {
 		logrus.Warnf("%s cleanup: failed to unmount IPC: %s", container.ID, err)
 	}
 

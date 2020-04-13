@@ -1,6 +1,7 @@
 package v1helpers
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -43,7 +44,7 @@ func (fakeSharedIndexInformer) Run(stopCh <-chan struct{}) {
 }
 
 func (fakeSharedIndexInformer) HasSynced() bool {
-	panic("implement me")
+	return true
 }
 
 func (fakeSharedIndexInformer) LastSyncResourceVersion() string {
@@ -164,7 +165,7 @@ type fakeNodeLister struct {
 }
 
 func (n *fakeNodeLister) List(selector labels.Selector) ([]*corev1.Node, error) {
-	nodes, err := n.client.CoreV1().Nodes().List(metav1.ListOptions{LabelSelector: selector.String()})
+	nodes, err := n.client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		return nil, err
 	}
@@ -176,10 +177,6 @@ func (n *fakeNodeLister) List(selector labels.Selector) ([]*corev1.Node, error) 
 }
 
 func (n *fakeNodeLister) Get(name string) (*corev1.Node, error) {
-	panic("implement me")
-}
-
-func (n *fakeNodeLister) ListWithPredicate(predicate corev1listers.NodeConditionPredicate) ([]*corev1.Node, error) {
 	panic("implement me")
 }
 

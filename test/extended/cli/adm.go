@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"time"
@@ -21,14 +22,14 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	f.SkipNamespaceCreation = true
 	f.SkipPrivilegedPSPBinding = true
 
-	oc := exutil.NewCLIWithoutNamespace("oc-adm")
+	oc := exutil.NewCLIWithoutNamespace("oc-adm").AsAdmin()
 
 	g.It("oc adm node-logs", func() {
 		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc)).Execute()).To(o.Succeed())
 	})
 
 	g.It("oc adm node-logs --role=master --since=-2m", func() {
-		masters, err := oc.AdminKubeClient().CoreV1().Nodes().List(metav1.ListOptions{
+		masters, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: "node-role.kubernetes.io/master",
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -67,7 +68,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 })
 
 func randomNode(oc *exutil.CLI) string {
-	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(metav1.ListOptions{})
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return nodes.Items[rand.Intn(len(nodes.Items))].Name
 }

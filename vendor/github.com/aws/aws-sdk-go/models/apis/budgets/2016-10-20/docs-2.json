@@ -2,22 +2,27 @@
   "version": "2.0",
   "service": "<p>The AWS Budgets API enables you to use AWS Budgets to plan your service usage, service costs, and instance reservations. The API reference provides descriptions, syntax, and usage examples for each of the actions and data types for AWS Budgets. </p> <p>Budgets provide you with a way to see the following information:</p> <ul> <li> <p>How close your plan is to your budgeted amount or to the free tier limits</p> </li> <li> <p>Your usage-to-date, including how much you've used of your Reserved Instances (RIs)</p> </li> <li> <p>Your current estimated charges from AWS, and how much your predicted usage will accrue in charges by the end of the month</p> </li> <li> <p>How much of your budget has been used</p> </li> </ul> <p>AWS updates your budget status several times a day. Budgets track your unblended costs, subscriptions, refunds, and RIs. You can create the following types of budgets:</p> <ul> <li> <p> <b>Cost budgets</b> - Plan how much you want to spend on a service.</p> </li> <li> <p> <b>Usage budgets</b> - Plan how much you want to use one or more services.</p> </li> <li> <p> <b>RI utilization budgets</b> - Define a utilization threshold, and receive alerts when your RI usage falls below that threshold. This lets you see if your RIs are unused or under-utilized.</p> </li> <li> <p> <b>RI coverage budgets</b> - Define a coverage threshold, and receive alerts when the number of your instance hours that are covered by RIs fall below that threshold. This lets you see how much of your instance usage is covered by a reservation.</p> </li> </ul> <p>Service Endpoint</p> <p>The AWS Budgets API provides the following endpoint:</p> <ul> <li> <p>https://budgets.amazonaws.com</p> </li> </ul> <p>For information about costs that are associated with the AWS Budgets API, see <a href=\"https://aws.amazon.com/aws-cost-management/pricing/\">AWS Cost Management Pricing</a>.</p>",
   "operations": {
-    "CreateBudget": "<p>Creates a budget and, if included, notifications and subscribers. </p>",
+    "CreateBudget": "<p>Creates a budget and, if included, notifications and subscribers. </p> <important> <p>Only one of <code>BudgetLimit</code> or <code>PlannedBudgetLimits</code> can be present in the syntax at one time. Use the syntax that matches your case. The Request Syntax section shows the <code>BudgetLimit</code> syntax. For <code>PlannedBudgetLimits</code>, see the <a href=\"https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_budgets_CreateBudget.html#API_CreateBudget_Examples\">Examples</a> section. </p> </important>",
     "CreateNotification": "<p>Creates a notification. You must create the budget before you create the associated notification.</p>",
     "CreateSubscriber": "<p>Creates a subscriber. You must create the associated budget and notification before you create the subscriber.</p>",
     "DeleteBudget": "<p>Deletes a budget. You can delete your budget at any time.</p> <important> <p>Deleting a budget also deletes the notifications and subscribers that are associated with that budget.</p> </important>",
     "DeleteNotification": "<p>Deletes a notification.</p> <important> <p>Deleting a notification also deletes the subscribers that are associated with the notification.</p> </important>",
     "DeleteSubscriber": "<p>Deletes a subscriber.</p> <important> <p>Deleting the last subscriber to a notification also deletes the notification.</p> </important>",
-    "DescribeBudget": "<p>Describes a budget.</p>",
+    "DescribeBudget": "<p>Describes a budget.</p> <important> <p>The Request Syntax section shows the <code>BudgetLimit</code> syntax. For <code>PlannedBudgetLimits</code>, see the <a href=\"https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_budgets_DescribeBudget.html#API_DescribeBudget_Examples\">Examples</a> section. </p> </important>",
     "DescribeBudgetPerformanceHistory": "<p>Describes the history for <code>DAILY</code>, <code>MONTHLY</code>, and <code>QUARTERLY</code> budgets. Budget history isn't available for <code>ANNUAL</code> budgets.</p>",
-    "DescribeBudgets": "<p>Lists the budgets that are associated with an account.</p>",
+    "DescribeBudgets": "<p>Lists the budgets that are associated with an account.</p> <important> <p>The Request Syntax section shows the <code>BudgetLimit</code> syntax. For <code>PlannedBudgetLimits</code>, see the <a href=\"https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_budgets_DescribeBudgets.html#API_DescribeBudgets_Examples\">Examples</a> section. </p> </important>",
     "DescribeNotificationsForBudget": "<p>Lists the notifications that are associated with a budget.</p>",
     "DescribeSubscribersForNotification": "<p>Lists the subscribers that are associated with a notification.</p>",
-    "UpdateBudget": "<p>Updates a budget. You can change every part of a budget except for the <code>budgetName</code> and the <code>calculatedSpend</code>. When you modify a budget, the <code>calculatedSpend</code> drops to zero until AWS has new usage data to use for forecasting.</p>",
+    "UpdateBudget": "<p>Updates a budget. You can change every part of a budget except for the <code>budgetName</code> and the <code>calculatedSpend</code>. When you modify a budget, the <code>calculatedSpend</code> drops to zero until AWS has new usage data to use for forecasting.</p> <important> <p>Only one of <code>BudgetLimit</code> or <code>PlannedBudgetLimits</code> can be present in the syntax at one time. Use the syntax that matches your case. The Request Syntax section shows the <code>BudgetLimit</code> syntax. For <code>PlannedBudgetLimits</code>, see the <a href=\"https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_budgets_UpdateBudget.html#API_UpdateBudget_Examples\">Examples</a> section. </p> </important>",
     "UpdateNotification": "<p>Updates a notification.</p>",
     "UpdateSubscriber": "<p>Updates a subscriber.</p>"
   },
   "shapes": {
+    "AccessDeniedException": {
+      "base": "<p>You are not authorized to use this operation with the given parameters.</p>",
+      "refs": {
+      }
+    },
     "AccountId": {
       "base": "<p>The account ID of the user. It should be a 12-digit number.</p>",
       "refs": {
@@ -49,7 +54,7 @@
     "BudgetName": {
       "base": "<p> A string that represents the budget name. The \":\" and \"\\\" characters aren't allowed.</p>",
       "refs": {
-        "Budget$BudgetName": "<p>The name of a budget. The name must be unique within accounts. The <code>:</code> and <code>\\</code> characters aren't allowed in <code>BudgetName</code>.</p>",
+        "Budget$BudgetName": "<p>The name of a budget. The name must be unique within an account. The <code>:</code> and <code>\\</code> characters aren't allowed in <code>BudgetName</code>.</p>",
         "BudgetPerformanceHistory$BudgetName": null,
         "CreateNotificationRequest$BudgetName": "<p>The name of the budget that you want AWS to notify you about. Budget names must be unique within an account.</p>",
         "CreateSubscriberRequest$BudgetName": "<p>The name of the budget that you want to subscribe to. Budget names must be unique within an account.</p>",
@@ -73,7 +78,7 @@
     "BudgetType": {
       "base": "<p> The type of a budget. It must be one of the following types: </p> <p> <code>COST</code>, <code>USAGE</code>, <code>RI_UTILIZATION</code>, or <code>RI_COVERAGE</code>.</p>",
       "refs": {
-        "Budget$BudgetType": "<p>Whether this budget tracks monetary costs, usage, RI utilization, or RI coverage.</p>",
+        "Budget$BudgetType": "<p>Whether this budget tracks costs, usage, RI utilization, RI coverage, Savings Plans utilization, or Savings Plans coverage.</p>",
         "BudgetPerformanceHistory$BudgetType": null
       }
     },
@@ -110,14 +115,14 @@
     "CostFilters": {
       "base": "<p> A map that represents the cost filters that are applied to the budget.</p>",
       "refs": {
-        "Budget$CostFilters": "<p>The cost filters, such as service or region, that are applied to a budget.</p> <p>AWS Budgets supports the following services as a filter for RI budgets:</p> <ul> <li> <p>Amazon Elastic Compute Cloud - Compute</p> </li> <li> <p>Amazon Redshift</p> </li> <li> <p>Amazon Relational Database Service</p> </li> <li> <p>Amazon ElastiCache</p> </li> <li> <p>Amazon Elasticsearch Service</p> </li> </ul>",
+        "Budget$CostFilters": "<p>The cost filters, such as service or tag, that are applied to a budget.</p> <p>AWS Budgets supports the following services as a filter for RI budgets:</p> <ul> <li> <p>Amazon Elastic Compute Cloud - Compute</p> </li> <li> <p>Amazon Redshift</p> </li> <li> <p>Amazon Relational Database Service</p> </li> <li> <p>Amazon ElastiCache</p> </li> <li> <p>Amazon Elasticsearch Service</p> </li> </ul>",
         "BudgetPerformanceHistory$CostFilters": "<p>The history of the cost filters for a budget during the specified time period.</p>"
       }
     },
     "CostTypes": {
       "base": "<p>The types of cost that are included in a <code>COST</code> budget, such as tax and subscriptions.</p> <p> <code>USAGE</code>, <code>RI_UTILIZATION</code>, and <code>RI_COVERAGE</code> budgets do not have <code>CostTypes</code>.</p>",
       "refs": {
-        "Budget$CostTypes": "<p>The types of costs that are included in this <code>COST</code> budget.</p> <p> <code>USAGE</code>, <code>RI_UTILIZATION</code>, and <code>RI_COVERAGE</code> budgets do not have <code>CostTypes</code>.</p>",
+        "Budget$CostTypes": "<p>The types of costs that are included in this <code>COST</code> budget.</p> <p> <code>USAGE</code>, <code>RI_UTILIZATION</code>, <code>RI_COVERAGE</code>, <code>Savings_Plans_Utilization</code>, and <code>Savings_Plans_Coverage</code> budgets do not have <code>CostTypes</code>.</p>",
         "BudgetPerformanceHistory$CostTypes": "<p>The history of the cost types for a budget during the specified time period.</p>"
       }
     },
@@ -264,7 +269,8 @@
         "DescribeNotificationsForBudgetResponse$NextToken": "<p>The pagination token in the service response that indicates the next set of results that you can retrieve.</p>",
         "DescribeSubscribersForNotificationRequest$NextToken": "<p>The pagination token that you include in your request to indicate the next set of results that you want to retrieve.</p>",
         "DescribeSubscribersForNotificationResponse$NextToken": "<p>The pagination token in the service response that indicates the next set of results that you can retrieve.</p>",
-        "DimensionValues$member": null
+        "DimensionValues$member": null,
+        "PlannedBudgetLimits$key": null
       }
     },
     "GenericTimestamp": {
@@ -377,14 +383,21 @@
         "Spend$Amount": "<p>The cost or usage amount that is associated with a budget forecast, actual spend, or budget threshold.</p>"
       }
     },
+    "PlannedBudgetLimits": {
+      "base": null,
+      "refs": {
+        "Budget$PlannedBudgetLimits": "<p>A map containing multiple <code>BudgetLimit</code>, including current or future limits.</p> <p> <code>PlannedBudgetLimits</code> is available for cost or usage budget and supports monthly and quarterly <code>TimeUnit</code>. </p> <p>For monthly budgets, provide 12 months of <code>PlannedBudgetLimits</code> values. This must start from the current month and include the next 11 months. The <code>key</code> is the start of the month, <code>UTC</code> in epoch seconds. </p> <p>For quarterly budgets, provide 4 quarters of <code>PlannedBudgetLimits</code> value entries in standard calendar quarter increments. This must start from the current quarter and include the next 3 quarters. The <code>key</code> is the start of the quarter, <code>UTC</code> in epoch seconds. </p> <p>If the planned budget expires before 12 months for monthly or 4 quarters for quarterly, provide the <code>PlannedBudgetLimits</code> values only for the remaining periods.</p> <p>If the budget begins at a date in the future, provide <code>PlannedBudgetLimits</code> values from the start date of the budget. </p> <p>After all of the <code>BudgetLimit</code> values in <code>PlannedBudgetLimits</code> are used, the budget continues to use the last limit as the <code>BudgetLimit</code>. At that point, the planned budget provides the same experience as a fixed budget. </p> <p> <code>DescribeBudget</code> and <code>DescribeBudgets</code> response along with <code>PlannedBudgetLimits</code> will also contain <code>BudgetLimit</code> representing the current month or quarter limit present in <code>PlannedBudgetLimits</code>. This only applies to budgets created with <code>PlannedBudgetLimits</code>. Budgets created without <code>PlannedBudgetLimits</code> will only contain <code>BudgetLimit</code>, and no <code>PlannedBudgetLimits</code>.</p>"
+      }
+    },
     "Spend": {
       "base": "<p>The amount of cost or usage that is measured for a budget.</p> <p>For example, a <code>Spend</code> for <code>3 GB</code> of S3 usage would have the following parameters:</p> <ul> <li> <p>An <code>Amount</code> of <code>3</code> </p> </li> <li> <p>A <code>unit</code> of <code>GB</code> </p> </li> </ul>",
       "refs": {
-        "Budget$BudgetLimit": "<p>The total amount of cost, usage, RI utilization, or RI coverage that you want to track with your budget.</p> <p> <code>BudgetLimit</code> is required for cost or usage budgets, but optional for RI utilization or coverage budgets. RI utilization or coverage budgets default to <code>100</code>, which is the only valid value for RI utilization or coverage budgets.</p>",
+        "Budget$BudgetLimit": "<p>The total amount of cost, usage, RI utilization, RI coverage, Savings Plans utilization, or Savings Plans coverage that you want to track with your budget.</p> <p> <code>BudgetLimit</code> is required for cost or usage budgets, but optional for RI or Savings Plans utilization or coverage budgets. RI and Savings Plans utilization or coverage budgets default to <code>100</code>, which is the only valid value for RI or Savings Plans utilization or coverage budgets. You can't use <code>BudgetLimit</code> with <code>PlannedBudgetLimits</code> for <code>CreateBudget</code> and <code>UpdateBudget</code> actions. </p>",
         "BudgetedAndActualAmounts$BudgetedAmount": "<p>The amount of cost or usage that you created the budget for.</p>",
         "BudgetedAndActualAmounts$ActualAmount": "<p>Your actual costs or usage for a budget period.</p>",
         "CalculatedSpend$ActualSpend": "<p>The amount of cost, usage, or RI units that you have used.</p>",
-        "CalculatedSpend$ForecastedSpend": "<p>The amount of cost, usage, or RI units that you are forecasted to use.</p>"
+        "CalculatedSpend$ForecastedSpend": "<p>The amount of cost, usage, or RI units that you are forecasted to use.</p>",
+        "PlannedBudgetLimits$value": null
       }
     },
     "Subscriber": {
@@ -400,7 +413,7 @@
     "SubscriberAddress": {
       "base": "<p> A string that contains an email address or SNS topic for the subscriber's address.</p>",
       "refs": {
-        "Subscriber$Address": "<p>The address that AWS sends budget notifications to, either an SNS topic or an email.</p>"
+        "Subscriber$Address": "<p>The address that AWS sends budget notifications to, either an SNS topic or an email.</p> <p>When you create a subscriber, the value of <code>Address</code> can't contain line breaks.</p>"
       }
     },
     "Subscribers": {
@@ -434,7 +447,7 @@
     "TimeUnit": {
       "base": "<p> The time unit of the budget, such as MONTHLY or QUARTERLY.</p>",
       "refs": {
-        "Budget$TimeUnit": "<p>The length of time until a budget resets the actual and forecasted spend. <code>DAILY</code> is available only for <code>RI_UTILIZATION</code> and <code>RI_COVERAGE</code> budgets.</p>",
+        "Budget$TimeUnit": "<p>The length of time until a budget resets the actual and forecasted spend. <code>DAILY</code> is available only for <code>RI_UTILIZATION</code>, <code>RI_COVERAGE</code>, <code>Savings_Plans_Utilization</code>, and <code>Savings_Plans_Coverage</code> budgets.</p>",
         "BudgetPerformanceHistory$TimeUnit": null
       }
     },
@@ -477,6 +490,7 @@
     "errorMessage": {
       "base": "<p>The error message the exception carries.</p>",
       "refs": {
+        "AccessDeniedException$Message": null,
         "CreationLimitExceededException$Message": null,
         "DuplicateRecordException$Message": null,
         "ExpiredNextTokenException$Message": null,

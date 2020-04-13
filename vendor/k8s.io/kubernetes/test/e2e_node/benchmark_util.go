@@ -16,9 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e_node
+package e2enode
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -36,7 +37,9 @@ import (
 )
 
 const (
+	// TimeSeriesTag is the tag for time series.
 	TimeSeriesTag = "[Result:TimeSeries]"
+	// TimeSeriesEnd is the end tag for time series.
 	TimeSeriesEnd = "[Finish:TimeSeries]"
 )
 
@@ -154,7 +157,7 @@ func getThroughputPerfData(batchLag time.Duration, e2eLags []e2emetrics.PodLaten
 // name of the node, and the node capacities.
 func getTestNodeInfo(f *framework.Framework, testName, testDesc string) map[string]string {
 	nodeName := framework.TestContext.NodeName
-	node, err := f.ClientSet.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	node, err := f.ClientSet.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	framework.ExpectNoError(err)
 
 	cpu, ok := node.Status.Capacity[v1.ResourceCPU]

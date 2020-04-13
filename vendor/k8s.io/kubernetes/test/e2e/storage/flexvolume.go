@@ -25,10 +25,12 @@ import (
 
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/framework/volume"
@@ -63,8 +65,6 @@ func testFlexVolume(driver string, config volume.TestConfig, f *framework.Framew
 		},
 	}
 	volume.TestVolumeClient(f, config, nil, "" /* fsType */, tests)
-
-	volume.TestCleanup(f, config)
 }
 
 // installFlex installs the driver found at filePath on the node, and restarts
@@ -165,10 +165,10 @@ var _ = utils.SIGDescribe("Flexvolumes", func() {
 	var suffix string
 
 	ginkgo.BeforeEach(func() {
-		framework.SkipUnlessProviderIs("gce", "local")
-		framework.SkipUnlessMasterOSDistroIs("debian", "ubuntu", "gci", "custom")
-		framework.SkipUnlessNodeOSDistroIs("debian", "ubuntu", "gci", "custom")
-		framework.SkipUnlessSSHKeyPresent()
+		e2eskipper.SkipUnlessProviderIs("gce", "local")
+		e2eskipper.SkipUnlessMasterOSDistroIs("debian", "ubuntu", "gci", "custom")
+		e2eskipper.SkipUnlessNodeOSDistroIs("debian", "ubuntu", "gci", "custom")
+		e2eskipper.SkipUnlessSSHKeyPresent()
 
 		cs = f.ClientSet
 		ns = f.Namespace
@@ -176,9 +176,9 @@ var _ = utils.SIGDescribe("Flexvolumes", func() {
 		node, err = e2enode.GetRandomReadySchedulableNode(f.ClientSet)
 		framework.ExpectNoError(err)
 		config = volume.TestConfig{
-			Namespace:      ns.Name,
-			Prefix:         "flex",
-			ClientNodeName: node.Name,
+			Namespace:           ns.Name,
+			Prefix:              "flex",
+			ClientNodeSelection: e2epod.NodeSelection{Name: node.Name},
 		}
 		suffix = ns.Name
 	})
@@ -193,7 +193,7 @@ var _ = utils.SIGDescribe("Flexvolumes", func() {
 		testFlexVolume(driverInstallAs, config, f)
 
 		ginkgo.By("waiting for flex client pod to terminate")
-		if err := f.WaitForPodTerminated(config.Prefix+"-client", ""); !apierrs.IsNotFound(err) {
+		if err := f.WaitForPodTerminated(config.Prefix+"-client", ""); !apierrors.IsNotFound(err) {
 			framework.ExpectNoError(err, "Failed to wait client pod terminated: %v", err)
 		}
 
@@ -213,7 +213,7 @@ var _ = utils.SIGDescribe("Flexvolumes", func() {
 		testFlexVolume(driverInstallAs, config, f)
 
 		ginkgo.By("waiting for flex client pod to terminate")
-		if err := f.WaitForPodTerminated(config.Prefix+"-client", ""); !apierrs.IsNotFound(err) {
+		if err := f.WaitForPodTerminated(config.Prefix+"-client", ""); !apierrors.IsNotFound(err) {
 			framework.ExpectNoError(err, "Failed to wait client pod terminated: %v", err)
 		}
 

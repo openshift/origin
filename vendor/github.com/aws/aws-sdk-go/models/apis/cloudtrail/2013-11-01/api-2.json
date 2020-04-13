@@ -62,6 +62,7 @@
         {"shape":"InvalidCloudWatchLogsLogGroupArnException"},
         {"shape":"InvalidCloudWatchLogsRoleArnException"},
         {"shape":"CloudWatchLogsDeliveryUnavailableException"},
+        {"shape":"InvalidTagParameterException"},
         {"shape":"UnsupportedOperationException"},
         {"shape":"OperationNotPermittedException"},
         {"shape":"CloudTrailAccessNotEnabledException"},
@@ -101,7 +102,8 @@
       "output":{"shape":"DescribeTrailsResponse"},
       "errors":[
         {"shape":"UnsupportedOperationException"},
-        {"shape":"OperationNotPermittedException"}
+        {"shape":"OperationNotPermittedException"},
+        {"shape":"InvalidTrailNameException"}
       ],
       "idempotent":true
     },
@@ -121,6 +123,39 @@
       ],
       "idempotent":true
     },
+    "GetInsightSelectors":{
+      "name":"GetInsightSelectors",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetInsightSelectorsRequest"},
+      "output":{"shape":"GetInsightSelectorsResponse"},
+      "errors":[
+        {"shape":"TrailNotFoundException"},
+        {"shape":"InvalidTrailNameException"},
+        {"shape":"UnsupportedOperationException"},
+        {"shape":"OperationNotPermittedException"},
+        {"shape":"InsightNotEnabledException"}
+      ],
+      "idempotent":true
+    },
+    "GetTrail":{
+      "name":"GetTrail",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetTrailRequest"},
+      "output":{"shape":"GetTrailResponse"},
+      "errors":[
+        {"shape":"TrailNotFoundException"},
+        {"shape":"InvalidTrailNameException"},
+        {"shape":"UnsupportedOperationException"},
+        {"shape":"OperationNotPermittedException"}
+      ],
+      "idempotent":true
+    },
     "GetTrailStatus":{
       "name":"GetTrailStatus",
       "http":{
@@ -131,7 +166,9 @@
       "output":{"shape":"GetTrailStatusResponse"},
       "errors":[
         {"shape":"TrailNotFoundException"},
-        {"shape":"InvalidTrailNameException"}
+        {"shape":"InvalidTrailNameException"},
+        {"shape":"UnsupportedOperationException"},
+        {"shape":"OperationNotPermittedException"}
       ],
       "idempotent":true
     },
@@ -170,6 +207,20 @@
       ],
       "idempotent":true
     },
+    "ListTrails":{
+      "name":"ListTrails",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTrailsRequest"},
+      "output":{"shape":"ListTrailsResponse"},
+      "errors":[
+        {"shape":"UnsupportedOperationException"},
+        {"shape":"OperationNotPermittedException"}
+      ],
+      "idempotent":true
+    },
     "LookupEvents":{
       "name":"LookupEvents",
       "http":{
@@ -182,7 +233,10 @@
         {"shape":"InvalidLookupAttributesException"},
         {"shape":"InvalidTimeRangeException"},
         {"shape":"InvalidMaxResultsException"},
-        {"shape":"InvalidNextTokenException"}
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"InvalidEventCategoryException"},
+        {"shape":"UnsupportedOperationException"},
+        {"shape":"OperationNotPermittedException"}
       ],
       "idempotent":true
     },
@@ -203,6 +257,27 @@
         {"shape":"OperationNotPermittedException"},
         {"shape":"NotOrganizationMasterAccountException"},
         {"shape":"InsufficientDependencyServiceAccessPermissionException"}
+      ],
+      "idempotent":true
+    },
+    "PutInsightSelectors":{
+      "name":"PutInsightSelectors",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutInsightSelectorsRequest"},
+      "output":{"shape":"PutInsightSelectorsResponse"},
+      "errors":[
+        {"shape":"TrailNotFoundException"},
+        {"shape":"InvalidTrailNameException"},
+        {"shape":"InvalidHomeRegionException"},
+        {"shape":"InvalidInsightSelectorsException"},
+        {"shape":"InsufficientS3BucketPolicyException"},
+        {"shape":"InsufficientEncryptionPolicyException"},
+        {"shape":"UnsupportedOperationException"},
+        {"shape":"OperationNotPermittedException"},
+        {"shape":"NotOrganizationMasterAccountException"}
       ],
       "idempotent":true
     },
@@ -284,6 +359,7 @@
         {"shape":"InvalidKmsKeyIdException"},
         {"shape":"InvalidTrailNameException"},
         {"shape":"TrailNotProvidedException"},
+        {"shape":"InvalidEventSelectorsException"},
         {"shape":"InvalidParameterCombinationException"},
         {"shape":"InvalidHomeRegionException"},
         {"shape":"KmsKeyNotFoundException"},
@@ -354,7 +430,8 @@
         "CloudWatchLogsLogGroupArn":{"shape":"String"},
         "CloudWatchLogsRoleArn":{"shape":"String"},
         "KmsKeyId":{"shape":"String"},
-        "IsOrganizationTrail":{"shape":"Boolean"}
+        "IsOrganizationTrail":{"shape":"Boolean"},
+        "TagsList":{"shape":"TagsList"}
       }
     },
     "CreateTrailResponse":{
@@ -433,12 +510,17 @@
         "CloudTrailEvent":{"shape":"String"}
       }
     },
+    "EventCategory":{
+      "type":"string",
+      "enum":["insight"]
+    },
     "EventSelector":{
       "type":"structure",
       "members":{
         "ReadWriteType":{"shape":"ReadWriteType"},
         "IncludeManagementEvents":{"shape":"Boolean"},
-        "DataResources":{"shape":"DataResources"}
+        "DataResources":{"shape":"DataResources"},
+        "ExcludeManagementEventSources":{"shape":"ExcludeManagementEventSources"}
       }
     },
     "EventSelectors":{
@@ -448,6 +530,10 @@
     "EventsList":{
       "type":"list",
       "member":{"shape":"Event"}
+    },
+    "ExcludeManagementEventSources":{
+      "type":"list",
+      "member":{"shape":"String"}
     },
     "GetEventSelectorsRequest":{
       "type":"structure",
@@ -461,6 +547,33 @@
       "members":{
         "TrailARN":{"shape":"String"},
         "EventSelectors":{"shape":"EventSelectors"}
+      }
+    },
+    "GetInsightSelectorsRequest":{
+      "type":"structure",
+      "required":["TrailName"],
+      "members":{
+        "TrailName":{"shape":"String"}
+      }
+    },
+    "GetInsightSelectorsResponse":{
+      "type":"structure",
+      "members":{
+        "TrailARN":{"shape":"String"},
+        "InsightSelectors":{"shape":"InsightSelectors"}
+      }
+    },
+    "GetTrailRequest":{
+      "type":"structure",
+      "required":["Name"],
+      "members":{
+        "Name":{"shape":"String"}
+      }
+    },
+    "GetTrailResponse":{
+      "type":"structure",
+      "members":{
+        "Trail":{"shape":"Trail"}
       }
     },
     "GetTrailStatusRequest":{
@@ -491,6 +604,26 @@
         "TimeLoggingStarted":{"shape":"String"},
         "TimeLoggingStopped":{"shape":"String"}
       }
+    },
+    "InsightNotEnabledException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InsightSelector":{
+      "type":"structure",
+      "members":{
+        "InsightType":{"shape":"InsightType"}
+      }
+    },
+    "InsightSelectors":{
+      "type":"list",
+      "member":{"shape":"InsightSelector"}
+    },
+    "InsightType":{
+      "type":"string",
+      "enum":["ApiCallRateInsight"]
     },
     "InsufficientDependencyServiceAccessPermissionException":{
       "type":"structure",
@@ -528,6 +661,12 @@
       },
       "exception":true
     },
+    "InvalidEventCategoryException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "InvalidEventSelectorsException":{
       "type":"structure",
       "members":{
@@ -535,6 +674,12 @@
       "exception":true
     },
     "InvalidHomeRegionException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
+    "InvalidInsightSelectorsException":{
       "type":"structure",
       "members":{
       },
@@ -661,6 +806,19 @@
         "NextToken":{"shape":"String"}
       }
     },
+    "ListTrailsRequest":{
+      "type":"structure",
+      "members":{
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "ListTrailsResponse":{
+      "type":"structure",
+      "members":{
+        "Trails":{"shape":"Trails"},
+        "NextToken":{"shape":"String"}
+      }
+    },
     "LookupAttribute":{
       "type":"structure",
       "required":[
@@ -695,6 +853,7 @@
         "LookupAttributes":{"shape":"LookupAttributesList"},
         "StartTime":{"shape":"Date"},
         "EndTime":{"shape":"Date"},
+        "EventCategory":{"shape":"EventCategory"},
         "MaxResults":{"shape":"MaxResults"},
         "NextToken":{"shape":"NextToken"}
       }
@@ -771,6 +930,24 @@
       "members":{
         "TrailARN":{"shape":"String"},
         "EventSelectors":{"shape":"EventSelectors"}
+      }
+    },
+    "PutInsightSelectorsRequest":{
+      "type":"structure",
+      "required":[
+        "TrailName",
+        "InsightSelectors"
+      ],
+      "members":{
+        "TrailName":{"shape":"String"},
+        "InsightSelectors":{"shape":"InsightSelectors"}
+      }
+    },
+    "PutInsightSelectorsResponse":{
+      "type":"structure",
+      "members":{
+        "TrailARN":{"shape":"String"},
+        "InsightSelectors":{"shape":"InsightSelectors"}
       }
     },
     "ReadWriteType":{
@@ -901,6 +1078,7 @@
         "CloudWatchLogsRoleArn":{"shape":"String"},
         "KmsKeyId":{"shape":"String"},
         "HasCustomEventSelectors":{"shape":"Boolean"},
+        "HasInsightSelectors":{"shape":"Boolean"},
         "IsOrganizationTrail":{"shape":"Boolean"}
       }
     },
@@ -909,6 +1087,14 @@
       "members":{
       },
       "exception":true
+    },
+    "TrailInfo":{
+      "type":"structure",
+      "members":{
+        "TrailARN":{"shape":"String"},
+        "Name":{"shape":"String"},
+        "HomeRegion":{"shape":"String"}
+      }
     },
     "TrailList":{
       "type":"list",
@@ -929,6 +1115,10 @@
       "members":{
       },
       "exception":true
+    },
+    "Trails":{
+      "type":"list",
+      "member":{"shape":"TrailInfo"}
     },
     "UnsupportedOperationException":{
       "type":"structure",

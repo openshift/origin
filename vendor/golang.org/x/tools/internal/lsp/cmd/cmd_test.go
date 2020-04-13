@@ -6,6 +6,7 @@ package cmd_test
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,16 +15,13 @@ import (
 	"testing"
 
 	"golang.org/x/tools/go/packages/packagestest"
-	"golang.org/x/tools/internal/lsp/cmd"
 	"golang.org/x/tools/internal/lsp/tests"
 )
-
-var isRace = false
 
 type runner struct {
 	exporter packagestest.Exporter
 	data     *tests.Data
-	app      *cmd.Application
+	ctx      context.Context
 }
 
 func TestCommandLine(t *testing.T) {
@@ -37,7 +35,7 @@ func testCommandLine(t *testing.T, exporter packagestest.Exporter) {
 	r := &runner{
 		exporter: exporter,
 		data:     data,
-		app:      cmd.New(data.Config.Dir, data.Exported.Config.Env),
+		ctx:      tests.Context(t),
 	}
 	tests.Run(t, r, data)
 }

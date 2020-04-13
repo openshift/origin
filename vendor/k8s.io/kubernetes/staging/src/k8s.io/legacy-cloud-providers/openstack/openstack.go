@@ -279,25 +279,21 @@ func (os *OpenStack) setConfigFromSecret() error {
 		return fmt.Errorf("secret lister is not initialized")
 	}
 
-	secretName := os.secretName
-	secretNamespace := os.secretNamespace
-	secret, err := os.secretLister.Secrets(secretNamespace).Get(secretName)
+	secret, err := os.secretLister.Secrets(os.secretNamespace).Get(os.secretName)
 	if err != nil {
-		klog.Errorf("Cannot get secret %s in namespace %s. error: %q", secretName, secretNamespace, err)
+		klog.Errorf("Cannot get secret %s in namespace %s. error: %q", os.secretName, os.secretNamespace, err)
 		return err
 	}
 
-	cfg := &Config{}
-
 	if content, ok := secret.Data["clouds.conf"]; ok {
+		cfg := &Config{}
+
 		err = gcfg.ReadStringInto(cfg, string(content))
 		if err != nil {
-			klog.Error("Cannot parse data from the secret.")
 			return fmt.Errorf("cannot parse data from the secret")
 		}
 		provider, err := newProvider(*cfg)
 		if err != nil {
-			klog.Errorf("Cannot initialize cloud provider using data from the secret.")
 			return fmt.Errorf("cannot initialize cloud provider using data from the secret")
 		}
 		os.provider = provider
@@ -306,7 +302,6 @@ func (os *OpenStack) setConfigFromSecret() error {
 		return nil
 	}
 
-	klog.Error("Cannot find \"clouds.conf\" key in the secret.")
 	return fmt.Errorf("cannot find \"clouds.conf\" key in the secret")
 }
 
@@ -461,8 +456,7 @@ func newOpenStack(cfg Config) (*OpenStack, error) {
 		os.provider = provider
 	}
 
-	err := checkOpenStackOpts(&os)
-	if err != nil {
+	if err := checkOpenStackOpts(&os); err != nil {
 		return nil, err
 	}
 
@@ -699,11 +693,6 @@ func getAttachedInterfacesByID(client *gophercloud.ServiceClient, serviceID stri
 
 // Clusters is a no-op
 func (os *OpenStack) Clusters() (cloudprovider.Clusters, bool) {
-	err := os.ensureCloudProviderWasInitialized()
-	if err != nil {
-		return nil, false
-	}
-
 	return nil, false
 }
 

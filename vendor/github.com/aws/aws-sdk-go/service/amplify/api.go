@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/restjson"
 )
 
 const opCreateApp = "CreateApp"
@@ -64,22 +66,22 @@ func (c *Amplify) CreateAppRequest(input *CreateAppInput) (req *request.Request,
 // See the AWS API reference guide for AWS Amplify's
 // API operation CreateApp for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Exception thrown when a resource could not be created because of service
 //   limits.
 //
-//   * ErrCodeDependentServiceFailureException "DependentServiceFailureException"
+//   * DependentServiceFailureException
 //   Exception thrown when an operation fails due to a dependent service throwing
 //   an exception.
 //
@@ -100,6 +102,99 @@ func (c *Amplify) CreateApp(input *CreateAppInput) (*CreateAppOutput, error) {
 // for more information on using Contexts.
 func (c *Amplify) CreateAppWithContext(ctx aws.Context, input *CreateAppInput, opts ...request.Option) (*CreateAppOutput, error) {
 	req, out := c.CreateAppRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateBackendEnvironment = "CreateBackendEnvironment"
+
+// CreateBackendEnvironmentRequest generates a "aws/request.Request" representing the
+// client's request for the CreateBackendEnvironment operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateBackendEnvironment for more information on using the CreateBackendEnvironment
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateBackendEnvironmentRequest method.
+//    req, resp := client.CreateBackendEnvironmentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/CreateBackendEnvironment
+func (c *Amplify) CreateBackendEnvironmentRequest(input *CreateBackendEnvironmentInput) (req *request.Request, output *CreateBackendEnvironmentOutput) {
+	op := &request.Operation{
+		Name:       opCreateBackendEnvironment,
+		HTTPMethod: "POST",
+		HTTPPath:   "/apps/{appId}/backendenvironments",
+	}
+
+	if input == nil {
+		input = &CreateBackendEnvironmentInput{}
+	}
+
+	output = &CreateBackendEnvironmentOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateBackendEnvironment API operation for AWS Amplify.
+//
+// Creates a new backend environment for an Amplify App.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation CreateBackendEnvironment for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * NotFoundException
+//   Exception thrown when an entity has not been found during an operation.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * LimitExceededException
+//   Exception thrown when a resource could not be created because of service
+//   limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/CreateBackendEnvironment
+func (c *Amplify) CreateBackendEnvironment(input *CreateBackendEnvironmentInput) (*CreateBackendEnvironmentOutput, error) {
+	req, out := c.CreateBackendEnvironmentRequest(input)
+	return out, req.Send()
+}
+
+// CreateBackendEnvironmentWithContext is the same as CreateBackendEnvironment with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateBackendEnvironment for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) CreateBackendEnvironmentWithContext(ctx aws.Context, input *CreateBackendEnvironmentInput, opts ...request.Option) (*CreateBackendEnvironmentOutput, error) {
+	req, out := c.CreateBackendEnvironmentRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -158,25 +253,25 @@ func (c *Amplify) CreateBranchRequest(input *CreateBranchInput) (req *request.Re
 // See the AWS API reference guide for AWS Amplify's
 // API operation CreateBranch for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Exception thrown when a resource could not be created because of service
 //   limits.
 //
-//   * ErrCodeDependentServiceFailureException "DependentServiceFailureException"
+//   * DependentServiceFailureException
 //   Exception thrown when an operation fails due to a dependent service throwing
 //   an exception.
 //
@@ -197,6 +292,96 @@ func (c *Amplify) CreateBranch(input *CreateBranchInput) (*CreateBranchOutput, e
 // for more information on using Contexts.
 func (c *Amplify) CreateBranchWithContext(ctx aws.Context, input *CreateBranchInput, opts ...request.Option) (*CreateBranchOutput, error) {
 	req, out := c.CreateBranchRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateDeployment = "CreateDeployment"
+
+// CreateDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDeployment operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateDeployment for more information on using the CreateDeployment
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateDeploymentRequest method.
+//    req, resp := client.CreateDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/CreateDeployment
+func (c *Amplify) CreateDeploymentRequest(input *CreateDeploymentInput) (req *request.Request, output *CreateDeploymentOutput) {
+	op := &request.Operation{
+		Name:       opCreateDeployment,
+		HTTPMethod: "POST",
+		HTTPPath:   "/apps/{appId}/branches/{branchName}/deployments",
+	}
+
+	if input == nil {
+		input = &CreateDeploymentInput{}
+	}
+
+	output = &CreateDeploymentOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateDeployment API operation for AWS Amplify.
+//
+// Create a deployment for manual deploy apps. (Apps are not connected to repository)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation CreateDeployment for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * LimitExceededException
+//   Exception thrown when a resource could not be created because of service
+//   limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/CreateDeployment
+func (c *Amplify) CreateDeployment(input *CreateDeploymentInput) (*CreateDeploymentOutput, error) {
+	req, out := c.CreateDeploymentRequest(input)
+	return out, req.Send()
+}
+
+// CreateDeploymentWithContext is the same as CreateDeployment with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateDeployment for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) CreateDeploymentWithContext(ctx aws.Context, input *CreateDeploymentInput, opts ...request.Option) (*CreateDeploymentOutput, error) {
+	req, out := c.CreateDeploymentRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -255,25 +440,25 @@ func (c *Amplify) CreateDomainAssociationRequest(input *CreateDomainAssociationI
 // See the AWS API reference guide for AWS Amplify's
 // API operation CreateDomainAssociation for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Exception thrown when a resource could not be created because of service
 //   limits.
 //
-//   * ErrCodeDependentServiceFailureException "DependentServiceFailureException"
+//   * DependentServiceFailureException
 //   Exception thrown when an operation fails due to a dependent service throwing
 //   an exception.
 //
@@ -294,6 +479,103 @@ func (c *Amplify) CreateDomainAssociation(input *CreateDomainAssociationInput) (
 // for more information on using Contexts.
 func (c *Amplify) CreateDomainAssociationWithContext(ctx aws.Context, input *CreateDomainAssociationInput, opts ...request.Option) (*CreateDomainAssociationOutput, error) {
 	req, out := c.CreateDomainAssociationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateWebhook = "CreateWebhook"
+
+// CreateWebhookRequest generates a "aws/request.Request" representing the
+// client's request for the CreateWebhook operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateWebhook for more information on using the CreateWebhook
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateWebhookRequest method.
+//    req, resp := client.CreateWebhookRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/CreateWebhook
+func (c *Amplify) CreateWebhookRequest(input *CreateWebhookInput) (req *request.Request, output *CreateWebhookOutput) {
+	op := &request.Operation{
+		Name:       opCreateWebhook,
+		HTTPMethod: "POST",
+		HTTPPath:   "/apps/{appId}/webhooks",
+	}
+
+	if input == nil {
+		input = &CreateWebhookInput{}
+	}
+
+	output = &CreateWebhookOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateWebhook API operation for AWS Amplify.
+//
+// Create a new webhook on an App.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation CreateWebhook for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * NotFoundException
+//   Exception thrown when an entity has not been found during an operation.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * LimitExceededException
+//   Exception thrown when a resource could not be created because of service
+//   limits.
+//
+//   * DependentServiceFailureException
+//   Exception thrown when an operation fails due to a dependent service throwing
+//   an exception.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/CreateWebhook
+func (c *Amplify) CreateWebhook(input *CreateWebhookInput) (*CreateWebhookOutput, error) {
+	req, out := c.CreateWebhookRequest(input)
+	return out, req.Send()
+}
+
+// CreateWebhookWithContext is the same as CreateWebhook with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateWebhook for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) CreateWebhookWithContext(ctx aws.Context, input *CreateWebhookInput, opts ...request.Option) (*CreateWebhookOutput, error) {
+	req, out := c.CreateWebhookRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -352,21 +634,21 @@ func (c *Amplify) DeleteAppRequest(input *DeleteAppInput) (req *request.Request,
 // See the AWS API reference guide for AWS Amplify's
 // API operation DeleteApp for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeDependentServiceFailureException "DependentServiceFailureException"
+//   * DependentServiceFailureException
 //   Exception thrown when an operation fails due to a dependent service throwing
 //   an exception.
 //
@@ -387,6 +669,99 @@ func (c *Amplify) DeleteApp(input *DeleteAppInput) (*DeleteAppOutput, error) {
 // for more information on using Contexts.
 func (c *Amplify) DeleteAppWithContext(ctx aws.Context, input *DeleteAppInput, opts ...request.Option) (*DeleteAppOutput, error) {
 	req, out := c.DeleteAppRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteBackendEnvironment = "DeleteBackendEnvironment"
+
+// DeleteBackendEnvironmentRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteBackendEnvironment operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteBackendEnvironment for more information on using the DeleteBackendEnvironment
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteBackendEnvironmentRequest method.
+//    req, resp := client.DeleteBackendEnvironmentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/DeleteBackendEnvironment
+func (c *Amplify) DeleteBackendEnvironmentRequest(input *DeleteBackendEnvironmentInput) (req *request.Request, output *DeleteBackendEnvironmentOutput) {
+	op := &request.Operation{
+		Name:       opDeleteBackendEnvironment,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/apps/{appId}/backendenvironments/{environmentName}",
+	}
+
+	if input == nil {
+		input = &DeleteBackendEnvironmentInput{}
+	}
+
+	output = &DeleteBackendEnvironmentOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteBackendEnvironment API operation for AWS Amplify.
+//
+// Delete backend environment for an Amplify App.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation DeleteBackendEnvironment for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * NotFoundException
+//   Exception thrown when an entity has not been found during an operation.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * DependentServiceFailureException
+//   Exception thrown when an operation fails due to a dependent service throwing
+//   an exception.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/DeleteBackendEnvironment
+func (c *Amplify) DeleteBackendEnvironment(input *DeleteBackendEnvironmentInput) (*DeleteBackendEnvironmentOutput, error) {
+	req, out := c.DeleteBackendEnvironmentRequest(input)
+	return out, req.Send()
+}
+
+// DeleteBackendEnvironmentWithContext is the same as DeleteBackendEnvironment with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteBackendEnvironment for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) DeleteBackendEnvironmentWithContext(ctx aws.Context, input *DeleteBackendEnvironmentInput, opts ...request.Option) (*DeleteBackendEnvironmentOutput, error) {
+	req, out := c.DeleteBackendEnvironmentRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -445,21 +820,21 @@ func (c *Amplify) DeleteBranchRequest(input *DeleteBranchInput) (req *request.Re
 // See the AWS API reference guide for AWS Amplify's
 // API operation DeleteBranch for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeDependentServiceFailureException "DependentServiceFailureException"
+//   * DependentServiceFailureException
 //   Exception thrown when an operation fails due to a dependent service throwing
 //   an exception.
 //
@@ -538,21 +913,21 @@ func (c *Amplify) DeleteDomainAssociationRequest(input *DeleteDomainAssociationI
 // See the AWS API reference guide for AWS Amplify's
 // API operation DeleteDomainAssociation for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeDependentServiceFailureException "DependentServiceFailureException"
+//   * DependentServiceFailureException
 //   Exception thrown when an operation fails due to a dependent service throwing
 //   an exception.
 //
@@ -631,21 +1006,21 @@ func (c *Amplify) DeleteJobRequest(input *DeleteJobInput) (req *request.Request,
 // See the AWS API reference guide for AWS Amplify's
 // API operation DeleteJob for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Exception thrown when a resource could not be created because of service
 //   limits.
 //
@@ -666,6 +1041,188 @@ func (c *Amplify) DeleteJob(input *DeleteJobInput) (*DeleteJobOutput, error) {
 // for more information on using Contexts.
 func (c *Amplify) DeleteJobWithContext(ctx aws.Context, input *DeleteJobInput, opts ...request.Option) (*DeleteJobOutput, error) {
 	req, out := c.DeleteJobRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteWebhook = "DeleteWebhook"
+
+// DeleteWebhookRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteWebhook operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteWebhook for more information on using the DeleteWebhook
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteWebhookRequest method.
+//    req, resp := client.DeleteWebhookRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/DeleteWebhook
+func (c *Amplify) DeleteWebhookRequest(input *DeleteWebhookInput) (req *request.Request, output *DeleteWebhookOutput) {
+	op := &request.Operation{
+		Name:       opDeleteWebhook,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/webhooks/{webhookId}",
+	}
+
+	if input == nil {
+		input = &DeleteWebhookInput{}
+	}
+
+	output = &DeleteWebhookOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteWebhook API operation for AWS Amplify.
+//
+// Deletes a webhook.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation DeleteWebhook for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * NotFoundException
+//   Exception thrown when an entity has not been found during an operation.
+//
+//   * LimitExceededException
+//   Exception thrown when a resource could not be created because of service
+//   limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/DeleteWebhook
+func (c *Amplify) DeleteWebhook(input *DeleteWebhookInput) (*DeleteWebhookOutput, error) {
+	req, out := c.DeleteWebhookRequest(input)
+	return out, req.Send()
+}
+
+// DeleteWebhookWithContext is the same as DeleteWebhook with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteWebhook for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) DeleteWebhookWithContext(ctx aws.Context, input *DeleteWebhookInput, opts ...request.Option) (*DeleteWebhookOutput, error) {
+	req, out := c.DeleteWebhookRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGenerateAccessLogs = "GenerateAccessLogs"
+
+// GenerateAccessLogsRequest generates a "aws/request.Request" representing the
+// client's request for the GenerateAccessLogs operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GenerateAccessLogs for more information on using the GenerateAccessLogs
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GenerateAccessLogsRequest method.
+//    req, resp := client.GenerateAccessLogsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/GenerateAccessLogs
+func (c *Amplify) GenerateAccessLogsRequest(input *GenerateAccessLogsInput) (req *request.Request, output *GenerateAccessLogsOutput) {
+	op := &request.Operation{
+		Name:       opGenerateAccessLogs,
+		HTTPMethod: "POST",
+		HTTPPath:   "/apps/{appId}/accesslogs",
+	}
+
+	if input == nil {
+		input = &GenerateAccessLogsInput{}
+	}
+
+	output = &GenerateAccessLogsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GenerateAccessLogs API operation for AWS Amplify.
+//
+// Retrieve website access logs for a specific time range via a pre-signed URL.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation GenerateAccessLogs for usage and error information.
+//
+// Returned Error Types:
+//   * NotFoundException
+//   Exception thrown when an entity has not been found during an operation.
+//
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/GenerateAccessLogs
+func (c *Amplify) GenerateAccessLogs(input *GenerateAccessLogsInput) (*GenerateAccessLogsOutput, error) {
+	req, out := c.GenerateAccessLogsRequest(input)
+	return out, req.Send()
+}
+
+// GenerateAccessLogsWithContext is the same as GenerateAccessLogs with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GenerateAccessLogs for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) GenerateAccessLogsWithContext(ctx aws.Context, input *GenerateAccessLogsInput, opts ...request.Option) (*GenerateAccessLogsOutput, error) {
+	req, out := c.GenerateAccessLogsRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -724,17 +1281,17 @@ func (c *Amplify) GetAppRequest(input *GetAppInput) (req *request.Request, outpu
 // See the AWS API reference guide for AWS Amplify's
 // API operation GetApp for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
@@ -755,6 +1312,188 @@ func (c *Amplify) GetApp(input *GetAppInput) (*GetAppOutput, error) {
 // for more information on using Contexts.
 func (c *Amplify) GetAppWithContext(ctx aws.Context, input *GetAppInput, opts ...request.Option) (*GetAppOutput, error) {
 	req, out := c.GetAppRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetArtifactUrl = "GetArtifactUrl"
+
+// GetArtifactUrlRequest generates a "aws/request.Request" representing the
+// client's request for the GetArtifactUrl operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetArtifactUrl for more information on using the GetArtifactUrl
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetArtifactUrlRequest method.
+//    req, resp := client.GetArtifactUrlRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/GetArtifactUrl
+func (c *Amplify) GetArtifactUrlRequest(input *GetArtifactUrlInput) (req *request.Request, output *GetArtifactUrlOutput) {
+	op := &request.Operation{
+		Name:       opGetArtifactUrl,
+		HTTPMethod: "GET",
+		HTTPPath:   "/artifacts/{artifactId}",
+	}
+
+	if input == nil {
+		input = &GetArtifactUrlInput{}
+	}
+
+	output = &GetArtifactUrlOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetArtifactUrl API operation for AWS Amplify.
+//
+// Retrieves artifact info that corresponds to a artifactId.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation GetArtifactUrl for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * NotFoundException
+//   Exception thrown when an entity has not been found during an operation.
+//
+//   * LimitExceededException
+//   Exception thrown when a resource could not be created because of service
+//   limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/GetArtifactUrl
+func (c *Amplify) GetArtifactUrl(input *GetArtifactUrlInput) (*GetArtifactUrlOutput, error) {
+	req, out := c.GetArtifactUrlRequest(input)
+	return out, req.Send()
+}
+
+// GetArtifactUrlWithContext is the same as GetArtifactUrl with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetArtifactUrl for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) GetArtifactUrlWithContext(ctx aws.Context, input *GetArtifactUrlInput, opts ...request.Option) (*GetArtifactUrlOutput, error) {
+	req, out := c.GetArtifactUrlRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetBackendEnvironment = "GetBackendEnvironment"
+
+// GetBackendEnvironmentRequest generates a "aws/request.Request" representing the
+// client's request for the GetBackendEnvironment operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetBackendEnvironment for more information on using the GetBackendEnvironment
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetBackendEnvironmentRequest method.
+//    req, resp := client.GetBackendEnvironmentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/GetBackendEnvironment
+func (c *Amplify) GetBackendEnvironmentRequest(input *GetBackendEnvironmentInput) (req *request.Request, output *GetBackendEnvironmentOutput) {
+	op := &request.Operation{
+		Name:       opGetBackendEnvironment,
+		HTTPMethod: "GET",
+		HTTPPath:   "/apps/{appId}/backendenvironments/{environmentName}",
+	}
+
+	if input == nil {
+		input = &GetBackendEnvironmentInput{}
+	}
+
+	output = &GetBackendEnvironmentOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetBackendEnvironment API operation for AWS Amplify.
+//
+// Retrieves a backend environment for an Amplify App.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation GetBackendEnvironment for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * NotFoundException
+//   Exception thrown when an entity has not been found during an operation.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/GetBackendEnvironment
+func (c *Amplify) GetBackendEnvironment(input *GetBackendEnvironmentInput) (*GetBackendEnvironmentOutput, error) {
+	req, out := c.GetBackendEnvironmentRequest(input)
+	return out, req.Send()
+}
+
+// GetBackendEnvironmentWithContext is the same as GetBackendEnvironment with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetBackendEnvironment for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) GetBackendEnvironmentWithContext(ctx aws.Context, input *GetBackendEnvironmentInput, opts ...request.Option) (*GetBackendEnvironmentOutput, error) {
+	req, out := c.GetBackendEnvironmentRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -813,17 +1552,17 @@ func (c *Amplify) GetBranchRequest(input *GetBranchInput) (req *request.Request,
 // See the AWS API reference guide for AWS Amplify's
 // API operation GetBranch for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
@@ -902,17 +1641,17 @@ func (c *Amplify) GetDomainAssociationRequest(input *GetDomainAssociationInput) 
 // See the AWS API reference guide for AWS Amplify's
 // API operation GetDomainAssociation for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
@@ -991,21 +1730,21 @@ func (c *Amplify) GetJobRequest(input *GetJobInput) (req *request.Request, outpu
 // See the AWS API reference guide for AWS Amplify's
 // API operation GetJob for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Exception thrown when a resource could not be created because of service
 //   limits.
 //
@@ -1026,6 +1765,99 @@ func (c *Amplify) GetJob(input *GetJobInput) (*GetJobOutput, error) {
 // for more information on using Contexts.
 func (c *Amplify) GetJobWithContext(ctx aws.Context, input *GetJobInput, opts ...request.Option) (*GetJobOutput, error) {
 	req, out := c.GetJobRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetWebhook = "GetWebhook"
+
+// GetWebhookRequest generates a "aws/request.Request" representing the
+// client's request for the GetWebhook operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetWebhook for more information on using the GetWebhook
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetWebhookRequest method.
+//    req, resp := client.GetWebhookRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/GetWebhook
+func (c *Amplify) GetWebhookRequest(input *GetWebhookInput) (req *request.Request, output *GetWebhookOutput) {
+	op := &request.Operation{
+		Name:       opGetWebhook,
+		HTTPMethod: "GET",
+		HTTPPath:   "/webhooks/{webhookId}",
+	}
+
+	if input == nil {
+		input = &GetWebhookInput{}
+	}
+
+	output = &GetWebhookOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetWebhook API operation for AWS Amplify.
+//
+// Retrieves webhook info that corresponds to a webhookId.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation GetWebhook for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * NotFoundException
+//   Exception thrown when an entity has not been found during an operation.
+//
+//   * LimitExceededException
+//   Exception thrown when a resource could not be created because of service
+//   limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/GetWebhook
+func (c *Amplify) GetWebhook(input *GetWebhookInput) (*GetWebhookOutput, error) {
+	req, out := c.GetWebhookRequest(input)
+	return out, req.Send()
+}
+
+// GetWebhookWithContext is the same as GetWebhook with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetWebhook for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) GetWebhookWithContext(ctx aws.Context, input *GetWebhookInput, opts ...request.Option) (*GetWebhookOutput, error) {
+	req, out := c.GetWebhookRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1084,14 +1916,14 @@ func (c *Amplify) ListAppsRequest(input *ListAppsInput) (req *request.Request, o
 // See the AWS API reference guide for AWS Amplify's
 // API operation ListApps for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
@@ -1112,6 +1944,182 @@ func (c *Amplify) ListApps(input *ListAppsInput) (*ListAppsOutput, error) {
 // for more information on using Contexts.
 func (c *Amplify) ListAppsWithContext(ctx aws.Context, input *ListAppsInput, opts ...request.Option) (*ListAppsOutput, error) {
 	req, out := c.ListAppsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListArtifacts = "ListArtifacts"
+
+// ListArtifactsRequest generates a "aws/request.Request" representing the
+// client's request for the ListArtifacts operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListArtifacts for more information on using the ListArtifacts
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListArtifactsRequest method.
+//    req, resp := client.ListArtifactsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/ListArtifacts
+func (c *Amplify) ListArtifactsRequest(input *ListArtifactsInput) (req *request.Request, output *ListArtifactsOutput) {
+	op := &request.Operation{
+		Name:       opListArtifacts,
+		HTTPMethod: "GET",
+		HTTPPath:   "/apps/{appId}/branches/{branchName}/jobs/{jobId}/artifacts",
+	}
+
+	if input == nil {
+		input = &ListArtifactsInput{}
+	}
+
+	output = &ListArtifactsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListArtifacts API operation for AWS Amplify.
+//
+// List artifacts with an app, a branch, a job and an artifact type.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation ListArtifacts for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * LimitExceededException
+//   Exception thrown when a resource could not be created because of service
+//   limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/ListArtifacts
+func (c *Amplify) ListArtifacts(input *ListArtifactsInput) (*ListArtifactsOutput, error) {
+	req, out := c.ListArtifactsRequest(input)
+	return out, req.Send()
+}
+
+// ListArtifactsWithContext is the same as ListArtifacts with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListArtifacts for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) ListArtifactsWithContext(ctx aws.Context, input *ListArtifactsInput, opts ...request.Option) (*ListArtifactsOutput, error) {
+	req, out := c.ListArtifactsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListBackendEnvironments = "ListBackendEnvironments"
+
+// ListBackendEnvironmentsRequest generates a "aws/request.Request" representing the
+// client's request for the ListBackendEnvironments operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListBackendEnvironments for more information on using the ListBackendEnvironments
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListBackendEnvironmentsRequest method.
+//    req, resp := client.ListBackendEnvironmentsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/ListBackendEnvironments
+func (c *Amplify) ListBackendEnvironmentsRequest(input *ListBackendEnvironmentsInput) (req *request.Request, output *ListBackendEnvironmentsOutput) {
+	op := &request.Operation{
+		Name:       opListBackendEnvironments,
+		HTTPMethod: "GET",
+		HTTPPath:   "/apps/{appId}/backendenvironments",
+	}
+
+	if input == nil {
+		input = &ListBackendEnvironmentsInput{}
+	}
+
+	output = &ListBackendEnvironmentsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListBackendEnvironments API operation for AWS Amplify.
+//
+// Lists backend environments for an Amplify App.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation ListBackendEnvironments for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/ListBackendEnvironments
+func (c *Amplify) ListBackendEnvironments(input *ListBackendEnvironmentsInput) (*ListBackendEnvironmentsOutput, error) {
+	req, out := c.ListBackendEnvironmentsRequest(input)
+	return out, req.Send()
+}
+
+// ListBackendEnvironmentsWithContext is the same as ListBackendEnvironments with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListBackendEnvironments for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) ListBackendEnvironmentsWithContext(ctx aws.Context, input *ListBackendEnvironmentsInput, opts ...request.Option) (*ListBackendEnvironmentsOutput, error) {
+	req, out := c.ListBackendEnvironmentsRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1170,14 +2178,14 @@ func (c *Amplify) ListBranchesRequest(input *ListBranchesInput) (req *request.Re
 // See the AWS API reference guide for AWS Amplify's
 // API operation ListBranches for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
@@ -1256,14 +2264,14 @@ func (c *Amplify) ListDomainAssociationsRequest(input *ListDomainAssociationsInp
 // See the AWS API reference guide for AWS Amplify's
 // API operation ListDomainAssociations for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
@@ -1342,18 +2350,18 @@ func (c *Amplify) ListJobsRequest(input *ListJobsInput) (req *request.Request, o
 // See the AWS API reference guide for AWS Amplify's
 // API operation ListJobs for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Exception thrown when a resource could not be created because of service
 //   limits.
 //
@@ -1374,6 +2382,275 @@ func (c *Amplify) ListJobs(input *ListJobsInput) (*ListJobsOutput, error) {
 // for more information on using Contexts.
 func (c *Amplify) ListJobsWithContext(ctx aws.Context, input *ListJobsInput, opts ...request.Option) (*ListJobsOutput, error) {
 	req, out := c.ListJobsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListTagsForResource = "ListTagsForResource"
+
+// ListTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListTagsForResourceRequest method.
+//    req, resp := client.ListTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/ListTagsForResource
+func (c *Amplify) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
+	op := &request.Operation{
+		Name:       opListTagsForResource,
+		HTTPMethod: "GET",
+		HTTPPath:   "/tags/{resourceArn}",
+	}
+
+	if input == nil {
+		input = &ListTagsForResourceInput{}
+	}
+
+	output = &ListTagsForResourceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTagsForResource API operation for AWS Amplify.
+//
+// List tags for resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation ListTagsForResource for usage and error information.
+//
+// Returned Error Types:
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * ResourceNotFoundException
+//   Exception thrown when an operation fails due to non-existent resource.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/ListTagsForResource
+func (c *Amplify) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	return out, req.Send()
+}
+
+// ListTagsForResourceWithContext is the same as ListTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) ListTagsForResourceWithContext(ctx aws.Context, input *ListTagsForResourceInput, opts ...request.Option) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListWebhooks = "ListWebhooks"
+
+// ListWebhooksRequest generates a "aws/request.Request" representing the
+// client's request for the ListWebhooks operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListWebhooks for more information on using the ListWebhooks
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListWebhooksRequest method.
+//    req, resp := client.ListWebhooksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/ListWebhooks
+func (c *Amplify) ListWebhooksRequest(input *ListWebhooksInput) (req *request.Request, output *ListWebhooksOutput) {
+	op := &request.Operation{
+		Name:       opListWebhooks,
+		HTTPMethod: "GET",
+		HTTPPath:   "/apps/{appId}/webhooks",
+	}
+
+	if input == nil {
+		input = &ListWebhooksInput{}
+	}
+
+	output = &ListWebhooksOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListWebhooks API operation for AWS Amplify.
+//
+// List webhooks with an app.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation ListWebhooks for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * LimitExceededException
+//   Exception thrown when a resource could not be created because of service
+//   limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/ListWebhooks
+func (c *Amplify) ListWebhooks(input *ListWebhooksInput) (*ListWebhooksOutput, error) {
+	req, out := c.ListWebhooksRequest(input)
+	return out, req.Send()
+}
+
+// ListWebhooksWithContext is the same as ListWebhooks with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListWebhooks for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) ListWebhooksWithContext(ctx aws.Context, input *ListWebhooksInput, opts ...request.Option) (*ListWebhooksOutput, error) {
+	req, out := c.ListWebhooksRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartDeployment = "StartDeployment"
+
+// StartDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the StartDeployment operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartDeployment for more information on using the StartDeployment
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartDeploymentRequest method.
+//    req, resp := client.StartDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/StartDeployment
+func (c *Amplify) StartDeploymentRequest(input *StartDeploymentInput) (req *request.Request, output *StartDeploymentOutput) {
+	op := &request.Operation{
+		Name:       opStartDeployment,
+		HTTPMethod: "POST",
+		HTTPPath:   "/apps/{appId}/branches/{branchName}/deployments/start",
+	}
+
+	if input == nil {
+		input = &StartDeploymentInput{}
+	}
+
+	output = &StartDeploymentOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartDeployment API operation for AWS Amplify.
+//
+// Start a deployment for manual deploy apps. (Apps are not connected to repository)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation StartDeployment for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * NotFoundException
+//   Exception thrown when an entity has not been found during an operation.
+//
+//   * LimitExceededException
+//   Exception thrown when a resource could not be created because of service
+//   limits.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/StartDeployment
+func (c *Amplify) StartDeployment(input *StartDeploymentInput) (*StartDeploymentOutput, error) {
+	req, out := c.StartDeploymentRequest(input)
+	return out, req.Send()
+}
+
+// StartDeploymentWithContext is the same as StartDeployment with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartDeployment for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) StartDeploymentWithContext(ctx aws.Context, input *StartDeploymentInput, opts ...request.Option) (*StartDeploymentOutput, error) {
+	req, out := c.StartDeploymentRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1432,21 +2709,21 @@ func (c *Amplify) StartJobRequest(input *StartJobInput) (req *request.Request, o
 // See the AWS API reference guide for AWS Amplify's
 // API operation StartJob for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Exception thrown when a resource could not be created because of service
 //   limits.
 //
@@ -1525,21 +2802,21 @@ func (c *Amplify) StopJobRequest(input *StopJobInput) (req *request.Request, out
 // See the AWS API reference guide for AWS Amplify's
 // API operation StopJob for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Exception thrown when a resource could not be created because of service
 //   limits.
 //
@@ -1560,6 +2837,180 @@ func (c *Amplify) StopJob(input *StopJobInput) (*StopJobOutput, error) {
 // for more information on using Contexts.
 func (c *Amplify) StopJobWithContext(ctx aws.Context, input *StopJobInput, opts ...request.Option) (*StopJobOutput, error) {
 	req, out := c.StopJobRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagResource = "TagResource"
+
+// TagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the TagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagResource for more information on using the TagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagResourceRequest method.
+//    req, resp := client.TagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/TagResource
+func (c *Amplify) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
+	op := &request.Operation{
+		Name:       opTagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/tags/{resourceArn}",
+	}
+
+	if input == nil {
+		input = &TagResourceInput{}
+	}
+
+	output = &TagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagResource API operation for AWS Amplify.
+//
+// Tag resource with tag key and value.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation TagResource for usage and error information.
+//
+// Returned Error Types:
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * ResourceNotFoundException
+//   Exception thrown when an operation fails due to non-existent resource.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/TagResource
+func (c *Amplify) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	return out, req.Send()
+}
+
+// TagResourceWithContext is the same as TagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) TagResourceWithContext(ctx aws.Context, input *TagResourceInput, opts ...request.Option) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagResource = "UntagResource"
+
+// UntagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UntagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagResource for more information on using the UntagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagResourceRequest method.
+//    req, resp := client.UntagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/UntagResource
+func (c *Amplify) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
+	op := &request.Operation{
+		Name:       opUntagResource,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/tags/{resourceArn}",
+	}
+
+	if input == nil {
+		input = &UntagResourceInput{}
+	}
+
+	output = &UntagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagResource API operation for AWS Amplify.
+//
+// Untag resource with resourceArn.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation UntagResource for usage and error information.
+//
+// Returned Error Types:
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * ResourceNotFoundException
+//   Exception thrown when an operation fails due to non-existent resource.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/UntagResource
+func (c *Amplify) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	return out, req.Send()
+}
+
+// UntagResourceWithContext is the same as UntagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) UntagResourceWithContext(ctx aws.Context, input *UntagResourceInput, opts ...request.Option) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1618,17 +3069,17 @@ func (c *Amplify) UpdateAppRequest(input *UpdateAppInput) (req *request.Request,
 // See the AWS API reference guide for AWS Amplify's
 // API operation UpdateApp for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
@@ -1707,21 +3158,21 @@ func (c *Amplify) UpdateBranchRequest(input *UpdateBranchInput) (req *request.Re
 // See the AWS API reference guide for AWS Amplify's
 // API operation UpdateBranch for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeDependentServiceFailureException "DependentServiceFailureException"
+//   * DependentServiceFailureException
 //   Exception thrown when an operation fails due to a dependent service throwing
 //   an exception.
 //
@@ -1800,21 +3251,21 @@ func (c *Amplify) UpdateDomainAssociationRequest(input *UpdateDomainAssociationI
 // See the AWS API reference guide for AWS Amplify's
 // API operation UpdateDomainAssociation for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeBadRequestException "BadRequestException"
+// Returned Error Types:
+//   * BadRequestException
 //   Exception thrown when a request contains unexpected data.
 //
-//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   * UnauthorizedException
 //   Exception thrown when an operation fails due to a lack of access.
 //
-//   * ErrCodeNotFoundException "NotFoundException"
+//   * NotFoundException
 //   Exception thrown when an entity has not been found during an operation.
 //
-//   * ErrCodeInternalFailureException "InternalFailureException"
+//   * InternalFailureException
 //   Exception thrown when the service fails to perform an operation due to an
 //   internal issue.
 //
-//   * ErrCodeDependentServiceFailureException "DependentServiceFailureException"
+//   * DependentServiceFailureException
 //   Exception thrown when an operation fails due to a dependent service throwing
 //   an exception.
 //
@@ -1840,6 +3291,99 @@ func (c *Amplify) UpdateDomainAssociationWithContext(ctx aws.Context, input *Upd
 	return out, req.Send()
 }
 
+const opUpdateWebhook = "UpdateWebhook"
+
+// UpdateWebhookRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateWebhook operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateWebhook for more information on using the UpdateWebhook
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateWebhookRequest method.
+//    req, resp := client.UpdateWebhookRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/UpdateWebhook
+func (c *Amplify) UpdateWebhookRequest(input *UpdateWebhookInput) (req *request.Request, output *UpdateWebhookOutput) {
+	op := &request.Operation{
+		Name:       opUpdateWebhook,
+		HTTPMethod: "POST",
+		HTTPPath:   "/webhooks/{webhookId}",
+	}
+
+	if input == nil {
+		input = &UpdateWebhookInput{}
+	}
+
+	output = &UpdateWebhookOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateWebhook API operation for AWS Amplify.
+//
+// Update a webhook.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Amplify's
+// API operation UpdateWebhook for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequestException
+//   Exception thrown when a request contains unexpected data.
+//
+//   * UnauthorizedException
+//   Exception thrown when an operation fails due to a lack of access.
+//
+//   * NotFoundException
+//   Exception thrown when an entity has not been found during an operation.
+//
+//   * InternalFailureException
+//   Exception thrown when the service fails to perform an operation due to an
+//   internal issue.
+//
+//   * DependentServiceFailureException
+//   Exception thrown when an operation fails due to a dependent service throwing
+//   an exception.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/amplify-2017-07-25/UpdateWebhook
+func (c *Amplify) UpdateWebhook(input *UpdateWebhookInput) (*UpdateWebhookOutput, error) {
+	req, out := c.UpdateWebhookRequest(input)
+	return out, req.Send()
+}
+
+// UpdateWebhookWithContext is the same as UpdateWebhook with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateWebhook for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Amplify) UpdateWebhookWithContext(ctx aws.Context, input *UpdateWebhookInput, opts ...request.Option) (*UpdateWebhookOutput, error) {
+	req, out := c.UpdateWebhookRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 // Amplify App represents different branches of a repository for building, deploying,
 // and hosting.
 type App struct {
@@ -1854,6 +3398,12 @@ type App struct {
 	//
 	// AppId is a required field
 	AppId *string `locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Automated branch creation config for the Amplify App.
+	AutoBranchCreationConfig *AutoBranchCreationConfig `locationName:"autoBranchCreationConfig" type:"structure"`
+
+	// Automated branch creation glob patterns for the Amplify App.
+	AutoBranchCreationPatterns []*string `locationName:"autoBranchCreationPatterns" type:"list"`
 
 	// Basic Authorization credentials for branches for the Amplify App.
 	BasicAuthCredentials *string `locationName:"basicAuthCredentials" type:"string"`
@@ -1878,6 +3428,9 @@ type App struct {
 	//
 	// Description is a required field
 	Description *string `locationName:"description" type:"string" required:"true"`
+
+	// Enables automated branch creation for the Amplify App.
+	EnableAutoBranchCreation *bool `locationName:"enableAutoBranchCreation" type:"boolean"`
 
 	// Enables Basic Authorization for branches for the Amplify App.
 	//
@@ -1916,7 +3469,7 @@ type App struct {
 	Repository *string `locationName:"repository" type:"string" required:"true"`
 
 	// Tag for Amplify App.
-	Tags map[string]*string `locationName:"tags" type:"map"`
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
 
 	// Update date / time for the Amplify App.
 	//
@@ -1943,6 +3496,18 @@ func (s *App) SetAppArn(v string) *App {
 // SetAppId sets the AppId field's value.
 func (s *App) SetAppId(v string) *App {
 	s.AppId = &v
+	return s
+}
+
+// SetAutoBranchCreationConfig sets the AutoBranchCreationConfig field's value.
+func (s *App) SetAutoBranchCreationConfig(v *AutoBranchCreationConfig) *App {
+	s.AutoBranchCreationConfig = v
+	return s
+}
+
+// SetAutoBranchCreationPatterns sets the AutoBranchCreationPatterns field's value.
+func (s *App) SetAutoBranchCreationPatterns(v []*string) *App {
+	s.AutoBranchCreationPatterns = v
 	return s
 }
 
@@ -1979,6 +3544,12 @@ func (s *App) SetDefaultDomain(v string) *App {
 // SetDescription sets the Description field's value.
 func (s *App) SetDescription(v string) *App {
 	s.Description = &v
+	return s
+}
+
+// SetEnableAutoBranchCreation sets the EnableAutoBranchCreation field's value.
+func (s *App) SetEnableAutoBranchCreation(v bool) *App {
+	s.EnableAutoBranchCreation = &v
 	return s
 }
 
@@ -2042,6 +3613,286 @@ func (s *App) SetUpdateTime(v time.Time) *App {
 	return s
 }
 
+// Structure for artifact.
+type Artifact struct {
+	_ struct{} `type:"structure"`
+
+	// File name for the artifact.
+	//
+	// ArtifactFileName is a required field
+	ArtifactFileName *string `locationName:"artifactFileName" type:"string" required:"true"`
+
+	// Unique Id for a artifact.
+	//
+	// ArtifactId is a required field
+	ArtifactId *string `locationName:"artifactId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Artifact) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Artifact) GoString() string {
+	return s.String()
+}
+
+// SetArtifactFileName sets the ArtifactFileName field's value.
+func (s *Artifact) SetArtifactFileName(v string) *Artifact {
+	s.ArtifactFileName = &v
+	return s
+}
+
+// SetArtifactId sets the ArtifactId field's value.
+func (s *Artifact) SetArtifactId(v string) *Artifact {
+	s.ArtifactId = &v
+	return s
+}
+
+// Structure with auto branch creation config.
+type AutoBranchCreationConfig struct {
+	_ struct{} `type:"structure"`
+
+	// Basic Authorization credentials for the auto created branch.
+	BasicAuthCredentials *string `locationName:"basicAuthCredentials" type:"string"`
+
+	// BuildSpec for the auto created branch.
+	BuildSpec *string `locationName:"buildSpec" min:"1" type:"string"`
+
+	// Enables auto building for the auto created branch.
+	EnableAutoBuild *bool `locationName:"enableAutoBuild" type:"boolean"`
+
+	// Enables Basic Auth for the auto created branch.
+	EnableBasicAuth *bool `locationName:"enableBasicAuth" type:"boolean"`
+
+	// Enables Pull Request Preview for auto created branch.
+	EnablePullRequestPreview *bool `locationName:"enablePullRequestPreview" type:"boolean"`
+
+	// Environment Variables for the auto created branch.
+	EnvironmentVariables map[string]*string `locationName:"environmentVariables" type:"map"`
+
+	// Framework for the auto created branch.
+	Framework *string `locationName:"framework" type:"string"`
+
+	// The Amplify Environment name for the pull request.
+	PullRequestEnvironmentName *string `locationName:"pullRequestEnvironmentName" type:"string"`
+
+	// Stage for the auto created branch.
+	Stage *string `locationName:"stage" type:"string" enum:"Stage"`
+}
+
+// String returns the string representation
+func (s AutoBranchCreationConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AutoBranchCreationConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AutoBranchCreationConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AutoBranchCreationConfig"}
+	if s.BuildSpec != nil && len(*s.BuildSpec) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BuildSpec", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBasicAuthCredentials sets the BasicAuthCredentials field's value.
+func (s *AutoBranchCreationConfig) SetBasicAuthCredentials(v string) *AutoBranchCreationConfig {
+	s.BasicAuthCredentials = &v
+	return s
+}
+
+// SetBuildSpec sets the BuildSpec field's value.
+func (s *AutoBranchCreationConfig) SetBuildSpec(v string) *AutoBranchCreationConfig {
+	s.BuildSpec = &v
+	return s
+}
+
+// SetEnableAutoBuild sets the EnableAutoBuild field's value.
+func (s *AutoBranchCreationConfig) SetEnableAutoBuild(v bool) *AutoBranchCreationConfig {
+	s.EnableAutoBuild = &v
+	return s
+}
+
+// SetEnableBasicAuth sets the EnableBasicAuth field's value.
+func (s *AutoBranchCreationConfig) SetEnableBasicAuth(v bool) *AutoBranchCreationConfig {
+	s.EnableBasicAuth = &v
+	return s
+}
+
+// SetEnablePullRequestPreview sets the EnablePullRequestPreview field's value.
+func (s *AutoBranchCreationConfig) SetEnablePullRequestPreview(v bool) *AutoBranchCreationConfig {
+	s.EnablePullRequestPreview = &v
+	return s
+}
+
+// SetEnvironmentVariables sets the EnvironmentVariables field's value.
+func (s *AutoBranchCreationConfig) SetEnvironmentVariables(v map[string]*string) *AutoBranchCreationConfig {
+	s.EnvironmentVariables = v
+	return s
+}
+
+// SetFramework sets the Framework field's value.
+func (s *AutoBranchCreationConfig) SetFramework(v string) *AutoBranchCreationConfig {
+	s.Framework = &v
+	return s
+}
+
+// SetPullRequestEnvironmentName sets the PullRequestEnvironmentName field's value.
+func (s *AutoBranchCreationConfig) SetPullRequestEnvironmentName(v string) *AutoBranchCreationConfig {
+	s.PullRequestEnvironmentName = &v
+	return s
+}
+
+// SetStage sets the Stage field's value.
+func (s *AutoBranchCreationConfig) SetStage(v string) *AutoBranchCreationConfig {
+	s.Stage = &v
+	return s
+}
+
+// Backend environment for an Amplify App.
+type BackendEnvironment struct {
+	_ struct{} `type:"structure"`
+
+	// Arn for a backend environment, part of an Amplify App.
+	//
+	// BackendEnvironmentArn is a required field
+	BackendEnvironmentArn *string `locationName:"backendEnvironmentArn" min:"1" type:"string" required:"true"`
+
+	// Creation date and time for a backend environment, part of an Amplify App.
+	//
+	// CreateTime is a required field
+	CreateTime *time.Time `locationName:"createTime" type:"timestamp" required:"true"`
+
+	// Name of deployment artifacts.
+	DeploymentArtifacts *string `locationName:"deploymentArtifacts" min:"1" type:"string"`
+
+	// Name for a backend environment, part of an Amplify App.
+	//
+	// EnvironmentName is a required field
+	EnvironmentName *string `locationName:"environmentName" min:"1" type:"string" required:"true"`
+
+	// CloudFormation stack name of backend environment.
+	StackName *string `locationName:"stackName" min:"1" type:"string"`
+
+	// Last updated date and time for a backend environment, part of an Amplify
+	// App.
+	//
+	// UpdateTime is a required field
+	UpdateTime *time.Time `locationName:"updateTime" type:"timestamp" required:"true"`
+}
+
+// String returns the string representation
+func (s BackendEnvironment) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BackendEnvironment) GoString() string {
+	return s.String()
+}
+
+// SetBackendEnvironmentArn sets the BackendEnvironmentArn field's value.
+func (s *BackendEnvironment) SetBackendEnvironmentArn(v string) *BackendEnvironment {
+	s.BackendEnvironmentArn = &v
+	return s
+}
+
+// SetCreateTime sets the CreateTime field's value.
+func (s *BackendEnvironment) SetCreateTime(v time.Time) *BackendEnvironment {
+	s.CreateTime = &v
+	return s
+}
+
+// SetDeploymentArtifacts sets the DeploymentArtifacts field's value.
+func (s *BackendEnvironment) SetDeploymentArtifacts(v string) *BackendEnvironment {
+	s.DeploymentArtifacts = &v
+	return s
+}
+
+// SetEnvironmentName sets the EnvironmentName field's value.
+func (s *BackendEnvironment) SetEnvironmentName(v string) *BackendEnvironment {
+	s.EnvironmentName = &v
+	return s
+}
+
+// SetStackName sets the StackName field's value.
+func (s *BackendEnvironment) SetStackName(v string) *BackendEnvironment {
+	s.StackName = &v
+	return s
+}
+
+// SetUpdateTime sets the UpdateTime field's value.
+func (s *BackendEnvironment) SetUpdateTime(v time.Time) *BackendEnvironment {
+	s.UpdateTime = &v
+	return s
+}
+
+// Exception thrown when a request contains unexpected data.
+type BadRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s BadRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BadRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorBadRequestException(v protocol.ResponseMetadata) error {
+	return &BadRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s BadRequestException) Code() string {
+	return "BadRequestException"
+}
+
+// Message returns the exception's message.
+func (s BadRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s BadRequestException) OrigErr() error {
+	return nil
+}
+
+func (s BadRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s BadRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s BadRequestException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Branch for an Amplify App, which maps to a 3rd party repository branch.
 type Branch struct {
 	_ struct{} `type:"structure"`
@@ -2050,6 +3901,12 @@ type Branch struct {
 	//
 	// ActiveJobId is a required field
 	ActiveJobId *string `locationName:"activeJobId" type:"string" required:"true"`
+
+	// List of custom resources that are linked to this branch.
+	AssociatedResources []*string `locationName:"associatedResources" type:"list"`
+
+	// ARN for a Backend Environment, part of an Amplify App.
+	BackendEnvironmentArn *string `locationName:"backendEnvironmentArn" min:"1" type:"string"`
 
 	// Basic Authorization credentials for a branch, part of an Amplify App.
 	BasicAuthCredentials *string `locationName:"basicAuthCredentials" type:"string"`
@@ -2082,8 +3939,13 @@ type Branch struct {
 	// Description is a required field
 	Description *string `locationName:"description" type:"string" required:"true"`
 
-	// Display name for a branch, part of an Amplify App.
-	DisplayName *string `locationName:"displayName" type:"string"`
+	// The destination branch if the branch is a pull request branch.
+	DestinationBranch *string `locationName:"destinationBranch" min:"1" type:"string"`
+
+	// Display name for a branch, will use as the default domain prefix.
+	//
+	// DisplayName is a required field
+	DisplayName *string `locationName:"displayName" type:"string" required:"true"`
 
 	// Enables auto-building on push for a branch, part of an Amplify App.
 	//
@@ -2100,6 +3962,11 @@ type Branch struct {
 	// EnableNotification is a required field
 	EnableNotification *bool `locationName:"enableNotification" type:"boolean" required:"true"`
 
+	// Enables Pull Request Preview for this branch.
+	//
+	// EnablePullRequestPreview is a required field
+	EnablePullRequestPreview *bool `locationName:"enablePullRequestPreview" type:"boolean" required:"true"`
+
 	// Environment Variables specific to a branch, part of an Amplify App.
 	//
 	// EnvironmentVariables is a required field
@@ -2110,15 +3977,21 @@ type Branch struct {
 	// Framework is a required field
 	Framework *string `locationName:"framework" type:"string" required:"true"`
 
+	// The Amplify Environment name for the pull request.
+	PullRequestEnvironmentName *string `locationName:"pullRequestEnvironmentName" type:"string"`
+
+	// The source branch if the branch is a pull request branch.
+	SourceBranch *string `locationName:"sourceBranch" min:"1" type:"string"`
+
 	// Stage for a branch, part of an Amplify App.
 	//
 	// Stage is a required field
 	Stage *string `locationName:"stage" type:"string" required:"true" enum:"Stage"`
 
 	// Tag for branch for Amplify App.
-	Tags map[string]*string `locationName:"tags" type:"map"`
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
 
-	// Thumbnail Url for the branch.
+	// Thumbnail URL for the branch.
 	ThumbnailUrl *string `locationName:"thumbnailUrl" min:"1" type:"string"`
 
 	// Total number of Jobs part of an Amplify App.
@@ -2150,6 +4023,18 @@ func (s Branch) GoString() string {
 // SetActiveJobId sets the ActiveJobId field's value.
 func (s *Branch) SetActiveJobId(v string) *Branch {
 	s.ActiveJobId = &v
+	return s
+}
+
+// SetAssociatedResources sets the AssociatedResources field's value.
+func (s *Branch) SetAssociatedResources(v []*string) *Branch {
+	s.AssociatedResources = v
+	return s
+}
+
+// SetBackendEnvironmentArn sets the BackendEnvironmentArn field's value.
+func (s *Branch) SetBackendEnvironmentArn(v string) *Branch {
+	s.BackendEnvironmentArn = &v
 	return s
 }
 
@@ -2195,6 +4080,12 @@ func (s *Branch) SetDescription(v string) *Branch {
 	return s
 }
 
+// SetDestinationBranch sets the DestinationBranch field's value.
+func (s *Branch) SetDestinationBranch(v string) *Branch {
+	s.DestinationBranch = &v
+	return s
+}
+
 // SetDisplayName sets the DisplayName field's value.
 func (s *Branch) SetDisplayName(v string) *Branch {
 	s.DisplayName = &v
@@ -2219,6 +4110,12 @@ func (s *Branch) SetEnableNotification(v bool) *Branch {
 	return s
 }
 
+// SetEnablePullRequestPreview sets the EnablePullRequestPreview field's value.
+func (s *Branch) SetEnablePullRequestPreview(v bool) *Branch {
+	s.EnablePullRequestPreview = &v
+	return s
+}
+
 // SetEnvironmentVariables sets the EnvironmentVariables field's value.
 func (s *Branch) SetEnvironmentVariables(v map[string]*string) *Branch {
 	s.EnvironmentVariables = v
@@ -2228,6 +4125,18 @@ func (s *Branch) SetEnvironmentVariables(v map[string]*string) *Branch {
 // SetFramework sets the Framework field's value.
 func (s *Branch) SetFramework(v string) *Branch {
 	s.Framework = &v
+	return s
+}
+
+// SetPullRequestEnvironmentName sets the PullRequestEnvironmentName field's value.
+func (s *Branch) SetPullRequestEnvironmentName(v string) *Branch {
+	s.PullRequestEnvironmentName = &v
+	return s
+}
+
+// SetSourceBranch sets the SourceBranch field's value.
+func (s *Branch) SetSourceBranch(v string) *Branch {
+	s.SourceBranch = &v
 	return s
 }
 
@@ -2271,6 +4180,16 @@ func (s *Branch) SetUpdateTime(v time.Time) *Branch {
 type CreateAppInput struct {
 	_ struct{} `type:"structure"`
 
+	// Personal Access token for 3rd party source control system for an Amplify
+	// App, used to create webhook and read-only deploy key. Token is not stored.
+	AccessToken *string `locationName:"accessToken" min:"1" type:"string"`
+
+	// Automated branch creation config for the Amplify App.
+	AutoBranchCreationConfig *AutoBranchCreationConfig `locationName:"autoBranchCreationConfig" type:"structure"`
+
+	// Automated branch creation glob patterns for the Amplify App.
+	AutoBranchCreationPatterns []*string `locationName:"autoBranchCreationPatterns" type:"list"`
+
 	// Credentials for Basic Authorization for an Amplify App.
 	BasicAuthCredentials *string `locationName:"basicAuthCredentials" type:"string"`
 
@@ -2282,6 +4201,9 @@ type CreateAppInput struct {
 
 	// Description for an Amplify App
 	Description *string `locationName:"description" type:"string"`
+
+	// Enables automated branch creation for the Amplify App.
+	EnableAutoBranchCreation *bool `locationName:"enableAutoBranchCreation" type:"boolean"`
 
 	// Enable Basic Authorization for an Amplify App, this will apply to all branches
 	// part of this App.
@@ -2303,22 +4225,16 @@ type CreateAppInput struct {
 
 	// OAuth token for 3rd party source control system for an Amplify App, used
 	// to create webhook and read-only deploy key. OAuth token is not stored.
-	//
-	// OauthToken is a required field
-	OauthToken *string `locationName:"oauthToken" type:"string" required:"true"`
+	OauthToken *string `locationName:"oauthToken" type:"string"`
 
 	// Platform / framework for an Amplify App
-	//
-	// Platform is a required field
-	Platform *string `locationName:"platform" type:"string" required:"true" enum:"Platform"`
+	Platform *string `locationName:"platform" type:"string" enum:"Platform"`
 
 	// Repository for an Amplify App
-	//
-	// Repository is a required field
-	Repository *string `locationName:"repository" type:"string" required:"true"`
+	Repository *string `locationName:"repository" type:"string"`
 
 	// Tag for an Amplify App
-	Tags map[string]*string `locationName:"tags" type:"map"`
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
 }
 
 // String returns the string representation
@@ -2334,6 +4250,9 @@ func (s CreateAppInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateAppInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateAppInput"}
+	if s.AccessToken != nil && len(*s.AccessToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccessToken", 1))
+	}
 	if s.BuildSpec != nil && len(*s.BuildSpec) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("BuildSpec", 1))
 	}
@@ -2346,14 +4265,13 @@ func (s *CreateAppInput) Validate() error {
 	if s.Name != nil && len(*s.Name) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
 	}
-	if s.OauthToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("OauthToken"))
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
 	}
-	if s.Platform == nil {
-		invalidParams.Add(request.NewErrParamRequired("Platform"))
-	}
-	if s.Repository == nil {
-		invalidParams.Add(request.NewErrParamRequired("Repository"))
+	if s.AutoBranchCreationConfig != nil {
+		if err := s.AutoBranchCreationConfig.Validate(); err != nil {
+			invalidParams.AddNested("AutoBranchCreationConfig", err.(request.ErrInvalidParams))
+		}
 	}
 	if s.CustomRules != nil {
 		for i, v := range s.CustomRules {
@@ -2370,6 +4288,24 @@ func (s *CreateAppInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAccessToken sets the AccessToken field's value.
+func (s *CreateAppInput) SetAccessToken(v string) *CreateAppInput {
+	s.AccessToken = &v
+	return s
+}
+
+// SetAutoBranchCreationConfig sets the AutoBranchCreationConfig field's value.
+func (s *CreateAppInput) SetAutoBranchCreationConfig(v *AutoBranchCreationConfig) *CreateAppInput {
+	s.AutoBranchCreationConfig = v
+	return s
+}
+
+// SetAutoBranchCreationPatterns sets the AutoBranchCreationPatterns field's value.
+func (s *CreateAppInput) SetAutoBranchCreationPatterns(v []*string) *CreateAppInput {
+	s.AutoBranchCreationPatterns = v
+	return s
 }
 
 // SetBasicAuthCredentials sets the BasicAuthCredentials field's value.
@@ -2393,6 +4329,12 @@ func (s *CreateAppInput) SetCustomRules(v []*CustomRule) *CreateAppInput {
 // SetDescription sets the Description field's value.
 func (s *CreateAppInput) SetDescription(v string) *CreateAppInput {
 	s.Description = &v
+	return s
+}
+
+// SetEnableAutoBranchCreation sets the EnableAutoBranchCreation field's value.
+func (s *CreateAppInput) SetEnableAutoBranchCreation(v bool) *CreateAppInput {
+	s.EnableAutoBranchCreation = &v
 	return s
 }
 
@@ -2476,6 +4418,115 @@ func (s *CreateAppOutput) SetApp(v *App) *CreateAppOutput {
 	return s
 }
 
+// Request structure for a backend environment create request.
+type CreateBackendEnvironmentInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for an Amplify App.
+	//
+	// AppId is a required field
+	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Name of deployment artifacts.
+	DeploymentArtifacts *string `locationName:"deploymentArtifacts" min:"1" type:"string"`
+
+	// Name for the backend environment.
+	//
+	// EnvironmentName is a required field
+	EnvironmentName *string `locationName:"environmentName" min:"1" type:"string" required:"true"`
+
+	// CloudFormation stack name of backend environment.
+	StackName *string `locationName:"stackName" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s CreateBackendEnvironmentInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateBackendEnvironmentInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateBackendEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateBackendEnvironmentInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.AppId != nil && len(*s.AppId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
+	}
+	if s.DeploymentArtifacts != nil && len(*s.DeploymentArtifacts) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentArtifacts", 1))
+	}
+	if s.EnvironmentName == nil {
+		invalidParams.Add(request.NewErrParamRequired("EnvironmentName"))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 1))
+	}
+	if s.StackName != nil && len(*s.StackName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppId sets the AppId field's value.
+func (s *CreateBackendEnvironmentInput) SetAppId(v string) *CreateBackendEnvironmentInput {
+	s.AppId = &v
+	return s
+}
+
+// SetDeploymentArtifacts sets the DeploymentArtifacts field's value.
+func (s *CreateBackendEnvironmentInput) SetDeploymentArtifacts(v string) *CreateBackendEnvironmentInput {
+	s.DeploymentArtifacts = &v
+	return s
+}
+
+// SetEnvironmentName sets the EnvironmentName field's value.
+func (s *CreateBackendEnvironmentInput) SetEnvironmentName(v string) *CreateBackendEnvironmentInput {
+	s.EnvironmentName = &v
+	return s
+}
+
+// SetStackName sets the StackName field's value.
+func (s *CreateBackendEnvironmentInput) SetStackName(v string) *CreateBackendEnvironmentInput {
+	s.StackName = &v
+	return s
+}
+
+// Result structure for create backend environment.
+type CreateBackendEnvironmentOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Backend environment structure for an amplify App.
+	//
+	// BackendEnvironment is a required field
+	BackendEnvironment *BackendEnvironment `locationName:"backendEnvironment" type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateBackendEnvironmentOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateBackendEnvironmentOutput) GoString() string {
+	return s.String()
+}
+
+// SetBackendEnvironment sets the BackendEnvironment field's value.
+func (s *CreateBackendEnvironmentOutput) SetBackendEnvironment(v *BackendEnvironment) *CreateBackendEnvironmentOutput {
+	s.BackendEnvironment = v
+	return s
+}
+
 // Request structure for a branch create request.
 type CreateBranchInput struct {
 	_ struct{} `type:"structure"`
@@ -2484,6 +4535,9 @@ type CreateBranchInput struct {
 	//
 	// AppId is a required field
 	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// ARN for a Backend Environment, part of an Amplify App.
+	BackendEnvironmentArn *string `locationName:"backendEnvironmentArn" min:"1" type:"string"`
 
 	// Basic Authorization credentials for the branch.
 	BasicAuthCredentials *string `locationName:"basicAuthCredentials" type:"string"`
@@ -2499,6 +4553,9 @@ type CreateBranchInput struct {
 	// Description for the branch.
 	Description *string `locationName:"description" type:"string"`
 
+	// Display name for a branch, will use as the default domain prefix.
+	DisplayName *string `locationName:"displayName" type:"string"`
+
 	// Enables auto building for the branch.
 	EnableAutoBuild *bool `locationName:"enableAutoBuild" type:"boolean"`
 
@@ -2508,17 +4565,23 @@ type CreateBranchInput struct {
 	// Enables notifications for the branch.
 	EnableNotification *bool `locationName:"enableNotification" type:"boolean"`
 
+	// Enables Pull Request Preview for this branch.
+	EnablePullRequestPreview *bool `locationName:"enablePullRequestPreview" type:"boolean"`
+
 	// Environment Variables for the branch.
 	EnvironmentVariables map[string]*string `locationName:"environmentVariables" type:"map"`
 
 	// Framework for the branch.
 	Framework *string `locationName:"framework" type:"string"`
 
+	// The Amplify Environment name for the pull request.
+	PullRequestEnvironmentName *string `locationName:"pullRequestEnvironmentName" type:"string"`
+
 	// Stage for the branch.
 	Stage *string `locationName:"stage" type:"string" enum:"Stage"`
 
 	// Tag for the branch.
-	Tags map[string]*string `locationName:"tags" type:"map"`
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
 
 	// The content TTL for the website in seconds.
 	Ttl *string `locationName:"ttl" type:"string"`
@@ -2543,6 +4606,9 @@ func (s *CreateBranchInput) Validate() error {
 	if s.AppId != nil && len(*s.AppId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
 	}
+	if s.BackendEnvironmentArn != nil && len(*s.BackendEnvironmentArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BackendEnvironmentArn", 1))
+	}
 	if s.BranchName == nil {
 		invalidParams.Add(request.NewErrParamRequired("BranchName"))
 	}
@@ -2551,6 +4617,9 @@ func (s *CreateBranchInput) Validate() error {
 	}
 	if s.BuildSpec != nil && len(*s.BuildSpec) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("BuildSpec", 1))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -2562,6 +4631,12 @@ func (s *CreateBranchInput) Validate() error {
 // SetAppId sets the AppId field's value.
 func (s *CreateBranchInput) SetAppId(v string) *CreateBranchInput {
 	s.AppId = &v
+	return s
+}
+
+// SetBackendEnvironmentArn sets the BackendEnvironmentArn field's value.
+func (s *CreateBranchInput) SetBackendEnvironmentArn(v string) *CreateBranchInput {
+	s.BackendEnvironmentArn = &v
 	return s
 }
 
@@ -2589,6 +4664,12 @@ func (s *CreateBranchInput) SetDescription(v string) *CreateBranchInput {
 	return s
 }
 
+// SetDisplayName sets the DisplayName field's value.
+func (s *CreateBranchInput) SetDisplayName(v string) *CreateBranchInput {
+	s.DisplayName = &v
+	return s
+}
+
 // SetEnableAutoBuild sets the EnableAutoBuild field's value.
 func (s *CreateBranchInput) SetEnableAutoBuild(v bool) *CreateBranchInput {
 	s.EnableAutoBuild = &v
@@ -2607,6 +4688,12 @@ func (s *CreateBranchInput) SetEnableNotification(v bool) *CreateBranchInput {
 	return s
 }
 
+// SetEnablePullRequestPreview sets the EnablePullRequestPreview field's value.
+func (s *CreateBranchInput) SetEnablePullRequestPreview(v bool) *CreateBranchInput {
+	s.EnablePullRequestPreview = &v
+	return s
+}
+
 // SetEnvironmentVariables sets the EnvironmentVariables field's value.
 func (s *CreateBranchInput) SetEnvironmentVariables(v map[string]*string) *CreateBranchInput {
 	s.EnvironmentVariables = v
@@ -2616,6 +4703,12 @@ func (s *CreateBranchInput) SetEnvironmentVariables(v map[string]*string) *Creat
 // SetFramework sets the Framework field's value.
 func (s *CreateBranchInput) SetFramework(v string) *CreateBranchInput {
 	s.Framework = &v
+	return s
+}
+
+// SetPullRequestEnvironmentName sets the PullRequestEnvironmentName field's value.
+func (s *CreateBranchInput) SetPullRequestEnvironmentName(v string) *CreateBranchInput {
+	s.PullRequestEnvironmentName = &v
 	return s
 }
 
@@ -2663,6 +4756,124 @@ func (s *CreateBranchOutput) SetBranch(v *Branch) *CreateBranchOutput {
 	return s
 }
 
+// Request structure for create a new deployment.
+type CreateDeploymentInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for an Amplify App.
+	//
+	// AppId is a required field
+	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Name for the branch, for the Job.
+	//
+	// BranchName is a required field
+	BranchName *string `location:"uri" locationName:"branchName" min:"1" type:"string" required:"true"`
+
+	// Optional file map that contains file name as the key and file content md5
+	// hash as the value. If this argument is provided, the service will generate
+	// different upload url per file. Otherwise, the service will only generate
+	// a single upload url for the zipped files.
+	FileMap map[string]*string `locationName:"fileMap" type:"map"`
+}
+
+// String returns the string representation
+func (s CreateDeploymentInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateDeploymentInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDeploymentInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.AppId != nil && len(*s.AppId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
+	}
+	if s.BranchName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BranchName"))
+	}
+	if s.BranchName != nil && len(*s.BranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BranchName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppId sets the AppId field's value.
+func (s *CreateDeploymentInput) SetAppId(v string) *CreateDeploymentInput {
+	s.AppId = &v
+	return s
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *CreateDeploymentInput) SetBranchName(v string) *CreateDeploymentInput {
+	s.BranchName = &v
+	return s
+}
+
+// SetFileMap sets the FileMap field's value.
+func (s *CreateDeploymentInput) SetFileMap(v map[string]*string) *CreateDeploymentInput {
+	s.FileMap = v
+	return s
+}
+
+// Result structure for create a new deployment.
+type CreateDeploymentOutput struct {
+	_ struct{} `type:"structure"`
+
+	// When the fileMap argument is provided in the request, the fileUploadUrls
+	// will contain a map of file names to upload url.
+	//
+	// FileUploadUrls is a required field
+	FileUploadUrls map[string]*string `locationName:"fileUploadUrls" type:"map" required:"true"`
+
+	// The jobId for this deployment, will supply to start deployment api.
+	JobId *string `locationName:"jobId" type:"string"`
+
+	// When the fileMap argument is NOT provided. This zipUploadUrl will be returned.
+	//
+	// ZipUploadUrl is a required field
+	ZipUploadUrl *string `locationName:"zipUploadUrl" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateDeploymentOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateDeploymentOutput) GoString() string {
+	return s.String()
+}
+
+// SetFileUploadUrls sets the FileUploadUrls field's value.
+func (s *CreateDeploymentOutput) SetFileUploadUrls(v map[string]*string) *CreateDeploymentOutput {
+	s.FileUploadUrls = v
+	return s
+}
+
+// SetJobId sets the JobId field's value.
+func (s *CreateDeploymentOutput) SetJobId(v string) *CreateDeploymentOutput {
+	s.JobId = &v
+	return s
+}
+
+// SetZipUploadUrl sets the ZipUploadUrl field's value.
+func (s *CreateDeploymentOutput) SetZipUploadUrl(v string) *CreateDeploymentOutput {
+	s.ZipUploadUrl = &v
+	return s
+}
+
 // Request structure for create Domain Association request.
 type CreateDomainAssociationInput struct {
 	_ struct{} `type:"structure"`
@@ -2677,7 +4888,7 @@ type CreateDomainAssociationInput struct {
 	// DomainName is a required field
 	DomainName *string `locationName:"domainName" type:"string" required:"true"`
 
-	// Enables automated creation of Subdomains for branches.
+	// Enables automated creation of Subdomains for branches. (Currently not supported)
 	EnableAutoSubDomain *bool `locationName:"enableAutoSubDomain" type:"boolean"`
 
 	// Setting structure for the Subdomain.
@@ -2775,6 +4986,100 @@ func (s CreateDomainAssociationOutput) GoString() string {
 // SetDomainAssociation sets the DomainAssociation field's value.
 func (s *CreateDomainAssociationOutput) SetDomainAssociation(v *DomainAssociation) *CreateDomainAssociationOutput {
 	s.DomainAssociation = v
+	return s
+}
+
+// Request structure for create webhook request.
+type CreateWebhookInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for an Amplify App.
+	//
+	// AppId is a required field
+	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Name for a branch, part of an Amplify App.
+	//
+	// BranchName is a required field
+	BranchName *string `locationName:"branchName" min:"1" type:"string" required:"true"`
+
+	// Description for a webhook.
+	Description *string `locationName:"description" type:"string"`
+}
+
+// String returns the string representation
+func (s CreateWebhookInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateWebhookInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateWebhookInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateWebhookInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.AppId != nil && len(*s.AppId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
+	}
+	if s.BranchName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BranchName"))
+	}
+	if s.BranchName != nil && len(*s.BranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BranchName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppId sets the AppId field's value.
+func (s *CreateWebhookInput) SetAppId(v string) *CreateWebhookInput {
+	s.AppId = &v
+	return s
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *CreateWebhookInput) SetBranchName(v string) *CreateWebhookInput {
+	s.BranchName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateWebhookInput) SetDescription(v string) *CreateWebhookInput {
+	s.Description = &v
+	return s
+}
+
+// Result structure for the create webhook request.
+type CreateWebhookOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Webhook structure.
+	//
+	// Webhook is a required field
+	Webhook *Webhook `locationName:"webhook" type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateWebhookOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateWebhookOutput) GoString() string {
+	return s.String()
+}
+
+// SetWebhook sets the Webhook field's value.
+func (s *CreateWebhookOutput) SetWebhook(v *Webhook) *CreateWebhookOutput {
+	s.Webhook = v
 	return s
 }
 
@@ -2927,6 +5232,91 @@ func (s DeleteAppOutput) GoString() string {
 // SetApp sets the App field's value.
 func (s *DeleteAppOutput) SetApp(v *App) *DeleteAppOutput {
 	s.App = v
+	return s
+}
+
+// Request structure for delete backend environment request.
+type DeleteBackendEnvironmentInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id of an Amplify App.
+	//
+	// AppId is a required field
+	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Name of a backend environment of an Amplify App.
+	//
+	// EnvironmentName is a required field
+	EnvironmentName *string `location:"uri" locationName:"environmentName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteBackendEnvironmentInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteBackendEnvironmentInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteBackendEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteBackendEnvironmentInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.AppId != nil && len(*s.AppId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
+	}
+	if s.EnvironmentName == nil {
+		invalidParams.Add(request.NewErrParamRequired("EnvironmentName"))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppId sets the AppId field's value.
+func (s *DeleteBackendEnvironmentInput) SetAppId(v string) *DeleteBackendEnvironmentInput {
+	s.AppId = &v
+	return s
+}
+
+// SetEnvironmentName sets the EnvironmentName field's value.
+func (s *DeleteBackendEnvironmentInput) SetEnvironmentName(v string) *DeleteBackendEnvironmentInput {
+	s.EnvironmentName = &v
+	return s
+}
+
+// Result structure of a delete backend environment result.
+type DeleteBackendEnvironmentOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Backend environment structure for an Amplify App.
+	//
+	// BackendEnvironment is a required field
+	BackendEnvironment *BackendEnvironment `locationName:"backendEnvironment" type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteBackendEnvironmentOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteBackendEnvironmentOutput) GoString() string {
+	return s.String()
+}
+
+// SetBackendEnvironment sets the BackendEnvironment field's value.
+func (s *DeleteBackendEnvironmentOutput) SetBackendEnvironment(v *BackendEnvironment) *DeleteBackendEnvironmentOutput {
+	s.BackendEnvironment = v
 	return s
 }
 
@@ -3202,15 +5592,138 @@ func (s *DeleteJobOutput) SetJobSummary(v *JobSummary) *DeleteJobOutput {
 	return s
 }
 
+// Request structure for the delete webhook request.
+type DeleteWebhookInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for a webhook.
+	//
+	// WebhookId is a required field
+	WebhookId *string `location:"uri" locationName:"webhookId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteWebhookInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteWebhookInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteWebhookInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteWebhookInput"}
+	if s.WebhookId == nil {
+		invalidParams.Add(request.NewErrParamRequired("WebhookId"))
+	}
+	if s.WebhookId != nil && len(*s.WebhookId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("WebhookId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetWebhookId sets the WebhookId field's value.
+func (s *DeleteWebhookInput) SetWebhookId(v string) *DeleteWebhookInput {
+	s.WebhookId = &v
+	return s
+}
+
+// Result structure for the delete webhook request.
+type DeleteWebhookOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Webhook structure.
+	//
+	// Webhook is a required field
+	Webhook *Webhook `locationName:"webhook" type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteWebhookOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteWebhookOutput) GoString() string {
+	return s.String()
+}
+
+// SetWebhook sets the Webhook field's value.
+func (s *DeleteWebhookOutput) SetWebhook(v *Webhook) *DeleteWebhookOutput {
+	s.Webhook = v
+	return s
+}
+
+// Exception thrown when an operation fails due to a dependent service throwing
+// an exception.
+type DependentServiceFailureException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s DependentServiceFailureException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DependentServiceFailureException) GoString() string {
+	return s.String()
+}
+
+func newErrorDependentServiceFailureException(v protocol.ResponseMetadata) error {
+	return &DependentServiceFailureException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DependentServiceFailureException) Code() string {
+	return "DependentServiceFailureException"
+}
+
+// Message returns the exception's message.
+func (s DependentServiceFailureException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DependentServiceFailureException) OrigErr() error {
+	return nil
+}
+
+func (s DependentServiceFailureException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DependentServiceFailureException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DependentServiceFailureException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Structure for Domain Association, which associates a custom domain with an
 // Amplify App.
 type DomainAssociation struct {
 	_ struct{} `type:"structure"`
 
 	// DNS Record for certificate verification.
-	//
-	// CertificateVerificationDNSRecord is a required field
-	CertificateVerificationDNSRecord *string `locationName:"certificateVerificationDNSRecord" type:"string" required:"true"`
+	CertificateVerificationDNSRecord *string `locationName:"certificateVerificationDNSRecord" type:"string"`
 
 	// ARN for the Domain Association.
 	//
@@ -3227,7 +5740,7 @@ type DomainAssociation struct {
 	// DomainStatus is a required field
 	DomainStatus *string `locationName:"domainStatus" type:"string" required:"true" enum:"DomainStatus"`
 
-	// Enables automated creation of Subdomains for branches.
+	// Enables automated creation of Subdomains for branches. (Currently not supported)
 	//
 	// EnableAutoSubDomain is a required field
 	EnableAutoSubDomain *bool `locationName:"enableAutoSubDomain" type:"boolean" required:"true"`
@@ -3292,6 +5805,104 @@ func (s *DomainAssociation) SetStatusReason(v string) *DomainAssociation {
 // SetSubDomains sets the SubDomains field's value.
 func (s *DomainAssociation) SetSubDomains(v []*SubDomain) *DomainAssociation {
 	s.SubDomains = v
+	return s
+}
+
+// Request structure for the generate access logs request.
+type GenerateAccessLogsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for an Amplify App.
+	//
+	// AppId is a required field
+	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Name of the domain.
+	//
+	// DomainName is a required field
+	DomainName *string `locationName:"domainName" type:"string" required:"true"`
+
+	// The time at which the logs should end, inclusive.
+	EndTime *time.Time `locationName:"endTime" type:"timestamp"`
+
+	// The time at which the logs should start, inclusive.
+	StartTime *time.Time `locationName:"startTime" type:"timestamp"`
+}
+
+// String returns the string representation
+func (s GenerateAccessLogsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GenerateAccessLogsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GenerateAccessLogsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GenerateAccessLogsInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.AppId != nil && len(*s.AppId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
+	}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppId sets the AppId field's value.
+func (s *GenerateAccessLogsInput) SetAppId(v string) *GenerateAccessLogsInput {
+	s.AppId = &v
+	return s
+}
+
+// SetDomainName sets the DomainName field's value.
+func (s *GenerateAccessLogsInput) SetDomainName(v string) *GenerateAccessLogsInput {
+	s.DomainName = &v
+	return s
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *GenerateAccessLogsInput) SetEndTime(v time.Time) *GenerateAccessLogsInput {
+	s.EndTime = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *GenerateAccessLogsInput) SetStartTime(v time.Time) *GenerateAccessLogsInput {
+	s.StartTime = &v
+	return s
+}
+
+// Result structure for the generate access logs request.
+type GenerateAccessLogsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Pre-signed URL for the requested access logs.
+	LogUrl *string `locationName:"logUrl" type:"string"`
+}
+
+// String returns the string representation
+func (s GenerateAccessLogsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GenerateAccessLogsOutput) GoString() string {
+	return s.String()
+}
+
+// SetLogUrl sets the LogUrl field's value.
+func (s *GenerateAccessLogsOutput) SetLogUrl(v string) *GenerateAccessLogsOutput {
+	s.LogUrl = &v
 	return s
 }
 
@@ -3363,7 +5974,171 @@ func (s *GetAppOutput) SetApp(v *App) *GetAppOutput {
 	return s
 }
 
-// Result structure for get branch request.
+// Request structure for the get artifact request.
+type GetArtifactUrlInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for a artifact.
+	//
+	// ArtifactId is a required field
+	ArtifactId *string `location:"uri" locationName:"artifactId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetArtifactUrlInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetArtifactUrlInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetArtifactUrlInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetArtifactUrlInput"}
+	if s.ArtifactId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ArtifactId"))
+	}
+	if s.ArtifactId != nil && len(*s.ArtifactId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ArtifactId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArtifactId sets the ArtifactId field's value.
+func (s *GetArtifactUrlInput) SetArtifactId(v string) *GetArtifactUrlInput {
+	s.ArtifactId = &v
+	return s
+}
+
+// Result structure for the get artifact request.
+type GetArtifactUrlOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for a artifact.
+	//
+	// ArtifactId is a required field
+	ArtifactId *string `locationName:"artifactId" type:"string" required:"true"`
+
+	// Presigned url for the artifact.
+	//
+	// ArtifactUrl is a required field
+	ArtifactUrl *string `locationName:"artifactUrl" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetArtifactUrlOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetArtifactUrlOutput) GoString() string {
+	return s.String()
+}
+
+// SetArtifactId sets the ArtifactId field's value.
+func (s *GetArtifactUrlOutput) SetArtifactId(v string) *GetArtifactUrlOutput {
+	s.ArtifactId = &v
+	return s
+}
+
+// SetArtifactUrl sets the ArtifactUrl field's value.
+func (s *GetArtifactUrlOutput) SetArtifactUrl(v string) *GetArtifactUrlOutput {
+	s.ArtifactUrl = &v
+	return s
+}
+
+// Request structure for get backend environment request.
+type GetBackendEnvironmentInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for an Amplify App.
+	//
+	// AppId is a required field
+	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Name for the backend environment.
+	//
+	// EnvironmentName is a required field
+	EnvironmentName *string `location:"uri" locationName:"environmentName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetBackendEnvironmentInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetBackendEnvironmentInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetBackendEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetBackendEnvironmentInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.AppId != nil && len(*s.AppId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
+	}
+	if s.EnvironmentName == nil {
+		invalidParams.Add(request.NewErrParamRequired("EnvironmentName"))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppId sets the AppId field's value.
+func (s *GetBackendEnvironmentInput) SetAppId(v string) *GetBackendEnvironmentInput {
+	s.AppId = &v
+	return s
+}
+
+// SetEnvironmentName sets the EnvironmentName field's value.
+func (s *GetBackendEnvironmentInput) SetEnvironmentName(v string) *GetBackendEnvironmentInput {
+	s.EnvironmentName = &v
+	return s
+}
+
+// Result structure for get backend environment result.
+type GetBackendEnvironmentOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Backend environment structure for an an Amplify App.
+	//
+	// BackendEnvironment is a required field
+	BackendEnvironment *BackendEnvironment `locationName:"backendEnvironment" type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s GetBackendEnvironmentOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetBackendEnvironmentOutput) GoString() string {
+	return s.String()
+}
+
+// SetBackendEnvironment sets the BackendEnvironment field's value.
+func (s *GetBackendEnvironmentOutput) SetBackendEnvironment(v *BackendEnvironment) *GetBackendEnvironmentOutput {
+	s.BackendEnvironment = v
+	return s
+}
+
+// Request structure for get branch request.
 type GetBranchInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3633,6 +6408,131 @@ func (s *GetJobOutput) SetJob(v *Job) *GetJobOutput {
 	return s
 }
 
+// Request structure for the get webhook request.
+type GetWebhookInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for a webhook.
+	//
+	// WebhookId is a required field
+	WebhookId *string `location:"uri" locationName:"webhookId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetWebhookInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetWebhookInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetWebhookInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetWebhookInput"}
+	if s.WebhookId == nil {
+		invalidParams.Add(request.NewErrParamRequired("WebhookId"))
+	}
+	if s.WebhookId != nil && len(*s.WebhookId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("WebhookId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetWebhookId sets the WebhookId field's value.
+func (s *GetWebhookInput) SetWebhookId(v string) *GetWebhookInput {
+	s.WebhookId = &v
+	return s
+}
+
+// Result structure for the get webhook request.
+type GetWebhookOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Webhook structure.
+	//
+	// Webhook is a required field
+	Webhook *Webhook `locationName:"webhook" type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s GetWebhookOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetWebhookOutput) GoString() string {
+	return s.String()
+}
+
+// SetWebhook sets the Webhook field's value.
+func (s *GetWebhookOutput) SetWebhook(v *Webhook) *GetWebhookOutput {
+	s.Webhook = v
+	return s
+}
+
+// Exception thrown when the service fails to perform an operation due to an
+// internal issue.
+type InternalFailureException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalFailureException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalFailureException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalFailureException(v protocol.ResponseMetadata) error {
+	return &InternalFailureException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalFailureException) Code() string {
+	return "InternalFailureException"
+}
+
+// Message returns the exception's message.
+func (s InternalFailureException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalFailureException) OrigErr() error {
+	return nil
+}
+
+func (s InternalFailureException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalFailureException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalFailureException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Structure for an execution job for an Amplify App.
 type Job struct {
 	_ struct{} `type:"structure"`
@@ -3702,7 +6602,9 @@ type JobSummary struct {
 	// JobId is a required field
 	JobId *string `locationName:"jobId" type:"string" required:"true"`
 
-	// Type for the Job.
+	// Type for the Job. \n "RELEASE": Manually released from source by using StartJob
+	// API. "RETRY": Manually retried by using StartJob API. "WEB_HOOK": Automatically
+	// triggered by WebHooks.
 	//
 	// JobType is a required field
 	JobType *string `locationName:"jobType" type:"string" required:"true" enum:"JobType"`
@@ -3780,6 +6682,63 @@ func (s *JobSummary) SetStartTime(v time.Time) *JobSummary {
 func (s *JobSummary) SetStatus(v string) *JobSummary {
 	s.Status = &v
 	return s
+}
+
+// Exception thrown when a resource could not be created because of service
+// limits.
+type LimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // Request structure for an Amplify App list request.
@@ -3862,6 +6821,254 @@ func (s *ListAppsOutput) SetApps(v []*App) *ListAppsOutput {
 
 // SetNextToken sets the NextToken field's value.
 func (s *ListAppsOutput) SetNextToken(v string) *ListAppsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// Request structure for the list artifacts request.
+type ListArtifactsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for an Amplify App.
+	//
+	// AppId is a required field
+	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Name for a branch, part of an Amplify App.
+	//
+	// BranchName is a required field
+	BranchName *string `location:"uri" locationName:"branchName" min:"1" type:"string" required:"true"`
+
+	// Unique Id for an Job.
+	//
+	// JobId is a required field
+	JobId *string `location:"uri" locationName:"jobId" type:"string" required:"true"`
+
+	// Maximum number of records to list in a single response.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
+
+	// Pagination token. Set to null to start listing artifacts from start. If non-null
+	// pagination token is returned in a result, then pass its value in here to
+	// list more artifacts.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListArtifactsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListArtifactsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListArtifactsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListArtifactsInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.AppId != nil && len(*s.AppId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
+	}
+	if s.BranchName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BranchName"))
+	}
+	if s.BranchName != nil && len(*s.BranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BranchName", 1))
+	}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppId sets the AppId field's value.
+func (s *ListArtifactsInput) SetAppId(v string) *ListArtifactsInput {
+	s.AppId = &v
+	return s
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *ListArtifactsInput) SetBranchName(v string) *ListArtifactsInput {
+	s.BranchName = &v
+	return s
+}
+
+// SetJobId sets the JobId field's value.
+func (s *ListArtifactsInput) SetJobId(v string) *ListArtifactsInput {
+	s.JobId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListArtifactsInput) SetMaxResults(v int64) *ListArtifactsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListArtifactsInput) SetNextToken(v string) *ListArtifactsInput {
+	s.NextToken = &v
+	return s
+}
+
+// Result structure for the list artifacts request.
+type ListArtifactsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// List of artifacts.
+	//
+	// Artifacts is a required field
+	Artifacts []*Artifact `locationName:"artifacts" type:"list" required:"true"`
+
+	// Pagination token. If non-null pagination token is returned in a result, then
+	// pass its value in another request to fetch more entries.
+	NextToken *string `locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListArtifactsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListArtifactsOutput) GoString() string {
+	return s.String()
+}
+
+// SetArtifacts sets the Artifacts field's value.
+func (s *ListArtifactsOutput) SetArtifacts(v []*Artifact) *ListArtifactsOutput {
+	s.Artifacts = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListArtifactsOutput) SetNextToken(v string) *ListArtifactsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// Request structure for list backend environments request.
+type ListBackendEnvironmentsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for an amplify App.
+	//
+	// AppId is a required field
+	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Name of the backend environment
+	EnvironmentName *string `locationName:"environmentName" min:"1" type:"string"`
+
+	// Maximum number of records to list in a single response.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
+
+	// Pagination token. Set to null to start listing backen environments from start.
+	// If a non-null pagination token is returned in a result, then pass its value
+	// in here to list more backend environments.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListBackendEnvironmentsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListBackendEnvironmentsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListBackendEnvironmentsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListBackendEnvironmentsInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.AppId != nil && len(*s.AppId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppId sets the AppId field's value.
+func (s *ListBackendEnvironmentsInput) SetAppId(v string) *ListBackendEnvironmentsInput {
+	s.AppId = &v
+	return s
+}
+
+// SetEnvironmentName sets the EnvironmentName field's value.
+func (s *ListBackendEnvironmentsInput) SetEnvironmentName(v string) *ListBackendEnvironmentsInput {
+	s.EnvironmentName = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListBackendEnvironmentsInput) SetMaxResults(v int64) *ListBackendEnvironmentsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListBackendEnvironmentsInput) SetNextToken(v string) *ListBackendEnvironmentsInput {
+	s.NextToken = &v
+	return s
+}
+
+// Result structure for list backend environments result.
+type ListBackendEnvironmentsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// List of backend environments for an Amplify App.
+	//
+	// BackendEnvironments is a required field
+	BackendEnvironments []*BackendEnvironment `locationName:"backendEnvironments" type:"list" required:"true"`
+
+	// Pagination token. If non-null pagination token is returned in a result, then
+	// pass its value in another request to fetch more entries.
+	NextToken *string `locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListBackendEnvironmentsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListBackendEnvironmentsOutput) GoString() string {
+	return s.String()
+}
+
+// SetBackendEnvironments sets the BackendEnvironments field's value.
+func (s *ListBackendEnvironmentsOutput) SetBackendEnvironments(v []*BackendEnvironment) *ListBackendEnvironmentsOutput {
+	s.BackendEnvironments = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListBackendEnvironmentsOutput) SetNextToken(v string) *ListBackendEnvironmentsOutput {
 	s.NextToken = &v
 	return s
 }
@@ -4186,6 +7393,229 @@ func (s *ListJobsOutput) SetNextToken(v string) *ListJobsOutput {
 	return s
 }
 
+// Request structure used to list tags for resource.
+type ListTagsForResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// Resource arn used to list tags.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resourceArn" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *ListTagsForResourceInput) SetResourceArn(v string) *ListTagsForResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// Response for list tags.
+type ListTagsForResourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Tags result for response.
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsForResourceOutput) SetTags(v map[string]*string) *ListTagsForResourceOutput {
+	s.Tags = v
+	return s
+}
+
+// Request structure for the list webhooks request.
+type ListWebhooksInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for an Amplify App.
+	//
+	// AppId is a required field
+	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Maximum number of records to list in a single response.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
+
+	// Pagination token. Set to null to start listing webhooks from start. If non-null
+	// pagination token is returned in a result, then pass its value in here to
+	// list more webhooks.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListWebhooksInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListWebhooksInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListWebhooksInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListWebhooksInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.AppId != nil && len(*s.AppId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppId sets the AppId field's value.
+func (s *ListWebhooksInput) SetAppId(v string) *ListWebhooksInput {
+	s.AppId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListWebhooksInput) SetMaxResults(v int64) *ListWebhooksInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListWebhooksInput) SetNextToken(v string) *ListWebhooksInput {
+	s.NextToken = &v
+	return s
+}
+
+// Result structure for the list webhooks request.
+type ListWebhooksOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Pagination token. If non-null pagination token is returned in a result, then
+	// pass its value in another request to fetch more entries.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// List of webhooks.
+	//
+	// Webhooks is a required field
+	Webhooks []*Webhook `locationName:"webhooks" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s ListWebhooksOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListWebhooksOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListWebhooksOutput) SetNextToken(v string) *ListWebhooksOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetWebhooks sets the Webhooks field's value.
+func (s *ListWebhooksOutput) SetWebhooks(v []*Webhook) *ListWebhooksOutput {
+	s.Webhooks = v
+	return s
+}
+
+// Exception thrown when an entity has not been found during an operation.
+type NotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s NotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorNotFoundException(v protocol.ResponseMetadata) error {
+	return &NotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s NotFoundException) Code() string {
+	return "NotFoundException"
+}
+
+// Message returns the exception's message.
+func (s NotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s NotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s NotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s NotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s NotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Structure with Production Branch information.
 type ProductionBranch struct {
 	_ struct{} `type:"structure"`
@@ -4199,7 +7629,7 @@ type ProductionBranch struct {
 	// Status of Production Branch.
 	Status *string `locationName:"status" min:"3" type:"string"`
 
-	// Thumbnail Url for Production Branch.
+	// Thumbnail URL for Production Branch.
 	ThumbnailUrl *string `locationName:"thumbnailUrl" min:"1" type:"string"`
 }
 
@@ -4237,6 +7667,169 @@ func (s *ProductionBranch) SetThumbnailUrl(v string) *ProductionBranch {
 	return s
 }
 
+// Exception thrown when an operation fails due to non-existent resource.
+type ResourceNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Code_ *string `locationName:"code" type:"string"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Request structure for start a deployment.
+type StartDeploymentInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique Id for an Amplify App.
+	//
+	// AppId is a required field
+	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Name for the branch, for the Job.
+	//
+	// BranchName is a required field
+	BranchName *string `location:"uri" locationName:"branchName" min:"1" type:"string" required:"true"`
+
+	// The job id for this deployment, generated by create deployment request.
+	JobId *string `locationName:"jobId" type:"string"`
+
+	// The sourceUrl for this deployment, used when calling start deployment without
+	// create deployment. SourceUrl can be any HTTP GET url that is public accessible
+	// and downloads a single zip.
+	SourceUrl *string `locationName:"sourceUrl" type:"string"`
+}
+
+// String returns the string representation
+func (s StartDeploymentInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartDeploymentInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartDeploymentInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.AppId != nil && len(*s.AppId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
+	}
+	if s.BranchName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BranchName"))
+	}
+	if s.BranchName != nil && len(*s.BranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BranchName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAppId sets the AppId field's value.
+func (s *StartDeploymentInput) SetAppId(v string) *StartDeploymentInput {
+	s.AppId = &v
+	return s
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *StartDeploymentInput) SetBranchName(v string) *StartDeploymentInput {
+	s.BranchName = &v
+	return s
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StartDeploymentInput) SetJobId(v string) *StartDeploymentInput {
+	s.JobId = &v
+	return s
+}
+
+// SetSourceUrl sets the SourceUrl field's value.
+func (s *StartDeploymentInput) SetSourceUrl(v string) *StartDeploymentInput {
+	s.SourceUrl = &v
+	return s
+}
+
+// Result structure for start a deployment.
+type StartDeploymentOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Summary for the Job.
+	//
+	// JobSummary is a required field
+	JobSummary *JobSummary `locationName:"jobSummary" type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartDeploymentOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartDeploymentOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobSummary sets the JobSummary field's value.
+func (s *StartDeploymentOutput) SetJobSummary(v *JobSummary) *StartDeploymentOutput {
+	s.JobSummary = v
+	return s
+}
+
 // Request structure for Start job request.
 type StartJobInput struct {
 	_ struct{} `type:"structure"`
@@ -4260,13 +7853,16 @@ type StartJobInput struct {
 	// Commit date / time for the Job.
 	CommitTime *time.Time `locationName:"commitTime" type:"timestamp"`
 
-	// Unique Id for the Job.
+	// Unique Id for an existing job. Required for "RETRY" JobType.
 	JobId *string `locationName:"jobId" type:"string"`
 
-	// Reason for the Job.
+	// Descriptive reason for starting this job.
 	JobReason *string `locationName:"jobReason" type:"string"`
 
-	// Type for the Job.
+	// Type for the Job. Available JobTypes are: \n "RELEASE": Start a new job with
+	// the latest change from the specified branch. Only available for apps that
+	// have connected to a repository. "RETRY": Retry an existing job. JobId is
+	// required for this type of job.
 	//
 	// JobType is a required field
 	JobType *string `locationName:"jobType" type:"string" required:"true" enum:"JobType"`
@@ -4385,18 +7981,21 @@ func (s *StartJobOutput) SetJobSummary(v *JobSummary) *StartJobOutput {
 type Step struct {
 	_ struct{} `type:"structure"`
 
-	// Url to teh artifact for the execution step.
+	// URL to the artifact for the execution step.
 	ArtifactsUrl *string `locationName:"artifactsUrl" type:"string"`
+
+	// The context for current step, will include build image if step is build.
+	Context *string `locationName:"context" type:"string"`
 
 	// End date/ time of the execution step.
 	//
 	// EndTime is a required field
 	EndTime *time.Time `locationName:"endTime" type:"timestamp" required:"true"`
 
-	// Url to the logs for the execution step.
+	// URL to the logs for the execution step.
 	LogUrl *string `locationName:"logUrl" type:"string"`
 
-	// List of screenshot Urls for the execution step, if relevant.
+	// List of screenshot URLs for the execution step, if relevant.
 	Screenshots map[string]*string `locationName:"screenshots" type:"map"`
 
 	// Start date/ time of the execution step.
@@ -4409,10 +8008,19 @@ type Step struct {
 	// Status is a required field
 	Status *string `locationName:"status" type:"string" required:"true" enum:"JobStatus"`
 
+	// The reason for current step status.
+	StatusReason *string `locationName:"statusReason" type:"string"`
+
 	// Name of the execution step.
 	//
 	// StepName is a required field
 	StepName *string `locationName:"stepName" type:"string" required:"true"`
+
+	// URL to the test artifact for the execution step.
+	TestArtifactsUrl *string `locationName:"testArtifactsUrl" type:"string"`
+
+	// URL to the test config for the execution step.
+	TestConfigUrl *string `locationName:"testConfigUrl" type:"string"`
 }
 
 // String returns the string representation
@@ -4428,6 +8036,12 @@ func (s Step) GoString() string {
 // SetArtifactsUrl sets the ArtifactsUrl field's value.
 func (s *Step) SetArtifactsUrl(v string) *Step {
 	s.ArtifactsUrl = &v
+	return s
+}
+
+// SetContext sets the Context field's value.
+func (s *Step) SetContext(v string) *Step {
+	s.Context = &v
 	return s
 }
 
@@ -4461,9 +8075,27 @@ func (s *Step) SetStatus(v string) *Step {
 	return s
 }
 
+// SetStatusReason sets the StatusReason field's value.
+func (s *Step) SetStatusReason(v string) *Step {
+	s.StatusReason = &v
+	return s
+}
+
 // SetStepName sets the StepName field's value.
 func (s *Step) SetStepName(v string) *Step {
 	s.StepName = &v
+	return s
+}
+
+// SetTestArtifactsUrl sets the TestArtifactsUrl field's value.
+func (s *Step) SetTestArtifactsUrl(v string) *Step {
+	s.TestArtifactsUrl = &v
+	return s
+}
+
+// SetTestConfigUrl sets the TestConfigUrl field's value.
+func (s *Step) SetTestConfigUrl(v string) *Step {
+	s.TestConfigUrl = &v
 	return s
 }
 
@@ -4673,14 +8305,228 @@ func (s *SubDomainSetting) SetPrefix(v string) *SubDomainSetting {
 	return s
 }
 
+// Request structure used to tag resource.
+type TagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// Resource arn used to tag resource.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resourceArn" type:"string" required:"true"`
+
+	// Tags used to tag resource.
+	//
+	// Tags is a required field
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map" required:"true"`
+}
+
+// String returns the string representation
+func (s TagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *TagResourceInput) SetResourceArn(v string) *TagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagResourceInput) SetTags(v map[string]*string) *TagResourceInput {
+	s.Tags = v
+	return s
+}
+
+// Response for tag resource.
+type TagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceOutput) GoString() string {
+	return s.String()
+}
+
+// Exception thrown when an operation fails due to a lack of access.
+type UnauthorizedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnauthorizedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnauthorizedException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnauthorizedException(v protocol.ResponseMetadata) error {
+	return &UnauthorizedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnauthorizedException) Code() string {
+	return "UnauthorizedException"
+}
+
+// Message returns the exception's message.
+func (s UnauthorizedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnauthorizedException) OrigErr() error {
+	return nil
+}
+
+func (s UnauthorizedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnauthorizedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnauthorizedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Request structure used to untag resource.
+type UntagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// Resource arn used to untag resource.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `location:"uri" locationName:"resourceArn" type:"string" required:"true"`
+
+	// Tag keys used to untag resource.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `location:"querystring" locationName:"tagKeys" min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+	if s.TagKeys != nil && len(s.TagKeys) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TagKeys", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *UntagResourceInput) SetResourceArn(v string) *UntagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
+	s.TagKeys = v
+	return s
+}
+
+// Response for untag resource.
+type UntagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceOutput) GoString() string {
+	return s.String()
+}
+
 // Request structure for update App request.
 type UpdateAppInput struct {
 	_ struct{} `type:"structure"`
+
+	// Personal Access token for 3rd party source control system for an Amplify
+	// App, used to create webhook and read-only deploy key. Token is not stored.
+	AccessToken *string `locationName:"accessToken" min:"1" type:"string"`
 
 	// Unique Id for an Amplify App.
 	//
 	// AppId is a required field
 	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
+
+	// Automated branch creation branchConfig for the Amplify App.
+	AutoBranchCreationConfig *AutoBranchCreationConfig `locationName:"autoBranchCreationConfig" type:"structure"`
+
+	// Automated branch creation glob patterns for the Amplify App.
+	AutoBranchCreationPatterns []*string `locationName:"autoBranchCreationPatterns" type:"list"`
 
 	// Basic Authorization credentials for an Amplify App.
 	BasicAuthCredentials *string `locationName:"basicAuthCredentials" type:"string"`
@@ -4693,6 +8539,9 @@ type UpdateAppInput struct {
 
 	// Description for an Amplify App.
 	Description *string `locationName:"description" type:"string"`
+
+	// Enables automated branch creation for the Amplify App.
+	EnableAutoBranchCreation *bool `locationName:"enableAutoBranchCreation" type:"boolean"`
 
 	// Enables Basic Authorization for an Amplify App.
 	EnableBasicAuth *bool `locationName:"enableBasicAuth" type:"boolean"`
@@ -4709,8 +8558,15 @@ type UpdateAppInput struct {
 	// Name for an Amplify App.
 	Name *string `locationName:"name" min:"1" type:"string"`
 
+	// OAuth token for 3rd party source control system for an Amplify App, used
+	// to create webhook and read-only deploy key. OAuth token is not stored.
+	OauthToken *string `locationName:"oauthToken" type:"string"`
+
 	// Platform for an Amplify App.
 	Platform *string `locationName:"platform" type:"string" enum:"Platform"`
+
+	// Repository for an Amplify App
+	Repository *string `locationName:"repository" type:"string"`
 }
 
 // String returns the string representation
@@ -4726,6 +8582,9 @@ func (s UpdateAppInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *UpdateAppInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateAppInput"}
+	if s.AccessToken != nil && len(*s.AccessToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccessToken", 1))
+	}
 	if s.AppId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AppId"))
 	}
@@ -4740,6 +8599,11 @@ func (s *UpdateAppInput) Validate() error {
 	}
 	if s.Name != nil && len(*s.Name) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.AutoBranchCreationConfig != nil {
+		if err := s.AutoBranchCreationConfig.Validate(); err != nil {
+			invalidParams.AddNested("AutoBranchCreationConfig", err.(request.ErrInvalidParams))
+		}
 	}
 	if s.CustomRules != nil {
 		for i, v := range s.CustomRules {
@@ -4758,9 +8622,27 @@ func (s *UpdateAppInput) Validate() error {
 	return nil
 }
 
+// SetAccessToken sets the AccessToken field's value.
+func (s *UpdateAppInput) SetAccessToken(v string) *UpdateAppInput {
+	s.AccessToken = &v
+	return s
+}
+
 // SetAppId sets the AppId field's value.
 func (s *UpdateAppInput) SetAppId(v string) *UpdateAppInput {
 	s.AppId = &v
+	return s
+}
+
+// SetAutoBranchCreationConfig sets the AutoBranchCreationConfig field's value.
+func (s *UpdateAppInput) SetAutoBranchCreationConfig(v *AutoBranchCreationConfig) *UpdateAppInput {
+	s.AutoBranchCreationConfig = v
+	return s
+}
+
+// SetAutoBranchCreationPatterns sets the AutoBranchCreationPatterns field's value.
+func (s *UpdateAppInput) SetAutoBranchCreationPatterns(v []*string) *UpdateAppInput {
+	s.AutoBranchCreationPatterns = v
 	return s
 }
 
@@ -4785,6 +8667,12 @@ func (s *UpdateAppInput) SetCustomRules(v []*CustomRule) *UpdateAppInput {
 // SetDescription sets the Description field's value.
 func (s *UpdateAppInput) SetDescription(v string) *UpdateAppInput {
 	s.Description = &v
+	return s
+}
+
+// SetEnableAutoBranchCreation sets the EnableAutoBranchCreation field's value.
+func (s *UpdateAppInput) SetEnableAutoBranchCreation(v bool) *UpdateAppInput {
+	s.EnableAutoBranchCreation = &v
 	return s
 }
 
@@ -4818,9 +8706,21 @@ func (s *UpdateAppInput) SetName(v string) *UpdateAppInput {
 	return s
 }
 
+// SetOauthToken sets the OauthToken field's value.
+func (s *UpdateAppInput) SetOauthToken(v string) *UpdateAppInput {
+	s.OauthToken = &v
+	return s
+}
+
 // SetPlatform sets the Platform field's value.
 func (s *UpdateAppInput) SetPlatform(v string) *UpdateAppInput {
 	s.Platform = &v
+	return s
+}
+
+// SetRepository sets the Repository field's value.
+func (s *UpdateAppInput) SetRepository(v string) *UpdateAppInput {
+	s.Repository = &v
 	return s
 }
 
@@ -4859,6 +8759,9 @@ type UpdateBranchInput struct {
 	// AppId is a required field
 	AppId *string `location:"uri" locationName:"appId" min:"1" type:"string" required:"true"`
 
+	// ARN for a Backend Environment, part of an Amplify App.
+	BackendEnvironmentArn *string `locationName:"backendEnvironmentArn" min:"1" type:"string"`
+
 	// Basic Authorization credentials for the branch.
 	BasicAuthCredentials *string `locationName:"basicAuthCredentials" type:"string"`
 
@@ -4873,6 +8776,9 @@ type UpdateBranchInput struct {
 	// Description for the branch.
 	Description *string `locationName:"description" type:"string"`
 
+	// Display name for a branch, will use as the default domain prefix.
+	DisplayName *string `locationName:"displayName" type:"string"`
+
 	// Enables auto building for the branch.
 	EnableAutoBuild *bool `locationName:"enableAutoBuild" type:"boolean"`
 
@@ -4882,11 +8788,17 @@ type UpdateBranchInput struct {
 	// Enables notifications for the branch.
 	EnableNotification *bool `locationName:"enableNotification" type:"boolean"`
 
+	// Enables Pull Request Preview for this branch.
+	EnablePullRequestPreview *bool `locationName:"enablePullRequestPreview" type:"boolean"`
+
 	// Environment Variables for the branch.
 	EnvironmentVariables map[string]*string `locationName:"environmentVariables" type:"map"`
 
 	// Framework for the branch.
 	Framework *string `locationName:"framework" type:"string"`
+
+	// The Amplify Environment name for the pull request.
+	PullRequestEnvironmentName *string `locationName:"pullRequestEnvironmentName" type:"string"`
 
 	// Stage for the branch.
 	Stage *string `locationName:"stage" type:"string" enum:"Stage"`
@@ -4914,6 +8826,9 @@ func (s *UpdateBranchInput) Validate() error {
 	if s.AppId != nil && len(*s.AppId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("AppId", 1))
 	}
+	if s.BackendEnvironmentArn != nil && len(*s.BackendEnvironmentArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BackendEnvironmentArn", 1))
+	}
 	if s.BranchName == nil {
 		invalidParams.Add(request.NewErrParamRequired("BranchName"))
 	}
@@ -4933,6 +8848,12 @@ func (s *UpdateBranchInput) Validate() error {
 // SetAppId sets the AppId field's value.
 func (s *UpdateBranchInput) SetAppId(v string) *UpdateBranchInput {
 	s.AppId = &v
+	return s
+}
+
+// SetBackendEnvironmentArn sets the BackendEnvironmentArn field's value.
+func (s *UpdateBranchInput) SetBackendEnvironmentArn(v string) *UpdateBranchInput {
+	s.BackendEnvironmentArn = &v
 	return s
 }
 
@@ -4960,6 +8881,12 @@ func (s *UpdateBranchInput) SetDescription(v string) *UpdateBranchInput {
 	return s
 }
 
+// SetDisplayName sets the DisplayName field's value.
+func (s *UpdateBranchInput) SetDisplayName(v string) *UpdateBranchInput {
+	s.DisplayName = &v
+	return s
+}
+
 // SetEnableAutoBuild sets the EnableAutoBuild field's value.
 func (s *UpdateBranchInput) SetEnableAutoBuild(v bool) *UpdateBranchInput {
 	s.EnableAutoBuild = &v
@@ -4978,6 +8905,12 @@ func (s *UpdateBranchInput) SetEnableNotification(v bool) *UpdateBranchInput {
 	return s
 }
 
+// SetEnablePullRequestPreview sets the EnablePullRequestPreview field's value.
+func (s *UpdateBranchInput) SetEnablePullRequestPreview(v bool) *UpdateBranchInput {
+	s.EnablePullRequestPreview = &v
+	return s
+}
+
 // SetEnvironmentVariables sets the EnvironmentVariables field's value.
 func (s *UpdateBranchInput) SetEnvironmentVariables(v map[string]*string) *UpdateBranchInput {
 	s.EnvironmentVariables = v
@@ -4987,6 +8920,12 @@ func (s *UpdateBranchInput) SetEnvironmentVariables(v map[string]*string) *Updat
 // SetFramework sets the Framework field's value.
 func (s *UpdateBranchInput) SetFramework(v string) *UpdateBranchInput {
 	s.Framework = &v
+	return s
+}
+
+// SetPullRequestEnvironmentName sets the PullRequestEnvironmentName field's value.
+func (s *UpdateBranchInput) SetPullRequestEnvironmentName(v string) *UpdateBranchInput {
+	s.PullRequestEnvironmentName = &v
 	return s
 }
 
@@ -5042,7 +8981,7 @@ type UpdateDomainAssociationInput struct {
 	// DomainName is a required field
 	DomainName *string `location:"uri" locationName:"domainName" type:"string" required:"true"`
 
-	// Enables automated creation of Subdomains for branches.
+	// Enables automated creation of Subdomains for branches. (Currently not supported)
 	EnableAutoSubDomain *bool `locationName:"enableAutoSubDomain" type:"boolean"`
 
 	// Setting structure for the Subdomain.
@@ -5146,6 +9085,187 @@ func (s *UpdateDomainAssociationOutput) SetDomainAssociation(v *DomainAssociatio
 	return s
 }
 
+// Request structure for update webhook request.
+type UpdateWebhookInput struct {
+	_ struct{} `type:"structure"`
+
+	// Name for a branch, part of an Amplify App.
+	BranchName *string `locationName:"branchName" min:"1" type:"string"`
+
+	// Description for a webhook.
+	Description *string `locationName:"description" type:"string"`
+
+	// Unique Id for a webhook.
+	//
+	// WebhookId is a required field
+	WebhookId *string `location:"uri" locationName:"webhookId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateWebhookInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateWebhookInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateWebhookInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateWebhookInput"}
+	if s.BranchName != nil && len(*s.BranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BranchName", 1))
+	}
+	if s.WebhookId == nil {
+		invalidParams.Add(request.NewErrParamRequired("WebhookId"))
+	}
+	if s.WebhookId != nil && len(*s.WebhookId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("WebhookId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *UpdateWebhookInput) SetBranchName(v string) *UpdateWebhookInput {
+	s.BranchName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdateWebhookInput) SetDescription(v string) *UpdateWebhookInput {
+	s.Description = &v
+	return s
+}
+
+// SetWebhookId sets the WebhookId field's value.
+func (s *UpdateWebhookInput) SetWebhookId(v string) *UpdateWebhookInput {
+	s.WebhookId = &v
+	return s
+}
+
+// Result structure for the update webhook request.
+type UpdateWebhookOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Webhook structure.
+	//
+	// Webhook is a required field
+	Webhook *Webhook `locationName:"webhook" type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateWebhookOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateWebhookOutput) GoString() string {
+	return s.String()
+}
+
+// SetWebhook sets the Webhook field's value.
+func (s *UpdateWebhookOutput) SetWebhook(v *Webhook) *UpdateWebhookOutput {
+	s.Webhook = v
+	return s
+}
+
+// Structure for webhook, which associates a webhook with an Amplify App.
+type Webhook struct {
+	_ struct{} `type:"structure"`
+
+	// Name for a branch, part of an Amplify App.
+	//
+	// BranchName is a required field
+	BranchName *string `locationName:"branchName" min:"1" type:"string" required:"true"`
+
+	// Create date / time for a webhook.
+	//
+	// CreateTime is a required field
+	CreateTime *time.Time `locationName:"createTime" type:"timestamp" required:"true"`
+
+	// Description for a webhook.
+	//
+	// Description is a required field
+	Description *string `locationName:"description" type:"string" required:"true"`
+
+	// Update date / time for a webhook.
+	//
+	// UpdateTime is a required field
+	UpdateTime *time.Time `locationName:"updateTime" type:"timestamp" required:"true"`
+
+	// ARN for the webhook.
+	//
+	// WebhookArn is a required field
+	WebhookArn *string `locationName:"webhookArn" type:"string" required:"true"`
+
+	// Id of the webhook.
+	//
+	// WebhookId is a required field
+	WebhookId *string `locationName:"webhookId" type:"string" required:"true"`
+
+	// Url of the webhook.
+	//
+	// WebhookUrl is a required field
+	WebhookUrl *string `locationName:"webhookUrl" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Webhook) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Webhook) GoString() string {
+	return s.String()
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *Webhook) SetBranchName(v string) *Webhook {
+	s.BranchName = &v
+	return s
+}
+
+// SetCreateTime sets the CreateTime field's value.
+func (s *Webhook) SetCreateTime(v time.Time) *Webhook {
+	s.CreateTime = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Webhook) SetDescription(v string) *Webhook {
+	s.Description = &v
+	return s
+}
+
+// SetUpdateTime sets the UpdateTime field's value.
+func (s *Webhook) SetUpdateTime(v time.Time) *Webhook {
+	s.UpdateTime = &v
+	return s
+}
+
+// SetWebhookArn sets the WebhookArn field's value.
+func (s *Webhook) SetWebhookArn(v string) *Webhook {
+	s.WebhookArn = &v
+	return s
+}
+
+// SetWebhookId sets the WebhookId field's value.
+func (s *Webhook) SetWebhookId(v string) *Webhook {
+	s.WebhookId = &v
+	return s
+}
+
+// SetWebhookUrl sets the WebhookUrl field's value.
+func (s *Webhook) SetWebhookUrl(v string) *Webhook {
+	s.WebhookUrl = &v
+	return s
+}
+
 const (
 	// DomainStatusPendingVerification is a DomainStatus enum value
 	DomainStatusPendingVerification = "PENDING_VERIFICATION"
@@ -5161,6 +9281,15 @@ const (
 
 	// DomainStatusFailed is a DomainStatus enum value
 	DomainStatusFailed = "FAILED"
+
+	// DomainStatusCreating is a DomainStatus enum value
+	DomainStatusCreating = "CREATING"
+
+	// DomainStatusRequestingCertificate is a DomainStatus enum value
+	DomainStatusRequestingCertificate = "REQUESTING_CERTIFICATE"
+
+	// DomainStatusUpdating is a DomainStatus enum value
+	DomainStatusUpdating = "UPDATING"
 )
 
 const (
@@ -5193,22 +9322,16 @@ const (
 	// JobTypeRetry is a JobType enum value
 	JobTypeRetry = "RETRY"
 
+	// JobTypeManual is a JobType enum value
+	JobTypeManual = "MANUAL"
+
 	// JobTypeWebHook is a JobType enum value
 	JobTypeWebHook = "WEB_HOOK"
 )
 
 const (
-	// PlatformIos is a Platform enum value
-	PlatformIos = "IOS"
-
-	// PlatformAndroid is a Platform enum value
-	PlatformAndroid = "ANDROID"
-
 	// PlatformWeb is a Platform enum value
 	PlatformWeb = "WEB"
-
-	// PlatformReactNative is a Platform enum value
-	PlatformReactNative = "REACT_NATIVE"
 )
 
 const (
@@ -5223,4 +9346,7 @@ const (
 
 	// StageExperimental is a Stage enum value
 	StageExperimental = "EXPERIMENTAL"
+
+	// StagePullRequest is a Stage enum value
+	StagePullRequest = "PULL_REQUEST"
 )

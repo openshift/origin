@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -27,8 +28,8 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 	defer g.GinkgoRecover()
 
 	var (
-		cli  = exutil.NewCLI("templates", exutil.KubeConfigPath())
-		cli2 = exutil.NewCLI("templates2", exutil.KubeConfigPath())
+		cli  = exutil.NewCLI("templates")
+		cli2 = exutil.NewCLI("templates2")
 	)
 
 	g.It("should create and delete objects across namespaces", func() {
@@ -37,14 +38,14 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// parameters for templateinstance
-		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(&kapiv1.Secret{
+		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(context.Background(), &kapiv1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "secret",
 			},
 			Data: map[string][]byte{
 				"NAMESPACE": []byte(cli2.Namespace()),
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		templateinstance := &templatev1.TemplateInstance{
@@ -87,12 +88,12 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("creating the templateinstance")
-		_, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(templateinstance)
+		_, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(context.Background(), templateinstance, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// wait for templateinstance controller to do its thing
 		err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-			templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+			templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), templateinstance.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -111,20 +112,20 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		framework.Logf("Template Instance object: %#v", templateinstance)
-		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("secret1", metav1.GetOptions{})
+		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(context.Background(), "secret1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.KubeClient().CoreV1().Secrets(cli2.Namespace()).Get("secret2", metav1.GetOptions{})
+		_, err = cli.KubeClient().CoreV1().Secrets(cli2.Namespace()).Get(context.Background(), "secret2", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("deleting the templateinstance")
 		foreground := metav1.DeletePropagationForeground
-		err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, &metav1.DeleteOptions{PropagationPolicy: &foreground})
+		err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete(context.Background(), templateinstance.Name, metav1.DeleteOptions{PropagationPolicy: &foreground})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// wait for garbage collector to do its thing
 		err = wait.Poll(100*time.Millisecond, 30*time.Second, func() (bool, error) {
-			_, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+			_, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), templateinstance.Name, metav1.GetOptions{})
 			if kerrors.IsNotFound(err) {
 				return true, nil
 			}
@@ -132,10 +133,10 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("secret1", metav1.GetOptions{})
+		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(context.Background(), "secret1", metav1.GetOptions{})
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
-		_, err = cli.KubeClient().CoreV1().Secrets(cli2.Namespace()).Get("secret2", metav1.GetOptions{})
+		_, err = cli.KubeClient().CoreV1().Secrets(cli2.Namespace()).Get(context.Background(), "secret2", metav1.GetOptions{})
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 	})
 })

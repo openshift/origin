@@ -18,8 +18,8 @@ import (
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli/build"
 	"github.com/go-check/check"
-	"github.com/gotestyourself/gotestyourself/icmd"
 	"github.com/opencontainers/go-digest"
+	"gotest.tools/icmd"
 )
 
 // save a repo using gz compression and try to load it using stdout
@@ -332,7 +332,7 @@ func listTar(f io.Reader) ([]string, error) {
 func (s *DockerSuite) TestLoadZeroSizeLayer(c *check.C) {
 	// this will definitely not work if using remote daemon
 	// very weird test
-	testRequires(c, DaemonIsLinux, SameHostDaemon)
+	testRequires(c, DaemonIsLinux, testEnv.IsLocalDaemon)
 
 	dockerCmd(c, "load", "-i", "testdata/emptyLayer.tar")
 }

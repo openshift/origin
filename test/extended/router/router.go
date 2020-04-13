@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/url"
 )
 
-var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
+var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		host, ns string
@@ -45,7 +46,7 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("router-stress", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("router-stress")
 
 	g.BeforeEach(func() {
 		var err error
@@ -74,7 +75,7 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 			g.By("waiting for the ingress rule to be converted to routes")
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig())
 			err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-				routes, err := client.RouteV1().Routes(ns).List(metav1.ListOptions{})
+				routes, err := client.RouteV1().Routes(ns).List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					return false, err
 				}

@@ -58,6 +58,7 @@ func TestRequest_FollowPUTRedirects(t *testing.T) {
 			t.Fatalf("unexpected endpoint used, %q", r.URL.String())
 		}
 	}))
+	defer server.Close()
 
 	svc := awstesting.NewClient(&aws.Config{
 		Region:     unit.Session.Config.Region,

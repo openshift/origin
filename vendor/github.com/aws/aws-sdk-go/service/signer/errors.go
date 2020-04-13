@@ -2,6 +2,10 @@
 
 package signer
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeAccessDeniedException for service response error code
@@ -10,11 +14,24 @@ const (
 	// You do not have sufficient access to perform this action.
 	ErrCodeAccessDeniedException = "AccessDeniedException"
 
+	// ErrCodeBadRequestException for service response error code
+	// "BadRequestException".
+	//
+	// The request contains invalid parameters for the ARN or tags. This exception
+	// also occurs when you call a tagging API on a cancelled signing profile.
+	ErrCodeBadRequestException = "BadRequestException"
+
 	// ErrCodeInternalServiceErrorException for service response error code
 	// "InternalServiceErrorException".
 	//
 	// An internal error occurred.
 	ErrCodeInternalServiceErrorException = "InternalServiceErrorException"
+
+	// ErrCodeNotFoundException for service response error code
+	// "NotFoundException".
+	//
+	// The signing profile was not found.
+	ErrCodeNotFoundException = "NotFoundException"
 
 	// ErrCodeResourceNotFoundException for service response error code
 	// "ResourceNotFoundException".
@@ -34,3 +51,13 @@ const (
 	// You signing certificate could not be validated.
 	ErrCodeValidationException = "ValidationException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"AccessDeniedException":         newErrorAccessDeniedException,
+	"BadRequestException":           newErrorBadRequestException,
+	"InternalServiceErrorException": newErrorInternalServiceErrorException,
+	"NotFoundException":             newErrorNotFoundException,
+	"ResourceNotFoundException":     newErrorResourceNotFoundException,
+	"ThrottlingException":           newErrorThrottlingException,
+	"ValidationException":           newErrorValidationException,
+}

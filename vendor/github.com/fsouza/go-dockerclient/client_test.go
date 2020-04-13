@@ -7,6 +7,7 @@ package docker
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -225,7 +226,7 @@ func TestNewClientInvalidEndpoint(t *testing.T) {
 			if client != nil {
 				t.Errorf("Want <nil> client for invalid endpoint, got %#v.", client)
 			}
-			if !reflect.DeepEqual(err, ErrInvalidEndpoint) {
+			if !errors.Is(err, ErrInvalidEndpoint) {
 				t.Errorf("NewClient(%q): Got invalid error for invalid endpoint. Want %#v. Got %#v.", testCase, ErrInvalidEndpoint, err)
 			}
 		})
@@ -496,7 +497,7 @@ func TestPingFailingWrongStatus(t *testing.T) {
 
 func TestPingErrorWithNativeClient(t *testing.T) {
 	t.Parallel()
-	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("aaaaaaaaaaa-invalid-aaaaaaaaaaa"))
 	}))
 	if err != nil {
@@ -518,7 +519,7 @@ func TestPingErrorWithNativeClient(t *testing.T) {
 
 func TestClientStreamTimeoutNotHit(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		for i := 0; i < 5; i++ {
 			fmt.Fprintf(w, "%d\n", i)
 			if f, ok := w.(http.Flusher); ok {
@@ -550,7 +551,7 @@ func TestClientStreamTimeoutNotHit(t *testing.T) {
 
 func TestClientStreamInactivityTimeout(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		for i := 0; i < 5; i++ {
 			fmt.Fprintf(w, "%d\n", i)
 			if f, ok := w.(http.Flusher); ok {
@@ -582,7 +583,7 @@ func TestClientStreamInactivityTimeout(t *testing.T) {
 
 func TestClientStreamContextDeadline(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, "abc\n")
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
@@ -618,7 +619,7 @@ func TestClientStreamContextDeadline(t *testing.T) {
 
 func TestClientStreamContextCancel(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, "abc\n")
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
@@ -689,7 +690,7 @@ var mockPullOutput = `{"status":"Pulling from tsuru/static","id":"latest"}
 
 func TestClientStreamJSONDecode(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(mockPullOutput))
 	}))
 	defer srv.Close()
@@ -745,7 +746,7 @@ func TestClientStreamJSONDecodeWithTerminal(t *testing.T) {
 		t.Skip("requires a terminal")
 	}
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(mockPullOutput))
 	}))
 	defer srv.Close()
@@ -775,7 +776,7 @@ func TestClientStreamJSONDecodeWithTerminal(t *testing.T) {
 
 func TestClientDoContextDeadline(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		time.Sleep(500 * time.Millisecond)
 	}))
 	defer srv.Close()
@@ -795,7 +796,7 @@ func TestClientDoContextDeadline(t *testing.T) {
 
 func TestClientDoContextCancel(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		time.Sleep(500 * time.Millisecond)
 	}))
 	defer srv.Close()
@@ -818,7 +819,7 @@ func TestClientDoContextCancel(t *testing.T) {
 
 func TestClientStreamTimeoutNativeClient(t *testing.T) {
 	t.Parallel()
-	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		for i := 0; i < 5; i++ {
 			fmt.Fprintf(w, "%d\n", i)
 			if f, ok := w.(http.Flusher); ok {
@@ -855,7 +856,7 @@ func TestClientStreamTimeoutNativeClient(t *testing.T) {
 
 func TestClientStreamJSONDecoderEOFOutputWriter(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, "{}")
 		time.Sleep(500 * time.Millisecond)
 	}))

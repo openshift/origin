@@ -69,7 +69,8 @@
         {"shape":"ArgumentException"},
         {"shape":"NotFoundException"},
         {"shape":"LimitExceededException"},
-        {"shape":"ServiceAccountException"}
+        {"shape":"ServiceAccountException"},
+        {"shape":"TagOperationException"}
       ]
     },
     "CreateRemoteAccessSession":{
@@ -85,6 +86,32 @@
         {"shape":"NotFoundException"},
         {"shape":"LimitExceededException"},
         {"shape":"ServiceAccountException"}
+      ]
+    },
+    "CreateTestGridProject":{
+      "name":"CreateTestGridProject",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateTestGridProjectRequest"},
+      "output":{"shape":"CreateTestGridProjectResult"},
+      "errors":[
+        {"shape":"InternalServiceException"}
+      ]
+    },
+    "CreateTestGridUrl":{
+      "name":"CreateTestGridUrl",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateTestGridUrlRequest"},
+      "output":{"shape":"CreateTestGridUrlResult"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"ArgumentException"},
+        {"shape":"InternalServiceException"}
       ]
     },
     "CreateUpload":{
@@ -204,6 +231,21 @@
         {"shape":"NotFoundException"},
         {"shape":"LimitExceededException"},
         {"shape":"ServiceAccountException"}
+      ]
+    },
+    "DeleteTestGridProject":{
+      "name":"DeleteTestGridProject",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteTestGridProjectRequest"},
+      "output":{"shape":"DeleteTestGridProjectResult"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"ArgumentException"},
+        {"shape":"CannotDeleteException"},
+        {"shape":"InternalServiceException"}
       ]
     },
     "DeleteUpload":{
@@ -445,6 +487,34 @@
         {"shape":"NotFoundException"},
         {"shape":"LimitExceededException"},
         {"shape":"ServiceAccountException"}
+      ]
+    },
+    "GetTestGridProject":{
+      "name":"GetTestGridProject",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetTestGridProjectRequest"},
+      "output":{"shape":"GetTestGridProjectResult"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"ArgumentException"},
+        {"shape":"InternalServiceException"}
+      ]
+    },
+    "GetTestGridSession":{
+      "name":"GetTestGridSession",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetTestGridSessionRequest"},
+      "output":{"shape":"GetTestGridSessionResult"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"ArgumentException"},
+        {"shape":"InternalServiceException"}
       ]
     },
     "GetUpload":{
@@ -719,6 +789,75 @@
         {"shape":"ServiceAccountException"}
       ]
     },
+    "ListTagsForResource":{
+      "name":"ListTagsForResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTagsForResourceRequest"},
+      "output":{"shape":"ListTagsForResourceResponse"},
+      "errors":[
+        {"shape":"ArgumentException"},
+        {"shape":"NotFoundException"},
+        {"shape":"TagOperationException"}
+      ]
+    },
+    "ListTestGridProjects":{
+      "name":"ListTestGridProjects",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTestGridProjectsRequest"},
+      "output":{"shape":"ListTestGridProjectsResult"},
+      "errors":[
+        {"shape":"ArgumentException"},
+        {"shape":"InternalServiceException"}
+      ]
+    },
+    "ListTestGridSessionActions":{
+      "name":"ListTestGridSessionActions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTestGridSessionActionsRequest"},
+      "output":{"shape":"ListTestGridSessionActionsResult"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"ArgumentException"},
+        {"shape":"InternalServiceException"}
+      ]
+    },
+    "ListTestGridSessionArtifacts":{
+      "name":"ListTestGridSessionArtifacts",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTestGridSessionArtifactsRequest"},
+      "output":{"shape":"ListTestGridSessionArtifactsResult"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"ArgumentException"},
+        {"shape":"InternalServiceException"}
+      ]
+    },
+    "ListTestGridSessions":{
+      "name":"ListTestGridSessions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTestGridSessionsRequest"},
+      "output":{"shape":"ListTestGridSessionsResult"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"ArgumentException"},
+        {"shape":"InternalServiceException"}
+      ]
+    },
     "ListTests":{
       "name":"ListTests",
       "http":{
@@ -870,6 +1009,36 @@
         {"shape":"ServiceAccountException"}
       ]
     },
+    "TagResource":{
+      "name":"TagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"TagResourceRequest"},
+      "output":{"shape":"TagResourceResponse"},
+      "errors":[
+        {"shape":"ArgumentException"},
+        {"shape":"NotFoundException"},
+        {"shape":"TagOperationException"},
+        {"shape":"TooManyTagsException"},
+        {"shape":"TagPolicyException"}
+      ]
+    },
+    "UntagResource":{
+      "name":"UntagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UntagResourceRequest"},
+      "output":{"shape":"UntagResourceResponse"},
+      "errors":[
+        {"shape":"ArgumentException"},
+        {"shape":"NotFoundException"},
+        {"shape":"TagOperationException"}
+      ]
+    },
     "UpdateDeviceInstance":{
       "name":"UpdateDeviceInstance",
       "http":{
@@ -945,6 +1114,20 @@
         {"shape":"ServiceAccountException"}
       ]
     },
+    "UpdateTestGridProject":{
+      "name":"UpdateTestGridProject",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateTestGridProjectRequest"},
+      "output":{"shape":"UpdateTestGridProjectResult"},
+      "errors":[
+        {"shape":"NotFoundException"},
+        {"shape":"ArgumentException"},
+        {"shape":"InternalServiceException"}
+      ]
+    },
     "UpdateUpload":{
       "name":"UpdateUpload",
       "http":{
@@ -998,7 +1181,9 @@
     "AccountsCleanup":{"type":"boolean"},
     "AmazonResourceName":{
       "type":"string",
-      "min":32
+      "max":1011,
+      "min":32,
+      "pattern":"^arn:.+"
     },
     "AmazonResourceNames":{
       "type":"list",
@@ -1086,6 +1271,13 @@
         "architecture":{"shape":"String"},
         "clock":{"shape":"Double"}
       }
+    },
+    "CannotDeleteException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"Message"}
+      },
+      "exception":true
     },
     "ClientId":{
       "type":"string",
@@ -1222,6 +1414,38 @@
         "remoteAccessSession":{"shape":"RemoteAccessSession"}
       }
     },
+    "CreateTestGridProjectRequest":{
+      "type":"structure",
+      "required":["name"],
+      "members":{
+        "name":{"shape":"ResourceName"},
+        "description":{"shape":"ResourceDescription"}
+      }
+    },
+    "CreateTestGridProjectResult":{
+      "type":"structure",
+      "members":{
+        "testGridProject":{"shape":"TestGridProject"}
+      }
+    },
+    "CreateTestGridUrlRequest":{
+      "type":"structure",
+      "required":[
+        "projectArn",
+        "expiresInSeconds"
+      ],
+      "members":{
+        "projectArn":{"shape":"DeviceFarmArn"},
+        "expiresInSeconds":{"shape":"TestGridUrlExpiresInSecondsInput"}
+      }
+    },
+    "CreateTestGridUrlResult":{
+      "type":"structure",
+      "members":{
+        "url":{"shape":"String"},
+        "expires":{"shape":"DateTime"}
+      }
+    },
     "CreateUploadRequest":{
       "type":"structure",
       "required":[
@@ -1347,6 +1571,18 @@
       "members":{
       }
     },
+    "DeleteTestGridProjectRequest":{
+      "type":"structure",
+      "required":["projectArn"],
+      "members":{
+        "projectArn":{"shape":"DeviceFarmArn"}
+      }
+    },
+    "DeleteTestGridProjectResult":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "DeleteUploadRequest":{
       "type":"structure",
       "required":["arn"],
@@ -1423,6 +1659,12 @@
         "AVAILABLE",
         "HIGHLY_AVAILABLE"
       ]
+    },
+    "DeviceFarmArn":{
+      "type":"string",
+      "max":1011,
+      "min":32,
+      "pattern":"^arn:aws:devicefarm:.+"
     },
     "DeviceFilter":{
       "type":"structure",
@@ -1556,6 +1798,7 @@
       "member":{"shape":"Device"}
     },
     "Double":{"type":"double"},
+    "ExceptionMessage":{"type":"string"},
     "ExecutionConfiguration":{
       "type":"structure",
       "members":{
@@ -1777,6 +2020,33 @@
         "suite":{"shape":"Suite"}
       }
     },
+    "GetTestGridProjectRequest":{
+      "type":"structure",
+      "required":["projectArn"],
+      "members":{
+        "projectArn":{"shape":"DeviceFarmArn"}
+      }
+    },
+    "GetTestGridProjectResult":{
+      "type":"structure",
+      "members":{
+        "testGridProject":{"shape":"TestGridProject"}
+      }
+    },
+    "GetTestGridSessionRequest":{
+      "type":"structure",
+      "members":{
+        "projectArn":{"shape":"DeviceFarmArn"},
+        "sessionId":{"shape":"ResourceId"},
+        "sessionArn":{"shape":"DeviceFarmArn"}
+      }
+    },
+    "GetTestGridSessionResult":{
+      "type":"structure",
+      "members":{
+        "testGridSession":{"shape":"TestGridSession"}
+      }
+    },
     "GetTestRequest":{
       "type":"structure",
       "required":["arn"],
@@ -1893,6 +2163,14 @@
       ],
       "max":64,
       "min":0
+    },
+    "InternalServiceException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"Message"}
+      },
+      "exception":true,
+      "fault":true
     },
     "InvalidOperationException":{
       "type":"structure",
@@ -2159,6 +2437,87 @@
         "nextToken":{"shape":"PaginationToken"}
       }
     },
+    "ListTagsForResourceRequest":{
+      "type":"structure",
+      "required":["ResourceARN"],
+      "members":{
+        "ResourceARN":{"shape":"DeviceFarmArn"}
+      }
+    },
+    "ListTagsForResourceResponse":{
+      "type":"structure",
+      "members":{
+        "Tags":{"shape":"TagList"}
+      }
+    },
+    "ListTestGridProjectsRequest":{
+      "type":"structure",
+      "members":{
+        "maxResult":{"shape":"MaxPageSize"},
+        "nextToken":{"shape":"PaginationToken"}
+      }
+    },
+    "ListTestGridProjectsResult":{
+      "type":"structure",
+      "members":{
+        "testGridProjects":{"shape":"TestGridProjects"},
+        "nextToken":{"shape":"PaginationToken"}
+      }
+    },
+    "ListTestGridSessionActionsRequest":{
+      "type":"structure",
+      "required":["sessionArn"],
+      "members":{
+        "sessionArn":{"shape":"DeviceFarmArn"},
+        "maxResult":{"shape":"MaxPageSize"},
+        "nextToken":{"shape":"PaginationToken"}
+      }
+    },
+    "ListTestGridSessionActionsResult":{
+      "type":"structure",
+      "members":{
+        "actions":{"shape":"TestGridSessionActions"},
+        "nextToken":{"shape":"PaginationToken"}
+      }
+    },
+    "ListTestGridSessionArtifactsRequest":{
+      "type":"structure",
+      "required":["sessionArn"],
+      "members":{
+        "sessionArn":{"shape":"DeviceFarmArn"},
+        "type":{"shape":"TestGridSessionArtifactCategory"},
+        "maxResult":{"shape":"MaxPageSize"},
+        "nextToken":{"shape":"PaginationToken"}
+      }
+    },
+    "ListTestGridSessionArtifactsResult":{
+      "type":"structure",
+      "members":{
+        "artifacts":{"shape":"TestGridSessionArtifacts"},
+        "nextToken":{"shape":"PaginationToken"}
+      }
+    },
+    "ListTestGridSessionsRequest":{
+      "type":"structure",
+      "required":["projectArn"],
+      "members":{
+        "projectArn":{"shape":"DeviceFarmArn"},
+        "status":{"shape":"TestGridSessionStatus"},
+        "creationTimeAfter":{"shape":"DateTime"},
+        "creationTimeBefore":{"shape":"DateTime"},
+        "endTimeAfter":{"shape":"DateTime"},
+        "endTimeBefore":{"shape":"DateTime"},
+        "maxResult":{"shape":"MaxPageSize"},
+        "nextToken":{"shape":"PaginationToken"}
+      }
+    },
+    "ListTestGridSessionsResult":{
+      "type":"structure",
+      "members":{
+        "testGridSessions":{"shape":"TestGridSessions"},
+        "nextToken":{"shape":"PaginationToken"}
+      }
+    },
     "ListTestsRequest":{
       "type":"structure",
       "required":["arn"],
@@ -2231,6 +2590,11 @@
       }
     },
     "Long":{"type":"long"},
+    "MaxPageSize":{
+      "type":"integer",
+      "max":1000,
+      "min":1
+    },
     "MaxSlotMap":{
       "type":"map",
       "key":{"shape":"String"},
@@ -2516,6 +2880,24 @@
         "height":{"shape":"Integer"}
       }
     },
+    "ResourceDescription":{
+      "type":"string",
+      "max":2048,
+      "min":1,
+      "pattern":".*\\S.*"
+    },
+    "ResourceId":{
+      "type":"string",
+      "max":128,
+      "min":1,
+      "pattern":".*\\S.*"
+    },
+    "ResourceName":{
+      "type":"string",
+      "max":64,
+      "min":1,
+      "pattern":".*\\S.*"
+    },
     "Rule":{
       "type":"structure",
       "members":{
@@ -2741,6 +3123,69 @@
       "type":"list",
       "member":{"shape":"Suite"}
     },
+    "Tag":{
+      "type":"structure",
+      "required":[
+        "Key",
+        "Value"
+      ],
+      "members":{
+        "Key":{"shape":"TagKey"},
+        "Value":{"shape":"TagValue"}
+      }
+    },
+    "TagKey":{
+      "type":"string",
+      "max":128,
+      "min":1
+    },
+    "TagKeyList":{
+      "type":"list",
+      "member":{"shape":"TagKey"},
+      "max":150
+    },
+    "TagList":{
+      "type":"list",
+      "member":{"shape":"Tag"},
+      "max":150
+    },
+    "TagOperationException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ExceptionMessage"},
+        "resourceName":{"shape":"AmazonResourceName"}
+      },
+      "exception":true
+    },
+    "TagPolicyException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ExceptionMessage"},
+        "resourceName":{"shape":"AmazonResourceName"}
+      },
+      "exception":true
+    },
+    "TagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceARN",
+        "Tags"
+      ],
+      "members":{
+        "ResourceARN":{"shape":"DeviceFarmArn"},
+        "Tags":{"shape":"TagList"}
+      }
+    },
+    "TagResourceResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "TagValue":{
+      "type":"string",
+      "max":256,
+      "min":0
+    },
     "Test":{
       "type":"structure",
       "members":{
@@ -2756,6 +3201,88 @@
         "message":{"shape":"Message"},
         "deviceMinutes":{"shape":"DeviceMinutes"}
       }
+    },
+    "TestGridProject":{
+      "type":"structure",
+      "members":{
+        "arn":{"shape":"DeviceFarmArn"},
+        "name":{"shape":"String"},
+        "description":{"shape":"String"},
+        "created":{"shape":"DateTime"}
+      }
+    },
+    "TestGridProjects":{
+      "type":"list",
+      "member":{"shape":"TestGridProject"}
+    },
+    "TestGridSession":{
+      "type":"structure",
+      "members":{
+        "arn":{"shape":"DeviceFarmArn"},
+        "status":{"shape":"TestGridSessionStatus"},
+        "created":{"shape":"DateTime"},
+        "ended":{"shape":"DateTime"},
+        "billingMinutes":{"shape":"Double"},
+        "seleniumProperties":{"shape":"String"}
+      }
+    },
+    "TestGridSessionAction":{
+      "type":"structure",
+      "members":{
+        "action":{"shape":"String"},
+        "started":{"shape":"DateTime"},
+        "duration":{"shape":"Long"},
+        "statusCode":{"shape":"String"},
+        "requestMethod":{"shape":"String"}
+      }
+    },
+    "TestGridSessionActions":{
+      "type":"list",
+      "member":{"shape":"TestGridSessionAction"}
+    },
+    "TestGridSessionArtifact":{
+      "type":"structure",
+      "members":{
+        "filename":{"shape":"String"},
+        "type":{"shape":"TestGridSessionArtifactType"},
+        "url":{"shape":"String"}
+      }
+    },
+    "TestGridSessionArtifactCategory":{
+      "type":"string",
+      "enum":[
+        "VIDEO",
+        "LOG"
+      ]
+    },
+    "TestGridSessionArtifactType":{
+      "type":"string",
+      "enum":[
+        "UNKNOWN",
+        "VIDEO",
+        "SELENIUM_LOG"
+      ]
+    },
+    "TestGridSessionArtifacts":{
+      "type":"list",
+      "member":{"shape":"TestGridSessionArtifact"}
+    },
+    "TestGridSessionStatus":{
+      "type":"string",
+      "enum":[
+        "ACTIVE",
+        "CLOSED",
+        "ERRORED"
+      ]
+    },
+    "TestGridSessions":{
+      "type":"list",
+      "member":{"shape":"TestGridSession"}
+    },
+    "TestGridUrlExpiresInSecondsInput":{
+      "type":"integer",
+      "max":86400,
+      "min":60
     },
     "TestParameters":{
       "type":"map",
@@ -2792,6 +3319,14 @@
       "type":"list",
       "member":{"shape":"Test"}
     },
+    "TooManyTagsException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ExceptionMessage"},
+        "resourceName":{"shape":"AmazonResourceName"}
+      },
+      "exception":true
+    },
     "TransactionIdentifier":{
       "type":"string",
       "min":32
@@ -2823,6 +3358,22 @@
       "type":"map",
       "key":{"shape":"ExecutionResult"},
       "value":{"shape":"UniqueProblems"}
+    },
+    "UntagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceARN",
+        "TagKeys"
+      ],
+      "members":{
+        "ResourceARN":{"shape":"DeviceFarmArn"},
+        "TagKeys":{"shape":"TagKeyList"}
+      }
+    },
+    "UntagResourceResponse":{
+      "type":"structure",
+      "members":{
+      }
     },
     "UpdateDeviceInstanceRequest":{
       "type":"structure",
@@ -2912,6 +3463,21 @@
       "type":"structure",
       "members":{
         "project":{"shape":"Project"}
+      }
+    },
+    "UpdateTestGridProjectRequest":{
+      "type":"structure",
+      "required":["projectArn"],
+      "members":{
+        "projectArn":{"shape":"DeviceFarmArn"},
+        "name":{"shape":"ResourceName"},
+        "description":{"shape":"ResourceDescription"}
+      }
+    },
+    "UpdateTestGridProjectResult":{
+      "type":"structure",
+      "members":{
+        "testGridProject":{"shape":"TestGridProject"}
       }
     },
     "UpdateUploadRequest":{

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -23,7 +24,7 @@ import (
 
 const changeTimeoutSeconds = 3 * 60
 
-var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
+var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc          *exutil.CLI
@@ -36,14 +37,14 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
-			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
+			if routes, _ := client.List(context.Background(), metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}
 			exutil.DumpPodLogsStartingWith("router-", oc)
 		}
 	})
 
-	oc = exutil.NewCLI("router-scoped", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("router-scoped")
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()
@@ -67,11 +68,13 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+			}()
 
 			var routerIP string
 			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("router-scoped", metav1.GetOptions{})
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get(context.Background(), "router-scoped", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -111,11 +114,13 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+			}()
 
 			var routerIP string
 			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(ns).Get("router-override", metav1.GetOptions{})
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(ns).Get(context.Background(), "router-override", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -154,7 +159,7 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 			}
 
 			g.By("checking that the router reported the correct ingress and override")
-			r, err := oc.RouteClient().RouteV1().Routes(ns).Get("route-1", metav1.GetOptions{})
+			r, err := oc.RouteClient().RouteV1().Routes(ns).Get(context.Background(), "route-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			ingress := ingressForName(r, "test-override")
 			e2e.Logf("Selected: %#v, All: %#v", ingress, r.Status.Ingress)
@@ -174,13 +179,15 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+			}()
 
 			g.By(fmt.Sprintf("creating a scoped router with overridden domains from a config file %q", configPath))
 
 			var routerIP string
 			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(ns).Get("router-override-domains", metav1.GetOptions{})
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(ns).Get(context.Background(), "router-override-domains", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -219,7 +226,7 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 			}
 
 			g.By("checking that the router reported the correct ingress and override")
-			r, err := oc.RouteClient().RouteV1().Routes(ns).Get("route-override-domain-2", metav1.GetOptions{})
+			r, err := oc.RouteClient().RouteV1().Routes(ns).Get(context.Background(), "route-override-domain-2", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			ingress := ingressForName(r, "test-override-domains")
 			o.Expect(ingress).NotTo(o.BeNil())

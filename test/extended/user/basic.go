@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"time"
@@ -22,7 +23,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("user-api", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("user-api")
 
 	g.It("users can manipulate groups", func() {
 		t := g.GinkgoT()
@@ -33,7 +34,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 
 		g.By("make sure we don't get back system groups", func() {
 			// make sure we don't get back system groups
-			userValerie, err := clusterAdminUserClient.Users().Get(valerieName, metav1.GetOptions{})
+			userValerie, err := clusterAdminUserClient.Users().Get(context.Background(), valerieName, metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -45,7 +46,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		g.By("make sure that user/~ returns groups for unbacked users", func() {
 			// make sure that user/~ returns groups for unbacked users
 			expectedClusterAdminGroups := []string{"system:authenticated", "system:masters"}
-			clusterAdminUser, err := clusterAdminUserClient.Users().Get("~", metav1.GetOptions{})
+			clusterAdminUser, err := clusterAdminUserClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -57,7 +58,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		theGroup := &userv1.Group{}
 		theGroup.Name = "theGroup-" + oc.Namespace()
 		theGroup.Users = append(theGroup.Users, valerieName)
-		_, err := clusterAdminUserClient.Groups().Create(theGroup)
+		_, err := clusterAdminUserClient.Groups().Create(context.Background(), theGroup, metav1.CreateOptions{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -69,7 +70,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 			valerieConfig := oc.GetClientConfigForUser(valerieName)
 			var lastErr error
 			if err := wait.PollImmediate(100*time.Millisecond, wait.ForeverTestTimeout, func() (done bool, err error) {
-				secondValerie, err := userv1typedclient.NewForConfigOrDie(valerieConfig).Users().Get("~", metav1.GetOptions{})
+				secondValerie, err := userv1typedclient.NewForConfigOrDie(valerieConfig).Users().Get(context.Background(), "~", metav1.GetOptions{})
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
@@ -90,7 +91,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		g.By("confirm no access to the project", func() {
 			// separate client here to avoid bad caching
 			valerieConfig := oc.GetClientConfigForUser(valerieName)
-			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(oc.Namespace(), metav1.GetOptions{})
+			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(context.Background(), oc.Namespace(), metav1.GetOptions{})
 			if err == nil {
 				t.Fatalf("expected error")
 			}
@@ -103,7 +104,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 			roleBinding.Subjects = []corev1.ObjectReference{
 				{Kind: "Group", Name: theGroup.Name},
 			}
-			_, err = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(oc.Namespace()).Create(roleBinding)
+			_, err = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(oc.Namespace()).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -123,7 +124,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		g.By("make sure that user groups are respected for policy", func() {
 			// make sure that user groups are respected for policy
 			valerieConfig := oc.GetClientConfigForUser(valerieName)
-			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(oc.Namespace(), metav1.GetOptions{})
+			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(context.Background(), oc.Namespace(), metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -142,7 +143,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		theGroup := &userv1.Group{}
 		theGroup.Name = "thegroup-" + oc.Namespace()
 		theGroup.Users = append(theGroup.Users, valerieName, victorName)
-		_, err := clusterAdminUserClient.Groups().Create(theGroup)
+		_, err := clusterAdminUserClient.Groups().Create(context.Background(), theGroup, metav1.CreateOptions{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -151,7 +152,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		g.By("confirm no access to the project", func() {
 			// separate client here to avoid bad caching
 			valerieConfig := oc.GetClientConfigForUser(valerieName)
-			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(oc.Namespace(), metav1.GetOptions{})
+			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(context.Background(), oc.Namespace(), metav1.GetOptions{})
 			if err == nil {
 				t.Fatalf("expected error")
 			}
@@ -164,7 +165,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 			roleBinding.Subjects = []corev1.ObjectReference{
 				{Kind: "Group", Name: theGroup.Name},
 			}
-			_, err = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(oc.Namespace()).Create(roleBinding)
+			_, err = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(oc.Namespace()).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -183,7 +184,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 
 		g.By("checking access", func() {
 			// make sure that user groups are respected for policy
-			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(oc.Namespace(), metav1.GetOptions{})
+			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(context.Background(), oc.Namespace(), metav1.GetOptions{})
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -193,7 +194,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			_, err = projectv1typedclient.NewForConfigOrDie(victorConfig).Projects().Get(oc.Namespace(), metav1.GetOptions{})
+			_, err = projectv1typedclient.NewForConfigOrDie(victorConfig).Projects().Get(context.Background(), oc.Namespace(), metav1.GetOptions{})
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}

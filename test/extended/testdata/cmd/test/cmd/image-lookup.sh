@@ -24,7 +24,7 @@ os::cmd::expect_success_and_text "oc set image-lookup is/nginx" "updated"
 os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=nginx:latest nginx"
 os::cmd::expect_success_and_text "oc get pod/nginx -o jsonpath='{.spec.containers[0].image}'" "nginx@sha256:"
 ## Image lookup works for jobs
-os::cmd::expect_success          "oc run --generator=job/v1 --restart=Never --image=nginx:latest nginx"
+os::cmd::expect_success          "oc create job --image=nginx:latest nginx"
 os::cmd::expect_success_and_text "oc get job/nginx -o jsonpath='{.spec.template.spec.containers[0].image}'" "nginx@sha256:"
 ## Image lookup works for replica sets
 os::cmd::expect_success          "oc create deployment --image=nginx:latest nginx"

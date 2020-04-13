@@ -65,7 +65,7 @@ func TestValidDataFiles(t *testing.T) {
 				case string:
 					a := p.String(k)
 					if e != a {
-						t.Errorf("%s: expected %v, but received %v", path, e, a)
+						t.Errorf("%s: expected %v, but received %v for profile %v", path, e, a, profile)
 					}
 				case int:
 					a := p.Int(k)

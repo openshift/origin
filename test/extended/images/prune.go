@@ -1,6 +1,7 @@
 package images
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -30,9 +31,9 @@ const (
 	externalImageReference = "docker.io/openshift/origin-release:golang-1.4"
 )
 
-var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][local] Image prune", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLI("prune-images", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("prune-images")
 
 	var originalAcceptSchema2 *bool
 
@@ -194,7 +195,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 })
 
 func getImageName(oc *exutil.CLI, namespace, name, tag string) (string, error) {
-	istag, err := oc.AdminImageClient().ImageV1().ImageStreamTags(namespace).Get(fmt.Sprintf("%s:%s", name, tag), metav1.GetOptions{})
+	istag, err := oc.AdminImageClient().ImageV1().ImageStreamTags(namespace).Get(context.Background(), fmt.Sprintf("%s:%s", name, tag), metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -237,12 +238,12 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(pruneSize < keepSize).To(o.BeTrue())
 
 	g.By(fmt.Sprintf("ensure uploaded image is of schema %d", schemaVersion))
-	imgPrune, err := oc.AsAdmin().ImageClient().ImageV1().Images().Get(imgPruneName, metav1.GetOptions{})
+	imgPrune, err := oc.AsAdmin().ImageClient().ImageV1().Images().Get(context.Background(), imgPruneName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = imageutil.ImageWithMetadata(imgPrune)
 	o.Expect(imgPrune.DockerImageManifestMediaType).To(o.Equal(mediaType))
-	imgKeep, err := oc.AsAdmin().ImageClient().ImageV1().Images().Get(imgKeepName, metav1.GetOptions{})
+	imgKeep, err := oc.AsAdmin().ImageClient().ImageV1().Images().Get(context.Background(), imgKeepName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(imgKeep.DockerImageManifestMediaType).To(o.Equal(mediaType))
 
@@ -373,7 +374,7 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 	cleanUp.AddImageStream(isName)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	managedImage, err := oc.AsAdmin().ImageClient().ImageV1().Images().Get(managedImageName, metav1.GetOptions{})
+	managedImage, err := oc.AsAdmin().ImageClient().ImageV1().Images().Get(context.Background(), managedImageName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	externalImage, blobdgst, err := importImageAndMirrorItsSmallestBlob(oc, externalImageReference, "origin-release:latest")
@@ -466,7 +467,7 @@ func importImageAndMirrorItsSmallestBlob(oc *exutil.CLI, imageReference, destIST
 	if err != nil {
 		return nil, "", err
 	}
-	istag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(destISTag, metav1.GetOptions{})
+	istag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), destISTag, metav1.GetOptions{})
 	if err != nil {
 		return nil, "", err
 	}

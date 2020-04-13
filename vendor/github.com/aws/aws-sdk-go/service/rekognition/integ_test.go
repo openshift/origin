@@ -27,7 +27,9 @@ func TestInteg_00_ListCollections(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := rekognition.New(sess)
 	params := &rekognition.ListCollectionsInput{}
-	_, err := svc.ListCollectionsWithContext(ctx, params)
+	_, err := svc.ListCollectionsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}

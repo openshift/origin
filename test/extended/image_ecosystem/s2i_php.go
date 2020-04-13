@@ -15,7 +15,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy fo
 	defer g.GinkgoRecover()
 	var (
 		cakephpTemplate = "cakephp-mysql-example"
-		oc              = exutil.NewCLI("s2i-php", exutil.KubeConfigPath())
+		oc              = exutil.NewCLI("s2i-php")
 		hotDeployParam  = "OPCACHE_REVALIDATE_FREQ=0"
 		modifyCommand   = []string{"sed", "-ie", `s/\$result\['c'\]/1337/`, "src/Template/Pages/home.ctp"}
 		pageRegexpCount = `<span class="code" id="count-value">([^0][0-9]*)</span>`

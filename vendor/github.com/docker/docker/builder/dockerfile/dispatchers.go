@@ -14,8 +14,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/docker/docker/api"
-	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/docker/builder"
 	"github.com/docker/docker/errdefs"
@@ -27,6 +27,7 @@ import (
 	"github.com/moby/buildkit/frontend/dockerfile/instructions"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -87,7 +88,7 @@ func dispatchLabel(d dispatchRequest, c *instructions.LabelCommand) error {
 
 // ADD foo /path
 //
-// Add the file 'foo' to '/path'. Tarball and Remote URL (git, http) handling
+// Add the file 'foo' to '/path'. Tarball and Remote URL (http, https) handling
 // exist here. If you do not wish to have this automatic handling, use COPY.
 //
 func dispatchAdd(d dispatchRequest, c *instructions.AddCommand) error {
@@ -102,7 +103,7 @@ func dispatchAdd(d dispatchRequest, c *instructions.AddCommand) error {
 	copyInstruction.chownStr = c.Chown
 	copyInstruction.allowLocalDecompression = true
 
-	return d.builder.performCopy(d.state, copyInstruction)
+	return d.builder.performCopy(d, copyInstruction)
 }
 
 // COPY foo /path
@@ -125,8 +126,10 @@ func dispatchCopy(d dispatchRequest, c *instructions.CopyCommand) error {
 		return err
 	}
 	copyInstruction.chownStr = c.Chown
-
-	return d.builder.performCopy(d.state, copyInstruction)
+	if c.From != "" && copyInstruction.chownStr == "" {
+		copyInstruction.preserveOwnership = true
+	}
+	return d.builder.performCopy(d, copyInstruction)
 }
 
 func (d *dispatchRequest) getImageMount(imageRefOrID string) (*imageMount, error) {
@@ -144,17 +147,32 @@ func (d *dispatchRequest) getImageMount(imageRefOrID string) (*imageMount, error
 		imageRefOrID = stage.Image
 		localOnly = true
 	}
-	return d.builder.imageSources.Get(imageRefOrID, localOnly, d.state.operatingSystem)
+	return d.builder.imageSources.Get(imageRefOrID, localOnly, d.builder.platform)
 }
 
 // FROM [--platform=platform] imagename[:tag | @digest] [AS build-stage-name]
 //
 func initializeStage(d dispatchRequest, cmd *instructions.Stage) error {
 	d.builder.imageProber.Reset()
-	if err := system.ValidatePlatform(&cmd.Platform); err != nil {
-		return err
+
+	var platform *specs.Platform
+	if v := cmd.Platform; v != "" {
+		v, err := d.getExpandedString(d.shlex, v)
+		if err != nil {
+			return errors.Wrapf(err, "failed to process arguments for platform %s", v)
+		}
+
+		p, err := platforms.Parse(v)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse platform %s", v)
+		}
+		if err := system.ValidatePlatform(p); err != nil {
+			return err
+		}
+		platform = &p
 	}
-	image, err := d.getFromImage(d.shlex, cmd.BaseName, cmd.Platform.OS)
+
+	image, err := d.getFromImage(d.shlex, cmd.BaseName, platform)
 	if err != nil {
 		return err
 	}
@@ -200,82 +218,78 @@ func dispatchTriggeredOnBuild(d dispatchRequest, triggers []string) error {
 	return nil
 }
 
-func (d *dispatchRequest) getExpandedImageName(shlex *shell.Lex, name string) (string, error) {
+func (d *dispatchRequest) getExpandedString(shlex *shell.Lex, str string) (string, error) {
 	substitutionArgs := []string{}
 	for key, value := range d.state.buildArgs.GetAllMeta() {
 		substitutionArgs = append(substitutionArgs, key+"="+value)
 	}
 
-	name, err := shlex.ProcessWord(name, substitutionArgs)
+	name, err := shlex.ProcessWord(str, substitutionArgs)
 	if err != nil {
 		return "", err
 	}
 	return name, nil
 }
 
-// getOsFromFlagsAndStage calculates the operating system if we need to pull an image.
-// stagePlatform contains the value supplied by optional `--platform=` on
-// a current FROM statement. b.builder.options.Platform contains the operating
-// system part of the optional flag passed in the API call (or CLI flag
-// through `docker build --platform=...`). Precedence is for an explicit
-// platform indication in the FROM statement.
-func (d *dispatchRequest) getOsFromFlagsAndStage(stageOS string) string {
-	switch {
-	case stageOS != "":
-		return stageOS
-	case d.builder.options.Platform != "":
-		// Note this is API "platform", but by this point, as the daemon is not
-		// multi-arch aware yet, it is guaranteed to only hold the OS part here.
-		return d.builder.options.Platform
-	default:
-		return runtime.GOOS
-	}
-}
-
-func (d *dispatchRequest) getImageOrStage(name string, stageOS string) (builder.Image, error) {
+func (d *dispatchRequest) getImageOrStage(name string, platform *specs.Platform) (builder.Image, error) {
 	var localOnly bool
 	if im, ok := d.stages.getByName(name); ok {
 		name = im.Image
 		localOnly = true
 	}
 
-	os := d.getOsFromFlagsAndStage(stageOS)
+	if platform == nil {
+		platform = d.builder.platform
+	}
 
 	// Windows cannot support a container with no base image unless it is LCOW.
 	if name == api.NoBaseImageSpecifier {
+		p := platforms.DefaultSpec()
+		if platform != nil {
+			p = *platform
+		}
 		imageImage := &image.Image{}
-		imageImage.OS = runtime.GOOS
+		imageImage.OS = p.OS
+
+		// old windows scratch handling
+		// TODO: scratch should not have an os. It should be nil image.
+		// Windows supports scratch. What is not supported is running containers
+		// from it.
 		if runtime.GOOS == "windows" {
-			switch os {
-			case "windows", "":
-				return nil, errors.New("Windows does not support FROM scratch")
-			case "linux":
+			if platform == nil || platform.OS == "linux" {
 				if !system.LCOWSupported() {
 					return nil, errors.New("Linux containers are not supported on this system")
 				}
 				imageImage.OS = "linux"
-			default:
-				return nil, errors.Errorf("operating system %q is not supported", os)
+			} else if platform.OS == "windows" {
+				return nil, errors.New("Windows does not support FROM scratch")
+			} else {
+				return nil, errors.Errorf("platform %s is not supported", platforms.Format(p))
 			}
 		}
 		return builder.Image(imageImage), nil
 	}
-	imageMount, err := d.builder.imageSources.Get(name, localOnly, os)
+	imageMount, err := d.builder.imageSources.Get(name, localOnly, platform)
 	if err != nil {
 		return nil, err
 	}
 	return imageMount.Image(), nil
 }
-func (d *dispatchRequest) getFromImage(shlex *shell.Lex, name string, stageOS string) (builder.Image, error) {
-	name, err := d.getExpandedImageName(shlex, name)
+func (d *dispatchRequest) getFromImage(shlex *shell.Lex, basename string, platform *specs.Platform) (builder.Image, error) {
+	name, err := d.getExpandedString(shlex, basename)
 	if err != nil {
 		return nil, err
 	}
-	return d.getImageOrStage(name, stageOS)
+	// Empty string is interpreted to FROM scratch by images.GetImageAndReleasableLayer,
+	// so validate expanded result is not empty.
+	if name == "" {
+		return nil, errors.Errorf("base name (%s) should not be blank", basename)
+	}
+
+	return d.getImageOrStage(name, platform)
 }
 
 func dispatchOnbuild(d dispatchRequest, c *instructions.OnbuildCommand) error {
-
 	d.state.runConfig.OnBuild = append(d.state.runConfig.OnBuild, c.Expression)
 	return d.builder.commit(d.state, "ONBUILD "+c.Expression)
 }
@@ -317,14 +331,6 @@ func dispatchWorkdir(d dispatchRequest, c *instructions.WorkdirCommand) error {
 	return d.builder.commitContainer(d.state, containerID, runConfigWithCommentCmd)
 }
 
-func resolveCmdLine(cmd instructions.ShellDependantCmdLine, runConfig *container.Config, os string) []string {
-	result := cmd.CmdLine
-	if cmd.PrependShell && result != nil {
-		result = append(getShell(runConfig, os), result...)
-	}
-	return result
-}
-
 // RUN some command yo
 //
 // run a command and commit the image. Args are automatically prepended with
@@ -340,7 +346,7 @@ func dispatchRun(d dispatchRequest, c *instructions.RunCommand) error {
 		return system.ErrNotSupportedOperatingSystem
 	}
 	stateRunConfig := d.state.runConfig
-	cmdFromArgs := resolveCmdLine(c.ShellDependantCmdLine, stateRunConfig, d.state.operatingSystem)
+	cmdFromArgs, argsEscaped := resolveCmdLine(c.ShellDependantCmdLine, stateRunConfig, d.state.operatingSystem, c.Name(), c.String())
 	buildArgs := d.state.buildArgs.FilterAllowed(stateRunConfig.Env)
 
 	saveCmd := cmdFromArgs
@@ -350,6 +356,7 @@ func dispatchRun(d dispatchRequest, c *instructions.RunCommand) error {
 
 	runConfigForCacheProbe := copyRunConfig(stateRunConfig,
 		withCmd(saveCmd),
+		withArgsEscaped(argsEscaped),
 		withEntrypointOverride(saveCmd, nil))
 	if hit, err := d.builder.probeCache(d.state, runConfigForCacheProbe); err != nil || hit {
 		return err
@@ -357,11 +364,10 @@ func dispatchRun(d dispatchRequest, c *instructions.RunCommand) error {
 
 	runConfig := copyRunConfig(stateRunConfig,
 		withCmd(cmdFromArgs),
+		withArgsEscaped(argsEscaped),
 		withEnv(append(stateRunConfig.Env, buildArgs...)),
-		withEntrypointOverride(saveCmd, strslice.StrSlice{""}))
-
-	// set config as already being escaped, this prevents double escaping on windows
-	runConfig.ArgsEscaped = true
+		withEntrypointOverride(saveCmd, strslice.StrSlice{""}),
+		withoutHealthcheck())
 
 	cID, err := d.builder.create(runConfig)
 	if err != nil {
@@ -383,6 +389,12 @@ func dispatchRun(d dispatchRequest, c *instructions.RunCommand) error {
 			}
 		}
 		return err
+	}
+
+	// Don't persist the argsEscaped value in the committed image. Use the original
+	// from previous build steps (only CMD and ENTRYPOINT persist this).
+	if d.state.operatingSystem == "windows" {
+		runConfigForCacheProbe.ArgsEscaped = stateRunConfig.ArgsEscaped
 	}
 
 	return d.builder.commitContainer(d.state, cID, runConfigForCacheProbe)
@@ -420,15 +432,23 @@ func prependEnvOnCmd(buildArgs *BuildArgs, buildArgVars []string, cmd strslice.S
 //
 func dispatchCmd(d dispatchRequest, c *instructions.CmdCommand) error {
 	runConfig := d.state.runConfig
-	cmd := resolveCmdLine(c.ShellDependantCmdLine, runConfig, d.state.operatingSystem)
+	cmd, argsEscaped := resolveCmdLine(c.ShellDependantCmdLine, runConfig, d.state.operatingSystem, c.Name(), c.String())
+
+	// We warn here as Windows shell processing operates differently to Linux.
+	// Linux:   /bin/sh -c "echo hello" world	--> hello
+	// Windows: cmd /s /c "echo hello" world	--> hello world
+	if d.state.operatingSystem == "windows" &&
+		len(runConfig.Entrypoint) > 0 &&
+		d.state.runConfig.ArgsEscaped != argsEscaped {
+		fmt.Fprintf(d.builder.Stderr, " ---> [Warning] Shell-form ENTRYPOINT and exec-form CMD may have unexpected results\n")
+	}
+
 	runConfig.Cmd = cmd
-	// set config as already being escaped, this prevents double escaping on windows
-	runConfig.ArgsEscaped = true
+	runConfig.ArgsEscaped = argsEscaped
 
 	if err := d.builder.commit(d.state, fmt.Sprintf("CMD %q", cmd)); err != nil {
 		return err
 	}
-
 	if len(c.ShellDependantCmdLine.CmdLine) != 0 {
 		d.state.cmdSet = true
 	}
@@ -463,8 +483,22 @@ func dispatchHealthcheck(d dispatchRequest, c *instructions.HealthCheckCommand) 
 //
 func dispatchEntrypoint(d dispatchRequest, c *instructions.EntrypointCommand) error {
 	runConfig := d.state.runConfig
-	cmd := resolveCmdLine(c.ShellDependantCmdLine, runConfig, d.state.operatingSystem)
+	cmd, argsEscaped := resolveCmdLine(c.ShellDependantCmdLine, runConfig, d.state.operatingSystem, c.Name(), c.String())
+
+	// This warning is a little more complex than in dispatchCmd(), as the Windows base images (similar
+	// universally to almost every Linux image out there) have a single .Cmd field populated so that
+	// `docker run --rm image` starts the default shell which would typically be sh on Linux,
+	// or cmd on Windows. The catch to this is that if a dockerfile had `CMD ["c:\\windows\\system32\\cmd.exe"]`,
+	// we wouldn't be able to tell the difference. However, that would be highly unlikely, and besides, this
+	// is only trying to give a helpful warning of possibly unexpected results.
+	if d.state.operatingSystem == "windows" &&
+		d.state.runConfig.ArgsEscaped != argsEscaped &&
+		((len(runConfig.Cmd) == 1 && strings.ToLower(runConfig.Cmd[0]) != `c:\windows\system32\cmd.exe` && len(runConfig.Shell) == 0) || (len(runConfig.Cmd) > 1)) {
+		fmt.Fprintf(d.builder.Stderr, " ---> [Warning] Shell-form CMD and exec-form ENTRYPOINT may have unexpected results\n")
+	}
+
 	runConfig.Entrypoint = cmd
+	runConfig.ArgsEscaped = argsEscaped
 	if !d.state.cmdSet {
 		runConfig.Cmd = nil
 	}

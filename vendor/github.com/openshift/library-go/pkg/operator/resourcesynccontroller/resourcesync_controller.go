@@ -12,16 +12,12 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
@@ -29,11 +25,10 @@ import (
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
-const controllerWorkQueueKey = "key"
-
 // ResourceSyncController is a controller that will copy source configmaps and secrets to their destinations.
 // It will also mirror deletions by deleting destinations.
 type ResourceSyncController struct {
+	name string
 	// syncRuleLock is used to ensure we avoid races on changes to syncing rules
 	syncRuleLock sync.RWMutex
 	// configMapSyncRules is a map from destination location to source location
@@ -49,12 +44,12 @@ type ResourceSyncController struct {
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces
 	operatorConfigClient       v1helpers.OperatorClient
 
-	cachesToSync  []cache.InformerSynced
-	queue         workqueue.RateLimitingInterface
-	eventRecorder events.Recorder
+	runFn   func(ctx context.Context, workers int)
+	syncCtx factory.SyncContext
 }
 
 var _ ResourceSyncer = &ResourceSyncController{}
+var _ factory.Controller = &ResourceSyncController{}
 
 // NewResourceSyncController creates ResourceSyncController.
 func NewResourceSyncController(
@@ -65,37 +60,43 @@ func NewResourceSyncController(
 	eventRecorder events.Recorder,
 ) *ResourceSyncController {
 	c := &ResourceSyncController{
+		name:                 "ResourceSyncController",
 		operatorConfigClient: operatorConfigClient,
-		eventRecorder:        eventRecorder.WithComponentSuffix("resource-sync-controller"),
 
 		configMapSyncRules:         map[ResourceLocation]ResourceLocation{},
 		secretSyncRules:            map[ResourceLocation]ResourceLocation{},
 		kubeInformersForNamespaces: kubeInformersForNamespaces,
 		knownNamespaces:            kubeInformersForNamespaces.Namespaces(),
 
-		queue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ResourceSyncController"),
 		configMapGetter: configMapsGetter,
 		secretGetter:    secretsGetter,
+		syncCtx:         factory.NewSyncContext("ResourceSyncController", eventRecorder.WithComponentSuffix("resource-sync-controller")),
 	}
 
+	informers := []factory.Informer{
+		operatorConfigClient.Informer(),
+	}
 	for namespace := range kubeInformersForNamespaces.Namespaces() {
 		if len(namespace) == 0 {
 			continue
 		}
-		informers := kubeInformersForNamespaces.InformersFor(namespace)
-		informers.Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
-		informers.Core().V1().Secrets().Informer().AddEventHandler(c.eventHandler())
-
-		c.cachesToSync = append(c.cachesToSync, informers.Core().V1().ConfigMaps().Informer().HasSynced)
-		c.cachesToSync = append(c.cachesToSync, informers.Core().V1().Secrets().Informer().HasSynced)
+		informer := kubeInformersForNamespaces.InformersFor(namespace)
+		informers = append(informers, informer.Core().V1().ConfigMaps().Informer())
+		informers = append(informers, informer.Core().V1().Secrets().Informer())
 	}
 
-	// we watch this just in case someone messes with our status
-	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
-
-	c.cachesToSync = append(c.cachesToSync, operatorConfigClient.Informer().HasSynced)
+	f := factory.New().WithSync(c.Sync).WithSyncContext(c.syncCtx).WithInformers(informers...).ResyncEvery(time.Second).ToController(c.name, eventRecorder.WithComponentSuffix("resource-sync-controller"))
+	c.runFn = f.Run
 
 	return c
+}
+
+func (c *ResourceSyncController) Run(ctx context.Context, workers int) {
+	c.runFn(ctx, workers)
+}
+
+func (c *ResourceSyncController) Name() string {
+	return c.name
 }
 
 func (c *ResourceSyncController) SyncConfigMap(destination, source ResourceLocation) error {
@@ -111,7 +112,7 @@ func (c *ResourceSyncController) SyncConfigMap(destination, source ResourceLocat
 	c.configMapSyncRules[destination] = source
 
 	// make sure the new rule is picked up
-	c.queue.Add(controllerWorkQueueKey)
+	c.syncCtx.Queue().Add(c.syncCtx.QueueKey())
 	return nil
 }
 
@@ -128,11 +129,11 @@ func (c *ResourceSyncController) SyncSecret(destination, source ResourceLocation
 	c.secretSyncRules[destination] = source
 
 	// make sure the new rule is picked up
-	c.queue.Add(controllerWorkQueueKey)
+	c.syncCtx.Queue().Add(c.syncCtx.QueueKey())
 	return nil
 }
 
-func (c *ResourceSyncController) sync() error {
+func (c *ResourceSyncController) Sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	operatorSpec, _, _, err := c.operatorConfigClient.GetOperatorState()
 	if err != nil {
 		return err
@@ -150,19 +151,19 @@ func (c *ResourceSyncController) sync() error {
 	for destination, source := range c.configMapSyncRules {
 		if source == emptyResourceLocation {
 			// use the cache to check whether the configmap exists in target namespace, if not skip the extra delete call.
-			if _, err := c.configMapGetter.ConfigMaps(destination.Namespace).Get(destination.Name, metav1.GetOptions{}); err != nil {
+			if _, err := c.configMapGetter.ConfigMaps(destination.Namespace).Get(ctx, destination.Name, metav1.GetOptions{}); err != nil {
 				if !apierrors.IsNotFound(err) {
 					errors = append(errors, err)
 				}
 				continue
 			}
-			if err := c.configMapGetter.ConfigMaps(destination.Namespace).Delete(destination.Name, nil); err != nil && !apierrors.IsNotFound(err) {
+			if err := c.configMapGetter.ConfigMaps(destination.Namespace).Delete(ctx, destination.Name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 				errors = append(errors, err)
 			}
 			continue
 		}
 
-		_, _, err := resourceapply.SyncConfigMap(c.configMapGetter, c.eventRecorder, source.Namespace, source.Name, destination.Namespace, destination.Name, []metav1.OwnerReference{})
+		_, _, err := resourceapply.SyncConfigMap(c.configMapGetter, syncCtx.Recorder(), source.Namespace, source.Name, destination.Namespace, destination.Name, []metav1.OwnerReference{})
 		if err != nil {
 			errors = append(errors, err)
 		}
@@ -170,19 +171,19 @@ func (c *ResourceSyncController) sync() error {
 	for destination, source := range c.secretSyncRules {
 		if source == emptyResourceLocation {
 			// use the cache to check whether the secret exists in target namespace, if not skip the extra delete call.
-			if _, err := c.secretGetter.Secrets(destination.Namespace).Get(destination.Name, metav1.GetOptions{}); err != nil {
+			if _, err := c.secretGetter.Secrets(destination.Namespace).Get(ctx, destination.Name, metav1.GetOptions{}); err != nil {
 				if !apierrors.IsNotFound(err) {
 					errors = append(errors, err)
 				}
 				continue
 			}
-			if err := c.secretGetter.Secrets(destination.Namespace).Delete(destination.Name, nil); err != nil && !apierrors.IsNotFound(err) {
+			if err := c.secretGetter.Secrets(destination.Namespace).Delete(ctx, destination.Name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 				errors = append(errors, err)
 			}
 			continue
 		}
 
-		_, _, err := resourceapply.SyncSecret(c.secretGetter, c.eventRecorder, source.Namespace, source.Name, destination.Namespace, destination.Name, []metav1.OwnerReference{})
+		_, _, err := resourceapply.SyncSecret(c.secretGetter, syncCtx.Recorder(), source.Namespace, source.Name, destination.Namespace, destination.Name, []metav1.OwnerReference{})
 		if err != nil {
 			errors = append(errors, err)
 		}
@@ -209,55 +210,6 @@ func (c *ResourceSyncController) sync() error {
 		return updateError
 	}
 	return nil
-}
-
-func (c *ResourceSyncController) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting ResourceSyncController")
-	defer klog.Infof("Shutting down ResourceSyncController")
-	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
-		return
-	}
-
-	// doesn't matter what workers say, only start one.
-	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
-
-	<-ctx.Done()
-}
-
-func (c *ResourceSyncController) runWorker(_ context.Context) {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *ResourceSyncController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-// eventHandler queues the operator to check spec and status
-func (c *ResourceSyncController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(controllerWorkQueueKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(controllerWorkQueueKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(controllerWorkQueueKey) },
-	}
 }
 
 func NewDebugHandler(controller *ResourceSyncController) http.Handler {

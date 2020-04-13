@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"time"
 
 	"k8s.io/klog"
 	"k8s.io/utils/mount"
@@ -32,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	cloudprovider "k8s.io/cloud-provider"
 	volumehelpers "k8s.io/cloud-provider/volume/helpers"
 	"k8s.io/kubernetes/pkg/volume"
@@ -114,6 +116,11 @@ func (plugin *azureFilePlugin) newMounterInternal(spec *volume.Spec, pod *v1.Pod
 		return nil, err
 	}
 	secretName, secretNamespace, err := getSecretNameAndNamespace(spec, pod.Namespace)
+	if err != nil {
+		// Log-and-continue instead of returning an error for now
+		// due to unspecified backwards compatibility concerns (a subject to revise)
+		klog.Errorf("get secret name and namespace from pod(%s) return with error: %v", pod.Name, err)
+	}
 	return &azureFileMounter{
 		azureFile: &azureFile{
 			volName:         spec.Name(),
@@ -257,7 +264,6 @@ func (b *azureFileMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) e
 			klog.Errorf("azureFile - Unmount directory %s failed with %v", dir, err)
 			return err
 		}
-		notMnt = true
 	}
 
 	var accountKey, accountName string
@@ -265,19 +271,21 @@ func (b *azureFileMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) e
 		return err
 	}
 
-	mountOptions := []string{}
+	var mountOptions []string
+	var sensitiveMountOptions []string
 	source := ""
 	osSeparator := string(os.PathSeparator)
 	source = fmt.Sprintf("%s%s%s.file.%s%s%s", osSeparator, osSeparator, accountName, getStorageEndpointSuffix(b.plugin.host.GetCloudProvider()), osSeparator, b.shareName)
 
 	if runtime.GOOS == "windows" {
-		mountOptions = []string{fmt.Sprintf("AZURE\\%s", accountName), accountKey}
+		sensitiveMountOptions = []string{fmt.Sprintf("AZURE\\%s", accountName), accountKey}
 	} else {
 		if err := os.MkdirAll(dir, 0700); err != nil {
 			return err
 		}
 		// parameters suggested by https://azure.microsoft.com/en-us/documentation/articles/storage-how-to-use-files-linux/
-		options := []string{fmt.Sprintf("username=%s,password=%s", accountName, accountKey)}
+		options := []string{}
+		sensitiveMountOptions = []string{fmt.Sprintf("username=%s,password=%s", accountName, accountKey)}
 		if b.readOnly {
 			options = append(options, "ro")
 		}
@@ -285,7 +293,15 @@ func (b *azureFileMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) e
 		mountOptions = appendDefaultMountOptions(mountOptions, mounterArgs.FsGroup)
 	}
 
-	err = b.mounter.Mount(source, dir, "cifs", mountOptions)
+	mountComplete := false
+	err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
+		err := b.mounter.MountSensitive(source, dir, "cifs", mountOptions, sensitiveMountOptions)
+		mountComplete = true
+		return true, err
+	})
+	if !mountComplete {
+		return fmt.Errorf("volume(%s) mount on %s timeout(10m)", source, dir)
+	}
 	if err != nil {
 		notMnt, mntErr := b.mounter.IsLikelyNotMountPoint(dir)
 		if mntErr != nil {

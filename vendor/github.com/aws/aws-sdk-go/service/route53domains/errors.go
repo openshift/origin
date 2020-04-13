@@ -2,6 +2,10 @@
 
 package route53domains
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeDomainLimitExceeded for service response error code
@@ -43,3 +47,12 @@ const (
 	// Amazon Route 53 does not support this top-level domain (TLD).
 	ErrCodeUnsupportedTLD = "UnsupportedTLD"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"DomainLimitExceeded":    newErrorDomainLimitExceeded,
+	"DuplicateRequest":       newErrorDuplicateRequest,
+	"InvalidInput":           newErrorInvalidInput,
+	"OperationLimitExceeded": newErrorOperationLimitExceeded,
+	"TLDRulesViolation":      newErrorTLDRulesViolation,
+	"UnsupportedTLD":         newErrorUnsupportedTLD,
+}

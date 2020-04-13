@@ -75,10 +75,7 @@ func TestRemoveConfigNotFound(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such config", status: http.StatusNotFound})
 	err := client.RemoveConfig(RemoveConfigOptions{ID: "a2334"})
-	expected := &NoSuchConfig{ID: "a2334"}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("RemoveConfig: Wrong error returned. Want %#v. Got %#v.", expected, err)
-	}
+	expectNoSuchConfig(t, "a2334", err)
 }
 
 func TestUpdateConfig(t *testing.T) {
@@ -167,10 +164,7 @@ func TestUpdateConfigNotFound(t *testing.T) {
 	client := newTestClient(&FakeRoundTripper{message: "no such Config", status: http.StatusNotFound})
 	update := UpdateConfigOptions{}
 	err := client.UpdateConfig("notfound", update)
-	expected := &NoSuchConfig{ID: "notfound"}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("UpdateConfig: Wrong error returned. Want %#v. Got %#v.", expected, err)
-	}
+	expectNoSuchConfig(t, "notfound", err)
 }
 
 func TestInspectConfigNotFound(t *testing.T) {
@@ -180,10 +174,7 @@ func TestInspectConfigNotFound(t *testing.T) {
 	if config != nil {
 		t.Errorf("InspectConfig: Expected <nil> Config, got %#v", config)
 	}
-	expected := &NoSuchConfig{ID: "notfound"}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("InspectConfig: Wrong error returned. Want %#v. Got %#v.", expected, err)
-	}
+	expectNoSuchConfig(t, "notfound", err)
 }
 
 func TestInspectConfig(t *testing.T) {

@@ -1,6 +1,7 @@
 package idling
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -175,7 +176,7 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 
 	g.By("Fetching the service and checking the annotations are present")
 	serviceName := resources["service"][0]
-	endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+	endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	o.Expect(endpoints.Annotations).To(o.HaveKey(unidlingapi.IdledAtAnnotation))
@@ -206,7 +207,7 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                  = exutil.NewCLI("cli-idling", exutil.KubeConfigPath()).Verbose()
+		oc                  = exutil.NewCLI("cli-idling").Verbose()
 		echoServerFixture   = exutil.FixturePath("testdata", "idling-echo-server.yaml")
 		echoServerRcFixture = exutil.FixturePath("testdata", "idling-echo-server-rc.yaml")
 		framework           = oc.KubeFramework()
@@ -253,8 +254,8 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 		os.Remove(idlingFile)
 	})
 
-	g.Describe("idling [local]", func() {
-		g.Context("with a single service and DeploymentConfig [Conformance]", func() {
+	g.Describe("idling [Local]", func() {
+		g.Context("with a single service and DeploymentConfig", func() {
 			g.BeforeEach(func() {
 				framework.BeforeEach()
 				fixture = echoServerFixture
@@ -283,7 +284,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			fixture = echoServerFixture
 		})
 
-		g.It("should work with TCP (when fully idled) [Conformance] [local]", func() {
+		g.It("should work with TCP (when fully idled) [Local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -294,7 +295,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 
 			g.By("Connecting to the service IP and checking the echo")
 			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			err = tryEchoTCP(svc)
@@ -304,7 +305,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Making sure the endpoints are no longer marked as idled")
@@ -312,14 +313,14 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with TCP (while idling) [local]", func() {
+		g.It("should work with TCP (while idling) [Local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP and repeatedly connecting, making sure we seamlessly idle and come back up")
 			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			o.Consistently(func() error { return tryEchoTCP(svc) }, 10*time.Second, 500*time.Millisecond).ShouldNot(o.HaveOccurred())
@@ -328,7 +329,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Making sure the endpoints are no longer marked as idled")
@@ -336,7 +337,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should handle many TCP connections by dropping those under a certain bound [local]", func() {
+		g.It("should handle many TCP connections by dropping those under a certain bound [Local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -347,7 +348,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP many times and checking the echo")
-			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			connectionsToStart := 100
@@ -380,7 +381,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			g.By("Waiting until we have endpoints")
 			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 
-			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Making sure the endpoints are no longer marked as idled")
@@ -388,7 +389,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with UDP [local]", func() {
+		g.It("should work with UDP [Local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -399,7 +400,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 
 			g.By("Connecting to the service IP and checking the echo")
 			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			err = tryEchoUDP(svc)
@@ -409,7 +410,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Making sure the endpoints are no longer marked as idled")
@@ -418,7 +419,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 		})
 
 		// TODO: Work out how to make this test work correctly when run on AWS
-		g.XIt("should handle many UDP senders (by continuing to drop all packets on the floor) [local]", func() {
+		g.XIt("should handle many UDP senders (by continuing to drop all packets on the floor) [Local]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -429,7 +430,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 
 			g.By("Connecting to the service IP many times and checking the echo")
 			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			connectionsToStart := 100
@@ -461,7 +462,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
+			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Making sure the endpoints are no longer marked as idled")

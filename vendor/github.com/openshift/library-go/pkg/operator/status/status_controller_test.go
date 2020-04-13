@@ -1,6 +1,7 @@
 package status
 
 import (
+	"context"
 	"reflect"
 	"regexp"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	configv1listers "github.com/openshift/client-go/config/listers/config/v1"
 
 	"github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 )
 
@@ -296,7 +298,6 @@ func TestDegraded(t *testing.T) {
 				clusterOperatorClient: clusterOperatorClient.ConfigV1(),
 				clusterOperatorLister: configv1listers.NewClusterOperatorLister(indexer),
 				operatorClient:        statusClient,
-				eventRecorder:         events.NewInMemoryRecorder("status"),
 				versionGetter:         NewVersionGetter(),
 			}
 			controller = controller.WithDegradedInertia(MustNewInertia(
@@ -310,11 +311,11 @@ func TestDegraded(t *testing.T) {
 					Duration:             time.Minute,
 				},
 			).Inertia)
-			if err := controller.sync(); err != nil {
+			if err := controller.Sync(context.TODO(), factory.NewSyncContext("test", events.NewInMemoryRecorder("status"))); err != nil {
 				t.Errorf("unexpected sync error: %v", err)
 				return
 			}
-			result, _ := clusterOperatorClient.ConfigV1().ClusterOperators().Get("OPERATOR_NAME", metav1.GetOptions{})
+			result, _ := clusterOperatorClient.ConfigV1().ClusterOperators().Get(context.TODO(), "OPERATOR_NAME", metav1.GetOptions{})
 
 			var expectedCondition *configv1.ClusterOperatorStatusCondition
 			if tc.expectedStatus != "" {

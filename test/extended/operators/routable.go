@@ -1,6 +1,7 @@
 package operators
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -21,7 +22,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc = exutil.NewCLI("operators-routable", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("operators-routable")
 
 		// routeHostWait is how long to wait for routes to be assigned a host
 		routeHostWait = 30 * time.Second
@@ -34,7 +35,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 		_, ns, err := exutil.GetRouterPodTemplate(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "couldn't find default router")
 
-		svc, err := oc.AdminKubeClient().CoreV1().Services(ns).Get("router-default", metav1.GetOptions{})
+		svc, err := oc.AdminKubeClient().CoreV1().Services(ns).Get(context.Background(), "router-default", metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				g.Skip("default router is not exposed by a load balancer service")
@@ -67,7 +68,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 			g.By(fmt.Sprintf("verifying the %s/%s route has an ingress host", r.ns, r.name))
 			var hostname string
 			err := wait.Poll(time.Second, routeHostWait, func() (bool, error) {
-				route, err := oc.AdminRouteClient().RouteV1().Routes(r.ns).Get(r.name, metav1.GetOptions{})
+				route, err := oc.AdminRouteClient().RouteV1().Routes(r.ns).Get(context.Background(), r.name, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

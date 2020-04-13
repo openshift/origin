@@ -11,13 +11,13 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds] result image should have proper labels set", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] result image should have proper labels set", func() {
 	defer g.GinkgoRecover()
 	var (
 		imageStreamFixture = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")
 		stiBuildFixture    = exutil.FixturePath("testdata", "builds", "test-s2i-build.json")
 		dockerBuildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build.json")
-		oc                 = exutil.NewCLI("build-sti-labels", exutil.KubeConfigPath())
+		oc                 = exutil.NewCLI("build-sti-labels")
 	)
 
 	g.Context("", func() {

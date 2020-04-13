@@ -158,6 +158,36 @@
           "state": "failure"
         }
       ]
+    },
+    "ProcessingJobCompletedOrStopped": {
+      "delay": 60,
+      "maxAttempts": 60,
+      "operation": "DescribeProcessingJob",
+      "acceptors": [
+        {
+          "expected": "Completed",
+          "matcher": "path",
+          "state": "success",
+          "argument": "ProcessingJobStatus"
+        },
+        {
+          "expected": "Stopped",
+          "matcher": "path",
+          "state": "success",
+          "argument": "ProcessingJobStatus"
+        },
+        {
+          "expected": "Failed",
+          "matcher": "path",
+          "state": "failure",
+          "argument": "ProcessingJobStatus"
+        },
+        {
+          "expected": "ValidationException",
+          "matcher": "error",
+          "state": "failure"
+        }
+      ]
     }
   }
 }

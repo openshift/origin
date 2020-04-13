@@ -34,16 +34,8 @@ func (node *ItNode) Text() string {
 	return node.text
 }
 
-func (node *ItNode) SetText(text string) {
-	node.text = text
-}
-
 func (node *ItNode) Flag() types.FlagType {
 	return node.flag
-}
-
-func (node *ItNode) SetFlag(flag types.FlagType) {
-	node.flag = flag
 }
 
 func (node *ItNode) CodeLocation() types.CodeLocation {

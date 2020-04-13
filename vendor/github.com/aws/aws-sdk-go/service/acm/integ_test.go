@@ -27,7 +27,9 @@ func TestInteg_00_ListCertificates(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := acm.New(sess)
 	params := &acm.ListCertificatesInput{}
-	_, err := svc.ListCertificatesWithContext(ctx, params)
+	_, err := svc.ListCertificatesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_GetCertificate(t *testing.T) {
 	params := &acm.GetCertificateInput{
 		CertificateArn: aws.String("arn:aws:acm:region:123456789012:certificate/12345678-1234-1234-1234-123456789012"),
 	}
-	_, err := svc.GetCertificateWithContext(ctx, params)
+	_, err := svc.GetCertificateWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

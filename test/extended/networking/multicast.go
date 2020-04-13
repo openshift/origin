@@ -1,6 +1,7 @@
 package networking
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"time"
@@ -8,7 +9,7 @@ import (
 	networkapi "github.com/openshift/api/network/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
-	testexutil "github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,7 +23,7 @@ import (
 )
 
 var _ = Describe("[sig-network] multicast", func() {
-	oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
+	oc := exutil.NewCLI("multicast")
 
 	// The subnet plugin should block all multicast. The multitenant and networkpolicy
 	// plugins should implement multicast in the way that we test. For third-party
@@ -30,10 +31,9 @@ var _ = Describe("[sig-network] multicast", func() {
 
 	InPluginContext([]string{networkutils.SingleTenantPluginName},
 		func() {
-			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
-			f := oc.KubeFramework()
-
 			It("should block multicast traffic", func() {
+				oc := exutil.NewCLI("multicast")
+				f := oc.KubeFramework()
 				Expect(testMulticast(f, oc)).NotTo(Succeed())
 			})
 		},
@@ -41,12 +41,12 @@ var _ = Describe("[sig-network] multicast", func() {
 
 	InPluginContext([]string{networkutils.MultiTenantPluginName, networkutils.NetworkPolicyPluginName},
 		func() {
-			f := oc.KubeFramework()
-
 			It("should block multicast traffic in namespaces where it is disabled", func() {
+				f := oc.KubeFramework()
 				Expect(testMulticast(f, oc)).NotTo(Succeed())
 			})
 			It("should allow multicast traffic in namespaces where it is enabled", func() {
+				f := oc.KubeFramework()
 				makeNamespaceMulticastEnabled(oc, f.Namespace)
 				Expect(testMulticast(f, oc)).To(Succeed())
 			})
@@ -54,13 +54,13 @@ var _ = Describe("[sig-network] multicast", func() {
 	)
 })
 
-func makeNamespaceMulticastEnabled(oc *testexutil.CLI, ns *kapiv1.Namespace) {
+func makeNamespaceMulticastEnabled(oc *exutil.CLI, ns *kapiv1.Namespace) {
 	clientConfig := oc.AdminConfig()
 	networkClient := networkclient.NewForConfigOrDie(clientConfig)
 	var netns *networkapi.NetNamespace
 	var err error
 	err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-		netns, err = networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
+		netns, err = networkClient.NetNamespaces().Get(context.Background(), ns.Name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return false, nil
@@ -74,7 +74,7 @@ func makeNamespaceMulticastEnabled(oc *testexutil.CLI, ns *kapiv1.Namespace) {
 		netns.Annotations = make(map[string]string, 1)
 	}
 	netns.Annotations[networkapi.MulticastEnabledAnnotation] = "true"
-	_, err = networkClient.NetNamespaces().Update(netns)
+	_, err = networkClient.NetNamespaces().Update(context.Background(), netns, metav1.UpdateOptions{})
 	expectNoError(err)
 }
 
@@ -97,7 +97,7 @@ func makeNamespaceMulticastEnabled(oc *testexutil.CLI, ns *kapiv1.Namespace) {
 // test to have failed if we see "multicast, xmt/rcv/%loss = 5/0/100%" in the output (ie,
 // at least one of the pods was completely unable to communicate via multicast).
 
-func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
+func testMulticast(f *e2e.Framework, oc *exutil.CLI) error {
 	makeNamespaceScheduleToAllNodes(f)
 
 	// We launch 3 pods total; pod[0] and pod[1] will end up on node[0], and pod[2]
@@ -119,7 +119,7 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 		err := launchTestMulticastPod(f, nodes[i/2].Name, pod[i])
 		expectNoError(err)
 		var zero int64
-		defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(pod[i], &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+		defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.Background(), pod[i], metav1.DeleteOptions{GracePeriodSeconds: &zero})
 	}
 
 	for i := range pod {
@@ -175,7 +175,7 @@ func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) e
 			RestartPolicy: kapiv1.RestartPolicyNever,
 		},
 	}
-	_, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+	_, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.Background(), pod, metav1.CreateOptions{})
 	return err
 }
 

@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -12,7 +13,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] can use private repositories as build input", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositories as build input", func() {
 	defer g.GinkgoRecover()
 
 	const (
@@ -27,7 +28,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] can use private repositori
 	var (
 		gitServerFixture = exutil.FixturePath("testdata", "test-gitserver.yaml")
 		testBuildFixture = exutil.FixturePath("testdata", "builds", "test-auth-build.yaml")
-		oc               = exutil.NewCLI("build-sti-private-repo", exutil.KubeConfigPath())
+		oc               = exutil.NewCLI("build-sti-private-repo")
 	)
 
 	g.Context("", func() {
@@ -55,7 +56,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] can use private repositori
 
 			sourceSecretName := secretFunc()
 
-			route, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Get(routeName, metav1.GetOptions{})
+			route, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Get(context.Background(), routeName, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			sourceURL := fmt.Sprintf(urlTemplate, route.Spec.Host)
@@ -78,11 +79,11 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] can use private repositori
 				testGitAuth("gitserver", gitServerFixture, sourceURLTemplate, func() string {
 					g.By(fmt.Sprintf("creating a new secret for the gitserver by calling oc secrets new-basicauth %s --username=%s --password=%s",
 						sourceSecretName, gitUserName, gitPassword))
-					sa, err := oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()).Get("builder", metav1.GetOptions{})
+					sa, err := oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()).Get(context.Background(), "builder", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					for _, s := range sa.Secrets {
 						if strings.Contains(s.Name, "token") {
-							secret, err := oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Get(s.Name, metav1.GetOptions{})
+							secret, err := oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Get(context.Background(), s.Name, metav1.GetOptions{})
 							o.Expect(err).NotTo(o.HaveOccurred())
 							err = oc.Run("create").Args(
 								"secret",

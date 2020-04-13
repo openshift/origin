@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	ktesting "k8s.io/client-go/testing"
-	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -37,8 +37,10 @@ func TestSyncSecret(t *testing.T) {
 	)
 
 	destinationSecretCreated := make(chan struct{})
-	destinationSecretBarChecked := make(chan struct{})
-	destinationSecretEmptySourceChecked := make(chan struct{})
+	destinationSecretBarChecked := false
+	destinationSecretBarCheckedMutex := sync.Mutex{}
+	destinationSecretEmptySourceChecked := false
+	destinationSecretEmptySourceCheckedMutex := sync.Mutex{}
 
 	kubeClient.PrependReactor("create", "secrets", func(action ktesting.Action) (bool, runtime.Object, error) {
 		actual, isCreate := action.(ktesting.CreateAction)
@@ -73,9 +75,13 @@ func TestSyncSecret(t *testing.T) {
 		if actual.GetNamespace() == "operator" {
 			switch actual.GetName() {
 			case "bar":
-				close(destinationSecretBarChecked)
+				destinationSecretBarCheckedMutex.Lock()
+				destinationSecretBarChecked = true
+				destinationSecretBarCheckedMutex.Unlock()
 			case "empty-source":
-				close(destinationSecretEmptySourceChecked)
+				destinationSecretBarCheckedMutex.Lock()
+				destinationSecretEmptySourceChecked = true
+				destinationSecretBarCheckedMutex.Unlock()
 			}
 		}
 		return false, nil, nil
@@ -101,9 +107,7 @@ func TestSyncSecret(t *testing.T) {
 		kubeClient.CoreV1(),
 		eventRecorder,
 	)
-	c.cachesToSync = []cache.InformerSynced{
-		secretInformers.Core().V1().Secrets().Informer().HasSynced,
-	}
+
 	c.configMapGetter = kubeClient.CoreV1()
 	c.secretGetter = kubeClient.CoreV1()
 
@@ -111,6 +115,7 @@ func TestSyncSecret(t *testing.T) {
 	defer ctxCancel()
 
 	go secretInformers.Start(ctx.Done())
+	go operatorInformers.Start(ctx.Done())
 	go c.Run(ctx, 1)
 
 	// The source secret was removed (404) but the destination exists. This should increase the "deleteSecretCounter"
@@ -137,25 +142,31 @@ func TestSyncSecret(t *testing.T) {
 
 	select {
 	case <-destinationSecretCreated:
-	case <-time.After(10 * time.Second):
+	case <-time.After(20 * time.Second):
 		t.Fatal("timeout while waiting for destination secret to be created")
 	}
 
-	select {
-	case <-destinationSecretBarChecked:
-	case <-time.After(10 * time.Second):
+	if err := wait.PollImmediate(10*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		destinationSecretBarCheckedMutex.Lock()
+		defer destinationSecretBarCheckedMutex.Unlock()
+		return destinationSecretBarChecked, nil
+	}); err != nil {
 		t.Fatal("timeout while waiting for destination secret 'bar' to be checked for existence")
 	}
 
-	select {
-	case <-destinationSecretEmptySourceChecked:
-	case <-time.After(10 * time.Second):
+	if err := wait.PollImmediate(10*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		destinationSecretEmptySourceCheckedMutex.Lock()
+		defer destinationSecretEmptySourceCheckedMutex.Unlock()
+		return destinationSecretEmptySourceChecked, nil
+	}); err != nil {
 		t.Fatal("timeout while waiting for destination secret 'empty-source' to be checked for existence")
 	}
 
-	deleteSecretCounterMutex.Lock()
-	defer deleteSecretCounterMutex.Unlock()
-	if deleteSecretCounter != 1 {
+	if err := wait.PollImmediate(10*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+		deleteSecretCounterMutex.Lock()
+		defer deleteSecretCounterMutex.Unlock()
+		return deleteSecretCounter == 1, nil
+	}); err != nil {
 		t.Fatalf("expected exactly 1 delete call for this test, got %d", deleteSecretCounter)
 	}
 }
@@ -227,13 +238,13 @@ func TestSyncConfigMap(t *testing.T) {
 	if err := c.SyncConfigMap(ResourceLocation{Namespace: "operator", Name: "apple"}, ResourceLocation{Namespace: "config-managed", Name: "pear"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.sync(); err != nil {
+	if err := c.Sync(context.TODO(), c.syncCtx); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := kubeClient.CoreV1().Secrets("operator").Get("foo", metav1.GetOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Secrets("operator").Get(context.TODO(), "foo", metav1.GetOptions{}); err != nil {
 		t.Error(err)
 	}
-	if _, err := kubeClient.CoreV1().ConfigMaps("operator").Get("apple", metav1.GetOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().ConfigMaps("operator").Get(context.TODO(), "apple", metav1.GetOptions{}); err != nil {
 		t.Error(err)
 	}
 
@@ -245,13 +256,13 @@ func TestSyncConfigMap(t *testing.T) {
 	if err := c.SyncConfigMap(ResourceLocation{Namespace: "operator", Name: "apple"}, ResourceLocation{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.sync(); err != nil {
+	if err := c.Sync(context.TODO(), c.syncCtx); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := kubeClient.CoreV1().Secrets("operator").Get("foo", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
+	if _, err := kubeClient.CoreV1().Secrets("operator").Get(context.TODO(), "foo", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
 		t.Error(err)
 	}
-	if _, err := kubeClient.CoreV1().ConfigMaps("operator").Get("apple", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
+	if _, err := kubeClient.CoreV1().ConfigMaps("operator").Get(context.TODO(), "apple", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
 		t.Error(err)
 	}
 }

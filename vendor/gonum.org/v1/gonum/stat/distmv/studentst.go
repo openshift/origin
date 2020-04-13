@@ -20,7 +20,7 @@ import (
 // StudentsT is a multivariate Student's T distribution. It is a distribution over
 // ℝ^n with the probability density
 //  p(y) = (Γ((ν+n)/2) / Γ(ν/2)) * (νπ)^(-n/2) * |Ʃ|^(-1/2) *
-//             (1 + 1/ν * (y-μ)^T * Ʃ^-1 * (y-μ))^(-(ν+n)/2)
+//             (1 + 1/ν * (y-μ)ᵀ * Ʃ^-1 * (y-μ))^(-(ν+n)/2)
 // where ν is a scalar greater than 2, μ is a vector in ℝ^n, and Ʃ is an n×n
 // symmetric positive definite matrix.
 //
@@ -157,7 +157,7 @@ func studentsTConditional(observed []int, values []float64, nu float64, mu []flo
 		return math.NaN(), nil, nil
 	}
 
-	// Compute mu_1 + sigma_{2,1}^T * sigma_{2,2}^-1 (v - mu_2).
+	// Compute mu_1 + sigma_{2,1}ᵀ * sigma_{2,2}^-1 (v - mu_2).
 	v := mat.NewVecDense(ob, mu2)
 	var tmp, tmp2 mat.VecDense
 	err := chol.SolveVecTo(&tmp, v)
@@ -170,7 +170,7 @@ func studentsTConditional(observed []int, values []float64, nu float64, mu []flo
 		mu1[i] += tmp2.At(i, 0)
 	}
 
-	// Compute tmp4 = sigma_{2,1}^T * sigma_{2,2}^-1 * sigma_{2,1}.
+	// Compute tmp4 = sigma_{2,1}ᵀ * sigma_{2,2}^-1 * sigma_{2,1}.
 	// TODO(btracey): Should this be a method of SymDense?
 	var tmp3, tmp4 mat.Dense
 	err = chol.SolveTo(&tmp3, sigma21)
@@ -194,7 +194,7 @@ func studentsTConditional(observed []int, values []float64, nu float64, mu []flo
 		return nu, mu1, &sigma11
 	}
 
-	// Compute beta = (v - mu_2)^T * sigma_{2,2}^-1 * (v - mu_2)^T
+	// Compute beta = (v - mu_2)ᵀ * sigma_{2,2}^-1 * (v - mu_2)ᵀ
 	beta := mat.Dot(v, &tmp)
 
 	// Scale the covariance matrix
@@ -221,23 +221,21 @@ func findUnob(observed []int, dim int) (unobserved []int) {
 	return unobserved
 }
 
-// CovarianceMatrix returns the covariance matrix of the distribution. Upon
-// return, the value at element {i, j} of the covariance matrix is equal to
-// the covariance of the i^th and j^th variables.
+// CovarianceMatrix calculates the covariance matrix of the distribution,
+// storing the result in dst. Upon return, the value at element {i, j} of the
+// covariance matrix is equal to the covariance of the i^th and j^th variables.
 //  covariance(i, j) = E[(x_i - E[x_i])(x_j - E[x_j])]
-// If the input matrix is nil a new matrix is allocated, otherwise the result
-// is stored in-place into the input.
-func (st *StudentsT) CovarianceMatrix(s *mat.SymDense) *mat.SymDense {
-	if s == nil {
-		s = mat.NewSymDense(st.dim, nil)
+// If the dst matrix is empty it will be resized to the correct dimensions,
+// otherwise dst must match the dimension of the receiver or CovarianceMatrix
+// will panic.
+func (st *StudentsT) CovarianceMatrix(dst *mat.SymDense) {
+	if dst.IsEmpty() {
+		*dst = *(dst.GrowSym(st.dim).(*mat.SymDense))
+	} else if dst.Symmetric() != st.dim {
+		panic("studentst: input matrix size mismatch")
 	}
-	sn := s.Symmetric()
-	if sn != st.dim {
-		panic("normal: input matrix size mismatch")
-	}
-	s.CopySym(&st.sigma)
-	s.ScaleSym(st.nu/(st.nu-2), s)
-	return s
+	dst.CopySym(&st.sigma)
+	dst.ScaleSym(st.nu/(st.nu-2), dst)
 }
 
 // Dim returns the dimension of the distribution.

@@ -9,12 +9,12 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] Capabilities should be dropped for s2i builders", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] Capabilities should be dropped for s2i builders", func() {
 	defer g.GinkgoRecover()
 	var (
 		s2ibuilderFixture      = exutil.FixturePath("testdata", "s2i-dropcaps", "rootable-ruby")
 		rootAccessBuildFixture = exutil.FixturePath("testdata", "s2i-dropcaps", "root-access-build.yaml")
-		oc                     = exutil.NewCLI("build-s2i-dropcaps", exutil.KubeConfigPath())
+		oc                     = exutil.NewCLI("build-s2i-dropcaps")
 	)
 
 	g.Context("", func() {

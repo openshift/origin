@@ -1,6 +1,7 @@
 package authorization
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -38,7 +39,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestScopedTokens", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -49,11 +50,11 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 			AddUserAdminToProject(oc, projectName, userName)
 			haroldConfig := oc.GetClientConfigForUser(userName)
 
-			if _, err := buildv1client.NewForConfigOrDie(haroldConfig).BuildV1().Builds(projectName).List(metav1.ListOptions{}); err != nil {
+			if _, err := buildv1client.NewForConfigOrDie(haroldConfig).BuildV1().Builds(projectName).List(context.Background(), metav1.ListOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			haroldUser, err := userv1client.NewForConfigOrDie(haroldConfig).Users().Get("~", metav1.GetOptions{})
+			haroldUser, err := userv1client.NewForConfigOrDie(haroldConfig).Users().Get(context.Background(), "~", metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -67,7 +68,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				UserUID:     string(haroldUser.UID),
 				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			}
-			if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(whoamiOnlyToken); err != nil {
+			if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), whoamiOnlyToken, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), whoamiOnlyToken)
@@ -75,11 +76,11 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 			whoamiConfig := rest.AnonymousClientConfig(oc.AdminConfig())
 			whoamiConfig.BearerToken = whoamiOnlyToken.Name
 
-			if _, err := buildv1client.NewForConfigOrDie(whoamiConfig).BuildV1().Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
+			if _, err := buildv1client.NewForConfigOrDie(whoamiConfig).BuildV1().Builds(projectName).List(context.Background(), metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			user, err := userv1client.NewForConfigOrDie(whoamiConfig).Users().Get("~", metav1.GetOptions{})
+			user, err := userv1client.NewForConfigOrDie(whoamiConfig).Users().Get(context.Background(), "~", metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -89,7 +90,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 			// try to impersonate a service account using this token
 			whoamiConfig.Impersonate = rest.ImpersonationConfig{UserName: apiserverserviceaccount.MakeUsername(projectName, "default")}
-			impersonatedUser, err := userv1client.NewForConfigOrDie(whoamiConfig).Users().Get("~", metav1.GetOptions{})
+			impersonatedUser, err := userv1client.NewForConfigOrDie(whoamiConfig).Users().Get(context.Background(), "~", metav1.GetOptions{})
 			if !kapierrors.IsForbidden(err) {
 				t.Fatalf("missing error: %v got user %#v", err, impersonatedUser)
 			}
@@ -99,7 +100,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestScopedImpersonation", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -112,7 +113,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 			err := oc.AdminBuildClient().BuildV1().RESTClient().Get().
 				SetHeader(authenticationv1.ImpersonateUserHeader, userName).
 				SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationv1.ScopesKey, "user:info").
-				Namespace(projectName).Resource("builds").Name("name").Do().Into(&buildv1.Build{})
+				Namespace(projectName).Resource("builds").Name("name").Do(context.Background()).Into(&buildv1.Build{})
 			if !kapierrors.IsForbidden(err) {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -121,7 +122,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 			err = oc.AdminUserClient().UserV1().RESTClient().Get().
 				SetHeader(authenticationv1.ImpersonateUserHeader, userName).
 				SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationv1.ScopesKey, "user:info").
-				Resource("users").Name("~").Do().Into(user)
+				Resource("users").Name("~").Do(context.Background()).Into(user)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -134,7 +135,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestScopeEscalations", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -145,11 +146,11 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 			AddUserAdminToProject(oc, projectName, userName)
 			haroldConfig := oc.GetClientConfigForUser(userName)
 
-			if _, err := buildv1client.NewForConfigOrDie(haroldConfig).BuildV1().Builds(projectName).List(metav1.ListOptions{}); err != nil {
+			if _, err := buildv1client.NewForConfigOrDie(haroldConfig).BuildV1().Builds(projectName).List(context.Background(), metav1.ListOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			haroldUser, err := userv1client.NewForConfigOrDie(haroldConfig).Users().Get("~", metav1.GetOptions{})
+			haroldUser, err := userv1client.NewForConfigOrDie(haroldConfig).Users().Get(context.Background(), "~", metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -163,7 +164,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				UserUID:     string(haroldUser.UID),
 				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			}
-			if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(nonEscalatingEditToken); err != nil {
+			if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), nonEscalatingEditToken, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), nonEscalatingEditToken)
@@ -175,7 +176,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if _, err := nonEscalatingEditClient.CoreV1().Secrets(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
+			if _, err := nonEscalatingEditClient.CoreV1().Secrets(projectName).List(context.Background(), metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
@@ -188,7 +189,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				UserUID:     string(haroldUser.UID),
 				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			}
-			if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(escalatingEditToken); err != nil {
+			if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), escalatingEditToken, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), escalatingEditToken)
@@ -200,7 +201,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if _, err := escalatingEditClient.CoreV1().Secrets(projectName).List(metav1.ListOptions{}); err != nil {
+			if _, err := escalatingEditClient.CoreV1().Secrets(projectName).List(context.Background(), metav1.ListOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})
@@ -209,7 +210,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestTokensWithIllegalScopes", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -232,7 +233,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				},
 				GrantMethod: oauthv1.GrantHandlerAuto,
 			}
-			if _, err := clusterAdminOAuthClient.OAuthClients().Create(client); err != nil {
+			if _, err := clusterAdminOAuthClient.OAuthClients().Create(context.Background(), client, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthclients"), client)
@@ -286,7 +287,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				},
 			}
 			for _, tc := range clientAuthorizationTests {
-				_, err := clusterAdminOAuthClient.OAuthClientAuthorizations().Create(tc.obj)
+				_, err := clusterAdminOAuthClient.OAuthClientAuthorizations().Create(context.Background(), tc.obj, metav1.CreateOptions{})
 				if err == nil {
 					oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthclientauthorizations"), tc.obj)
 				}
@@ -351,7 +352,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				},
 			}
 			for _, tc := range accessTokenTests {
-				_, err := clusterAdminOAuthClient.OAuthAccessTokens().Create(tc.obj)
+				_, err := clusterAdminOAuthClient.OAuthAccessTokens().Create(context.Background(), tc.obj, metav1.CreateOptions{})
 				if err == nil {
 					oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), tc.obj)
 				}
@@ -421,7 +422,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				},
 			}
 			for _, tc := range authorizeTokenTests {
-				_, err := clusterAdminOAuthClient.OAuthAuthorizeTokens().Create(tc.obj)
+				_, err := clusterAdminOAuthClient.OAuthAuthorizeTokens().Create(context.Background(), tc.obj, metav1.CreateOptions{})
 				if err == nil {
 					oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthauthorizetokens"), tc.obj)
 				}
@@ -440,7 +441,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("scopes")
 
 	g.Describe("TestUnknownScopes", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
@@ -466,7 +467,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 			err := wait.Poll(100*time.Millisecond, 30*time.Second,
 				func() (bool, error) {
 					var err error
-					projects, err = projectClient.Projects().List(metav1.ListOptions{})
+					projects, err = projectClient.Projects().List(context.Background(), metav1.ListOptions{})
 					if err != nil {
 						return false, err
 					}
@@ -492,7 +493,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 			badScopesImpersonatingConfig := newImpersonatingConfig(
 				&badScopesUserInfo, *clusterAdminClientConfig)
 			badScopesProjectClient := projectv1client.NewForConfigOrDie(&badScopesImpersonatingConfig)
-			projects, err = badScopesProjectClient.Projects().List(metav1.ListOptions{})
+			projects, err = badScopesProjectClient.Projects().List(context.Background(), metav1.ListOptions{})
 			if err == nil {
 				t.Fatalf("Expected forbidden error, but got no error")
 			}
@@ -510,7 +511,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 					Scopes: []string{"user:info", "role:admin:*"},
 				},
 			}
-			referenceRulesReviewObj, err := authzv1client.SelfSubjectRulesReviews(projectName).Create(rulesReview)
+			referenceRulesReviewObj, err := authzv1client.SelfSubjectRulesReviews(projectName).Create(context.Background(), rulesReview, metav1.CreateOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error getting SelfSubjectRulesReview: %v", err)
 			}
@@ -524,7 +525,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 					Scopes: []string{"user:info", "role:admin:*", "user:bad", "role:bad", "bad"},
 				},
 			}
-			rulesReviewWithBadObj, err := authzv1client.SelfSubjectRulesReviews(projectName).Create(rulesReviewWithBad)
+			rulesReviewWithBadObj, err := authzv1client.SelfSubjectRulesReviews(projectName).Create(context.Background(), rulesReviewWithBad, metav1.CreateOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error getting SelfSubjectRulesReview: %v", err)
 			}
@@ -543,7 +544,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 					Scopes: []string{"user:bad", "role:bad", "bad"},
 				},
 			}
-			rulesReviewOnlyBadObj, err := authzv1client.SelfSubjectRulesReviews(projectName).Create(rulesReviewOnlyBad)
+			rulesReviewOnlyBadObj, err := authzv1client.SelfSubjectRulesReviews(projectName).Create(context.Background(), rulesReviewOnlyBad, metav1.CreateOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error getting SelfSubjectRulesReview: %v", err)
 			}

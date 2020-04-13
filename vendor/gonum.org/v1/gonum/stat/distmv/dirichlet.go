@@ -56,32 +56,30 @@ func NewDirichlet(alpha []float64, src rand.Source) *Dirichlet {
 	return d
 }
 
-// CovarianceMatrix returns the covariance matrix of the distribution. Upon
-// return, the value at element {i, j} of the covariance matrix is equal to
-// the covariance of the i^th and j^th variables.
+// CovarianceMatrix calculates the covariance matrix of the distribution,
+// storing the result in dst. Upon return, the value at element {i, j} of the
+// covariance matrix is equal to the covariance of the i^th and j^th variables.
 //  covariance(i, j) = E[(x_i - E[x_i])(x_j - E[x_j])]
-// If the input matrix is nil a new matrix is allocated, otherwise the result
-// is stored in-place into the input.
-func (d *Dirichlet) CovarianceMatrix(cov *mat.SymDense) *mat.SymDense {
-	if cov == nil {
-		cov = mat.NewSymDense(d.Dim(), nil)
-	} else if cov.Symmetric() == 0 {
-		*cov = *(cov.GrowSym(d.dim).(*mat.SymDense))
-	} else if cov.Symmetric() != d.dim {
-		panic("normal: input matrix size mismatch")
+// If the dst matrix is empty it will be resized to the correct dimensions,
+// otherwise dst must match the dimension of the receiver or CovarianceMatrix
+// will panic.
+func (d *Dirichlet) CovarianceMatrix(dst *mat.SymDense) {
+	if dst.IsEmpty() {
+		*dst = *(dst.GrowSym(d.dim).(*mat.SymDense))
+	} else if dst.Symmetric() != d.dim {
+		panic("dirichelet: input matrix size mismatch")
 	}
 	scale := 1 / (d.sumAlpha * d.sumAlpha * (d.sumAlpha + 1))
 	for i := 0; i < d.dim; i++ {
 		ai := d.alpha[i]
 		v := ai * (d.sumAlpha - ai) * scale
-		cov.SetSym(i, i, v)
+		dst.SetSym(i, i, v)
 		for j := i + 1; j < d.dim; j++ {
 			aj := d.alpha[j]
 			v := -ai * aj * scale
-			cov.SetSym(i, j, v)
+			dst.SetSym(i, j, v)
 		}
 	}
-	return cov
 }
 
 // genLBeta computes the generalized LBeta function.

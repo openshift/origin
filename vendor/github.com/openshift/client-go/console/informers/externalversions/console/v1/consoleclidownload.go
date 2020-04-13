@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	time "time"
 
 	consolev1 "github.com/openshift/api/console/v1"
@@ -44,13 +45,13 @@ func NewFilteredConsoleCLIDownloadInformer(client versioned.Interface, resyncPer
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ConsoleV1().ConsoleCLIDownloads().List(options)
+				return client.ConsoleV1().ConsoleCLIDownloads().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ConsoleV1().ConsoleCLIDownloads().Watch(options)
+				return client.ConsoleV1().ConsoleCLIDownloads().Watch(context.TODO(), options)
 			},
 		},
 		&consolev1.ConsoleCLIDownload{},

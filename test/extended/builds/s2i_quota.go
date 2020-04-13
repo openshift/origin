@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Conformance] s2i build with a quota", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a quota", func() {
 	defer g.GinkgoRecover()
 	const (
 		buildTestPod     = "build-test-pod"
@@ -21,7 +21,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Conformance] s2i build with a qu
 
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-s2i-build-quota.json")
-		oc           = exutil.NewCLI("s2i-build-quota", exutil.KubeConfigPath())
+		oc           = exutil.NewCLI("s2i-build-quota")
 	)
 
 	g.Context("", func() {

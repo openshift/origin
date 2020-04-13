@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -36,7 +37,7 @@ const (
 	envVarsPipelineGitRepoBuildConfig    = "test-build-app-pipeline"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -56,7 +57,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][sig-devex][Feature:Jenkins][Slow
 		verifyServiceClientPluginPipelinePath  = exutil.FixturePath("testdata", "verifyservice-pipeline-template.yaml")
 		pollingInterval                        = time.Second
 		timeout                                = time.Minute
-		oc                                     = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
+		oc                                     = exutil.NewCLI("jenkins-pipeline")
 		ticker                                 *time.Ticker
 		j                                      *jenkins.JenkinsRef
 		pvs                                    = []*corev1.PersistentVolume{}
@@ -667,7 +668,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][sig-devex][Feature:Jenkins][Slow
 					br.AssertSuccess()
 				}
 
-				buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("successful-pipeline", metav1.GetOptions{})
+				buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "successful-pipeline", metav1.GetOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				}
@@ -676,7 +677,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][sig-devex][Feature:Jenkins][Slow
 
 				g.By("waiting up to one minute for pruning to complete")
 				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "%v", err)
 						return false, err
@@ -708,14 +709,14 @@ var _ = g.Describe("[sig-devex][Feature:Builds][sig-devex][Feature:Jenkins][Slow
 					br.AssertFailure()
 				}
 
-				buildConfig, err = oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("failed-pipeline", metav1.GetOptions{})
+				buildConfig, err = oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "failed-pipeline", metav1.GetOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				}
 
 				g.By("waiting up to one minute for pruning to complete")
 				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "%v", err)
 						return false, err

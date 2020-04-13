@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	quotav1 "github.com/openshift/api/quota/v1"
@@ -19,8 +20,8 @@ type AppliedClusterResourceQuotasGetter interface {
 
 // AppliedClusterResourceQuotaInterface has methods to work with AppliedClusterResourceQuota resources.
 type AppliedClusterResourceQuotaInterface interface {
-	Get(name string, options v1.GetOptions) (*quotav1.AppliedClusterResourceQuota, error)
-	List(opts v1.ListOptions) (*quotav1.AppliedClusterResourceQuotaList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*quotav1.AppliedClusterResourceQuota, error)
+	List(ctx context.Context, opts v1.ListOptions) (*quotav1.AppliedClusterResourceQuotaList, error)
 	AppliedClusterResourceQuotaExpansion
 }
 
@@ -39,20 +40,20 @@ func newAppliedClusterResourceQuotas(c *QuotaV1Client, namespace string) *applie
 }
 
 // Get takes name of the appliedClusterResourceQuota, and returns the corresponding appliedClusterResourceQuota object, and an error if there is any.
-func (c *appliedClusterResourceQuotas) Get(name string, options v1.GetOptions) (result *quotav1.AppliedClusterResourceQuota, err error) {
+func (c *appliedClusterResourceQuotas) Get(ctx context.Context, name string, options v1.GetOptions) (result *quotav1.AppliedClusterResourceQuota, err error) {
 	result = &quotav1.AppliedClusterResourceQuota{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("appliedclusterresourcequotas").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of AppliedClusterResourceQuotas that match those selectors.
-func (c *appliedClusterResourceQuotas) List(opts v1.ListOptions) (result *quotav1.AppliedClusterResourceQuotaList, err error) {
+func (c *appliedClusterResourceQuotas) List(ctx context.Context, opts v1.ListOptions) (result *quotav1.AppliedClusterResourceQuotaList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -63,7 +64,7 @@ func (c *appliedClusterResourceQuotas) List(opts v1.ListOptions) (result *quotav
 		Resource("appliedclusterresourcequotas").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

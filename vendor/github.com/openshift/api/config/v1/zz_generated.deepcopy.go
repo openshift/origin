@@ -2758,6 +2758,11 @@ func (in *PlatformStatus) DeepCopyInto(out *PlatformStatus) {
 		*out = new(VSpherePlatformStatus)
 		**out = **in
 	}
+	if in.IBMCloud != nil {
+		in, out := &in.IBMCloud, &out.IBMCloud
+		*out = new(IBMCloudPlatformStatus)
+		**out = **in
+	}
 	return
 }
 

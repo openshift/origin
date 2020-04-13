@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,7 +19,9 @@ import (
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
+	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -46,6 +49,7 @@ func main() {
 		newRunUpgradeCommand(),
 		newRunTestCommand(),
 		newRunMonitorCommand(),
+		cmd.NewRunResourceWatchCommand(),
 	)
 
 	pflag.CommandLine = pflag.NewFlagSet("empty", pflag.ExitOnError)
@@ -111,6 +115,9 @@ func newRunCommand() *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mirrorToFile(opt, func() error {
+				if !opt.DryRun {
+					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
+				}
 				config, err := decodeProvider(opt.Provider, opt.DryRun, true)
 				if err != nil {
 					return err
@@ -229,8 +236,8 @@ func newRunTestCommand() *cobra.Command {
 				return err
 			}
 			exutil.TestContext.ReportDir = upgradeOpts.JUnitDir
-
-			return testOpt.Run(args)
+			exutil.WithCleanup(func() { err = testOpt.Run(args) })
+			return err
 		},
 	}
 	cmd.Flags().BoolVar(&testOpt.DryRun, "dry-run", testOpt.DryRun, "Print the test to run without executing them.")
@@ -251,7 +258,7 @@ func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
 		return fn()
 	}
 
-	f, err := os.OpenFile(opt.OutFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0640)
+	f, err := os.OpenFile(opt.OutFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0640)
 	if err != nil {
 		return err
 	}
@@ -278,4 +285,5 @@ func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.IntVar(&opt.Count, "count", opt.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value.")
 	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
+	flags.IntVar(&opt.Parallelism, "max-parallel-tests", opt.Parallelism, "Maximum number of tests running in parallel. 0 defaults to test suite recommended value, which is different in each suite.")
 }

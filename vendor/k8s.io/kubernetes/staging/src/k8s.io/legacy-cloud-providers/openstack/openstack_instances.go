@@ -44,22 +44,6 @@ const (
 	instanceShutoff = "SHUTOFF"
 )
 
-func (os *OpenStack) getCompute() *gophercloud.ServiceClient {
-	err := os.ensureCloudProviderWasInitialized()
-	if err != nil {
-		klog.Errorf("unable to access compute v2 API : %v", err)
-		return nil
-	}
-
-	compute, err := os.NewComputeV2()
-	if err != nil {
-		klog.Errorf("unable to access compute v2 API : %v", err)
-		return nil
-	}
-
-	return compute
-}
-
 // Instances returns an implementation of Instances for OpenStack.
 func (os *OpenStack) Instances() (cloudprovider.Instances, bool) {
 	klog.V(4).Info("openstack.Instances() called")
@@ -113,8 +97,7 @@ func (i *Instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v
 	if err != nil {
 		return nil, err
 	}
-	localName := types.NodeName(md.Name)
-	if localName == name {
+	if localName := types.NodeName(md.Name); localName == name {
 		localAddress, publicAddress, err := getNodeAddresses()
 		if err != nil {
 			return nil, err

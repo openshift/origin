@@ -16,24 +16,37 @@ limitations under the License.
 
 // import-boss enforces import restrictions in a given repository.
 //
-// When a directory is verified, import-boss looks for a file called
-// ".import-restrictions". If this file is not found, parent directories will be
-// recursively searched.
+// When a package is verified, import-boss looks for files called
+// ".import-restrictions" in all directories between the package and
+// the $GOPATH/src.
 //
-// If an ".import-restrictions" file is found, then all imports of the package
-// are checked against each "rule" in the file. A rule consists of three parts:
+// All imports of the package are checked against each "rule" in the
+// found restriction files, climbing up the directory tree until the
+// import matches one of the rules.
+//
+// If the import does not match any of the rules, it is accepted.
+//
+// In analogy, all incoming imports of the package are checked against each
+// "inverse rule" in the found restriction files, climbing up the directory
+// tree until the import matches one of the rules.
+//
+// If the incoming import does not match any of the inverse rules, it is accepted.
+//
+// A rule consists of three parts:
 // * A SelectorRegexp, to select the import paths that the rule applies to.
 // * A list of AllowedPrefixes
 // * A list of ForbiddenPrefixes
-// An import is allowed if it matches at least one allowed prefix and does not
-// match any forbidden prefix. An example file looks like this:
+// An import passes a rule of a matching selector if it matches at least one
+// allowed prefix, but no forbidden prefix.
+//
+// An example file looks like this:
 //
 // {
 //   "Rules": [
 //     {
 //       "SelectorRegexp": "k8s[.]io",
 //       "AllowedPrefixes": [
-//         "k8s.io/gengo",
+//         "k8s.io/gengo/examples",
 //         "k8s.io/kubernetes/third_party"
 //       ],
 //       "ForbiddenPrefixes": [
@@ -48,11 +61,37 @@ limitations under the License.
 //         ""
 //       ]
 //     }
+//   ],
+//   "InverseRules": [{
+//       "SelectorRegexp": "k8s[.]io",
+//       "AllowedPrefixes": [
+//         "k8s.io/same-repo",
+//         "k8s.io/kubernetes/pkg/legacy"
+//       ],
+//       "ForbiddenPrefixes": [
+//         "k8s.io/kubernetes/pkg/legacy/subpkg"
+//       ]
+//     },
+//     {
+//       "SelectorRegexp": "k8s[.]io",
+//       "Transitive": true,
+//       "AllowedPrefixes": [
+//         "k8s.io/
+//       ],
+//       "ForbiddenPrefixes": [
+//         "k8s.io/kubernetes/cmd/kubelet",
+//         "k8s.io/kubernetes/cmd/kubectl"
+//       ],
 //   ]
 // }
 //
-// Note the secound block explicitly matches the unsafe package, and forbids it
+// Note the second (non-inverse) rule explicitly matches the unsafe package, and forbids it
 // ("" is a prefix of everything).
+//
+// An import from another package passes an inverse rule with a matching selector if
+// it matches at least one allowed prefix, but no forbidden prefix.
+//
+// Note that the second InverseRule is transitive, the first only applies to direct imports.
 package main
 
 import (

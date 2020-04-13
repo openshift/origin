@@ -1,6 +1,7 @@
 package image_ecosystem
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -34,13 +35,13 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 				Name:  "test",
 				Image: t.DockerImageReference,
 			})
-			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(pod)
+			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the pod to be running")
 			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
 			if err != nil {
-				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pod.Name, metav1.GetOptions{})
+				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 				if e != nil {
 					e2e.Logf("error %v getting pod", e)
 				}
@@ -50,7 +51,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 
 			g.By("checking the log of the pod")
 			err = wait.Poll(1*time.Second, 10*time.Second, func() (bool, error) {
-				log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw()
+				log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw(context.Background())
 				if err != nil {
 					return false, err
 				}
@@ -73,12 +74,12 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 				Command: []string{"/bin/bash", "-c", t.Cmd},
 			})
 
-			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(pod)
+			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
 			if err != nil {
-				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pod.Name, metav1.GetOptions{})
+				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 				if e != nil {
 					e2e.Logf("error %v getting pod", e)
 				}
@@ -88,7 +89,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 
 			g.By("checking the log of the pod")
 			err = wait.Poll(1*time.Second, 10*time.Second, func() (bool, error) {
-				log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw()
+				log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw(context.Background())
 				if err != nil {
 					return false, err
 				}
@@ -106,7 +107,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 				Name:    "test",
 				Command: []string{"/usr/bin/sleep", "infinity"},
 			})
-			_, err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(pod)
+			_, err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
@@ -127,7 +128,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 
 var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLI("s2i-usage", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("s2i-usage")
 
 	g.Context("", func() {
 		g.JustBeforeEach(func() {

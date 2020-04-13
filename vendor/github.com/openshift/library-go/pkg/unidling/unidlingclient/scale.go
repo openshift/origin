@@ -1,6 +1,7 @@
 package unidlingclient
 
 import (
+	"context"
 	"fmt"
 
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
@@ -97,7 +98,7 @@ func (s scaleUpdater) Update(annotator *ScaleAnnotater, obj runtime.Object, scal
 			return err
 		}
 
-		_, err = s.dcGetter.DeploymentConfigs(s.namespace).Patch(typedObj.Name, types.StrategicMergePatchType, patchBytes)
+		_, err = s.dcGetter.DeploymentConfigs(s.namespace).Patch(context.TODO(), typedObj.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 	case *corev1.ReplicationController:
 		if typedObj.Annotations == nil {
 			typedObj.Annotations = make(map[string]string)
@@ -116,7 +117,7 @@ func (s scaleUpdater) Update(annotator *ScaleAnnotater, obj runtime.Object, scal
 			return err
 		}
 
-		_, err = s.rcGetter.ReplicationControllers(s.namespace).Patch(typedObj.Name, types.StrategicMergePatchType, patchBytes)
+		_, err = s.rcGetter.ReplicationControllers(s.namespace).Patch(context.TODO(), typedObj.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 	}
 	return err
 }
@@ -131,7 +132,7 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 	switch {
 	case ref.Kind == "DeploymentConfig" && (ref.Group == appsv1.GroupName || ref.Group == legacyGroupName):
 		var dc *appsv1.DeploymentConfig
-		dc, err = c.dcs.DeploymentConfigs(namespace).Get(ref.Name, metav1.GetOptions{})
+		dc, err = c.dcs.DeploymentConfigs(namespace).Get(context.TODO(), ref.Name, metav1.GetOptions{})
 
 		if err != nil {
 			return nil, nil, err
@@ -139,7 +140,7 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 		obj = dc
 	case ref.Kind == "ReplicationController" && ref.Group == corev1.GroupName:
 		var rc *corev1.ReplicationController
-		rc, err = c.rcs.ReplicationControllers(namespace).Get(ref.Name, metav1.GetOptions{})
+		rc, err = c.rcs.ReplicationControllers(namespace).Get(context.TODO(), ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -151,7 +152,7 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 		return nil, nil, err
 	}
 	for _, mapping := range mappings {
-		scale, err = c.scales.Scales(namespace).Get(mapping.Resource.GroupResource(), ref.Name)
+		scale, err = c.scales.Scales(namespace).Get(context.TODO(), mapping.Resource.GroupResource(), ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -176,7 +177,7 @@ func (c *ScaleAnnotater) UpdateObjectScale(updater ScaleUpdater, namespace strin
 
 	for _, mapping := range mappings {
 		if obj == nil {
-			_, err = c.scales.Scales(namespace).Update(mapping.Resource.GroupResource(), scale)
+			_, err = c.scales.Scales(namespace).Update(context.TODO(), mapping.Resource.GroupResource(), scale, metav1.UpdateOptions{})
 			return err
 		}
 
@@ -185,7 +186,7 @@ func (c *ScaleAnnotater) UpdateObjectScale(updater ScaleUpdater, namespace strin
 			return updater.Update(c, obj, scale)
 		default:
 			klog.V(2).Infof("Unidling unknown type %t: using scale interface and not removing annotations", obj)
-			_, err = c.scales.Scales(namespace).Update(mapping.Resource.GroupResource(), scale)
+			_, err = c.scales.Scales(namespace).Update(context.TODO(), mapping.Resource.GroupResource(), scale, metav1.UpdateOptions{})
 		}
 	}
 

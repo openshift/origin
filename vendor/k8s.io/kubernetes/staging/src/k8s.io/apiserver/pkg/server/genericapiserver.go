@@ -324,6 +324,7 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 
 	go func() {
 		defer close(delayedStopCh)
+
 		<-stopCh
 
 		// As soon as shutdown is initiated, /readyz should start returning failure.

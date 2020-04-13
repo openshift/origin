@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,8 +20,9 @@ import (
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli"
 	"github.com/docker/docker/integration-cli/cli/build"
+	"github.com/docker/docker/pkg/parsers/kernel"
 	"github.com/go-check/check"
-	"github.com/gotestyourself/gotestyourself/icmd"
+	"gotest.tools/icmd"
 )
 
 func (s *DockerSuite) TestExec(c *check.C) {
@@ -84,7 +86,7 @@ func (s *DockerSuite) TestExecAfterContainerRestart(c *check.C) {
 
 func (s *DockerDaemonSuite) TestExecAfterDaemonRestart(c *check.C) {
 	// TODO Windows CI: Requires a little work to get this ported.
-	testRequires(c, DaemonIsLinux, SameHostDaemon)
+	testRequires(c, DaemonIsLinux, testEnv.IsLocalDaemon)
 	s.d.StartWithBusybox(c)
 
 	out, err := s.d.Cmd("run", "-d", "--name", "top", "-p", "80", "busybox:latest", "top")
@@ -164,7 +166,7 @@ func (s *DockerSuite) TestExecTTYCloseStdin(c *check.C) {
 	stdinRw.Close()
 
 	out, _, err := runCommandWithOutput(cmd)
-	c.Assert(err, checker.IsNil, check.Commentf(out))
+	c.Assert(err, checker.IsNil, check.Commentf("%s", out))
 
 	out, _ = dockerCmd(c, "top", "exec_tty_stdin")
 	outArr := strings.Split(out, "\n")
@@ -357,7 +359,7 @@ func (s *DockerSuite) TestExecInspectID(c *check.C) {
 	}
 
 	// But we should still be able to query the execID
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 
@@ -392,7 +394,7 @@ func (s *DockerSuite) TestLinksPingLinkedContainersOnRename(c *check.C) {
 
 func (s *DockerSuite) TestRunMutableNetworkFiles(c *check.C) {
 	// Not applicable on Windows to Windows CI.
-	testRequires(c, SameHostDaemon, DaemonIsLinux)
+	testRequires(c, testEnv.IsLocalDaemon, DaemonIsLinux)
 	for _, fn := range []string{"resolv.conf", "hosts"} {
 		containers := cli.DockerCmd(c, "ps", "-q", "-a").Combined()
 		if containers != "" {
@@ -517,7 +519,7 @@ func (s *DockerSuite) TestExecStartFails(c *check.C) {
 	c.Assert(waitRun(name), checker.IsNil)
 
 	out, _, err := dockerCmdWithError("exec", name, "no-such-cmd")
-	c.Assert(err, checker.NotNil, check.Commentf(out))
+	c.Assert(err, checker.NotNil, check.Commentf("%s", out))
 	c.Assert(out, checker.Contains, "executable file not found")
 }
 
@@ -543,6 +545,38 @@ func (s *DockerSuite) TestExecEnvLinksHost(c *check.C) {
 
 func (s *DockerSuite) TestExecWindowsOpenHandles(c *check.C) {
 	testRequires(c, DaemonIsWindows)
+
+	if runtime.GOOS == "windows" {
+		v, err := kernel.GetKernelVersion()
+		c.Assert(err, checker.IsNil)
+		build, _ := strconv.Atoi(strings.Split(strings.SplitN(v.String(), " ", 3)[2][1:], ".")[0])
+		if build >= 17743 {
+			c.Skip("Temporarily disabled on RS5 17743+ builds due to platform bug")
+
+			// This is being tracked internally. @jhowardmsft. Summary of failure
+			// from an email in early July 2018 below:
+			//
+			// Platform regression. In cmd.exe by the look of it. I can repro
+			// it outside of CI.  It fails the same on 17681, 17676 and even as
+			// far back as 17663, over a month old. From investigating, I can see
+			// what's happening in the container, but not the reason. The test
+			// starts a long-running container based on the Windows busybox image.
+			// It then adds another process (docker exec) to that container to
+			// sleep. It loops waiting for two instances of busybox.exe running,
+			// and cmd.exe to quit. What's actually happening is that the second
+			// exec hangs indefinitely, and from docker top, I can see
+			// "OpenWith.exe" running.
+
+			//Manual repro would be
+			//# Start the first long-running container
+			//docker run --rm -d --name test busybox sleep 300
+
+			//# In another window, docker top test. There should be a single instance of busybox.exe running
+			//# In a third window, docker exec test cmd /c start sleep 10  NOTE THIS HANGS UNTIL 5 MIN TIMEOUT
+			//# In the second window, run docker top test. Note that OpenWith.exe is running, one cmd.exe and only one busybox. I would expect no "OpenWith" and two busybox.exe's.
+		}
+	}
+
 	runSleepingContainer(c, "-d", "--name", "test")
 	exec := make(chan bool)
 	go func() {

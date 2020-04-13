@@ -17,13 +17,16 @@ limitations under the License.
 package storage
 
 import (
+	"context"
 	"github.com/onsi/ginkgo"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
@@ -37,8 +40,8 @@ var _ = utils.SIGDescribe("GenericPersistentVolume[Disruptive]", func() {
 
 	ginkgo.BeforeEach(func() {
 		// Skip tests unless number of nodes is 2
-		framework.SkipUnlessNodeCountIsAtLeast(2)
-		framework.SkipIfProviderIs("local")
+		e2eskipper.SkipUnlessNodeCountIsAtLeast(2)
+		e2eskipper.SkipIfProviderIs("local")
 		c = f.ClientSet
 		ns = f.Namespace.Name
 	})
@@ -95,7 +98,7 @@ func createPodPVCFromSC(f *framework.Framework, c clientset.Interface, ns string
 		ClaimSize:  test.ClaimSize,
 		VolumeMode: &test.VolumeMode,
 	}, ns)
-	pvc, err = c.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(pvc)
+	pvc, err = c.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(context.TODO(), pvc, metav1.CreateOptions{})
 	framework.ExpectNoError(err, "Error creating pvc")
 	pvcClaims := []*v1.PersistentVolumeClaim{pvc}
 	pvs, err := e2epv.WaitForPVClaimBoundPhase(c, pvcClaims, framework.ClaimProvisionTimeout)

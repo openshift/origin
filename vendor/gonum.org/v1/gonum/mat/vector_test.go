@@ -310,6 +310,32 @@ func TestVecDenseScale(t *testing.T) {
 	}
 }
 
+func TestCopyVec(t *testing.T) {
+	for i, test := range []struct {
+		src   *VecDense
+		dst   *VecDense
+		want  *VecDense
+		wantN int
+	}{
+		{src: NewVecDense(1, nil), dst: NewVecDense(1, nil), want: NewVecDense(1, nil), wantN: 1},
+		{src: NewVecDense(3, []float64{1, 2, 3}), dst: NewVecDense(2, []float64{-1, -2}), want: NewVecDense(2, []float64{1, 2}), wantN: 2},
+		{src: NewVecDense(2, []float64{1, 2}), dst: NewVecDense(3, []float64{-1, -2, -3}), want: NewVecDense(3, []float64{1, 2, -3}), wantN: 2},
+	} {
+		got := test.dst
+		var n int
+		panicked, message := panics(func() { n = got.CopyVec(test.src) })
+		if panicked {
+			t.Errorf("unexpected panic during vector copy for test %d: %s", i, message)
+		}
+		if !Equal(got, test.want) {
+			t.Errorf("test %d: unexpected result CopyVec:\ngot: %v\nwant:%v", i, got, test.want)
+		}
+		if n != test.wantN {
+			t.Errorf("test %d: unexpected result number of elements copied: got:%d want:%d", i, n, test.wantN)
+		}
+	}
+}
+
 func TestVecDenseAddScaled(t *testing.T) {
 	for _, alpha := range []float64{0, 1, -1, 2.3, -2.3} {
 		method := func(receiver, a, b Matrix) {
@@ -559,5 +585,17 @@ func randVecDense(size, inc int, rho float64, rnd func() float64) *VecDense {
 			Inc:  inc,
 			Data: data,
 		},
+	}
+}
+
+func BenchmarkVectorSum100000(b *testing.B) { vectorSumBench(b, 100000) }
+
+var vectorSumForBench float64
+
+func vectorSumBench(b *testing.B, size int) {
+	a := randVecDense(size, 1, 1.0, rand.NormFloat64)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		vectorSumForBench = Sum(a)
 	}
 }

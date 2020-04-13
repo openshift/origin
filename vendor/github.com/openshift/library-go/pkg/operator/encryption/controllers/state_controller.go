@@ -1,21 +1,19 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	apiserverconfigv1 "k8s.io/apiserver/pkg/apis/config/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/encryption/encryptionconfig"
 	"github.com/openshift/library-go/pkg/operator/encryption/state"
 	"github.com/openshift/library-go/pkg/operator/encryption/statemachine"
@@ -38,54 +36,52 @@ const stateWorkKey = "key"
 // is converted into a single encryption config.  The logic for determining
 // the current write key is of special interest.
 type stateController struct {
-	queue              workqueue.RateLimitingInterface
-	eventRecorder      events.Recorder
-	preRunCachesSynced []cache.InformerSynced
-
-	encryptedGRs             []schema.GroupResource
 	component                string
+	name                     string
 	encryptionSecretSelector metav1.ListOptions
 
 	operatorClient operatorv1helpers.OperatorClient
 	secretClient   corev1client.SecretsGetter
 	deployer       statemachine.Deployer
+	provider       Provider
 }
 
 func NewStateController(
 	component string,
+	provider Provider,
 	deployer statemachine.Deployer,
 	operatorClient operatorv1helpers.OperatorClient,
 	kubeInformersForNamespaces operatorv1helpers.KubeInformersForNamespaces,
 	secretClient corev1client.SecretsGetter,
 	encryptionSecretSelector metav1.ListOptions,
 	eventRecorder events.Recorder,
-	encryptedGRs []schema.GroupResource,
-) *stateController {
+) factory.Controller {
 	c := &stateController{
 		operatorClient: operatorClient,
+		name:           "EncryptionStateController",
 
-		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "EncryptionStateController"),
-		eventRecorder: eventRecorder.WithComponentSuffix("encryption-state-controller"),
-
-		encryptedGRs: encryptedGRs,
-		component:    component,
+		component: component,
 
 		encryptionSecretSelector: encryptionSecretSelector,
 		secretClient:             secretClient,
 		deployer:                 deployer,
+		provider:                 provider,
 	}
 
-	c.preRunCachesSynced = setUpInformers(deployer, operatorClient, kubeInformersForNamespaces, c.eventHandler())
+	return factory.New().ResyncEvery(time.Second).WithSync(c.sync).WithInformers(
+		operatorClient.Informer(),
+		kubeInformersForNamespaces.InformersFor("openshift-config-managed").Core().V1().Secrets().Informer(),
+		deployer,
+	).ToController(c.name, eventRecorder.WithComponentSuffix("encryption-state-controller"))
 
-	return c
 }
 
-func (c *stateController) sync() error {
-	if ready, err := shouldRunEncryptionController(c.operatorClient); err != nil || !ready {
+func (c *stateController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+	if ready, err := shouldRunEncryptionController(c.operatorClient, c.provider.ShouldRunEncryptionControllers); err != nil || !ready {
 		return err // we will get re-kicked when the operator status updates
 	}
 
-	configError := c.generateAndApplyCurrentEncryptionConfigSecret()
+	configError := c.generateAndApplyCurrentEncryptionConfigSecret(syncCtx.Queue(), syncCtx.Recorder(), c.provider.EncryptedGRs())
 
 	// update failing condition
 	cond := operatorv1.OperatorCondition{
@@ -109,13 +105,13 @@ type eventWithReason struct {
 	message string
 }
 
-func (c *stateController) generateAndApplyCurrentEncryptionConfigSecret() error {
-	currentConfig, desiredEncryptionState, encryptionSecrets, transitioningReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, c.encryptedGRs)
+func (c *stateController) generateAndApplyCurrentEncryptionConfigSecret(queue workqueue.RateLimitingInterface, recorder events.Recorder, encryptedGRs []schema.GroupResource) error {
+	currentConfig, desiredEncryptionState, encryptionSecrets, transitioningReason, err := statemachine.GetEncryptionConfigAndState(c.deployer, c.secretClient, c.encryptionSecretSelector, encryptedGRs)
 	if err != nil {
 		return err
 	}
 	if len(transitioningReason) > 0 {
-		c.queue.AddAfter(stateWorkKey, 2*time.Minute)
+		queue.AddAfter(stateWorkKey, 2*time.Minute)
 		return nil
 	}
 
@@ -127,7 +123,7 @@ func (c *stateController) generateAndApplyCurrentEncryptionConfigSecret() error 
 	}
 
 	desiredEncryptionConfig := encryptionconfig.FromEncryptionState(desiredEncryptionState)
-	changed, err := c.applyEncryptionConfigSecret(desiredEncryptionConfig)
+	changed, err := c.applyEncryptionConfigSecret(desiredEncryptionConfig, recorder)
 	if err != nil {
 		return err
 	}
@@ -136,70 +132,21 @@ func (c *stateController) generateAndApplyCurrentEncryptionConfigSecret() error 
 		currentEncryptionConfig, _ := encryptionconfig.ToEncryptionState(currentConfig, encryptionSecrets)
 		if actionEvents := eventsFromEncryptionConfigChanges(currentEncryptionConfig, desiredEncryptionState); len(actionEvents) > 0 {
 			for _, event := range actionEvents {
-				c.eventRecorder.Eventf(event.reason, event.message)
+				recorder.Eventf(event.reason, event.message)
 			}
 		}
 	}
 	return nil
 }
 
-func (c *stateController) applyEncryptionConfigSecret(encryptionConfig *apiserverconfigv1.EncryptionConfiguration) (bool, error) {
+func (c *stateController) applyEncryptionConfigSecret(encryptionConfig *apiserverconfigv1.EncryptionConfiguration, recorder events.Recorder) (bool, error) {
 	s, err := encryptionconfig.ToSecret("openshift-config-managed", fmt.Sprintf("%s-%s", encryptionconfig.EncryptionConfSecretName, c.component), encryptionConfig)
 	if err != nil {
 		return false, err
 	}
 
-	_, changed, applyErr := resourceapply.ApplySecret(c.secretClient, c.eventRecorder, s)
+	_, changed, applyErr := resourceapply.ApplySecret(c.secretClient, recorder, s)
 	return changed, applyErr
-}
-
-func (c *stateController) Run(stopCh <-chan struct{}) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting EncryptionStateController")
-	defer klog.Infof("Shutting down EncryptionStateController")
-	if !cache.WaitForCacheSync(stopCh, c.preRunCachesSynced...) {
-		utilruntime.HandleError(fmt.Errorf("caches did not sync for EncryptionStateController"))
-		return
-	}
-
-	// only start one worker
-	go wait.Until(c.runWorker, time.Second, stopCh)
-
-	<-stopCh
-}
-
-func (c *stateController) runWorker() {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *stateController) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with: %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-func (c *stateController) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(stateWorkKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(stateWorkKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(stateWorkKey) },
-	}
 }
 
 // eventsFromEncryptionConfigChanges return slice of event reasons with messages corresponding to a difference between current and desired encryption state.

@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	knet "k8s.io/apimachinery/pkg/util/net"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/transport"
 	"k8s.io/klog"
 
@@ -34,46 +33,53 @@ var (
 	ImageScheme = runtime.NewScheme()
 )
 
+// convertImageToDockerImage converts an object of type *godockerclient.Image to *docker10.DockerImage
+func convertImageToDockerImage(in *godockerclient.Image, out *docker10.DockerImage, s conversion.Scope) error {
+	if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.ContainerConfig, &out.ContainerConfig, conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+	out.ID = in.ID
+	out.Parent = in.Parent
+	out.Comment = in.Comment
+	out.Created = metav1.NewTime(in.Created)
+	out.Container = in.Container
+	out.DockerVersion = in.DockerVersion
+	out.Author = in.Author
+	out.Architecture = in.Architecture
+	out.Size = in.Size
+	return nil
+}
+
+// convertDockerImageToImage converts an object of type *docker10.DockerImage to *godockerclient.Image
+func convertDockerImageToImage(in *docker10.DockerImage, out *godockerclient.Image, s conversion.Scope) error {
+	if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.ContainerConfig, &out.ContainerConfig, conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+	out.ID = in.ID
+	out.Parent = in.Parent
+	out.Comment = in.Comment
+	out.Created = in.Created.Time
+	out.Container = in.Container
+	out.DockerVersion = in.DockerVersion
+	out.Author = in.Author
+	out.Architecture = in.Architecture
+	out.Size = in.Size
+	return nil
+}
+
 func init() {
-	utilruntime.Must(ImageScheme.AddConversionFuncs(
-		// Convert godockerclient client object to internal object
-		func(in *godockerclient.Image, out *docker10.DockerImage, s conversion.Scope) error {
-			if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
-				return err
-			}
-			if err := s.Convert(&in.ContainerConfig, &out.ContainerConfig, conversion.AllowDifferentFieldTypeNames); err != nil {
-				return err
-			}
-			out.ID = in.ID
-			out.Parent = in.Parent
-			out.Comment = in.Comment
-			out.Created = metav1.NewTime(in.Created)
-			out.Container = in.Container
-			out.DockerVersion = in.DockerVersion
-			out.Author = in.Author
-			out.Architecture = in.Architecture
-			out.Size = in.Size
-			return nil
-		},
-		func(in *docker10.DockerImage, out *godockerclient.Image, s conversion.Scope) error {
-			if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
-				return err
-			}
-			if err := s.Convert(&in.ContainerConfig, &out.ContainerConfig, conversion.AllowDifferentFieldTypeNames); err != nil {
-				return err
-			}
-			out.ID = in.ID
-			out.Parent = in.Parent
-			out.Comment = in.Comment
-			out.Created = in.Created.Time
-			out.Container = in.Container
-			out.DockerVersion = in.DockerVersion
-			out.Author = in.Author
-			out.Architecture = in.Architecture
-			out.Size = in.Size
-			return nil
-		},
-	))
+	ImageScheme.AddConversionFunc((*godockerclient.Image)(nil), (*docker10.DockerImage)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return convertImageToDockerImage(a.(*godockerclient.Image), b.(*docker10.DockerImage), scope)
+	})
+	ImageScheme.AddConversionFunc((*docker10.DockerImage)(nil), (*godockerclient.Image)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return convertDockerImageToImage(a.(*docker10.DockerImage), b.(*godockerclient.Image), scope)
+	})
 }
 
 type Image struct {

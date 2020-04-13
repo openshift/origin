@@ -41,7 +41,8 @@
         {"shape":"ListenerNotFoundException"},
         {"shape":"InternalServiceErrorException"},
         {"shape":"InvalidArgumentException"},
-        {"shape":"LimitExceededException"}
+        {"shape":"LimitExceededException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "CreateListener":{
@@ -83,6 +84,7 @@
       },
       "input":{"shape":"DeleteEndpointGroupRequest"},
       "errors":[
+        {"shape":"InvalidArgumentException"},
         {"shape":"EndpointGroupNotFoundException"},
         {"shape":"InternalServiceErrorException"}
       ]
@@ -95,6 +97,7 @@
       },
       "input":{"shape":"DeleteListenerRequest"},
       "errors":[
+        {"shape":"InvalidArgumentException"},
         {"shape":"ListenerNotFoundException"},
         {"shape":"AssociatedEndpointGroupFoundException"},
         {"shape":"InternalServiceErrorException"}
@@ -137,6 +140,7 @@
       "input":{"shape":"DescribeEndpointGroupRequest"},
       "output":{"shape":"DescribeEndpointGroupResponse"},
       "errors":[
+        {"shape":"InvalidArgumentException"},
         {"shape":"EndpointGroupNotFoundException"},
         {"shape":"InternalServiceErrorException"}
       ]
@@ -164,6 +168,7 @@
       "input":{"shape":"ListAcceleratorsRequest"},
       "output":{"shape":"ListAcceleratorsResponse"},
       "errors":[
+        {"shape":"InvalidArgumentException"},
         {"shape":"InvalidNextTokenException"},
         {"shape":"InternalServiceErrorException"}
       ]
@@ -192,6 +197,7 @@
       "input":{"shape":"ListListenersRequest"},
       "output":{"shape":"ListListenersResponse"},
       "errors":[
+        {"shape":"InvalidArgumentException"},
         {"shape":"AcceleratorNotFoundException"},
         {"shape":"InvalidNextTokenException"},
         {"shape":"InternalServiceErrorException"}
@@ -222,7 +228,8 @@
       "errors":[
         {"shape":"AcceleratorNotFoundException"},
         {"shape":"InternalServiceErrorException"},
-        {"shape":"InvalidArgumentException"}
+        {"shape":"InvalidArgumentException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "UpdateEndpointGroup":{
@@ -237,7 +244,8 @@
         {"shape":"InvalidArgumentException"},
         {"shape":"EndpointGroupNotFoundException"},
         {"shape":"InternalServiceErrorException"},
-        {"shape":"LimitExceededException"}
+        {"shape":"LimitExceededException"},
+        {"shape":"AccessDeniedException"}
       ]
     },
     "UpdateListener":{
@@ -266,6 +274,7 @@
         "IpAddressType":{"shape":"IpAddressType"},
         "Enabled":{"shape":"GenericBoolean"},
         "IpSets":{"shape":"IpSets"},
+        "DnsName":{"shape":"GenericString"},
         "Status":{"shape":"AcceleratorStatus"},
         "CreatedTime":{"shape":"Timestamp"},
         "LastModifiedTime":{"shape":"Timestamp"}
@@ -303,6 +312,13 @@
     "Accelerators":{
       "type":"list",
       "member":{"shape":"Accelerator"}
+    },
+    "AccessDeniedException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
     },
     "AssociatedEndpointGroupFoundException":{
       "type":"structure",
@@ -415,6 +431,7 @@
     },
     "DescribeAcceleratorAttributesRequest":{
       "type":"structure",
+      "required":["AcceleratorArn"],
       "members":{
         "AcceleratorArn":{"shape":"GenericString"}
       }
@@ -468,7 +485,8 @@
       "type":"structure",
       "members":{
         "EndpointId":{"shape":"GenericString"},
-        "Weight":{"shape":"EndpointWeight"}
+        "Weight":{"shape":"EndpointWeight"},
+        "ClientIPPreservationEnabled":{"shape":"GenericBoolean"}
       }
     },
     "EndpointConfigurations":{
@@ -483,7 +501,8 @@
         "EndpointId":{"shape":"GenericString"},
         "Weight":{"shape":"EndpointWeight"},
         "HealthState":{"shape":"HealthState"},
-        "HealthReason":{"shape":"GenericString"}
+        "HealthReason":{"shape":"GenericString"},
+        "ClientIPPreservationEnabled":{"shape":"GenericBoolean"}
       }
     },
     "EndpointDescriptions":{
@@ -729,6 +748,7 @@
     },
     "UpdateAcceleratorAttributesRequest":{
       "type":"structure",
+      "required":["AcceleratorArn"],
       "members":{
         "AcceleratorArn":{"shape":"GenericString"},
         "FlowLogsEnabled":{"shape":"GenericBoolean"},

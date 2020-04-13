@@ -16,29 +16,7 @@ import (
 // Temperature represents a temperature in Kelvin.
 type Temperature float64
 
-const (
-	Yottakelvin Temperature = 1e24
-	Zettakelvin Temperature = 1e21
-	Exakelvin   Temperature = 1e18
-	Petakelvin  Temperature = 1e15
-	Terakelvin  Temperature = 1e12
-	Gigakelvin  Temperature = 1e9
-	Megakelvin  Temperature = 1e6
-	Kilokelvin  Temperature = 1e3
-	Hectokelvin Temperature = 1e2
-	Decakelvin  Temperature = 1e1
-	Kelvin      Temperature = 1.0
-	Decikelvin  Temperature = 1e-1
-	Centikelvin Temperature = 1e-2
-	Millikelvin Temperature = 1e-3
-	Microkelvin Temperature = 1e-6
-	Nanokelvin  Temperature = 1e-9
-	Picokelvin  Temperature = 1e-12
-	Femtokelvin Temperature = 1e-15
-	Attokelvin  Temperature = 1e-18
-	Zeptokelvin Temperature = 1e-21
-	Yoctokelvin Temperature = 1e-24
-)
+const Kelvin Temperature = 1
 
 // Unit converts the Temperature to a *Unit
 func (t Temperature) Unit() *Unit {

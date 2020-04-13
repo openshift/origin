@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	"github.com/openshift/api/authorization"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 	defer g.GinkgoRecover()
 
 	var (
-		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
+		cli                = exutil.NewCLI("templates")
 		instanceID         = uuid.NewRandom().String()
 		bindingID          = uuid.NewRandom().String()
 		template           *templatev1.Template
@@ -54,14 +54,14 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 		var err error
 		brokercli, err = TSBClient(cli)
 		if kerrors.IsNotFound(err) {
-			e2e.Skipf("The template service broker is not installed: %v", err)
+			e2eskipper.Skipf("The template service broker is not installed: %v", err)
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
 
 		// should have been created before the extended test runs
-		template, err = cli.TemplateClient().TemplateV1().Templates("openshift").Get("mysql-ephemeral", metav1.GetOptions{})
+		template, err = cli.TemplateClient().TemplateV1().Templates("openshift").Get(context.Background(), "mysql-ephemeral", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		dynamicClient, err := dynamic.NewForConfig(cli.AdminConfig())
@@ -70,15 +70,15 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// privatetemplate is an additional template in our namespace
-		privatetemplate, err = cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Create(&templatev1.Template{
+		privatetemplate, err = cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Create(context.Background(), &templatev1.Template{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "private",
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// enable unauthenticated access to the service broker
-		clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
+		clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(context.Background(), &authorizationv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "templateservicebroker-client",
 			},
@@ -91,19 +91,19 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 					Name: "system:unauthenticated",
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 	})
 
 	g.AfterEach(func() {
-		err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
+		err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(context.Background(), clusterrolebinding.Name, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// it shouldn't be around, but if it is, clean up the
 		// BrokerTemplateInstance object.  The object is not namespaced so the
 		// namespace cleanup doesn't catch this.
-		cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(instanceID, nil)
+		cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(context.Background(), instanceID, metav1.DeleteOptions{})
 	})
 
 	catalog := func() {
@@ -152,7 +152,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 			},
 		})
 		if err != nil {
-			templateInstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+			templateInstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), instanceID, metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "error getting TemplateInstance after failed provision: %v\n", err)
 			} else {
@@ -164,11 +164,11 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(context.Background(), instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		templateInstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+		templateInstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+		secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(context.Background(), instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Expect(brokerTemplateInstance.Spec).To(o.Equal(templatev1.BrokerTemplateInstanceSpec{
@@ -233,7 +233,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 			"MYSQL_USER": []byte("test"),
 		}))
 
-		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("mysql", metav1.GetOptions{})
+		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(context.Background(), "mysql", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Expect(examplesecret.Labels[templatev1.TemplateInstanceOwner]).To(o.Equal(string(templateInstance.UID)))
@@ -250,7 +250,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(context.Background(), instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.Equal([]string{bindingID}))
 
@@ -263,20 +263,20 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 		err := brokercli.Unbind(context.Background(), cliUser, instanceID, bindingID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(context.Background(), instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.HaveLen(0))
 	}
 
 	deprovision := func() {
 		g.By("deprovisioning a service")
-		err := cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Delete(privatetemplate.Name, &metav1.DeleteOptions{})
+		err := cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Delete(context.Background(), privatetemplate.Name, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = brokercli.Deprovision(context.Background(), cliUser, instanceID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		_, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(context.Background(), instanceID, metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
@@ -316,7 +316,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 					continue
 				}
 
-				obj, err := dynamicClient.Resource(mapping.Resource).Namespace(cli.Namespace()).List(metav1.ListOptions{})
+				obj, err := dynamicClient.Resource(mapping.Resource).Namespace(cli.Namespace()).List(context.Background(), metav1.ListOptions{})
 				if kerrors.IsNotFound(err) || kerrors.IsMethodNotSupported(err) {
 					continue
 				}

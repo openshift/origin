@@ -2,6 +2,10 @@
 
 package iot1clickprojects
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeInternalFailureException for service response error code
@@ -24,3 +28,11 @@ const (
 	// "TooManyRequestsException".
 	ErrCodeTooManyRequestsException = "TooManyRequestsException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"InternalFailureException":  newErrorInternalFailureException,
+	"InvalidRequestException":   newErrorInvalidRequestException,
+	"ResourceConflictException": newErrorResourceConflictException,
+	"ResourceNotFoundException": newErrorResourceNotFoundException,
+	"TooManyRequestsException":  newErrorTooManyRequestsException,
+}

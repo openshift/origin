@@ -359,11 +359,11 @@ func testDlaqr23(t *testing.T, impl Dlaqr23er, test dlaqr23Test, opt bool, recur
 		// Compute H_in*Z.
 		blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, test.h, z, 0, hu)
 		uhu := eye(n, n)
-		// Compute Z^T*H_in*Z.
+		// Compute Zᵀ*H_in*Z.
 		blas64.Gemm(blas.Trans, blas.NoTrans, 1, z, hu, 0, uhu)
-		// Compare Z^T*H_in*Z and H_out.
+		// Compare Zᵀ*H_in*Z and H_out.
 		if !equalApproxGeneral(uhu, h, 10*tol) {
-			t.Errorf("%v: Z^T*(initial H)*Z and (final H) are not equal", prefix)
+			t.Errorf("%v: Zᵀ*(initial H)*Z and (final H) are not equal", prefix)
 		}
 	}
 }

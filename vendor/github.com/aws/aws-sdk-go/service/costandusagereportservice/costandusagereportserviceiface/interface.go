@@ -71,6 +71,10 @@ type CostandUsageReportServiceAPI interface {
 	DescribeReportDefinitionsPages(*costandusagereportservice.DescribeReportDefinitionsInput, func(*costandusagereportservice.DescribeReportDefinitionsOutput, bool) bool) error
 	DescribeReportDefinitionsPagesWithContext(aws.Context, *costandusagereportservice.DescribeReportDefinitionsInput, func(*costandusagereportservice.DescribeReportDefinitionsOutput, bool) bool, ...request.Option) error
 
+	ModifyReportDefinition(*costandusagereportservice.ModifyReportDefinitionInput) (*costandusagereportservice.ModifyReportDefinitionOutput, error)
+	ModifyReportDefinitionWithContext(aws.Context, *costandusagereportservice.ModifyReportDefinitionInput, ...request.Option) (*costandusagereportservice.ModifyReportDefinitionOutput, error)
+	ModifyReportDefinitionRequest(*costandusagereportservice.ModifyReportDefinitionInput) (*request.Request, *costandusagereportservice.ModifyReportDefinitionOutput)
+
 	PutReportDefinition(*costandusagereportservice.PutReportDefinitionInput) (*costandusagereportservice.PutReportDefinitionOutput, error)
 	PutReportDefinitionWithContext(aws.Context, *costandusagereportservice.PutReportDefinitionInput, ...request.Option) (*costandusagereportservice.PutReportDefinitionOutput, error)
 	PutReportDefinitionRequest(*costandusagereportservice.PutReportDefinitionInput) (*request.Request, *costandusagereportservice.PutReportDefinitionOutput)

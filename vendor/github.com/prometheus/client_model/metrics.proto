@@ -17,6 +17,8 @@ package io.prometheus.client;
 option java_package = "io.prometheus.client";
 option go_package = "github.com/prometheus/client_model/go;io_prometheus_client";
 
+import "google/protobuf/timestamp.proto";
+
 message LabelPair {
   optional string name  = 1;
   optional string value = 2;
@@ -35,7 +37,8 @@ message Gauge {
 }
 
 message Counter {
-  optional double value = 1;
+  optional double   value    = 1;
+  optional Exemplar exemplar = 2;
 }
 
 message Quantile {
@@ -60,8 +63,15 @@ message Histogram {
 }
 
 message Bucket {
-  optional uint64 cumulative_count = 1; // Cumulative in increasing order.
-  optional double upper_bound = 2;      // Inclusive.
+  optional uint64   cumulative_count = 1; // Cumulative in increasing order.
+  optional double   upper_bound      = 2; // Inclusive.
+  optional Exemplar exemplar         = 3;
+}
+
+message Exemplar {
+  repeated LabelPair                 label     = 1;
+  optional double                    value     = 2;
+  optional google.protobuf.Timestamp timestamp = 3; // OpenMetrics-style.
 }
 
 message Metric {

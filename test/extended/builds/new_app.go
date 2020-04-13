@@ -1,8 +1,14 @@
 package builds
 
 import (
+	"context"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kdeployutil "k8s.io/kubernetes/test/e2e/framework/deployment"
 
 	deployutil "github.com/openshift/origin/test/extended/deployments"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -13,13 +19,13 @@ const (
 	a59 = "a2345678901234567890123456789012345678901234567890123456789"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Conformance] oc new-app", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 	// Previously, the maximum length of app names creatable by new-app has
 	// inadvertently been decreased, e.g. by creating an annotation somewhere
 	// whose name itself includes the app name.  Ensure we can create and fully
 	// deploy an app with a 58 character name [63 maximum - len('-9999' suffix)].
 
-	oc := exutil.NewCLI("new-app", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("new-app")
 
 	g.Context("", func() {
 
@@ -62,8 +68,17 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Conformance] oc new-app", func()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the deployment to complete")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), a58, 1, true, oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			deploy, derr := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get(context.Background(), a58, metav1.GetOptions{})
+			if kapierrs.IsNotFound(derr) {
+				// if deployment is not there we're working with old new-app producing deployment configs
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), a58, 1, true, oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			} else {
+				// if present - wait for deployment
+				o.Expect(derr).NotTo(o.HaveOccurred())
+				err = kdeployutil.WaitForDeploymentComplete(oc.KubeClient(), deploy)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 		})
 
 		g.It("should fail with a --name longer than 58 characters", func() {

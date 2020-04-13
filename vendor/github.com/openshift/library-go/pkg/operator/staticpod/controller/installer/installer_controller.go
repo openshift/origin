@@ -145,11 +145,15 @@ func NewInstallerController(
 }
 
 func (c *InstallerController) Run(ctx context.Context, workers int) {
-	c.factory.WithSync(c.Sync).ToController("InstallerController", c.eventRecorder).Run(ctx, workers)
+	c.factory.WithSync(c.Sync).ToController(c.Name(), c.eventRecorder).Run(ctx, workers)
 }
 
-func (c *InstallerController) getStaticPodState(nodeName string) (state staticPodState, revision, reason string, errors []string, err error) {
-	pod, err := c.podsGetter.Pods(c.targetNamespace).Get(mirrorPodNameForNode(c.staticPodName, nodeName), metav1.GetOptions{})
+func (c InstallerController) Name() string {
+	return "InstallerController"
+}
+
+func (c *InstallerController) getStaticPodState(ctx context.Context, nodeName string) (state staticPodState, revision, reason string, errors []string, err error) {
+	pod, err := c.podsGetter.Pods(c.targetNamespace).Get(ctx, mirrorPodNameForNode(c.staticPodName, nodeName), metav1.GetOptions{})
 	if err != nil {
 		return staticPodStatePending, "", "", nil, err
 	}
@@ -172,7 +176,7 @@ func (c *InstallerController) getStaticPodState(nodeName string) (state staticPo
 // - not updating
 // - ready
 // - at the revision claimed in CurrentRevision.
-func nodeToStartRevisionWith(getStaticPodState func(nodeName string) (state staticPodState, revision, reason string, errors []string, err error), nodes []operatorv1.NodeStatus) (int, string, error) {
+func nodeToStartRevisionWith(ctx context.Context, getStaticPodState func(ctx context.Context, nodeName string) (state staticPodState, revision, reason string, errors []string, err error), nodes []operatorv1.NodeStatus) (int, string, error) {
 	if len(nodes) == 0 {
 		return 0, "", fmt.Errorf("nodes array cannot be empty")
 	}
@@ -190,7 +194,7 @@ func nodeToStartRevisionWith(getStaticPodState func(nodeName string) (state stat
 	oldestNotReadyRevision := math.MaxInt32
 	for i := range nodes {
 		currNodeState := &nodes[i]
-		state, runningRevision, _, _, err := getStaticPodState(currNodeState.NodeName)
+		state, runningRevision, _, _, err := getStaticPodState(ctx, currNodeState.NodeName)
 		if err != nil && apierrors.IsNotFound(err) {
 			return i, fmt.Sprintf("node %s static pod not found", currNodeState.NodeName), nil
 		}
@@ -217,7 +221,7 @@ func nodeToStartRevisionWith(getStaticPodState func(nodeName string) (state stat
 	oldestPodRevision := math.MaxInt32
 	for i := range nodes {
 		currNodeState := &nodes[i]
-		_, runningRevision, _, _, err := getStaticPodState(currNodeState.NodeName)
+		_, runningRevision, _, _, err := getStaticPodState(ctx, currNodeState.NodeName)
 		if err != nil && apierrors.IsNotFound(err) {
 			return i, fmt.Sprintf("node %s static pod not found", currNodeState.NodeName), nil
 		}
@@ -260,7 +264,7 @@ func nodeToStartRevisionWith(getStaticPodState func(nodeName string) (state stat
 
 // manageInstallationPods takes care of creating content for the static pods to install.
 // returns whether or not requeue and if an error happened when updating status.  Normally it updates status itself.
-func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.StaticPodOperatorSpec, originalOperatorStatus *operatorv1.StaticPodOperatorStatus, resourceVersion string) (bool, error) {
+func (c *InstallerController) manageInstallationPods(ctx context.Context, operatorSpec *operatorv1.StaticPodOperatorSpec, originalOperatorStatus *operatorv1.StaticPodOperatorStatus, resourceVersion string) (bool, error) {
 	operatorStatus := originalOperatorStatus.DeepCopy()
 
 	if len(operatorStatus.NodeStatuses) == 0 {
@@ -275,7 +279,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.St
 	}
 
 	// start with node which is in worst state (instead of terminating healthy pods first)
-	startNode, nodeChoiceReason, err := nodeToStartRevisionWith(c.getStaticPodState, operatorStatus.NodeStatuses)
+	startNode, nodeChoiceReason, err := nodeToStartRevisionWith(ctx, c.getStaticPodState, operatorStatus.NodeStatuses)
 	if err != nil {
 		return true, err
 	}
@@ -303,7 +307,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.St
 				}
 			}
 
-			newCurrNodeState, installerPodFailed, reason, err := c.newNodeStateForInstallInProgress(currNodeState, operatorStatus.LatestAvailableRevision)
+			newCurrNodeState, installerPodFailed, reason, err := c.newNodeStateForInstallInProgress(ctx, currNodeState, operatorStatus.LatestAvailableRevision)
 			if err != nil {
 				return true, err
 			}
@@ -319,7 +323,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.St
 					c.eventRecorder.Eventf("NodeCurrentRevisionChanged", "Updated node %q from revision %d to %d because %s", currNodeState.NodeName,
 						currNodeState.CurrentRevision, newCurrNodeState.CurrentRevision, reason)
 				}
-				if err := c.updateRevisionStatus(newOperatorStatus); err != nil {
+				if err := c.updateRevisionStatus(ctx, newOperatorStatus); err != nil {
 					klog.Errorf("error updating revision status configmap: %v", err)
 				}
 				return false, nil
@@ -333,7 +337,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.St
 			}
 			klog.Infof("Retrying %q for revision %d because %s", currNodeState.NodeName, currNodeState.TargetRevision, reason)
 			installerPodName := getInstallerPodName(currNodeState.TargetRevision, currNodeState.NodeName)
-			if err := c.podsGetter.Pods(c.targetNamespace).Delete(installerPodName, &metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			if err := c.podsGetter.Pods(c.targetNamespace).Delete(ctx, installerPodName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 				return true, err
 			}
 		}
@@ -368,7 +372,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.St
 	return false, nil
 }
 
-func (c *InstallerController) updateRevisionStatus(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
+func (c *InstallerController) updateRevisionStatus(ctx context.Context, operatorStatus *operatorv1.StaticPodOperatorStatus) error {
 	failedRevisions := make(map[int32]struct{})
 	currentRevisions := make(map[int32]struct{})
 	for _, nodeState := range operatorStatus.NodeStatuses {
@@ -379,17 +383,17 @@ func (c *InstallerController) updateRevisionStatus(operatorStatus *operatorv1.St
 
 	// If all current revisions point to the same revision, then mark it successful
 	if len(currentRevisions) == 1 {
-		err := c.updateConfigMapForRevision(currentRevisions, string(corev1.PodSucceeded))
+		err := c.updateConfigMapForRevision(ctx, currentRevisions, string(corev1.PodSucceeded))
 		if err != nil {
 			return err
 		}
 	}
-	return c.updateConfigMapForRevision(failedRevisions, string(corev1.PodFailed))
+	return c.updateConfigMapForRevision(ctx, failedRevisions, string(corev1.PodFailed))
 }
 
-func (c *InstallerController) updateConfigMapForRevision(currentRevisions map[int32]struct{}, status string) error {
+func (c *InstallerController) updateConfigMapForRevision(ctx context.Context, currentRevisions map[int32]struct{}, status string) error {
 	for currentRevision := range currentRevisions {
-		statusConfigMap, err := c.configMapsGetter.ConfigMaps(c.targetNamespace).Get(statusConfigMapNameForRevision(currentRevision), metav1.GetOptions{})
+		statusConfigMap, err := c.configMapsGetter.ConfigMaps(c.targetNamespace).Get(ctx, statusConfigMapNameForRevision(currentRevision), metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			klog.Infof("%s configmap not found, skipping update revision status", statusConfigMapNameForRevision(currentRevision))
 			continue
@@ -513,9 +517,9 @@ func setAvailableProgressingNodeInstallerFailingConditions(newStatus *operatorv1
 }
 
 // newNodeStateForInstallInProgress returns the new NodeState, whether it was killed by OOM or an error
-func (c *InstallerController) newNodeStateForInstallInProgress(currNodeState *operatorv1.NodeStatus, latestRevisionAvailable int32) (status *operatorv1.NodeStatus, installerPodFailed bool, reason string, err error) {
+func (c *InstallerController) newNodeStateForInstallInProgress(ctx context.Context, currNodeState *operatorv1.NodeStatus, latestRevisionAvailable int32) (status *operatorv1.NodeStatus, installerPodFailed bool, reason string, err error) {
 	ret := currNodeState.DeepCopy()
-	installerPod, err := c.podsGetter.Pods(c.targetNamespace).Get(getInstallerPodName(currNodeState.TargetRevision, currNodeState.NodeName), metav1.GetOptions{})
+	installerPod, err := c.podsGetter.Pods(c.targetNamespace).Get(ctx, getInstallerPodName(currNodeState.TargetRevision, currNodeState.NodeName), metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		ret.LastFailedRevision = currNodeState.TargetRevision
 		ret.TargetRevision = currNodeState.CurrentRevision
@@ -540,7 +544,7 @@ func (c *InstallerController) newNodeStateForInstallInProgress(currNodeState *op
 			return ret, false, "new revision pending", nil
 		}
 
-		state, currentRevision, staticPodReason, failedErrors, err := c.getStaticPodState(currNodeState.NodeName)
+		state, currentRevision, staticPodReason, failedErrors, err := c.getStaticPodState(ctx, currNodeState.NodeName)
 		if err != nil && apierrors.IsNotFound(err) {
 			// pod not launched yet
 			// TODO: have a timeout here and retry the installer
@@ -656,7 +660,7 @@ func (c *InstallerController) ensureInstallerPod(nodeName string, operatorSpec *
 	}
 
 	args := []string{
-		fmt.Sprintf("-v=%d", loglevel.LogLevelToKlog(operatorSpec.LogLevel)),
+		fmt.Sprintf("-v=%d", loglevel.LogLevelToVerbosity(operatorSpec.LogLevel)),
 		fmt.Sprintf("--revision=%d", revision),
 		fmt.Sprintf("--namespace=%s", pod.Namespace),
 		fmt.Sprintf("--pod=%s", c.configMaps[0].Name),
@@ -710,7 +714,7 @@ func (c *InstallerController) ensureInstallerPod(nodeName string, operatorSpec *
 
 func (c *InstallerController) setOwnerRefs(revision int32) ([]metav1.OwnerReference, error) {
 	ownerReferences := []metav1.OwnerReference{}
-	statusConfigMap, err := c.configMapsGetter.ConfigMaps(c.targetNamespace).Get(fmt.Sprintf("revision-status-%d", revision), metav1.GetOptions{})
+	statusConfigMap, err := c.configMapsGetter.ConfigMaps(c.targetNamespace).Get(context.TODO(), fmt.Sprintf("revision-status-%d", revision), metav1.GetOptions{})
 	if err == nil {
 		ownerReferences = append(ownerReferences, metav1.OwnerReference{
 			APIVersion: "v1",
@@ -726,7 +730,7 @@ func getInstallerPodImageFromEnv() string {
 	return os.Getenv("OPERATOR_IMAGE")
 }
 
-func (c InstallerController) ensureSecretRevisionResourcesExists(secrets []revision.RevisionResource, hasRevisionSuffix bool, latestRevisionNumber int32) error {
+func (c InstallerController) ensureSecretRevisionResourcesExists(ctx context.Context, secrets []revision.RevisionResource, hasRevisionSuffix bool, latestRevisionNumber int32) error {
 	missing := sets.NewString()
 	for _, secret := range secrets {
 		if secret.Optional {
@@ -736,7 +740,7 @@ func (c InstallerController) ensureSecretRevisionResourcesExists(secrets []revis
 		if !hasRevisionSuffix {
 			name = fmt.Sprintf("%s-%d", name, latestRevisionNumber)
 		}
-		_, err := c.secretsGetter.Secrets(c.targetNamespace).Get(name, metav1.GetOptions{})
+		_, err := c.secretsGetter.Secrets(c.targetNamespace).Get(ctx, name, metav1.GetOptions{})
 		if err == nil {
 			continue
 		}
@@ -750,7 +754,7 @@ func (c InstallerController) ensureSecretRevisionResourcesExists(secrets []revis
 	return fmt.Errorf("secrets: %s", strings.Join(missing.List(), ","))
 }
 
-func (c InstallerController) ensureConfigMapRevisionResourcesExists(configs []revision.RevisionResource, hasRevisionSuffix bool, latestRevisionNumber int32) error {
+func (c InstallerController) ensureConfigMapRevisionResourcesExists(ctx context.Context, configs []revision.RevisionResource, hasRevisionSuffix bool, latestRevisionNumber int32) error {
 	missing := sets.NewString()
 	for _, config := range configs {
 		if config.Optional {
@@ -760,7 +764,7 @@ func (c InstallerController) ensureConfigMapRevisionResourcesExists(configs []re
 		if !hasRevisionSuffix {
 			name = fmt.Sprintf("%s-%d", name, latestRevisionNumber)
 		}
-		_, err := c.configMapsGetter.ConfigMaps(c.targetNamespace).Get(name, metav1.GetOptions{})
+		_, err := c.configMapsGetter.ConfigMaps(c.targetNamespace).Get(ctx, name, metav1.GetOptions{})
 		if err == nil {
 			continue
 		}
@@ -775,13 +779,13 @@ func (c InstallerController) ensureConfigMapRevisionResourcesExists(configs []re
 }
 
 // ensureRequiredResourcesExist makes sure that all non-optional resources are ready or it will return an error to trigger a requeue so that we try again.
-func (c InstallerController) ensureRequiredResourcesExist(revisionNumber int32) error {
+func (c InstallerController) ensureRequiredResourcesExist(ctx context.Context, revisionNumber int32) error {
 	errs := []error{}
 
-	errs = append(errs, c.ensureConfigMapRevisionResourcesExists(c.certConfigMaps, true, revisionNumber))
-	errs = append(errs, c.ensureConfigMapRevisionResourcesExists(c.configMaps, false, revisionNumber))
-	errs = append(errs, c.ensureSecretRevisionResourcesExists(c.certSecrets, true, revisionNumber))
-	errs = append(errs, c.ensureSecretRevisionResourcesExists(c.secrets, false, revisionNumber))
+	errs = append(errs, c.ensureConfigMapRevisionResourcesExists(ctx, c.certConfigMaps, true, revisionNumber))
+	errs = append(errs, c.ensureConfigMapRevisionResourcesExists(ctx, c.configMaps, false, revisionNumber))
+	errs = append(errs, c.ensureSecretRevisionResourcesExists(ctx, c.certSecrets, true, revisionNumber))
+	errs = append(errs, c.ensureSecretRevisionResourcesExists(ctx, c.secrets, false, revisionNumber))
 
 	aggregatedErr := utilerrors.NewAggregate(errs)
 	if aggregatedErr == nil {
@@ -807,11 +811,11 @@ func (c InstallerController) Sync(ctx context.Context, syncCtx factory.SyncConte
 		return nil
 	}
 
-	err = c.ensureRequiredResourcesExist(originalOperatorStatus.LatestAvailableRevision)
+	err = c.ensureRequiredResourcesExist(ctx, originalOperatorStatus.LatestAvailableRevision)
 
 	// Only manage installation pods when all required certs are present.
 	if err == nil {
-		requeue, syncErr := c.manageInstallationPods(operatorSpec, operatorStatus, resourceVersion)
+		requeue, syncErr := c.manageInstallationPods(ctx, operatorSpec, operatorStatus, resourceVersion)
 		if requeue && syncErr == nil {
 			return fmt.Errorf("synthetic requeue request")
 		}

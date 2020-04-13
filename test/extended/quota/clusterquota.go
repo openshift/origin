@@ -1,6 +1,7 @@
 package quota
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 
 var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("crq", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("crq")
 
 	g.Describe("Cluster resource quota", func() {
 		g.It(fmt.Sprintf("should control resource limits across namespaces"), func() {
@@ -47,7 +48,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 					},
 				},
 			}
-			if _, err := clusterAdminQuotaClient.QuotaV1().ClusterResourceQuotas().Create(cq); err != nil {
+			if _, err := clusterAdminQuotaClient.QuotaV1().ClusterResourceQuotas().Create(context.Background(), cq, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			oc.AddResourceToDelete(quotav1.GroupVersion.WithResource("clusterresourcequotas"), cq)
@@ -78,7 +79,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 
 			configmap := &corev1.ConfigMap{}
 			configmap.GenerateName = "test"
-			if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(firstProjectName).Create(configmap); err != nil {
+			if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(firstProjectName).Create(context.Background(), configmap, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
@@ -93,7 +94,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 			}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(secondProjectName).Create(configmap); err != nil {
+			if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(secondProjectName).Create(context.Background(), configmap, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
@@ -108,13 +109,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 			}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(secondProjectName).Create(configmap); !apierrors.IsForbidden(err) {
-				list, err := clusterAdminQuotaClient.QuotaV1().AppliedClusterResourceQuotas(secondProjectName).List(metav1.ListOptions{})
+			if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(secondProjectName).Create(context.Background(), configmap, metav1.CreateOptions{}); !apierrors.IsForbidden(err) {
+				list, err := clusterAdminQuotaClient.QuotaV1().AppliedClusterResourceQuotas(secondProjectName).List(context.Background(), metav1.ListOptions{})
 				if err == nil {
 					t.Errorf("quota is %#v", list)
 				}
 
-				list2, err := clusterAdminKubeClient.CoreV1().ConfigMaps("").List(metav1.ListOptions{})
+				list2, err := clusterAdminKubeClient.CoreV1().ConfigMaps("").List(context.Background(), metav1.ListOptions{})
 				if err == nil {
 					t.Errorf("ConfigMaps is %#v", list2)
 				}
@@ -124,7 +125,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 
 			imagestream := &imagev1.ImageStream{}
 			imagestream.GenerateName = "test"
-			if _, err := clusterAdminImageClient.ImageV1().ImageStreams(firstProjectName).Create(imagestream); err != nil {
+			if _, err := clusterAdminImageClient.ImageV1().ImageStreams(firstProjectName).Create(context.Background(), imagestream, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
@@ -140,13 +141,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if _, err := clusterAdminImageClient.ImageV1().ImageStreams(secondProjectName).Create(imagestream); !apierrors.IsForbidden(err) {
-				list, err := clusterAdminQuotaClient.QuotaV1().AppliedClusterResourceQuotas(secondProjectName).List(metav1.ListOptions{})
+			if _, err := clusterAdminImageClient.ImageV1().ImageStreams(secondProjectName).Create(context.Background(), imagestream, metav1.CreateOptions{}); !apierrors.IsForbidden(err) {
+				list, err := clusterAdminQuotaClient.QuotaV1().AppliedClusterResourceQuotas(secondProjectName).List(context.Background(), metav1.ListOptions{})
 				if err == nil {
 					t.Errorf("quota is %#v", list)
 				}
 
-				list2, err := clusterAdminImageClient.ImageV1().ImageStreams("").List(metav1.ListOptions{})
+				list2, err := clusterAdminImageClient.ImageV1().ImageStreams("").List(context.Background(), metav1.ListOptions{})
 				if err == nil {
 					t.Errorf("ImageStreams is %#v", list2)
 				}
@@ -159,7 +160,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 
 func waitForQuotaLabeling(clusterAdminClient quotaclient.Interface, namespaceName string) error {
 	return utilwait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
-		list, err := clusterAdminClient.QuotaV1().AppliedClusterResourceQuotas(namespaceName).List(metav1.ListOptions{})
+		list, err := clusterAdminClient.QuotaV1().AppliedClusterResourceQuotas(namespaceName).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -171,7 +172,7 @@ func waitForQuotaLabeling(clusterAdminClient quotaclient.Interface, namespaceNam
 }
 
 func labelNamespace(clusterAdminKubeClient corev1client.NamespacesGetter, labelKey, namespaceName string) error {
-	ns1, err := clusterAdminKubeClient.Namespaces().Get(namespaceName, metav1.GetOptions{})
+	ns1, err := clusterAdminKubeClient.Namespaces().Get(context.Background(), namespaceName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -179,7 +180,7 @@ func labelNamespace(clusterAdminKubeClient corev1client.NamespacesGetter, labelK
 		ns1.Labels = map[string]string{}
 	}
 	ns1.Labels[labelKey] = "bar"
-	if _, err := clusterAdminKubeClient.Namespaces().Update(ns1); err != nil {
+	if _, err := clusterAdminKubeClient.Namespaces().Update(context.Background(), ns1, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -188,7 +189,7 @@ func labelNamespace(clusterAdminKubeClient corev1client.NamespacesGetter, labelK
 func waitForQuotaStatus(clusterAdminClient quotaclient.Interface, name string, conditionFn func(*quotav1.ClusterResourceQuota) error) error {
 	var pollErr error
 	err := utilwait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
-		quota, err := clusterAdminClient.QuotaV1().ClusterResourceQuotas().Get(name, metav1.GetOptions{})
+		quota, err := clusterAdminClient.QuotaV1().ClusterResourceQuotas().Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
 			pollErr = err
 			return false, nil

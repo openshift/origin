@@ -19,18 +19,19 @@ func TestLUD(t *testing.T) {
 			}
 		}
 		var want Dense
-		want.Clone(a)
+		want.CloneFrom(a)
 
 		var lu LU
 		lu.Factorize(a)
 
-		l := lu.LTo(nil)
-		u := lu.UTo(nil)
+		var l, u TriDense
+		lu.LTo(&l)
+		lu.UTo(&u)
 		var p Dense
 		pivot := lu.Pivot(nil)
 		p.Permutation(n, pivot)
 		var got Dense
-		got.Product(&p, l, u)
+		got.Product(&p, &l, &u)
 		if !EqualApprox(&got, &want, 1e-12) {
 			t.Errorf("PLU does not equal original matrix.\nWant: %v\n Got: %v", want, got)
 		}

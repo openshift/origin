@@ -17,6 +17,7 @@ limitations under the License.
 package node
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -32,6 +33,8 @@ import (
 	e2ekubelet "k8s.io/kubernetes/test/e2e/framework/kubelet"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2erc "k8s.io/kubernetes/test/e2e/framework/rc"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 	"k8s.io/kubernetes/test/e2e/framework/volume"
 	testutils "k8s.io/kubernetes/test/utils"
@@ -104,7 +107,7 @@ func waitTillNPodsRunningOnNodes(c clientset.Interface, nodeNames sets.String, p
 func restartNfsServer(serverPod *v1.Pod) {
 	const startcmd = "/usr/sbin/rpc.nfsd 1"
 	ns := fmt.Sprintf("--namespace=%v", serverPod.Namespace)
-	framework.RunKubectlOrDie("exec", ns, serverPod.Name, "--", "/bin/sh", "-c", startcmd)
+	framework.RunKubectlOrDie(ns, "exec", ns, serverPod.Name, "--", "/bin/sh", "-c", startcmd)
 }
 
 // Stop the passed-in nfs-server by issuing a `/usr/sbin/rpc.nfsd 0` command in the
@@ -113,7 +116,7 @@ func restartNfsServer(serverPod *v1.Pod) {
 func stopNfsServer(serverPod *v1.Pod) {
 	const stopcmd = "/usr/sbin/rpc.nfsd 0"
 	ns := fmt.Sprintf("--namespace=%v", serverPod.Namespace)
-	framework.RunKubectlOrDie("exec", ns, serverPod.Name, "--", "/bin/sh", "-c", stopcmd)
+	framework.RunKubectlOrDie(ns, "exec", ns, serverPod.Name, "--", "/bin/sh", "-c", stopcmd)
 }
 
 // Creates a pod that mounts an nfs volume that is served by the nfs-server pod. The container
@@ -166,13 +169,13 @@ func createPodUsingNfs(f *framework.Framework, c clientset.Interface, ns, nfsIP,
 			},
 		},
 	}
-	rtnPod, err := c.CoreV1().Pods(ns).Create(pod)
+	rtnPod, err := c.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
 	framework.ExpectNoError(err)
 
 	err = f.WaitForPodReady(rtnPod.Name) // running & ready
 	framework.ExpectNoError(err)
 
-	rtnPod, err = c.CoreV1().Pods(ns).Get(rtnPod.Name, metav1.GetOptions{}) // return fresh pod
+	rtnPod, err = c.CoreV1().Pods(ns).Get(context.TODO(), rtnPod.Name, metav1.GetOptions{}) // return fresh pod
 	framework.ExpectNoError(err)
 	return rtnPod
 }
@@ -181,7 +184,7 @@ func createPodUsingNfs(f *framework.Framework, c clientset.Interface, ns, nfsIP,
 // address. Returns an error if the node the pod is on doesn't have an External
 // address.
 func getHostExternalAddress(client clientset.Interface, p *v1.Pod) (externalAddress string, err error) {
-	node, err := client.CoreV1().Nodes().Get(p.Spec.NodeName, metav1.GetOptions{})
+	node, err := client.CoreV1().Nodes().Get(context.TODO(), p.Spec.NodeName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -340,7 +343,7 @@ var _ = SIGDescribe("kubelet", func() {
 				ginkgo.By(fmt.Sprintf("Creating a RC of %d pods and wait until all pods of this RC are running", totalPods))
 				rcName := fmt.Sprintf("cleanup%d-%s", totalPods, string(uuid.NewUUID()))
 
-				err := framework.RunRC(testutils.RCConfig{
+				err := e2erc.RunRC(testutils.RCConfig{
 					Client:       f.ClientSet,
 					Name:         rcName,
 					Namespace:    f.Namespace.Name,
@@ -351,7 +354,7 @@ var _ = SIGDescribe("kubelet", func() {
 				framework.ExpectNoError(err)
 				// Perform a sanity check so that we know all desired pods are
 				// running on the nodes according to kubelet. The timeout is set to
-				// only 30 seconds here because framework.RunRC already waited for all pods to
+				// only 30 seconds here because e2erc.RunRC already waited for all pods to
 				// transition to the running status.
 				err = waitTillNPodsRunningOnNodes(f.ClientSet, nodeNames, rcName, ns, totalPods, time.Second*30)
 				framework.ExpectNoError(err)
@@ -360,7 +363,7 @@ var _ = SIGDescribe("kubelet", func() {
 				}
 
 				ginkgo.By("Deleting the RC")
-				framework.DeleteRCAndWaitForGC(f.ClientSet, f.Namespace.Name, rcName)
+				e2erc.DeleteRCAndWaitForGC(f.ClientSet, f.Namespace.Name, rcName)
 				// Check that the pods really are gone by querying /runningpods on the
 				// node. The /runningpods handler checks the container runtime (or its
 				// cache) and  returns a list of running pods. Some possible causes of
@@ -414,7 +417,7 @@ var _ = SIGDescribe("kubelet", func() {
 			}
 
 			ginkgo.BeforeEach(func() {
-				framework.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
+				e2eskipper.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
 				_, nfsServerPod, nfsIP = volume.NewNFSServer(c, ns, []string{"-G", "777", "/exports"})
 			})
 

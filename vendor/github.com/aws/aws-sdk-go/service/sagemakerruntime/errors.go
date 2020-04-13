@@ -2,6 +2,10 @@
 
 package sagemakerruntime
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeInternalFailure for service response error code
@@ -13,7 +17,8 @@ const (
 	// ErrCodeModelError for service response error code
 	// "ModelError".
 	//
-	// Model (owned by the customer in the container) returned an error 500.
+	// Model (owned by the customer in the container) returned 4xx or 5xx error
+	// code.
 	ErrCodeModelError = "ModelError"
 
 	// ErrCodeServiceUnavailable for service response error code
@@ -28,3 +33,10 @@ const (
 	// Inspect your request and try again.
 	ErrCodeValidationError = "ValidationError"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"InternalFailure":    newErrorInternalFailure,
+	"ModelError":         newErrorModelError,
+	"ServiceUnavailable": newErrorServiceUnavailable,
+	"ValidationError":    newErrorValidationError,
+}

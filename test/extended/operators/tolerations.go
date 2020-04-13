@@ -1,6 +1,7 @@
 package operators
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -18,7 +19,7 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 
 	It("ensure control plane operators do not make themselves unevictable", func() {
 		// iterate over the references to find valid images
-		pods, err := oc.KubeFramework().ClientSet.CoreV1().Pods("").List(metav1.ListOptions{})
+		pods, err := oc.KubeFramework().ClientSet.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			e2e.Failf("unable to list pods: %v", err)
 		}

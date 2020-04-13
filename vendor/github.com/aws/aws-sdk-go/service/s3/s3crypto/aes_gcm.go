@@ -62,7 +62,7 @@ func (reader *gcmEncryptReader) Read(data []byte) (int, error) {
 	if reader.buf == nil {
 		b, err := ioutil.ReadAll(reader.src)
 		if err != nil {
-			return len(b), err
+			return 0, err
 		}
 		b = reader.encrypter.Seal(b[:0], reader.nonce, b, nil)
 		reader.buf = bytes.NewBuffer(b)
@@ -91,11 +91,11 @@ func (reader *gcmDecryptReader) Read(data []byte) (int, error) {
 	if reader.buf == nil {
 		b, err := ioutil.ReadAll(reader.src)
 		if err != nil {
-			return len(b), err
+			return 0, err
 		}
 		b, err = reader.decrypter.Open(b[:0], reader.nonce, b, nil)
 		if err != nil {
-			return len(b), err
+			return 0, err
 		}
 
 		reader.buf = bytes.NewBuffer(b)

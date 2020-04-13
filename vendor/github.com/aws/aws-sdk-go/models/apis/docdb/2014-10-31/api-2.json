@@ -38,7 +38,9 @@
         "resultWrapper":"ApplyPendingMaintenanceActionResult"
       },
       "errors":[
-        {"shape":"ResourceNotFoundFault"}
+        {"shape":"ResourceNotFoundFault"},
+        {"shape":"InvalidDBClusterStateFault"},
+        {"shape":"InvalidDBInstanceStateFault"}
       ]
     },
     "CopyDBClusterParameterGroup":{
@@ -267,6 +269,21 @@
         {"shape":"InvalidDBSubnetGroupStateFault"},
         {"shape":"InvalidDBSubnetStateFault"},
         {"shape":"DBSubnetGroupNotFoundFault"}
+      ]
+    },
+    "DescribeCertificates":{
+      "name":"DescribeCertificates",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeCertificatesMessage"},
+      "output":{
+        "shape":"CertificateMessage",
+        "resultWrapper":"DescribeCertificatesResult"
+      },
+      "errors":[
+        {"shape":"CertificateNotFoundFault"}
       ]
     },
     "DescribeDBClusterParameterGroups":{
@@ -690,6 +707,40 @@
         {"shape":"KMSKeyNotAccessibleFault"},
         {"shape":"StorageQuotaExceededFault"}
       ]
+    },
+    "StartDBCluster":{
+      "name":"StartDBCluster",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartDBClusterMessage"},
+      "output":{
+        "shape":"StartDBClusterResult",
+        "resultWrapper":"StartDBClusterResult"
+      },
+      "errors":[
+        {"shape":"DBClusterNotFoundFault"},
+        {"shape":"InvalidDBClusterStateFault"},
+        {"shape":"InvalidDBInstanceStateFault"}
+      ]
+    },
+    "StopDBCluster":{
+      "name":"StopDBCluster",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopDBClusterMessage"},
+      "output":{
+        "shape":"StopDBClusterResult",
+        "resultWrapper":"StopDBClusterResult"
+      },
+      "errors":[
+        {"shape":"DBClusterNotFoundFault"},
+        {"shape":"InvalidDBClusterStateFault"},
+        {"shape":"InvalidDBInstanceStateFault"}
+      ]
     }
   },
   "shapes":{
@@ -771,6 +822,32 @@
     },
     "Boolean":{"type":"boolean"},
     "BooleanOptional":{"type":"boolean"},
+    "Certificate":{
+      "type":"structure",
+      "members":{
+        "CertificateIdentifier":{"shape":"String"},
+        "CertificateType":{"shape":"String"},
+        "Thumbprint":{"shape":"String"},
+        "ValidFrom":{"shape":"TStamp"},
+        "ValidTill":{"shape":"TStamp"},
+        "CertificateArn":{"shape":"String"}
+      },
+      "wrapper":true
+    },
+    "CertificateList":{
+      "type":"list",
+      "member":{
+        "shape":"Certificate",
+        "locationName":"Certificate"
+      }
+    },
+    "CertificateMessage":{
+      "type":"structure",
+      "members":{
+        "Certificates":{"shape":"CertificateList"},
+        "Marker":{"shape":"String"}
+      }
+    },
     "CertificateNotFoundFault":{
       "type":"structure",
       "members":{
@@ -834,7 +911,9 @@
       "type":"structure",
       "required":[
         "DBClusterIdentifier",
-        "Engine"
+        "Engine",
+        "MasterUsername",
+        "MasterUserPassword"
       ],
       "members":{
         "AvailabilityZones":{"shape":"AvailabilityZones"},
@@ -853,7 +932,8 @@
         "Tags":{"shape":"TagList"},
         "StorageEncrypted":{"shape":"BooleanOptional"},
         "KmsKeyId":{"shape":"String"},
-        "EnableCloudwatchLogsExports":{"shape":"LogTypeList"}
+        "EnableCloudwatchLogsExports":{"shape":"LogTypeList"},
+        "DeletionProtection":{"shape":"BooleanOptional"}
       }
     },
     "CreateDBClusterParameterGroupMessage":{
@@ -976,7 +1056,8 @@
         "DBClusterArn":{"shape":"String"},
         "AssociatedRoles":{"shape":"DBClusterRoles"},
         "ClusterCreateTime":{"shape":"TStamp"},
-        "EnabledCloudwatchLogsExports":{"shape":"LogTypeList"}
+        "EnabledCloudwatchLogsExports":{"shape":"LogTypeList"},
+        "DeletionProtection":{"shape":"Boolean"}
       },
       "wrapper":true
     },
@@ -1239,6 +1320,7 @@
         "StorageEncrypted":{"shape":"Boolean"},
         "KmsKeyId":{"shape":"String"},
         "DbiResourceId":{"shape":"String"},
+        "CACertificateIdentifier":{"shape":"String"},
         "PromotionTier":{"shape":"IntegerOptional"},
         "DBInstanceArn":{"shape":"String"},
         "EnabledCloudwatchLogsExports":{"shape":"LogTypeList"}
@@ -1508,6 +1590,15 @@
       "required":["DBSubnetGroupName"],
       "members":{
         "DBSubnetGroupName":{"shape":"String"}
+      }
+    },
+    "DescribeCertificatesMessage":{
+      "type":"structure",
+      "members":{
+        "CertificateIdentifier":{"shape":"String"},
+        "Filters":{"shape":"FilterList"},
+        "MaxRecords":{"shape":"IntegerOptional"},
+        "Marker":{"shape":"String"}
       }
     },
     "DescribeDBClusterParameterGroupsMessage":{
@@ -1974,7 +2065,8 @@
         "PreferredBackupWindow":{"shape":"String"},
         "PreferredMaintenanceWindow":{"shape":"String"},
         "CloudwatchLogsExportConfiguration":{"shape":"CloudwatchLogsExportConfiguration"},
-        "EngineVersion":{"shape":"String"}
+        "EngineVersion":{"shape":"String"},
+        "DeletionProtection":{"shape":"BooleanOptional"}
       }
     },
     "ModifyDBClusterParameterGroupMessage":{
@@ -2023,6 +2115,7 @@
         "PreferredMaintenanceWindow":{"shape":"String"},
         "AutoMinorVersionUpgrade":{"shape":"BooleanOptional"},
         "NewDBInstanceIdentifier":{"shape":"String"},
+        "CACertificateIdentifier":{"shape":"String"},
         "PromotionTier":{"shape":"IntegerOptional"}
       }
     },
@@ -2227,7 +2320,8 @@
         "VpcSecurityGroupIds":{"shape":"VpcSecurityGroupIdList"},
         "Tags":{"shape":"TagList"},
         "KmsKeyId":{"shape":"String"},
-        "EnableCloudwatchLogsExports":{"shape":"LogTypeList"}
+        "EnableCloudwatchLogsExports":{"shape":"LogTypeList"},
+        "DeletionProtection":{"shape":"BooleanOptional"}
       }
     },
     "RestoreDBClusterFromSnapshotResult":{
@@ -2252,7 +2346,8 @@
         "VpcSecurityGroupIds":{"shape":"VpcSecurityGroupIdList"},
         "Tags":{"shape":"TagList"},
         "KmsKeyId":{"shape":"String"},
-        "EnableCloudwatchLogsExports":{"shape":"LogTypeList"}
+        "EnableCloudwatchLogsExports":{"shape":"LogTypeList"},
+        "DeletionProtection":{"shape":"BooleanOptional"}
       }
     },
     "RestoreDBClusterToPointInTimeResult":{
@@ -2293,6 +2388,32 @@
         "db-cluster",
         "db-cluster-snapshot"
       ]
+    },
+    "StartDBClusterMessage":{
+      "type":"structure",
+      "required":["DBClusterIdentifier"],
+      "members":{
+        "DBClusterIdentifier":{"shape":"String"}
+      }
+    },
+    "StartDBClusterResult":{
+      "type":"structure",
+      "members":{
+        "DBCluster":{"shape":"DBCluster"}
+      }
+    },
+    "StopDBClusterMessage":{
+      "type":"structure",
+      "required":["DBClusterIdentifier"],
+      "members":{
+        "DBClusterIdentifier":{"shape":"String"}
+      }
+    },
+    "StopDBClusterResult":{
+      "type":"structure",
+      "members":{
+        "DBCluster":{"shape":"DBCluster"}
+      }
     },
     "StorageQuotaExceededFault":{
       "type":"structure",

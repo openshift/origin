@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -18,7 +19,7 @@ import (
 // These build pruning tests create 4 builds and check that 2-3 of them are left after pruning.
 // This variation in the number of builds that could be left is caused by the HandleBuildPruning
 // function using cached information from the buildLister.
-var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings in the buildconfig", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig", func() {
 	var (
 		buildPruningBaseDir   = exutil.FixturePath("testdata", "builds", "build-pruning")
 		isFixture             = filepath.Join(buildPruningBaseDir, "imagestream.yaml")
@@ -26,7 +27,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 		failedBuildConfig     = filepath.Join(buildPruningBaseDir, "failed-build-config.yaml")
 		erroredBuildConfig    = filepath.Join(buildPruningBaseDir, "errored-build-config.yaml")
 		groupBuildConfig      = filepath.Join(buildPruningBaseDir, "default-group-build-config.yaml")
-		oc                    = exutil.NewCLI("build-pruning", exutil.KubeConfigPath())
+		oc                    = exutil.NewCLI("build-pruning")
 		pollingInterval       = time.Second
 		timeout               = time.Minute
 	)
@@ -68,7 +69,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 				br.AssertSuccess()
 			}
 
-			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
@@ -77,7 +78,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 
 			g.By("waiting up to one minute for pruning to complete")
 			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 					return false, err
@@ -113,7 +114,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 				br.AssertFailure()
 			}
 
-			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
@@ -122,7 +123,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 
 			g.By("waiting up to one minute for pruning to complete")
 			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 					return false, err
@@ -158,7 +159,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 				err = oc.Run("cancel-build").Args(fmt.Sprintf("myphp-%d", i)).Execute()
 			}
 
-			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
@@ -167,7 +168,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 
 			g.By("waiting up to one minute for pruning to complete")
 			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 					return false, err
@@ -203,7 +204,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 				br.AssertFailure()
 			}
 
-			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
@@ -212,7 +213,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 
 			g.By("waiting up to one minute for pruning to complete")
 			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 					return false, err
@@ -254,7 +255,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 			g.By("patching the build config to leave 1 build")
 			err = oc.Run("patch").Args("bc/myphp", "-p", `{"spec":{"failedBuildsHistoryLimit": 1}}`).Execute()
 
-			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
@@ -263,7 +264,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 
 			g.By("waiting up to one minute for pruning to complete")
 			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 					return false, err
@@ -287,13 +288,13 @@ var _ = g.Describe("[sig-devex][Feature:Builds] prune builds based on settings i
 
 		})
 
-		g.It("[Conformance] buildconfigs should have a default history limit set when created via the group api", func() {
+		g.It("buildconfigs should have a default history limit set when created via the group api", func() {
 
 			g.By("creating a build config with the group api")
 			err := oc.Run("create").Args("-f", groupBuildConfig).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}

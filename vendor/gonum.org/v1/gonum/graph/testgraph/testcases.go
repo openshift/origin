@@ -160,6 +160,31 @@ var testCases = []struct {
 	},
 
 	{
+		name:  "three in only",
+		nodes: []graph.Node{node(0), node(1), node(2), node(3)},
+		edges: []WeightedLine{
+			line{F: node(1), T: node(0), UID: 0, W: 0.5},
+			line{F: node(2), T: node(0), UID: 1, W: 0.5},
+			line{F: node(3), T: node(0), UID: 2, W: 0.5},
+		},
+		nonexist: []graph.Node{node(-1), node(4)},
+		self:     0,
+		absent:   math.Inf(1),
+	},
+	{
+		name:  "three out only",
+		nodes: []graph.Node{node(0), node(1), node(2), node(3)},
+		edges: []WeightedLine{
+			line{F: node(0), T: node(1), UID: 0, W: 0.5},
+			line{F: node(0), T: node(2), UID: 1, W: 0.5},
+			line{F: node(0), T: node(3), UID: 2, W: 0.5},
+		},
+		nonexist: []graph.Node{node(-1), node(4)},
+		self:     0,
+		absent:   math.Inf(1),
+	},
+
+	{
 		name: "4-clique - single(non-prepared)",
 		edges: func() []WeightedLine {
 			const n = 4

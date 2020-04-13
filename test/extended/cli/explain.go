@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 
@@ -14,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -111,12 +113,12 @@ var (
 
 		// FIXME
 		// {Group: "operator.openshift.io", Version: "v1", Resource: "credentialsrequestses"},
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "ingresscontrollers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecas"},
 
@@ -340,7 +342,7 @@ var (
 var _ = g.Describe("[sig-cli] oc explain", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("oc-explain")
 
 	g.It("should contain spec+status for builtinTypes", func() {
 		for _, bt := range builtinTypes {
@@ -369,14 +371,16 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 var _ = g.Describe("[sig-cli] oc explain networking types", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("oc-explain", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("oc-explain")
 
-	g.It("should contain proper fields description for special networking types", func() {
-		for _, st := range specialNetworkingTypes {
-			e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
-			o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
-				st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
-		}
+	networking.InOpenShiftSDNContext(func() {
+		g.It("should contain proper fields description for special networking types", func() {
+			for _, st := range specialNetworkingTypes {
+				e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
+				o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
+					st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
+			}
+		})
 	})
 })
 
@@ -401,7 +405,7 @@ func verifyExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, g
 	r := regexp.MustCompile(pattern)
 	if !r.Match([]byte(result)) {
 		if crdClient != nil {
-			if crd, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(gvr.GroupResource().String(), metav1.GetOptions{}); err == nil {
+			if crd, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(), gvr.GroupResource().String(), metav1.GetOptions{}); err == nil {
 				e2e.Logf("CRD yaml is:\n%s\n", runtime.EncodeOrDie(apiextensionsscheme.Codecs.LegacyCodec(apiextensionsscheme.Scheme.PrioritizedVersionsAllGroups()...), crd))
 			}
 		}

@@ -11,6 +11,45 @@
     "signatureVersion" : "v4"
   },
   "operations" : {
+    "DeleteConnection" : {
+      "name" : "DeleteConnection",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/@connections/{connectionId}",
+        "responseCode" : 204
+      },
+      "input" : {
+        "shape" : "DeleteConnectionRequest"
+      },
+      "errors" : [ {
+        "shape" : "GoneException"
+      }, {
+        "shape" : "LimitExceededException"
+      }, {
+        "shape" : "ForbiddenException"
+      } ]
+    },
+    "GetConnection" : {
+      "name" : "GetConnection",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/@connections/{connectionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetConnectionRequest"
+      },
+      "output" : {
+        "shape" : "GetConnectionResponse"
+      },
+      "errors" : [ {
+        "shape" : "GoneException"
+      }, {
+        "shape" : "LimitExceededException"
+      }, {
+        "shape" : "ForbiddenException"
+      } ]
+    },
     "PostToConnection" : {
       "name" : "PostToConnection",
       "http" : {
@@ -37,12 +76,51 @@
       "type" : "blob",
       "max" : 131072
     },
+    "DeleteConnectionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "ConnectionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "connectionId"
+        }
+      },
+      "required" : [ "ConnectionId" ]
+    },
     "ForbiddenException" : {
       "type" : "structure",
       "members" : { },
       "exception" : true,
       "error" : {
         "httpStatusCode" : 403
+      }
+    },
+    "GetConnectionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "ConnectionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "connectionId"
+        }
+      },
+      "required" : [ "ConnectionId" ]
+    },
+    "GetConnectionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "ConnectedAt" : {
+          "shape" : "__timestampIso8601",
+          "locationName" : "connectedAt"
+        },
+        "Identity" : {
+          "shape" : "Identity",
+          "locationName" : "identity"
+        },
+        "LastActiveAt" : {
+          "shape" : "__timestampIso8601",
+          "locationName" : "lastActiveAt"
+        }
       }
     },
     "GoneException" : {
@@ -53,13 +131,19 @@
         "httpStatusCode" : 410
       }
     },
-    "LimitExceededException" : {
+    "Identity" : {
       "type" : "structure",
-      "members" : { },
-      "exception" : true,
-      "error" : {
-        "httpStatusCode" : 429
-      }
+      "members" : {
+        "SourceIp" : {
+          "shape" : "__string",
+          "locationName" : "sourceIp"
+        },
+        "UserAgent" : {
+          "shape" : "__string",
+          "locationName" : "userAgent"
+        }
+      },
+      "required" : [ "SourceIp", "UserAgent" ]
     },
     "PayloadTooLargeException" : {
       "type" : "structure",
@@ -89,8 +173,20 @@
       "required" : [ "ConnectionId", "Data" ],
       "payload" : "Data"
     },
+    "LimitExceededException" : {
+      "type" : "structure",
+      "members" : { },
+      "exception" : true,
+      "error" : {
+        "httpStatusCode" : 429
+      }
+    },
     "__string" : {
       "type" : "string"
+    },
+    "__timestampIso8601" : {
+      "type" : "timestamp",
+      "timestampFormat" : "iso8601"
     }
   }
 }

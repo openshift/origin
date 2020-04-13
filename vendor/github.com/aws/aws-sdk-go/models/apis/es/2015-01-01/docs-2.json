@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "service": "<fullname>Amazon Elasticsearch Configuration Service</fullname> <p>Use the Amazon Elasticsearch configuration API to create, configure, and manage Elasticsearch domains.</p> <p>The endpoint for configuration service requests is region-specific: es.<i>region</i>.amazonaws.com. For example, es.us-east-1.amazonaws.com. For a current list of supported regions and endpoints, see <a href=\"http://docs.aws.amazon.com/general/latest/gr/rande.html#elasticsearch-service-regions\" target=\"_blank\">Regions and Endpoints</a>.</p>",
+  "service": "<fullname>Amazon Elasticsearch Configuration Service</fullname> <p>Use the Amazon Elasticsearch Configuration API to create, configure, and manage Elasticsearch domains.</p> <p>For sample code that uses the Configuration API, see the <a href=\"https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-configuration-samples.html\">Amazon Elasticsearch Service Developer Guide</a>. The guide also contains <a href=\"https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-request-signing.html\">sample code for sending signed HTTP requests to the Elasticsearch APIs</a>.</p> <p>The endpoint for configuration service requests is region-specific: es.<i>region</i>.amazonaws.com. For example, es.us-east-1.amazonaws.com. For a current list of supported regions and endpoints, see <a href=\"http://docs.aws.amazon.com/general/latest/gr/rande.html#elasticsearch-service-regions\" target=\"_blank\">Regions and Endpoints</a>.</p>",
   "operations": {
     "AddTags": "<p>Attaches tags to an existing Elasticsearch domain. Tags are a set of case-sensitive key value pairs. An Elasticsearch domain may have up to 10 tags. See <a href=\"http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-managedomains.html#es-managedomains-awsresorcetagging\" target=\"_blank\"> Tagging Amazon Elasticsearch Service Domains for more information.</a></p>",
     "CancelElasticsearchServiceSoftwareUpdate": "<p>Cancels a scheduled service software update for an Amazon ES domain. You can only perform this operation before the <code>AutomatedUpdateDate</code> and when the <code>UpdateStatus</code> is in the <code>PENDING_UPDATE</code> state.</p>",
@@ -83,9 +83,11 @@
       "base": null,
       "refs": {
         "CognitoOptions$Enabled": "<p>Specifies the option to enable Cognito for Kibana authentication.</p>",
+        "DomainEndpointOptions$EnforceHTTPS": "<p>Specify if only HTTPS endpoint should be enabled for the Elasticsearch domain.</p>",
         "EBSOptions$EBSEnabled": "<p>Specifies whether EBS-based storage is enabled.</p>",
         "ElasticsearchClusterConfig$DedicatedMasterEnabled": "<p>A boolean value to indicate whether a dedicated master node is enabled. See <a href=\"http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-managedomains.html#es-managedomains-dedicatedmasternodes\" target=\"_blank\">About Dedicated Master Nodes</a> for more information.</p>",
         "ElasticsearchClusterConfig$ZoneAwarenessEnabled": "<p>A boolean value to indicate whether zone awareness is enabled. See <a href=\"http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-managedomains.html#es-managedomains-zoneawareness\" target=\"_blank\">About Zone Awareness</a> for more information.</p>",
+        "ElasticsearchClusterConfig$WarmEnabled": "<p>True to enable warm storage.</p>",
         "ElasticsearchDomainStatus$Created": "<p>The domain creation status. <code>True</code> if the creation of an Elasticsearch domain is complete. <code>False</code> if domain creation is still in progress.</p>",
         "ElasticsearchDomainStatus$Deleted": "<p>The domain deletion status. <code>True</code> if a delete request has been received for the domain but resource cleanup is still in progress. <code>False</code> if the domain has not been deleted. Once domain deletion is complete, the status of the domain is no longer returned.</p>",
         "ElasticsearchDomainStatus$Processing": "<p>The status of the Elasticsearch domain configuration. <code>True</code> if Amazon Elasticsearch Service is processing configuration changes. <code>False</code> if the configuration is active.</p>",
@@ -240,6 +242,21 @@
       "refs": {
       }
     },
+    "DomainEndpointOptions": {
+      "base": "<p>Options to configure endpoint for the Elasticsearch domain.</p>",
+      "refs": {
+        "CreateElasticsearchDomainRequest$DomainEndpointOptions": "<p>Options to specify configuration that will be applied to the domain endpoint.</p>",
+        "DomainEndpointOptionsStatus$Options": "<p>Options to configure endpoint for the Elasticsearch domain.</p>",
+        "ElasticsearchDomainStatus$DomainEndpointOptions": "<p>The current status of the Elasticsearch domain's endpoint options.</p>",
+        "UpdateElasticsearchDomainConfigRequest$DomainEndpointOptions": "<p>Options to specify configuration that will be applied to the domain endpoint.</p>"
+      }
+    },
+    "DomainEndpointOptionsStatus": {
+      "base": "<p>The configured endpoint options for the domain and their current status.</p>",
+      "refs": {
+        "ElasticsearchDomainConfig$DomainEndpointOptions": "<p>Specifies the <code>DomainEndpointOptions</code> for the Elasticsearch domain.</p>"
+      }
+    },
     "DomainId": {
       "base": "<p>Unique identifier for an Elasticsearch domain.</p>",
       "refs": {
@@ -262,7 +279,7 @@
       "base": "<p>The name of an Elasticsearch domain. Domain names are unique across the domains owned by an account within an AWS region. Domain names start with a letter or number and can contain the following characters: a-z (lowercase), 0-9, and - (hyphen).</p>",
       "refs": {
         "CancelElasticsearchServiceSoftwareUpdateRequest$DomainName": "<p>The name of the domain that you want to stop the latest service software update on.</p>",
-        "CreateElasticsearchDomainRequest$DomainName": "<p>The name of the Elasticsearch domain that you are creating. Domain names are unique across the domains owned by an account within an AWS region. Domain names must start with a letter or number and can contain the following characters: a-z (lowercase), 0-9, and - (hyphen).</p>",
+        "CreateElasticsearchDomainRequest$DomainName": "<p>The name of the Elasticsearch domain that you are creating. Domain names are unique across the domains owned by an account within an AWS region. Domain names must start with a lowercase letter and can contain the following characters: a-z (lowercase), 0-9, and - (hyphen).</p>",
         "DeleteElasticsearchDomainRequest$DomainName": "<p>The name of the Elasticsearch domain that you want to permanently delete.</p>",
         "DescribeElasticsearchDomainConfigRequest$DomainName": "<p>The Elasticsearch domain that you want to get information about.</p>",
         "DescribeElasticsearchDomainRequest$DomainName": "<p>The name of the Elasticsearch domain for which you want information.</p>",
@@ -316,11 +333,17 @@
       "base": null,
       "refs": {
         "DescribeElasticsearchInstanceTypeLimitsRequest$InstanceType": "<p> The instance type for an Elasticsearch cluster for which Elasticsearch <code> <a>Limits</a> </code> are needed. </p>",
-        "ElasticsearchClusterConfig$InstanceType": "<p>The instance type for an Elasticsearch cluster.</p>",
+        "ElasticsearchClusterConfig$InstanceType": "<p>The instance type for an Elasticsearch cluster. UltraWarm instance types are not supported for data instances.</p>",
         "ElasticsearchClusterConfig$DedicatedMasterType": "<p>The instance type for a dedicated master node.</p>",
         "ElasticsearchInstanceTypeList$member": null,
         "ReservedElasticsearchInstance$ElasticsearchInstanceType": "<p>The Elasticsearch instance type offered by the reserved instance offering.</p>",
         "ReservedElasticsearchInstanceOffering$ElasticsearchInstanceType": "<p>The Elasticsearch instance type offered by the reserved instance offering.</p>"
+      }
+    },
+    "ESWarmPartitionInstanceType": {
+      "base": null,
+      "refs": {
+        "ElasticsearchClusterConfig$WarmType": "<p>The instance type for the Elasticsearch cluster's warm nodes.</p>"
       }
     },
     "ElasticsearchClusterConfig": {
@@ -505,7 +528,9 @@
         "EBSOptions$Iops": "<p>Specifies the IOPD for a Provisioned IOPS EBS volume (SSD).</p>",
         "ElasticsearchClusterConfig$InstanceCount": "<p>The number of instances in the specified domain cluster.</p>",
         "ElasticsearchClusterConfig$DedicatedMasterCount": "<p>Total number of dedicated master nodes, active and on standby, for the cluster.</p>",
-        "SnapshotOptions$AutomatedSnapshotStartHour": "<p>Specifies the time, in UTC format, when the service takes a daily automated snapshot of the specified Elasticsearch domain. Default value is <code>0</code> hours.</p>"
+        "ElasticsearchClusterConfig$WarmCount": "<p>The number of warm nodes in the cluster.</p>",
+        "SnapshotOptions$AutomatedSnapshotStartHour": "<p>Specifies the time, in UTC format, when the service takes a daily automated snapshot of the specified Elasticsearch domain. Default value is <code>0</code> hours.</p>",
+        "ZoneAwarenessConfig$AvailabilityZoneCount": "<p>An integer value to indicate the number of availability zones for a domain when zone awareness is enabled. This should be equal to number of subnets if VPC endpoints is enabled</p>"
       }
     },
     "InternalException": {
@@ -568,7 +593,7 @@
       }
     },
     "LimitsByRole": {
-      "base": "<p> Map of Role of the Instance and Limits that are applicable. Role performed by given Instance in Elasticsearch can be one of the following: <ul> <li>Data: If the given InstanceType is used as Data node</li> <li>Master: If the given InstanceType is used as Master node</li> </ul> </p>",
+      "base": "<p> Map of Role of the Instance and Limits that are applicable. Role performed by given Instance in Elasticsearch can be one of the following: <ul> <li>data: If the given InstanceType is used as data node</li> <li>master: If the given InstanceType is used as master node</li> <li>ultra_warm: If the given InstanceType is used as warm node</li> </ul> </p>",
       "refs": {
         "DescribeElasticsearchInstanceTypeLimitsResponse$LimitsByRole": null
       }
@@ -696,6 +721,7 @@
         "AccessPoliciesStatus$Status": "<p>The status of the access policy for the Elasticsearch domain. See <code>OptionStatus</code> for the status information that's included. </p>",
         "AdvancedOptionsStatus$Status": "<p> Specifies the status of <code>OptionStatus</code> for advanced options for the specified Elasticsearch domain.</p>",
         "CognitoOptionsStatus$Status": "<p>Specifies the status of the Cognito options for the specified Elasticsearch domain.</p>",
+        "DomainEndpointOptionsStatus$Status": "<p>The status of the endpoint options for the Elasticsearch domain. See <code>OptionStatus</code> for the status information that's included. </p>",
         "EBSOptionsStatus$Status": "<p> Specifies the status of the EBS options for the specified Elasticsearch domain.</p>",
         "ElasticsearchClusterConfigStatus$Status": "<p> Specifies the status of the configuration for the specified Elasticsearch domain.</p>",
         "ElasticsearchVersionStatus$Status": "<p> Specifies the status of the Elasticsearch version options for the specified Elasticsearch domain.</p>",
@@ -911,6 +937,12 @@
         "VPCOptions$SecurityGroupIds": "<p>Specifies the security groups for VPC endpoint.</p>"
       }
     },
+    "TLSSecurityPolicy": {
+      "base": null,
+      "refs": {
+        "DomainEndpointOptions$TLSSecurityPolicy": "<p>Specify the TLS security policy that needs to be applied to the HTTPS endpoint of Elasticsearch domain. <br/> It can be one of the following values: <ul> <li><b>Policy-Min-TLS-1-0-2019-07: </b> TLS security policy which supports TLSv1.0 and higher.</li> <li><b>Policy-Min-TLS-1-2-2019-07: </b> TLS security policy which supports only TLSv1.2</li> </ul> </p>"
+      }
+    },
     "Tag": {
       "base": "<p>Specifies a key value pair for a resource tag.</p>",
       "refs": {
@@ -1051,6 +1083,12 @@
       "base": "<p> The type of EBS volume, standard, gp2, or io1. See <a href=\"http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs\" target=\"_blank\">Configuring EBS-based Storage</a>for more information.</p>",
       "refs": {
         "EBSOptions$VolumeType": "<p> Specifies the volume type for EBS-based storage.</p>"
+      }
+    },
+    "ZoneAwarenessConfig": {
+      "base": "<p>Specifies the zone awareness configuration for the domain cluster, such as the number of availability zones.</p>",
+      "refs": {
+        "ElasticsearchClusterConfig$ZoneAwarenessConfig": "<p>Specifies the zone awareness configuration for a domain when zone awareness is enabled.</p>"
       }
     }
   }

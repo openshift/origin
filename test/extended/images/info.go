@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("image-info", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("image-info")
 
 	g.It("should display information about images", func() {
 		ns = oc.Namespace()

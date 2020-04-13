@@ -42,6 +42,16 @@
           },
           "Char": {
             "shape": "CharType"
+          },
+          "Timestamp": {
+            "shape": "TimestampType"
+          },
+          "BlobHeader": {
+            "shape": "BlobType",
+            "location": "header"
+          },
+          "Blob": {
+            "shape": "BlobType"
           }
         }
       },
@@ -72,6 +82,12 @@
       },
       "CharType": {
         "type": "character"
+      },
+      "TimestampType": {
+        "type": "timestamp"
+      },
+      "BlobType": {
+        "type": "blob"
       }
     },
     "cases": [
@@ -93,15 +109,19 @@
           "Float": 1.2,
           "Double": 1.3,
           "Long": 200,
-          "Char": "a"
+          "Char": "a",
+          "Timestamp": 1422172800,
+          "BlobHeader": "hello",
+          "Blob": "hello"
         },
         "response": {
           "status_code": 200,
           "headers": {
             "ImaHeader": "test",
+            "BlobHeader": "aGVsbG8=",
             "X-Foo": "abc"
           },
-          "body": "{\"Str\": \"myname\", \"Num\": 123, \"FalseBool\": false, \"TrueBool\": true, \"Float\": 1.2, \"Double\": 1.3, \"Long\": 200, \"Char\": \"a\"}"
+          "body": "{\"Str\": \"myname\", \"Num\": 123, \"FalseBool\": false, \"TrueBool\": true, \"Float\": 1.2, \"Double\": 1.3, \"Long\": 200, \"Char\": \"a\", \"Timestamp\": \"2015-01-25T08:00:00Z\", \"Blob\": \"aGVsbG8=\"}"
         }
       }
     ]
@@ -483,6 +503,26 @@
           "status_code": 200,
           "headers": {},
           "body": "{\"foo\": \"bar\"}"
+        }
+      }
+    ]
+  },
+  {
+    "description": "Ignores undefined output",
+    "metadata": {
+      "protocol": "rest-json"
+    },
+    "shapes": {},
+    "cases": [
+      {
+        "given": {
+          "name": "OperationName"
+        },
+        "result": {},
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "OK"
         }
       }
     ]

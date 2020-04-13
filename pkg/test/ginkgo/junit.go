@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/openshift/origin/pkg/version"
 )
 
 // The below types are directly marshalled into XML. The types correspond to jUnit
@@ -119,6 +121,12 @@ func writeJUnitReport(filePrefix, name string, tests []*testCase, dir string, du
 	s := &JUnitTestSuite{
 		Name:     name,
 		Duration: duration.Seconds(),
+		Properties: []*TestSuiteProperty{
+			{
+				Name:  "TestVersion",
+				Value: version.Get().String(),
+			},
+		},
 	}
 	for _, test := range tests {
 		switch {

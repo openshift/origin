@@ -13,4 +13,4 @@ jobs:
         - go test -v ./...
     - stage: Verify examples
       script:
-        - go run ./examples/import-boss/main.go -i k8s.io/gengo/... --verify-only
+        - go run ./examples/import-boss/main.go -i $(go list k8s.io/gengo/... | grep -v import-boss/tests | paste -sd',' -) --verify-only

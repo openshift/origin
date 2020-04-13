@@ -48,7 +48,6 @@ func (g *GradientDescent) Init(dim, tasks int) int {
 func (g *GradientDescent) Run(operation chan<- Task, result <-chan Task, tasks []Task) {
 	g.status, g.err = localOptimizer{}.run(g, g.GradStopThreshold, operation, result, tasks)
 	close(operation)
-	return
 }
 
 func (g *GradientDescent) initLocal(loc *Location) (Operation, error) {

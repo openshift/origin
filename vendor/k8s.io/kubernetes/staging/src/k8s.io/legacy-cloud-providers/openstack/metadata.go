@@ -171,8 +171,7 @@ func getMetadataFromMetadataService(metadataVersion string) (*Metadata, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("unexpected status code when reading metadata from %s: %s", metadataURL, resp.Status)
-		return nil, err
+		return nil, fmt.Errorf("unexpected status code when reading metadata from %s: %s", metadataURL, resp.Status)
 	}
 
 	return parseMetadata(resp.Body)
@@ -187,8 +186,7 @@ func getIntanceType() (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("unexpected status code when reading instance type from %s: %s", instanceTypeURL, resp.Status)
-		return "", err
+		return "", fmt.Errorf("unexpected status code when reading instance type from %s: %s", instanceTypeURL, resp.Status)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -207,8 +205,7 @@ func getNodeAddress(url string) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("unexpected status code when reading instance address from %s: %s", url, resp.Status)
-		return "", err
+		return "", fmt.Errorf("unexpected status code when reading instance address from %s: %s", url, resp.Status)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

@@ -28,6 +28,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-07-01/compute"
 	"github.com/Azure/go-autorest/autorest/to"
+	"github.com/golang/mock/gomock"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -82,7 +83,10 @@ func setTestVirtualMachines(c *Cloud, vmList map[string]string, isDataDisksFull 
 }
 
 func TestInstanceID(t *testing.T) {
-	cloud := getTestCloud()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cloud := GetTestCloud(ctrl)
 	cloud.Config.UseInstanceMetadata = true
 
 	testcases := []struct {
@@ -123,7 +127,7 @@ func TestInstanceID(t *testing.T) {
 
 		mux := http.NewServeMux()
 		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, fmt.Sprintf(`{"compute":{"name":"%s","subscriptionId":"subscription","resourceGroupName":"rg"}}`, test.metadataName))
+			fmt.Fprint(w, fmt.Sprintf(`{"compute":{"name":"%s","subscriptionId":"subscription","resourceGroupName":"rg"}}`, test.metadataName))
 		}))
 		go func() {
 			http.Serve(listener, mux)
@@ -214,8 +218,10 @@ func TestInstanceShutdownByProviderID(t *testing.T) {
 		},
 	}
 
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 	for _, test := range testcases {
-		cloud := getTestCloud()
+		cloud := GetTestCloud(ctrl)
 		setTestVirtualMachines(cloud, test.vmList, false)
 		providerID := "azure://" + cloud.getStandardMachineID("subscription", "rg", test.nodeName)
 		hasShutdown, err := cloud.InstanceShutdownByProviderID(context.Background(), providerID)
@@ -236,7 +242,9 @@ func TestInstanceShutdownByProviderID(t *testing.T) {
 }
 
 func TestNodeAddresses(t *testing.T) {
-	cloud := getTestCloud()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	cloud := GetTestCloud(ctrl)
 	cloud.Config.UseInstanceMetadata = true
 	metadataTemplate := `{"compute":{"name":"%s"},"network":{"interface":[{"ipv4":{"ipAddress":[{"privateIpAddress":"%s","publicIpAddress":"%s"}]},"ipv6":{"ipAddress":[{"privateIpAddress":"%s","publicIpAddress":"%s"}]}}]}}`
 
@@ -325,7 +333,7 @@ func TestNodeAddresses(t *testing.T) {
 
 		mux := http.NewServeMux()
 		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, fmt.Sprintf(metadataTemplate, test.nodeName, test.ipV4, test.ipV4Public, test.ipV6, test.ipV6Public))
+			fmt.Fprint(w, fmt.Sprintf(metadataTemplate, test.nodeName, test.ipV4, test.ipV4Public, test.ipV6, test.ipV6Public))
 		}))
 		go func() {
 			http.Serve(listener, mux)
@@ -350,6 +358,59 @@ func TestNodeAddresses(t *testing.T) {
 
 		if !reflect.DeepEqual(ipAddresses, test.expected) {
 			t.Errorf("Test [%s] unexpected ipAddresses: %s, expected %q", test.name, ipAddresses, test.expected)
+		}
+	}
+}
+
+func TestIsCurrentInstance(t *testing.T) {
+	cloud := &Cloud{
+		Config: Config{
+			VMType: vmTypeVMSS,
+		},
+	}
+	testcases := []struct {
+		nodeName       string
+		metadataVMName string
+		expected       bool
+		expectError    bool
+	}{
+		{
+			nodeName:       "node1",
+			metadataVMName: "node1",
+			expected:       true,
+		},
+		{
+			nodeName:       "node1",
+			metadataVMName: "node2",
+			expected:       false,
+		},
+		{
+			nodeName:       "vmss000001",
+			metadataVMName: "vmss_1",
+			expected:       true,
+		},
+		{
+			nodeName:       "vmss_2",
+			metadataVMName: "vmss000000",
+			expected:       false,
+		},
+		{
+			nodeName:       "vmss123456",
+			metadataVMName: "vmss_$123",
+			expected:       false,
+			expectError:    true,
+		},
+	}
+
+	for i, test := range testcases {
+		real, err := cloud.isCurrentInstance(types.NodeName(test.nodeName), test.metadataVMName)
+		if test.expectError {
+			if err == nil {
+				t.Errorf("Test[%d] unexpected nil err", i)
+			}
+		}
+		if real != test.expected {
+			t.Errorf("Test[%d] unexpected isCurrentInstance result %v != %v", i, real, test.expected)
 		}
 	}
 }

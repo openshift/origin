@@ -138,7 +138,7 @@ func DorgbrTest(t *testing.T, impl Dorgbrer) {
 				}
 				nCols = n
 				ansTmp := constructQPBidiagonal(lapack.ApplyP, ma, na, min(k, n), aCopy, lda, tau)
-				// Dorgbr actually computes P^T
+				// Dorgbr actually computes Pᵀ
 				ans = transposeGeneral(ansTmp)
 			}
 			for i := 0; i < nRows; i++ {

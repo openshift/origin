@@ -14,7 +14,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] s2i build with environment file in sources", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] s2i build with environment file in sources", func() {
 	defer g.GinkgoRecover()
 	const (
 		buildTestPod     = "build-test-pod"
@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] s2i build with environment
 		imageStreamFixture   = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")
 		stiEnvBuildFixture   = exutil.FixturePath("testdata", "builds", "test-env-build.json")
 		podAndServiceFixture = exutil.FixturePath("testdata", "builds", "test-build-podsvc.json")
-		oc                   = exutil.NewCLI("build-sti-env", exutil.KubeConfigPath())
+		oc                   = exutil.NewCLI("build-sti-env")
 	)
 
 	g.Context("", func() {

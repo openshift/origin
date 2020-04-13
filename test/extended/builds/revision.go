@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 
 	g "github.com/onsi/ginkgo"
@@ -11,11 +12,11 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds] build have source revision metadata", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] build have source revision metadata", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-revision.json")
-		oc           = exutil.NewCLI("cli-build-revision", exutil.KubeConfigPath())
+		oc           = exutil.NewCLI("cli-build-revision")
 	)
 
 	g.Context("", func() {
@@ -42,7 +43,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds] build have source revision metad
 				br.AssertSuccess()
 
 				g.By(fmt.Sprintf("verifying the status of %q", br.BuildPath))
-				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Spec.Revision).NotTo(o.BeNil())
 				o.Expect(build.Spec.Revision.Git).NotTo(o.BeNil())

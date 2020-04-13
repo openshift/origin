@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
@@ -60,9 +61,9 @@ type Definition struct {
 // NewRef creates a jenkins reference from an OC client
 func NewRef(oc *exutil.CLI) *JenkinsRef {
 	g.By("get ip and port for jenkins service")
-	serviceIP, err := oc.Run("get").Args("svc", "jenkins", "--kubeconfig", exutil.KubeConfigPath()).Template("{{.spec.clusterIP}}").Output()
+	serviceIP, err := oc.AsAdmin().Run("get").Args("svc", "jenkins").Template("{{.spec.clusterIP}}").Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
-	port, err := oc.Run("get").Args("svc", "jenkins", "--kubeconfig", exutil.KubeConfigPath()).Template("{{ $x := index .spec.ports 0}}{{$x.port}}").Output()
+	port, err := oc.AsAdmin().Run("get").Args("svc", "jenkins").Template("{{ $x := index .spec.ports 0}}{{$x.port}}").Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("get token via whoami")
@@ -319,7 +320,7 @@ func (j *JenkinsRef) GetJobConsoleLogsAndMatchViaBuildResult(br *exutil.BuildRes
 			return "", fmt.Errorf("BuildResult oc should have been set up during BuildResult construction")
 		}
 		var err error // interestingly, removing this line and using := on the next got a compile error
-		br.Build, err = br.Oc.BuildClient().BuildV1().Builds(br.Oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+		br.Build, err = br.Oc.BuildClient().BuildV1().Builds(br.Oc.Namespace()).Get(context.Background(), br.BuildName, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -465,7 +466,7 @@ func ProcessLogURLAnnotations(oc *exutil.CLI, t *exutil.BuildResult) (*url.URL, 
 func DumpLogs(oc *exutil.CLI, t *exutil.BuildResult) (string, error) {
 	var err error
 	if t.Build == nil {
-		t.Build, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(t.BuildName, metav1.GetOptions{})
+		t.Build, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), t.BuildName, metav1.GetOptions{})
 		if err != nil {
 			return "", fmt.Errorf("cannot retrieve build %s: %v", t.BuildName, err)
 		}

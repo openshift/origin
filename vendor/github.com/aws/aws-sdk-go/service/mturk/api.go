@@ -74,12 +74,12 @@ func (c *MTurk) AcceptQualificationRequestRequest(input *AcceptQualificationRequ
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation AcceptQualificationRequest for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/AcceptQualificationRequest
@@ -154,10 +154,10 @@ func (c *MTurk) ApproveAssignmentRequest(input *ApproveAssignmentInput) (req *re
 // Approving an assignment initiates two payments from the Requester's Amazon.com
 // account
 //
-//    *  The Worker who submitted the results is paid the reward specified in
+//    * The Worker who submitted the results is paid the reward specified in
 //    the HIT.
 //
-//    *  Amazon Mechanical Turk fees are debited.
+//    * Amazon Mechanical Turk fees are debited.
 //
 // If the Requester's account does not have adequate funds for these payments,
 // the call to ApproveAssignment returns an exception, and the approval is not
@@ -176,12 +176,12 @@ func (c *MTurk) ApproveAssignmentRequest(input *ApproveAssignmentInput) (req *re
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ApproveAssignment for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ApproveAssignment
@@ -272,12 +272,12 @@ func (c *MTurk) AssociateQualificationWithWorkerRequest(input *AssociateQualific
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation AssociateQualificationWithWorker for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/AssociateQualificationWithWorker
@@ -353,15 +353,15 @@ func (c *MTurk) CreateAdditionalAssignmentsForHITRequest(input *CreateAdditional
 // To extend the maximum number of assignments, specify the number of additional
 // assignments.
 //
-// HITs created with fewer than 10 assignments cannot be extended to have 10
-// or more assignments. Attempting to add assignments in a way that brings the
-// total number of assignments for a HIT from fewer than 10 assignments to 10
-// or more assignments will result in an AWS.MechanicalTurk.InvalidMaximumAssignmentsIncrease
-// exception.
+//    * HITs created with fewer than 10 assignments cannot be extended to have
+//    10 or more assignments. Attempting to add assignments in a way that brings
+//    the total number of assignments for a HIT from fewer than 10 assignments
+//    to 10 or more assignments will result in an AWS.MechanicalTurk.InvalidMaximumAssignmentsIncrease
+//    exception.
 //
-// HITs that were created before July 22, 2015 cannot be extended. Attempting
-// to extend HITs that were created before July 22, 2015 will result in an AWS.MechanicalTurk.HITTooOldForExtension
-// exception.
+//    * HITs that were created before July 22, 2015 cannot be extended. Attempting
+//    to extend HITs that were created before July 22, 2015 will result in an
+//    AWS.MechanicalTurk.HITTooOldForExtension exception.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -370,12 +370,12 @@ func (c *MTurk) CreateAdditionalAssignmentsForHITRequest(input *CreateAdditional
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation CreateAdditionalAssignmentsForHIT for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/CreateAdditionalAssignmentsForHIT
@@ -474,12 +474,12 @@ func (c *MTurk) CreateHITRequest(input *CreateHITInput) (req *request.Request, o
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation CreateHIT for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/CreateHIT
@@ -560,12 +560,12 @@ func (c *MTurk) CreateHITTypeRequest(input *CreateHITTypeInput) (req *request.Re
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation CreateHITType for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/CreateHITType
@@ -655,12 +655,12 @@ func (c *MTurk) CreateHITWithHITTypeRequest(input *CreateHITWithHITTypeInput) (r
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation CreateHITWithHITType for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/CreateHITWithHITType
@@ -739,12 +739,12 @@ func (c *MTurk) CreateQualificationTypeRequest(input *CreateQualificationTypeInp
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation CreateQualificationType for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/CreateQualificationType
@@ -825,12 +825,12 @@ func (c *MTurk) CreateWorkerBlockRequest(input *CreateWorkerBlockInput) (req *re
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation CreateWorkerBlock for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/CreateWorkerBlock
@@ -910,15 +910,15 @@ func (c *MTurk) DeleteHITRequest(input *DeleteHITInput) (req *request.Request, o
 // HIT that is Reviewable but without all of its submitted assignments already
 // approved or rejected, the service will return an error.
 //
-// HITs are automatically disposed of after 120 days.
+//    * HITs are automatically disposed of after 120 days.
 //
-//  After you dispose of a HIT, you can no longer approve the HIT's rejected
-// assignments.
+//    * After you dispose of a HIT, you can no longer approve the HIT's rejected
+//    assignments.
 //
-//  Disposed HITs are not returned in results for the ListHITs operation.
+//    * Disposed HITs are not returned in results for the ListHITs operation.
 //
-//  Disposing HITs can improve the performance of operations such as ListReviewableHITs
-// and ListHITs.
+//    * Disposing HITs can improve the performance of operations such as ListReviewableHITs
+//    and ListHITs.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -927,12 +927,12 @@ func (c *MTurk) DeleteHITRequest(input *DeleteHITInput) (req *request.Request, o
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation DeleteHIT for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/DeleteHIT
@@ -1023,12 +1023,12 @@ func (c *MTurk) DeleteQualificationTypeRequest(input *DeleteQualificationTypeInp
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation DeleteQualificationType for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/DeleteQualificationType
@@ -1112,12 +1112,12 @@ func (c *MTurk) DeleteWorkerBlockRequest(input *DeleteWorkerBlockInput) (req *re
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation DeleteWorkerBlock for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/DeleteWorkerBlock
@@ -1200,12 +1200,12 @@ func (c *MTurk) DisassociateQualificationFromWorkerRequest(input *DisassociateQu
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation DisassociateQualificationFromWorker for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/DisassociateQualificationFromWorker
@@ -1284,12 +1284,12 @@ func (c *MTurk) GetAccountBalanceRequest(input *GetAccountBalanceInput) (req *re
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation GetAccountBalance for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/GetAccountBalance
@@ -1367,12 +1367,12 @@ func (c *MTurk) GetAssignmentRequest(input *GetAssignmentInput) (req *request.Re
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation GetAssignment for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/GetAssignment
@@ -1460,12 +1460,12 @@ func (c *MTurk) GetFileUploadURLRequest(input *GetFileUploadURLInput) (req *requ
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation GetFileUploadURL for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/GetFileUploadURL
@@ -1543,12 +1543,12 @@ func (c *MTurk) GetHITRequest(input *GetHITInput) (req *request.Request, output 
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation GetHIT for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/GetHIT
@@ -1634,12 +1634,12 @@ func (c *MTurk) GetQualificationScoreRequest(input *GetQualificationScoreInput) 
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation GetQualificationScore for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/GetQualificationScore
@@ -1718,12 +1718,12 @@ func (c *MTurk) GetQualificationTypeRequest(input *GetQualificationTypeInput) (r
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation GetQualificationType for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/GetQualificationType
@@ -1827,12 +1827,12 @@ func (c *MTurk) ListAssignmentsForHITRequest(input *ListAssignmentsForHITInput) 
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ListAssignmentsForHIT for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ListAssignmentsForHIT
@@ -1868,7 +1868,7 @@ func (c *MTurk) ListAssignmentsForHITWithContext(ctx aws.Context, input *ListAss
 //    // Example iterating over at most 3 pages of a ListAssignmentsForHIT operation.
 //    pageNum := 0
 //    err := client.ListAssignmentsForHITPages(params,
-//        func(page *ListAssignmentsForHITOutput, lastPage bool) bool {
+//        func(page *mturk.ListAssignmentsForHITOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1900,10 +1900,12 @@ func (c *MTurk) ListAssignmentsForHITPagesWithContext(ctx aws.Context, input *Li
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListAssignmentsForHITOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListAssignmentsForHITOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1967,12 +1969,12 @@ func (c *MTurk) ListBonusPaymentsRequest(input *ListBonusPaymentsInput) (req *re
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ListBonusPayments for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ListBonusPayments
@@ -2008,7 +2010,7 @@ func (c *MTurk) ListBonusPaymentsWithContext(ctx aws.Context, input *ListBonusPa
 //    // Example iterating over at most 3 pages of a ListBonusPayments operation.
 //    pageNum := 0
 //    err := client.ListBonusPaymentsPages(params,
-//        func(page *ListBonusPaymentsOutput, lastPage bool) bool {
+//        func(page *mturk.ListBonusPaymentsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2040,10 +2042,12 @@ func (c *MTurk) ListBonusPaymentsPagesWithContext(ctx aws.Context, input *ListBo
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListBonusPaymentsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListBonusPaymentsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2108,12 +2112,12 @@ func (c *MTurk) ListHITsRequest(input *ListHITsInput) (req *request.Request, out
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ListHITs for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ListHITs
@@ -2149,7 +2153,7 @@ func (c *MTurk) ListHITsWithContext(ctx aws.Context, input *ListHITsInput, opts 
 //    // Example iterating over at most 3 pages of a ListHITs operation.
 //    pageNum := 0
 //    err := client.ListHITsPages(params,
-//        func(page *ListHITsOutput, lastPage bool) bool {
+//        func(page *mturk.ListHITsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2181,10 +2185,12 @@ func (c *MTurk) ListHITsPagesWithContext(ctx aws.Context, input *ListHITsInput, 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListHITsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListHITsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2250,12 +2256,12 @@ func (c *MTurk) ListHITsForQualificationTypeRequest(input *ListHITsForQualificat
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ListHITsForQualificationType for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ListHITsForQualificationType
@@ -2291,7 +2297,7 @@ func (c *MTurk) ListHITsForQualificationTypeWithContext(ctx aws.Context, input *
 //    // Example iterating over at most 3 pages of a ListHITsForQualificationType operation.
 //    pageNum := 0
 //    err := client.ListHITsForQualificationTypePages(params,
-//        func(page *ListHITsForQualificationTypeOutput, lastPage bool) bool {
+//        func(page *mturk.ListHITsForQualificationTypeOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2323,10 +2329,12 @@ func (c *MTurk) ListHITsForQualificationTypePagesWithContext(ctx aws.Context, in
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListHITsForQualificationTypeOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListHITsForQualificationTypeOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2392,12 +2400,12 @@ func (c *MTurk) ListQualificationRequestsRequest(input *ListQualificationRequest
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ListQualificationRequests for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ListQualificationRequests
@@ -2433,7 +2441,7 @@ func (c *MTurk) ListQualificationRequestsWithContext(ctx aws.Context, input *Lis
 //    // Example iterating over at most 3 pages of a ListQualificationRequests operation.
 //    pageNum := 0
 //    err := client.ListQualificationRequestsPages(params,
-//        func(page *ListQualificationRequestsOutput, lastPage bool) bool {
+//        func(page *mturk.ListQualificationRequestsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2465,10 +2473,12 @@ func (c *MTurk) ListQualificationRequestsPagesWithContext(ctx aws.Context, input
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListQualificationRequestsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListQualificationRequestsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2532,12 +2542,12 @@ func (c *MTurk) ListQualificationTypesRequest(input *ListQualificationTypesInput
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ListQualificationTypes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ListQualificationTypes
@@ -2573,7 +2583,7 @@ func (c *MTurk) ListQualificationTypesWithContext(ctx aws.Context, input *ListQu
 //    // Example iterating over at most 3 pages of a ListQualificationTypes operation.
 //    pageNum := 0
 //    err := client.ListQualificationTypesPages(params,
-//        func(page *ListQualificationTypesOutput, lastPage bool) bool {
+//        func(page *mturk.ListQualificationTypesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2605,10 +2615,12 @@ func (c *MTurk) ListQualificationTypesPagesWithContext(ctx aws.Context, input *L
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListQualificationTypesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListQualificationTypesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2675,12 +2687,12 @@ func (c *MTurk) ListReviewPolicyResultsForHITRequest(input *ListReviewPolicyResu
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ListReviewPolicyResultsForHIT for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ListReviewPolicyResultsForHIT
@@ -2716,7 +2728,7 @@ func (c *MTurk) ListReviewPolicyResultsForHITWithContext(ctx aws.Context, input 
 //    // Example iterating over at most 3 pages of a ListReviewPolicyResultsForHIT operation.
 //    pageNum := 0
 //    err := client.ListReviewPolicyResultsForHITPages(params,
-//        func(page *ListReviewPolicyResultsForHITOutput, lastPage bool) bool {
+//        func(page *mturk.ListReviewPolicyResultsForHITOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2748,10 +2760,12 @@ func (c *MTurk) ListReviewPolicyResultsForHITPagesWithContext(ctx aws.Context, i
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListReviewPolicyResultsForHITOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListReviewPolicyResultsForHITOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2816,12 +2830,12 @@ func (c *MTurk) ListReviewableHITsRequest(input *ListReviewableHITsInput) (req *
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ListReviewableHITs for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ListReviewableHITs
@@ -2857,7 +2871,7 @@ func (c *MTurk) ListReviewableHITsWithContext(ctx aws.Context, input *ListReview
 //    // Example iterating over at most 3 pages of a ListReviewableHITs operation.
 //    pageNum := 0
 //    err := client.ListReviewableHITsPages(params,
-//        func(page *ListReviewableHITsOutput, lastPage bool) bool {
+//        func(page *mturk.ListReviewableHITsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -2889,10 +2903,12 @@ func (c *MTurk) ListReviewableHITsPagesWithContext(ctx aws.Context, input *ListR
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListReviewableHITsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListReviewableHITsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -2956,12 +2972,12 @@ func (c *MTurk) ListWorkerBlocksRequest(input *ListWorkerBlocksInput) (req *requ
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ListWorkerBlocks for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ListWorkerBlocks
@@ -2997,7 +3013,7 @@ func (c *MTurk) ListWorkerBlocksWithContext(ctx aws.Context, input *ListWorkerBl
 //    // Example iterating over at most 3 pages of a ListWorkerBlocks operation.
 //    pageNum := 0
 //    err := client.ListWorkerBlocksPages(params,
-//        func(page *ListWorkerBlocksOutput, lastPage bool) bool {
+//        func(page *mturk.ListWorkerBlocksOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -3029,10 +3045,12 @@ func (c *MTurk) ListWorkerBlocksPagesWithContext(ctx aws.Context, input *ListWor
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListWorkerBlocksOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListWorkerBlocksOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -3096,12 +3114,12 @@ func (c *MTurk) ListWorkersWithQualificationTypeRequest(input *ListWorkersWithQu
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation ListWorkersWithQualificationType for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/ListWorkersWithQualificationType
@@ -3137,7 +3155,7 @@ func (c *MTurk) ListWorkersWithQualificationTypeWithContext(ctx aws.Context, inp
 //    // Example iterating over at most 3 pages of a ListWorkersWithQualificationType operation.
 //    pageNum := 0
 //    err := client.ListWorkersWithQualificationTypePages(params,
-//        func(page *ListWorkersWithQualificationTypeOutput, lastPage bool) bool {
+//        func(page *mturk.ListWorkersWithQualificationTypeOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -3169,10 +3187,12 @@ func (c *MTurk) ListWorkersWithQualificationTypePagesWithContext(ctx aws.Context
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListWorkersWithQualificationTypeOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListWorkersWithQualificationTypeOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -3233,12 +3253,12 @@ func (c *MTurk) NotifyWorkersRequest(input *NotifyWorkersInput) (req *request.Re
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation NotifyWorkers for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/NotifyWorkers
@@ -3325,12 +3345,12 @@ func (c *MTurk) RejectAssignmentRequest(input *RejectAssignmentInput) (req *requ
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation RejectAssignment for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/RejectAssignment
@@ -3412,12 +3432,12 @@ func (c *MTurk) RejectQualificationRequestRequest(input *RejectQualificationRequ
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation RejectQualificationRequest for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/RejectQualificationRequest
@@ -3504,12 +3524,12 @@ func (c *MTurk) SendBonusRequest(input *SendBonusInput) (req *request.Request, o
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation SendBonus for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/SendBonus
@@ -3593,12 +3613,12 @@ func (c *MTurk) SendTestEventNotificationRequest(input *SendTestEventNotificatio
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation SendTestEventNotification for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/SendTestEventNotification
@@ -3679,12 +3699,12 @@ func (c *MTurk) UpdateExpirationForHITRequest(input *UpdateExpirationForHITInput
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation UpdateExpirationForHIT for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/UpdateExpirationForHIT
@@ -3765,12 +3785,12 @@ func (c *MTurk) UpdateHITReviewStatusRequest(input *UpdateHITReviewStatusInput) 
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation UpdateHITReviewStatus for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/UpdateHITReviewStatus
@@ -3852,12 +3872,12 @@ func (c *MTurk) UpdateHITTypeOfHITRequest(input *UpdateHITTypeOfHITInput) (req *
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation UpdateHITTypeOfHIT for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/UpdateHITTypeOfHIT
@@ -3945,12 +3965,12 @@ func (c *MTurk) UpdateNotificationSettingsRequest(input *UpdateNotificationSetti
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation UpdateNotificationSettings for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/UpdateNotificationSettings
@@ -4058,12 +4078,12 @@ func (c *MTurk) UpdateQualificationTypeRequest(input *UpdateQualificationTypeInp
 // See the AWS API reference guide for Amazon Mechanical Turk's
 // API operation UpdateQualificationType for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServiceFault "ServiceFault"
+// Returned Error Types:
+//   * ServiceFault
 //   Amazon Mechanical Turk is temporarily unable to process your request. Try
 //   your call again.
 //
-//   * ErrCodeRequestError "RequestError"
+//   * RequestError
 //   Your request is invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/mturk-requester-2017-01-17/UpdateQualificationType
@@ -8614,6 +8634,64 @@ func (s RejectQualificationRequestOutput) GoString() string {
 	return s.String()
 }
 
+// Your request is invalid.
+type RequestError struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+
+	TurkErrorCode *string `type:"string"`
+}
+
+// String returns the string representation
+func (s RequestError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RequestError) GoString() string {
+	return s.String()
+}
+
+func newErrorRequestError(v protocol.ResponseMetadata) error {
+	return &RequestError{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s RequestError) Code() string {
+	return "RequestError"
+}
+
+// Message returns the exception's message.
+func (s RequestError) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s RequestError) OrigErr() error {
+	return nil
+}
+
+func (s RequestError) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s RequestError) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s RequestError) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Both the AssignmentReviewReport and the HITReviewReport elements contains
 // the ReviewActionDetail data structure. This structure is returned multiple
 // times for each action specified in the Review Policy.
@@ -9061,6 +9139,65 @@ func (s SendTestEventNotificationOutput) GoString() string {
 	return s.String()
 }
 
+// Amazon Mechanical Turk is temporarily unable to process your request. Try
+// your call again.
+type ServiceFault struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+
+	TurkErrorCode *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ServiceFault) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ServiceFault) GoString() string {
+	return s.String()
+}
+
+func newErrorServiceFault(v protocol.ResponseMetadata) error {
+	return &ServiceFault{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ServiceFault) Code() string {
+	return "ServiceFault"
+}
+
+// Message returns the exception's message.
+func (s ServiceFault) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ServiceFault) OrigErr() error {
+	return nil
+}
+
+func (s ServiceFault) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ServiceFault) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ServiceFault) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type UpdateExpirationForHITInput struct {
 	_ struct{} `type:"structure"`
 
@@ -9140,10 +9277,10 @@ type UpdateHITReviewStatusInput struct {
 
 	// Specifies how to update the HIT status. Default is False.
 	//
-	//    *  Setting this to false will only transition a HIT from Reviewable to
+	//    * Setting this to false will only transition a HIT from Reviewable to
 	//    Reviewing
 	//
-	//    *  Setting this to true will only transition a HIT from Reviewing to Reviewable
+	//    * Setting this to true will only transition a HIT from Reviewing to Reviewable
 	Revert *bool `type:"boolean"`
 }
 

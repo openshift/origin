@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -28,7 +29,7 @@ import (
 	"time"
 
 	apps "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,11 +39,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	clientscheme "k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	utiltesting "k8s.io/client-go/util/testing"
-	"k8s.io/kubernetes/pkg/api/testapi"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 	"k8s.io/kubernetes/pkg/controller/testutil"
 	"k8s.io/kubernetes/pkg/securitycontext"
@@ -279,7 +280,7 @@ func TestUIDExpectations(t *testing.T) {
 
 func TestCreatePods(t *testing.T) {
 	ns := metav1.NamespaceDefault
-	body := runtime.EncodeOrDie(testapi.Default.Codec(), &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "empty_pod"}})
+	body := runtime.EncodeOrDie(clientscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "empty_pod"}})
 	fakeHandler := utiltesting.FakeHandler{
 		StatusCode:   200,
 		ResponseBody: string(body),
@@ -306,7 +307,7 @@ func TestCreatePods(t *testing.T) {
 		},
 		Spec: controllerSpec.Spec.Template.Spec,
 	}
-	fakeHandler.ValidateRequest(t, testapi.Default.ResourcePath("pods", metav1.NamespaceDefault, ""), "POST", nil)
+	fakeHandler.ValidateRequest(t, "/api/v1/namespaces/default/pods", "POST", nil)
 	var actualPod = &v1.Pod{}
 	err = json.Unmarshal([]byte(fakeHandler.RequestBody), actualPod)
 	assert.NoError(t, err, "unexpected error: %v", err)
@@ -733,11 +734,11 @@ func TestRemoveTaintOffNode(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		node, _ := test.nodeHandler.Get(test.nodeName, metav1.GetOptions{})
+		node, _ := test.nodeHandler.Get(context.TODO(), test.nodeName, metav1.GetOptions{})
 		err := RemoveTaintOffNode(test.nodeHandler, test.nodeName, node, test.taintsToRemove...)
 		assert.NoError(t, err, "%s: RemoveTaintOffNode() error = %v", test.name, err)
 
-		node, _ = test.nodeHandler.Get(test.nodeName, metav1.GetOptions{})
+		node, _ = test.nodeHandler.Get(context.TODO(), test.nodeName, metav1.GetOptions{})
 		assert.EqualValues(t, test.expectedTaints, node.Spec.Taints,
 			"%s: failed to remove taint off node: expected %+v, got %+v",
 			test.name, test.expectedTaints, node.Spec.Taints)
@@ -912,7 +913,7 @@ func TestAddOrUpdateTaintOnNode(t *testing.T) {
 		err := AddOrUpdateTaintOnNode(test.nodeHandler, test.nodeName, test.taintsToAdd...)
 		assert.NoError(t, err, "%s: AddOrUpdateTaintOnNode() error = %v", test.name, err)
 
-		node, _ := test.nodeHandler.Get(test.nodeName, metav1.GetOptions{})
+		node, _ := test.nodeHandler.Get(context.TODO(), test.nodeName, metav1.GetOptions{})
 		assert.EqualValues(t, test.expectedTaints, node.Spec.Taints,
 			"%s: failed to add taint to node: expected %+v, got %+v",
 			test.name, test.expectedTaints, node.Spec.Taints)

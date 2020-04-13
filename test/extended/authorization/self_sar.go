@@ -13,7 +13,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("bootstrap-policy", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("bootstrap-policy")
 
 	g.Context("", func() {
 		g.Describe("TestBootstrapPolicySelfSubjectAccessReviews", func() {

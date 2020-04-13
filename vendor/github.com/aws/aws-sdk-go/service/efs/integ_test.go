@@ -27,7 +27,9 @@ func TestInteg_00_DescribeFileSystems(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := efs.New(sess)
 	params := &efs.DescribeFileSystemsInput{}
-	_, err := svc.DescribeFileSystemsWithContext(ctx, params)
+	_, err := svc.DescribeFileSystemsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DeleteFileSystem(t *testing.T) {
 	params := &efs.DeleteFileSystemInput{
 		FileSystemId: aws.String("fs-c5a1446c"),
 	}
-	_, err := svc.DeleteFileSystemWithContext(ctx, params)
+	_, err := svc.DeleteFileSystemWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

@@ -1,6 +1,7 @@
 package images
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -24,6 +25,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 	defer g.GinkgoRecover()
 	var oc *exutil.CLI
 	var ns []string
+	ctx := context.Background()
 
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
@@ -33,17 +35,17 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 		}
 	})
 
-	oc = exutil.NewCLI("image-layers", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("image-layers")
 
 	g.It("should identify a deleted image as missing", func() {
 		client := imagev1client.NewForConfigOrDie(oc.AdminConfig()).ImageV1()
-		_, err := client.ImageStreams(oc.Namespace()).Create(&imagev1.ImageStream{
+		_, err := client.ImageStreams(oc.Namespace()).Create(ctx, &imagev1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		_, err = client.ImageStreamMappings(oc.Namespace()).Create(&imagev1.ImageStreamMapping{
+		_, err = client.ImageStreamMappings(oc.Namespace()).Create(ctx, &imagev1.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
 			},
@@ -54,12 +56,12 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 				DockerImageReference: "example.com/random/image:latest",
 			},
 			Tag: "missing",
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = client.Images().Delete("an_image_to_be_deleted", nil)
+		err = client.Images().Delete(ctx, "an_image_to_be_deleted", metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-			layers, err := client.ImageStreams(oc.Namespace()).Layers("test", metav1.GetOptions{})
+			layers, err := client.ImageStreams(oc.Namespace()).Layers(ctx, "test", metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -75,7 +77,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 	g.It("should return layers from tagged images", func() {
 		ns = []string{oc.Namespace()}
 		client := imagev1client.NewForConfigOrDie(oc.UserConfig()).ImageV1()
-		isi, err := client.ImageStreamImports(oc.Namespace()).Create(&imagev1.ImageStreamImport{
+		isi, err := client.ImageStreamImports(oc.Namespace()).Create(ctx, &imagev1.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "1",
 			},
@@ -92,7 +94,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(isi.Status.Images).To(o.HaveLen(2))
 		for _, image := range isi.Status.Images {
@@ -104,7 +106,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 		var busyboxLayers []string
 	Retry:
 		for i := 0; ; i++ {
-			layers, err := client.ImageStreams(oc.Namespace()).Layers("1", metav1.GetOptions{})
+			layers, err := client.ImageStreams(oc.Namespace()).Layers(ctx, "1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			for i, image := range isi.Status.Images {
 				l, ok := layers.Images[image.Image.Name]
@@ -132,19 +134,19 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 			o.Expect(i).To(o.BeNumerically("<", 10), "Timed out waiting for layers to have expected data, got\n%#v\n%#v", layers, isi.Status.Images)
 		}
 
-		_, err = client.ImageStreams(oc.Namespace()).Create(&imagev1.ImageStream{
+		_, err = client.ImageStreams(oc.Namespace()).Create(ctx, &imagev1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "output",
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		layers, err := client.ImageStreams(oc.Namespace()).Layers("output", metav1.GetOptions{})
+		layers, err := client.ImageStreams(oc.Namespace()).Layers(ctx, "output", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(layers.Images).To(o.BeEmpty())
 		o.Expect(layers.Blobs).To(o.BeEmpty())
 
-		_, err = client.ImageStreams(oc.Namespace()).Layers("doesnotexist", metav1.GetOptions{})
+		_, err = client.ImageStreams(oc.Namespace()).Layers(ctx, "doesnotexist", metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(errors.IsNotFound(err)).To(o.BeTrue())
 
@@ -155,7 +157,7 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 
 		g.By("running a build based on our tagged layer")
 		buildClient := buildv1client.NewForConfigOrDie(oc.UserConfig()).BuildV1()
-		_, err = buildClient.Builds(oc.Namespace()).Create(&buildv1.Build{
+		_, err = buildClient.Builds(oc.Namespace()).Create(ctx, &buildv1.Build{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "output",
 			},
@@ -174,7 +176,7 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		newNamespace := oc.CreateProject()
@@ -183,7 +185,7 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 		g.By("waiting for the build to finish")
 		var lastBuild *buildv1.Build
 		err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-			build, err := buildClient.Builds(oc.Namespace()).Get("output", metav1.GetOptions{})
+			build, err := buildClient.Builds(oc.Namespace()).Get(ctx, "output", metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -194,7 +196,7 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("checking the layers for the built image")
-		layers, err = client.ImageStreams(oc.Namespace()).Layers("output", metav1.GetOptions{})
+		layers, err = client.ImageStreams(oc.Namespace()).Layers(ctx, "output", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		to := lastBuild.Status.Output.To
 		o.Expect(to).NotTo(o.BeNil())
@@ -206,7 +208,7 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 		}
 
 		g.By("tagging the built image into another namespace")
-		_, err = client.ImageStreamTags(newNamespace).Create(&imagev1.ImageStreamTag{
+		_, err = client.ImageStreamTags(newNamespace).Create(ctx, &imagev1.ImageStreamTag{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "output:latest",
 			},
@@ -214,11 +216,11 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 				Name: "copied",
 				From: &corev1.ObjectReference{Kind: "ImageStreamTag", Namespace: oc.Namespace(), Name: "output:latest"},
 			},
-		})
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("checking that the image shows up in the other namespace")
-		layers, err = client.ImageStreams(newNamespace).Layers("output", metav1.GetOptions{})
+		layers, err = client.ImageStreams(newNamespace).Layers(ctx, "output", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(layers.Images).To(o.HaveKey(to.ImageDigest))
 		o.Expect(layers.Images[to.ImageDigest]).To(o.Equal(builtImageLayers))

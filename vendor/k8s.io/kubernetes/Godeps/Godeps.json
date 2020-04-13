@@ -76,7 +76,7 @@
 		},
 		{
 			"ImportPath": "github.com/Microsoft/go-winio",
-			"Rev": "v0.4.11"
+			"Rev": "v0.4.14"
 		},
 		{
 			"ImportPath": "github.com/Microsoft/hcsshim",
@@ -109,6 +109,10 @@
 		{
 			"ImportPath": "github.com/agnivade/levenshtein",
 			"Rev": "v1.0.1"
+		},
+		{
+			"ImportPath": "github.com/ajstarks/svgo",
+			"Rev": "644b8db467af"
 		},
 		{
 			"ImportPath": "github.com/alecthomas/template",
@@ -144,7 +148,7 @@
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go",
-			"Rev": "v1.16.26"
+			"Rev": "v1.28.2"
 		},
 		{
 			"ImportPath": "github.com/bazelbuild/bazel-gazelle",
@@ -191,6 +195,10 @@
 			"Rev": "v2.1.1"
 		},
 		{
+			"ImportPath": "github.com/census-instrumentation/opencensus-proto",
+			"Rev": "v0.2.1"
+		},
+		{
 			"ImportPath": "github.com/cespare/prettybench",
 			"Rev": "03b8cfe5406c"
 		},
@@ -200,11 +208,15 @@
 		},
 		{
 			"ImportPath": "github.com/checkpoint-restore/go-criu",
-			"Rev": "bdb7599cd87b"
+			"Rev": "17b0214f6c48"
 		},
 		{
 			"ImportPath": "github.com/cheekybits/genny",
 			"Rev": "9127e812e1e9"
+		},
+		{
+			"ImportPath": "github.com/cilium/ebpf",
+			"Rev": "95b36a581eed"
 		},
 		{
 			"ImportPath": "github.com/client9/misspell",
@@ -244,7 +256,7 @@
 		},
 		{
 			"ImportPath": "github.com/coredns/corefile-migration",
-			"Rev": "v1.0.4"
+			"Rev": "v1.0.6"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd",
@@ -316,7 +328,7 @@
 		},
 		{
 			"ImportPath": "github.com/docker/libnetwork",
-			"Rev": "f0e46a78ea34"
+			"Rev": "c8a5fca4a652"
 		},
 		{
 			"ImportPath": "github.com/docker/spdystream",
@@ -328,11 +340,19 @@
 		},
 		{
 			"ImportPath": "github.com/elazarl/goproxy",
-			"Rev": "c4fc26588b6e"
+			"Rev": "947c36da3153"
 		},
 		{
 			"ImportPath": "github.com/emicklei/go-restful",
 			"Rev": "v2.9.5"
+		},
+		{
+			"ImportPath": "github.com/envoyproxy/go-control-plane",
+			"Rev": "5f8ba28d4473"
+		},
+		{
+			"ImportPath": "github.com/envoyproxy/protoc-gen-validate",
+			"Rev": "v0.1.0"
 		},
 		{
 			"ImportPath": "github.com/euank/go-kmsg-parser",
@@ -357,6 +377,10 @@
 		{
 			"ImportPath": "github.com/flynn/go-shlex",
 			"Rev": "3f9db97f8568"
+		},
+		{
+			"ImportPath": "github.com/fogleman/gg",
+			"Rev": "0403632d5b90"
 		},
 		{
 			"ImportPath": "github.com/fsnotify/fsnotify",
@@ -496,7 +520,11 @@
 		},
 		{
 			"ImportPath": "github.com/gogo/protobuf",
-			"Rev": "65acae22fc9d"
+			"Rev": "v1.3.1"
+		},
+		{
+			"ImportPath": "github.com/golang/freetype",
+			"Rev": "e2365dfdc4a0"
 		},
 		{
 			"ImportPath": "github.com/golang/glog",
@@ -508,7 +536,7 @@
 		},
 		{
 			"ImportPath": "github.com/golang/mock",
-			"Rev": "v1.2.0"
+			"Rev": "v1.3.1"
 		},
 		{
 			"ImportPath": "github.com/golang/protobuf",
@@ -616,7 +644,7 @@
 		},
 		{
 			"ImportPath": "github.com/google/gofuzz",
-			"Rev": "v1.0.0"
+			"Rev": "v1.1.0"
 		},
 		{
 			"ImportPath": "github.com/google/martian",
@@ -640,7 +668,7 @@
 		},
 		{
 			"ImportPath": "github.com/googleapis/gnostic",
-			"Rev": "0c5108395e2d"
+			"Rev": "v0.1.0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud",
@@ -745,6 +773,10 @@
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
 			"Rev": "v1.2.0"
+		},
+		{
+			"ImportPath": "github.com/jung-kurt/gofpdf",
+			"Rev": "24315acbbda5"
 		},
 		{
 			"ImportPath": "github.com/karrick/godirwalk",
@@ -912,7 +944,7 @@
 		},
 		{
 			"ImportPath": "github.com/morikuni/aec",
-			"Rev": "39771216ff4c"
+			"Rev": "v1.0.0"
 		},
 		{
 			"ImportPath": "github.com/mozilla/tls-observatory",
@@ -956,7 +988,7 @@
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
-			"Rev": "v1.10.1"
+			"Rev": "v1.11.0"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
@@ -972,7 +1004,7 @@
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc",
-			"Rev": "v1.0.0-rc9"
+			"Rev": "v1.0.0-rc10"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runtime-spec",
@@ -1012,7 +1044,7 @@
 		},
 		{
 			"ImportPath": "github.com/prometheus/client_model",
-			"Rev": "fd36f4220a90"
+			"Rev": "v0.2.0"
 		},
 		{
 			"ImportPath": "github.com/prometheus/common",
@@ -1096,7 +1128,7 @@
 		},
 		{
 			"ImportPath": "github.com/smartystreets/goconvey",
-			"Rev": "68dc04aab96a"
+			"Rev": "v1.6.4"
 		},
 		{
 			"ImportPath": "github.com/soheilhy/cmux",
@@ -1264,7 +1296,7 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto",
-			"Rev": "60c769a6c586"
+			"Rev": "bac4c82f6975"
 		},
 		{
 			"ImportPath": "golang.org/x/exp",
@@ -1324,11 +1356,15 @@
 		},
 		{
 			"ImportPath": "gonum.org/v1/gonum",
-			"Rev": "3d26580ed485"
+			"Rev": "v0.6.2"
 		},
 		{
 			"ImportPath": "gonum.org/v1/netlib",
 			"Rev": "76723241ea4e"
+		},
+		{
+			"ImportPath": "gonum.org/v1/plot",
+			"Rev": "e2840ee46a6b"
 		},
 		{
 			"ImportPath": "google.golang.org/api",
@@ -1340,11 +1376,11 @@
 		},
 		{
 			"ImportPath": "google.golang.org/genproto",
-			"Rev": "54afdca5d873"
+			"Rev": "24fa4b261c55"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc",
-			"Rev": "v1.23.1"
+			"Rev": "v1.26.0"
 		},
 		{
 			"ImportPath": "gopkg.in/airbrake/gobrake.v2",
@@ -1408,7 +1444,7 @@
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
-			"Rev": "v2.2.4"
+			"Rev": "v2.2.8"
 		},
 		{
 			"ImportPath": "gotest.tools",
@@ -1428,7 +1464,7 @@
 		},
 		{
 			"ImportPath": "k8s.io/gengo",
-			"Rev": "26a664648505"
+			"Rev": "36b2048a9120"
 		},
 		{
 			"ImportPath": "k8s.io/heapster",
@@ -1440,7 +1476,7 @@
 		},
 		{
 			"ImportPath": "k8s.io/kube-openapi",
-			"Rev": "30be4d16710a"
+			"Rev": "bf4fb3bd569c"
 		},
 		{
 			"ImportPath": "k8s.io/repo-infra",
@@ -1452,7 +1488,7 @@
 		},
 		{
 			"ImportPath": "k8s.io/utils",
-			"Rev": "e782cd3c129f"
+			"Rev": "0a110f9eb7ab"
 		},
 		{
 			"ImportPath": "modernc.org/cc",
@@ -1487,16 +1523,24 @@
 			"Rev": "fbb59629db34"
 		},
 		{
+			"ImportPath": "rsc.io/pdf",
+			"Rev": "v0.1.1"
+		},
+		{
+			"ImportPath": "sigs.k8s.io/apiserver-network-proxy/konnectivity-client",
+			"Rev": "v0.0.7"
+		},
+		{
 			"ImportPath": "sigs.k8s.io/kustomize",
 			"Rev": "v2.0.3"
 		},
 		{
-			"ImportPath": "sigs.k8s.io/structured-merge-diff",
-			"Rev": "b1b620dd3f06"
+			"ImportPath": "sigs.k8s.io/structured-merge-diff/v3",
+			"Rev": "v3.0.0"
 		},
 		{
 			"ImportPath": "sigs.k8s.io/yaml",
-			"Rev": "v1.1.0"
+			"Rev": "v1.2.0"
 		},
 		{
 			"ImportPath": "sourcegraph.com/sqs/pbtypes",

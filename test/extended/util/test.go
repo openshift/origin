@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -119,16 +120,54 @@ func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
 		r = append(r, reporters.NewJUnitReporter(path.Join(TestContext.ReportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
 	}
 
-	if quiet {
-		r = append(r, NewSimpleReporter())
-		ginkgo.RunSpecsWithCustomReporters(t, suite, r)
-	} else {
-		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
+	WithCleanup(func() {
+		if quiet {
+			r = append(r, NewSimpleReporter())
+			ginkgo.RunSpecsWithCustomReporters(t, suite, r)
+		} else {
+			ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
+		}
+	})
+}
+
+var testsStarted bool
+
+// requiresTestStart indicates this code should never be called from within init() or
+// Ginkgo test definition.
+//
+// We explictly prevent Run() from outside of a test because it means that
+// test initialization may be expensive. Tests should not vary definition
+// based on a cluster, they should be static in definition. Always use framework.Skipf()
+// if your test should not be run based on a dynamic condition of the cluster.
+func requiresTestStart() {
+	if !testsStarted {
+		panic("May only be called from within a test case")
 	}
 }
 
-// ProwGCPSetup makes sure certain required env vars are available in the case
-// that extended tests are invoked directly via calls to ginkgo/extended.test
+// WithCleanup instructs utility methods to move out of dry run mode so there are no side
+// effects due to package initialization of Ginkgo tests, and then after the function
+// completes cleans up any artifacts created by this project.
+func WithCleanup(fn func()) {
+	testsStarted = true
+
+	// Initialize the fixture directory. If we were the ones to initialize it, set the env
+	// var so that child processes inherit this directory and take responsibility for
+	// cleaning it up after we exit.
+	fixtureDir, init := fixtureDirectory()
+	if init {
+		os.Setenv("OS_TEST_FIXTURE_DIR", fixtureDir)
+		defer func() {
+			os.Setenv("OS_TEST_FIXTURE_DIR", "")
+			os.RemoveAll(fixtureDir)
+		}()
+	}
+
+	fn()
+}
+
+// InitDefaultEnvironmentVariables makes sure certain required env vars are available
+// in the case that extended tests are invoked directly via calls to ginkgo/extended.test
 func InitDefaultEnvironmentVariables() {
 	if ad := os.Getenv("ARTIFACT_DIR"); len(strings.TrimSpace(ad)) == 0 {
 		os.Setenv("ARTIFACT_DIR", filepath.Join(os.TempDir(), "artifacts"))
@@ -231,7 +270,7 @@ var longRetry = wait.Backoff{Steps: 100}
 // allowAllNodeScheduling sets the annotation on namespace that allows all nodes to be scheduled onto.
 func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
-		ns, err := c.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+		ns, err := c.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -239,7 +278,7 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 			ns.Annotations = make(map[string]string)
 		}
 		ns.Annotations[projectv1.ProjectNodeSelector] = ""
-		_, err = c.CoreV1().Namespaces().Update(ns)
+		_, err = c.CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
 		return err
 	})
 	if err != nil {
@@ -251,7 +290,7 @@ func addE2EServiceAccountsToSCC(securityClient securityv1client.Interface, names
 	// Because updates can race, we need to set the backoff retries to be > than the number of possible
 	// parallel jobs starting at once. Set very high to allow future high parallelism.
 	err := retry.RetryOnConflict(longRetry, func() error {
-		scc, err := securityClient.SecurityV1().SecurityContextConstraints().Get(sccName, metav1.GetOptions{})
+		scc, err := securityClient.SecurityV1().SecurityContextConstraints().Get(context.Background(), sccName, metav1.GetOptions{})
 		if err != nil {
 			if apierrs.IsNotFound(err) {
 				return nil
@@ -264,7 +303,7 @@ func addE2EServiceAccountsToSCC(securityClient securityv1client.Interface, names
 				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 			}
 		}
-		if _, err := securityClient.SecurityV1().SecurityContextConstraints().Update(scc); err != nil {
+		if _, err := securityClient.SecurityV1().SecurityContextConstraints().Update(context.Background(), scc, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 		return nil
@@ -293,7 +332,7 @@ func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namesp
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
 			if isE2ENamespace(ns.Name) && ns.Status.Phase != kapiv1.NamespaceTerminating {
-				_, err := rbacClient.RoleBindings(ns.Name).Create(&rbacv1.RoleBinding{
+				_, err := rbacClient.RoleBindings(ns.Name).Create(context.Background(), &rbacv1.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{GenerateName: "default-" + roleName, Namespace: ns.Name},
 					RoleRef: rbacv1.RoleRef{
 						Kind: "ClusterRole",
@@ -302,7 +341,7 @@ func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namesp
 					Subjects: []rbacv1.Subject{
 						{Name: "default", Namespace: ns.Name, Kind: rbacv1.ServiceAccountKind},
 					},
-				})
+				}, metav1.CreateOptions{})
 				if err != nil {
 					e2e.Logf("Warning: Failed to add role to e2e service account: %v", err)
 				}

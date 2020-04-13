@@ -32,10 +32,10 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
+var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("router-metrics", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("router-metrics")
 
 		username, password, bearerToken string
 		metricsPort                     int32
@@ -45,15 +45,19 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 	)
 
 	g.BeforeEach(func() {
-		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		proxyProtocol = infra.Status.PlatformStatus.Type == configv1.AWSPlatformType
+		platformType := infra.Status.Platform
+		if infra.Status.PlatformStatus != nil {
+			platformType = infra.Status.PlatformStatus.Type
+		}
+		proxyProtocol = platformType == configv1.AWSPlatformType
 
 		// This test needs to make assertions against a single router pod, so all access
 		// to the router should happen through a single endpoint.
 
 		// Discover the endpoint.
-		endpoint, err := oc.AdminKubeClient().CoreV1().Endpoints("openshift-ingress").Get("router-internal-default", metav1.GetOptions{})
+		endpoint, err := oc.AdminKubeClient().CoreV1().Endpoints("openshift-ingress").Get(context.Background(), "router-internal-default", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(endpoint.Subsets).NotTo(o.BeEmpty())
 		subset := endpoint.Subsets[0]
@@ -72,7 +76,7 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 		host = subset.Addresses[0].IP
 
 		// Extract the router pod's stats credentials.
-		statsSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-ingress").Get("router-stats-default", metav1.GetOptions{})
+		statsSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-ingress").Get(context.Background(), "router-stats-default", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		username, password = string(statsSecret.Data["statsUsername"]), string(statsSecret.Data["statsPassword"])
 
@@ -93,7 +97,9 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("should expose a health check on the metrics port", func() {
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+			}()
 
 			g.By("listening on the health port")
 			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/healthz", host, metricsPort), 200)
@@ -107,7 +113,9 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+			}()
 
 			g.By("preventing access without a username and password")
 			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), 401, 403)
@@ -150,7 +158,7 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 			allEndpoints := sets.NewString()
 			services := []string{"weightedendpoints1", "weightedendpoints2"}
 			for _, name := range services {
-				epts, err := oc.AdminKubeClient().CoreV1().Endpoints(ns).Get(name, metav1.GetOptions{})
+				epts, err := oc.AdminKubeClient().CoreV1().Endpoints(ns).Get(context.Background(), name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				for _, s := range epts.Subsets {
 					for _, a := range s.Addresses {
@@ -194,7 +202,7 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 			g.By("forcing a router restart after a pod deletion")
 
 			// delete the pod
-			err = oc.AdminKubeClient().CoreV1().Pods(ns).Delete("endpoint-2", nil)
+			err = oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), "endpoint-2", metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the router to reload")
@@ -213,7 +221,9 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 
 		g.It("should expose the profiling endpoints", func() {
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+			}()
 
 			g.By("preventing access without a username and password")
 			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap", host, metricsPort), 401, 403)
@@ -232,7 +242,9 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 			}
 
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
 
 			o.Expect(wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
 				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), token)
@@ -300,7 +312,7 @@ func (t *promTargets) Expect(l promLabels, health, scrapeURLPattern string) erro
 }
 
 func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountName string, timeout time.Duration) error {
-	w, err := c.CoreV1().ServiceAccounts(ns).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: serviceAccountName}))
+	w, err := c.CoreV1().ServiceAccounts(ns).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: serviceAccountName}))
 	if err != nil {
 		return err
 	}
@@ -311,14 +323,14 @@ func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountN
 }
 
 func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
-	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get("prometheus-k8s", metav1.GetOptions{})
+	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
 	if kapierrs.IsNotFound(err) {
 		return "", "", false
 	}
 
 	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
 	for i := 0; i < 30; i++ {
-		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(metav1.ListOptions{})
+		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		for _, secret := range secrets.Items {
 			if secret.Type != corev1.SecretTypeServiceAccountToken {
@@ -426,7 +438,7 @@ func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error
 }
 
 func findMetricsBearerToken(oc *exutil.CLI) (string, error) {
-	sa, err := oc.AdminKubeClient().CoreV1().ServiceAccounts("openshift-monitoring").Get("prometheus-k8s", metav1.GetOptions{})
+	sa, err := oc.AdminKubeClient().CoreV1().ServiceAccounts("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -442,7 +454,7 @@ func findMetricsBearerToken(oc *exutil.CLI) (string, error) {
 		return "", fmt.Errorf("serviceaccount 'openshift-monitoring/prometheus-k8s' does not contain 'prometheus-k8s-token' secret")
 	}
 
-	secret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").Get(secretName, metav1.GetOptions{})
+	secret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").Get(context.Background(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/ginkgowrapper"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	"k8s.io/kubernetes/test/utils/junit"
 
@@ -60,6 +61,7 @@ func Run(description, testname string, adapter TestData, invariants []upgrades.T
 	cm := chaosmonkey.New(func() {
 		start := time.Now()
 		defer finalizeTest(start, test, nil)
+		defer g.GinkgoRecover()
 		fn()
 	})
 	runChaosmonkey(cm, adapter, invariants, testSuite)
@@ -160,6 +162,7 @@ func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
 		}
 		return
 	}
+	framework.Logf("recover: %v", r)
 
 	switch r := r.(type) {
 	case ginkgowrapper.FailurePanic:
@@ -170,7 +173,7 @@ func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
 				Value:   fmt.Sprintf("%s\n\n%s", r.Message, r.FullStackTrace),
 			},
 		}
-	case ginkgowrapper.SkipPanic:
+	case e2eskipper.SkipPanic:
 		tc.Skipped = fmt.Sprintf("%s:%d %q", r.Filename, r.Line, r.Message)
 	default:
 		tc.Errors = []*junit.Error{
@@ -180,6 +183,14 @@ func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
 				Value:   fmt.Sprintf("%v\n\n%s", r, debug.Stack()),
 			},
 		}
+	}
+	// if we have a panic but it hasn't been recorded by ginkgo, panic now
+	if !g.CurrentGinkgoTestDescription().Failed {
+		framework.Logf("%q: panic: %v", tc.Name, r)
+		func() {
+			defer g.GinkgoRecover()
+			panic(r)
+		}()
 	}
 }
 

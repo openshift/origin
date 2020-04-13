@@ -27,7 +27,9 @@ func TestInteg_00_GetConnectors(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := sms.New(sess)
 	params := &sms.GetConnectorsInput{}
-	_, err := svc.GetConnectorsWithContext(ctx, params)
+	_, err := svc.GetConnectorsWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_DeleteReplicationJob(t *testing.T) {
 	params := &sms.DeleteReplicationJobInput{
 		ReplicationJobId: aws.String("invalidId"),
 	}
-	_, err := svc.DeleteReplicationJobWithContext(ctx, params)
+	_, err := svc.DeleteReplicationJobWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

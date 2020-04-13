@@ -1,8 +1,9 @@
 package encryption
 
 import (
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"github.com/openshift/library-go/pkg/operator/encryption/controllers/migrators"
@@ -19,11 +20,12 @@ import (
 )
 
 type runner interface {
-	Run(stopCh <-chan struct{})
+	Run(ctx context.Context, workers int)
 }
 
 func NewControllers(
 	component string,
+	provider controllers.Provider,
 	deployer statemachine.Deployer,
 	migrator migrators.Migrator,
 	operatorClient operatorv1helpers.OperatorClient,
@@ -32,8 +34,7 @@ func NewControllers(
 	kubeInformersForNamespaces operatorv1helpers.KubeInformersForNamespaces,
 	secretsClient corev1.SecretsGetter,
 	eventRecorder events.Recorder,
-	encryptedGRs ...schema.GroupResource,
-) (*Controllers, error) {
+) *Controllers {
 	// avoid using the CachedSecretGetter as we need strong guarantees that our encryptionSecretSelector works
 	// otherwise we could see secrets from a different component (which will break our keyID invariants)
 	// this is fine in terms of performance since these controllers will be idle most of the time
@@ -44,6 +45,7 @@ func NewControllers(
 		controllers: []runner{
 			controllers.NewKeyController(
 				component,
+				provider,
 				deployer,
 				operatorClient,
 				apiServerClient,
@@ -52,29 +54,29 @@ func NewControllers(
 				secretsClient,
 				encryptionSecretSelector,
 				eventRecorder,
-				encryptedGRs,
 			),
 			controllers.NewStateController(
 				component,
+				provider,
 				deployer,
 				operatorClient,
 				kubeInformersForNamespaces,
 				secretsClient,
 				encryptionSecretSelector,
 				eventRecorder,
-				encryptedGRs,
 			),
 			controllers.NewPruneController(
+				provider,
 				deployer,
 				operatorClient,
 				kubeInformersForNamespaces,
 				secretsClient,
 				encryptionSecretSelector,
 				eventRecorder,
-				encryptedGRs,
 			),
 			controllers.NewMigrationController(
 				component,
+				provider,
 				deployer,
 				migrator,
 				operatorClient,
@@ -82,29 +84,28 @@ func NewControllers(
 				secretsClient,
 				encryptionSecretSelector,
 				eventRecorder,
-				encryptedGRs,
 			),
 			controllers.NewConditionController(
+				provider,
 				deployer,
 				operatorClient,
 				kubeInformersForNamespaces,
 				secretsClient,
 				encryptionSecretSelector,
 				eventRecorder,
-				encryptedGRs,
 			),
 		},
-	}, nil
+	}
 }
 
 type Controllers struct {
 	controllers []runner
 }
 
-func (c *Controllers) Run(stopCh <-chan struct{}) {
+func (c *Controllers) Run(ctx context.Context, workers int) {
 	for _, controller := range c.controllers {
 		con := controller // capture range variable
-		go con.Run(stopCh)
+		go con.Run(ctx, workers)
 	}
-	<-stopCh
+	<-ctx.Done()
 }

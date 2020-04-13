@@ -195,3 +195,31 @@ func BenchmarkAssumeRoleProvider(b *testing.B) {
 		}
 	}
 }
+
+func TestAssumeRoleProvider_WithTags(t *testing.T) {
+	stub := &stubSTS{
+		TestInput: func(in *sts.AssumeRoleInput) {
+			if *in.TransitiveTagKeys[0] != "TagName" {
+				t.Errorf("TransitiveTagKeys not passed along")
+			}
+			if *in.Tags[0].Key != "TagName" || *in.Tags[0].Value != "TagValue" {
+				t.Errorf("Tags not passed along")
+			}
+		},
+	}
+	p := &AssumeRoleProvider{
+		Client:  stub,
+		RoleARN: "roleARN",
+		Tags: []*sts.Tag{
+			{
+				Key:   aws.String("TagName"),
+				Value: aws.String("TagValue"),
+			},
+		},
+		TransitiveTagKeys: []*string{aws.String("TagName")},
+	}
+	_, err := p.Retrieve()
+	if err != nil {
+		t.Errorf("expect error")
+	}
+}

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/test/extended/testdata"
-	testutil "github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -21,21 +21,21 @@ import (
 var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                 = testutil.NewCLI("ldap-group-sync", testutil.KubeConfigPath())
+		oc                 = exutil.NewCLI("ldap-group-sync")
 		remoteTmp          = "/tmp/"
 		caFileName         = "ca"
 		kubeConfigFileName = "kubeconfig"
 	)
 	g.It("can sync groups from ldap", func() {
 		g.By("starting an openldap server")
-		ldapService, ca, err := testutil.CreateLDAPTestServer(oc)
+		ldapService, ca, err := exutil.CreateLDAPTestServer(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("running oc adm groups sync against the ldap server")
 		_, err = oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "anyuid", oc.Username()).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		pod, err := testutil.NewPodExecutor(oc, "groupsync", "fedora:29")
+		pod, err := exutil.NewPodExecutor(oc, "groupsync", "fedora:29")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Install stuff needed for the exec pod to run groupsync.sh and hack/lib
@@ -74,7 +74,7 @@ var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 		err = pod.CopyFromHost(ldapCAPath, remoteTmp)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = pod.CopyFromHost(testutil.KubeConfigPath(), remoteTmp)
+		err = pod.CopyFromHost(exutil.KubeConfigPath(), remoteTmp)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		groupSyncScriptPath := path.Join(tmpDir, "groupsync.sh")

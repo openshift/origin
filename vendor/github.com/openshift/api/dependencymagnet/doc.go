@@ -8,6 +8,7 @@ import (
 	_ "github.com/gogo/protobuf/gogoproto"
 	_ "github.com/gogo/protobuf/proto"
 	_ "github.com/gogo/protobuf/sortkeys"
+	_ "github.com/openshift/build-machinery-go"
 	_ "github.com/spf13/pflag"
 	_ "k8s.io/code-generator"
 	_ "k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo"

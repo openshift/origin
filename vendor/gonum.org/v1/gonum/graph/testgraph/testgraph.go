@@ -953,6 +953,9 @@ func ReturnAdjacentNodes(t *testing.T, b Builder, useEmpty bool) {
 		want := make(map[edge]bool)
 		for _, e := range edges {
 			want[edge{f: e.From().ID(), t: e.To().ID()}] = true
+			if g.From(e.From().ID()).Len() == 0 {
+				t.Errorf("missing path from node %v with outbound edge %v", e.From().ID(), e)
+			}
 		}
 		for _, x := range nodes {
 			switch g := g.(type) {
@@ -1026,6 +1029,11 @@ func ReturnAdjacentNodes(t *testing.T, b Builder, useEmpty bool) {
 					}
 					if !want[edge{f: u.ID(), t: v.ID()}] {
 						t.Errorf("unexpected edge for test %q: (%v)->(%v)", test.name, u.ID(), v.ID())
+					}
+				}
+				for _, e := range edges {
+					if g.To(e.To().ID()).Len() == 0 {
+						t.Errorf("missing path to node %v with inbound edge %v", e.To().ID(), e)
 					}
 				}
 

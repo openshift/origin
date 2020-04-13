@@ -104,6 +104,10 @@ type BackupAPI interface {
 	DescribeBackupVaultWithContext(aws.Context, *backup.DescribeBackupVaultInput, ...request.Option) (*backup.DescribeBackupVaultOutput, error)
 	DescribeBackupVaultRequest(*backup.DescribeBackupVaultInput) (*request.Request, *backup.DescribeBackupVaultOutput)
 
+	DescribeCopyJob(*backup.DescribeCopyJobInput) (*backup.DescribeCopyJobOutput, error)
+	DescribeCopyJobWithContext(aws.Context, *backup.DescribeCopyJobInput, ...request.Option) (*backup.DescribeCopyJobOutput, error)
+	DescribeCopyJobRequest(*backup.DescribeCopyJobInput) (*request.Request, *backup.DescribeCopyJobOutput)
+
 	DescribeProtectedResource(*backup.DescribeProtectedResourceInput) (*backup.DescribeProtectedResourceOutput, error)
 	DescribeProtectedResourceWithContext(aws.Context, *backup.DescribeProtectedResourceInput, ...request.Option) (*backup.DescribeProtectedResourceOutput, error)
 	DescribeProtectedResourceRequest(*backup.DescribeProtectedResourceInput) (*request.Request, *backup.DescribeProtectedResourceOutput)
@@ -194,6 +198,13 @@ type BackupAPI interface {
 	ListBackupVaultsPages(*backup.ListBackupVaultsInput, func(*backup.ListBackupVaultsOutput, bool) bool) error
 	ListBackupVaultsPagesWithContext(aws.Context, *backup.ListBackupVaultsInput, func(*backup.ListBackupVaultsOutput, bool) bool, ...request.Option) error
 
+	ListCopyJobs(*backup.ListCopyJobsInput) (*backup.ListCopyJobsOutput, error)
+	ListCopyJobsWithContext(aws.Context, *backup.ListCopyJobsInput, ...request.Option) (*backup.ListCopyJobsOutput, error)
+	ListCopyJobsRequest(*backup.ListCopyJobsInput) (*request.Request, *backup.ListCopyJobsOutput)
+
+	ListCopyJobsPages(*backup.ListCopyJobsInput, func(*backup.ListCopyJobsOutput, bool) bool) error
+	ListCopyJobsPagesWithContext(aws.Context, *backup.ListCopyJobsInput, func(*backup.ListCopyJobsOutput, bool) bool, ...request.Option) error
+
 	ListProtectedResources(*backup.ListProtectedResourcesInput) (*backup.ListProtectedResourcesOutput, error)
 	ListProtectedResourcesWithContext(aws.Context, *backup.ListProtectedResourcesInput, ...request.Option) (*backup.ListProtectedResourcesOutput, error)
 	ListProtectedResourcesRequest(*backup.ListProtectedResourcesInput) (*request.Request, *backup.ListProtectedResourcesOutput)
@@ -240,6 +251,10 @@ type BackupAPI interface {
 	StartBackupJob(*backup.StartBackupJobInput) (*backup.StartBackupJobOutput, error)
 	StartBackupJobWithContext(aws.Context, *backup.StartBackupJobInput, ...request.Option) (*backup.StartBackupJobOutput, error)
 	StartBackupJobRequest(*backup.StartBackupJobInput) (*request.Request, *backup.StartBackupJobOutput)
+
+	StartCopyJob(*backup.StartCopyJobInput) (*backup.StartCopyJobOutput, error)
+	StartCopyJobWithContext(aws.Context, *backup.StartCopyJobInput, ...request.Option) (*backup.StartCopyJobOutput, error)
+	StartCopyJobRequest(*backup.StartCopyJobInput) (*request.Request, *backup.StartCopyJobOutput)
 
 	StartRestoreJob(*backup.StartRestoreJobInput) (*backup.StartRestoreJobOutput, error)
 	StartRestoreJobWithContext(aws.Context, *backup.StartRestoreJobInput, ...request.Option) (*backup.StartRestoreJobOutput, error)

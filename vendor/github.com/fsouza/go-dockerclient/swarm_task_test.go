@@ -6,6 +6,7 @@ package docker
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -362,13 +363,17 @@ func TestInspectTask(t *testing.T) {
 
 func TestInspectTaskNotFound(t *testing.T) {
 	t.Parallel()
+	const taskID = "notfound"
 	client := newTestClient(&FakeRoundTripper{message: "no such task", status: http.StatusNotFound})
-	task, err := client.InspectTask("notfound")
+	task, err := client.InspectTask(taskID)
 	if task != nil {
 		t.Errorf("InspectTask: Expected <nil> task, got %#v", task)
 	}
-	expected := &NoSuchTask{ID: "notfound"}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("InspectTask: Wrong error returned. Want %#v. Got %#v.", expected, err)
+	var taskErr *NoSuchTask
+	if !errors.As(err, &taskErr) {
+		t.Fatalf("InspectTask: wrong error tyope returned. Want %#v. Got %#v.", taskErr, err)
+	}
+	if taskErr.ID != taskID {
+		t.Errorf("wrong taskID\nwant %q\ngot  %q", taskID, taskErr.ID)
 	}
 }

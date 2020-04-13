@@ -3,6 +3,8 @@
 package fake
 
 import (
+	"context"
+
 	securityv1 "github.com/openshift/api/security/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -22,7 +24,7 @@ var rangeallocationsResource = schema.GroupVersionResource{Group: "security.open
 var rangeallocationsKind = schema.GroupVersionKind{Group: "security.openshift.io", Version: "v1", Kind: "RangeAllocation"}
 
 // Get takes name of the rangeAllocation, and returns the corresponding rangeAllocation object, and an error if there is any.
-func (c *FakeRangeAllocations) Get(name string, options v1.GetOptions) (result *securityv1.RangeAllocation, err error) {
+func (c *FakeRangeAllocations) Get(ctx context.Context, name string, options v1.GetOptions) (result *securityv1.RangeAllocation, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(rangeallocationsResource, name), &securityv1.RangeAllocation{})
 	if obj == nil {
@@ -32,7 +34,7 @@ func (c *FakeRangeAllocations) Get(name string, options v1.GetOptions) (result *
 }
 
 // List takes label and field selectors, and returns the list of RangeAllocations that match those selectors.
-func (c *FakeRangeAllocations) List(opts v1.ListOptions) (result *securityv1.RangeAllocationList, err error) {
+func (c *FakeRangeAllocations) List(ctx context.Context, opts v1.ListOptions) (result *securityv1.RangeAllocationList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(rangeallocationsResource, rangeallocationsKind, opts), &securityv1.RangeAllocationList{})
 	if obj == nil {
@@ -53,13 +55,13 @@ func (c *FakeRangeAllocations) List(opts v1.ListOptions) (result *securityv1.Ran
 }
 
 // Watch returns a watch.Interface that watches the requested rangeAllocations.
-func (c *FakeRangeAllocations) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeRangeAllocations) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(rangeallocationsResource, opts))
 }
 
 // Create takes the representation of a rangeAllocation and creates it.  Returns the server's representation of the rangeAllocation, and an error, if there is any.
-func (c *FakeRangeAllocations) Create(rangeAllocation *securityv1.RangeAllocation) (result *securityv1.RangeAllocation, err error) {
+func (c *FakeRangeAllocations) Create(ctx context.Context, rangeAllocation *securityv1.RangeAllocation, opts v1.CreateOptions) (result *securityv1.RangeAllocation, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(rangeallocationsResource, rangeAllocation), &securityv1.RangeAllocation{})
 	if obj == nil {
@@ -69,7 +71,7 @@ func (c *FakeRangeAllocations) Create(rangeAllocation *securityv1.RangeAllocatio
 }
 
 // Update takes the representation of a rangeAllocation and updates it. Returns the server's representation of the rangeAllocation, and an error, if there is any.
-func (c *FakeRangeAllocations) Update(rangeAllocation *securityv1.RangeAllocation) (result *securityv1.RangeAllocation, err error) {
+func (c *FakeRangeAllocations) Update(ctx context.Context, rangeAllocation *securityv1.RangeAllocation, opts v1.UpdateOptions) (result *securityv1.RangeAllocation, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(rangeallocationsResource, rangeAllocation), &securityv1.RangeAllocation{})
 	if obj == nil {
@@ -79,22 +81,22 @@ func (c *FakeRangeAllocations) Update(rangeAllocation *securityv1.RangeAllocatio
 }
 
 // Delete takes name of the rangeAllocation and deletes it. Returns an error if one occurs.
-func (c *FakeRangeAllocations) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeRangeAllocations) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(rangeallocationsResource, name), &securityv1.RangeAllocation{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeRangeAllocations) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(rangeallocationsResource, listOptions)
+func (c *FakeRangeAllocations) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(rangeallocationsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &securityv1.RangeAllocationList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched rangeAllocation.
-func (c *FakeRangeAllocations) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *securityv1.RangeAllocation, err error) {
+func (c *FakeRangeAllocations) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *securityv1.RangeAllocation, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(rangeallocationsResource, name, pt, data, subresources...), &securityv1.RangeAllocation{})
 	if obj == nil {

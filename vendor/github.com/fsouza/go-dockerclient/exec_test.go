@@ -215,7 +215,7 @@ func TestExecStartDetached(t *testing.T) {
 
 func TestExecStartAndAttach(t *testing.T) {
 	reader := strings.NewReader("send value")
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
 		w.Write([]byte("hello"))
 	}))

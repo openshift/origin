@@ -191,10 +191,6 @@ type Benchmarker interface {
 	RecordValueWithPrecision(name string, value float64, units string, precision int, info ...interface{})
 }
 
-func WalkTests(fn func(name string, node types.TestNode)) {
-	globalSuite.WalkTests(fn)
-}
-
 //RunSpecs is the entry point for the Ginkgo test runner.
 //You must call this within a Golang testing TestX(t *testing.T) function.
 //

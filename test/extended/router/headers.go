@@ -2,6 +2,7 @@ package router
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -19,20 +20,23 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
+var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "router-http-echo-server.yaml")
-		oc         = exutil.NewCLI("router-headers", exutil.KubeConfigPath())
+		oc         = exutil.NewCLI("router-headers")
 
 		routerIP  string
 		metricsIP string
 		infra     *configv1.Infrastructure
+		network   *configv1.Network
 	)
 
 	g.BeforeEach(func() {
 		var err error
-		infra, err = oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
+		infra, err = oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		network, err = oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		routerIP, err = exutil.WaitForRouterServiceIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -43,11 +47,17 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("should set Forwarded headers appropriately", func() {
 			o.Expect(infra).NotTo(o.BeNil())
+			o.Expect(network).NotTo(o.BeNil())
 
-			if !(infra.Status.PlatformStatus.Type == configv1.AWSPlatformType ||
-				infra.Status.PlatformStatus.Type == configv1.AzurePlatformType ||
-				infra.Status.PlatformStatus.Type == configv1.GCPPlatformType) {
-				g.Skip(fmt.Sprintf("BZ 1772125 -- not verified on platform type %q", infra.Status.PlatformStatus.Type))
+			platformType := infra.Status.Platform
+			if infra.Status.PlatformStatus != nil {
+				platformType = infra.Status.PlatformStatus.Type
+			}
+			switch platformType {
+			case configv1.AWSPlatformType, configv1.AzurePlatformType, configv1.GCPPlatformType:
+				// supported
+			default:
+				g.Skip(fmt.Sprintf("BZ 1772125 -- not verified on platform type %q", platformType))
 			}
 
 			defer func() {
@@ -59,7 +69,9 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 
 			ns := oc.KubeFramework().Namespace.Name
 			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+			}()
 
 			g.By(fmt.Sprintf("creating an http echo server from a config file %q", configPath))
 
@@ -68,7 +80,7 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 
 			var clientIP string
 			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(ns).Get("execpod", metav1.GetOptions{})
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(ns).Get(context.Background(), "execpod", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -111,7 +123,8 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 			g.By(fmt.Sprintf("inspecting the echoed headers"))
 			ffHeader := req.Header.Get("X-Forwarded-For")
 
-			switch infra.Status.PlatformStatus.Type {
+			ignoreClientIP := false
+			switch platformType {
 			case configv1.AWSPlatformType:
 				// On AWS we can only assert that we
 				// get an X-Forwarded-For header; we
@@ -175,10 +188,23 @@ var _ = g.Describe("[Conformance][sig-network][Feature:Router]", func() {
 				// `clientIP` given the route the GET
 				// request takes. So for AWS we just
 				// expect the header to be present.
+				ignoreClientIP = true
+			}
+
+			if network.Status.NetworkType == "OVNKubernetes" {
+				// Similarly to AWS, the connection is
+				// NAT'd to an unknown address when
+				// the network plugin is
+				// OVNKubernetes, so we must disable
+				// the check in this case too.
+				ignoreClientIP = true
+			}
+
+			if ignoreClientIP {
 				if ffHeader == "" {
 					e2e.Failf("Expected X-Forwarded-For header; All headers: %#v", req.Header)
 				}
-			default:
+			} else {
 				if ffHeader != clientIP {
 					e2e.Failf("Unexpected header: '%s' (expected %s); All headers: %#v", ffHeader, clientIP, req.Header)
 				}

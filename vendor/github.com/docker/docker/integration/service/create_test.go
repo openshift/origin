@@ -10,12 +10,16 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	swarmtypes "github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/api/types/versions"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/errdefs"
+	"github.com/docker/docker/integration/internal/network"
 	"github.com/docker/docker/integration/internal/swarm"
 	"github.com/docker/docker/internal/test/daemon"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
-	"github.com/gotestyourself/gotestyourself/poll"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+	"gotest.tools/poll"
+	"gotest.tools/skip"
 )
 
 func TestServiceCreateInit(t *testing.T) {
@@ -40,18 +44,18 @@ func testServiceCreateInit(daemonEnabled bool) func(t *testing.T) {
 		booleanFalse := false
 
 		serviceID := swarm.CreateService(t, d)
-		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, 1), swarm.ServicePoll)
+		poll.WaitOn(t, swarm.RunningTasksCount(client, serviceID, 1), swarm.ServicePoll)
 		i := inspectServiceContainer(t, client, serviceID)
 		// HostConfig.Init == nil means that it delegates to daemon configuration
 		assert.Check(t, i.HostConfig.Init == nil)
 
 		serviceID = swarm.CreateService(t, d, swarm.ServiceWithInit(&booleanTrue))
-		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, 1), swarm.ServicePoll)
+		poll.WaitOn(t, swarm.RunningTasksCount(client, serviceID, 1), swarm.ServicePoll)
 		i = inspectServiceContainer(t, client, serviceID)
 		assert.Check(t, is.Equal(true, *i.HostConfig.Init))
 
 		serviceID = swarm.CreateService(t, d, swarm.ServiceWithInit(&booleanFalse))
-		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, 1), swarm.ServicePoll)
+		poll.WaitOn(t, swarm.RunningTasksCount(client, serviceID, 1), swarm.ServicePoll)
 		i = inspectServiceContainer(t, client, serviceID)
 		assert.Check(t, is.Equal(false, *i.HostConfig.Init))
 	}
@@ -71,21 +75,19 @@ func inspectServiceContainer(t *testing.T, client client.APIClient, serviceID st
 }
 
 func TestCreateServiceMultipleTimes(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
 	client := d.NewClientT(t)
 	defer client.Close()
+	ctx := context.Background()
 
 	overlayName := "overlay1_" + t.Name()
-	networkCreate := types.NetworkCreate{
-		CheckDuplicate: true,
-		Driver:         "overlay",
-	}
-
-	netResp, err := client.NetworkCreate(context.Background(), overlayName, networkCreate)
-	assert.NilError(t, err)
-	overlayID := netResp.ID
+	overlayID := network.CreateNoError(t, ctx, client, overlayName,
+		network.WithCheckDuplicate(),
+		network.WithDriver("overlay"),
+	)
 
 	var instances uint64 = 4
 
@@ -97,55 +99,87 @@ func TestCreateServiceMultipleTimes(t *testing.T) {
 	}
 
 	serviceID := swarm.CreateService(t, d, serviceSpec...)
-	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances), swarm.ServicePoll)
+	poll.WaitOn(t, swarm.RunningTasksCount(client, serviceID, instances), swarm.ServicePoll)
 
-	_, _, err = client.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
+	_, _, err := client.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
 	assert.NilError(t, err)
 
 	err = client.ServiceRemove(context.Background(), serviceID)
 	assert.NilError(t, err)
 
-	poll.WaitOn(t, serviceIsRemoved(client, serviceID), swarm.ServicePoll)
-	poll.WaitOn(t, noTasks(client), swarm.ServicePoll)
+	poll.WaitOn(t, swarm.NoTasksForService(ctx, client, serviceID), swarm.ServicePoll)
 
 	serviceID2 := swarm.CreateService(t, d, serviceSpec...)
-	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID2, instances), swarm.ServicePoll)
+	poll.WaitOn(t, swarm.RunningTasksCount(client, serviceID2, instances), swarm.ServicePoll)
 
 	err = client.ServiceRemove(context.Background(), serviceID2)
 	assert.NilError(t, err)
 
-	poll.WaitOn(t, serviceIsRemoved(client, serviceID2), swarm.ServicePoll)
-	poll.WaitOn(t, noTasks(client), swarm.ServicePoll)
+	poll.WaitOn(t, swarm.NoTasksForService(ctx, client, serviceID2), swarm.ServicePoll)
 
 	err = client.NetworkRemove(context.Background(), overlayID)
 	assert.NilError(t, err)
 
-	poll.WaitOn(t, networkIsRemoved(client, overlayID), poll.WithTimeout(1*time.Minute), poll.WithDelay(10*time.Second))
+	poll.WaitOn(t, network.IsRemoved(context.Background(), client, overlayID), poll.WithTimeout(1*time.Minute), poll.WithDelay(10*time.Second))
 }
 
-func TestCreateWithDuplicateNetworkNames(t *testing.T) {
+func TestCreateServiceConflict(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
+	defer setupTest(t)()
+	d := swarm.NewSwarm(t, testEnv)
+	defer d.Stop(t)
+	c := d.NewClientT(t)
+	defer c.Close()
+	ctx := context.Background()
+
+	serviceName := "TestService_" + t.Name()
+	serviceSpec := []swarm.ServiceSpecOpt{
+		swarm.ServiceWithName(serviceName),
+	}
+
+	swarm.CreateService(t, d, serviceSpec...)
+
+	spec := swarm.CreateServiceSpec(t, serviceSpec...)
+	_, err := c.ServiceCreate(ctx, spec, types.ServiceCreateOptions{})
+	assert.Check(t, errdefs.IsConflict(err))
+	assert.ErrorContains(t, err, "service "+serviceName+" already exists")
+}
+
+func TestCreateServiceMaxReplicas(t *testing.T) {
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
 	client := d.NewClientT(t)
 	defer client.Close()
 
-	name := "foo_" + t.Name()
-	networkCreate := types.NetworkCreate{
-		CheckDuplicate: false,
-		Driver:         "bridge",
+	var maxReplicas uint64 = 2
+	serviceSpec := []swarm.ServiceSpecOpt{
+		swarm.ServiceWithReplicas(maxReplicas),
+		swarm.ServiceWithMaxReplicas(maxReplicas),
 	}
 
-	n1, err := client.NetworkCreate(context.Background(), name, networkCreate)
-	assert.NilError(t, err)
+	serviceID := swarm.CreateService(t, d, serviceSpec...)
+	poll.WaitOn(t, swarm.RunningTasksCount(client, serviceID, maxReplicas), swarm.ServicePoll)
 
-	n2, err := client.NetworkCreate(context.Background(), name, networkCreate)
+	_, _, err := client.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
 	assert.NilError(t, err)
+}
 
-	// Dupliates with name but with different driver
-	networkCreate.Driver = "overlay"
-	n3, err := client.NetworkCreate(context.Background(), name, networkCreate)
-	assert.NilError(t, err)
+func TestCreateWithDuplicateNetworkNames(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
+	defer setupTest(t)()
+	d := swarm.NewSwarm(t, testEnv)
+	defer d.Stop(t)
+	client := d.NewClientT(t)
+	defer client.Close()
+	ctx := context.Background()
+
+	name := "foo_" + t.Name()
+	n1 := network.CreateNoError(t, ctx, client, name, network.WithDriver("bridge"))
+	n2 := network.CreateNoError(t, ctx, client, name, network.WithDriver("bridge"))
+
+	// Duplicates with name but with different driver
+	n3 := network.CreateNoError(t, ctx, client, name, network.WithDriver("overlay"))
 
 	// Create Service with the same name
 	var instances uint64 = 1
@@ -157,36 +191,35 @@ func TestCreateWithDuplicateNetworkNames(t *testing.T) {
 		swarm.ServiceWithNetwork(name),
 	)
 
-	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances), swarm.ServicePoll)
+	poll.WaitOn(t, swarm.RunningTasksCount(client, serviceID, instances), swarm.ServicePoll)
 
-	resp, _, err := client.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
+	resp, _, err := client.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
 	assert.NilError(t, err)
-	assert.Check(t, is.Equal(n3.ID, resp.Spec.TaskTemplate.Networks[0].Target))
+	assert.Check(t, is.Equal(n3, resp.Spec.TaskTemplate.Networks[0].Target))
 
-	// Remove Service
-	err = client.ServiceRemove(context.Background(), serviceID)
+	// Remove Service, and wait for its tasks to be removed
+	err = client.ServiceRemove(ctx, serviceID)
 	assert.NilError(t, err)
-
-	// Make sure task has been destroyed.
-	poll.WaitOn(t, serviceIsRemoved(client, serviceID), swarm.ServicePoll)
+	poll.WaitOn(t, swarm.NoTasksForService(ctx, client, serviceID), swarm.ServicePoll)
 
 	// Remove networks
-	err = client.NetworkRemove(context.Background(), n3.ID)
+	err = client.NetworkRemove(context.Background(), n3)
 	assert.NilError(t, err)
 
-	err = client.NetworkRemove(context.Background(), n2.ID)
+	err = client.NetworkRemove(context.Background(), n2)
 	assert.NilError(t, err)
 
-	err = client.NetworkRemove(context.Background(), n1.ID)
+	err = client.NetworkRemove(context.Background(), n1)
 	assert.NilError(t, err)
 
 	// Make sure networks have been destroyed.
-	poll.WaitOn(t, networkIsRemoved(client, n3.ID), poll.WithTimeout(1*time.Minute), poll.WithDelay(10*time.Second))
-	poll.WaitOn(t, networkIsRemoved(client, n2.ID), poll.WithTimeout(1*time.Minute), poll.WithDelay(10*time.Second))
-	poll.WaitOn(t, networkIsRemoved(client, n1.ID), poll.WithTimeout(1*time.Minute), poll.WithDelay(10*time.Second))
+	poll.WaitOn(t, network.IsRemoved(context.Background(), client, n3), poll.WithTimeout(1*time.Minute), poll.WithDelay(10*time.Second))
+	poll.WaitOn(t, network.IsRemoved(context.Background(), client, n2), poll.WithTimeout(1*time.Minute), poll.WithDelay(10*time.Second))
+	poll.WaitOn(t, network.IsRemoved(context.Background(), client, n1), poll.WithTimeout(1*time.Minute), poll.WithDelay(10*time.Second))
 }
 
 func TestCreateServiceSecretFileMode(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
@@ -221,7 +254,7 @@ func TestCreateServiceSecretFileMode(t *testing.T) {
 		}),
 	)
 
-	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances), swarm.ServicePoll)
+	poll.WaitOn(t, swarm.RunningTasksCount(client, serviceID, instances), swarm.ServicePoll)
 
 	filter := filters.NewArgs()
 	filter.Add("service", serviceID)
@@ -243,15 +276,14 @@ func TestCreateServiceSecretFileMode(t *testing.T) {
 
 	err = client.ServiceRemove(ctx, serviceID)
 	assert.NilError(t, err)
-
-	poll.WaitOn(t, serviceIsRemoved(client, serviceID), swarm.ServicePoll)
-	poll.WaitOn(t, noTasks(client), swarm.ServicePoll)
+	poll.WaitOn(t, swarm.NoTasksForService(ctx, client, serviceID), swarm.ServicePoll)
 
 	err = client.SecretRemove(ctx, secretName)
 	assert.NilError(t, err)
 }
 
 func TestCreateServiceConfigFileMode(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
@@ -286,7 +318,7 @@ func TestCreateServiceConfigFileMode(t *testing.T) {
 		}),
 	)
 
-	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances))
+	poll.WaitOn(t, swarm.RunningTasksCount(client, serviceID, instances))
 
 	filter := filters.NewArgs()
 	filter.Add("service", serviceID)
@@ -308,74 +340,103 @@ func TestCreateServiceConfigFileMode(t *testing.T) {
 
 	err = client.ServiceRemove(ctx, serviceID)
 	assert.NilError(t, err)
-
-	poll.WaitOn(t, serviceIsRemoved(client, serviceID))
-	poll.WaitOn(t, noTasks(client))
+	poll.WaitOn(t, swarm.NoTasksForService(ctx, client, serviceID))
 
 	err = client.ConfigRemove(ctx, configName)
 	assert.NilError(t, err)
 }
 
-func serviceRunningTasksCount(client client.ServiceAPIClient, serviceID string, instances uint64) func(log poll.LogT) poll.Result {
-	return func(log poll.LogT) poll.Result {
+// TestServiceCreateSysctls tests that a service created with sysctl options in
+// the ContainerSpec correctly applies those options.
+//
+// To test this, we're going to create a service with the sysctl option
+//
+//   {"net.ipv4.ip_nonlocal_bind": "0"}
+//
+// We'll get the service's tasks to get the container ID, and then we'll
+// inspect the container. If the output of the container inspect contains the
+// sysctl option with the correct value, we can assume that the sysctl has been
+// plumbed correctly.
+//
+// Next, we'll remove that service and create a new service with that option
+// set to 1. This means that no matter what the default is, we can be confident
+// that the sysctl option is applying as intended.
+//
+// Additionally, we'll do service and task inspects to verify that the inspect
+// output includes the desired sysctl option.
+//
+// We're using net.ipv4.ip_nonlocal_bind because it's something that I'm fairly
+// confident won't be modified by the container runtime, and won't blow
+// anything up in the test environment
+func TestCreateServiceSysctls(t *testing.T) {
+	skip.If(
+		t, versions.LessThan(testEnv.DaemonAPIVersion(), "1.40"),
+		"setting service sysctls is unsupported before api v1.40",
+	)
+
+	defer setupTest(t)()
+	d := swarm.NewSwarm(t, testEnv)
+	defer d.Stop(t)
+	client := d.NewClientT(t)
+	defer client.Close()
+
+	ctx := context.Background()
+
+	// run thie block twice, so that no matter what the default value of
+	// net.ipv4.ip_nonlocal_bind is, we can verify that setting the sysctl
+	// options works
+	for _, expected := range []string{"0", "1"} {
+
+		// store the map we're going to be using everywhere.
+		expectedSysctls := map[string]string{"net.ipv4.ip_nonlocal_bind": expected}
+
+		// Create the service with the sysctl options
+		var instances uint64 = 1
+		serviceID := swarm.CreateService(t, d,
+			swarm.ServiceWithSysctls(expectedSysctls),
+		)
+
+		// wait for the service to converge to 1 running task as expected
+		poll.WaitOn(t, swarm.RunningTasksCount(client, serviceID, instances))
+
+		// we're going to check 3 things:
+		//
+		//   1. Does the container, when inspected, have the sysctl option set?
+		//   2. Does the task have the sysctl in the spec?
+		//   3. Does the service have the sysctl in the spec?
+		//
+		// if all 3 of these things are true, we know that the sysctl has been
+		// plumbed correctly through the engine.
+		//
+		// We don't actually have to get inside the container and check its
+		// logs or anything. If we see the sysctl set on the container inspect,
+		// we know that the sysctl is plumbed correctly. everything below that
+		// level has been tested elsewhere. (thanks @thaJeztah, because an
+		// earlier version of this test had to get container logs and was much
+		// more complex)
+
+		// get all of the tasks of the service, so we can get the container
 		filter := filters.NewArgs()
 		filter.Add("service", serviceID)
-		tasks, err := client.TaskList(context.Background(), types.TaskListOptions{
+		tasks, err := client.TaskList(ctx, types.TaskListOptions{
 			Filters: filter,
 		})
-		switch {
-		case err != nil:
-			return poll.Error(err)
-		case len(tasks) == int(instances):
-			for _, task := range tasks {
-				if task.Status.State != swarmtypes.TaskStateRunning {
-					return poll.Continue("waiting for tasks to enter run state")
-				}
-			}
-			return poll.Success()
-		default:
-			return poll.Continue("task count at %d waiting for %d", len(tasks), instances)
-		}
-	}
-}
+		assert.NilError(t, err)
+		assert.Check(t, is.Equal(len(tasks), 1))
 
-func noTasks(client client.ServiceAPIClient) func(log poll.LogT) poll.Result {
-	return func(log poll.LogT) poll.Result {
-		filter := filters.NewArgs()
-		tasks, err := client.TaskList(context.Background(), types.TaskListOptions{
-			Filters: filter,
-		})
-		switch {
-		case err != nil:
-			return poll.Error(err)
-		case len(tasks) == 0:
-			return poll.Success()
-		default:
-			return poll.Continue("task count at %d waiting for 0", len(tasks))
-		}
-	}
-}
+		// verify that the container has the sysctl option set
+		ctnr, err := client.ContainerInspect(ctx, tasks[0].Status.ContainerStatus.ContainerID)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, ctnr.HostConfig.Sysctls, expectedSysctls)
 
-func serviceIsRemoved(client client.ServiceAPIClient, serviceID string) func(log poll.LogT) poll.Result {
-	return func(log poll.LogT) poll.Result {
-		filter := filters.NewArgs()
-		filter.Add("service", serviceID)
-		_, err := client.TaskList(context.Background(), types.TaskListOptions{
-			Filters: filter,
-		})
-		if err == nil {
-			return poll.Continue("waiting for service %s to be deleted", serviceID)
-		}
-		return poll.Success()
-	}
-}
+		// verify that the task has the sysctl option set in the task object
+		assert.DeepEqual(t, tasks[0].Spec.ContainerSpec.Sysctls, expectedSysctls)
 
-func networkIsRemoved(client client.NetworkAPIClient, networkID string) func(log poll.LogT) poll.Result {
-	return func(log poll.LogT) poll.Result {
-		_, err := client.NetworkInspect(context.Background(), networkID, types.NetworkInspectOptions{})
-		if err == nil {
-			return poll.Continue("waiting for network %s to be removed", networkID)
-		}
-		return poll.Success()
+		// verify that the service also has the sysctl set in the spec.
+		service, _, err := client.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+		assert.NilError(t, err)
+		assert.DeepEqual(t,
+			service.Spec.TaskTemplate.ContainerSpec.Sysctls, expectedSysctls,
+		)
 	}
 }

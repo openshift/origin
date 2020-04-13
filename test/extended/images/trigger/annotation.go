@@ -1,12 +1,14 @@
 package trigger
 
 import (
+	"context"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -20,7 +22,7 @@ var (
 var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Annotation trigger", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
+	oc := exutil.NewCLI("cli-deployment")
 
 	var (
 		deploymentFixture = exutil.FixturePath("testdata", "image", "deployment-with-annotation-trigger.yaml")
@@ -35,7 +37,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Annotation trigge
 		o.Expect(deployment.Spec.Template.Spec.Containers).To(o.HaveLen(1))
 		o.Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(o.Equal(" "))
 
-		deployment, err = oc.KubeClient().AppsV1().Deployments(namespace).Create(deployment)
+		deployment, err = oc.KubeClient().AppsV1().Deployments(namespace).Create(context.Background(), deployment, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(o.Equal(" "))
 
@@ -52,8 +54,8 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Annotation trigge
 
 		g.By("setting Deployment image repeatedly to ' ' to fight with annotation trigger")
 		for i := 0; i < 50; i++ {
-			deployment, err = oc.KubeClient().AppsV1().Deployments(namespace).Patch(deployment.Name, types.StrategicMergePatchType,
-				[]byte(`{"spec":{"template":{"spec":{"containers":[{"name":"test","image":" "}]}}}}`))
+			deployment, err = oc.KubeClient().AppsV1().Deployments(namespace).Patch(context.Background(), deployment.Name, types.StrategicMergePatchType,
+				[]byte(`{"spec":{"template":{"spec":{"containers":[{"name":"test","image":" "}]}}}}`), metav1.PatchOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(o.Equal(" "))
 		}

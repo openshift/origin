@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e_node
+package e2enode
 
 import (
 	"bytes"
@@ -28,7 +28,7 @@ import (
 	"strings"
 
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -125,8 +125,7 @@ func loadTestProfiles() error {
 		return fmt.Errorf("failed to write profiles to file: %v", err)
 	}
 
-	// TODO(random-liu): The test is run as root now, no need to use sudo here.
-	cmd := exec.Command("sudo", "apparmor_parser", "-r", "-W", f.Name())
+	cmd := exec.Command("apparmor_parser", "-r", "-W", f.Name())
 	stderr := &bytes.Buffer{}
 	cmd.Stderr = stderr
 	out, err := cmd.Output()
@@ -152,14 +151,14 @@ func runAppArmorTest(f *framework.Framework, shouldRun bool, profile string) v1.
 			f.ClientSet, pod.Name, f.Namespace.Name, framework.PodStartTimeout))
 	} else {
 		// Pod should remain in the pending state. Wait for the Reason to be set to "AppArmor".
-		w, err := f.PodClient().Watch(metav1.SingleObject(metav1.ObjectMeta{Name: pod.Name}))
+		w, err := f.PodClient().Watch(context.TODO(), metav1.SingleObject(metav1.ObjectMeta{Name: pod.Name}))
 		framework.ExpectNoError(err)
 		ctx, cancel := watchtools.ContextWithOptionalTimeout(context.Background(), framework.PodStartTimeout)
 		defer cancel()
 		_, err = watchtools.UntilWithoutRetry(ctx, w, func(e watch.Event) (bool, error) {
 			switch e.Type {
 			case watch.Deleted:
-				return false, errors.NewNotFound(schema.GroupResource{Resource: "pods"}, pod.Name)
+				return false, apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, pod.Name)
 			}
 			switch t := e.Object.(type) {
 			case *v1.Pod:
@@ -171,7 +170,7 @@ func runAppArmorTest(f *framework.Framework, shouldRun bool, profile string) v1.
 		})
 		framework.ExpectNoError(err)
 	}
-	p, err := f.PodClient().Get(pod.Name, metav1.GetOptions{})
+	p, err := f.PodClient().Get(context.TODO(), pod.Name, metav1.GetOptions{})
 	framework.ExpectNoError(err)
 	return p.Status
 }

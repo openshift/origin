@@ -26,7 +26,7 @@ import (
 //    // myFunc uses an SDK service client to make a request to
 //    // AWS RDS DataService.
 //    func myFunc(svc rdsdataserviceiface.RDSDataServiceAPI) bool {
-//        // Make svc.ExecuteSql request
+//        // Make svc.BatchExecuteStatement request
 //    }
 //
 //    func main() {
@@ -42,7 +42,7 @@ import (
 //    type mockRDSDataServiceClient struct {
 //        rdsdataserviceiface.RDSDataServiceAPI
 //    }
-//    func (m *mockRDSDataServiceClient) ExecuteSql(input *rdsdataservice.ExecuteSqlInput) (*rdsdataservice.ExecuteSqlOutput, error) {
+//    func (m *mockRDSDataServiceClient) BatchExecuteStatement(input *rdsdataservice.BatchExecuteStatementInput) (*rdsdataservice.BatchExecuteStatementOutput, error) {
 //        // mock response/functionality
 //    }
 //
@@ -60,9 +60,29 @@ import (
 // and waiters. Its suggested to use the pattern above for testing, or using
 // tooling to generate mocks to satisfy the interfaces.
 type RDSDataServiceAPI interface {
+	BatchExecuteStatement(*rdsdataservice.BatchExecuteStatementInput) (*rdsdataservice.BatchExecuteStatementOutput, error)
+	BatchExecuteStatementWithContext(aws.Context, *rdsdataservice.BatchExecuteStatementInput, ...request.Option) (*rdsdataservice.BatchExecuteStatementOutput, error)
+	BatchExecuteStatementRequest(*rdsdataservice.BatchExecuteStatementInput) (*request.Request, *rdsdataservice.BatchExecuteStatementOutput)
+
+	BeginTransaction(*rdsdataservice.BeginTransactionInput) (*rdsdataservice.BeginTransactionOutput, error)
+	BeginTransactionWithContext(aws.Context, *rdsdataservice.BeginTransactionInput, ...request.Option) (*rdsdataservice.BeginTransactionOutput, error)
+	BeginTransactionRequest(*rdsdataservice.BeginTransactionInput) (*request.Request, *rdsdataservice.BeginTransactionOutput)
+
+	CommitTransaction(*rdsdataservice.CommitTransactionInput) (*rdsdataservice.CommitTransactionOutput, error)
+	CommitTransactionWithContext(aws.Context, *rdsdataservice.CommitTransactionInput, ...request.Option) (*rdsdataservice.CommitTransactionOutput, error)
+	CommitTransactionRequest(*rdsdataservice.CommitTransactionInput) (*request.Request, *rdsdataservice.CommitTransactionOutput)
+
 	ExecuteSql(*rdsdataservice.ExecuteSqlInput) (*rdsdataservice.ExecuteSqlOutput, error)
 	ExecuteSqlWithContext(aws.Context, *rdsdataservice.ExecuteSqlInput, ...request.Option) (*rdsdataservice.ExecuteSqlOutput, error)
 	ExecuteSqlRequest(*rdsdataservice.ExecuteSqlInput) (*request.Request, *rdsdataservice.ExecuteSqlOutput)
+
+	ExecuteStatement(*rdsdataservice.ExecuteStatementInput) (*rdsdataservice.ExecuteStatementOutput, error)
+	ExecuteStatementWithContext(aws.Context, *rdsdataservice.ExecuteStatementInput, ...request.Option) (*rdsdataservice.ExecuteStatementOutput, error)
+	ExecuteStatementRequest(*rdsdataservice.ExecuteStatementInput) (*request.Request, *rdsdataservice.ExecuteStatementOutput)
+
+	RollbackTransaction(*rdsdataservice.RollbackTransactionInput) (*rdsdataservice.RollbackTransactionOutput, error)
+	RollbackTransactionWithContext(aws.Context, *rdsdataservice.RollbackTransactionInput, ...request.Option) (*rdsdataservice.RollbackTransactionOutput, error)
+	RollbackTransactionRequest(*rdsdataservice.RollbackTransactionInput) (*request.Request, *rdsdataservice.RollbackTransactionOutput)
 }
 
 var _ RDSDataServiceAPI = (*rdsdataservice.RDSDataService)(nil)

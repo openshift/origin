@@ -4,7 +4,6 @@ import "k8s.io/apimachinery/pkg/runtime/schema"
 
 func init() {
 	newIgnoredResources := map[schema.GroupResource]struct{}{
-		{Group: "extensions", Resource: "replicationcontrollers"}:                     {},
 		{Group: "extensions", Resource: "networkpolicies"}:                            {},
 		{Group: "", Resource: "bindings"}:                                             {},
 		{Group: "", Resource: "componentstatuses"}:                                    {},

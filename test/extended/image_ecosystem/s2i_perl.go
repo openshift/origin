@@ -1,6 +1,7 @@
 package image_ecosystem
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -21,7 +22,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy f
 	var (
 		appSource     = exutil.FixturePath("testdata", "image_ecosystem", "perl-hotdeploy")
 		perlTemplate  = exutil.FixturePath("testdata", "image_ecosystem", "perl-hotdeploy", "perl.json")
-		oc            = exutil.NewCLI("s2i-perl", exutil.KubeConfigPath())
+		oc            = exutil.NewCLI("s2i-perl")
 		modifyCommand = []string{"sed", "-ie", `s/initial value/modified value/`, "lib/My/Test.pm"}
 		dcName        = "perl"
 		rcNameOne     = fmt.Sprintf("%s-1", dcName)
@@ -67,7 +68,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy f
 				g.By("waiting for endpoint")
 				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), dcName)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				oldEndpoint, err := oc.KubeFramework().ClientSet.CoreV1().Endpoints(oc.Namespace()).Get(dcName, metav1.GetOptions{})
+				oldEndpoint, err := oc.KubeFramework().ClientSet.CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), dcName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				checkPage := func(expected string, dcLabel labels.Selector) {
@@ -99,7 +100,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy f
 				// request timeouts against the previous pod's ip.  So make sure the endpoint is pointing to the
 				// new pod before hitting it.
 				err = wait.Poll(1*time.Second, 1*time.Minute, func() (bool, error) {
-					newEndpoint, err := oc.KubeFramework().ClientSet.CoreV1().Endpoints(oc.Namespace()).Get(dcName, metav1.GetOptions{})
+					newEndpoint, err := oc.KubeFramework().ClientSet.CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), dcName, metav1.GetOptions{})
 					if err != nil {
 						return false, err
 					}

@@ -5,14 +5,19 @@ language: go
 # Do not move these lines; they are referred to by README.md.
 # Versions of go that are explicitly supported by gonum plus go tip.
 go:
+ - 1.13.x
  - 1.12.x
- - 1.11.x
- - 1.10.x
  - master
+
+os:
+ - linux
+ - osx
+ - windows
 
 env:
  global:
   - GO111MODULE=on
+  - GOFLAGS="-mod=readonly"
  matrix:
   - TAGS=""
   - TAGS="-tags bounds"
@@ -21,29 +26,63 @@ env:
 
 cache:
  directories:
-   - $HOME/.cache/go-build
-   - $HOME/gopath/pkg/mod
+  - $HOME/.cache/go-build
+  - $HOME/gopath/pkg/mod
 
 git:
  depth: 1
 
 matrix:
  fast_finish: true
+ exclude:
+  - os: osx
+    env: TAGS="-tags bounds"
+  - os: osx
+    env: TAGS="-tags noasm"
+  - os: osx
+    env: TAGS="-tags appengine"
+
+  - os: osx
+    go: master
+
+  - os: windows
+    env: TAGS="-tags bounds"
+  - os: windows
+    env: TAGS="-tags noasm"
+  - os: windows
+    env: TAGS="-tags appengine"
+
+  - os: windows
+    go: master
  allow_failures:
-   - go: master
+  - go: master
 
 before_install:
- # Required for format check.
- - go get golang.org/x/tools/cmd/goimports
- # Required for imports check.
- - go get gonum.org/v1/tools/cmd/check-imports
- # Required for copyright header check.
- - go get gonum.org/v1/tools/cmd/check-copyright
- # Required for coverage.
- - go get golang.org/x/tools/cmd/cover
- - go get github.com/mattn/goveralls
- # Required for dot parser checks.
- - ./.travis/install-gocc.sh 66c61e91b3657c517a6f89d2837d370e61fb9430
+ # Make sure we have the origin master to compare HEADs and
+ # save the sha for comparison in test-coverage.sh.
+ # It is necessary to do this here since the rigmarole for
+ # Windows loses the link to the real origin master.
+ - git fetch --depth=1 origin master
+ - export ORIGIN_MASTER=$(git ls-remote origin master | cut -f1)
+
+ # This garbage is necessary because on windows, Travis 
+ # helpfully sets core.autocrlf to true.
+ #
+ # The block here repeats the clone after having unset
+ # core.autcrlf. There is no simple way to do this
+ # conditionally on OS because windows will not allow
+ # a file to be removed or moved while the file is open,
+ # and we use constructed paths to scripts to get
+ # conditional execution.
+ #
+ # Happy windowsing!
+ - pushd ../../..
+ - mv gonum.org/v1/gonum .
+ - git config --global core.autocrlf false
+ - git clone gonum gonum.org/v1/gonum
+ - popd
+
+ - ${TRAVIS_BUILD_DIR}/.travis/run-parts ${TRAVIS_BUILD_DIR}/.travis/deps.d/${TRAVIS_OS_NAME}
 
 addons:
   apt:
@@ -55,14 +94,4 @@ go_import_path: gonum.org/v1/gonum
 # Get deps, build, test, and ensure the code is gofmt'ed.
 # If we are building as gonum, then we have access to the coveralls api key, so we can run coverage as well.
 script:
- - ${TRAVIS_BUILD_DIR}/.travis/check-copyright.sh
- - ${TRAVIS_BUILD_DIR}/.travis/check-imports.sh
- - ${TRAVIS_BUILD_DIR}/.travis/check-formatting.sh
- - go get -d -t -v ./...
- - go build -v ./...
- - go test $TAGS -v ./...
- # Only run test coverage analysis if we are secure and even with origin master.
- - if [[ "${TRAVIS_SECURE_ENV_VARS}" == true && "$(git ls-remote origin master | cut -f1)" == "$(git rev-parse HEAD)" ]]; then bash ./.travis/test-coverage.sh; fi
- # This is run last since it alters the tree.
- - ${TRAVIS_BUILD_DIR}/.travis/check-generate.sh
-
+ - ${TRAVIS_BUILD_DIR}/.travis/run-parts ${TRAVIS_BUILD_DIR}/.travis/run.d/${TRAVIS_OS_NAME}

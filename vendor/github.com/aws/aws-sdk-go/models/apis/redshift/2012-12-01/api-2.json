@@ -314,6 +314,26 @@
         {"shape":"InvalidTagFault"}
       ]
     },
+    "CreateScheduledAction":{
+      "name":"CreateScheduledAction",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateScheduledActionMessage"},
+      "output":{
+        "shape":"ScheduledAction",
+        "resultWrapper":"CreateScheduledActionResult"
+      },
+      "errors":[
+        {"shape":"ScheduledActionAlreadyExistsFault"},
+        {"shape":"ScheduledActionQuotaExceededFault"},
+        {"shape":"ScheduledActionTypeUnsupportedFault"},
+        {"shape":"InvalidScheduleFault"},
+        {"shape":"InvalidScheduledActionFault"},
+        {"shape":"UnauthorizedOperation"}
+      ]
+    },
     "CreateSnapshotCopyGrant":{
       "name":"CreateSnapshotCopyGrant",
       "http":{
@@ -472,6 +492,18 @@
       "errors":[
         {"shape":"InvalidHsmConfigurationStateFault"},
         {"shape":"HsmConfigurationNotFoundFault"}
+      ]
+    },
+    "DeleteScheduledAction":{
+      "name":"DeleteScheduledAction",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteScheduledActionMessage"},
+      "errors":[
+        {"shape":"ScheduledActionNotFoundFault"},
+        {"shape":"UnauthorizedOperation"}
       ]
     },
     "DeleteSnapshotCopyGrant":{
@@ -761,6 +793,24 @@
         {"shape":"ClusterNotFoundFault"}
       ]
     },
+    "DescribeNodeConfigurationOptions":{
+      "name":"DescribeNodeConfigurationOptions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeNodeConfigurationOptionsMessage"},
+      "output":{
+        "shape":"NodeConfigurationOptionsMessage",
+        "resultWrapper":"DescribeNodeConfigurationOptionsResult"
+      },
+      "errors":[
+        {"shape":"ClusterSnapshotNotFoundFault"},
+        {"shape":"InvalidClusterSnapshotStateFault"},
+        {"shape":"ClusterNotFoundFault"},
+        {"shape":"AccessToSnapshotDeniedFault"}
+      ]
+    },
     "DescribeOrderableClusterOptions":{
       "name":"DescribeOrderableClusterOptions",
       "http":{
@@ -820,6 +870,22 @@
       "errors":[
         {"shape":"ClusterNotFoundFault"},
         {"shape":"ResizeNotFoundFault"}
+      ]
+    },
+    "DescribeScheduledActions":{
+      "name":"DescribeScheduledActions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeScheduledActionsMessage"},
+      "output":{
+        "shape":"ScheduledActionsMessage",
+        "resultWrapper":"DescribeScheduledActionsResult"
+      },
+      "errors":[
+        {"shape":"ScheduledActionNotFoundFault"},
+        {"shape":"UnauthorizedOperation"}
       ]
     },
     "DescribeSnapshotCopyGrants":{
@@ -1176,6 +1242,25 @@
         {"shape":"InvalidSubscriptionStateFault"}
       ]
     },
+    "ModifyScheduledAction":{
+      "name":"ModifyScheduledAction",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ModifyScheduledActionMessage"},
+      "output":{
+        "shape":"ScheduledAction",
+        "resultWrapper":"ModifyScheduledActionResult"
+      },
+      "errors":[
+        {"shape":"ScheduledActionNotFoundFault"},
+        {"shape":"ScheduledActionTypeUnsupportedFault"},
+        {"shape":"InvalidScheduleFault"},
+        {"shape":"InvalidScheduledActionFault"},
+        {"shape":"UnauthorizedOperation"}
+      ]
+    },
     "ModifySnapshotCopyRetentionPeriod":{
       "name":"ModifySnapshotCopyRetentionPeriod",
       "http":{
@@ -1319,7 +1404,9 @@
         {"shape":"LimitExceededFault"},
         {"shape":"DependentServiceRequestThrottlingFault"},
         {"shape":"InvalidClusterTrackFault"},
-        {"shape":"SnapshotScheduleNotFoundFault"}
+        {"shape":"SnapshotScheduleNotFoundFault"},
+        {"shape":"TagLimitExceededFault"},
+        {"shape":"InvalidTagFault"}
       ]
     },
     "RestoreTableFromClusterSnapshot":{
@@ -1450,6 +1537,13 @@
         "shape":"AccountWithRestoreAccess",
         "locationName":"AccountWithRestoreAccess"
       }
+    },
+    "ActionType":{
+      "type":"string",
+      "enum":[
+        "restore-cluster",
+        "recommend-node-config"
+      ]
     },
     "AssociatedClusterList":{
       "type":"list",
@@ -1659,6 +1753,7 @@
         "ClusterIdentifier":{"shape":"String"},
         "NodeType":{"shape":"String"},
         "ClusterStatus":{"shape":"String"},
+        "ClusterAvailabilityStatus":{"shape":"String"},
         "ModifyStatus":{"shape":"String"},
         "MasterUsername":{"shape":"String"},
         "DBName":{"shape":"String"},
@@ -1697,6 +1792,9 @@
         "DeferredMaintenanceWindows":{"shape":"DeferredMaintenanceWindowsList"},
         "SnapshotScheduleIdentifier":{"shape":"String"},
         "SnapshotScheduleState":{"shape":"ScheduleState"},
+        "ExpectedNextSnapshotScheduleTime":{"shape":"TStamp"},
+        "ExpectedNextSnapshotScheduleTimeStatus":{"shape":"String"},
+        "NextMaintenanceWindowStartTime":{"shape":"TStamp"},
         "ResizeInfo":{"shape":"ResizeInfo"}
       },
       "wrapper":true
@@ -2344,6 +2442,25 @@
         "HsmConfiguration":{"shape":"HsmConfiguration"}
       }
     },
+    "CreateScheduledActionMessage":{
+      "type":"structure",
+      "required":[
+        "ScheduledActionName",
+        "TargetAction",
+        "Schedule",
+        "IamRole"
+      ],
+      "members":{
+        "ScheduledActionName":{"shape":"String"},
+        "TargetAction":{"shape":"ScheduledActionType"},
+        "Schedule":{"shape":"String"},
+        "IamRole":{"shape":"String"},
+        "ScheduledActionDescription":{"shape":"String"},
+        "StartTime":{"shape":"TStamp"},
+        "EndTime":{"shape":"TStamp"},
+        "Enable":{"shape":"BooleanOptional"}
+      }
+    },
     "CreateSnapshotCopyGrantMessage":{
       "type":"structure",
       "required":["SnapshotCopyGrantName"],
@@ -2507,6 +2624,13 @@
       "required":["HsmConfigurationIdentifier"],
       "members":{
         "HsmConfigurationIdentifier":{"shape":"String"}
+      }
+    },
+    "DeleteScheduledActionMessage":{
+      "type":"structure",
+      "required":["ScheduledActionName"],
+      "members":{
+        "ScheduledActionName":{"shape":"String"}
       }
     },
     "DeleteSnapshotCopyGrantMessage":{
@@ -2724,6 +2848,22 @@
         "ClusterIdentifier":{"shape":"String"}
       }
     },
+    "DescribeNodeConfigurationOptionsMessage":{
+      "type":"structure",
+      "required":["ActionType"],
+      "members":{
+        "ActionType":{"shape":"ActionType"},
+        "ClusterIdentifier":{"shape":"String"},
+        "SnapshotIdentifier":{"shape":"String"},
+        "OwnerAccount":{"shape":"String"},
+        "Filters":{
+          "shape":"NodeConfigurationOptionsFilterList",
+          "locationName":"Filter"
+        },
+        "Marker":{"shape":"String"},
+        "MaxRecords":{"shape":"IntegerOptional"}
+      }
+    },
     "DescribeOrderableClusterOptionsMessage":{
       "type":"structure",
       "members":{
@@ -2754,6 +2894,19 @@
       "required":["ClusterIdentifier"],
       "members":{
         "ClusterIdentifier":{"shape":"String"}
+      }
+    },
+    "DescribeScheduledActionsMessage":{
+      "type":"structure",
+      "members":{
+        "ScheduledActionName":{"shape":"String"},
+        "TargetActionType":{"shape":"ScheduledActionTypeValues"},
+        "StartTime":{"shape":"TStamp"},
+        "EndTime":{"shape":"TStamp"},
+        "Active":{"shape":"BooleanOptional"},
+        "Filters":{"shape":"ScheduledActionFilterList"},
+        "Marker":{"shape":"String"},
+        "MaxRecords":{"shape":"IntegerOptional"}
       }
     },
     "DescribeSnapshotCopyGrantsMessage":{
@@ -3428,6 +3581,17 @@
       },
       "exception":true
     },
+    "InvalidScheduledActionFault":{
+      "type":"structure",
+      "members":{
+      },
+      "error":{
+        "code":"InvalidScheduledAction",
+        "httpStatusCode":400,
+        "senderFault":true
+      },
+      "exception":true
+    },
     "InvalidSnapshotCopyGrantStateFault":{
       "type":"structure",
       "members":{
@@ -3525,6 +3689,13 @@
         "DatabaseVersion":{"shape":"String"},
         "UpdateTargets":{"shape":"EligibleTracksToUpdateList"}
       }
+    },
+    "Mode":{
+      "type":"string",
+      "enum":[
+        "standard",
+        "high-performance"
+      ]
     },
     "ModifyClusterDbRevisionMessage":{
       "type":"structure",
@@ -3682,6 +3853,20 @@
         "EventSubscription":{"shape":"EventSubscription"}
       }
     },
+    "ModifyScheduledActionMessage":{
+      "type":"structure",
+      "required":["ScheduledActionName"],
+      "members":{
+        "ScheduledActionName":{"shape":"String"},
+        "TargetAction":{"shape":"ScheduledActionType"},
+        "Schedule":{"shape":"String"},
+        "IamRole":{"shape":"String"},
+        "ScheduledActionDescription":{"shape":"String"},
+        "StartTime":{"shape":"TStamp"},
+        "EndTime":{"shape":"TStamp"},
+        "Enable":{"shape":"BooleanOptional"}
+      }
+    },
     "ModifySnapshotCopyRetentionPeriodMessage":{
       "type":"structure",
       "required":[
@@ -3711,6 +3896,56 @@
         "ScheduleDefinitions":{"shape":"ScheduleDefinitionList"}
       }
     },
+    "NodeConfigurationOption":{
+      "type":"structure",
+      "members":{
+        "NodeType":{"shape":"String"},
+        "NumberOfNodes":{"shape":"Integer"},
+        "EstimatedDiskUtilizationPercent":{"shape":"DoubleOptional"},
+        "Mode":{"shape":"Mode"}
+      }
+    },
+    "NodeConfigurationOptionList":{
+      "type":"list",
+      "member":{
+        "shape":"NodeConfigurationOption",
+        "locationName":"NodeConfigurationOption"
+      }
+    },
+    "NodeConfigurationOptionsFilter":{
+      "type":"structure",
+      "members":{
+        "Name":{"shape":"NodeConfigurationOptionsFilterName"},
+        "Operator":{"shape":"OperatorType"},
+        "Values":{
+          "shape":"ValueStringList",
+          "locationName":"Value"
+        }
+      }
+    },
+    "NodeConfigurationOptionsFilterList":{
+      "type":"list",
+      "member":{
+        "shape":"NodeConfigurationOptionsFilter",
+        "locationName":"NodeConfigurationOptionsFilter"
+      }
+    },
+    "NodeConfigurationOptionsFilterName":{
+      "type":"string",
+      "enum":[
+        "NodeType",
+        "NumberOfNodes",
+        "EstimatedDiskUtilizationPercent",
+        "Mode"
+      ]
+    },
+    "NodeConfigurationOptionsMessage":{
+      "type":"structure",
+      "members":{
+        "NodeConfigurationOptionList":{"shape":"NodeConfigurationOptionList"},
+        "Marker":{"shape":"String"}
+      }
+    },
     "NumberOfNodesPerClusterLimitExceededFault":{
       "type":"structure",
       "members":{
@@ -3732,6 +3967,18 @@
         "senderFault":true
       },
       "exception":true
+    },
+    "OperatorType":{
+      "type":"string",
+      "enum":[
+        "eq",
+        "lt",
+        "gt",
+        "le",
+        "ge",
+        "in",
+        "between"
+      ]
     },
     "OrderableClusterOption":{
       "type":"structure",
@@ -4042,7 +4289,8 @@
         "EstimatedTimeToCompletionInSeconds":{"shape":"LongOptional"},
         "ResizeType":{"shape":"String"},
         "Message":{"shape":"String"},
-        "TargetEncryptionType":{"shape":"String"}
+        "TargetEncryptionType":{"shape":"String"},
+        "DataTransferProgressPercent":{"shape":"DoubleOptional"}
       }
     },
     "ResourceNotFoundFault":{
@@ -4094,7 +4342,8 @@
         "AdditionalInfo":{"shape":"String"},
         "IamRoles":{"shape":"IamRoleArnList"},
         "MaintenanceTrackName":{"shape":"String"},
-        "SnapshotScheduleIdentifier":{"shape":"String"}
+        "SnapshotScheduleIdentifier":{"shape":"String"},
+        "NumberOfNodes":{"shape":"IntegerOptional"}
       }
     },
     "RestoreFromClusterSnapshotResult":{
@@ -4260,6 +4509,127 @@
         "ACTIVE",
         "FAILED"
       ]
+    },
+    "ScheduledAction":{
+      "type":"structure",
+      "members":{
+        "ScheduledActionName":{"shape":"String"},
+        "TargetAction":{"shape":"ScheduledActionType"},
+        "Schedule":{"shape":"String"},
+        "IamRole":{"shape":"String"},
+        "ScheduledActionDescription":{"shape":"String"},
+        "State":{"shape":"ScheduledActionState"},
+        "NextInvocations":{"shape":"ScheduledActionTimeList"},
+        "StartTime":{"shape":"TStamp"},
+        "EndTime":{"shape":"TStamp"}
+      }
+    },
+    "ScheduledActionAlreadyExistsFault":{
+      "type":"structure",
+      "members":{
+      },
+      "error":{
+        "code":"ScheduledActionAlreadyExists",
+        "httpStatusCode":400,
+        "senderFault":true
+      },
+      "exception":true
+    },
+    "ScheduledActionFilter":{
+      "type":"structure",
+      "required":[
+        "Name",
+        "Values"
+      ],
+      "members":{
+        "Name":{"shape":"ScheduledActionFilterName"},
+        "Values":{"shape":"ValueStringList"}
+      }
+    },
+    "ScheduledActionFilterList":{
+      "type":"list",
+      "member":{
+        "shape":"ScheduledActionFilter",
+        "locationName":"ScheduledActionFilter"
+      }
+    },
+    "ScheduledActionFilterName":{
+      "type":"string",
+      "enum":[
+        "cluster-identifier",
+        "iam-role"
+      ]
+    },
+    "ScheduledActionList":{
+      "type":"list",
+      "member":{
+        "shape":"ScheduledAction",
+        "locationName":"ScheduledAction"
+      }
+    },
+    "ScheduledActionNotFoundFault":{
+      "type":"structure",
+      "members":{
+      },
+      "error":{
+        "code":"ScheduledActionNotFound",
+        "httpStatusCode":400,
+        "senderFault":true
+      },
+      "exception":true
+    },
+    "ScheduledActionQuotaExceededFault":{
+      "type":"structure",
+      "members":{
+      },
+      "error":{
+        "code":"ScheduledActionQuotaExceeded",
+        "httpStatusCode":400,
+        "senderFault":true
+      },
+      "exception":true
+    },
+    "ScheduledActionState":{
+      "type":"string",
+      "enum":[
+        "ACTIVE",
+        "DISABLED"
+      ]
+    },
+    "ScheduledActionTimeList":{
+      "type":"list",
+      "member":{
+        "shape":"TStamp",
+        "locationName":"ScheduledActionTime"
+      }
+    },
+    "ScheduledActionType":{
+      "type":"structure",
+      "members":{
+        "ResizeCluster":{"shape":"ResizeClusterMessage"}
+      }
+    },
+    "ScheduledActionTypeUnsupportedFault":{
+      "type":"structure",
+      "members":{
+      },
+      "error":{
+        "code":"ScheduledActionTypeUnsupported",
+        "httpStatusCode":400,
+        "senderFault":true
+      },
+      "exception":true
+    },
+    "ScheduledActionTypeValues":{
+      "type":"string",
+      "enum":["ResizeCluster"]
+    },
+    "ScheduledActionsMessage":{
+      "type":"structure",
+      "members":{
+        "Marker":{"shape":"String"},
+        "ScheduledActions":{"shape":"ScheduledActionList"}
+      }
     },
     "ScheduledSnapshotTimeList":{
       "type":"list",
@@ -4547,7 +4917,8 @@
         "cluster",
         "cluster-parameter-group",
         "cluster-security-group",
-        "cluster-snapshot"
+        "cluster-snapshot",
+        "scheduled-action"
       ]
     },
     "String":{"type":"string"},
@@ -4858,6 +5229,13 @@
         "MaintenanceTrackName":{"shape":"String"},
         "DatabaseVersion":{"shape":"String"},
         "SupportedOperations":{"shape":"SupportedOperationList"}
+      }
+    },
+    "ValueStringList":{
+      "type":"list",
+      "member":{
+        "shape":"String",
+        "locationName":"item"
       }
     },
     "VpcSecurityGroupIdList":{

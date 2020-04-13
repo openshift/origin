@@ -17,6 +17,7 @@ limitations under the License.
 package vsphere
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -32,6 +33,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
@@ -77,7 +79,7 @@ var _ = utils.SIGDescribe("Volume Attach Verify [Feature:vsphere][Serial][Disrup
 		nodeInfo              *NodeInfo
 	)
 	ginkgo.BeforeEach(func() {
-		framework.SkipUnlessProviderIs("vsphere")
+		e2eskipper.SkipUnlessProviderIs("vsphere")
 		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
@@ -87,7 +89,7 @@ var _ = utils.SIGDescribe("Volume Attach Verify [Feature:vsphere][Serial][Disrup
 		framework.ExpectNoError(err)
 		numNodes = len(nodes.Items)
 		if numNodes < 2 {
-			framework.Skipf("Requires at least %d nodes (not %d)", 2, len(nodes.Items))
+			e2eskipper.Skipf("Requires at least %d nodes (not %d)", 2, len(nodes.Items))
 		}
 		nodeInfo = TestContext.NodeMapper.GetNodeInfo(nodes.Items[0].Name)
 		for i := 0; i < numNodes; i++ {
@@ -102,7 +104,7 @@ var _ = utils.SIGDescribe("Volume Attach Verify [Feature:vsphere][Serial][Disrup
 	})
 
 	ginkgo.It("verify volume remains attached after master kubelet restart", func() {
-		framework.SkipUnlessSSHKeyPresent()
+		e2eskipper.SkipUnlessSSHKeyPresent()
 
 		// Create pod on each node
 		for i := 0; i < numNodes; i++ {
@@ -113,14 +115,14 @@ var _ = utils.SIGDescribe("Volume Attach Verify [Feature:vsphere][Serial][Disrup
 
 			ginkgo.By(fmt.Sprintf("Creating pod %d on node %v", i, nodeNameList[i]))
 			podspec := getVSpherePodSpecWithVolumePaths([]string{volumePath}, nodeKeyValueLabelList[i], nil)
-			pod, err := client.CoreV1().Pods(namespace).Create(podspec)
+			pod, err := client.CoreV1().Pods(namespace).Create(context.TODO(), podspec, metav1.CreateOptions{})
 			framework.ExpectNoError(err)
 			defer e2epod.DeletePodWithWait(client, pod)
 
 			ginkgo.By("Waiting for pod to be ready")
 			gomega.Expect(e2epod.WaitForPodNameRunningInNamespace(client, pod.Name, namespace)).To(gomega.Succeed())
 
-			pod, err = client.CoreV1().Pods(namespace).Get(pod.Name, metav1.GetOptions{})
+			pod, err = client.CoreV1().Pods(namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 			framework.ExpectNoError(err)
 
 			pods = append(pods, pod)

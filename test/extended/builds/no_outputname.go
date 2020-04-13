@@ -9,12 +9,12 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Conformance] build without output image", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] build without output image", func() {
 	defer g.GinkgoRecover()
 	var (
 		dockerImageFixture = exutil.FixturePath("testdata", "builds", "test-docker-no-outputname.json")
 		s2iImageFixture    = exutil.FixturePath("testdata", "builds", "test-s2i-no-outputname.json")
-		oc                 = exutil.NewCLI("build-no-outputname", exutil.KubeConfigPath())
+		oc                 = exutil.NewCLI("build-no-outputname")
 	)
 
 	g.Context("", func() {

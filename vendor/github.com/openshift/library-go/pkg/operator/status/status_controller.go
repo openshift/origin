@@ -2,34 +2,27 @@ package status
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"time"
 
 	"k8s.io/klog"
-
-	"k8s.io/apimachinery/pkg/api/equality"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1informers "github.com/openshift/client-go/config/informers/externalversions/config/v1"
 	configv1listers "github.com/openshift/client-go/config/listers/config/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	configv1helpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	operatorv1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 )
-
-var workQueueKey = "instance"
 
 type VersionGetter interface {
 	// SetVersion is a way to set the version for an operand.  It must be thread-safe
@@ -49,10 +42,15 @@ type StatusSyncer struct {
 	clusterOperatorClient configv1client.ClusterOperatorsGetter
 	clusterOperatorLister configv1listers.ClusterOperatorLister
 
-	cachesToSync    []cache.InformerSynced
-	queue           workqueue.RateLimitingInterface
-	eventRecorder   events.Recorder
-	degradedInertia Inertia
+	controllerFactory *factory.Factory
+	recorder          events.Recorder
+	degradedInertia   Inertia
+}
+
+var _ factory.Controller = &StatusSyncer{}
+
+func (c *StatusSyncer) Name() string {
+	return c.clusterOperatorName
 }
 
 func NewClusterOperatorStatusController(
@@ -64,26 +62,24 @@ func NewClusterOperatorStatusController(
 	versionGetter VersionGetter,
 	recorder events.Recorder,
 ) *StatusSyncer {
-	c := &StatusSyncer{
+	return &StatusSyncer{
 		clusterOperatorName:   name,
 		relatedObjects:        relatedObjects,
 		versionGetter:         versionGetter,
 		clusterOperatorClient: clusterOperatorClient,
 		clusterOperatorLister: clusterOperatorInformer.Lister(),
 		operatorClient:        operatorClient,
-		eventRecorder:         recorder.WithComponentSuffix("status-controller"),
 		degradedInertia:       MustNewInertia(2 * time.Minute).Inertia,
-
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "StatusSyncer_"+strings.Replace(name, "-", "_", -1)),
+		controllerFactory: factory.New().ResyncEvery(time.Second).WithInformers(
+			operatorClient.Informer(),
+			clusterOperatorInformer.Informer(),
+		),
+		recorder: recorder.WithComponentSuffix("status-controller"),
 	}
+}
 
-	operatorClient.Informer().AddEventHandler(c.eventHandler())
-	clusterOperatorInformer.Informer().AddEventHandler(c.eventHandler())
-
-	c.cachesToSync = append(c.cachesToSync, operatorClient.Informer().HasSynced)
-	c.cachesToSync = append(c.cachesToSync, clusterOperatorInformer.Informer().HasSynced)
-
-	return c
+func (c *StatusSyncer) Run(ctx context.Context, workers int) {
+	c.controllerFactory.WithPostStartHooks(c.watchVersionGetterPostRunHook).WithSync(c.Sync).ToController("StatusSyncer_"+c.Name(), c.recorder).Run(ctx, workers)
 }
 
 // WithDegradedInertia returns a copy of the StatusSyncer with the
@@ -96,11 +92,11 @@ func (c *StatusSyncer) WithDegradedInertia(inertia Inertia) *StatusSyncer {
 
 // sync reacts to a change in prereqs by finding information that is required to match another value in the cluster. This
 // must be information that is logically "owned" by another component.
-func (c StatusSyncer) sync() error {
+func (c StatusSyncer) Sync(ctx context.Context, syncCtx factory.SyncContext) error {
 	detailedSpec, currentDetailedStatus, _, err := c.operatorClient.GetOperatorState()
 	if apierrors.IsNotFound(err) {
-		c.eventRecorder.Warningf("StatusNotFound", "Unable to determine current operator status for clusteroperator/%s", c.clusterOperatorName)
-		if err := c.clusterOperatorClient.ClusterOperators().Delete(c.clusterOperatorName, nil); err != nil && !apierrors.IsNotFound(err) {
+		syncCtx.Recorder().Warningf("StatusNotFound", "Unable to determine current operator status for clusteroperator/%s", c.clusterOperatorName)
+		if err := c.clusterOperatorClient.ClusterOperators().Delete(ctx, c.clusterOperatorName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 		return nil
@@ -111,7 +107,7 @@ func (c StatusSyncer) sync() error {
 
 	originalClusterOperatorObj, err := c.clusterOperatorLister.Get(c.clusterOperatorName)
 	if err != nil && !apierrors.IsNotFound(err) {
-		c.eventRecorder.Warningf("StatusFailed", "Unable to get current operator status for clusteroperator/%s: %v", c.clusterOperatorName, err)
+		syncCtx.Recorder().Warningf("StatusFailed", "Unable to get current operator status for clusteroperator/%s: %v", c.clusterOperatorName, err)
 		return err
 	}
 
@@ -119,17 +115,17 @@ func (c StatusSyncer) sync() error {
 	if originalClusterOperatorObj == nil || apierrors.IsNotFound(err) {
 		klog.Infof("clusteroperator/%s not found", c.clusterOperatorName)
 		var createErr error
-		originalClusterOperatorObj, createErr = c.clusterOperatorClient.ClusterOperators().Create(&configv1.ClusterOperator{
+		originalClusterOperatorObj, createErr = c.clusterOperatorClient.ClusterOperators().Create(ctx, &configv1.ClusterOperator{
 			ObjectMeta: metav1.ObjectMeta{Name: c.clusterOperatorName},
-		})
+		}, metav1.CreateOptions{})
 		if apierrors.IsNotFound(createErr) {
 			// this means that the API isn't present.  We did not fail.  Try again later
 			klog.Infof("ClusterOperator API not created")
-			c.queue.AddRateLimited(workQueueKey)
+			syncCtx.Queue().AddRateLimited(factory.DefaultQueueKey)
 			return nil
 		}
 		if createErr != nil {
-			c.eventRecorder.Warningf("StatusCreateFailed", "Failed to create operator status: %v", err)
+			syncCtx.Recorder().Warningf("StatusCreateFailed", "Failed to create operator status: %v", err)
 			return createErr
 		}
 	}
@@ -146,10 +142,10 @@ func (c StatusSyncer) sync() error {
 		if equality.Semantic.DeepEqual(clusterOperatorObj, originalClusterOperatorObj) {
 			return nil
 		}
-		if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(clusterOperatorObj); err != nil {
+		if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(ctx, clusterOperatorObj, metav1.UpdateOptions{}); err != nil {
 			return updateErr
 		}
-		c.eventRecorder.Eventf("OperatorStatusChanged", "Status for operator %s changed: %s", c.clusterOperatorName, configv1helpers.GetStatusDiff(originalClusterOperatorObj.Status, clusterOperatorObj.Status))
+		syncCtx.Recorder().Eventf("OperatorStatusChanged", "Status for operator %s changed: %s", c.clusterOperatorName, configv1helpers.GetStatusDiff(originalClusterOperatorObj.Status, clusterOperatorObj.Status))
 		return nil
 	}
 
@@ -165,7 +161,7 @@ func (c StatusSyncer) sync() error {
 		previousVersion := operatorv1helpers.SetOperandVersion(&clusterOperatorObj.Status.Versions, configv1.OperandVersion{Name: operand, Version: version})
 		if previousVersion != version {
 			// having this message will give us a marker in events when the operator updated compared to when the operand is updated
-			c.eventRecorder.Eventf("OperatorVersionChanged", "clusteroperator/%s version %q changed from %q to %q", c.clusterOperatorName, operand, previousVersion, version)
+			syncCtx.Recorder().Eventf("OperatorVersionChanged", "clusteroperator/%s version %q changed from %q to %q", c.clusterOperatorName, operand, previousVersion, version)
 		}
 	}
 
@@ -175,10 +171,10 @@ func (c StatusSyncer) sync() error {
 	}
 	klog.V(2).Infof("clusteroperator/%s diff %v", c.clusterOperatorName, resourceapply.JSONPatchNoError(originalClusterOperatorObj, clusterOperatorObj))
 
-	if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(clusterOperatorObj); err != nil {
+	if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(ctx, clusterOperatorObj, metav1.UpdateOptions{}); err != nil {
 		return updateErr
 	}
-	c.eventRecorder.Eventf("OperatorStatusChanged", "Status for clusteroperator/%s changed: %s", c.clusterOperatorName, configv1helpers.GetStatusDiff(originalClusterOperatorObj.Status, clusterOperatorObj.Status))
+	syncCtx.Recorder().Eventf("OperatorStatusChanged", "Status for clusteroperator/%s changed: %s", c.clusterOperatorName, configv1helpers.GetStatusDiff(originalClusterOperatorObj.Status, clusterOperatorObj.Status))
 	return nil
 }
 
@@ -192,71 +188,19 @@ func OperatorConditionToClusterOperatorCondition(condition operatorv1.OperatorCo
 	}
 }
 
-func (c *StatusSyncer) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	klog.Infof("Starting StatusSyncer-" + c.clusterOperatorName)
-	defer klog.Infof("Shutting down StatusSyncer-" + c.clusterOperatorName)
-	if !cache.WaitForCacheSync(ctx.Done(), c.cachesToSync...) {
-		return
-	}
-
-	// start watching for version changes
-	go c.watchVersionGetter(ctx.Done())
-
-	// doesn't matter what workers say, only start one.
-	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
-
-	<-ctx.Done()
-}
-
-func (c *StatusSyncer) watchVersionGetter(stopCh <-chan struct{}) {
+func (c *StatusSyncer) watchVersionGetterPostRunHook(ctx context.Context, syncCtx factory.SyncContext) error {
 	defer utilruntime.HandleCrash()
 
 	versionCh := c.versionGetter.VersionChangedChannel()
 	// always kick at least once
-	c.queue.Add(workQueueKey)
+	syncCtx.Queue().Add(factory.DefaultQueueKey)
 
 	for {
 		select {
-		case <-stopCh:
-			return
+		case <-ctx.Done():
+			return nil
 		case <-versionCh:
-			c.queue.Add(workQueueKey)
+			syncCtx.Queue().Add(factory.DefaultQueueKey)
 		}
-	}
-}
-
-func (c *StatusSyncer) runWorker(_ context.Context) {
-	for c.processNextWorkItem() {
-	}
-}
-
-func (c *StatusSyncer) processNextWorkItem() bool {
-	dsKey, quit := c.queue.Get()
-	if quit {
-		return false
-	}
-	defer c.queue.Done(dsKey)
-
-	err := c.sync()
-	if err == nil {
-		c.queue.Forget(dsKey)
-		return true
-	}
-
-	utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
-	c.queue.AddRateLimited(dsKey)
-
-	return true
-}
-
-// eventHandler queues the operator to check spec and status
-func (c *StatusSyncer) eventHandler() cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj interface{}) { c.queue.Add(workQueueKey) },
-		UpdateFunc: func(old, new interface{}) { c.queue.Add(workQueueKey) },
-		DeleteFunc: func(obj interface{}) { c.queue.Add(workQueueKey) },
 	}
 }

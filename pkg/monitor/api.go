@@ -40,7 +40,10 @@ func Start(ctx context.Context) (*Monitor, error) {
 		return nil, err
 	}
 
-	if err := StartAPIMonitoring(ctx, m, clusterConfig, 5*time.Second); err != nil {
+	if err := StartKubeAPIMonitoring(ctx, m, clusterConfig, 5*time.Second); err != nil {
+		return nil, err
+	}
+	if err := StartOpenShiftAPIMonitoring(ctx, m, clusterConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
 	startPodMonitoring(ctx, m, client)
@@ -52,21 +55,17 @@ func Start(ctx context.Context) (*Monitor, error) {
 	return m, nil
 }
 
-func StartAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
+func StartKubeAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	pollingConfig := *clusterConfig
 	pollingConfig.Timeout = timeout
 	pollingClient, err := clientcorev1.NewForConfig(&pollingConfig)
 	if err != nil {
 		return err
 	}
-	openshiftPollingClient, err := clientimagev1.NewForConfig(&pollingConfig)
-	if err != nil {
-		return err
-	}
 
 	m.AddSampler(
 		StartSampling(ctx, m, time.Second, func(previous bool) (condition *Condition, next bool) {
-			_, err := pollingClient.Namespaces().Get("kube-system", metav1.GetOptions{})
+			_, err := pollingClient.Namespaces().Get(ctx, "kube-system", metav1.GetOptions{})
 			switch {
 			case err == nil && !previous:
 				condition = &Condition{
@@ -88,10 +87,20 @@ func StartAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Con
 			Message: fmt.Sprintf("Kube API is not responding to GET requests"),
 		}),
 	)
+	return nil
+}
+
+func StartOpenShiftAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
+	pollingConfig := *clusterConfig
+	pollingConfig.Timeout = timeout
+	pollingClient, err := clientimagev1.NewForConfig(&pollingConfig)
+	if err != nil {
+		return err
+	}
 
 	m.AddSampler(
 		StartSampling(ctx, m, time.Second, func(previous bool) (condition *Condition, next bool) {
-			_, err := openshiftPollingClient.ImageStreams("openshift-apiserver").Get("missing", metav1.GetOptions{})
+			_, err := pollingClient.ImageStreams("openshift-apiserver").Get(ctx, "missing", metav1.GetOptions{})
 			if !errors.IsUnexpectedServerError(err) && errors.IsNotFound(err) {
 				err = nil
 			}
@@ -149,7 +158,13 @@ func findNodeCondition(status []corev1.NodeCondition, name corev1.NodeConditionT
 
 func locateEvent(event *corev1.Event) string {
 	if len(event.InvolvedObject.Namespace) > 0 {
+		if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+			return fmt.Sprintf("ns/%s %s/%s node/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
+		}
 		return fmt.Sprintf("ns/%s %s/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
+	}
+	if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
 	}
 	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
 }
@@ -163,7 +178,7 @@ func locateNode(node *corev1.Node) string {
 }
 
 func locatePodContainer(pod *corev1.Pod, containerName string) string {
-	return fmt.Sprintf("ns/%s pod/%s node/%s container=%s", pod.Namespace, pod.Name, pod.Spec.NodeName, containerName)
+	return fmt.Sprintf("ns/%s pod/%s node/%s container/%s", pod.Namespace, pod.Name, pod.Spec.NodeName, containerName)
 }
 
 func filterToSystemNamespaces(obj runtime.Object) bool {

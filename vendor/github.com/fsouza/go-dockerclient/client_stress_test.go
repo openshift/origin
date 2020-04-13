@@ -22,7 +22,7 @@ func TestClientDoConcurrentStress(t *testing.T) {
 	t.Parallel()
 	var reqs []*http.Request
 	var mu sync.Mutex
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		reqs = append(reqs, r)
 		mu.Unlock()

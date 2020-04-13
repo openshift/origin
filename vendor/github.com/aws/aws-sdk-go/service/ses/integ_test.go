@@ -27,7 +27,9 @@ func TestInteg_00_ListIdentities(t *testing.T) {
 	sess := integration.SessionWithDefaultRegion("us-west-2")
 	svc := ses.New(sess)
 	params := &ses.ListIdentitiesInput{}
-	_, err := svc.ListIdentitiesWithContext(ctx, params)
+	_, err := svc.ListIdentitiesWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err != nil {
 		t.Errorf("expect no error, got %v", err)
 	}
@@ -41,7 +43,9 @@ func TestInteg_01_VerifyEmailIdentity(t *testing.T) {
 	params := &ses.VerifyEmailIdentityInput{
 		EmailAddress: aws.String("fake_email"),
 	}
-	_, err := svc.VerifyEmailIdentityWithContext(ctx, params)
+	_, err := svc.VerifyEmailIdentityWithContext(ctx, params, func(r *request.Request) {
+		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
+	})
 	if err == nil {
 		t.Fatalf("expect request to fail")
 	}

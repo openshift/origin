@@ -11,6 +11,23 @@
     "uid":"elasticfilesystem-2015-02-01"
   },
   "operations":{
+    "CreateAccessPoint":{
+      "name":"CreateAccessPoint",
+      "http":{
+        "method":"POST",
+        "requestUri":"/2015-02-01/access-points",
+        "responseCode":200
+      },
+      "input":{"shape":"CreateAccessPointRequest"},
+      "output":{"shape":"AccessPointDescription"},
+      "errors":[
+        {"shape":"BadRequest"},
+        {"shape":"AccessPointAlreadyExists"},
+        {"shape":"InternalServerError"},
+        {"shape":"FileSystemNotFound"},
+        {"shape":"AccessPointLimitExceeded"}
+      ]
+    },
     "CreateFileSystem":{
       "name":"CreateFileSystem",
       "http":{
@@ -65,6 +82,22 @@
         {"shape":"BadRequest"},
         {"shape":"InternalServerError"},
         {"shape":"FileSystemNotFound"}
+      ],
+      "deprecated":true,
+      "deprecatedMessage":"Use TagResource."
+    },
+    "DeleteAccessPoint":{
+      "name":"DeleteAccessPoint",
+      "http":{
+        "method":"DELETE",
+        "requestUri":"/2015-02-01/access-points/{AccessPointId}",
+        "responseCode":204
+      },
+      "input":{"shape":"DeleteAccessPointRequest"},
+      "errors":[
+        {"shape":"BadRequest"},
+        {"shape":"InternalServerError"},
+        {"shape":"AccessPointNotFound"}
       ]
     },
     "DeleteFileSystem":{
@@ -80,6 +113,20 @@
         {"shape":"InternalServerError"},
         {"shape":"FileSystemNotFound"},
         {"shape":"FileSystemInUse"}
+      ]
+    },
+    "DeleteFileSystemPolicy":{
+      "name":"DeleteFileSystemPolicy",
+      "http":{
+        "method":"DELETE",
+        "requestUri":"/2015-02-01/file-systems/{FileSystemId}/policy",
+        "responseCode":200
+      },
+      "input":{"shape":"DeleteFileSystemPolicyRequest"},
+      "errors":[
+        {"shape":"InternalServerError"},
+        {"shape":"FileSystemNotFound"},
+        {"shape":"IncorrectFileSystemLifeCycleState"}
       ]
     },
     "DeleteMountTarget":{
@@ -109,6 +156,39 @@
         {"shape":"BadRequest"},
         {"shape":"InternalServerError"},
         {"shape":"FileSystemNotFound"}
+      ],
+      "deprecated":true,
+      "deprecatedMessage":"Use UntagResource."
+    },
+    "DescribeAccessPoints":{
+      "name":"DescribeAccessPoints",
+      "http":{
+        "method":"GET",
+        "requestUri":"/2015-02-01/access-points",
+        "responseCode":200
+      },
+      "input":{"shape":"DescribeAccessPointsRequest"},
+      "output":{"shape":"DescribeAccessPointsResponse"},
+      "errors":[
+        {"shape":"BadRequest"},
+        {"shape":"InternalServerError"},
+        {"shape":"FileSystemNotFound"},
+        {"shape":"AccessPointNotFound"}
+      ]
+    },
+    "DescribeFileSystemPolicy":{
+      "name":"DescribeFileSystemPolicy",
+      "http":{
+        "method":"GET",
+        "requestUri":"/2015-02-01/file-systems/{FileSystemId}/policy",
+        "responseCode":200
+      },
+      "input":{"shape":"DescribeFileSystemPolicyRequest"},
+      "output":{"shape":"FileSystemPolicyDescription"},
+      "errors":[
+        {"shape":"InternalServerError"},
+        {"shape":"FileSystemNotFound"},
+        {"shape":"PolicyNotFound"}
       ]
     },
     "DescribeFileSystems":{
@@ -123,6 +203,21 @@
       "errors":[
         {"shape":"BadRequest"},
         {"shape":"InternalServerError"},
+        {"shape":"FileSystemNotFound"}
+      ]
+    },
+    "DescribeLifecycleConfiguration":{
+      "name":"DescribeLifecycleConfiguration",
+      "http":{
+        "method":"GET",
+        "requestUri":"/2015-02-01/file-systems/{FileSystemId}/lifecycle-configuration",
+        "responseCode":200
+      },
+      "input":{"shape":"DescribeLifecycleConfigurationRequest"},
+      "output":{"shape":"LifecycleConfigurationDescription"},
+      "errors":[
+        {"shape":"InternalServerError"},
+        {"shape":"BadRequest"},
         {"shape":"FileSystemNotFound"}
       ]
     },
@@ -155,7 +250,8 @@
         {"shape":"BadRequest"},
         {"shape":"InternalServerError"},
         {"shape":"FileSystemNotFound"},
-        {"shape":"MountTargetNotFound"}
+        {"shape":"MountTargetNotFound"},
+        {"shape":"AccessPointNotFound"}
       ]
     },
     "DescribeTags":{
@@ -171,6 +267,24 @@
         {"shape":"BadRequest"},
         {"shape":"InternalServerError"},
         {"shape":"FileSystemNotFound"}
+      ],
+      "deprecated":true,
+      "deprecatedMessage":"Use ListTagsForResource."
+    },
+    "ListTagsForResource":{
+      "name":"ListTagsForResource",
+      "http":{
+        "method":"GET",
+        "requestUri":"/2015-02-01/resource-tags/{ResourceId}",
+        "responseCode":200
+      },
+      "input":{"shape":"ListTagsForResourceRequest"},
+      "output":{"shape":"ListTagsForResourceResponse"},
+      "errors":[
+        {"shape":"BadRequest"},
+        {"shape":"InternalServerError"},
+        {"shape":"FileSystemNotFound"},
+        {"shape":"AccessPointNotFound"}
       ]
     },
     "ModifyMountTargetSecurityGroups":{
@@ -188,6 +302,68 @@
         {"shape":"IncorrectMountTargetState"},
         {"shape":"SecurityGroupLimitExceeded"},
         {"shape":"SecurityGroupNotFound"}
+      ]
+    },
+    "PutFileSystemPolicy":{
+      "name":"PutFileSystemPolicy",
+      "http":{
+        "method":"PUT",
+        "requestUri":"/2015-02-01/file-systems/{FileSystemId}/policy",
+        "responseCode":200
+      },
+      "input":{"shape":"PutFileSystemPolicyRequest"},
+      "output":{"shape":"FileSystemPolicyDescription"},
+      "errors":[
+        {"shape":"InternalServerError"},
+        {"shape":"FileSystemNotFound"},
+        {"shape":"InvalidPolicyException"},
+        {"shape":"IncorrectFileSystemLifeCycleState"}
+      ]
+    },
+    "PutLifecycleConfiguration":{
+      "name":"PutLifecycleConfiguration",
+      "http":{
+        "method":"PUT",
+        "requestUri":"/2015-02-01/file-systems/{FileSystemId}/lifecycle-configuration",
+        "responseCode":200
+      },
+      "input":{"shape":"PutLifecycleConfigurationRequest"},
+      "output":{"shape":"LifecycleConfigurationDescription"},
+      "errors":[
+        {"shape":"BadRequest"},
+        {"shape":"InternalServerError"},
+        {"shape":"FileSystemNotFound"},
+        {"shape":"IncorrectFileSystemLifeCycleState"}
+      ]
+    },
+    "TagResource":{
+      "name":"TagResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/2015-02-01/resource-tags/{ResourceId}",
+        "responseCode":200
+      },
+      "input":{"shape":"TagResourceRequest"},
+      "errors":[
+        {"shape":"BadRequest"},
+        {"shape":"InternalServerError"},
+        {"shape":"FileSystemNotFound"},
+        {"shape":"AccessPointNotFound"}
+      ]
+    },
+    "UntagResource":{
+      "name":"UntagResource",
+      "http":{
+        "method":"DELETE",
+        "requestUri":"/2015-02-01/resource-tags/{ResourceId}",
+        "responseCode":200
+      },
+      "input":{"shape":"UntagResourceRequest"},
+      "errors":[
+        {"shape":"BadRequest"},
+        {"shape":"InternalServerError"},
+        {"shape":"FileSystemNotFound"},
+        {"shape":"AccessPointNotFound"}
       ]
     },
     "UpdateFileSystem":{
@@ -211,6 +387,63 @@
     }
   },
   "shapes":{
+    "AccessPointAlreadyExists":{
+      "type":"structure",
+      "required":[
+        "ErrorCode",
+        "AccessPointId"
+      ],
+      "members":{
+        "ErrorCode":{"shape":"ErrorCode"},
+        "Message":{"shape":"ErrorMessage"},
+        "AccessPointId":{"shape":"AccessPointId"}
+      },
+      "error":{"httpStatusCode":409},
+      "exception":true
+    },
+    "AccessPointArn":{"type":"string"},
+    "AccessPointDescription":{
+      "type":"structure",
+      "members":{
+        "ClientToken":{"shape":"ClientToken"},
+        "Name":{"shape":"Name"},
+        "Tags":{"shape":"Tags"},
+        "AccessPointId":{"shape":"AccessPointId"},
+        "AccessPointArn":{"shape":"AccessPointArn"},
+        "FileSystemId":{"shape":"FileSystemId"},
+        "PosixUser":{"shape":"PosixUser"},
+        "RootDirectory":{"shape":"RootDirectory"},
+        "OwnerId":{"shape":"AwsAccountId"},
+        "LifeCycleState":{"shape":"LifeCycleState"}
+      }
+    },
+    "AccessPointDescriptions":{
+      "type":"list",
+      "member":{"shape":"AccessPointDescription"}
+    },
+    "AccessPointId":{"type":"string"},
+    "AccessPointLimitExceeded":{
+      "type":"structure",
+      "required":["ErrorCode"],
+      "members":{
+        "ErrorCode":{"shape":"ErrorCode"},
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "error":{"httpStatusCode":403},
+      "exception":true
+    },
+    "AccessPointNotFound":{
+      "type":"structure",
+      "required":["ErrorCode"],
+      "members":{
+        "ErrorCode":{"shape":"ErrorCode"},
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "error":{"httpStatusCode":404},
+      "exception":true
+    },
+    "AvailabilityZoneId":{"type":"string"},
+    "AvailabilityZoneName":{"type":"string"},
     "AwsAccountId":{"type":"string"},
     "BadRequest":{
       "type":"structure",
@@ -222,16 +455,43 @@
       "error":{"httpStatusCode":400},
       "exception":true
     },
+    "BypassPolicyLockoutSafetyCheck":{"type":"boolean"},
+    "ClientToken":{
+      "type":"string",
+      "max":64,
+      "min":1
+    },
+    "CreateAccessPointRequest":{
+      "type":"structure",
+      "required":[
+        "ClientToken",
+        "FileSystemId"
+      ],
+      "members":{
+        "ClientToken":{
+          "shape":"ClientToken",
+          "idempotencyToken":true
+        },
+        "Tags":{"shape":"Tags"},
+        "FileSystemId":{"shape":"FileSystemId"},
+        "PosixUser":{"shape":"PosixUser"},
+        "RootDirectory":{"shape":"RootDirectory"}
+      }
+    },
     "CreateFileSystemRequest":{
       "type":"structure",
       "required":["CreationToken"],
       "members":{
-        "CreationToken":{"shape":"CreationToken"},
+        "CreationToken":{
+          "shape":"CreationToken",
+          "idempotencyToken":true
+        },
         "PerformanceMode":{"shape":"PerformanceMode"},
         "Encrypted":{"shape":"Encrypted"},
         "KmsKeyId":{"shape":"KmsKeyId"},
         "ThroughputMode":{"shape":"ThroughputMode"},
-        "ProvisionedThroughputInMibps":{"shape":"ProvisionedThroughputInMibps"}
+        "ProvisionedThroughputInMibps":{"shape":"ProvisionedThroughputInMibps"},
+        "Tags":{"shape":"Tags"}
       }
     },
     "CreateMountTargetRequest":{
@@ -262,10 +522,45 @@
         "Tags":{"shape":"Tags"}
       }
     },
+    "CreationInfo":{
+      "type":"structure",
+      "required":[
+        "OwnerUid",
+        "OwnerGid",
+        "Permissions"
+      ],
+      "members":{
+        "OwnerUid":{"shape":"OwnerUid"},
+        "OwnerGid":{"shape":"OwnerGid"},
+        "Permissions":{"shape":"Permissions"}
+      }
+    },
     "CreationToken":{
       "type":"string",
       "max":64,
       "min":1
+    },
+    "DeleteAccessPointRequest":{
+      "type":"structure",
+      "required":["AccessPointId"],
+      "members":{
+        "AccessPointId":{
+          "shape":"AccessPointId",
+          "location":"uri",
+          "locationName":"AccessPointId"
+        }
+      }
+    },
+    "DeleteFileSystemPolicyRequest":{
+      "type":"structure",
+      "required":["FileSystemId"],
+      "members":{
+        "FileSystemId":{
+          "shape":"FileSystemId",
+          "location":"uri",
+          "locationName":"FileSystemId"
+        }
+      }
     },
     "DeleteFileSystemRequest":{
       "type":"structure",
@@ -314,6 +609,49 @@
       "error":{"httpStatusCode":504},
       "exception":true
     },
+    "DescribeAccessPointsRequest":{
+      "type":"structure",
+      "members":{
+        "MaxResults":{
+          "shape":"MaxResults",
+          "location":"querystring",
+          "locationName":"MaxResults"
+        },
+        "NextToken":{
+          "shape":"Token",
+          "location":"querystring",
+          "locationName":"NextToken"
+        },
+        "AccessPointId":{
+          "shape":"AccessPointId",
+          "location":"querystring",
+          "locationName":"AccessPointId"
+        },
+        "FileSystemId":{
+          "shape":"FileSystemId",
+          "location":"querystring",
+          "locationName":"FileSystemId"
+        }
+      }
+    },
+    "DescribeAccessPointsResponse":{
+      "type":"structure",
+      "members":{
+        "AccessPoints":{"shape":"AccessPointDescriptions"},
+        "NextToken":{"shape":"Token"}
+      }
+    },
+    "DescribeFileSystemPolicyRequest":{
+      "type":"structure",
+      "required":["FileSystemId"],
+      "members":{
+        "FileSystemId":{
+          "shape":"FileSystemId",
+          "location":"uri",
+          "locationName":"FileSystemId"
+        }
+      }
+    },
     "DescribeFileSystemsRequest":{
       "type":"structure",
       "members":{
@@ -345,6 +683,17 @@
         "Marker":{"shape":"Marker"},
         "FileSystems":{"shape":"FileSystemDescriptions"},
         "NextMarker":{"shape":"Marker"}
+      }
+    },
+    "DescribeLifecycleConfigurationRequest":{
+      "type":"structure",
+      "required":["FileSystemId"],
+      "members":{
+        "FileSystemId":{
+          "shape":"FileSystemId",
+          "location":"uri",
+          "locationName":"FileSystemId"
+        }
       }
     },
     "DescribeMountTargetSecurityGroupsRequest":{
@@ -387,6 +736,11 @@
           "shape":"MountTargetId",
           "location":"querystring",
           "locationName":"MountTargetId"
+        },
+        "AccessPointId":{
+          "shape":"AccessPointId",
+          "location":"querystring",
+          "locationName":"AccessPointId"
         }
       }
     },
@@ -458,7 +812,8 @@
         "LifeCycleState",
         "NumberOfMountTargets",
         "SizeInBytes",
-        "PerformanceMode"
+        "PerformanceMode",
+        "Tags"
       ],
       "members":{
         "OwnerId":{"shape":"AwsAccountId"},
@@ -473,7 +828,8 @@
         "Encrypted":{"shape":"Encrypted"},
         "KmsKeyId":{"shape":"KmsKeyId"},
         "ThroughputMode":{"shape":"ThroughputMode"},
-        "ProvisionedThroughputInMibps":{"shape":"ProvisionedThroughputInMibps"}
+        "ProvisionedThroughputInMibps":{"shape":"ProvisionedThroughputInMibps"},
+        "Tags":{"shape":"Tags"}
       }
     },
     "FileSystemDescriptions":{
@@ -511,16 +867,34 @@
       "error":{"httpStatusCode":404},
       "exception":true
     },
+    "FileSystemNullableSizeValue":{
+      "type":"long",
+      "min":0
+    },
+    "FileSystemPolicyDescription":{
+      "type":"structure",
+      "members":{
+        "FileSystemId":{"shape":"FileSystemId"},
+        "Policy":{"shape":"Policy"}
+      }
+    },
     "FileSystemSize":{
       "type":"structure",
       "required":["Value"],
       "members":{
         "Value":{"shape":"FileSystemSizeValue"},
-        "Timestamp":{"shape":"Timestamp"}
+        "Timestamp":{"shape":"Timestamp"},
+        "ValueInIA":{"shape":"FileSystemNullableSizeValue"},
+        "ValueInStandard":{"shape":"FileSystemNullableSizeValue"}
       }
     },
     "FileSystemSizeValue":{
       "type":"long",
+      "min":0
+    },
+    "Gid":{
+      "type":"long",
+      "max":4294967295,
       "min":0
     },
     "IncorrectFileSystemLifeCycleState":{
@@ -563,6 +937,15 @@
       "error":{"httpStatusCode":500},
       "exception":true
     },
+    "InvalidPolicyException":{
+      "type":"structure",
+      "members":{
+        "ErrorCode":{"shape":"ErrorCode"},
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "error":{"httpStatusCode":400},
+      "exception":true
+    },
     "IpAddress":{"type":"string"},
     "IpAddressInUse":{
       "type":"structure",
@@ -589,8 +972,56 @@
         "deleted"
       ]
     },
+    "LifecycleConfigurationDescription":{
+      "type":"structure",
+      "members":{
+        "LifecyclePolicies":{"shape":"LifecyclePolicies"}
+      }
+    },
+    "LifecyclePolicies":{
+      "type":"list",
+      "member":{"shape":"LifecyclePolicy"}
+    },
+    "LifecyclePolicy":{
+      "type":"structure",
+      "members":{
+        "TransitionToIA":{"shape":"TransitionToIARules"}
+      }
+    },
+    "ListTagsForResourceRequest":{
+      "type":"structure",
+      "required":["ResourceId"],
+      "members":{
+        "ResourceId":{
+          "shape":"ResourceId",
+          "location":"uri",
+          "locationName":"ResourceId"
+        },
+        "MaxResults":{
+          "shape":"MaxResults",
+          "location":"querystring",
+          "locationName":"MaxResults"
+        },
+        "NextToken":{
+          "shape":"Token",
+          "location":"querystring",
+          "locationName":"NextToken"
+        }
+      }
+    },
+    "ListTagsForResourceResponse":{
+      "type":"structure",
+      "members":{
+        "Tags":{"shape":"Tags"},
+        "NextToken":{"shape":"Token"}
+      }
+    },
     "Marker":{"type":"string"},
     "MaxItems":{
+      "type":"integer",
+      "min":1
+    },
+    "MaxResults":{
       "type":"integer",
       "min":1
     },
@@ -635,7 +1066,9 @@
         "SubnetId":{"shape":"SubnetId"},
         "LifeCycleState":{"shape":"LifeCycleState"},
         "IpAddress":{"shape":"IpAddress"},
-        "NetworkInterfaceId":{"shape":"NetworkInterfaceId"}
+        "NetworkInterfaceId":{"shape":"NetworkInterfaceId"},
+        "AvailabilityZoneId":{"shape":"AvailabilityZoneId"},
+        "AvailabilityZoneName":{"shape":"AvailabilityZoneName"}
       }
     },
     "MountTargetDescriptions":{
@@ -653,6 +1086,7 @@
       "error":{"httpStatusCode":404},
       "exception":true
     },
+    "Name":{"type":"string"},
     "NetworkInterfaceId":{"type":"string"},
     "NetworkInterfaceLimitExceeded":{
       "type":"structure",
@@ -674,6 +1108,21 @@
       "error":{"httpStatusCode":409},
       "exception":true
     },
+    "OwnerGid":{
+      "type":"long",
+      "max":4294967295,
+      "min":0
+    },
+    "OwnerUid":{
+      "type":"long",
+      "max":4294967295,
+      "min":0
+    },
+    "Path":{
+      "type":"string",
+      "max":100,
+      "min":1
+    },
     "PerformanceMode":{
       "type":"string",
       "enum":[
@@ -681,9 +1130,80 @@
         "maxIO"
       ]
     },
+    "Permissions":{
+      "type":"string",
+      "pattern":"^[0-7]{3,4}$"
+    },
+    "Policy":{"type":"string"},
+    "PolicyNotFound":{
+      "type":"structure",
+      "members":{
+        "ErrorCode":{"shape":"ErrorCode"},
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "error":{"httpStatusCode":404},
+      "exception":true
+    },
+    "PosixUser":{
+      "type":"structure",
+      "required":[
+        "Uid",
+        "Gid"
+      ],
+      "members":{
+        "Uid":{"shape":"Uid"},
+        "Gid":{"shape":"Gid"},
+        "SecondaryGids":{"shape":"SecondaryGids"}
+      }
+    },
     "ProvisionedThroughputInMibps":{
       "type":"double",
-      "min":0.0
+      "min":1.0
+    },
+    "PutFileSystemPolicyRequest":{
+      "type":"structure",
+      "required":[
+        "FileSystemId",
+        "Policy"
+      ],
+      "members":{
+        "FileSystemId":{
+          "shape":"FileSystemId",
+          "location":"uri",
+          "locationName":"FileSystemId"
+        },
+        "Policy":{"shape":"Policy"},
+        "BypassPolicyLockoutSafetyCheck":{"shape":"BypassPolicyLockoutSafetyCheck"}
+      }
+    },
+    "PutLifecycleConfigurationRequest":{
+      "type":"structure",
+      "required":[
+        "FileSystemId",
+        "LifecyclePolicies"
+      ],
+      "members":{
+        "FileSystemId":{
+          "shape":"FileSystemId",
+          "location":"uri",
+          "locationName":"FileSystemId"
+        },
+        "LifecyclePolicies":{"shape":"LifecyclePolicies"}
+      }
+    },
+    "ResourceId":{"type":"string"},
+    "RootDirectory":{
+      "type":"structure",
+      "members":{
+        "Path":{"shape":"Path"},
+        "CreationInfo":{"shape":"CreationInfo"}
+      }
+    },
+    "SecondaryGids":{
+      "type":"list",
+      "member":{"shape":"Gid"},
+      "max":16,
+      "min":0
     },
     "SecurityGroup":{"type":"string"},
     "SecurityGroupLimitExceeded":{
@@ -740,7 +1260,24 @@
     },
     "TagKeys":{
       "type":"list",
-      "member":{"shape":"TagKey"}
+      "member":{"shape":"TagKey"},
+      "max":50,
+      "min":1
+    },
+    "TagResourceRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceId",
+        "Tags"
+      ],
+      "members":{
+        "ResourceId":{
+          "shape":"ResourceId",
+          "location":"uri",
+          "locationName":"ResourceId"
+        },
+        "Tags":{"shape":"Tags"}
+      }
     },
     "TagValue":{
       "type":"string",
@@ -768,6 +1305,7 @@
       ]
     },
     "Timestamp":{"type":"timestamp"},
+    "Token":{"type":"string"},
     "TooManyRequests":{
       "type":"structure",
       "required":["ErrorCode"],
@@ -778,6 +1316,21 @@
       "error":{"httpStatusCode":429},
       "exception":true
     },
+    "TransitionToIARules":{
+      "type":"string",
+      "enum":[
+        "AFTER_7_DAYS",
+        "AFTER_14_DAYS",
+        "AFTER_30_DAYS",
+        "AFTER_60_DAYS",
+        "AFTER_90_DAYS"
+      ]
+    },
+    "Uid":{
+      "type":"long",
+      "max":4294967295,
+      "min":0
+    },
     "UnsupportedAvailabilityZone":{
       "type":"structure",
       "required":["ErrorCode"],
@@ -787,6 +1340,18 @@
       },
       "error":{"httpStatusCode":400},
       "exception":true
+    },
+    "UntagResourceRequest":{
+      "type":"structure",
+      "required":["ResourceId"],
+      "members":{
+        "ResourceId":{
+          "shape":"ResourceId",
+          "location":"uri",
+          "locationName":"ResourceId"
+        },
+        "TagKeys":{"shape":"TagKeys"}
+      }
     },
     "UpdateFileSystemRequest":{
       "type":"structure",

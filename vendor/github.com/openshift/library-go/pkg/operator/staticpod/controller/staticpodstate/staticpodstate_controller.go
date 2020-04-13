@@ -75,7 +75,7 @@ func (c *StaticPodStateController) sync(ctx context.Context, syncCtx factory.Syn
 	failingErrorCount := 0
 	images := sets.NewString()
 	for _, node := range originalOperatorStatus.NodeStatuses {
-		pod, err := c.podsGetter.Pods(c.targetNamespace).Get(mirrorPodNameForNode(c.staticPodName, node.NodeName), metav1.GetOptions{})
+		pod, err := c.podsGetter.Pods(c.targetNamespace).Get(ctx, mirrorPodNameForNode(c.staticPodName, node.NodeName), metav1.GetOptions{})
 		if err != nil {
 			errs = append(errs, err)
 			failingErrorCount++

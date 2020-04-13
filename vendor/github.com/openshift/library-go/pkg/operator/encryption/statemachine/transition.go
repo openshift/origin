@@ -24,7 +24,8 @@ type Deployer interface {
 
 	// AddEventHandler registers a event handler whenever the backing resource change
 	// that might influence the result of DeployedEncryptionConfigSecret.
-	AddEventHandler(handler cache.ResourceEventHandler) []cache.InformerSynced
+	AddEventHandler(handler cache.ResourceEventHandler)
+	HasSynced() bool
 }
 
 func GetEncryptionConfigAndState(

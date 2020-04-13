@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -37,7 +38,8 @@ type Frontend struct {
 	URL       string
 	Path      string
 
-	Expect string
+	Expect       string
+	ExpectRegexp *regexp.Regexp
 }
 
 func (AvailableTest) Name() string { return "frontend-ingress-available" }
@@ -49,14 +51,14 @@ func (AvailableTest) DisplayName() string {
 func (t *AvailableTest) Setup(f *framework.Framework) {
 	t.frontends = []Frontend{
 		{Namespace: "openshift-authentication", Name: "oauth-openshift", Path: "/healthz", Expect: "ok"},
-		{Namespace: "openshift-console", Name: "console", Expect: "Red Hat OpenShift Container Platform"},
+		{Namespace: "openshift-console", Name: "console", ExpectRegexp: regexp.MustCompile(`(Red Hat OpenShift Container Platform|OKD)`)},
 	}
 	config, err := framework.LoadConfig()
 	framework.ExpectNoError(err)
 	client, err := routeclientset.NewForConfig(config)
 	framework.ExpectNoError(err)
 	for i, frontend := range t.frontends {
-		route, err := client.RouteV1().Routes(frontend.Namespace).Get(frontend.Name, metav1.GetOptions{})
+		route, err := client.RouteV1().Routes(frontend.Namespace).Get(context.Background(), frontend.Name, metav1.GetOptions{})
 		framework.ExpectNoError(err)
 		for _, ingress := range route.Status.Ingress {
 			if len(ingress.Host) > 0 {
@@ -130,7 +132,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend F
 	}
 	m.AddSampler(
 		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitor.Condition, next bool) {
-			data, err := continuousClient.Get().AbsPath(frontend.Path).DoRaw()
+			data, err := continuousClient.Get().AbsPath(frontend.Path).DoRaw(ctx)
 			if err == nil && !bytes.Contains(data, []byte(frontend.Expect)) {
 				err = fmt.Errorf("route returned success but did not contain the correct body contents: %q", string(data))
 			}
@@ -183,8 +185,11 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend F
 	}
 	m.AddSampler(
 		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitor.Condition, next bool) {
-			data, err := client.Get().AbsPath(frontend.Path).DoRaw()
-			if err == nil && !bytes.Contains(data, []byte(frontend.Expect)) {
+			data, err := client.Get().AbsPath(frontend.Path).DoRaw(ctx)
+			switch {
+			case err == nil && len(frontend.Expect) != 0 && !bytes.Contains(data, []byte(frontend.Expect)):
+				err = fmt.Errorf("route returned success but did not contain the correct body contents: %q", string(data))
+			case err == nil && frontend.ExpectRegexp != nil && !frontend.ExpectRegexp.MatchString(string(data)):
 				err = fmt.Errorf("route returned success but did not contain the correct body contents: %q", string(data))
 			}
 			switch {

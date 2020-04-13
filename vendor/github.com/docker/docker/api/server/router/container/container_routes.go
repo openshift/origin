@@ -338,9 +338,6 @@ func (s *containerRouter) postContainersWait(ctx context.Context, w http.Respons
 		}
 	}
 
-	// Note: the context should get canceled if the client closes the
-	// connection since this handler has been wrapped by the
-	// router.WithCancel() wrapper.
 	waitC, err := s.backend.ContainerWait(ctx, vars["name"], waitCondition)
 	if err != nil {
 		return err
@@ -428,6 +425,16 @@ func (s *containerRouter) postContainerUpdate(ctx context.Context, w http.Respon
 	if err := decoder.Decode(&updateConfig); err != nil {
 		return err
 	}
+	if versions.LessThan(httputils.VersionFromContext(ctx), "1.40") {
+		updateConfig.PidsLimit = nil
+	}
+	if updateConfig.PidsLimit != nil && *updateConfig.PidsLimit <= 0 {
+		// Both `0` and `-1` are accepted to set "unlimited" when updating.
+		// Historically, any negative value was accepted, so treat them as
+		// "unlimited" as well.
+		var unlimited int64
+		updateConfig.PidsLimit = &unlimited
+	}
 
 	hostConfig := &container.HostConfig{
 		Resources:     updateConfig.Resources,
@@ -463,6 +470,33 @@ func (s *containerRouter) postContainersCreate(ctx context.Context, w http.Respo
 	// When using API 1.24 and under, the client is responsible for removing the container
 	if hostConfig != nil && versions.LessThan(version, "1.25") {
 		hostConfig.AutoRemove = false
+	}
+
+	if hostConfig != nil && versions.LessThan(version, "1.40") {
+		// Ignore BindOptions.NonRecursive because it was added in API 1.40.
+		for _, m := range hostConfig.Mounts {
+			if bo := m.BindOptions; bo != nil {
+				bo.NonRecursive = false
+			}
+		}
+		// Ignore KernelMemoryTCP because it was added in API 1.40.
+		hostConfig.KernelMemoryTCP = 0
+
+		// Ignore Capabilities because it was added in API 1.40.
+		hostConfig.Capabilities = nil
+
+		// Older clients (API < 1.40) expects the default to be shareable, make them happy
+		if hostConfig.IpcMode.IsEmpty() {
+			hostConfig.IpcMode = container.IpcMode("shareable")
+		}
+	}
+
+	if hostConfig != nil && hostConfig.PidsLimit != nil && *hostConfig.PidsLimit <= 0 {
+		// Don't set a limit if either no limit was specified, or "unlimited" was
+		// explicitly set.
+		// Both `0` and `-1` are accepted as "unlimited", and historically any
+		// negative value was accepted, so treat those as "unlimited" as well.
+		hostConfig.PidsLimit = nil
 	}
 
 	ccr, err := s.backend.ContainerCreate(types.ContainerCreateConfig{
@@ -570,7 +604,7 @@ func (s *containerRouter) postContainersAttach(ctx context.Context, w http.Respo
 		// Remember to close stream if error happens
 		conn, _, errHijack := hijacker.Hijack()
 		if errHijack == nil {
-			statusCode := httputils.GetHTTPErrorStatusCode(err)
+			statusCode := errdefs.GetHTTPErrorStatusCode(err)
 			statusText := http.StatusText(statusCode)
 			fmt.Fprintf(conn, "HTTP/1.1 %d %s\r\nContent-Type: application/vnd.docker.raw-stream\r\n\r\n%s\r\n", statusCode, statusText, err.Error())
 			httputils.CloseStreams(conn)

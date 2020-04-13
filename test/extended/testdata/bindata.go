@@ -92,6 +92,8 @@
 // test/extended/testdata/builds/custom-build/Dockerfile.sample
 // test/extended/testdata/builds/custom-build/build.sh
 // test/extended/testdata/builds/docker-add/Dockerfile
+// test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile
+// test/extended/testdata/builds/docker-add/docker-add-env/foo
 // test/extended/testdata/builds/incremental-auth-build.json
 // test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml
 // test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml
@@ -102,6 +104,7 @@
 // test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml
 // test/extended/testdata/builds/statusfail-failedassemble.yaml
 // test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml
+// test/extended/testdata/builds/statusfail-fetchimagecontentdocker.yaml
 // test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml
 // test/extended/testdata/builds/statusfail-fetchsources2i.yaml
 // test/extended/testdata/builds/statusfail-genericreason.yaml
@@ -430,6 +433,7 @@
 // test/extended/testdata/router/reencrypt-serving-cert.yaml
 // test/extended/testdata/router/router-common.yaml
 // test/extended/testdata/router/router-config-manager.yaml
+// test/extended/testdata/router/router-h2spec.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
 // test/extended/testdata/router/router-metrics.yaml
 // test/extended/testdata/router/router-override-domains.yaml
@@ -20435,6 +20439,43 @@ func testExtendedTestdataBuildsDockerAddDockerfile() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile = []byte(`FROM centos
+ENV foo=foo
+ADD ./${foo} /tmp/foo
+`)
+
+func testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile, nil
+}
+
+func testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsDockerAddDockerAddEnvFoo = []byte(``)
+
+func testExtendedTestdataBuildsDockerAddDockerAddEnvFooBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsDockerAddDockerAddEnvFoo, nil
+}
+
+func testExtendedTestdataBuildsDockerAddDockerAddEnvFoo() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsDockerAddDockerAddEnvFooBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/docker-add/docker-add-env/foo", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
   "kind": "Template",
   "apiVersion": "v1",
@@ -20749,6 +20790,45 @@ func testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml() (*asset, error)
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-fetchimagecontentdocker
+spec:
+  source:
+    images:
+      - from:
+          kind: DockerImage
+          name: dummy.io/dont/exist:latest
+        paths:
+          - destinationDir: injected/opt/app-root/test-links
+            sourcePath: /opt/app-root/test-links/.
+          - destinationDir: injected/opt/rh/rh-ruby-25/root/usr/bin
+            sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
+
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+`)
+
+func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-fetchimagecontentdocker.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -31062,19 +31142,15 @@ export KUBECONFIG="${temp_config}"
 #os::cmd::expect_success 'oc new-project test-project-admin'
 #os::cmd::try_until_success "oc project test-project-admin"
 
-os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
-os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'
+os::cmd::expect_success 'oc create deploymentconfig --image=openshift/hello-openshift test'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --restart=Never test3'
-os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=job/v1 --restart=Never test4'
-os::cmd::expect_success 'oc delete dc/test rc/test2 pod/test3 job/test4'
+os::cmd::expect_success 'oc create job --image=openshift/hello-openshift test4'
+os::cmd::expect_success 'oc delete dc/test pod/test3 job/test4'
 
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name'                                'deploymentconfig.apps.openshift.io/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --restart=Always'               'deploymentconfig.apps.openshift.io/foo'
+os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --image=bar -o name'               'deploymentconfig.apps.openshift.io/foo'
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --restart=Never'                'pod/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=job/v1'              'job.batch/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=deploymentconfig/v1' 'deploymentconfig.apps.openshift.io/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-controller/v1'   'replicationcontroller/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run/v1'              'replicationcontroller/foo'
+os::cmd::expect_success_and_text 'oc create job --dry-run foo --image=bar -o name'              'job.batch/foo'
+os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --image=bar -o name' 'deploymentconfig.apps.openshift.io/foo'
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-pod/v1'          'pod/foo'
 
 os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l name=mytemplate | oc create -f -'
@@ -31986,32 +32062,32 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/set-env"
 # This test validates the value of --image for oc run
-os::cmd::expect_success 'oc new-app node'
-os::cmd::expect_failure_and_text 'oc set env dc/node' 'error: at least one environment variable must be provided'
-os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig.apps.openshift.io/node updated'
-os::cmd::expect_success_and_text 'oc set env dc/node --list' 'deploymentconfigs/node, container node'
-os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" key-' 'deploymentconfig.apps.openshift.io/node updated'
-os::cmd::expect_failure_and_text 'oc set env dc --all --containers="node"' 'error: at least one environment variable must be provided'
-os::cmd::expect_failure_and_not_text 'oc set env --from=secret/mysecret dc/node' 'error: at least one environment variable must be provided'
-os::cmd::expect_failure_and_text 'oc set env dc/node test#abc=1234' 'environment variable test#abc=1234 is invalid, a valid environment variable name must consist of alphabetic characters'
+os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
+os::cmd::expect_failure_and_text 'oc set env dc/testdc' 'error: at least one environment variable must be provided'
+os::cmd::expect_success_and_text 'oc set env dc/testdc key=value' 'deploymentconfig.apps.openshift.io/testdc updated'
+os::cmd::expect_success_and_text 'oc set env dc/testdc --list' 'deploymentconfigs/testdc, container default-container'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="default-container" key-' 'deploymentconfig.apps.openshift.io/testdc updated'
+os::cmd::expect_failure_and_text 'oc set env dc --all --containers="default-container"' 'error: at least one environment variable must be provided'
+os::cmd::expect_failure_and_not_text 'oc set env --from=secret/mysecret dc/testdc' 'error: at least one environment variable must be provided'
+os::cmd::expect_failure_and_text 'oc set env dc/testdc test#abc=1234' 'environment variable test#abc=1234 is invalid, a valid environment variable name must consist of alphabetic characters'
 
 # ensure deleting a var through --env does not result in an error message
-os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig.apps.openshift.io/node updated'
-os::cmd::expect_success_and_text 'oc set env dc/node dots.in.a.key=dots.in.a.value' 'deploymentconfig.apps.openshift.io/node updated'
-os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=key-' 'deploymentconfig.apps.openshift.io/node updated'
+os::cmd::expect_success_and_text 'oc set env dc/testdc key=value' 'deploymentconfig.apps.openshift.io/testdc updated'
+os::cmd::expect_success_and_text 'oc set env dc/testdc dots.in.a.key=dots.in.a.value' 'deploymentconfig.apps.openshift.io/testdc updated'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="default-container" --env=key-' 'deploymentconfig.apps.openshift.io/testdc updated'
 # ensure deleting a var through --env actually deletes the env var
-os::cmd::expect_success_and_not_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:key'
-os::cmd::expect_success_and_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:dots.in.a.key'
-os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=dots.in.a.key-' 'deploymentconfig.apps.openshift.io/node updated'
-os::cmd::expect_success_and_not_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:dots.in.a.key'
+os::cmd::expect_success_and_not_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name\:key'
+os::cmd::expect_success_and_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name\:dots.in.a.key'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="default-container" --env=dots.in.a.key-' 'deploymentconfig.apps.openshift.io/testdc updated'
+os::cmd::expect_success_and_not_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name\:dots.in.a.key'
 
 # check that env vars are not split at commas
-os::cmd::expect_success_and_text 'oc set env -o yaml dc/node PASS=x,y=z' 'value: x,y=z'
-os::cmd::expect_success_and_text 'oc set env -o yaml dc/node --env PASS=x,y=z' 'value: x,y=z'
+os::cmd::expect_success_and_text 'oc set env -o yaml dc/testdc PASS=x,y=z' 'value: x,y=z'
+os::cmd::expect_success_and_text 'oc set env -o yaml dc/testdc --env PASS=x,y=z' 'value: x,y=z'
 # warning is printed when --env has comma in it
-os::cmd::expect_success_and_text 'oc set env dc/node --env PASS=x,y=z' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_text 'oc set env dc/testdc --env PASS=x,y=z' 'no longer accepts comma-separated list'
 # warning is not printed for variables passed as positional arguments
-os::cmd::expect_success_and_not_text 'oc set env dc/node PASS=x,y=z' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text 'oc set env dc/testdc PASS=x,y=z' 'no longer accepts comma-separated list'
 
 # create a build-config object with the JenkinsPipeline strategy
 os::cmd::expect_success 'oc process -p NAMESPACE=openshift -f ${TEST_DATA}/jenkins/jenkins-ephemeral-template.json | oc create -f -'
@@ -32428,7 +32504,7 @@ os::cmd::expect_success_and_text "oc set image-lookup is/nginx" "updated"
 os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=nginx:latest nginx"
 os::cmd::expect_success_and_text "oc get pod/nginx -o jsonpath='{.spec.containers[0].image}'" "nginx@sha256:"
 ## Image lookup works for jobs
-os::cmd::expect_success          "oc run --generator=job/v1 --restart=Never --image=nginx:latest nginx"
+os::cmd::expect_success          "oc create job --image=nginx:latest nginx"
 os::cmd::expect_success_and_text "oc get job/nginx -o jsonpath='{.spec.template.spec.containers[0].image}'" "nginx@sha256:"
 ## Image lookup works for replica sets
 os::cmd::expect_success          "oc create deployment --image=nginx:latest nginx"
@@ -34156,15 +34232,13 @@ os::cmd::expect_success_and_not_text 'oc get is' 'imagestream.image.openshift.io
 
 # Test that resource printer includes namespaces for buildconfigs with custom strategies
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-custombuild.json'
-os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample' 'deploymentconfig.apps.openshift.io "frontend" created'
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample' 'deployment.*.apps.* "frontend" created'
 os::cmd::expect_success_and_text 'oc get all --all-namespaces' 'cmd-printer[\ ]+buildconfig.build.openshift.io\/ruby\-sample\-build'
 
 # Test that infos printer supports all outputFormat options
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value' 'deploymentconfig.apps.openshift.io/node updated'
-# FIXME: what to do with this?
-# os::cmd::expect_success 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o custom-colums="NAME:.metadata.name"'
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o yaml' 'apiVersion: apps.openshift.io/v1'
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o json' '"apiVersion": "apps.openshift.io/v1"'
+os::cmd::expect_success_and_text 'oc new-app node --dry-run -o yaml | oc set env --local -f - MYVAR=value' 'deployment.*.apps.*/node updated'
+os::cmd::expect_success_and_text 'oc new-app node --dry-run -o yaml | oc set env --local -f - MYVAR=value -o yaml' 'apiVersion: apps.*/v1'
+os::cmd::expect_success_and_text 'oc new-app node --dry-run -o yaml | oc set env --local -f - MYVAR=value -o json' '"apiVersion": "apps.*/v1"'
 echo "resource printer: ok"
 os::test::junit::declare_suite_end
 `)
@@ -34543,10 +34617,8 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/run"
 # This test validates the value of --image for oc run
-os::cmd::expect_success_and_text 'oc run newdcforimage --image=validimagevalue' 'deploymentconfig.apps.openshift.io/newdcforimage created'
+os::cmd::expect_success_and_text 'oc create deploymentconfig newdcforimage --image=validimagevalue' 'deploymentconfig.apps.openshift.io/newdcforimage created'
 os::cmd::expect_failure_and_text 'oc run newdcforimage2 --image="InvalidImageValue0192"' 'error: Invalid image name "InvalidImageValue0192": invalid reference format'
-os::cmd::expect_failure_and_text 'oc run test1 --image=busybox --attach --dry-run' "dry-run can't be used with attached containers options"
-os::cmd::expect_failure_and_text 'oc run test1 --image=busybox --stdin --dry-run' "dry-run can't be used with attached containers options"
 echo "oc run: ok"
 os::test::junit::declare_suite_end
 `)
@@ -35183,7 +35255,7 @@ os::cmd::expect_success_and_text 'oc status -v' 'shorthand -v has been deprecate
 os::cmd::expect_success_and_text 'oc status --verbose' '\-\-verbose has been deprecated'
 
 # Verify jobs are showing in status
-os::cmd::expect_success "oc run pi --image=perl --restart=OnFailure -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
+os::cmd::expect_success "oc create job pi --image=perl -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
 os::cmd::expect_success_and_text "oc status" "job/pi manages perl"
 
 # logout
@@ -46619,10 +46691,10 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/request-timeout"
 # This test validates the global request-timeout option
-os::cmd::expect_success_and_text 'oc new-app node' 'Success'
-os::cmd::expect_success_and_text 'oc get dc node -w --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
-os::cmd::expect_success_and_text 'oc get dc node --request-timeout=1s' 'node'
-os::cmd::expect_success_and_text 'oc get dc node --request-timeout=1' 'node'
+os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
+os::cmd::expect_success_and_text 'oc get dc/testdc -w --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
+os::cmd::expect_success_and_text 'oc get dc/testdc --request-timeout=1s' 'testdc'
+os::cmd::expect_success_and_text 'oc get dc/testdc --request-timeout=1' 'testdc'
 os::cmd::expect_success_and_text 'oc get pods --watch --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
 
 echo "request-timeout: ok"
@@ -46664,7 +46736,6 @@ os::test::junit::declare_suite_start "cmd/triggers"
 
 os::cmd::expect_success 'oc new-app centos/ruby-25-centos7~https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
-os::cmd::expect_success 'oc get dc/ruby-hello-world'
 
 os::cmd::expect_success "oc new-build --name=scratch --docker-image=scratch --dockerfile='FROM scratch'"
 
@@ -46740,32 +46811,33 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/triggers/deploymentconfigs"
 ## Deployment configs
 
+os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
+
 # error conditions
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-github' 'deployment configs do not support GitHub web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-webhook' 'deployment configs do not support web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-gitlab' 'deployment configs do not support GitLab web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-bitbucket' 'deployment configs do not support Bitbucket web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-image=test:latest' 'you must specify --containers when setting --from-image'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: ruby-hello-world\)'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-github' 'deployment configs do not support GitHub web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-webhook' 'deployment configs do not support web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-gitlab' 'deployment configs do not support GitLab web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-bitbucket' 'deployment configs do not support Bitbucket web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-image=test:latest' 'you must specify --containers when setting --from-image'
+os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: default-container\)'
 # print
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'webhook|github|gitlab|bitbucket'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'gitlab'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'config.*true'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'webhook|github|gitlab|bitbucket'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'gitlab'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'bitbucket'
 # remove all
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --remove-all' 'updated'
-os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'webhook|github|image|gitlab|bitbucket'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*false'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc --remove-all' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/testdc' 'webhook|github|image|gitlab|bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'config.*false'
 # auto
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --auto' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --from-image=ruby-hello-world:latest -c ruby-hello-world' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc --auto' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'config.*true'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc --from-image=ruby-hello-world:latest -c default-container' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers dc/testdc' 'image.*ruby-hello-world:latest \(default-container\).*true'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/triggers/annotations"
-## Deployment configs
+## Deployment
 
 os::cmd::expect_success 'oc create deployment test --image=busybox'
 
@@ -54905,6 +54977,310 @@ func testExtendedTestdataRouterRouterConfigManagerYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataRouterRouterH2specYaml = []byte(`apiVersion: v1
+kind: Template
+parameters:
+- name: HAPROXY_IMAGE
+  value: haproxy:2.0
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: h2spec-haproxy-config
+  data:
+    haproxy.config: |
+      global
+        daemon
+        log stdout local0
+        nbthread 4
+        tune.ssl.default-dh-param 2048
+        tune.ssl.capture-cipherlist-size 1
+      defaults
+        mode http
+        timeout connect 5s
+        timeout client 30s
+        timeout client-fin 1s
+        timeout server 30s
+        timeout server-fin 1s
+        timeout http-request 10s
+        timeout http-keep-alive 300s
+        option httplog
+        option http-use-htx
+        option logasap
+        option http-buffer-request
+        log-format "frontend:%f/%H/%fi:%fp GMT:%T\ body:%[capture.req.hdr(0)]\  request:%r"
+      frontend fe_proxy
+        declare capture request len 40000
+        http-request capture req.body id 0
+        log global
+        bind *:8080 alpn h2
+        default_backend haproxy-availability-ok
+      frontend fe_proxy_tls
+        declare capture request len 40000
+        http-request capture req.body id 0
+        log global
+        bind *:8443 ssl crt /tmp/bundle.pem alpn h2
+        default_backend haproxy-availability-ok
+      backend haproxy-availability-ok
+        errorfile 200 /etc/haproxy/errorfile
+        http-request deny deny_status 200
+    errorfile: |
+      HTTP/1.0 200 OK
+      Cache-Control: no-cache
+      Connection: close
+      Content-Type: text/html
+
+      <html>
+      <body>
+      The way this errorfile works is summarized in this post:
+          https://www.gilesorr.com/blog/haproxy-static-content.html
+      And based on this discussion we need to return some data on GET requests:
+          https://www.mail-archive.com/haproxy@formilux.org/msg36762.html
+      Generated content comes from: $ base64 /dev/urandom | head -c 4k
+      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
+      ykvHjLw+2KatoB7v7qVoN/GLsHsMij
+      </body>
+      </html>
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: h2spec-haproxy
+    labels:
+      app: h2spec-haproxy
+  spec:
+    containers:
+    - image: ${HAPROXY_IMAGE}
+      name: serve
+      command: ["/bin/bash", "-c" ]
+      args:
+        - set -e;
+          cat /etc/service-certs/tls.key /etc/service-certs/tls.crt > /tmp/bundle.pem;
+          haproxy -f /etc/haproxy/haproxy.config -db
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      - containerPort: 8080
+        protocol: TCP
+      volumeMounts:
+      - name: service-certs
+        mountPath: /etc/service-certs
+      - name: config
+        mountPath: /etc/haproxy
+      - name: tmp
+        mountPath: /var/cache/haproxy
+      - name: tmp
+        mountPath: /var/run
+    volumes:
+    - name: config
+      configMap:
+        name: h2spec-haproxy-config
+    - name: service-certs
+      secret:
+        secretName: service-certs
+    - name: tmp
+      emptyDir: {}
+    - name: tmp2
+      emptyDir: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: h2spec-haproxy
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: service-certs
+  spec:
+    selector:
+      app: h2spec-haproxy
+    ports:
+      - port: 443
+        name: https
+        targetPort: 8443
+        protocol: TCP
+      - port: 80
+        name: http
+        targetPort: 8080
+        protocol: TCP
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: h2spec-haproxy
+    name: h2spec-haproxy-edge
+  spec:
+    port:
+      targetPort: 8080
+    tls:
+      termination: edge
+    to:
+      kind: Service
+      name: h2spec-haproxy
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: h2spec-haproxy
+    name: h2spec-haproxy-reencrypt
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: reencrypt
+    to:
+      kind: Service
+      name: h2spec-haproxy
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: h2spec-haproxy
+    name: h2spec-haproxy-passthrough
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: passthrough
+    to:
+      kind: Service
+      name: h2spec-haproxy
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: h2spec
+    labels:
+      app: h2spec
+  spec:
+    containers:
+    - name: h2spec
+      image: docker.io/summerwind/h2spec:2.4.0
+      command: ["/bin/bash"]
+      args: ["-c", "while true; do echo -n 'heartbeat: '; date; sleep 60; done"]
+`)
+
+func testExtendedTestdataRouterRouterH2specYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterH2specYaml, nil
+}
+
+func testExtendedTestdataRouterRouterH2specYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterH2specYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-h2spec.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRouterRouterHttpEchoServerYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
@@ -55695,7 +56071,7 @@ func testExtendedTestdataS2iDropcapsRootAccessBuildYaml() (*asset, error) {
 
 var _testExtendedTestdataS2iDropcapsRootableRubyDockerfile = []byte(`FROM centos/ruby-25-centos7:latest
 USER root
-RUN yum -y install expect
+RUN rm -f /usr/bin/ls
 RUN echo "root:redhat" | chpasswd
 USER 1001
 COPY ./adduser /usr/libexec/s2i/
@@ -58427,6 +58803,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/custom-build/Dockerfile.sample": testExtendedTestdataBuildsCustomBuildDockerfileSample,
 	"test/extended/testdata/builds/custom-build/build.sh": testExtendedTestdataBuildsCustomBuildBuildSh,
 	"test/extended/testdata/builds/docker-add/Dockerfile": testExtendedTestdataBuildsDockerAddDockerfile,
+	"test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile": testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile,
+	"test/extended/testdata/builds/docker-add/docker-add-env/foo": testExtendedTestdataBuildsDockerAddDockerAddEnvFoo,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
 	"test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml": testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml,
 	"test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml": testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml,
@@ -58437,6 +58815,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml": testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
 	"test/extended/testdata/builds/statusfail-failedassemble.yaml": testExtendedTestdataBuildsStatusfailFailedassembleYaml,
 	"test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml": testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml,
+	"test/extended/testdata/builds/statusfail-fetchimagecontentdocker.yaml": testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml,
 	"test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml": testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml,
 	"test/extended/testdata/builds/statusfail-fetchsources2i.yaml": testExtendedTestdataBuildsStatusfailFetchsources2iYaml,
 	"test/extended/testdata/builds/statusfail-genericreason.yaml": testExtendedTestdataBuildsStatusfailGenericreasonYaml,
@@ -58765,6 +59144,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/reencrypt-serving-cert.yaml": testExtendedTestdataRouterReencryptServingCertYaml,
 	"test/extended/testdata/router/router-common.yaml": testExtendedTestdataRouterRouterCommonYaml,
 	"test/extended/testdata/router/router-config-manager.yaml": testExtendedTestdataRouterRouterConfigManagerYaml,
+	"test/extended/testdata/router/router-h2spec.yaml": testExtendedTestdataRouterRouterH2specYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml": testExtendedTestdataRouterRouterHttpEchoServerYaml,
 	"test/extended/testdata/router/router-metrics.yaml": testExtendedTestdataRouterRouterMetricsYaml,
 	"test/extended/testdata/router/router-override-domains.yaml": testExtendedTestdataRouterRouterOverrideDomainsYaml,
@@ -58993,6 +59373,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"docker-add": &bintree{nil, map[string]*bintree{
 						"Dockerfile": &bintree{testExtendedTestdataBuildsDockerAddDockerfile, map[string]*bintree{}},
+						"docker-add-env": &bintree{nil, map[string]*bintree{
+							"Dockerfile": &bintree{testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile, map[string]*bintree{}},
+							"foo": &bintree{testExtendedTestdataBuildsDockerAddDockerAddEnvFoo, map[string]*bintree{}},
+						}},
 					}},
 					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
 					"pullsecret": &bintree{nil, map[string]*bintree{
@@ -59016,6 +59400,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"statusfail-badcontextdirs2i.yaml": &bintree{testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml, map[string]*bintree{}},
 					"statusfail-failedassemble.yaml": &bintree{testExtendedTestdataBuildsStatusfailFailedassembleYaml, map[string]*bintree{}},
 					"statusfail-fetchbuilderimage.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml, map[string]*bintree{}},
+					"statusfail-fetchimagecontentdocker.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml, map[string]*bintree{}},
 					"statusfail-fetchsourcedocker.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml, map[string]*bintree{}},
 					"statusfail-fetchsources2i.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchsources2iYaml, map[string]*bintree{}},
 					"statusfail-genericreason.yaml": &bintree{testExtendedTestdataBuildsStatusfailGenericreasonYaml, map[string]*bintree{}},
@@ -59506,6 +59891,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
 					"router-common.yaml": &bintree{testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
 					"router-config-manager.yaml": &bintree{testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
+					"router-h2spec.yaml": &bintree{testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
 					"router-metrics.yaml": &bintree{testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
 					"router-override-domains.yaml": &bintree{testExtendedTestdataRouterRouterOverrideDomainsYaml, map[string]*bintree{}},

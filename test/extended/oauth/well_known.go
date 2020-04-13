@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -20,7 +21,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] well-known endpoint", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("oauth-well-known", exutil.KubeConfigPath())
+		oc             = exutil.NewCLI("oauth-well-known")
 		oauthRoute     = "oauth-openshift"
 		oauthNamespace = "openshift-authentication"
 	)
@@ -33,7 +34,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] well-known endpoint", func()
 		err = json.Unmarshal([]byte(metadataJSON), metadata)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// compare to openshift-authentication route
-		route, err := oc.AdminRouteClient().RouteV1().Routes(oauthNamespace).Get(oauthRoute, metav1.GetOptions{})
+		route, err := oc.AdminRouteClient().RouteV1().Routes(oauthNamespace).Get(context.Background(), oauthRoute, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		u, err := url.Parse("https://" + route.Spec.Host)
 		o.Expect(err).NotTo(o.HaveOccurred())

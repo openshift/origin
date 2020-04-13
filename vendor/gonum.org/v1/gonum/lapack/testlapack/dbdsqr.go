@@ -76,7 +76,7 @@ func DbdsqrTest(t *testing.T, impl Dbdsqrer) {
 
 				// First test the decomposition of the bidiagonal matrix. Set
 				// pt and u equal to I with the correct size. At the result
-				// of Dbdsqr, p and u  will contain the data of P^T and Q, which
+				// of Dbdsqr, p and u  will contain the data of Pᵀ and Q, which
 				// will be used in the next step to test the multiplication
 				// with Q and VT.
 
@@ -133,7 +133,7 @@ func DbdsqrTest(t *testing.T, impl Dbdsqrer) {
 					t.Errorf("D is not sorted. %s", errStr)
 				}
 
-				// The above computed the real P and Q. Now input data for V^T,
+				// The above computed the real P and Q. Now input data for Vᵀ,
 				// U, and C to check that the multiplications happen properly.
 				dAns := make([]float64, len(d))
 				copy(dAns, d)

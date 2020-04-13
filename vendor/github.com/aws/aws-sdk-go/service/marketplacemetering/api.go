@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
 )
 
 const opBatchMeterUsage = "BatchMeterUsage"
@@ -73,29 +74,29 @@ func (c *MarketplaceMetering) BatchMeterUsageRequest(input *BatchMeterUsageInput
 // See the AWS API reference guide for AWSMarketplace Metering's
 // API operation BatchMeterUsage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceErrorException "InternalServiceErrorException"
+// Returned Error Types:
+//   * InternalServiceErrorException
 //   An internal error has occurred. Retry your request. If the problem persists,
 //   post a message with details on the AWS forums.
 //
-//   * ErrCodeInvalidProductCodeException "InvalidProductCodeException"
+//   * InvalidProductCodeException
 //   The product code passed does not match the product code used for publishing
 //   the product.
 //
-//   * ErrCodeInvalidUsageDimensionException "InvalidUsageDimensionException"
+//   * InvalidUsageDimensionException
 //   The usage dimension does not match one of the UsageDimensions associated
 //   with products.
 //
-//   * ErrCodeInvalidCustomerIdentifierException "InvalidCustomerIdentifierException"
+//   * InvalidCustomerIdentifierException
 //   You have metered usage for a CustomerIdentifier that does not exist.
 //
-//   * ErrCodeTimestampOutOfBoundsException "TimestampOutOfBoundsException"
+//   * TimestampOutOfBoundsException
 //   The timestamp value passed in the meterUsage() is out of allowed range.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The calls to the API are throttled.
 //
-//   * ErrCodeDisabledApiException "DisabledApiException"
+//   * DisabledApiException
 //   The API is disabled in the Region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/meteringmarketplace-2016-01-14/BatchMeterUsage
@@ -167,8 +168,8 @@ func (c *MarketplaceMetering) MeterUsageRequest(input *MeterUsageInput) (req *re
 // API to emit metering records. For identical requests, the API is idempotent.
 // It simply returns the metering record ID.
 //
-// MeterUsage is authenticated on the buyer's AWS account, generally when running
-// from an EC2 instance on the AWS Marketplace.
+// MeterUsage is authenticated on the buyer's AWS account using credentials
+// from the EC2 instance, ECS task, or EKS pod.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -177,33 +178,38 @@ func (c *MarketplaceMetering) MeterUsageRequest(input *MeterUsageInput) (req *re
 // See the AWS API reference guide for AWSMarketplace Metering's
 // API operation MeterUsage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceErrorException "InternalServiceErrorException"
+// Returned Error Types:
+//   * InternalServiceErrorException
 //   An internal error has occurred. Retry your request. If the problem persists,
 //   post a message with details on the AWS forums.
 //
-//   * ErrCodeInvalidProductCodeException "InvalidProductCodeException"
+//   * InvalidProductCodeException
 //   The product code passed does not match the product code used for publishing
 //   the product.
 //
-//   * ErrCodeInvalidUsageDimensionException "InvalidUsageDimensionException"
+//   * InvalidUsageDimensionException
 //   The usage dimension does not match one of the UsageDimensions associated
 //   with products.
 //
-//   * ErrCodeInvalidEndpointRegionException "InvalidEndpointRegionException"
-//   The endpoint being called is in a Region different from your EC2 instance.
-//   The Region of the Metering Service endpoint and the Region of the EC2 instance
-//   must match.
+//   * InvalidEndpointRegionException
+//   The endpoint being called is in a AWS Region different from your EC2 instance,
+//   ECS task, or EKS pod. The Region of the Metering Service endpoint and the
+//   AWS Region of the resource must match.
 //
-//   * ErrCodeTimestampOutOfBoundsException "TimestampOutOfBoundsException"
+//   * TimestampOutOfBoundsException
 //   The timestamp value passed in the meterUsage() is out of allowed range.
 //
-//   * ErrCodeDuplicateRequestException "DuplicateRequestException"
-//   A metering record has already been emitted by the same EC2 instance for the
-//   given {usageDimension, timestamp} with a different usageQuantity.
+//   * DuplicateRequestException
+//   A metering record has already been emitted by the same EC2 instance, ECS
+//   task, or EKS pod for the given {usageDimension, timestamp} with a different
+//   usageQuantity.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The calls to the API are throttled.
+//
+//   * CustomerNotEntitledException
+//   Exception thrown when the customer does not have a valid subscription for
+//   the product.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/meteringmarketplace-2016-01-14/MeterUsage
 func (c *MarketplaceMetering) MeterUsage(input *MeterUsageInput) (*MeterUsageOutput, error) {
@@ -273,12 +279,11 @@ func (c *MarketplaceMetering) RegisterUsageRequest(input *RegisterUsageInput) (r
 //
 // Paid container software products sold through AWS Marketplace must integrate
 // with the AWS Marketplace Metering Service and call the RegisterUsage operation
-// for software entitlement and metering. Calling RegisterUsage from containers
-// running outside of ECS is not currently supported. Free and BYOL products
-// for ECS aren't required to call RegisterUsage, but you may choose to do so
-// if you would like to receive usage data in your seller reports. The sections
-// below explain the behavior of RegisterUsage. RegisterUsage performs two primary
-// functions: metering and entitlement.
+// for software entitlement and metering. Free and BYOL products for Amazon
+// ECS or Amazon EKS aren't required to call RegisterUsage, but you may choose
+// to do so if you would like to receive usage data in your seller reports.
+// The sections below explain the behavior of RegisterUsage. RegisterUsage performs
+// two primary functions: metering and entitlement.
 //
 //    * Entitlement: RegisterUsage allows you to verify that the customer running
 //    your paid software is subscribed to your product on AWS Marketplace, enabling
@@ -286,22 +291,23 @@ func (c *MarketplaceMetering) RegisterUsageRequest(input *RegisterUsageInput) (r
 //    with RegisterUsage is only required to guard against unauthorized use
 //    at container startup, as such a CustomerNotSubscribedException/PlatformNotSupportedException
 //    will only be thrown on the initial call to RegisterUsage. Subsequent calls
-//    from the same Amazon ECS task instance (e.g. task-id) will not throw a
-//    CustomerNotSubscribedException, even if the customer unsubscribes while
-//    the Amazon ECS task is still running.
+//    from the same Amazon ECS task instance (e.g. task-id) or Amazon EKS pod
+//    will not throw a CustomerNotSubscribedException, even if the customer
+//    unsubscribes while the Amazon ECS task or Amazon EKS pod is still running.
 //
 //    * Metering: RegisterUsage meters software use per ECS task, per hour,
-//    with usage prorated to the second. A minimum of 1 minute of usage applies
-//    to tasks that are short lived. For example, if a customer has a 10 node
-//    ECS cluster and creates an ECS service configured as a Daemon Set, then
-//    ECS will launch a task on all 10 cluster nodes and the customer will be
-//    charged: (10 * hourly_rate). Metering for software use is automatically
-//    handled by the AWS Marketplace Metering Control Plane -- your software
-//    is not required to perform any metering specific actions, other than call
-//    RegisterUsage once for metering of software use to commence. The AWS Marketplace
-//    Metering Control Plane will also continue to bill customers for running
-//    ECS tasks, regardless of the customers subscription state, removing the
-//    need for your software to perform entitlement checks at runtime.
+//    or per pod for Amazon EKS with usage prorated to the second. A minimum
+//    of 1 minute of usage applies to tasks that are short lived. For example,
+//    if a customer has a 10 node Amazon ECS or Amazon EKS cluster and a service
+//    configured as a Daemon Set, then Amazon ECS or Amazon EKS will launch
+//    a task on all 10 cluster nodes and the customer will be charged: (10 *
+//    hourly_rate). Metering for software use is automatically handled by the
+//    AWS Marketplace Metering Control Plane -- your software is not required
+//    to perform any metering specific actions, other than call RegisterUsage
+//    once for metering of software use to commence. The AWS Marketplace Metering
+//    Control Plane will also continue to bill customers for running ECS tasks
+//    and Amazon EKS pods, regardless of the customers subscription state, removing
+//    the need for your software to perform entitlement checks at runtime.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -310,35 +316,35 @@ func (c *MarketplaceMetering) RegisterUsageRequest(input *RegisterUsageInput) (r
 // See the AWS API reference guide for AWSMarketplace Metering's
 // API operation RegisterUsage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidProductCodeException "InvalidProductCodeException"
+// Returned Error Types:
+//   * InvalidProductCodeException
 //   The product code passed does not match the product code used for publishing
 //   the product.
 //
-//   * ErrCodeInvalidRegionException "InvalidRegionException"
+//   * InvalidRegionException
 //   RegisterUsage must be called in the same AWS Region the ECS task was launched
 //   in. This prevents a container from hardcoding a Region (e.g. withRegion(“us-east-1”)
 //   when calling RegisterUsage.
 //
-//   * ErrCodeInvalidPublicKeyVersionException "InvalidPublicKeyVersionException"
+//   * InvalidPublicKeyVersionException
 //   Public Key version is invalid.
 //
-//   * ErrCodePlatformNotSupportedException "PlatformNotSupportedException"
+//   * PlatformNotSupportedException
 //   AWS Marketplace does not support metering usage from the underlying platform.
 //   Currently, only Amazon ECS is supported.
 //
-//   * ErrCodeCustomerNotEntitledException "CustomerNotEntitledException"
+//   * CustomerNotEntitledException
 //   Exception thrown when the customer does not have a valid subscription for
 //   the product.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The calls to the API are throttled.
 //
-//   * ErrCodeInternalServiceErrorException "InternalServiceErrorException"
+//   * InternalServiceErrorException
 //   An internal error has occurred. Retry your request. If the problem persists,
 //   post a message with details on the AWS forums.
 //
-//   * ErrCodeDisabledApiException "DisabledApiException"
+//   * DisabledApiException
 //   The API is disabled in the Region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/meteringmarketplace-2016-01-14/RegisterUsage
@@ -419,25 +425,25 @@ func (c *MarketplaceMetering) ResolveCustomerRequest(input *ResolveCustomerInput
 // See the AWS API reference guide for AWSMarketplace Metering's
 // API operation ResolveCustomer for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidTokenException "InvalidTokenException"
+// Returned Error Types:
+//   * InvalidTokenException
 //   Registration token is invalid.
 //
-//   * ErrCodeExpiredTokenException "ExpiredTokenException"
+//   * ExpiredTokenException
 //   The submitted registration token has expired. This can happen if the buyer's
 //   browser takes too long to redirect to your page, the buyer has resubmitted
 //   the registration token, or your application has held on to the registration
 //   token for too long. Your SaaS registration website should redeem this token
 //   as soon as it is submitted by the buyer's browser.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The calls to the API are throttled.
 //
-//   * ErrCodeInternalServiceErrorException "InternalServiceErrorException"
+//   * InternalServiceErrorException
 //   An internal error has occurred. Retry your request. If the problem persists,
 //   post a message with details on the AWS forums.
 //
-//   * ErrCodeDisabledApiException "DisabledApiException"
+//   * DisabledApiException
 //   The API is disabled in the Region.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/meteringmarketplace-2016-01-14/ResolveCustomer
@@ -569,15 +575,699 @@ func (s *BatchMeterUsageOutput) SetUnprocessedRecords(v []*UsageRecord) *BatchMe
 	return s
 }
 
+// Exception thrown when the customer does not have a valid subscription for
+// the product.
+type CustomerNotEntitledException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s CustomerNotEntitledException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CustomerNotEntitledException) GoString() string {
+	return s.String()
+}
+
+func newErrorCustomerNotEntitledException(v protocol.ResponseMetadata) error {
+	return &CustomerNotEntitledException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s CustomerNotEntitledException) Code() string {
+	return "CustomerNotEntitledException"
+}
+
+// Message returns the exception's message.
+func (s CustomerNotEntitledException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s CustomerNotEntitledException) OrigErr() error {
+	return nil
+}
+
+func (s CustomerNotEntitledException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s CustomerNotEntitledException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s CustomerNotEntitledException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The API is disabled in the Region.
+type DisabledApiException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s DisabledApiException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisabledApiException) GoString() string {
+	return s.String()
+}
+
+func newErrorDisabledApiException(v protocol.ResponseMetadata) error {
+	return &DisabledApiException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DisabledApiException) Code() string {
+	return "DisabledApiException"
+}
+
+// Message returns the exception's message.
+func (s DisabledApiException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DisabledApiException) OrigErr() error {
+	return nil
+}
+
+func (s DisabledApiException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DisabledApiException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DisabledApiException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// A metering record has already been emitted by the same EC2 instance, ECS
+// task, or EKS pod for the given {usageDimension, timestamp} with a different
+// usageQuantity.
+type DuplicateRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s DuplicateRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DuplicateRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorDuplicateRequestException(v protocol.ResponseMetadata) error {
+	return &DuplicateRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DuplicateRequestException) Code() string {
+	return "DuplicateRequestException"
+}
+
+// Message returns the exception's message.
+func (s DuplicateRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DuplicateRequestException) OrigErr() error {
+	return nil
+}
+
+func (s DuplicateRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DuplicateRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DuplicateRequestException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The submitted registration token has expired. This can happen if the buyer's
+// browser takes too long to redirect to your page, the buyer has resubmitted
+// the registration token, or your application has held on to the registration
+// token for too long. Your SaaS registration website should redeem this token
+// as soon as it is submitted by the buyer's browser.
+type ExpiredTokenException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ExpiredTokenException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExpiredTokenException) GoString() string {
+	return s.String()
+}
+
+func newErrorExpiredTokenException(v protocol.ResponseMetadata) error {
+	return &ExpiredTokenException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ExpiredTokenException) Code() string {
+	return "ExpiredTokenException"
+}
+
+// Message returns the exception's message.
+func (s ExpiredTokenException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ExpiredTokenException) OrigErr() error {
+	return nil
+}
+
+func (s ExpiredTokenException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ExpiredTokenException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ExpiredTokenException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// An internal error has occurred. Retry your request. If the problem persists,
+// post a message with details on the AWS forums.
+type InternalServiceErrorException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalServiceErrorException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalServiceErrorException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServiceErrorException(v protocol.ResponseMetadata) error {
+	return &InternalServiceErrorException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalServiceErrorException) Code() string {
+	return "InternalServiceErrorException"
+}
+
+// Message returns the exception's message.
+func (s InternalServiceErrorException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalServiceErrorException) OrigErr() error {
+	return nil
+}
+
+func (s InternalServiceErrorException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalServiceErrorException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalServiceErrorException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// You have metered usage for a CustomerIdentifier that does not exist.
+type InvalidCustomerIdentifierException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidCustomerIdentifierException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidCustomerIdentifierException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidCustomerIdentifierException(v protocol.ResponseMetadata) error {
+	return &InvalidCustomerIdentifierException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidCustomerIdentifierException) Code() string {
+	return "InvalidCustomerIdentifierException"
+}
+
+// Message returns the exception's message.
+func (s InvalidCustomerIdentifierException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidCustomerIdentifierException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidCustomerIdentifierException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidCustomerIdentifierException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidCustomerIdentifierException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The endpoint being called is in a AWS Region different from your EC2 instance,
+// ECS task, or EKS pod. The Region of the Metering Service endpoint and the
+// AWS Region of the resource must match.
+type InvalidEndpointRegionException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidEndpointRegionException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidEndpointRegionException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidEndpointRegionException(v protocol.ResponseMetadata) error {
+	return &InvalidEndpointRegionException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidEndpointRegionException) Code() string {
+	return "InvalidEndpointRegionException"
+}
+
+// Message returns the exception's message.
+func (s InvalidEndpointRegionException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidEndpointRegionException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidEndpointRegionException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidEndpointRegionException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidEndpointRegionException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The product code passed does not match the product code used for publishing
+// the product.
+type InvalidProductCodeException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidProductCodeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidProductCodeException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidProductCodeException(v protocol.ResponseMetadata) error {
+	return &InvalidProductCodeException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidProductCodeException) Code() string {
+	return "InvalidProductCodeException"
+}
+
+// Message returns the exception's message.
+func (s InvalidProductCodeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidProductCodeException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidProductCodeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidProductCodeException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidProductCodeException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Public Key version is invalid.
+type InvalidPublicKeyVersionException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidPublicKeyVersionException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidPublicKeyVersionException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidPublicKeyVersionException(v protocol.ResponseMetadata) error {
+	return &InvalidPublicKeyVersionException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidPublicKeyVersionException) Code() string {
+	return "InvalidPublicKeyVersionException"
+}
+
+// Message returns the exception's message.
+func (s InvalidPublicKeyVersionException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidPublicKeyVersionException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidPublicKeyVersionException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidPublicKeyVersionException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidPublicKeyVersionException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// RegisterUsage must be called in the same AWS Region the ECS task was launched
+// in. This prevents a container from hardcoding a Region (e.g. withRegion(“us-east-1”)
+// when calling RegisterUsage.
+type InvalidRegionException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidRegionException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidRegionException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidRegionException(v protocol.ResponseMetadata) error {
+	return &InvalidRegionException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidRegionException) Code() string {
+	return "InvalidRegionException"
+}
+
+// Message returns the exception's message.
+func (s InvalidRegionException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidRegionException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidRegionException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidRegionException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidRegionException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Registration token is invalid.
+type InvalidTokenException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidTokenException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidTokenException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidTokenException(v protocol.ResponseMetadata) error {
+	return &InvalidTokenException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidTokenException) Code() string {
+	return "InvalidTokenException"
+}
+
+// Message returns the exception's message.
+func (s InvalidTokenException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidTokenException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidTokenException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidTokenException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidTokenException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The usage dimension does not match one of the UsageDimensions associated
+// with products.
+type InvalidUsageDimensionException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidUsageDimensionException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidUsageDimensionException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidUsageDimensionException(v protocol.ResponseMetadata) error {
+	return &InvalidUsageDimensionException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidUsageDimensionException) Code() string {
+	return "InvalidUsageDimensionException"
+}
+
+// Message returns the exception's message.
+func (s InvalidUsageDimensionException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidUsageDimensionException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidUsageDimensionException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidUsageDimensionException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidUsageDimensionException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type MeterUsageInput struct {
 	_ struct{} `type:"structure"`
 
 	// Checks whether you have the permissions required for the action, but does
 	// not make the request. If you have the permissions, the request returns DryRunOperation;
-	// otherwise, it returns UnauthorizedException.
-	//
-	// DryRun is a required field
-	DryRun *bool `type:"boolean" required:"true"`
+	// otherwise, it returns UnauthorizedException. Defaults to false if not specified.
+	DryRun *bool `type:"boolean"`
 
 	// Product code is used to uniquely identify a product in AWS Marketplace. The
 	// product code should be the same as the one used during the publishing of
@@ -586,8 +1276,9 @@ type MeterUsageInput struct {
 	// ProductCode is a required field
 	ProductCode *string `min:"1" type:"string" required:"true"`
 
-	// Timestamp of the hour, recorded in UTC. The seconds and milliseconds portions
-	// of the timestamp will be ignored.
+	// Timestamp, in UTC, for which the usage is being reported. Your application
+	// can meter usage for up to one hour in the past. Make sure the timestamp value
+	// is not before the start of the software usage.
 	//
 	// Timestamp is a required field
 	Timestamp *time.Time `type:"timestamp" required:"true"`
@@ -598,10 +1289,8 @@ type MeterUsageInput struct {
 	// UsageDimension is a required field
 	UsageDimension *string `min:"1" type:"string" required:"true"`
 
-	// Consumption value for the hour.
-	//
-	// UsageQuantity is a required field
-	UsageQuantity *int64 `type:"integer" required:"true"`
+	// Consumption value for the hour. Defaults to 0 if not specified.
+	UsageQuantity *int64 `type:"integer"`
 }
 
 // String returns the string representation
@@ -617,9 +1306,6 @@ func (s MeterUsageInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *MeterUsageInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "MeterUsageInput"}
-	if s.DryRun == nil {
-		invalidParams.Add(request.NewErrParamRequired("DryRun"))
-	}
 	if s.ProductCode == nil {
 		invalidParams.Add(request.NewErrParamRequired("ProductCode"))
 	}
@@ -634,9 +1320,6 @@ func (s *MeterUsageInput) Validate() error {
 	}
 	if s.UsageDimension != nil && len(*s.UsageDimension) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("UsageDimension", 1))
-	}
-	if s.UsageQuantity == nil {
-		invalidParams.Add(request.NewErrParamRequired("UsageQuantity"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -696,6 +1379,63 @@ func (s MeterUsageOutput) GoString() string {
 func (s *MeterUsageOutput) SetMeteringRecordId(v string) *MeterUsageOutput {
 	s.MeteringRecordId = &v
 	return s
+}
+
+// AWS Marketplace does not support metering usage from the underlying platform.
+// Currently, only Amazon ECS is supported.
+type PlatformNotSupportedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s PlatformNotSupportedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PlatformNotSupportedException) GoString() string {
+	return s.String()
+}
+
+func newErrorPlatformNotSupportedException(v protocol.ResponseMetadata) error {
+	return &PlatformNotSupportedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s PlatformNotSupportedException) Code() string {
+	return "PlatformNotSupportedException"
+}
+
+// Message returns the exception's message.
+func (s PlatformNotSupportedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s PlatformNotSupportedException) OrigErr() error {
+	return nil
+}
+
+func (s PlatformNotSupportedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s PlatformNotSupportedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s PlatformNotSupportedException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type RegisterUsageInput struct {
@@ -879,6 +1619,118 @@ func (s *ResolveCustomerOutput) SetProductCode(v string) *ResolveCustomerOutput 
 	return s
 }
 
+// The calls to the API are throttled.
+type ThrottlingException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ThrottlingException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ThrottlingException) GoString() string {
+	return s.String()
+}
+
+func newErrorThrottlingException(v protocol.ResponseMetadata) error {
+	return &ThrottlingException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ThrottlingException) Code() string {
+	return "ThrottlingException"
+}
+
+// Message returns the exception's message.
+func (s ThrottlingException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ThrottlingException) OrigErr() error {
+	return nil
+}
+
+func (s ThrottlingException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ThrottlingException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ThrottlingException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The timestamp value passed in the meterUsage() is out of allowed range.
+type TimestampOutOfBoundsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s TimestampOutOfBoundsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TimestampOutOfBoundsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTimestampOutOfBoundsException(v protocol.ResponseMetadata) error {
+	return &TimestampOutOfBoundsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s TimestampOutOfBoundsException) Code() string {
+	return "TimestampOutOfBoundsException"
+}
+
+// Message returns the exception's message.
+func (s TimestampOutOfBoundsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s TimestampOutOfBoundsException) OrigErr() error {
+	return nil
+}
+
+func (s TimestampOutOfBoundsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s TimestampOutOfBoundsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s TimestampOutOfBoundsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // A UsageRecord indicates a quantity of usage for a given product, customer,
 // dimension and time.
 //
@@ -901,15 +1753,13 @@ type UsageRecord struct {
 	Dimension *string `min:"1" type:"string" required:"true"`
 
 	// The quantity of usage consumed by the customer for the given dimension and
-	// time.
-	//
-	// Quantity is a required field
-	Quantity *int64 `type:"integer" required:"true"`
+	// time. Defaults to 0 if not specified.
+	Quantity *int64 `type:"integer"`
 
-	// Timestamp of the hour, recorded in UTC. The seconds and milliseconds portions
-	// of the timestamp will be ignored.
+	// Timestamp, in UTC, for which the usage is being reported.
 	//
-	// Your application can meter usage for up to one hour in the past.
+	// Your application can meter usage for up to one hour in the past. Make sure
+	// the timestamp value is not before the start of the software usage.
 	//
 	// Timestamp is a required field
 	Timestamp *time.Time `type:"timestamp" required:"true"`
@@ -939,9 +1789,6 @@ func (s *UsageRecord) Validate() error {
 	}
 	if s.Dimension != nil && len(*s.Dimension) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Dimension", 1))
-	}
-	if s.Quantity == nil {
-		invalidParams.Add(request.NewErrParamRequired("Quantity"))
 	}
 	if s.Timestamp == nil {
 		invalidParams.Add(request.NewErrParamRequired("Timestamp"))

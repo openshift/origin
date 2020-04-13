@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -57,14 +58,14 @@ type certAuthTest struct {
 }
 
 var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP]", func() {
-	var oc = exutil.NewCLI("request-headers", exutil.KubeConfigPath())
+	var oc = exutil.NewCLI("request-headers")
 
 	g.It("test RequestHeaders IdP", func() {
 		caCert, caKey := createClientCA(oc.AdminKubeClient().CoreV1())
-		defer oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(clientCAName, &metav1.DeleteOptions{})
+		defer oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(context.Background(), clientCAName, metav1.DeleteOptions{})
 
 		changeTime := time.Now()
-		oauthClusterOrig, err := oc.AdminConfigClient().ConfigV1().OAuths().Get("cluster", metav1.GetOptions{})
+		oauthClusterOrig, err := oc.AdminConfigClient().ConfigV1().OAuths().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		oauthCluster := oauthClusterOrig.DeepCopy()
@@ -88,20 +89,20 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 				},
 			},
 		}
-		_, err = oc.AdminConfigClient().ConfigV1().OAuths().Update(oauthCluster)
+		_, err = oc.AdminConfigClient().ConfigV1().OAuths().Update(context.Background(), oauthCluster, metav1.UpdateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// clean up after ourselves
 		defer func() {
 			userclient := oc.AdminUserClient().UserV1()
-			userclient.Identities().Delete(fmt.Sprintf("%s:%s", idpName, testUserName), &metav1.DeleteOptions{})
-			userclient.Users().Delete(testUserName, &metav1.DeleteOptions{})
+			userclient.Identities().Delete(context.Background(), fmt.Sprintf("%s:%s", idpName, testUserName), metav1.DeleteOptions{})
+			userclient.Users().Delete(context.Background(), testUserName, metav1.DeleteOptions{})
 
-			oauthCluster, err := oc.AdminConfigClient().ConfigV1().OAuths().Get("cluster", metav1.GetOptions{})
+			oauthCluster, err := oc.AdminConfigClient().ConfigV1().OAuths().Get(context.Background(), "cluster", metav1.GetOptions{})
 			if err != nil {
 				g.Fail(fmt.Sprintf("Failed to get oauth/cluster, unable to turn it into its original state: %v", err))
 			}
 			oauthCluster.Spec = oauthClusterOrig.Spec
-			_, err = oc.AdminConfigClient().ConfigV1().OAuths().Update(oauthCluster)
+			_, err = oc.AdminConfigClient().ConfigV1().OAuths().Update(context.Background(), oauthCluster, metav1.UpdateOptions{})
 			if err != nil {
 				g.Fail(fmt.Sprintf("Failed to update oauth/cluster, unable to turn it into its original state: %v", err))
 			}
@@ -178,7 +179,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		caCerts, err := x509.SystemCertPool()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get("router-ca", metav1.GetOptions{})
+		routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(context.Background(), "router-ca", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, ca := range routerCA.Data {
@@ -298,14 +299,14 @@ func generateCA(cn string) (*x509.Certificate, *rsa.PrivateKey) {
 // returns CA cert and private key
 func createClientCA(client corev1client.CoreV1Interface) (*x509.Certificate, *rsa.PrivateKey) {
 	caCert, caKey := generateCA("Testing CA")
-	_, err := client.ConfigMaps("openshift-config").Create(&corev1.ConfigMap{
+	_, err := client.ConfigMaps("openshift-config").Create(context.Background(), &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clientCAName,
 		},
 		Data: map[string]string{
 			"ca.crt": string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCert.Raw})),
 		},
-	})
+	}, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	return caCert, caKey
@@ -343,7 +344,7 @@ func generateCert(caCert *x509.Certificate, caKey *rsa.PrivateKey, cn string, ek
 func waitForNewOAuthConfig(oc *exutil.CLI, caCerts *x509.CertPool, oauthURL string, configChanged time.Time) {
 	// check that the pods running in openshift-authentication NS already reflect our changes
 	err := wait.PollImmediate(time.Second, 2*time.Minute, func() (bool, error) {
-		pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication").List(metav1.ListOptions{})
+		pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication").List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -363,7 +364,7 @@ func waitForNewOAuthConfig(oc *exutil.CLI, caCerts *x509.CertPool, oauthURL stri
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-		authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get("authentication", metav1.GetOptions{})
+		authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "authentication", metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Error getting authentication operator: %v", err)
 			return false, err

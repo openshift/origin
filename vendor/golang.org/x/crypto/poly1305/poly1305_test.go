@@ -5,6 +5,7 @@
 package poly1305
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"flag"
 	"testing"
@@ -115,8 +116,14 @@ func testWriteGeneric(t *testing.T, unaligned bool) {
 			input = unalignBytes(input)
 		}
 		h := newMACGeneric(&key)
-		h.Write(input[:len(input)/2])
-		h.Write(input[len(input)/2:])
+		n, err := h.Write(input[:len(input)/3])
+		if err != nil || n != len(input[:len(input)/3]) {
+			t.Errorf("#%d: unexpected Write results: n = %d, err = %v", i, n, err)
+		}
+		n, err = h.Write(input[len(input)/3:])
+		if err != nil || n != len(input[len(input)/3:]) {
+			t.Errorf("#%d: unexpected Write results: n = %d, err = %v", i, n, err)
+		}
 		h.Sum(&out)
 		if tag := v.Tag(); out != tag {
 			t.Errorf("%d: expected %x, got %x", i, tag[:], out[:])
@@ -134,8 +141,14 @@ func testWrite(t *testing.T, unaligned bool) {
 			input = unalignBytes(input)
 		}
 		h := New(&key)
-		h.Write(input[:len(input)/2])
-		h.Write(input[len(input)/2:])
+		n, err := h.Write(input[:len(input)/3])
+		if err != nil || n != len(input[:len(input)/3]) {
+			t.Errorf("#%d: unexpected Write results: n = %d, err = %v", i, n, err)
+		}
+		n, err = h.Write(input[len(input)/3:])
+		if err != nil || n != len(input[len(input)/3:]) {
+			t.Errorf("#%d: unexpected Write results: n = %d, err = %v", i, n, err)
+		}
 		h.Sum(out[:0])
 		if tag := v.Tag(); out != tag {
 			t.Errorf("%d: expected %x, got %x", i, tag[:], out[:])
@@ -150,6 +163,7 @@ func benchmarkSum(b *testing.B, size int, unaligned bool) {
 	if unaligned {
 		in = unalignBytes(in)
 	}
+	rand.Read(in)
 	b.SetBytes(int64(len(in)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -164,6 +178,7 @@ func benchmarkWrite(b *testing.B, size int, unaligned bool) {
 	if unaligned {
 		in = unalignBytes(in)
 	}
+	rand.Read(in)
 	b.SetBytes(int64(len(in)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -16,29 +16,7 @@ import (
 // Charge represents an electric charge in Coulombs.
 type Charge float64
 
-const (
-	Yottacoulomb Charge = 1e24
-	Zettacoulomb Charge = 1e21
-	Exacoulomb   Charge = 1e18
-	Petacoulomb  Charge = 1e15
-	Teracoulomb  Charge = 1e12
-	Gigacoulomb  Charge = 1e9
-	Megacoulomb  Charge = 1e6
-	Kilocoulomb  Charge = 1e3
-	Hectocoulomb Charge = 1e2
-	Decacoulomb  Charge = 1e1
-	coulomb      Charge = 1.0
-	Decicoulomb  Charge = 1e-1
-	Centicoulomb Charge = 1e-2
-	Millicoulomb Charge = 1e-3
-	Microcoulomb Charge = 1e-6
-	Nanocoulomb  Charge = 1e-9
-	Picocoulomb  Charge = 1e-12
-	Femtocoulomb Charge = 1e-15
-	Attocoulomb  Charge = 1e-18
-	Zeptocoulomb Charge = 1e-21
-	Yoctocoulomb Charge = 1e-24
-)
+const Coulomb Charge = 1
 
 // Unit converts the Charge to a *Unit
 func (ch Charge) Unit() *Unit {
@@ -56,7 +34,7 @@ func (ch Charge) Charge() Charge {
 // From converts the unit into the receiver. From returns an
 // error if there is a mismatch in dimension
 func (ch *Charge) From(u Uniter) error {
-	if !DimensionsMatch(u, coulomb) {
+	if !DimensionsMatch(u, Coulomb) {
 		*ch = Charge(math.NaN())
 		return errors.New("Dimension mismatch")
 	}

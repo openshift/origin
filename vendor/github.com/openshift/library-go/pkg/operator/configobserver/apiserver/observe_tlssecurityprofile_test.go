@@ -32,22 +32,18 @@ func (l testLister) PreRunHasSynced() []cache.InformerSynced {
 	return nil
 }
 func TestObserveTLSSecurityProfile(t *testing.T) {
-	existingConfig := map[string]interface{}{
-		"minTLSVersion": "VersionTLS11",
-		"cipherSuites":  []string{"DES-CBC3-SHA"},
-	}
+	existingTLSVersion := "VersionTLS11"
+	existingCipherSuites := []interface{}{"DES-CBC3-SHA"}
 
 	tests := []struct {
 		name                  string
 		config                *configv1.TLSSecurityProfile
-		existing              map[string]interface{}
 		expectedMinTLSVersion string
 		expectedSuites        []string
 	}{
 		{
 			name:                  "NoAPIServerConfig",
 			config:                nil,
-			existing:              existingConfig,
 			expectedMinTLSVersion: "VersionTLS12",
 			expectedSuites:        crypto.OpenSSLToIANACipherSuites(configv1.TLSProfiles[configv1.TLSProfileIntermediateType].Ciphers),
 		},
@@ -57,7 +53,6 @@ func TestObserveTLSSecurityProfile(t *testing.T) {
 				Type:   configv1.TLSProfileModernType,
 				Modern: &configv1.ModernTLSProfile{},
 			},
-			existing:              existingConfig,
 			expectedMinTLSVersion: "VersionTLS13",
 			expectedSuites:        crypto.OpenSSLToIANACipherSuites(configv1.TLSProfiles[configv1.TLSProfileModernType].Ciphers),
 		},
@@ -67,51 +62,74 @@ func TestObserveTLSSecurityProfile(t *testing.T) {
 				Type: configv1.TLSProfileOldType,
 				Old:  &configv1.OldTLSProfile{},
 			},
-			existing:              existingConfig,
 			expectedMinTLSVersion: "VersionTLS10",
 			expectedSuites:        crypto.OpenSSLToIANACipherSuites(configv1.TLSProfiles[configv1.TLSProfileOldType].Ciphers),
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
-			if tt.config != nil {
-				if err := indexer.Add(&configv1.APIServer{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "cluster",
-					},
-					Spec: configv1.APIServerSpec{
-						TLSSecurityProfile: tt.config,
-					},
-				}); err != nil {
-					t.Fatal(err)
+		for _, useAPIServerArgs := range []bool{false, true} {
+			var minTLSVersionPath, cipherSuitesPath []string
+			if useAPIServerArgs {
+				minTLSVersionPath = []string{"apiServerArguments", "tls-min-version"}
+				cipherSuitesPath = []string{"apiServerArguments", "tls-cipher-suites"}
+			} else {
+				minTLSVersionPath = []string{"servingInfo", "minTLSVersion"}
+				cipherSuitesPath = []string{"servingInfo", "cipherSuites"}
+			}
+			t.Run(tt.name, func(t *testing.T) {
+				indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
+				if tt.config != nil {
+					if err := indexer.Add(&configv1.APIServer{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "cluster",
+						},
+						Spec: configv1.APIServerSpec{
+							TLSSecurityProfile: tt.config,
+						},
+					}); err != nil {
+						t.Fatal(err)
+					}
 				}
-			}
-			listers := testLister{
-				lister: configlistersv1.NewAPIServerLister(indexer),
-			}
+				listers := testLister{
+					lister: configlistersv1.NewAPIServerLister(indexer),
+				}
 
-			result, errs := ObserveTLSSecurityProfile(listers, events.NewInMemoryRecorder(t.Name()), tt.existing)
-			if len(errs) > 0 {
-				t.Errorf("expected 0 errors, got %v", errs)
-			}
+				existingConfig := map[string]interface{}{}
+				if err := unstructured.SetNestedField(existingConfig, existingTLSVersion, minTLSVersionPath...); err != nil {
+					t.Fatalf("couldn't set existing min TLS version: %v", err)
+				}
+				if err := unstructured.SetNestedField(existingConfig, existingCipherSuites, cipherSuitesPath...); err != nil {
+					t.Fatalf("couldn't set existing cipher suites: %v", err)
+				}
 
-			gotMinTLSVersion, _, err := unstructured.NestedString(result, "servingInfo", "minTLSVersion")
-			if err != nil {
-				t.Errorf("couldn't get minTLSVersion from the returned object: %v", err)
-			}
+				var result map[string]interface{}
+				var errs []error
+				if useAPIServerArgs {
+					result, errs = ObserveTLSSecurityProfileToArguments(listers, events.NewInMemoryRecorder(t.Name()), existingConfig)
+				} else {
+					result, errs = ObserveTLSSecurityProfile(listers, events.NewInMemoryRecorder(t.Name()), existingConfig)
+				}
+				if len(errs) > 0 {
+					t.Errorf("expected 0 errors, got %v", errs)
+				}
 
-			gotSuites, _, err := unstructured.NestedStringSlice(result, "servingInfo", "cipherSuites")
-			if err != nil {
-				t.Errorf("couldn't get cipherSuites from the returned object: %v", err)
-			}
+				gotMinTLSVersion, _, err := unstructured.NestedString(result, minTLSVersionPath...)
+				if err != nil {
+					t.Errorf("couldn't get minTLSVersion from the returned object: %v", err)
+				}
 
-			if !reflect.DeepEqual(gotSuites, tt.expectedSuites) {
-				t.Errorf("ObserveTLSSecurityProfile() got cipherSuites = %v, expected %v", gotSuites, tt.expectedSuites)
-			}
-			if gotMinTLSVersion != tt.expectedMinTLSVersion {
-				t.Errorf("ObserveTLSSecurityProfile() got minTlSVersion = %v, expected %v", gotMinTLSVersion, tt.expectedMinTLSVersion)
-			}
-		})
+				gotSuites, _, err := unstructured.NestedStringSlice(result, cipherSuitesPath...)
+				if err != nil {
+					t.Errorf("couldn't get cipherSuites from the returned object: %v", err)
+				}
+
+				if !reflect.DeepEqual(gotSuites, tt.expectedSuites) {
+					t.Errorf("got cipherSuites = %v, expected %v", gotSuites, tt.expectedSuites)
+				}
+				if gotMinTLSVersion != tt.expectedMinTLSVersion {
+					t.Errorf("got minTlSVersion = %v, expected %v", gotMinTLSVersion, tt.expectedMinTLSVersion)
+				}
+			})
+		}
 	}
 }

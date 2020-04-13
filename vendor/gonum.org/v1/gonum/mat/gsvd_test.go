@@ -66,11 +66,11 @@ func TestGSVD(t *testing.T) {
 			d1R.Mul(sigma1, zeroR)
 			d2R.Mul(sigma2, zeroR)
 			if !EqualApprox(&ansU, &d1R, tol) {
-				t.Errorf("Answer mismatch with GSVDU|GSVDV|GSVDQ\nU^T * A * Q:\n% 0.2f\nΣ₁ * [ 0 R ]:\n% 0.2f",
+				t.Errorf("Answer mismatch with GSVDU|GSVDV|GSVDQ\nUᵀ * A * Q:\n% 0.2f\nΣ₁ * [ 0 R ]:\n% 0.2f",
 					Formatted(&ansU), Formatted(&d1R))
 			}
 			if !EqualApprox(&ansV, &d2R, tol) {
-				t.Errorf("Answer mismatch with GSVDU|GSVDV|GSVDQ\nV^T * B  *Q:\n% 0.2f\nΣ₂ * [ 0 R ]:\n% 0.2f",
+				t.Errorf("Answer mismatch with GSVDU|GSVDV|GSVDQ\nVᵀ * B  *Q:\n% 0.2f\nΣ₂ * [ 0 R ]:\n% 0.2f",
 					Formatted(&d2R), Formatted(&ansV))
 			}
 
@@ -106,12 +106,18 @@ func TestGSVD(t *testing.T) {
 }
 
 func extractGSVD(gsvd *GSVD) (c, s []float64, s1, s2, zR, u, v, q *Dense) {
-	s1 = gsvd.SigmaATo(nil)
-	s2 = gsvd.SigmaBTo(nil)
-	zR = gsvd.ZeroRTo(nil)
-	u = gsvd.UTo(nil)
-	v = gsvd.VTo(nil)
-	q = gsvd.QTo(nil)
+	s1 = &Dense{}
+	s2 = &Dense{}
+	zR = &Dense{}
+	u = &Dense{}
+	v = &Dense{}
+	q = &Dense{}
+	gsvd.SigmaATo(s1)
+	gsvd.SigmaBTo(s2)
+	gsvd.ZeroRTo(zR)
+	gsvd.UTo(u)
+	gsvd.VTo(v)
+	gsvd.QTo(q)
 	c = gsvd.ValuesA(nil)
 	s = gsvd.ValuesB(nil)
 	return c, s, s1, s2, zR, u, v, q

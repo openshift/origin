@@ -139,7 +139,6 @@ var darwinTests = [...]darwinTest{
 	{"fstatfs64", libc_fstatfs64_trampoline},
 	{"fsync", libc_fsync_trampoline},
 	{"ftruncate", libc_ftruncate_trampoline},
-	{"__getdirentries64", libc___getdirentries64_trampoline},
 	{"getdtablesize", libc_getdtablesize_trampoline},
 	{"getegid", libc_getegid_trampoline},
 	{"geteuid", libc_geteuid_trampoline},

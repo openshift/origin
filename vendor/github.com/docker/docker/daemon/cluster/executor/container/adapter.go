@@ -4,11 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -29,9 +27,13 @@ import (
 	"github.com/docker/swarmkit/log"
 	gogotypes "github.com/gogo/protobuf/types"
 	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
 )
+
+// nodeAttachmentReadyInterval is the interval to poll
+const nodeAttachmentReadyInterval = 100 * time.Millisecond
 
 // containerAdapter conducts remote operations for a container. All calls
 // are mostly naked calls to the client API, seeded with information from
@@ -97,8 +99,7 @@ func (c *containerAdapter) pullImage(ctx context.Context) error {
 	go func() {
 		// TODO @jhowardmsft LCOW Support: This will need revisiting as
 		// the stack is built up to include LCOW support for swarm.
-		platform := runtime.GOOS
-		err := c.imageBackend.PullImage(ctx, c.container.image(), "", platform, metaHeaders, authConfig, pw)
+		err := c.imageBackend.PullImage(ctx, c.container.image(), "", nil, metaHeaders, authConfig, pw)
 		pw.CloseWithError(err)
 	}()
 
@@ -148,6 +149,55 @@ func (c *containerAdapter) pullImage(ctx context.Context) error {
 	return nil
 }
 
+// waitNodeAttachments validates that NetworkAttachments exist on this node
+// for every network in use by this task. It blocks until the network
+// attachments are ready, or the context times out. If it returns nil, then the
+// node's network attachments are all there.
+func (c *containerAdapter) waitNodeAttachments(ctx context.Context) error {
+	// to do this, we're going to get the attachment store and try getting the
+	// IP address for each network. if any network comes back not existing,
+	// we'll wait and try again.
+	attachmentStore := c.backend.GetAttachmentStore()
+	if attachmentStore == nil {
+		return fmt.Errorf("error getting attachment store")
+	}
+
+	// essentially, we're long-polling here. this is really sub-optimal, but a
+	// better solution based off signaling channels would require a more
+	// substantial rearchitecture and probably not be worth our time in terms
+	// of performance gains.
+	poll := time.NewTicker(nodeAttachmentReadyInterval)
+	defer poll.Stop()
+	for {
+		// set a flag ready to true. if we try to get a network IP that doesn't
+		// exist yet, we will set this flag to "false"
+		ready := true
+		for _, attachment := range c.container.networksAttachments {
+			// we only need node attachments (IP address) for overlay networks
+			// TODO(dperny): unsure if this will work with other network
+			// drivers, but i also don't think other network drivers use the
+			// node attachment IP address.
+			if attachment.Network.DriverState.Name == "overlay" {
+				if _, exists := attachmentStore.GetIPForNetwork(attachment.Network.ID); !exists {
+					ready = false
+				}
+			}
+		}
+
+		// if everything is ready here, then we can just return no error
+		if ready {
+			return nil
+		}
+
+		// otherwise, try polling again, or wait for context canceled.
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("node is missing network attachments, ip addresses may be exhausted")
+		case <-poll.C:
+		}
+	}
+}
+
 func (c *containerAdapter) createNetworks(ctx context.Context) error {
 	for name := range c.container.networksAttachments {
 		ncr, err := c.container.networkCreateRequest(name)
@@ -174,7 +224,7 @@ func (c *containerAdapter) createNetworks(ctx context.Context) error {
 func (c *containerAdapter) removeNetworks(ctx context.Context) error {
 	for name, v := range c.container.networksAttachments {
 		if err := c.backend.DeleteManagedNetwork(v.Network.ID); err != nil {
-			switch err.(type) {
+			switch errors.Cause(err).(type) {
 			case *libnetwork.ActiveEndpointsError:
 				continue
 			case libnetwork.ErrNoSuchNetwork:

@@ -14,13 +14,14 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/integration/internal/swarm"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/gotestyourself/gotestyourself/assert"
-	is "github.com/gotestyourself/gotestyourself/assert/cmp"
-	"github.com/gotestyourself/gotestyourself/skip"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+	"gotest.tools/poll"
+	"gotest.tools/skip"
 )
 
 func TestConfigList(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType != "linux")
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
@@ -45,19 +46,10 @@ func TestConfigList(t *testing.T) {
 
 	config1ID := createConfig(ctx, t, client, testName1, []byte("TESTINGDATA1"), map[string]string{"type": "production"})
 
-	names := func(entries []swarmtypes.Config) []string {
-		var values []string
-		for _, entry := range entries {
-			values = append(values, entry.Spec.Name)
-		}
-		sort.Strings(values)
-		return values
-	}
-
 	// test by `config ls`
 	entries, err := client.ConfigList(ctx, types.ConfigListOptions{})
 	assert.NilError(t, err)
-	assert.Check(t, is.DeepEqual(names(entries), testNames))
+	assert.Check(t, is.DeepEqual(configNamesFromList(entries), testNames))
 
 	testCases := []struct {
 		filters  filters.Args
@@ -92,7 +84,7 @@ func TestConfigList(t *testing.T) {
 			Filters: tc.filters,
 		})
 		assert.NilError(t, err)
-		assert.Check(t, is.DeepEqual(names(entries), tc.expected))
+		assert.Check(t, is.DeepEqual(configNamesFromList(entries), tc.expected))
 
 	}
 }
@@ -111,7 +103,7 @@ func createConfig(ctx context.Context, t *testing.T, client client.APIClient, na
 }
 
 func TestConfigsCreateAndDelete(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType != "linux")
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
@@ -139,7 +131,7 @@ func TestConfigsCreateAndDelete(t *testing.T) {
 }
 
 func TestConfigsUpdate(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType != "linux")
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
@@ -193,6 +185,7 @@ func TestConfigsUpdate(t *testing.T) {
 }
 
 func TestTemplatedConfig(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
 	client := d.NewClientT(t)
@@ -276,18 +269,26 @@ func TestTemplatedConfig(t *testing.T) {
 	)
 
 	var tasks []swarmtypes.Task
-	waitAndAssert(t, 60*time.Second, func(t *testing.T) bool {
-		tasks = swarm.GetRunningTasks(t, d, serviceID)
-		return len(tasks) > 0
-	})
+	getRunningTasks := func(log poll.LogT) poll.Result {
+		tasks = swarm.GetRunningTasks(t, client, serviceID)
+		if len(tasks) > 0 {
+			return poll.Success()
+		}
+		return poll.Continue("task still waiting")
+	}
+	poll.WaitOn(t, getRunningTasks, swarm.ServicePoll, poll.WithTimeout(1*time.Minute))
 
 	task := tasks[0]
-	waitAndAssert(t, 60*time.Second, func(t *testing.T) bool {
+	getTask := func(log poll.LogT) poll.Result {
 		if task.NodeID == "" || (task.Status.ContainerStatus == nil || task.Status.ContainerStatus.ContainerID == "") {
 			task, _, _ = client.TaskInspectWithRaw(context.Background(), task.ID)
 		}
-		return task.NodeID != "" && task.Status.ContainerStatus != nil && task.Status.ContainerStatus.ContainerID != ""
-	})
+		if task.NodeID != "" && task.Status.ContainerStatus != nil && task.Status.ContainerStatus.ContainerID != "" {
+			return poll.Success()
+		}
+		return poll.Continue("task still waiting")
+	}
+	poll.WaitOn(t, getTask, swarm.ServicePoll, poll.WithTimeout(1*time.Minute))
 
 	attach := swarm.ExecTask(t, d, task, types.ExecConfig{
 		Cmd:          []string{"/bin/cat", "/" + templatedConfigName},
@@ -315,24 +316,8 @@ func assertAttachedStream(t *testing.T, attach types.HijackedResponse, expect st
 	assert.Check(t, is.Contains(buf.String(), expect))
 }
 
-func waitAndAssert(t *testing.T, timeout time.Duration, f func(*testing.T) bool) {
-	t.Helper()
-	after := time.After(timeout)
-	for {
-		select {
-		case <-after:
-			t.Fatalf("timed out waiting for condition")
-		default:
-		}
-		if f(t) {
-			return
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-}
-
 func TestConfigInspect(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType != "linux")
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
@@ -353,4 +338,90 @@ func TestConfigInspect(t *testing.T) {
 	err = json.Unmarshal(body, &config)
 	assert.NilError(t, err)
 	assert.Check(t, is.DeepEqual(config, insp))
+}
+
+func TestConfigCreateWithLabels(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType != "linux")
+
+	defer setupTest(t)()
+	d := swarm.NewSwarm(t, testEnv)
+	defer d.Stop(t)
+	client := d.NewClientT(t)
+	defer client.Close()
+
+	ctx := context.Background()
+
+	labels := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+	}
+	testName := t.Name()
+	configID := createConfig(ctx, t, client, testName, []byte("TESTINGDATA"), labels)
+
+	insp, _, err := client.ConfigInspectWithRaw(ctx, configID)
+	assert.NilError(t, err)
+	assert.Check(t, is.Equal(insp.Spec.Name, testName))
+	assert.Check(t, is.Equal(2, len(insp.Spec.Labels)))
+	assert.Check(t, is.Equal("value1", insp.Spec.Labels["key1"]))
+	assert.Check(t, is.Equal("value2", insp.Spec.Labels["key2"]))
+}
+
+// Test case for 28884
+func TestConfigCreateResolve(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType != "linux")
+
+	defer setupTest(t)()
+	d := swarm.NewSwarm(t, testEnv)
+	defer d.Stop(t)
+	client := d.NewClientT(t)
+	defer client.Close()
+
+	ctx := context.Background()
+
+	configName := "test_config_" + t.Name()
+
+	configID := createConfig(ctx, t, client, configName, []byte("foo"), nil)
+	fakeName := configID
+	fakeID := createConfig(ctx, t, client, fakeName, []byte("fake foo"), nil)
+
+	entries, err := client.ConfigList(ctx, types.ConfigListOptions{})
+	assert.NilError(t, err)
+	assert.Assert(t, is.Contains(configNamesFromList(entries), configName))
+	assert.Assert(t, is.Contains(configNamesFromList(entries), fakeName))
+
+	err = client.ConfigRemove(ctx, configID)
+	assert.NilError(t, err)
+
+	// Fake one will remain
+	entries, err = client.ConfigList(ctx, types.ConfigListOptions{})
+	assert.NilError(t, err)
+	assert.Assert(t, is.DeepEqual(configNamesFromList(entries), []string{fakeName}))
+
+	// Remove based on name prefix of the fake one
+	// (which is the same as the ID of foo one) should not work
+	// as search is only done based on:
+	// - Full ID
+	// - Full Name
+	// - Partial ID (prefix)
+	err = client.ConfigRemove(ctx, configID[:5])
+	assert.Assert(t, nil != err)
+	entries, err = client.ConfigList(ctx, types.ConfigListOptions{})
+	assert.NilError(t, err)
+	assert.Assert(t, is.DeepEqual(configNamesFromList(entries), []string{fakeName}))
+
+	// Remove based on ID prefix of the fake one should succeed
+	err = client.ConfigRemove(ctx, fakeID[:5])
+	assert.NilError(t, err)
+	entries, err = client.ConfigList(ctx, types.ConfigListOptions{})
+	assert.NilError(t, err)
+	assert.Assert(t, is.Equal(0, len(entries)))
+}
+
+func configNamesFromList(entries []swarmtypes.Config) []string {
+	var values []string
+	for _, entry := range entries {
+		values = append(values, entry.Spec.Name)
+	}
+	sort.Strings(values)
+	return values
 }

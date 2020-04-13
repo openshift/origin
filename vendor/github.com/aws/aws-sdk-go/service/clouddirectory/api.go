@@ -68,17 +68,17 @@ func (c *CloudDirectory) AddFacetToObjectRequest(input *AddFacetToObjectInput) (
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation AddFacetToObject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -86,24 +86,24 @@ func (c *CloudDirectory) AddFacetToObjectRequest(input *AddFacetToObjectInput) (
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -183,17 +183,17 @@ func (c *CloudDirectory) ApplySchemaRequest(input *ApplySchemaInput) (req *reque
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ApplySchema for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -201,25 +201,25 @@ func (c *CloudDirectory) ApplySchemaRequest(input *ApplySchemaInput) (req *reque
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeSchemaAlreadyExistsException "SchemaAlreadyExistsException"
+//   * SchemaAlreadyExistsException
 //   Indicates that a schema could not be created due to a naming conflict. Please
 //   select a different name and then try again.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidAttachmentException "InvalidAttachmentException"
+//   * InvalidAttachmentException
 //   Indicates that an attempt to make an attachment was invalid. For example,
 //   attaching two nodes with a link type that is not applicable to the nodes
 //   or attempting to apply a schema to a directory a second time.
@@ -304,17 +304,17 @@ func (c *CloudDirectory) AttachObjectRequest(input *AttachObjectInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation AttachObject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -322,37 +322,37 @@ func (c *CloudDirectory) AttachObjectRequest(input *AttachObjectInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeLinkNameAlreadyInUseException "LinkNameAlreadyInUseException"
+//   * LinkNameAlreadyInUseException
 //   Indicates that a link could not be created due to a naming conflict. Choose
 //   a different name and then try again.
 //
-//   * ErrCodeInvalidAttachmentException "InvalidAttachmentException"
+//   * InvalidAttachmentException
 //   Indicates that an attempt to make an attachment was invalid. For example,
 //   attaching two nodes with a link type that is not applicable to the nodes
 //   or attempting to apply a schema to a directory a second time.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -433,17 +433,17 @@ func (c *CloudDirectory) AttachPolicyRequest(input *AttachPolicyInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation AttachPolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -451,24 +451,24 @@ func (c *CloudDirectory) AttachPolicyRequest(input *AttachPolicyInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeNotPolicyException "NotPolicyException"
+//   * NotPolicyException
 //   Indicates that the requested operation can only operate on policy objects.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/AttachPolicy
@@ -546,17 +546,17 @@ func (c *CloudDirectory) AttachToIndexRequest(input *AttachToIndexInput) (req *r
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation AttachToIndex for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -564,37 +564,37 @@ func (c *CloudDirectory) AttachToIndexRequest(input *AttachToIndexInput) (req *r
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeInvalidAttachmentException "InvalidAttachmentException"
+//   * InvalidAttachmentException
 //   Indicates that an attempt to make an attachment was invalid. For example,
 //   attaching two nodes with a link type that is not applicable to the nodes
 //   or attempting to apply a schema to a directory a second time.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeLinkNameAlreadyInUseException "LinkNameAlreadyInUseException"
+//   * LinkNameAlreadyInUseException
 //   Indicates that a link could not be created due to a naming conflict. Choose
 //   a different name and then try again.
 //
-//   * ErrCodeIndexedAttributeMissingException "IndexedAttributeMissingException"
+//   * IndexedAttributeMissingException
 //   An object has been attempted to be attached to an object that does not have
 //   the appropriate attribute value.
 //
-//   * ErrCodeNotIndexException "NotIndexException"
+//   * NotIndexException
 //   Indicates that the requested operation can only operate on index objects.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/AttachToIndex
@@ -673,17 +673,17 @@ func (c *CloudDirectory) AttachTypedLinkRequest(input *AttachTypedLinkInput) (re
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation AttachTypedLink for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -691,33 +691,33 @@ func (c *CloudDirectory) AttachTypedLinkRequest(input *AttachTypedLinkInput) (re
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidAttachmentException "InvalidAttachmentException"
+//   * InvalidAttachmentException
 //   Indicates that an attempt to make an attachment was invalid. For example,
 //   attaching two nodes with a link type that is not applicable to the nodes
 //   or attempting to apply a schema to a directory a second time.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -796,17 +796,17 @@ func (c *CloudDirectory) BatchReadRequest(input *BatchReadInput) (req *request.R
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation BatchRead for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -814,18 +814,18 @@ func (c *CloudDirectory) BatchReadRequest(input *BatchReadInput) (req *request.R
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/BatchRead
@@ -904,17 +904,17 @@ func (c *CloudDirectory) BatchWriteRequest(input *BatchWriteInput) (req *request
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation BatchWrite for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -922,21 +922,21 @@ func (c *CloudDirectory) BatchWriteRequest(input *BatchWriteInput) (req *request
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeBatchWriteException "BatchWriteException"
+//   * BatchWriteException
 //   A BatchWrite exception has occurred.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/BatchWrite
@@ -1019,17 +1019,17 @@ func (c *CloudDirectory) CreateDirectoryRequest(input *CreateDirectoryInput) (re
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation CreateDirectory for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -1037,22 +1037,22 @@ func (c *CloudDirectory) CreateDirectoryRequest(input *CreateDirectoryInput) (re
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryAlreadyExistsException "DirectoryAlreadyExistsException"
+//   * DirectoryAlreadyExistsException
 //   Indicates that a Directory could not be created due to a naming conflict.
 //   Choose a different name and try again.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/CreateDirectory
@@ -1132,17 +1132,17 @@ func (c *CloudDirectory) CreateFacetRequest(input *CreateFacetInput) (req *reque
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation CreateFacet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -1150,27 +1150,27 @@ func (c *CloudDirectory) CreateFacetRequest(input *CreateFacetInput) (req *reque
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetAlreadyExistsException "FacetAlreadyExistsException"
+//   * FacetAlreadyExistsException
 //   A facet with the same name already exists.
 //
-//   * ErrCodeInvalidRuleException "InvalidRuleException"
+//   * InvalidRuleException
 //   Occurs when any of the rule parameter keys or values are invalid.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -1250,17 +1250,17 @@ func (c *CloudDirectory) CreateIndexRequest(input *CreateIndexInput) (req *reque
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation CreateIndex for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -1268,32 +1268,32 @@ func (c *CloudDirectory) CreateIndexRequest(input *CreateIndexInput) (req *reque
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
-//   * ErrCodeLinkNameAlreadyInUseException "LinkNameAlreadyInUseException"
+//   * LinkNameAlreadyInUseException
 //   Indicates that a link could not be created due to a naming conflict. Choose
 //   a different name and then try again.
 //
-//   * ErrCodeUnsupportedIndexTypeException "UnsupportedIndexTypeException"
+//   * UnsupportedIndexTypeException
 //   Indicates that the requested index type is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/CreateIndex
@@ -1374,17 +1374,17 @@ func (c *CloudDirectory) CreateObjectRequest(input *CreateObjectInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation CreateObject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -1392,32 +1392,32 @@ func (c *CloudDirectory) CreateObjectRequest(input *CreateObjectInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
-//   * ErrCodeLinkNameAlreadyInUseException "LinkNameAlreadyInUseException"
+//   * LinkNameAlreadyInUseException
 //   Indicates that a link could not be created due to a naming conflict. Choose
 //   a different name and then try again.
 //
-//   * ErrCodeUnsupportedIndexTypeException "UnsupportedIndexTypeException"
+//   * UnsupportedIndexTypeException
 //   Indicates that the requested index type is not supported.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/CreateObject
@@ -1507,17 +1507,17 @@ func (c *CloudDirectory) CreateSchemaRequest(input *CreateSchemaInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation CreateSchema for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -1525,22 +1525,22 @@ func (c *CloudDirectory) CreateSchemaRequest(input *CreateSchemaInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeSchemaAlreadyExistsException "SchemaAlreadyExistsException"
+//   * SchemaAlreadyExistsException
 //   Indicates that a schema could not be created due to a naming conflict. Please
 //   select a different name and then try again.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/CreateSchema
@@ -1619,17 +1619,17 @@ func (c *CloudDirectory) CreateTypedLinkFacetRequest(input *CreateTypedLinkFacet
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation CreateTypedLinkFacet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -1637,27 +1637,27 @@ func (c *CloudDirectory) CreateTypedLinkFacetRequest(input *CreateTypedLinkFacet
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetAlreadyExistsException "FacetAlreadyExistsException"
+//   * FacetAlreadyExistsException
 //   A facet with the same name already exists.
 //
-//   * ErrCodeInvalidRuleException "InvalidRuleException"
+//   * InvalidRuleException
 //   Occurs when any of the rule parameter keys or values are invalid.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -1737,35 +1737,35 @@ func (c *CloudDirectory) DeleteDirectoryRequest(input *DeleteDirectoryInput) (re
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation DeleteDirectory for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeDirectoryNotDisabledException "DirectoryNotDisabledException"
+//   * DirectoryNotDisabledException
 //   An operation can only operate on a disabled directory.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryDeletedException "DirectoryDeletedException"
+//   * DirectoryDeletedException
 //   A directory that has been deleted and to which access has been attempted.
 //   Note: The requested resource will eventually cease to exist.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -1773,7 +1773,7 @@ func (c *CloudDirectory) DeleteDirectoryRequest(input *DeleteDirectoryInput) (re
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/DeleteDirectory
@@ -1853,17 +1853,17 @@ func (c *CloudDirectory) DeleteFacetRequest(input *DeleteFacetInput) (req *reque
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation DeleteFacet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -1871,24 +1871,24 @@ func (c *CloudDirectory) DeleteFacetRequest(input *DeleteFacetInput) (req *reque
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetNotFoundException "FacetNotFoundException"
+//   * FacetNotFoundException
 //   The specified Facet could not be found.
 //
-//   * ErrCodeFacetInUseException "FacetInUseException"
+//   * FacetInUseException
 //   Occurs when deleting a facet that contains an attribute that is a target
 //   to an attribute reference in a different facet.
 //
@@ -1971,17 +1971,17 @@ func (c *CloudDirectory) DeleteObjectRequest(input *DeleteObjectInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation DeleteObject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -1989,24 +1989,24 @@ func (c *CloudDirectory) DeleteObjectRequest(input *DeleteObjectInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeObjectNotDetachedException "ObjectNotDetachedException"
+//   * ObjectNotDetachedException
 //   Indicates that the requested operation cannot be completed because the object
 //   has not been detached from the tree.
 //
@@ -2086,17 +2086,17 @@ func (c *CloudDirectory) DeleteSchemaRequest(input *DeleteSchemaInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation DeleteSchema for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -2104,21 +2104,21 @@ func (c *CloudDirectory) DeleteSchemaRequest(input *DeleteSchemaInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeStillContainsLinksException "StillContainsLinksException"
+//   * StillContainsLinksException
 //   The object could not be deleted because links still exist. Remove the links
 //   and then try the operation again.
 //
@@ -2198,17 +2198,17 @@ func (c *CloudDirectory) DeleteTypedLinkFacetRequest(input *DeleteTypedLinkFacet
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation DeleteTypedLinkFacet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -2216,21 +2216,21 @@ func (c *CloudDirectory) DeleteTypedLinkFacetRequest(input *DeleteTypedLinkFacet
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetNotFoundException "FacetNotFoundException"
+//   * FacetNotFoundException
 //   The specified Facet could not be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/DeleteTypedLinkFacet
@@ -2308,17 +2308,17 @@ func (c *CloudDirectory) DetachFromIndexRequest(input *DetachFromIndexInput) (re
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation DetachFromIndex for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -2326,27 +2326,27 @@ func (c *CloudDirectory) DetachFromIndexRequest(input *DetachFromIndexInput) (re
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeObjectAlreadyDetachedException "ObjectAlreadyDetachedException"
+//   * ObjectAlreadyDetachedException
 //   Indicates that the object is not attached to the index.
 //
-//   * ErrCodeNotIndexException "NotIndexException"
+//   * NotIndexException
 //   Indicates that the requested operation can only operate on index objects.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/DetachFromIndex
@@ -2425,17 +2425,17 @@ func (c *CloudDirectory) DetachObjectRequest(input *DetachObjectInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation DetachObject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -2443,24 +2443,24 @@ func (c *CloudDirectory) DetachObjectRequest(input *DetachObjectInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeNotNodeException "NotNodeException"
+//   * NotNodeException
 //   Occurs when any invalid operations are performed on an object that is not
 //   a node, such as calling ListObjectChildren for a leaf node object.
 //
@@ -2540,17 +2540,17 @@ func (c *CloudDirectory) DetachPolicyRequest(input *DetachPolicyInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation DetachPolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -2558,24 +2558,24 @@ func (c *CloudDirectory) DetachPolicyRequest(input *DetachPolicyInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeNotPolicyException "NotPolicyException"
+//   * NotPolicyException
 //   Indicates that the requested operation can only operate on policy objects.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/DetachPolicy
@@ -2655,17 +2655,17 @@ func (c *CloudDirectory) DetachTypedLinkRequest(input *DetachTypedLinkInput) (re
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation DetachTypedLink for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -2673,24 +2673,24 @@ func (c *CloudDirectory) DetachTypedLinkRequest(input *DetachTypedLinkInput) (re
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -2771,32 +2771,32 @@ func (c *CloudDirectory) DisableDirectoryRequest(input *DisableDirectoryInput) (
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation DisableDirectory for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeDirectoryDeletedException "DirectoryDeletedException"
+//   * DirectoryDeletedException
 //   A directory that has been deleted and to which access has been attempted.
 //   Note: The requested resource will eventually cease to exist.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -2804,7 +2804,7 @@ func (c *CloudDirectory) DisableDirectoryRequest(input *DisableDirectoryInput) (
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/DisableDirectory
@@ -2883,32 +2883,32 @@ func (c *CloudDirectory) EnableDirectoryRequest(input *EnableDirectoryInput) (re
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation EnableDirectory for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+// Returned Error Types:
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeDirectoryDeletedException "DirectoryDeletedException"
+//   * DirectoryDeletedException
 //   A directory that has been deleted and to which access has been attempted.
 //   Note: The requested resource will eventually cease to exist.
 //
-//   * ErrCodeInternalServiceException "InternalServiceException"
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -2916,7 +2916,7 @@ func (c *CloudDirectory) EnableDirectoryRequest(input *EnableDirectoryInput) (re
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/EnableDirectory
@@ -2995,17 +2995,17 @@ func (c *CloudDirectory) GetAppliedSchemaVersionRequest(input *GetAppliedSchemaV
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation GetAppliedSchemaVersion for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -3013,18 +3013,18 @@ func (c *CloudDirectory) GetAppliedSchemaVersionRequest(input *GetAppliedSchemaV
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/GetAppliedSchemaVersion
@@ -3102,17 +3102,17 @@ func (c *CloudDirectory) GetDirectoryRequest(input *GetDirectoryInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation GetDirectory for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -3120,15 +3120,15 @@ func (c *CloudDirectory) GetDirectoryRequest(input *GetDirectoryInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/GetDirectory
@@ -3208,17 +3208,17 @@ func (c *CloudDirectory) GetFacetRequest(input *GetFacetInput) (req *request.Req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation GetFacet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -3226,21 +3226,21 @@ func (c *CloudDirectory) GetFacetRequest(input *GetFacetInput) (req *request.Req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetNotFoundException "FacetNotFoundException"
+//   * FacetNotFoundException
 //   The specified Facet could not be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/GetFacet
@@ -3318,17 +3318,17 @@ func (c *CloudDirectory) GetLinkAttributesRequest(input *GetLinkAttributesInput)
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation GetLinkAttributes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -3336,24 +3336,24 @@ func (c *CloudDirectory) GetLinkAttributesRequest(input *GetLinkAttributesInput)
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -3432,17 +3432,17 @@ func (c *CloudDirectory) GetObjectAttributesRequest(input *GetObjectAttributesIn
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation GetObjectAttributes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -3450,24 +3450,24 @@ func (c *CloudDirectory) GetObjectAttributesRequest(input *GetObjectAttributesIn
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -3546,17 +3546,17 @@ func (c *CloudDirectory) GetObjectInformationRequest(input *GetObjectInformation
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation GetObjectInformation for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -3564,21 +3564,21 @@ func (c *CloudDirectory) GetObjectInformationRequest(input *GetObjectInformation
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/GetObjectInformation
@@ -3657,17 +3657,17 @@ func (c *CloudDirectory) GetSchemaAsJsonRequest(input *GetSchemaAsJsonInput) (re
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation GetSchemaAsJson for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -3675,21 +3675,21 @@ func (c *CloudDirectory) GetSchemaAsJsonRequest(input *GetSchemaAsJsonInput) (re
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
@@ -3769,17 +3769,17 @@ func (c *CloudDirectory) GetTypedLinkFacetInformationRequest(input *GetTypedLink
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation GetTypedLinkFacetInformation for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -3787,24 +3787,24 @@ func (c *CloudDirectory) GetTypedLinkFacetInformationRequest(input *GetTypedLink
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
-//   * ErrCodeFacetNotFoundException "FacetNotFoundException"
+//   * FacetNotFoundException
 //   The specified Facet could not be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/GetTypedLinkFacetInformation
@@ -3889,17 +3889,17 @@ func (c *CloudDirectory) ListAppliedSchemaArnsRequest(input *ListAppliedSchemaAr
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListAppliedSchemaArns for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -3907,21 +3907,21 @@ func (c *CloudDirectory) ListAppliedSchemaArnsRequest(input *ListAppliedSchemaAr
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListAppliedSchemaArns
@@ -3957,7 +3957,7 @@ func (c *CloudDirectory) ListAppliedSchemaArnsWithContext(ctx aws.Context, input
 //    // Example iterating over at most 3 pages of a ListAppliedSchemaArns operation.
 //    pageNum := 0
 //    err := client.ListAppliedSchemaArnsPages(params,
-//        func(page *ListAppliedSchemaArnsOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListAppliedSchemaArnsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -3989,10 +3989,12 @@ func (c *CloudDirectory) ListAppliedSchemaArnsPagesWithContext(ctx aws.Context, 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListAppliedSchemaArnsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListAppliedSchemaArnsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -4055,17 +4057,17 @@ func (c *CloudDirectory) ListAttachedIndicesRequest(input *ListAttachedIndicesIn
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListAttachedIndices for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -4073,21 +4075,21 @@ func (c *CloudDirectory) ListAttachedIndicesRequest(input *ListAttachedIndicesIn
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListAttachedIndices
@@ -4123,7 +4125,7 @@ func (c *CloudDirectory) ListAttachedIndicesWithContext(ctx aws.Context, input *
 //    // Example iterating over at most 3 pages of a ListAttachedIndices operation.
 //    pageNum := 0
 //    err := client.ListAttachedIndicesPages(params,
-//        func(page *ListAttachedIndicesOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListAttachedIndicesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -4155,10 +4157,12 @@ func (c *CloudDirectory) ListAttachedIndicesPagesWithContext(ctx aws.Context, in
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListAttachedIndicesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListAttachedIndicesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -4221,17 +4225,17 @@ func (c *CloudDirectory) ListDevelopmentSchemaArnsRequest(input *ListDevelopment
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListDevelopmentSchemaArns for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -4239,21 +4243,21 @@ func (c *CloudDirectory) ListDevelopmentSchemaArnsRequest(input *ListDevelopment
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListDevelopmentSchemaArns
@@ -4289,7 +4293,7 @@ func (c *CloudDirectory) ListDevelopmentSchemaArnsWithContext(ctx aws.Context, i
 //    // Example iterating over at most 3 pages of a ListDevelopmentSchemaArns operation.
 //    pageNum := 0
 //    err := client.ListDevelopmentSchemaArnsPages(params,
-//        func(page *ListDevelopmentSchemaArnsOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListDevelopmentSchemaArnsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -4321,10 +4325,12 @@ func (c *CloudDirectory) ListDevelopmentSchemaArnsPagesWithContext(ctx aws.Conte
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListDevelopmentSchemaArnsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListDevelopmentSchemaArnsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -4387,17 +4393,17 @@ func (c *CloudDirectory) ListDirectoriesRequest(input *ListDirectoriesInput) (re
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListDirectories for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -4405,18 +4411,18 @@ func (c *CloudDirectory) ListDirectoriesRequest(input *ListDirectoriesInput) (re
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListDirectories
@@ -4452,7 +4458,7 @@ func (c *CloudDirectory) ListDirectoriesWithContext(ctx aws.Context, input *List
 //    // Example iterating over at most 3 pages of a ListDirectories operation.
 //    pageNum := 0
 //    err := client.ListDirectoriesPages(params,
-//        func(page *ListDirectoriesOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListDirectoriesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -4484,10 +4490,12 @@ func (c *CloudDirectory) ListDirectoriesPagesWithContext(ctx aws.Context, input 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListDirectoriesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListDirectoriesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -4550,17 +4558,17 @@ func (c *CloudDirectory) ListFacetAttributesRequest(input *ListFacetAttributesIn
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListFacetAttributes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -4568,24 +4576,24 @@ func (c *CloudDirectory) ListFacetAttributesRequest(input *ListFacetAttributesIn
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetNotFoundException "FacetNotFoundException"
+//   * FacetNotFoundException
 //   The specified Facet could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListFacetAttributes
@@ -4621,7 +4629,7 @@ func (c *CloudDirectory) ListFacetAttributesWithContext(ctx aws.Context, input *
 //    // Example iterating over at most 3 pages of a ListFacetAttributes operation.
 //    pageNum := 0
 //    err := client.ListFacetAttributesPages(params,
-//        func(page *ListFacetAttributesOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListFacetAttributesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -4653,10 +4661,12 @@ func (c *CloudDirectory) ListFacetAttributesPagesWithContext(ctx aws.Context, in
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListFacetAttributesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListFacetAttributesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -4719,17 +4729,17 @@ func (c *CloudDirectory) ListFacetNamesRequest(input *ListFacetNamesInput) (req 
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListFacetNames for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -4737,21 +4747,21 @@ func (c *CloudDirectory) ListFacetNamesRequest(input *ListFacetNamesInput) (req 
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListFacetNames
@@ -4787,7 +4797,7 @@ func (c *CloudDirectory) ListFacetNamesWithContext(ctx aws.Context, input *ListF
 //    // Example iterating over at most 3 pages of a ListFacetNames operation.
 //    pageNum := 0
 //    err := client.ListFacetNamesPages(params,
-//        func(page *ListFacetNamesOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListFacetNamesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -4819,10 +4829,12 @@ func (c *CloudDirectory) ListFacetNamesPagesWithContext(ctx aws.Context, input *
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListFacetNamesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListFacetNamesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -4881,17 +4893,17 @@ func (c *CloudDirectory) ListIncomingTypedLinksRequest(input *ListIncomingTypedL
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListIncomingTypedLinks for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -4899,27 +4911,27 @@ func (c *CloudDirectory) ListIncomingTypedLinksRequest(input *ListIncomingTypedL
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -5004,17 +5016,17 @@ func (c *CloudDirectory) ListIndexRequest(input *ListIndexInput) (req *request.R
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListIndex for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -5022,31 +5034,31 @@ func (c *CloudDirectory) ListIndexRequest(input *ListIndexInput) (req *request.R
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeNotIndexException "NotIndexException"
+//   * NotIndexException
 //   Indicates that the requested operation can only operate on index objects.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListIndex
@@ -5082,7 +5094,7 @@ func (c *CloudDirectory) ListIndexWithContext(ctx aws.Context, input *ListIndexI
 //    // Example iterating over at most 3 pages of a ListIndex operation.
 //    pageNum := 0
 //    err := client.ListIndexPages(params,
-//        func(page *ListIndexOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListIndexOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -5114,10 +5126,12 @@ func (c *CloudDirectory) ListIndexPagesWithContext(ctx aws.Context, input *ListI
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListIndexOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListIndexOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -5182,27 +5196,27 @@ func (c *CloudDirectory) ListManagedSchemaArnsRequest(input *ListManagedSchemaAr
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListManagedSchemaArns for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListManagedSchemaArns
@@ -5238,7 +5252,7 @@ func (c *CloudDirectory) ListManagedSchemaArnsWithContext(ctx aws.Context, input
 //    // Example iterating over at most 3 pages of a ListManagedSchemaArns operation.
 //    pageNum := 0
 //    err := client.ListManagedSchemaArnsPages(params,
-//        func(page *ListManagedSchemaArnsOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListManagedSchemaArnsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -5270,10 +5284,12 @@ func (c *CloudDirectory) ListManagedSchemaArnsPagesWithContext(ctx aws.Context, 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListManagedSchemaArnsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListManagedSchemaArnsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -5336,17 +5352,17 @@ func (c *CloudDirectory) ListObjectAttributesRequest(input *ListObjectAttributes
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListObjectAttributes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -5354,27 +5370,27 @@ func (c *CloudDirectory) ListObjectAttributesRequest(input *ListObjectAttributes
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -5411,7 +5427,7 @@ func (c *CloudDirectory) ListObjectAttributesWithContext(ctx aws.Context, input 
 //    // Example iterating over at most 3 pages of a ListObjectAttributes operation.
 //    pageNum := 0
 //    err := client.ListObjectAttributesPages(params,
-//        func(page *ListObjectAttributesOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListObjectAttributesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -5443,10 +5459,12 @@ func (c *CloudDirectory) ListObjectAttributesPagesWithContext(ctx aws.Context, i
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListObjectAttributesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListObjectAttributesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -5510,17 +5528,17 @@ func (c *CloudDirectory) ListObjectChildrenRequest(input *ListObjectChildrenInpu
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListObjectChildren for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -5528,27 +5546,27 @@ func (c *CloudDirectory) ListObjectChildrenRequest(input *ListObjectChildrenInpu
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
-//   * ErrCodeNotNodeException "NotNodeException"
+//   * NotNodeException
 //   Occurs when any invalid operations are performed on an object that is not
 //   a node, such as calling ListObjectChildren for a leaf node object.
 //
@@ -5585,7 +5603,7 @@ func (c *CloudDirectory) ListObjectChildrenWithContext(ctx aws.Context, input *L
 //    // Example iterating over at most 3 pages of a ListObjectChildren operation.
 //    pageNum := 0
 //    err := client.ListObjectChildrenPages(params,
-//        func(page *ListObjectChildrenOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListObjectChildrenOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -5617,10 +5635,12 @@ func (c *CloudDirectory) ListObjectChildrenPagesWithContext(ctx aws.Context, inp
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListObjectChildrenOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListObjectChildrenOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -5693,17 +5713,17 @@ func (c *CloudDirectory) ListObjectParentPathsRequest(input *ListObjectParentPat
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListObjectParentPaths for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -5711,24 +5731,24 @@ func (c *CloudDirectory) ListObjectParentPathsRequest(input *ListObjectParentPat
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListObjectParentPaths
@@ -5764,7 +5784,7 @@ func (c *CloudDirectory) ListObjectParentPathsWithContext(ctx aws.Context, input
 //    // Example iterating over at most 3 pages of a ListObjectParentPaths operation.
 //    pageNum := 0
 //    err := client.ListObjectParentPathsPages(params,
-//        func(page *ListObjectParentPathsOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListObjectParentPathsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -5796,10 +5816,12 @@ func (c *CloudDirectory) ListObjectParentPathsPagesWithContext(ctx aws.Context, 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListObjectParentPathsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListObjectParentPathsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -5863,17 +5885,17 @@ func (c *CloudDirectory) ListObjectParentsRequest(input *ListObjectParentsInput)
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListObjectParents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -5881,27 +5903,27 @@ func (c *CloudDirectory) ListObjectParentsRequest(input *ListObjectParentsInput)
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
-//   * ErrCodeCannotListParentOfRootException "CannotListParentOfRootException"
+//   * CannotListParentOfRootException
 //   Cannot list the parents of a Directory root.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListObjectParents
@@ -5937,7 +5959,7 @@ func (c *CloudDirectory) ListObjectParentsWithContext(ctx aws.Context, input *Li
 //    // Example iterating over at most 3 pages of a ListObjectParents operation.
 //    pageNum := 0
 //    err := client.ListObjectParentsPages(params,
-//        func(page *ListObjectParentsOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListObjectParentsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -5969,10 +5991,12 @@ func (c *CloudDirectory) ListObjectParentsPagesWithContext(ctx aws.Context, inpu
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListObjectParentsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListObjectParentsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -6035,17 +6059,17 @@ func (c *CloudDirectory) ListObjectPoliciesRequest(input *ListObjectPoliciesInpu
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListObjectPolicies for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -6053,24 +6077,24 @@ func (c *CloudDirectory) ListObjectPoliciesRequest(input *ListObjectPoliciesInpu
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListObjectPolicies
@@ -6106,7 +6130,7 @@ func (c *CloudDirectory) ListObjectPoliciesWithContext(ctx aws.Context, input *L
 //    // Example iterating over at most 3 pages of a ListObjectPolicies operation.
 //    pageNum := 0
 //    err := client.ListObjectPoliciesPages(params,
-//        func(page *ListObjectPoliciesOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListObjectPoliciesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -6138,10 +6162,12 @@ func (c *CloudDirectory) ListObjectPoliciesPagesWithContext(ctx aws.Context, inp
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListObjectPoliciesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListObjectPoliciesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -6200,17 +6226,17 @@ func (c *CloudDirectory) ListOutgoingTypedLinksRequest(input *ListOutgoingTypedL
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListOutgoingTypedLinks for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -6218,27 +6244,27 @@ func (c *CloudDirectory) ListOutgoingTypedLinksRequest(input *ListOutgoingTypedL
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -6323,17 +6349,17 @@ func (c *CloudDirectory) ListPolicyAttachmentsRequest(input *ListPolicyAttachmen
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListPolicyAttachments for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -6341,27 +6367,27 @@ func (c *CloudDirectory) ListPolicyAttachmentsRequest(input *ListPolicyAttachmen
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeNotPolicyException "NotPolicyException"
+//   * NotPolicyException
 //   Indicates that the requested operation can only operate on policy objects.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListPolicyAttachments
@@ -6397,7 +6423,7 @@ func (c *CloudDirectory) ListPolicyAttachmentsWithContext(ctx aws.Context, input
 //    // Example iterating over at most 3 pages of a ListPolicyAttachments operation.
 //    pageNum := 0
 //    err := client.ListPolicyAttachmentsPages(params,
-//        func(page *ListPolicyAttachmentsOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListPolicyAttachmentsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -6429,10 +6455,12 @@ func (c *CloudDirectory) ListPolicyAttachmentsPagesWithContext(ctx aws.Context, 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListPolicyAttachmentsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListPolicyAttachmentsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -6497,17 +6525,17 @@ func (c *CloudDirectory) ListPublishedSchemaArnsRequest(input *ListPublishedSche
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListPublishedSchemaArns for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -6515,21 +6543,21 @@ func (c *CloudDirectory) ListPublishedSchemaArnsRequest(input *ListPublishedSche
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListPublishedSchemaArns
@@ -6565,7 +6593,7 @@ func (c *CloudDirectory) ListPublishedSchemaArnsWithContext(ctx aws.Context, inp
 //    // Example iterating over at most 3 pages of a ListPublishedSchemaArns operation.
 //    pageNum := 0
 //    err := client.ListPublishedSchemaArnsPages(params,
-//        func(page *ListPublishedSchemaArnsOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListPublishedSchemaArnsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -6597,10 +6625,12 @@ func (c *CloudDirectory) ListPublishedSchemaArnsPagesWithContext(ctx aws.Context
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListPublishedSchemaArnsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListPublishedSchemaArnsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -6665,17 +6695,17 @@ func (c *CloudDirectory) ListTagsForResourceRequest(input *ListTagsForResourceIn
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListTagsForResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -6683,21 +6713,21 @@ func (c *CloudDirectory) ListTagsForResourceRequest(input *ListTagsForResourceIn
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidTaggingRequestException "InvalidTaggingRequestException"
+//   * InvalidTaggingRequestException
 //   Can occur for multiple reasons such as when you tag a resource that doesn’t
 //   exist or if you specify a higher number of tags for a resource than the allowed
 //   limit. Allowed limit is 50 tags per resource.
@@ -6735,7 +6765,7 @@ func (c *CloudDirectory) ListTagsForResourceWithContext(ctx aws.Context, input *
 //    // Example iterating over at most 3 pages of a ListTagsForResource operation.
 //    pageNum := 0
 //    err := client.ListTagsForResourcePages(params,
-//        func(page *ListTagsForResourceOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListTagsForResourceOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -6767,10 +6797,12 @@ func (c *CloudDirectory) ListTagsForResourcePagesWithContext(ctx aws.Context, in
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListTagsForResourceOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListTagsForResourceOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -6834,17 +6866,17 @@ func (c *CloudDirectory) ListTypedLinkFacetAttributesRequest(input *ListTypedLin
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListTypedLinkFacetAttributes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -6852,24 +6884,24 @@ func (c *CloudDirectory) ListTypedLinkFacetAttributesRequest(input *ListTypedLin
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetNotFoundException "FacetNotFoundException"
+//   * FacetNotFoundException
 //   The specified Facet could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListTypedLinkFacetAttributes
@@ -6905,7 +6937,7 @@ func (c *CloudDirectory) ListTypedLinkFacetAttributesWithContext(ctx aws.Context
 //    // Example iterating over at most 3 pages of a ListTypedLinkFacetAttributes operation.
 //    pageNum := 0
 //    err := client.ListTypedLinkFacetAttributesPages(params,
-//        func(page *ListTypedLinkFacetAttributesOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListTypedLinkFacetAttributesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -6937,10 +6969,12 @@ func (c *CloudDirectory) ListTypedLinkFacetAttributesPagesWithContext(ctx aws.Co
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListTypedLinkFacetAttributesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListTypedLinkFacetAttributesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -7004,17 +7038,17 @@ func (c *CloudDirectory) ListTypedLinkFacetNamesRequest(input *ListTypedLinkFace
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation ListTypedLinkFacetNames for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -7022,21 +7056,21 @@ func (c *CloudDirectory) ListTypedLinkFacetNamesRequest(input *ListTypedLinkFace
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/ListTypedLinkFacetNames
@@ -7072,7 +7106,7 @@ func (c *CloudDirectory) ListTypedLinkFacetNamesWithContext(ctx aws.Context, inp
 //    // Example iterating over at most 3 pages of a ListTypedLinkFacetNames operation.
 //    pageNum := 0
 //    err := client.ListTypedLinkFacetNamesPages(params,
-//        func(page *ListTypedLinkFacetNamesOutput, lastPage bool) bool {
+//        func(page *clouddirectory.ListTypedLinkFacetNamesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -7104,10 +7138,12 @@ func (c *CloudDirectory) ListTypedLinkFacetNamesPagesWithContext(ctx aws.Context
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListTypedLinkFacetNamesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListTypedLinkFacetNamesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -7176,17 +7212,17 @@ func (c *CloudDirectory) LookupPolicyRequest(input *LookupPolicyInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation LookupPolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -7194,24 +7230,24 @@ func (c *CloudDirectory) LookupPolicyRequest(input *LookupPolicyInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   * InvalidNextTokenException
 //   Indicates that the NextToken value is not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/LookupPolicy
@@ -7247,7 +7283,7 @@ func (c *CloudDirectory) LookupPolicyWithContext(ctx aws.Context, input *LookupP
 //    // Example iterating over at most 3 pages of a LookupPolicy operation.
 //    pageNum := 0
 //    err := client.LookupPolicyPages(params,
-//        func(page *LookupPolicyOutput, lastPage bool) bool {
+//        func(page *clouddirectory.LookupPolicyOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -7279,10 +7315,12 @@ func (c *CloudDirectory) LookupPolicyPagesWithContext(ctx aws.Context, input *Lo
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*LookupPolicyOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*LookupPolicyOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -7340,17 +7378,17 @@ func (c *CloudDirectory) PublishSchemaRequest(input *PublishSchemaInput) (req *r
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation PublishSchema for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -7358,21 +7396,21 @@ func (c *CloudDirectory) PublishSchemaRequest(input *PublishSchemaInput) (req *r
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeSchemaAlreadyPublishedException "SchemaAlreadyPublishedException"
+//   * SchemaAlreadyPublishedException
 //   Indicates that a schema is already published.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/PublishSchema
@@ -7452,17 +7490,17 @@ func (c *CloudDirectory) PutSchemaFromJsonRequest(input *PutSchemaFromJsonInput)
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation PutSchemaFromJson for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -7470,21 +7508,21 @@ func (c *CloudDirectory) PutSchemaFromJsonRequest(input *PutSchemaFromJsonInput)
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeInvalidSchemaDocException "InvalidSchemaDocException"
+//   * InvalidSchemaDocException
 //   Indicates that the provided SchemaDoc value is not valid.
 //
-//   * ErrCodeInvalidRuleException "InvalidRuleException"
+//   * InvalidRuleException
 //   Occurs when any of the rule parameter keys or values are invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/PutSchemaFromJson
@@ -7563,17 +7601,17 @@ func (c *CloudDirectory) RemoveFacetFromObjectRequest(input *RemoveFacetFromObje
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation RemoveFacetFromObject for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -7581,24 +7619,24 @@ func (c *CloudDirectory) RemoveFacetFromObjectRequest(input *RemoveFacetFromObje
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -7678,17 +7716,17 @@ func (c *CloudDirectory) TagResourceRequest(input *TagResourceInput) (req *reque
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation TagResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -7696,21 +7734,21 @@ func (c *CloudDirectory) TagResourceRequest(input *TagResourceInput) (req *reque
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidTaggingRequestException "InvalidTaggingRequestException"
+//   * InvalidTaggingRequestException
 //   Can occur for multiple reasons such as when you tag a resource that doesn’t
 //   exist or if you specify a higher number of tags for a resource than the allowed
 //   limit. Allowed limit is 50 tags per resource.
@@ -7791,17 +7829,17 @@ func (c *CloudDirectory) UntagResourceRequest(input *UntagResourceInput) (req *r
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation UntagResource for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -7809,21 +7847,21 @@ func (c *CloudDirectory) UntagResourceRequest(input *UntagResourceInput) (req *r
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidTaggingRequestException "InvalidTaggingRequestException"
+//   * InvalidTaggingRequestException
 //   Can occur for multiple reasons such as when you tag a resource that doesn’t
 //   exist or if you specify a higher number of tags for a resource than the allowed
 //   limit. Allowed limit is 50 tags per resource.
@@ -7910,17 +7948,17 @@ func (c *CloudDirectory) UpdateFacetRequest(input *UpdateFacetInput) (req *reque
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation UpdateFacet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -7928,31 +7966,31 @@ func (c *CloudDirectory) UpdateFacetRequest(input *UpdateFacetInput) (req *reque
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeInvalidFacetUpdateException "InvalidFacetUpdateException"
+//   * InvalidFacetUpdateException
 //   An attempt to modify a Facet resulted in an invalid schema exception.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetNotFoundException "FacetNotFoundException"
+//   * FacetNotFoundException
 //   The specified Facet could not be found.
 //
-//   * ErrCodeInvalidRuleException "InvalidRuleException"
+//   * InvalidRuleException
 //   Occurs when any of the rule parameter keys or values are invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/UpdateFacet
@@ -8022,8 +8060,8 @@ func (c *CloudDirectory) UpdateLinkAttributesRequest(input *UpdateLinkAttributes
 
 // UpdateLinkAttributes API operation for Amazon CloudDirectory.
 //
-// Updates a given typed link’s attributes. Attributes to be updated must not
-// contribute to the typed link’s identity, as defined by its IdentityAttributeOrder.
+// Updates a given typed link’s attributes. Attributes to be updated must
+// not contribute to the typed link’s identity, as defined by its IdentityAttributeOrder.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -8032,17 +8070,17 @@ func (c *CloudDirectory) UpdateLinkAttributesRequest(input *UpdateLinkAttributes
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation UpdateLinkAttributes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -8050,24 +8088,24 @@ func (c *CloudDirectory) UpdateLinkAttributesRequest(input *UpdateLinkAttributes
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -8146,17 +8184,17 @@ func (c *CloudDirectory) UpdateObjectAttributesRequest(input *UpdateObjectAttrib
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation UpdateObjectAttributes for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -8164,28 +8202,28 @@ func (c *CloudDirectory) UpdateObjectAttributesRequest(input *UpdateObjectAttrib
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeDirectoryNotEnabledException "DirectoryNotEnabledException"
+//   * DirectoryNotEnabledException
 //   Operations are only permitted on enabled directories.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeLinkNameAlreadyInUseException "LinkNameAlreadyInUseException"
+//   * LinkNameAlreadyInUseException
 //   Indicates that a link could not be created due to a naming conflict. Choose
 //   a different name and then try again.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
@@ -8265,17 +8303,17 @@ func (c *CloudDirectory) UpdateSchemaRequest(input *UpdateSchemaInput) (req *req
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation UpdateSchema for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -8283,18 +8321,18 @@ func (c *CloudDirectory) UpdateSchemaRequest(input *UpdateSchemaInput) (req *req
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/UpdateSchema
@@ -8373,17 +8411,17 @@ func (c *CloudDirectory) UpdateTypedLinkFacetRequest(input *UpdateTypedLinkFacet
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation UpdateTypedLinkFacet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -8391,31 +8429,31 @@ func (c *CloudDirectory) UpdateTypedLinkFacetRequest(input *UpdateTypedLinkFacet
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeFacetValidationException "FacetValidationException"
+//   * FacetValidationException
 //   The Facet that you provided was not well formed or could not be validated
 //   with the schema.
 //
-//   * ErrCodeInvalidFacetUpdateException "InvalidFacetUpdateException"
+//   * InvalidFacetUpdateException
 //   An attempt to modify a Facet resulted in an invalid schema exception.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeFacetNotFoundException "FacetNotFoundException"
+//   * FacetNotFoundException
 //   The specified Facet could not be found.
 //
-//   * ErrCodeInvalidRuleException "InvalidRuleException"
+//   * InvalidRuleException
 //   Occurs when any of the rule parameter keys or values are invalid.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11/UpdateTypedLinkFacet
@@ -8498,17 +8536,17 @@ func (c *CloudDirectory) UpgradeAppliedSchemaRequest(input *UpgradeAppliedSchema
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation UpgradeAppliedSchema for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -8516,27 +8554,27 @@ func (c *CloudDirectory) UpgradeAppliedSchemaRequest(input *UpgradeAppliedSchema
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeIncompatibleSchemaException "IncompatibleSchemaException"
+//   * IncompatibleSchemaException
 //   Indicates a failure occurred while performing a check for backward compatibility
 //   between the specified schema and the schema that is currently applied to
 //   the directory.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidAttachmentException "InvalidAttachmentException"
+//   * InvalidAttachmentException
 //   Indicates that an attempt to make an attachment was invalid. For example,
 //   attaching two nodes with a link type that is not applicable to the nodes
 //   or attempting to apply a schema to a directory a second time.
 //
-//   * ErrCodeSchemaAlreadyExistsException "SchemaAlreadyExistsException"
+//   * SchemaAlreadyExistsException
 //   Indicates that a schema could not be created due to a naming conflict. Please
 //   select a different name and then try again.
 //
@@ -8616,17 +8654,17 @@ func (c *CloudDirectory) UpgradePublishedSchemaRequest(input *UpgradePublishedSc
 // See the AWS API reference guide for Amazon CloudDirectory's
 // API operation UpgradePublishedSchema for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServiceException "InternalServiceException"
+// Returned Error Types:
+//   * InternalServiceException
 //   Indicates a problem that must be resolved by Amazon Web Services. This might
 //   be a transient error in which case you can retry your request until it succeeds.
 //   Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
 //   site to see if there are any operational issues with the service.
 //
-//   * ErrCodeInvalidArnException "InvalidArnException"
+//   * InvalidArnException
 //   Indicates that the provided ARN value is not valid.
 //
-//   * ErrCodeRetryableConflictException "RetryableConflictException"
+//   * RetryableConflictException
 //   Occurs when a conflict with a previous successful write is detected. For
 //   example, if a write operation occurs on an object and then an attempt is
 //   made to read the object using “SERIALIZABLE” consistency, this exception
@@ -8634,27 +8672,27 @@ func (c *CloudDirectory) UpgradePublishedSchemaRequest(input *UpgradePublishedSc
 //   to propagate to the host serving the current request. A retry (with appropriate
 //   backoff logic) is the recommended response to this exception.
 //
-//   * ErrCodeValidationException "ValidationException"
+//   * ValidationException
 //   Indicates that your request is malformed in some manner. See the exception
 //   message.
 //
-//   * ErrCodeIncompatibleSchemaException "IncompatibleSchemaException"
+//   * IncompatibleSchemaException
 //   Indicates a failure occurred while performing a check for backward compatibility
 //   between the specified schema and the schema that is currently applied to
 //   the directory.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   Access denied. Check your permissions.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
-//   * ErrCodeInvalidAttachmentException "InvalidAttachmentException"
+//   * InvalidAttachmentException
 //   Indicates that an attempt to make an attachment was invalid. For example,
 //   attaching two nodes with a link type that is not applicable to the nodes
 //   or attempting to apply a schema to a directory a second time.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 //   for more information.
 //
@@ -8678,6 +8716,62 @@ func (c *CloudDirectory) UpgradePublishedSchemaWithContext(ctx aws.Context, inpu
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+// Access denied. Check your permissions.
+type AccessDeniedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s AccessDeniedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AccessDeniedException) GoString() string {
+	return s.String()
+}
+
+func newErrorAccessDeniedException(v protocol.ResponseMetadata) error {
+	return &AccessDeniedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s AccessDeniedException) Code() string {
+	return "AccessDeniedException"
+}
+
+// Message returns the exception's message.
+func (s AccessDeniedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s AccessDeniedException) OrigErr() error {
+	return nil
+}
+
+func (s AccessDeniedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s AccessDeniedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s AccessDeniedException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type AddFacetToObjectInput struct {
@@ -9665,8 +9759,8 @@ func (s *BatchAttachObjectResponse) SetAttachedObjectIdentifier(v string) *Batch
 	return s
 }
 
-// Attaches a policy object to a regular object inside a BatchRead operation. For
-// more information, see AttachPolicy and BatchReadRequest$Operations.
+// Attaches a policy object to a regular object inside a BatchRead operation.
+// For more information, see AttachPolicy and BatchReadRequest$Operations.
 type BatchAttachPolicy struct {
 	_ struct{} `type:"structure"`
 
@@ -12728,6 +12822,66 @@ func (s *BatchUpdateObjectAttributesResponse) SetObjectIdentifier(v string) *Bat
 	return s
 }
 
+// A BatchWrite exception has occurred.
+type BatchWriteException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Index *int64 `type:"integer"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+
+	Type *string `type:"string" enum:"BatchWriteExceptionType"`
+}
+
+// String returns the string representation
+func (s BatchWriteException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchWriteException) GoString() string {
+	return s.String()
+}
+
+func newErrorBatchWriteException(v protocol.ResponseMetadata) error {
+	return &BatchWriteException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s BatchWriteException) Code() string {
+	return "BatchWriteException"
+}
+
+// Message returns the exception's message.
+func (s BatchWriteException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s BatchWriteException) OrigErr() error {
+	return nil
+}
+
+func (s BatchWriteException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s BatchWriteException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s BatchWriteException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type BatchWriteInput struct {
 	_ struct{} `type:"structure"`
 
@@ -13205,6 +13359,62 @@ func (s BatchWriteOutput) GoString() string {
 func (s *BatchWriteOutput) SetResponses(v []*BatchWriteOperationResponse) *BatchWriteOutput {
 	s.Responses = v
 	return s
+}
+
+// Cannot list the parents of a Directory root.
+type CannotListParentOfRootException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s CannotListParentOfRootException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CannotListParentOfRootException) GoString() string {
+	return s.String()
+}
+
+func newErrorCannotListParentOfRootException(v protocol.ResponseMetadata) error {
+	return &CannotListParentOfRootException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s CannotListParentOfRootException) Code() string {
+	return "CannotListParentOfRootException"
+}
+
+// Message returns the exception's message.
+func (s CannotListParentOfRootException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s CannotListParentOfRootException) OrigErr() error {
+	return nil
+}
+
+func (s CannotListParentOfRootException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s CannotListParentOfRootException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s CannotListParentOfRootException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type CreateDirectoryInput struct {
@@ -14550,6 +14760,232 @@ func (s *Directory) SetState(v string) *Directory {
 	return s
 }
 
+// Indicates that a Directory could not be created due to a naming conflict.
+// Choose a different name and try again.
+type DirectoryAlreadyExistsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s DirectoryAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DirectoryAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorDirectoryAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &DirectoryAlreadyExistsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DirectoryAlreadyExistsException) Code() string {
+	return "DirectoryAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s DirectoryAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DirectoryAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s DirectoryAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DirectoryAlreadyExistsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DirectoryAlreadyExistsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// A directory that has been deleted and to which access has been attempted.
+// Note: The requested resource will eventually cease to exist.
+type DirectoryDeletedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s DirectoryDeletedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DirectoryDeletedException) GoString() string {
+	return s.String()
+}
+
+func newErrorDirectoryDeletedException(v protocol.ResponseMetadata) error {
+	return &DirectoryDeletedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DirectoryDeletedException) Code() string {
+	return "DirectoryDeletedException"
+}
+
+// Message returns the exception's message.
+func (s DirectoryDeletedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DirectoryDeletedException) OrigErr() error {
+	return nil
+}
+
+func (s DirectoryDeletedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DirectoryDeletedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DirectoryDeletedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// An operation can only operate on a disabled directory.
+type DirectoryNotDisabledException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s DirectoryNotDisabledException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DirectoryNotDisabledException) GoString() string {
+	return s.String()
+}
+
+func newErrorDirectoryNotDisabledException(v protocol.ResponseMetadata) error {
+	return &DirectoryNotDisabledException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DirectoryNotDisabledException) Code() string {
+	return "DirectoryNotDisabledException"
+}
+
+// Message returns the exception's message.
+func (s DirectoryNotDisabledException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DirectoryNotDisabledException) OrigErr() error {
+	return nil
+}
+
+func (s DirectoryNotDisabledException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DirectoryNotDisabledException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DirectoryNotDisabledException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Operations are only permitted on enabled directories.
+type DirectoryNotEnabledException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s DirectoryNotEnabledException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DirectoryNotEnabledException) GoString() string {
+	return s.String()
+}
+
+func newErrorDirectoryNotEnabledException(v protocol.ResponseMetadata) error {
+	return &DirectoryNotEnabledException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s DirectoryNotEnabledException) Code() string {
+	return "DirectoryNotEnabledException"
+}
+
+// Message returns the exception's message.
+func (s DirectoryNotEnabledException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s DirectoryNotEnabledException) OrigErr() error {
+	return nil
+}
+
+func (s DirectoryNotEnabledException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s DirectoryNotEnabledException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s DirectoryNotEnabledException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 type DisableDirectoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14721,6 +15157,62 @@ func (s *Facet) SetName(v string) *Facet {
 func (s *Facet) SetObjectType(v string) *Facet {
 	s.ObjectType = &v
 	return s
+}
+
+// A facet with the same name already exists.
+type FacetAlreadyExistsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s FacetAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FacetAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorFacetAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &FacetAlreadyExistsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s FacetAlreadyExistsException) Code() string {
+	return "FacetAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s FacetAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s FacetAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s FacetAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s FacetAlreadyExistsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s FacetAlreadyExistsException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // An attribute that is associated with the Facet.
@@ -14983,6 +15475,176 @@ func (s *FacetAttributeUpdate) SetAction(v string) *FacetAttributeUpdate {
 func (s *FacetAttributeUpdate) SetAttribute(v *FacetAttribute) *FacetAttributeUpdate {
 	s.Attribute = v
 	return s
+}
+
+// Occurs when deleting a facet that contains an attribute that is a target
+// to an attribute reference in a different facet.
+type FacetInUseException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s FacetInUseException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FacetInUseException) GoString() string {
+	return s.String()
+}
+
+func newErrorFacetInUseException(v protocol.ResponseMetadata) error {
+	return &FacetInUseException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s FacetInUseException) Code() string {
+	return "FacetInUseException"
+}
+
+// Message returns the exception's message.
+func (s FacetInUseException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s FacetInUseException) OrigErr() error {
+	return nil
+}
+
+func (s FacetInUseException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s FacetInUseException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s FacetInUseException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The specified Facet could not be found.
+type FacetNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s FacetNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FacetNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorFacetNotFoundException(v protocol.ResponseMetadata) error {
+	return &FacetNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s FacetNotFoundException) Code() string {
+	return "FacetNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s FacetNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s FacetNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s FacetNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s FacetNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s FacetNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// The Facet that you provided was not well formed or could not be validated
+// with the schema.
+type FacetValidationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s FacetValidationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FacetValidationException) GoString() string {
+	return s.String()
+}
+
+func newErrorFacetValidationException(v protocol.ResponseMetadata) error {
+	return &FacetValidationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s FacetValidationException) Code() string {
+	return "FacetValidationException"
+}
+
+// Message returns the exception's message.
+func (s FacetValidationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s FacetValidationException) OrigErr() error {
+	return nil
+}
+
+func (s FacetValidationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s FacetValidationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s FacetValidationException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type GetAppliedSchemaVersionInput struct {
@@ -15660,6 +16322,64 @@ func (s *GetTypedLinkFacetInformationOutput) SetIdentityAttributeOrder(v []*stri
 	return s
 }
 
+// Indicates a failure occurred while performing a check for backward compatibility
+// between the specified schema and the schema that is currently applied to
+// the directory.
+type IncompatibleSchemaException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s IncompatibleSchemaException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IncompatibleSchemaException) GoString() string {
+	return s.String()
+}
+
+func newErrorIncompatibleSchemaException(v protocol.ResponseMetadata) error {
+	return &IncompatibleSchemaException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s IncompatibleSchemaException) Code() string {
+	return "IncompatibleSchemaException"
+}
+
+// Message returns the exception's message.
+func (s IncompatibleSchemaException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s IncompatibleSchemaException) OrigErr() error {
+	return nil
+}
+
+func (s IncompatibleSchemaException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s IncompatibleSchemaException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s IncompatibleSchemaException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Represents an index and an attached object.
 type IndexAttachment struct {
 	_ struct{} `type:"structure"`
@@ -15694,6 +16414,575 @@ func (s *IndexAttachment) SetIndexedAttributes(v []*AttributeKeyAndValue) *Index
 func (s *IndexAttachment) SetObjectIdentifier(v string) *IndexAttachment {
 	s.ObjectIdentifier = &v
 	return s
+}
+
+// An object has been attempted to be attached to an object that does not have
+// the appropriate attribute value.
+type IndexedAttributeMissingException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s IndexedAttributeMissingException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IndexedAttributeMissingException) GoString() string {
+	return s.String()
+}
+
+func newErrorIndexedAttributeMissingException(v protocol.ResponseMetadata) error {
+	return &IndexedAttributeMissingException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s IndexedAttributeMissingException) Code() string {
+	return "IndexedAttributeMissingException"
+}
+
+// Message returns the exception's message.
+func (s IndexedAttributeMissingException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s IndexedAttributeMissingException) OrigErr() error {
+	return nil
+}
+
+func (s IndexedAttributeMissingException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s IndexedAttributeMissingException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s IndexedAttributeMissingException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates a problem that must be resolved by Amazon Web Services. This might
+// be a transient error in which case you can retry your request until it succeeds.
+// Otherwise, go to the AWS Service Health Dashboard (http://status.aws.amazon.com/)
+// site to see if there are any operational issues with the service.
+type InternalServiceException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalServiceException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalServiceException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServiceException(v protocol.ResponseMetadata) error {
+	return &InternalServiceException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InternalServiceException) Code() string {
+	return "InternalServiceException"
+}
+
+// Message returns the exception's message.
+func (s InternalServiceException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InternalServiceException) OrigErr() error {
+	return nil
+}
+
+func (s InternalServiceException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InternalServiceException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InternalServiceException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates that the provided ARN value is not valid.
+type InvalidArnException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidArnException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidArnException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidArnException(v protocol.ResponseMetadata) error {
+	return &InvalidArnException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidArnException) Code() string {
+	return "InvalidArnException"
+}
+
+// Message returns the exception's message.
+func (s InvalidArnException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidArnException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidArnException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidArnException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidArnException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates that an attempt to make an attachment was invalid. For example,
+// attaching two nodes with a link type that is not applicable to the nodes
+// or attempting to apply a schema to a directory a second time.
+type InvalidAttachmentException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidAttachmentException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidAttachmentException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidAttachmentException(v protocol.ResponseMetadata) error {
+	return &InvalidAttachmentException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidAttachmentException) Code() string {
+	return "InvalidAttachmentException"
+}
+
+// Message returns the exception's message.
+func (s InvalidAttachmentException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidAttachmentException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidAttachmentException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidAttachmentException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidAttachmentException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// An attempt to modify a Facet resulted in an invalid schema exception.
+type InvalidFacetUpdateException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidFacetUpdateException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidFacetUpdateException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidFacetUpdateException(v protocol.ResponseMetadata) error {
+	return &InvalidFacetUpdateException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidFacetUpdateException) Code() string {
+	return "InvalidFacetUpdateException"
+}
+
+// Message returns the exception's message.
+func (s InvalidFacetUpdateException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidFacetUpdateException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidFacetUpdateException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidFacetUpdateException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidFacetUpdateException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates that the NextToken value is not valid.
+type InvalidNextTokenException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidNextTokenException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidNextTokenException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidNextTokenException(v protocol.ResponseMetadata) error {
+	return &InvalidNextTokenException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidNextTokenException) Code() string {
+	return "InvalidNextTokenException"
+}
+
+// Message returns the exception's message.
+func (s InvalidNextTokenException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidNextTokenException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidNextTokenException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidNextTokenException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidNextTokenException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Occurs when any of the rule parameter keys or values are invalid.
+type InvalidRuleException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidRuleException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidRuleException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidRuleException(v protocol.ResponseMetadata) error {
+	return &InvalidRuleException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidRuleException) Code() string {
+	return "InvalidRuleException"
+}
+
+// Message returns the exception's message.
+func (s InvalidRuleException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidRuleException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidRuleException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidRuleException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidRuleException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates that the provided SchemaDoc value is not valid.
+type InvalidSchemaDocException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidSchemaDocException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidSchemaDocException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidSchemaDocException(v protocol.ResponseMetadata) error {
+	return &InvalidSchemaDocException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidSchemaDocException) Code() string {
+	return "InvalidSchemaDocException"
+}
+
+// Message returns the exception's message.
+func (s InvalidSchemaDocException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidSchemaDocException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidSchemaDocException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidSchemaDocException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidSchemaDocException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Can occur for multiple reasons such as when you tag a resource that doesn’t
+// exist or if you specify a higher number of tags for a resource than the allowed
+// limit. Allowed limit is 50 tags per resource.
+type InvalidTaggingRequestException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidTaggingRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidTaggingRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidTaggingRequestException(v protocol.ResponseMetadata) error {
+	return &InvalidTaggingRequestException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s InvalidTaggingRequestException) Code() string {
+	return "InvalidTaggingRequestException"
+}
+
+// Message returns the exception's message.
+func (s InvalidTaggingRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s InvalidTaggingRequestException) OrigErr() error {
+	return nil
+}
+
+func (s InvalidTaggingRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s InvalidTaggingRequestException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s InvalidTaggingRequestException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
+// for more information.
+type LimitExceededException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LimitExceededException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LimitExceededException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // The action to take on a typed link attribute value. Updates are only supported
@@ -15776,6 +17065,63 @@ func (s *LinkAttributeUpdate) SetAttributeAction(v *LinkAttributeAction) *LinkAt
 func (s *LinkAttributeUpdate) SetAttributeKey(v *AttributeKey) *LinkAttributeUpdate {
 	s.AttributeKey = v
 	return s
+}
+
+// Indicates that a link could not be created due to a naming conflict. Choose
+// a different name and then try again.
+type LinkNameAlreadyInUseException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s LinkNameAlreadyInUseException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LinkNameAlreadyInUseException) GoString() string {
+	return s.String()
+}
+
+func newErrorLinkNameAlreadyInUseException(v protocol.ResponseMetadata) error {
+	return &LinkNameAlreadyInUseException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s LinkNameAlreadyInUseException) Code() string {
+	return "LinkNameAlreadyInUseException"
+}
+
+// Message returns the exception's message.
+func (s LinkNameAlreadyInUseException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s LinkNameAlreadyInUseException) OrigErr() error {
+	return nil
+}
+
+func (s LinkNameAlreadyInUseException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s LinkNameAlreadyInUseException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s LinkNameAlreadyInUseException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type ListAppliedSchemaArnsInput struct {
@@ -18103,6 +19449,231 @@ func (s *LookupPolicyOutput) SetPolicyToPathList(v []*PolicyToPath) *LookupPolic
 	return s
 }
 
+// Indicates that the requested operation can only operate on index objects.
+type NotIndexException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s NotIndexException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NotIndexException) GoString() string {
+	return s.String()
+}
+
+func newErrorNotIndexException(v protocol.ResponseMetadata) error {
+	return &NotIndexException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s NotIndexException) Code() string {
+	return "NotIndexException"
+}
+
+// Message returns the exception's message.
+func (s NotIndexException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s NotIndexException) OrigErr() error {
+	return nil
+}
+
+func (s NotIndexException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s NotIndexException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s NotIndexException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Occurs when any invalid operations are performed on an object that is not
+// a node, such as calling ListObjectChildren for a leaf node object.
+type NotNodeException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s NotNodeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NotNodeException) GoString() string {
+	return s.String()
+}
+
+func newErrorNotNodeException(v protocol.ResponseMetadata) error {
+	return &NotNodeException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s NotNodeException) Code() string {
+	return "NotNodeException"
+}
+
+// Message returns the exception's message.
+func (s NotNodeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s NotNodeException) OrigErr() error {
+	return nil
+}
+
+func (s NotNodeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s NotNodeException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s NotNodeException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates that the requested operation can only operate on policy objects.
+type NotPolicyException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s NotPolicyException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NotPolicyException) GoString() string {
+	return s.String()
+}
+
+func newErrorNotPolicyException(v protocol.ResponseMetadata) error {
+	return &NotPolicyException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s NotPolicyException) Code() string {
+	return "NotPolicyException"
+}
+
+// Message returns the exception's message.
+func (s NotPolicyException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s NotPolicyException) OrigErr() error {
+	return nil
+}
+
+func (s NotPolicyException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s NotPolicyException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s NotPolicyException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates that the object is not attached to the index.
+type ObjectAlreadyDetachedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ObjectAlreadyDetachedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ObjectAlreadyDetachedException) GoString() string {
+	return s.String()
+}
+
+func newErrorObjectAlreadyDetachedException(v protocol.ResponseMetadata) error {
+	return &ObjectAlreadyDetachedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ObjectAlreadyDetachedException) Code() string {
+	return "ObjectAlreadyDetachedException"
+}
+
+// Message returns the exception's message.
+func (s ObjectAlreadyDetachedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ObjectAlreadyDetachedException) OrigErr() error {
+	return nil
+}
+
+func (s ObjectAlreadyDetachedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ObjectAlreadyDetachedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ObjectAlreadyDetachedException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // The action to take on the object attribute.
 type ObjectAttributeAction struct {
 	_ struct{} `type:"structure"`
@@ -18268,6 +19839,63 @@ func (s *ObjectIdentifierAndLinkNameTuple) SetLinkName(v string) *ObjectIdentifi
 func (s *ObjectIdentifierAndLinkNameTuple) SetObjectIdentifier(v string) *ObjectIdentifierAndLinkNameTuple {
 	s.ObjectIdentifier = &v
 	return s
+}
+
+// Indicates that the requested operation cannot be completed because the object
+// has not been detached from the tree.
+type ObjectNotDetachedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ObjectNotDetachedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ObjectNotDetachedException) GoString() string {
+	return s.String()
+}
+
+func newErrorObjectNotDetachedException(v protocol.ResponseMetadata) error {
+	return &ObjectNotDetachedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ObjectNotDetachedException) Code() string {
+	return "ObjectNotDetachedException"
+}
+
+// Message returns the exception's message.
+func (s ObjectNotDetachedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ObjectNotDetachedException) OrigErr() error {
+	return nil
+}
+
+func (s ObjectNotDetachedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ObjectNotDetachedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ObjectNotDetachedException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // The reference that identifies an object.
@@ -18688,6 +20316,123 @@ func (s RemoveFacetFromObjectOutput) GoString() string {
 	return s.String()
 }
 
+// The specified resource could not be found.
+type ResourceNotFoundException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ResourceNotFoundException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ResourceNotFoundException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Occurs when a conflict with a previous successful write is detected. For
+// example, if a write operation occurs on an object and then an attempt is
+// made to read the object using “SERIALIZABLE” consistency, this exception
+// may result. This generally occurs when the previous write did not have time
+// to propagate to the host serving the current request. A retry (with appropriate
+// backoff logic) is the recommended response to this exception.
+type RetryableConflictException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s RetryableConflictException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RetryableConflictException) GoString() string {
+	return s.String()
+}
+
+func newErrorRetryableConflictException(v protocol.ResponseMetadata) error {
+	return &RetryableConflictException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s RetryableConflictException) Code() string {
+	return "RetryableConflictException"
+}
+
+// Message returns the exception's message.
+func (s RetryableConflictException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s RetryableConflictException) OrigErr() error {
+	return nil
+}
+
+func (s RetryableConflictException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s RetryableConflictException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s RetryableConflictException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
 // Contains an Amazon Resource Name (ARN) and parameters that are associated
 // with the rule.
 type Rule struct {
@@ -18720,6 +20465,119 @@ func (s *Rule) SetParameters(v map[string]*string) *Rule {
 func (s *Rule) SetType(v string) *Rule {
 	s.Type = &v
 	return s
+}
+
+// Indicates that a schema could not be created due to a naming conflict. Please
+// select a different name and then try again.
+type SchemaAlreadyExistsException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s SchemaAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SchemaAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorSchemaAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &SchemaAlreadyExistsException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s SchemaAlreadyExistsException) Code() string {
+	return "SchemaAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s SchemaAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s SchemaAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s SchemaAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s SchemaAlreadyExistsException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s SchemaAlreadyExistsException) RequestID() string {
+	return s.respMetadata.RequestID
+}
+
+// Indicates that a schema is already published.
+type SchemaAlreadyPublishedException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s SchemaAlreadyPublishedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SchemaAlreadyPublishedException) GoString() string {
+	return s.String()
+}
+
+func newErrorSchemaAlreadyPublishedException(v protocol.ResponseMetadata) error {
+	return &SchemaAlreadyPublishedException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s SchemaAlreadyPublishedException) Code() string {
+	return "SchemaAlreadyPublishedException"
+}
+
+// Message returns the exception's message.
+func (s SchemaAlreadyPublishedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s SchemaAlreadyPublishedException) OrigErr() error {
+	return nil
+}
+
+func (s SchemaAlreadyPublishedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s SchemaAlreadyPublishedException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s SchemaAlreadyPublishedException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // A facet.
@@ -18768,6 +20626,63 @@ func (s *SchemaFacet) SetFacetName(v string) *SchemaFacet {
 func (s *SchemaFacet) SetSchemaArn(v string) *SchemaFacet {
 	s.SchemaArn = &v
 	return s
+}
+
+// The object could not be deleted because links still exist. Remove the links
+// and then try the operation again.
+type StillContainsLinksException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s StillContainsLinksException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StillContainsLinksException) GoString() string {
+	return s.String()
+}
+
+func newErrorStillContainsLinksException(v protocol.ResponseMetadata) error {
+	return &StillContainsLinksException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s StillContainsLinksException) Code() string {
+	return "StillContainsLinksException"
+}
+
+// Message returns the exception's message.
+func (s StillContainsLinksException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s StillContainsLinksException) OrigErr() error {
+	return nil
+}
+
+func (s StillContainsLinksException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s StillContainsLinksException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s StillContainsLinksException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 // The tag structure that contains a tag key and value.
@@ -19454,6 +21369,62 @@ func (s *TypedLinkSpecifier) SetTargetObjectReference(v *ObjectReference) *Typed
 func (s *TypedLinkSpecifier) SetTypedLinkFacet(v *TypedLinkSchemaAndFacetName) *TypedLinkSpecifier {
 	s.TypedLinkFacet = v
 	return s
+}
+
+// Indicates that the requested index type is not supported.
+type UnsupportedIndexTypeException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnsupportedIndexTypeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnsupportedIndexTypeException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnsupportedIndexTypeException(v protocol.ResponseMetadata) error {
+	return &UnsupportedIndexTypeException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s UnsupportedIndexTypeException) Code() string {
+	return "UnsupportedIndexTypeException"
+}
+
+// Message returns the exception's message.
+func (s UnsupportedIndexTypeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s UnsupportedIndexTypeException) OrigErr() error {
+	return nil
+}
+
+func (s UnsupportedIndexTypeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s UnsupportedIndexTypeException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s UnsupportedIndexTypeException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 type UntagResourceInput struct {
@@ -20211,6 +22182,63 @@ func (s UpgradePublishedSchemaOutput) GoString() string {
 func (s *UpgradePublishedSchemaOutput) SetUpgradedSchemaArn(v string) *UpgradePublishedSchemaOutput {
 	s.UpgradedSchemaArn = &v
 	return s
+}
+
+// Indicates that your request is malformed in some manner. See the exception
+// message.
+type ValidationException struct {
+	_            struct{} `type:"structure"`
+	respMetadata protocol.ResponseMetadata
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ValidationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ValidationException) GoString() string {
+	return s.String()
+}
+
+func newErrorValidationException(v protocol.ResponseMetadata) error {
+	return &ValidationException{
+		respMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s ValidationException) Code() string {
+	return "ValidationException"
+}
+
+// Message returns the exception's message.
+func (s ValidationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s ValidationException) OrigErr() error {
+	return nil
+}
+
+func (s ValidationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s ValidationException) StatusCode() int {
+	return s.respMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s ValidationException) RequestID() string {
+	return s.respMetadata.RequestID
 }
 
 const (

@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] can use build secrets", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use build secrets", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildSecretBaseDir     = exutil.FixturePath("testdata", "builds", "build-secrets")
@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] can use build secrets", fu
 		dockerBuildDockerfile  = filepath.Join(buildSecretBaseDir, "Dockerfile")
 		sourceBuildFixture     = filepath.Join(buildSecretBaseDir, "test-s2i-build.json")
 		sourceBuildBinDir      = filepath.Join(buildSecretBaseDir, "s2i-binary-dir")
-		oc                     = exutil.NewCLI("build-secrets", exutil.KubeConfigPath())
+		oc                     = exutil.NewCLI("build-secrets")
 	)
 
 	g.Context("", func() {

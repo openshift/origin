@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -14,10 +15,10 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds] Optimized image builds", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] Optimized image builds", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("build-dockerfile-env", exutil.KubeConfigPath())
+		oc             = exutil.NewCLI("build-dockerfile-env")
 		skipLayers     = buildv1.ImageOptimizationSkipLayers
 		testDockerfile = `
 FROM centos:7
@@ -40,9 +41,9 @@ USER 1001
 			}
 		})
 
-		g.It("should succeed [Conformance]", func() {
+		g.It("should succeed", func() {
 			g.By("creating a build directly")
-			build, err := oc.AdminBuildClient().BuildV1().Builds(oc.Namespace()).Create(&buildv1.Build{
+			build, err := oc.AdminBuildClient().BuildV1().Builds(oc.Namespace()).Create(context.Background(), &buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "optimized",
 				},
@@ -58,7 +59,7 @@ USER 1001
 						},
 					},
 				},
-			})
+			}, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Spec.Strategy.DockerStrategy.ImageOptimizationPolicy).ToNot(o.BeNil())
 			result := exutil.NewBuildResult(oc, build)
@@ -66,7 +67,7 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(result.BuildSuccess).To(o.BeTrue(), "Build did not succeed: %v", result)
 
-			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(build.Name+"-build", metav1.GetOptions{})
+			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), build.Name+"-build", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if strings.HasSuffix(pod.Spec.Containers[0].Image, ":v3.6.0-alpha.0") {
 				g.Skip(fmt.Sprintf("The currently selected builder image does not yet support optimized image builds: %s", pod.Spec.Containers[0].Image))

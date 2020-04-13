@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -43,7 +44,7 @@ func start() error {
 
 	namespace := "testproject"
 	// get all builds
-	builds, err := buildV1Client.Builds(namespace).List(metav1.ListOptions{})
+	builds, err := buildV1Client.Builds(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -55,7 +56,7 @@ func start() error {
 
 	// get a specific build
 	build := "cakephp-ex-1"
-	myBuild, err := buildV1Client.Builds(namespace).Get(build, metav1.GetOptions{})
+	myBuild, err := buildV1Client.Builds(namespace).Get(context.TODO(), build, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -68,7 +69,7 @@ func start() error {
 
 	// trigger a build
 	buildConfig := "cakephp-ex"
-	myBuildConfig, err := buildV1Client.BuildConfigs(namespace).Get(buildConfig, metav1.GetOptions{})
+	myBuildConfig, err := buildV1Client.BuildConfigs(namespace).Get(context.TODO(), buildConfig, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -82,7 +83,7 @@ func start() error {
 	buildTriggerCause := v1.BuildTriggerCause{}
 	buildTriggerCause.Message = "Manually triggered"
 	buildRequest.TriggeredBy = []v1.BuildTriggerCause{buildTriggerCause}
-	myBuild, err = buildV1Client.BuildConfigs(namespace).Instantiate(buildConfig, &buildRequest)
+	myBuild, err = buildV1Client.BuildConfigs(namespace).Instantiate(context.TODO(), objectMeta.Name, &buildRequest, metav1.CreateOptions{})
 
 	if err != nil {
 		return err

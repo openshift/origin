@@ -1,5 +1,11 @@
 {
   "pagination": {
+    "GetComplianceSummary": {
+      "input_token": "PaginationToken",
+      "limit_key": "MaxResults",
+      "output_token": "PaginationToken",
+      "result_key": "SummaryList"
+    },
     "GetResources": {
       "input_token": "PaginationToken",
       "limit_key": "ResourcesPerPage",

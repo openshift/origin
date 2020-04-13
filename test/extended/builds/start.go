@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -24,7 +25,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CLI", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture       = exutil.FixturePath("testdata", "builds", "test-build.yaml")
@@ -34,9 +35,9 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI
 		symlinkFixture     = exutil.FixturePath("testdata", "builds", "test-symlink-build.yaml")
 		exampleGemfileURL  = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
 		exampleArchiveURL  = "https://github.com/openshift/ruby-hello-world/archive/master.zip"
-		oc                 = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
+		oc                 = exutil.NewCLI("cli-start-build")
 		verifyNodeSelector = func(oc *exutil.CLI, name string) {
-			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(name+"-build", metav1.GetOptions{})
+			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), name+"-build", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			os, ok := pod.Spec.NodeSelector[corev1.LabelOSStable]
 			o.Expect(ok).To(o.BeTrue())
@@ -107,7 +108,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI
 					g.By("confirm the correct commit level was retrieved")
 					o.Expect(out).Should(o.Not(o.ContainSubstring("gunicorn")))
 
-					istag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("bc-with-pr-ref:latest", metav1.GetOptions{})
+					istag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "bc-with-pr-ref:latest", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					err = imageutil.ImageWithMetadata(&istag.Image)
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -115,7 +116,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI
 					o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/121/head"))
 					o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/121/head"))
 
-					istag, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("bc-with-pr-ref-docker:latest", metav1.GetOptions{})
+					istag, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "bc-with-pr-ref-docker:latest", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					err = imageutil.ImageWithMetadata(&istag.Image)
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -127,8 +128,8 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI
 
 			g.Describe("override environment", func() {
 				g.It("should accept environment variables", func() {
-					g.By("starting the build with -e FOO=bar,VAR=test")
-					br, err := exutil.StartBuildAndWait(oc, "sample-build", "-e", "FOO=bar,VAR=test")
+					g.By("starting the build with -e FOO=bar,-e VAR=test")
+					br, err := exutil.StartBuildAndWait(oc, "sample-build", "-e", "FOO=bar", "-e", "VAR=test")
 					br.AssertSuccess()
 					verifyNodeSelector(oc, br.BuildName)
 					buildLog, err := br.Logs()
@@ -339,7 +340,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI
 					})
 
 					o.Expect(buildName).ToNot(o.BeEmpty())
-					build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), buildName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(build).NotTo(o.BeNil(), "build object should exist")
 
@@ -411,7 +412,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI
 					g.By("clearing existing builds")
 					_, err := oc.Run("delete").Args("builds", "--all").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					builds, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).To(o.BeEmpty())
 
@@ -436,14 +437,14 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI
 					curlOut, err := exec.Command("curl", curlArgs...).Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					e2e.Logf("curl cmd: %v, output: %s", curlArgs, string(curlOut))
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).NotTo(o.BeEmpty())
 
 					g.By("clearing existing builds")
 					_, err = oc.Run("delete").Args("builds", "--all").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).To(o.BeEmpty())
 
@@ -457,14 +458,14 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI
 					curlOut, err = exec.Command("curl", curlArgs...).Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					e2e.Logf("curl cmd: %s, output: %s", curlArgs, string(curlOut))
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).NotTo(o.BeEmpty())
 
 					g.By("clearing existing builds")
 					_, err = oc.Run("delete").Args("builds", "--all").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).To(o.BeEmpty())
 
@@ -478,7 +479,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI
 					curlOut, err = exec.Command("curl", curlArgs...).Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					e2e.Logf("curl cmd: %v, output: %s", curlArgs, string(curlOut))
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).To(o.BeEmpty())
 
@@ -513,7 +514,7 @@ var _ = g.Describe("[sig-devex][Feature:Builds][Slow] starting a build using CLI
 					}
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("symlink-is:latest", metav1.GetOptions{})
+					tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "symlink-is:latest", metav1.GetOptions{})
 					err = oc.Run("run").Args("-i", "-t", "symlink-test", "--image="+tag.Image.DockerImageReference, "--restart=Never", "--command", "--", "bash", "-c", "if [ ! -L link ]; then ls -ltr; exit 1; fi").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})

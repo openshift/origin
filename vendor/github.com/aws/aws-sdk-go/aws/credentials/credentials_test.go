@@ -2,6 +2,7 @@ package credentials
 
 import (
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 
@@ -107,17 +108,20 @@ func TestCredentialsIsExpired_Race(t *testing.T) {
 	creds := NewChainCredentials([]Provider{&MockProvider{}})
 
 	starter := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(10)
 	for i := 0; i < 10; i++ {
 		go func() {
+			defer wg.Done()
 			<-starter
-			for {
+			for i := 0; i < 100; i++ {
 				creds.IsExpired()
 			}
 		}()
 	}
 	close(starter)
 
-	time.Sleep(10 * time.Second)
+	wg.Wait()
 }
 
 func TestCredentialsExpiresAt_NoExpirer(t *testing.T) {

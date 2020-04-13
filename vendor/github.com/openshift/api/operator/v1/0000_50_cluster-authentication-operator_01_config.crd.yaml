@@ -127,6 +127,17 @@ spec:
                 releases, once https://github.com/openshift/enhancements/blob/master/enhancements/authentication/separate-oauth-resources.md
                 is fully implemented
               type: boolean
+            oauthAPIServer:
+              description: OAuthAPIServer holds status specific only to oauth-apiserver
+              type: object
+              properties:
+                latestAvailableRevision:
+                  description: LatestAvailableRevision is the latest revision used
+                    as suffix of revisioned secrets like encryption-config. A new
+                    revision causes a new deployment of pods.
+                  type: integer
+                  format: int32
+                  minimum: 0
             observedGeneration:
               description: observedGeneration is the last generation change you've
                 dealt with

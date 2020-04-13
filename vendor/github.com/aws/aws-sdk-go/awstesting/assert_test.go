@@ -35,29 +35,35 @@ func TestAssertXML(t *testing.T) {
 			XMLName         xml.Name `xml:"OperationRequest"`
 			NS              string   `xml:"xmlns,attr"`
 			RecursiveStruct struct {
+				XMLName      xml.Name
 				RecursiveMap struct {
+					XMLName xml.Name
 					Entries []struct {
-						XMLName xml.Name `xml:"entries"`
-						Key     string   `xml:"key"`
-						Value   struct {
+						Key   string `xml:"key"`
+						Value struct {
 							XMLName   xml.Name `xml:"value"`
 							NoRecurse string
 						}
-					}
+					} `xml:"entry"`
 				}
 			}
 		}
 	}{
 		{
 			e:       `<OperationRequest xmlns="https://foo/"><RecursiveStruct xmlns="https://foo/"><RecursiveMap xmlns="https://foo/"><entry xmlns="https://foo/"><key xmlns="https://foo/">foo</key><value xmlns="https://foo/"><NoRecurse xmlns="https://foo/">foo</NoRecurse></value></entry><entry xmlns="https://foo/"><key xmlns="https://foo/">bar</key><value xmlns="https://foo/"><NoRecurse xmlns="https://foo/">bar</NoRecurse></value></entry></RecursiveMap></RecursiveStruct></OperationRequest>`,
-			a:       `<OperationRequest xmlns="https://foo/"><RecursiveStruct xmlns="https://foo/"><RecursiveMap xmlns="https://foo/"><entry xmlns="https://foo/"><key xmlns="https://foo/">bar</key><value xmlns="https://foo/"><NoRecurse xmlns="https://foo/">bar</NoRecurse></value></entry><entry xmlns="https://foo/"><key xmlns="https://foo/">foo</key><value xmlns="https://foo/"><NoRecurse xmlns="https://foo/">foo</NoRecurse></value></entry></RecursiveMap></RecursiveStruct></OperationRequest>`,
+			a:       `<OperationRequest xmlns="https://foo/"><RecursiveStruct xmlns="https://foo/"><RecursiveMap xmlns="https://foo/"><entry xmlns="https://foo/"><key xmlns="https://foo/">foo</key><value xmlns="https://foo/"><NoRecurse xmlns="https://foo/">foo</NoRecurse></value></entry><entry xmlns="https://foo/"><key xmlns="https://foo/">bar</key><value xmlns="https://foo/"><NoRecurse xmlns="https://foo/">bar</NoRecurse></value></entry></RecursiveMap></RecursiveStruct></OperationRequest>`,
 			asserts: true,
+		},
+		{
+			e:       `<OperationRequest xmlns="https://foo/"><RecursiveStruct xmlns="https://foo/"><RecursiveMap xmlns="https://foo/"><entry xmlns="https://foo/"><key xmlns="https://foo/">foo</key><value xmlns="https://foo/"><NoRecurse xmlns="https://foo/">foo</NoRecurse></value></entry><entry xmlns="https://foo/"><key xmlns="https://foo/">bar</key><value xmlns="https://foo/"><NoRecurse xmlns="https://foo/">bar</NoRecurse></value></entry></RecursiveMap></RecursiveStruct></OperationRequest>`,
+			a:       `<OperationRequest xmlns="https://foo/"><RecursiveStruct xmlns="https://foo/"><RecursiveMap xmlns="https://foo/"><entry xmlns="https://foo/"><key xmlns="https://foo/">baz</key><value xmlns="https://foo/"><NoRecurse xmlns="https://foo/">baz</NoRecurse></value></entry></RecursiveMap></RecursiveStruct></OperationRequest>`,
+			asserts: false,
 		},
 	}
 
 	for i, c := range cases {
-		//		mockT := &testing.T{}
-		if awstesting.AssertXML(t, c.e, c.a, c.container) != c.asserts {
+		mockT := &testing.T{}
+		if awstesting.AssertXML(mockT, c.e, c.a) != c.asserts {
 			t.Error("Assert XML result was not expected.", i)
 		}
 	}

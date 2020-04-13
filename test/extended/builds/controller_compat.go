@@ -6,10 +6,10 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds][Slow] build controller", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build controller", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("build-controllers", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("build-controllers")
 	)
 
 	g.Context("", func() {

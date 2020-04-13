@@ -43,7 +43,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/flowcontrol"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectv1 "github.com/openshift/api/project/v1"
@@ -80,7 +80,7 @@ type CLI struct {
 	stderr             io.Writer
 	verbose            bool
 	withoutNamespace   bool
-	kubeFramework      *e2e.Framework
+	kubeFramework      *framework.Framework
 
 	resourcesToDelete []resourceRef
 }
@@ -91,46 +91,41 @@ type resourceRef struct {
 	Name      string
 }
 
-// NewCLI initialize the upstream E2E framework and set the namespace to match
-// with the project name. Note that this function does not initialize the project
-// role bindings for the namespace.
-func NewCLI(project, adminConfigPath string) *CLI {
-	client := &CLI{}
-
-	// must be registered before the e2e framework aftereach
-	g.AfterEach(client.TeardownProject)
-
-	client.kubeFramework = e2e.NewDefaultFramework(project)
-	client.kubeFramework.SkipNamespaceCreation = true
-	client.username = "admin"
-	client.execPath = "oc"
-	client.adminConfigPath = adminConfigPath
-
-	g.BeforeEach(client.SetupProject)
-
-	return client
+// NewCLI initializes the CLI and Kube framework helpers with the provided
+// namespace. Should be called outside of a Ginkgo .It() function.
+func NewCLI(project string) *CLI {
+	cli := &CLI{
+		kubeFramework: &framework.Framework{
+			BaseName:                 project,
+			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
+			Options: framework.Options{
+				ClientQPS:   20,
+				ClientBurst: 50,
+			},
+		},
+		username:        "admin",
+		execPath:        "oc",
+		adminConfigPath: KubeConfigPath(),
+	}
+	g.AfterEach(cli.TeardownProject)
+	g.AfterEach(cli.kubeFramework.AfterEach)
+	g.BeforeEach(cli.kubeFramework.BeforeEach)
+	g.BeforeEach(cli.SetupProject)
+	return cli
 }
 
-// NewCLIWithoutNamespace initialize the upstream E2E framework without adding a
-// namespace. You may call SetupProject() to create one.
+// NewCLIWithoutNamespace initializes the CLI and Kube framework helpers
+// without a namespace. Should be called outside of a Ginkgo .It()
+// function. Use SetupProject() to create a project for this namespace.
 func NewCLIWithoutNamespace(project string) *CLI {
-	client := &CLI{}
-
-	// must be registered before the e2e framework aftereach
-	g.AfterEach(client.TeardownProject)
-
-	client.kubeFramework = e2e.NewDefaultFramework(project)
-	client.kubeFramework.SkipNamespaceCreation = true
-	client.username = "admin"
-	client.execPath = "oc"
-	client.adminConfigPath = KubeConfigPath()
-
-	return client
+	cli := NewCLI(project)
+	cli.kubeFramework.SkipNamespaceCreation = true
+	return cli
 }
 
 // KubeFramework returns Kubernetes framework which contains helper functions
 // specific for Kubernetes resources
-func (c *CLI) KubeFramework() *e2e.Framework {
+func (c *CLI) KubeFramework() *framework.Framework {
 	return c.kubeFramework
 }
 
@@ -149,6 +144,7 @@ func (c *CLI) AsAdmin() *CLI {
 
 // ChangeUser changes the user used by the current CLI session.
 func (c *CLI) ChangeUser(name string) *CLI {
+	requiresTestStart()
 	clientConfig := c.GetClientConfigForUser(name)
 
 	kubeConfig, err := createConfig(c.Namespace(), clientConfig)
@@ -167,7 +163,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 	}
 
 	c.username = name
-	e2e.Logf("configPath is now %q", c.configPath)
+	framework.Logf("configPath is now %q", c.configPath)
 	return c
 }
 
@@ -190,19 +186,20 @@ func (c CLI) WithoutNamespace() *CLI {
 // SetupProject creates a new project and assign a random user to the project.
 // All resources will be then created within this project.
 func (c *CLI) SetupProject() {
+	requiresTestStart()
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
-	e2e.Logf("The user is now %q", c.Username())
+	framework.Logf("The user is now %q", c.Username())
 
-	e2e.Logf("Creating project %q", newNamespace)
-	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(&projectv1.ProjectRequest{
+	framework.Logf("Creating project %q", newNamespace)
+	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
-	})
+	}, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	c.kubeFramework.AddNamespacesToDelete(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: newNamespace}})
 
-	e2e.Logf("Waiting on permissions in project %q ...", newNamespace)
+	framework.Logf("Waiting on permissions in project %q ...", newNamespace)
 	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
 		ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 			Namespace: newNamespace,
@@ -222,7 +219,7 @@ func (c *CLI) SetupProject() {
 		"builder",
 	}
 	for _, sa := range DefaultServiceAccounts {
-		e2e.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
+		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
 		err = WaitForServiceAccount(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
@@ -232,7 +229,7 @@ func (c *CLI) SetupProject() {
 	defer func() { cancel() }()
 	// Wait for default role bindings for those SAs
 	for _, name := range []string{"system:image-pullers", "system:image-builders", "system:deployers"} {
-		e2e.Logf("Waiting for RoleBinding %q to be provisioned...", name)
+		framework.Logf("Waiting for RoleBinding %q to be provisioned...", name)
 
 		ctx, cancel = watchtools.ContextWithOptionalTimeout(context.Background(), 3*time.Minute)
 
@@ -240,11 +237,11 @@ func (c *CLI) SetupProject() {
 		lw := &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = fieldSelector
-				return c.KubeClient().RbacV1().RoleBindings(newNamespace).List(options)
+				return c.KubeClient().RbacV1().RoleBindings(newNamespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = fieldSelector
-				return c.KubeClient().RbacV1().RoleBindings(newNamespace).Watch(options)
+				return c.KubeClient().RbacV1().RoleBindings(newNamespace).Watch(context.Background(), options)
 			},
 		}
 
@@ -263,25 +260,26 @@ func (c *CLI) SetupProject() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
-	e2e.Logf("Project %q has been fully provisioned.", newNamespace)
+	framework.Logf("Project %q has been fully provisioned.", newNamespace)
 }
 
 // SetupProject creates a new project and assign a random user to the project.
 // All resources will be then created within this project.
 // TODO this should be removed.  It's only used by image tests.
 func (c *CLI) CreateProject() string {
+	requiresTestStart()
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
-	e2e.Logf("Creating project %q", newNamespace)
-	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(&projectv1.ProjectRequest{
+	framework.Logf("Creating project %q", newNamespace)
+	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
-	})
+	}, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	actualNs, err := c.AdminKubeClient().CoreV1().Namespaces().Get(newNamespace, metav1.GetOptions{})
+	actualNs, err := c.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), newNamespace, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	c.kubeFramework.AddNamespacesToDelete(actualNs)
 
-	e2e.Logf("Waiting on permissions in project %q ...", newNamespace)
+	framework.Logf("Waiting on permissions in project %q ...", newNamespace)
 	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
 		ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 			Namespace: newNamespace,
@@ -296,8 +294,8 @@ func (c *CLI) CreateProject() string {
 
 // TeardownProject removes projects created by this test.
 func (c *CLI) TeardownProject() {
-	if len(c.Namespace()) > 0 && g.CurrentGinkgoTestDescription().Failed && e2e.TestContext.DumpLogsOnFailure {
-		e2e.DumpAllNamespaceInfo(c.kubeFramework.ClientSet, c.Namespace())
+	if len(c.Namespace()) > 0 && g.CurrentGinkgoTestDescription().Failed && framework.TestContext.DumpLogsOnFailure {
+		framework.DumpAllNamespaceInfo(c.kubeFramework.ClientSet, c.Namespace())
 	}
 
 	if len(c.configPath) > 0 {
@@ -306,8 +304,8 @@ func (c *CLI) TeardownProject() {
 
 	dynamicClient := c.AdminDynamicClient()
 	for _, resource := range c.resourcesToDelete {
-		err := dynamicClient.Resource(resource.Resource).Namespace(resource.Namespace).Delete(resource.Name, nil)
-		e2e.Logf("Deleted %v, err: %v", resource, err)
+		err := dynamicClient.Resource(resource.Resource).Namespace(resource.Namespace).Delete(context.Background(), resource.Name, metav1.DeleteOptions{})
+		framework.Logf("Deleted %v, err: %v", resource, err)
 	}
 }
 
@@ -464,6 +462,7 @@ func (c *CLI) setOutput(out io.Writer) *CLI {
 // This function also override the default 'stdout' to redirect all output
 // to a buffer and prepare the global flags such as namespace and config path.
 func (c *CLI) Run(commands ...string) *CLI {
+	requiresTestStart()
 	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
 	nc := &CLI{
 		execPath:        c.execPath,
@@ -525,7 +524,7 @@ func (c *CLI) Output() (string, error) {
 	}
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
-	e2e.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
+	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
 	out, err := cmd.CombinedOutput()
 	trimmed := strings.TrimSpace(string(out))
 	switch err.(type) {
@@ -533,8 +532,14 @@ func (c *CLI) Output() (string, error) {
 		c.stdout = bytes.NewBuffer(out)
 		return trimmed, nil
 	case *exec.ExitError:
-		e2e.Logf("Error running %v:\n%s", cmd, trimmed)
-		return trimmed, &ExitError{ExitError: err.(*exec.ExitError), Cmd: c.execPath + " " + strings.Join(c.finalArgs, " "), StdErr: trimmed}
+		// avoid excessively long lines in the error output if a command generates a giant amount of logging
+		const maxLength = 809
+		shortened := trimmed
+		if len(shortened) > maxLength {
+			shortened = shortened[:maxLength/2] + "\n...\n" + shortened[len(shortened)-(maxLength/2):]
+		}
+		framework.Logf("Error running %v:\n%s", cmd, shortened)
+		return trimmed, &ExitError{ExitError: err.(*exec.ExitError), Cmd: c.execPath + " " + strings.Join(c.finalArgs, " "), StdErr: shortened}
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
 		// unreachable code
@@ -549,7 +554,7 @@ func (c *CLI) Outputs() (string, string, error) {
 	}
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
-	e2e.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
+	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
 	//out, err := cmd.CombinedOutput()
 	var stdErrBuff, stdOutBuff bytes.Buffer
 	cmd.Stdout = &stdOutBuff
@@ -566,7 +571,7 @@ func (c *CLI) Outputs() (string, string, error) {
 		c.stderr = bytes.NewBuffer(stdErrBytes)
 		return stdOut, stdErr, nil
 	case *exec.ExitError:
-		e2e.Logf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n", cmd, stdOut, stdErr)
+		framework.Logf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n", cmd, stdOut, stdErr)
 		return stdOut, stdErr, err
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
@@ -589,7 +594,7 @@ func (c *CLI) Background() (*exec.Cmd, *bytes.Buffer, *bytes.Buffer, error) {
 	cmd.Stdout = bufio.NewWriter(&stdout)
 	cmd.Stderr = bufio.NewWriter(&stderr)
 
-	e2e.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
+	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
 
 	err := cmd.Start()
 	return cmd, &stdout, &stderr, err
@@ -610,7 +615,7 @@ func (c *CLI) BackgroundRC() (*exec.Cmd, io.ReadCloser, error) {
 		return nil, nil, err
 	}
 
-	e2e.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
+	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
 
 	err = cmd.Start()
 	return cmd, stdout, err
@@ -622,7 +627,7 @@ func (c *CLI) OutputToFile(filename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	path := filepath.Join(e2e.TestContext.OutputDir, c.Namespace()+"-"+filename)
+	path := filepath.Join(framework.TestContext.OutputDir, c.Namespace()+"-"+filename)
 	return path, ioutil.WriteFile(path, []byte(content), 0644)
 }
 
@@ -641,7 +646,7 @@ func (c *CLI) Execute() error {
 func FatalErr(msg interface{}) {
 	// the path that leads to this being called isn't always clear...
 	fmt.Fprintln(g.GinkgoWriter, string(debug.Stack()))
-	e2e.Failf("%v", msg)
+	framework.Failf("%v", msg)
 }
 
 func (c *CLI) AddExplicitResourceToDelete(resource schema.GroupVersionResource, namespace, name string) {
@@ -653,9 +658,9 @@ func (c *CLI) AddResourceToDelete(resource schema.GroupVersionResource, metadata
 }
 
 func (c *CLI) CreateUser(prefix string) *userv1.User {
-	user, err := c.AdminUserClient().UserV1().Users().Create(&userv1.User{
+	user, err := c.AdminUserClient().UserV1().Users().Create(context.Background(), &userv1.User{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: prefix + c.Namespace()},
-	})
+	}, metav1.CreateOptions{})
 	if err != nil {
 		FatalErr(err)
 	}
@@ -665,16 +670,17 @@ func (c *CLI) CreateUser(prefix string) *userv1.User {
 }
 
 func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
+	ctx := context.Background()
 	userClient := c.AdminUserClient()
 
-	user, err := userClient.UserV1().Users().Get(username, metav1.GetOptions{})
+	user, err := userClient.UserV1().Users().Get(ctx, username, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		FatalErr(err)
 	}
 	if err != nil {
-		user, err = userClient.UserV1().Users().Create(&userv1.User{
+		user, err = userClient.UserV1().Users().Create(ctx, &userv1.User{
 			ObjectMeta: metav1.ObjectMeta{Name: username},
-		})
+		}, metav1.CreateOptions{})
 		if err != nil {
 			FatalErr(err)
 		}
@@ -683,10 +689,10 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 
 	oauthClient := c.AdminOauthClient()
 	oauthClientName := "e2e-client-" + c.Namespace()
-	oauthClientObj, err := oauthClient.OauthV1().OAuthClients().Create(&oauthv1.OAuthClient{
+	oauthClientObj, err := oauthClient.OauthV1().OAuthClients().Create(ctx, &oauthv1.OAuthClient{
 		ObjectMeta:  metav1.ObjectMeta{Name: oauthClientName},
 		GrantMethod: oauthv1.GrantHandlerAuto,
-	})
+	}, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		FatalErr(err)
 	}
@@ -700,14 +706,14 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 	for i := len(accesstoken); i < 32; i++ {
 		accesstoken += "A"
 	}
-	token, err := oauthClient.OauthV1().OAuthAccessTokens().Create(&oauthv1.OAuthAccessToken{
+	token, err := oauthClient.OauthV1().OAuthAccessTokens().Create(ctx, &oauthv1.OAuthAccessToken{
 		ObjectMeta:  metav1.ObjectMeta{Name: accesstoken},
 		ClientName:  oauthClientName,
 		UserName:    username,
 		UserUID:     string(user.UID),
 		Scopes:      []string{"user:full"},
 		RedirectURI: "https://localhost:8443/oauth/token/implicit",
-	})
+	}, metav1.CreateOptions{})
 	if err != nil {
 		FatalErr(err)
 	}
@@ -757,7 +763,7 @@ func (c *CLI) WaitForAccessDenied(review *kubeauthorizationv1.SelfSubjectAccessR
 
 func waitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizationv1.SelfSubjectAccessReview) error {
 	return wait.Poll(time.Second, time.Minute, func() (bool, error) {
-		response, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(review)
+		response, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), review, metav1.CreateOptions{})
 		if err != nil {
 			return false, err
 		}

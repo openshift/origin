@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 
 	g "github.com/onsi/ginkgo"
@@ -15,10 +16,10 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Builds] Multi-stage image builds", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] Multi-stage image builds", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("build-multistage", exutil.KubeConfigPath())
+		oc             = exutil.NewCLI("build-multistage")
 		testDockerfile = `
 FROM scratch as test
 USER 1001
@@ -39,12 +40,12 @@ COPY --from=busybox:latest /bin/ping /test/
 			}
 		})
 
-		g.It("should succeed [Conformance]", func() {
+		g.It("should succeed", func() {
 			g.By("creating a build directly")
 			registryURL, err := eximages.GetDockerRegistryURL(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Create(&buildv1.Build{
+			build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Create(context.Background(), &buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "multi-stage",
 				},
@@ -67,13 +68,13 @@ COPY --from=busybox:latest /bin/ping /test/
 						},
 					},
 				},
-			})
+			}, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			result := exutil.NewBuildResult(oc, build)
 			err = exutil.WaitForBuildResult(oc.AdminBuildClient().BuildV1().Builds(oc.Namespace()), result)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(build.Name+"-build", metav1.GetOptions{})
+			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), build.Name+"-build", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(result.BuildSuccess).To(o.BeTrue(), "Build did not succeed: %#v", result)
 

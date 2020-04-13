@@ -620,3 +620,24 @@ func TestDecodeAliasedUnixTime(t *testing.T) {
 		t.Errorf("expect %v, got %v", expect, actual)
 	}
 }
+
+func TestDecoderFieldByIndex(t *testing.T) {
+	type (
+		Middle struct{ Inner int }
+		Outer  struct{ *Middle }
+	)
+	var outer Outer
+
+	outerType := reflect.TypeOf(outer)
+	outerValue := reflect.ValueOf(&outer)
+	outerFields := unionStructFields(outerType, MarshalOptions{})
+	innerField, _ := outerFields.FieldByName("Inner")
+
+	f := decoderFieldByIndex(outerValue.Elem(), innerField.Index)
+	if outer.Middle == nil {
+		t.Errorf("expected outer.Middle to be non-nil")
+	}
+	if f.Kind() != reflect.Int || f.Int() != int64(outer.Inner) {
+		t.Error("expected f to be an int with value equal to outer.Inner")
+	}
+}

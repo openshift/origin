@@ -16,29 +16,7 @@ import (
 // AbsorbedRadioactiveDose is a measure of absorbed dose of ionizing radiation in grays.
 type AbsorbedRadioactiveDose float64
 
-const (
-	Yottagray AbsorbedRadioactiveDose = 1e24
-	Zettagray AbsorbedRadioactiveDose = 1e21
-	Exagray   AbsorbedRadioactiveDose = 1e18
-	Petagray  AbsorbedRadioactiveDose = 1e15
-	Teragray  AbsorbedRadioactiveDose = 1e12
-	Gigagray  AbsorbedRadioactiveDose = 1e9
-	Megagray  AbsorbedRadioactiveDose = 1e6
-	Kilogray  AbsorbedRadioactiveDose = 1e3
-	Hectogray AbsorbedRadioactiveDose = 1e2
-	Decagray  AbsorbedRadioactiveDose = 1e1
-	Gray      AbsorbedRadioactiveDose = 1.0
-	Decigray  AbsorbedRadioactiveDose = 1e-1
-	Centigray AbsorbedRadioactiveDose = 1e-2
-	Milligray AbsorbedRadioactiveDose = 1e-3
-	Microgray AbsorbedRadioactiveDose = 1e-6
-	Nanogray  AbsorbedRadioactiveDose = 1e-9
-	Picogray  AbsorbedRadioactiveDose = 1e-12
-	Femtogray AbsorbedRadioactiveDose = 1e-15
-	Attogray  AbsorbedRadioactiveDose = 1e-18
-	Zeptogray AbsorbedRadioactiveDose = 1e-21
-	Yoctogray AbsorbedRadioactiveDose = 1e-24
-)
+const Gray AbsorbedRadioactiveDose = 1
 
 // Unit converts the AbsorbedRadioactiveDose to a *Unit
 func (a AbsorbedRadioactiveDose) Unit() *Unit {
