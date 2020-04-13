@@ -44,8 +44,10 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
+	securityv1 "github.com/openshift/api/security/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/library-go/pkg/image/imageutil"
@@ -936,6 +938,32 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 		return false, nil
 	}
 	return wait.Poll(time.Duration(100*time.Millisecond), 3*time.Minute, waitFn)
+}
+
+// WaitForNamespaceSCCAnnotations waits up to 2 minutes for the cluster-policy-controller to add the SCC related
+// annotations to the provided namespace.
+func WaitForNamespaceSCCAnnotations(c projectv1typedclient.ProjectV1Interface, name string) error {
+	waitFn := func() (bool, error) {
+		proj, err := c.Projects().Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			// it is assumed the project was created prior to calling this, so we
+			// do not distinguish not found errors
+			return false, err
+		}
+		if proj.Annotations == nil {
+			return false, nil
+		}
+		for k := range proj.Annotations {
+			// annotations to check based off of
+			// https://github.com/openshift/cluster-policy-controller/blob/master/pkg/security/controller/namespace_scc_allocation_controller.go#L112
+			if k == securityv1.UIDRangeAnnotation {
+				return true, nil
+			}
+		}
+		e2e.Logf("project %s current annotation set: %#v", name, proj.Annotations)
+		return false, nil
+	}
+	return wait.Poll(time.Duration(15*time.Second), 2*time.Minute, waitFn)
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
