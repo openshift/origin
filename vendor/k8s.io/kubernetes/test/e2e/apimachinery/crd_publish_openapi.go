@@ -30,17 +30,20 @@ import (
 	"github.com/onsi/ginkgo"
 	"k8s.io/utils/pointer"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/validation"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8sclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	openapiutil "k8s.io/kube-openapi/pkg/util"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/utils/crd"
 	"sigs.k8s.io/yaml"
 )
@@ -276,10 +279,10 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		if crdFoo.Crd.Spec.Group == crdWaldo.Crd.Spec.Group {
 			framework.Failf("unexpected: CRDs should be of different group %v, %v", crdFoo.Crd.Spec.Group, crdWaldo.Crd.Spec.Group)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crdWaldo, "v1beta1"), schemaWaldo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdWaldo, "v1beta1"), schemaWaldo); err != nil {
 			framework.Failf("%v", err)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crdFoo, "v1"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdFoo, "v1"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
 		if err := cleanupCRD(f, crdFoo); err != nil {
@@ -302,10 +305,10 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		if err != nil {
 			framework.Failf("%v", err)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crdMultiVer, "v3"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdMultiVer, "v3"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crdMultiVer, "v2"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdMultiVer, "v2"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
 		if err := cleanupCRD(f, crdMultiVer); err != nil {
@@ -324,10 +327,10 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		if crdFoo.Crd.Spec.Group != crdWaldo.Crd.Spec.Group {
 			framework.Failf("unexpected: CRDs should be of the same group %v, %v", crdFoo.Crd.Spec.Group, crdWaldo.Crd.Spec.Group)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crdWaldo, "v5"), schemaWaldo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdWaldo, "v5"), schemaWaldo); err != nil {
 			framework.Failf("%v", err)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crdFoo, "v4"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdFoo, "v4"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
 		if err := cleanupCRD(f, crdFoo); err != nil {
@@ -357,10 +360,10 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		if crdFoo.Crd.Spec.Group != crdWaldo.Crd.Spec.Group {
 			framework.Failf("unexpected: CRDs should be of the same group %v, %v", crdFoo.Crd.Spec.Group, crdWaldo.Crd.Spec.Group)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crdWaldo, "v6"), schemaWaldo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdWaldo, "v6"), schemaWaldo); err != nil {
 			framework.Failf("%v", err)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crdFoo, "v6"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdFoo, "v6"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
 		if err := cleanupCRD(f, crdFoo); err != nil {
@@ -384,10 +387,10 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		if err != nil {
 			framework.Failf("%v", err)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crdMultiVer, "v3"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdMultiVer, "v3"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crdMultiVer, "v2"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdMultiVer, "v2"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
 
@@ -402,15 +405,15 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		}
 
 		ginkgo.By("check the new version name is served")
-		if err := waitForDefinition(f.ClientSet, definitionName(crdMultiVer, "v4"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdMultiVer, "v4"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
 		ginkgo.By("check the old version name is removed")
-		if err := waitForDefinitionCleanup(f.ClientSet, definitionName(crdMultiVer, "v3")); err != nil {
+		if err := waitForDefinitionCleanup(f, definitionName(crdMultiVer, "v3")); err != nil {
 			framework.Failf("%v", err)
 		}
 		ginkgo.By("check the other version is not changed")
-		if err := waitForDefinition(f.ClientSet, definitionName(crdMultiVer, "v2"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crdMultiVer, "v2"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
 
@@ -436,10 +439,10 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 			framework.Failf("%v", err)
 		}
 		// just double check. setupCRD() checked this for us already
-		if err := waitForDefinition(f.ClientSet, definitionName(crd, "v6alpha1"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crd, "v6alpha1"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
-		if err := waitForDefinition(f.ClientSet, definitionName(crd, "v5"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crd, "v5"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
 
@@ -455,11 +458,11 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		}
 
 		ginkgo.By("check the unserved version gets removed")
-		if err := waitForDefinitionCleanup(f.ClientSet, definitionName(crd, "v6alpha1")); err != nil {
+		if err := waitForDefinitionCleanup(f, definitionName(crd, "v6alpha1")); err != nil {
 			framework.Failf("%v", err)
 		}
 		ginkgo.By("check the other version is not changed")
-		if err := waitForDefinition(f.ClientSet, definitionName(crd, "v5"), schemaFoo); err != nil {
+		if err := waitForDefinition(f, definitionName(crd, "v5"), schemaFoo); err != nil {
 			framework.Failf("%v", err)
 		}
 
@@ -522,7 +525,7 @@ func setupCRDAndVerifySchema(f *framework.Framework, schema, expect []byte, grou
 	}
 
 	for _, v := range crd.Crd.Spec.Versions {
-		if err := waitForDefinition(f.ClientSet, definitionName(crd, v.Name), expect); err != nil {
+		if err := waitForDefinition(f, definitionName(crd, v.Name), expect); err != nil {
 			return nil, fmt.Errorf("%v", err)
 		}
 	}
@@ -533,39 +536,36 @@ func cleanupCRD(f *framework.Framework, crd *crd.TestCrd) error {
 	crd.CleanUp()
 	for _, v := range crd.Crd.Spec.Versions {
 		name := definitionName(crd, v.Name)
-		if err := waitForDefinitionCleanup(f.ClientSet, name); err != nil {
+		if err := waitForDefinitionCleanup(f, name); err != nil {
 			return fmt.Errorf("%v", err)
 		}
 	}
 	return nil
 }
 
-const waitSuccessThreshold = 10
-
-// mustSucceedMultipleTimes calls f multiple times on success and only returns true if all calls are successful.
-// This is necessary to avoid flaking tests where one call might hit a good apiserver while in HA other apiservers
-// might be lagging behind. Calling f multiple times reduces the chance exponentially.
-func mustSucceedMultipleTimes(n int, f func() (bool, error)) func() (bool, error) {
-	return func() (bool, error) {
-		for i := 0; i < n; i++ {
-			ok, err := f()
-			if err != nil || !ok {
-				return ok, err
-			}
-		}
-		return true, nil
-	}
-}
-
-// waitForDefinition waits for given definition showing up in swagger with given schema.
+// waitForDefinition waits for given definition showing up in swagger with given schema for all API Servers.
 // If schema is nil, only the existence of the given name is checked.
-func waitForDefinition(c k8sclientset.Interface, name string, schema []byte) error {
+func waitForDefinition(f *framework.Framework, name string, schema []byte) error {
+	apiServers, err := getAllAPIServersEndpoint(f)
+	if err != nil {
+		return err
+	}
+	framework.Logf("waiting for all %d servers to observe the same OpenAPI spec", len(apiServers))
+	err = createAndWaitForPodCompletion(f, waitForCRDDefinitionInAllAPIServersPod(name, apiServers))
+	if err != nil {
+		return err
+	}
+
+	if schema == nil {
+		return nil
+	}
+
 	expect := spec.Schema{}
 	if err := convertJSONSchemaProps(schema, &expect); err != nil {
 		return err
 	}
 
-	err := waitForOpenAPISchema(c, func(spec *spec.Swagger) (bool, string) {
+	err = verifyOpenAPISchema(f.ClientSet, func(spec *spec.Swagger) (bool, string) {
 		d, ok := spec.SwaggerProps.Definitions[name]
 		if !ok {
 			return false, fmt.Sprintf("spec.SwaggerProps.Definitions[\"%s\"] not found", name)
@@ -586,58 +586,42 @@ func waitForDefinition(c k8sclientset.Interface, name string, schema []byte) err
 }
 
 // waitForDefinitionCleanup waits for given definition to be removed from swagger
-func waitForDefinitionCleanup(c k8sclientset.Interface, name string) error {
-	err := waitForOpenAPISchema(c, func(spec *spec.Swagger) (bool, string) {
-		if _, ok := spec.SwaggerProps.Definitions[name]; ok {
-			return false, fmt.Sprintf("spec.SwaggerProps.Definitions[\"%s\"] still exists", name)
-		}
-		return true, ""
-	})
+func waitForDefinitionCleanup(f *framework.Framework, name string) error {
+	apiServers, err := getAllAPIServersEndpoint(f)
 	if err != nil {
-		return fmt.Errorf("failed to wait for definition %q not to be served anymore: %v", name, err)
+		return err
 	}
-	return nil
+	framework.Logf("waiting for all %d servers to observe the same OpenAPI spec (removal of the key)", len(apiServers))
+	return createAndWaitForPodCompletion(f, waitForCRDDefinitionRemovalInAllAPIServersPod(name, apiServers))
 }
 
-func waitForOpenAPISchema(c k8sclientset.Interface, pred func(*spec.Swagger) (bool, string)) error {
+func verifyOpenAPISchema(c k8sclientset.Interface, pred func(*spec.Swagger) (bool, string)) error {
 	client := c.Discovery().RESTClient().(*rest.RESTClient).Client
 	url := c.Discovery().RESTClient().Get().AbsPath("openapi", "v2").URL()
 	lastMsg := ""
-	etag := ""
-	var etagSpec *spec.Swagger
-	if err := wait.Poll(500*time.Millisecond, 60*time.Second, mustSucceedMultipleTimes(waitSuccessThreshold, func() (bool, error) {
-		// download spec with etag support
+	if err := wait.Poll(500*time.Millisecond, 1*time.Second, func() (bool, error) {
 		spec := &spec.Swagger{}
 		req, err := http.NewRequest("GET", url.String(), nil)
 		if err != nil {
 			return false, err
-		}
-		req.Close = true // enforce a new connection to hit different HA API servers
-		if len(etag) > 0 {
-			req.Header.Set("If-None-Match", fmt.Sprintf(`"%s"`, etag))
 		}
 		resp, err := client.Do(req)
 		if err != nil {
 			return false, err
 		}
 		defer resp.Body.Close()
-		if resp.StatusCode == http.StatusNotModified {
-			spec = etagSpec
-		} else if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode != http.StatusOK {
 			return false, fmt.Errorf("unexpected response: %d", resp.StatusCode)
 		} else if bs, err := ioutil.ReadAll(resp.Body); err != nil {
 			return false, err
 		} else if err := json.Unmarshal(bs, spec); err != nil {
 			return false, err
-		} else {
-			etag = strings.Trim(resp.Header.Get("ETag"), `"`)
-			etagSpec = spec
 		}
 
 		var ok bool
 		ok, lastMsg = pred(spec)
 		return ok, nil
-	})); err != nil {
+	}); err != nil {
 		return fmt.Errorf("failed to wait for OpenAPI spec validating condition: %v; lastMsg: %s", err, lastMsg)
 	}
 	return nil
@@ -792,3 +776,187 @@ properties:
         type: array
         items:
           type: object`)
+
+func waitForCRDDefinitionInAllAPIServersPod(definitionName string, apiServers []string) *v1.Pod {
+	script := `
+       echo "$(date):installing dependencies"
+       apk add curl jq
+       TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+       KEY="${DEFINITION_KEY}"
+       SEEN=0
+       PREV_HTTP_BODY=""
+       PREV_ETAG=""
+
+       while [ ${SEEN} -lt ${SERVERS_LEN} ]
+       do
+         for server in ${SERVERS}
+         do
+           URL="https://$server/openapi/v2"
+           echo "$(date):downloading the OpenAPI spec from ${URL}, prev_etag=${PREV_ETAG}, seen=${SEEN}"
+           HTTP_RESPONSE=$(curl -k -s -w "HTTPSTATUS:%{http_code}" -H "If-None-Match:\"${PREV_ETAG}\"" -H "Authorization: Bearer $TOKEN" --dump-header rsp-header.json ${URL})
+           HTTP_STATUS=$(echo $HTTP_RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+           HTTP_BODY=$(echo $HTTP_RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
+           ETAG=$(cat rsp-header.json | grep etag: | sed -e 's/etag://' | sed -e 's/^ //' | tr -d '\r\n' | tr -d '"')
+           echo "$(date):parsing the response"
+           if [ $HTTP_STATUS -eq 304 ]; then
+             echo "$(date):StatusNotModified returned, rewriting the previous body and etag"
+             HTTP_BODY=${PREV_HTTP_BODY}
+             ETAG=${PREV_ETAG}
+           fi
+           echo ${HTTP_BODY} | jq -e ${KEY} > /dev/null
+           if [ $? -eq 0 ]; then
+             echo "$(date)found the key in the response"
+             PREV_HTTP_BODY=${HTTP_BODY}
+             PREV_ETAG=${ETAG}
+             SEEN=$(( SEEN + 1 ))
+           else
+            echo "$(date):haven't found the key=${KEY}, resetting the counter and trying one more time"
+            PREV_HTTP_BODY=""
+            PREV_ETAG=""
+            SEEN=0
+           fi
+         done
+       done
+`
+
+	r := strings.NewReplacer(
+		"${SERVERS_LEN}", fmt.Sprintf("%d", len(apiServers)),
+		"${SERVERS}", apiServersToString(apiServers),
+		"${DEFINITION_KEY}", fmt.Sprintf(".definitions.\\\"%s\\\"", definitionName),
+	)
+	script = r.Replace(script)
+
+	name := "wait-for-crd-definition"
+	return &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name + "-" + string(uuid.NewUUID()),
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:    name,
+					Image:   "alpine",
+					Command: []string{"/bin/sh", "-c"},
+					Args:    []string{script},
+				},
+			},
+			RestartPolicy: v1.RestartPolicyNever,
+		},
+	}
+}
+
+func waitForCRDDefinitionRemovalInAllAPIServersPod(definitionName string, apiServers []string) *v1.Pod {
+	script := `
+       apk add curl jq
+       TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+       KEY="${DEFINITION_KEY}"
+       NOT_SEEN=0
+
+       while [ ${NOT_SEEN} -lt ${SERVERS_LEN} ]
+       do
+         for server in ${SERVERS}
+         do
+           URL="https://$server/openapi/v2"
+           echo "$(date):downloading the OpenAPI spec from ${URL}, not-seen=${NOT_SEEN}"
+           curl -k -s -H "Authorization: Bearer $TOKEN" --dump-header rsp-header.json ${URL} | jq -e ${KEY} > /dev/null
+           if [ $? -eq 1 ]; then
+             echo "$(date):haven't found the key in the response"
+             NOT_SEEN=$(( NOT_SEEN + 1 ))
+           else
+            echo "$(date):seen the key=${KEY}, resetting the counter and trying one more time"
+            SEEN=0
+           fi
+         done
+       done
+`
+
+	r := strings.NewReplacer(
+		"${SERVERS_LEN}", fmt.Sprintf("%d", len(apiServers)),
+		"${SERVERS}", apiServersToString(apiServers),
+		"${DEFINITION_KEY}", fmt.Sprintf(".definitions.\\\"%s\\\"", definitionName),
+	)
+	script = r.Replace(script)
+
+	name := "wait-for-crd-definition-removal"
+	return &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name + "-" + string(uuid.NewUUID()),
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:    name,
+					Image:   "alpine",
+					Command: []string{"/bin/sh", "-c"},
+					Args:    []string{script},
+				},
+			},
+			RestartPolicy: v1.RestartPolicyNever,
+		},
+	}
+}
+
+func createAndWaitForPodCompletion(f *framework.Framework, pod *v1.Pod) error {
+	_, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.Background(), pod, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+
+	err = e2epod.WaitForPodCondition(f.ClientSet, f.Namespace.Name, pod.Name, "terminated", 2*time.Minute, func(pod *v1.Pod) (bool, error) {
+		statuses := pod.Status.ContainerStatuses
+		if len(statuses) == 0 || statuses[0].State.Terminated == nil {
+			return false, nil
+		}
+		if statuses[0].State.Terminated.ExitCode == 0 {
+			return true, nil
+		}
+		return false, nil
+	})
+	if err != nil {
+		framework.Logf("failed waiting for the pod's condition (last err = %v), polling logs (%s/%s in %s namespace)", err, pod.Name, pod.Spec.Containers[0].Name, f.Namespace.Name)
+		logs, err := e2epod.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, pod.Spec.Containers[0].Name)
+		if err != nil {
+			framework.Logf("error pulling logs: %v", err)
+			return err
+		}
+		framework.Logf("pooled logs:\n%v", logs)
+	}
+	return err
+}
+
+func getAllAPIServersEndpoint(f *framework.Framework) ([]string, error) {
+	eps, err := f.ClientSet.CoreV1().Endpoints(metav1.NamespaceDefault).Get(context.Background(), "kubernetes", metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	apiServers := []string{}
+	for _, s := range eps.Subsets {
+		var port int32
+		for _, p := range s.Ports {
+			if p.Name == "https" {
+				port = p.Port
+				break
+			}
+		}
+		if port == 0 {
+			continue
+		}
+		for _, ep := range s.Addresses {
+			apiServers = append(apiServers, fmt.Sprintf("%s:%d", ep.IP, port))
+		}
+		break
+	}
+	if len(apiServers) == 0 {
+		return nil, fmt.Errorf("didn't create api servers list from the default (\"kubernetes\") endpoint")
+	}
+	return apiServers, nil
+}
+
+func apiServersToString(apiServers []string) string {
+	ret := ""
+	for _, server := range apiServers {
+		ret = fmt.Sprintf("%s %s", ret, server)
+	}
+	return ret
+}
