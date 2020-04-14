@@ -668,7 +668,7 @@ func dropDefaults(s *spec.Schema) {
 }
 
 func verifyKubectlExplain(ns, name, pattern string) error {
-	result, err := framework.RunKubectl(ns, "explain", name)
+	result, err := framework.RunKubectl(ns, "--v=8", "explain", name)
 	if err != nil {
 		return fmt.Errorf("failed to explain %s: %v", name, err)
 	}
