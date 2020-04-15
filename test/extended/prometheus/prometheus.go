@@ -256,7 +256,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			// job="dns-default" - https://bugzilla.redhat.com/show_bug.cgi?id=1809197
 			// job="crio" - https://issues.redhat.com/browse/MON-1034 + https://issues.redhat.com/browse/OCPNODE-321
 			// job="sdn" - https://bugzilla.redhat.com/show_bug.cgi?id=1809205
-			// job="multus-admission-controller-monitor-service" - https://bugzilla.redhat.com/show_bug.cgi?id=1809204
 			// job="ovnkube-master" - https://issues.redhat.com/browse/SDN-912
 			// job="ovnkube-node" - https://issues.redhat.com/browse/SDN-912
 			// Exclude list should be reduced to 0
@@ -266,9 +265,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				"dns-default":              true,
 				"crio":                     true,
 				"sdn":                      true,
-				"multus-admission-controller-monitor-service": true,
-				"ovnkube-master": true,
-				"ovnkube-node":   true,
+				"ovnkube-master":           true,
+				"ovnkube-node":             true,
 			}
 
 			pattern := regexp.MustCompile("^https://.*")
