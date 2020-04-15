@@ -103,10 +103,10 @@ import:
 
 # pin for etcd
 - package: google.golang.org/grpc
-  version: v1.23.0
+  version: v1.23.1
 
 - package: github.com/coreos/etcd
-  version: v3.3.17
+  version: v3.3.18
 - package: github.com/coreos/bbolt
   version: v1.3.3
 - package: github.com/ugorji/go

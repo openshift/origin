@@ -1,5 +1,5 @@
-hash: a21b2509f15df63bba6625559d64469781fec3b4554c062e9a7150bb227366ca
-updated: 2020-03-22T01:31:42.962716-04:00
+hash: 88f0c1f1345e816a847f6ea1d6e362755a4b4299a8730770602813dee9fcf3a5
+updated: 2020-04-14T21:27:24.491498045-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -142,7 +142,7 @@ imports:
 - name: github.com/coreos/bbolt
   version: a0458a2b35708eef59eb5f620ceb3cd1c01a824d
 - name: github.com/coreos/etcd
-  version: 6d8052314b9e01447d1bb2030bd762e0baf2d433
+  version: 3c8740a7932f5838051590315d027fc1306ae8ea
 - name: github.com/coreos/go-oidc
   version: 2be1c5b8a260760503f66dc0996e102b683b3ac3
 - name: github.com/coreos/go-semver
@@ -1357,7 +1357,7 @@ imports:
   - googleapis/rpc/status
   - protobuf/field_mask
 - name: google.golang.org/grpc
-  version: 6eaf6f47437a6b4e2153a190160ef39a92c7eceb
+  version: 39e8a7b072a67ca2a75f57fa2e0d50995f5b22f6
   subpackages:
   - balancer
   - balancer/base
