@@ -175,7 +175,7 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 		}
 	}
 	if err == wait.ErrWaitTimeout {
-		return "", fmt.Errorf("Timed out waiting for internal registry hostname to be published")
+		return "", fmt.Errorf("Timed out waiting for Openshift Controller Manager to be rolled out with updated internal registry hostname")
 	}
 	if err != nil {
 		return "", err
