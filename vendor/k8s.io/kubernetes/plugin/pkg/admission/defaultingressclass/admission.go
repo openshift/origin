@@ -102,13 +102,16 @@ func (a *classDefaulterPlugin) ValidateInitialization() error {
 // a class.
 func (a *classDefaulterPlugin) Admit(ctx context.Context, attr admission.Attributes, o admission.ObjectInterfaces) error {
 	if !a.defaultIngressClassEnabled {
+		klog.V(0).Infof("DEBUG(classDefaulterPlugin): ingressclass defaulting disabled")
 		return nil
 	}
 	if attr.GetResource().GroupResource() != networkingv1beta1.Resource("ingresses") {
+		klog.V(0).Infof("DEBUG(classDefaulterPlugin): skipping ignored resource with GroupResource=%s", attr.GetResource().GroupResource())
 		return nil
 	}
 
 	if len(attr.GetSubresource()) != 0 {
+		klog.V(0).Infof("DEBUG(classDefaulterPlugin): skipping ignored resource with Subresource=%s", attr.GetSubresource())
 		return nil
 	}
 
@@ -121,11 +124,13 @@ func (a *classDefaulterPlugin) Admit(ctx context.Context, attr admission.Attribu
 
 	// IngressClassName field has been set, no need to set a default value.
 	if ingress.Spec.IngressClassName != nil {
+		klog.V(0).Infof("DEBUG(classDefaulterPlugin): skipping ingress resource with explicit class %#v", ingress)
 		return nil
 	}
 
 	// Ingress class annotation has been set, no need to set a default value.
 	if _, ok := ingress.Annotations[networkingv1beta1.AnnotationIngressClass]; ok {
+		klog.V(0).Infof("DEBUG(classDefaulterPlugin): skipping ingress resource with explicit class annotation %#v", ingress)
 		return nil
 	}
 
@@ -138,6 +143,7 @@ func (a *classDefaulterPlugin) Admit(ctx context.Context, attr admission.Attribu
 
 	// No default class specified, no need to set a default value.
 	if defaultClass == nil {
+		klog.V(0).Infof("DEBUG(classDefaulterPlugin): skipping ingress resource because no default class provided by the cluster %#v", ingress)
 		return nil
 	}
 
@@ -161,6 +167,7 @@ func getDefaultClass(lister networkingv1beta1listers.IngressClassLister) (*netwo
 	}
 
 	if len(defaultClasses) == 0 {
+		klog.V(0).Infof("DEBUG(classDefaulterPlugin): No default IngressClass resources defined in list: %#v", list)
 		return nil, nil
 	}
 
