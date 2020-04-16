@@ -15,8 +15,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
@@ -25,6 +28,10 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 	oc := exutil.NewCLI("etcd-storage-path").AsAdmin()
 
 	_ = g.It("should be stored at the correct location and version for all resources [Serial]", func() {
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			e2eskipper.Skipf("IBM ROKS clusters run etcd outside of the cluster. Etcd cannot be accessed directly from within the cluster")
+		}
+
 		ctx, cancel := context.WithCancel(context.Background())
 		cmd := exec.CommandContext(ctx, "oc", "port-forward", "service/etcd", ":2379", "-n", "openshift-etcd")
 

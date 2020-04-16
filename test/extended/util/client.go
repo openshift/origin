@@ -195,6 +195,9 @@ func (c *CLI) SetupProject() {
 	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 	}, metav1.CreateOptions{})
+	if apierrors.IsForbidden(err) {
+		err = c.setupSelfProvisionerRoleBinding()
+	}
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	c.kubeFramework.AddNamespacesToDelete(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: newNamespace}})
@@ -265,6 +268,29 @@ func (c *CLI) SetupProject() {
 	framework.Logf("Project %q has been fully provisioned.", newNamespace)
 }
 
+func (c *CLI) setupSelfProvisionerRoleBinding() error {
+	framework.Logf("Creating role binding to allow self provisioning of projects")
+	rb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "e2e-self-provisioners",
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.SchemeGroupVersion.Group,
+			Kind:     "ClusterRole",
+			Name:     "self-provisioner",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				APIGroup: rbacv1.SchemeGroupVersion.Group,
+				Kind:     "Group",
+				Name:     "system:authenticated:oauth",
+			},
+		},
+	}
+	_, err := c.AdminKubeClient().RbacV1().ClusterRoleBindings().Create(context.Background(), rb, metav1.CreateOptions{})
+	return err
+}
+
 // SetupProject creates a new project and assign a random user to the project.
 // All resources will be then created within this project.
 // TODO this should be removed.  It's only used by image tests.
@@ -275,6 +301,9 @@ func (c *CLI) CreateProject() string {
 	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 	}, metav1.CreateOptions{})
+	if apierrors.IsForbidden(err) {
+		err = c.setupSelfProvisionerRoleBinding()
+	}
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	actualNs, err := c.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), newNamespace, metav1.GetOptions{})

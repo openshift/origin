@@ -17,6 +17,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 const (
@@ -48,6 +49,13 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 
 	g.Describe("when installed on the cluster", func() {
 		g.It("should start and expose a secured proxy and verify build metrics", func() {
+			// https://issues.redhat.com/browse/CO-895
+			if e2e.TestContext.Provider == ibmcloud.ProviderName {
+				e2eskipper.Skipf("Prometheus in IBM ROKS clusters does not collect metrics from the OpenShift controller manager because it lives outside of the cluster. " +
+					"The openshift_build_total metric expected by this test is reported by the OpenShift controller manager. " +
+					"Remove this skip when https://issues.redhat.com/browse/CO-895 is implemented.")
+			}
+
 			oc.SetupProject()
 			ns := oc.Namespace()
 			appTemplate := exutil.FixturePath("testdata", "builds", "build-pruning", "successful-build-config.yaml")
