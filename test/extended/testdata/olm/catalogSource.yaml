@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: CatalogSource
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    sourceType: grpc
+    image: "${IMAGE}"
+    displayName: Test Operators
+    publisher: Test
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: IMAGE
