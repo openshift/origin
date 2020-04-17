@@ -71,7 +71,7 @@ func ClientNewPayload(t testpb.PayloadType, size int) (*testpb.Payload, error) {
 func DoEmptyUnaryCall(tc testpb.TestServiceClient, args ...grpc.CallOption) error {
 	reply, err := tc.EmptyCall(context.Background(), &testpb.Empty{}, args...)
 	if err != nil {
-		return fmt.Errorf("/TestService/EmptyCall RPC failed: ", err)
+		return fmt.Errorf("/TestService/EmptyCall RPC failed: %v", err)
 	}
 	if !proto.Equal(&testpb.Empty{}, reply) {
 		return fmt.Errorf("/TestService/EmptyCall receives %v, want %v", reply, testpb.Empty{})
@@ -92,7 +92,7 @@ func DoLargeUnaryCall(tc testpb.TestServiceClient, args ...grpc.CallOption) erro
 	}
 	reply, err := tc.UnaryCall(context.Background(), req, args...)
 	if err != nil {
-		return fmt.Errorf("/TestService/UnaryCall RPC failed: ", err)
+		return fmt.Errorf("/TestService/UnaryCall RPC failed: %v", err)
 	}
 	t := reply.GetPayload().GetType()
 	s := len(reply.GetPayload().GetBody())
@@ -358,7 +358,7 @@ func DoCustomMetadata(tc testpb.TestServiceClient, args ...grpc.CallOption) erro
 		args...,
 	)
 	if err != nil {
-		return fmt.Errorf("/TestService/UnaryCall RPC failed: ", err)
+		return fmt.Errorf("/TestService/UnaryCall RPC failed: %v", err)
 	}
 	t := reply.GetPayload().GetType()
 	s := len(reply.GetPayload().GetBody())
