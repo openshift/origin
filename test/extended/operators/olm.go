@@ -309,7 +309,7 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 
 		e2e.Logf("nameIP")
 		err = wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
-			e2e.Logf("nameIP***************")
+
 			nameIP, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("ip", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].metadata.name}").Output()
 			o.Expect(err1).NotTo(o.HaveOccurred())
 			o.Expect(nameIP).NotTo(o.Equal(""))
@@ -335,10 +335,22 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		o.Expect(err2).NotTo(o.HaveOccurred())
 		o.Expect(patchIP).To(o.ContainSubstring("patched"))
 
-		stateSub, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("sub", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].status.state}").Output()
-		e2e.Logf(stateSub)
-		o.Expect(err1).NotTo(o.HaveOccurred())
-		o.Expect(stateSub).To(o.Equal("AtLatestKnown"))
+		time.Sleep(5000 * time.Millisecond)
+
+		err = wait.Poll(300*time.Second, operatorWait, func() (bool, error) {
+			stateSub, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("sub", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].status.state}").Output()
+			e2e.Logf(stateSub)
+			o.Expect(err1).NotTo(o.HaveOccurred())
+			o.Expect(stateSub).To(o.Equal("AtLatestKnown"))
+			if stateSub == "AtLatestKnown" {
+				e2e.Logf("AtLatestKnown FOUND")
+				return true, nil
+			} else {
+				e2e.Failf("AtLatestKnown NOT-FOUND")
+				return false, nil
+			}
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		deteleIP, err1 := oc.AsAdmin().WithoutNamespace().Run("delete").Args("ip", nameIP, "-n", oc.Namespace()).Output()
 		e2e.Logf(deteleIP)
