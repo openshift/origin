@@ -9,9 +9,11 @@ require (
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-openapi/spec v0.19.3 // indirect
+	github.com/google/btree v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
+	google.golang.org/appengine v1.5.0 // indirect
 	k8s.io/cli-runtime v0.0.0
 	k8s.io/client-go v0.18.0-beta.2
 )
