@@ -416,6 +416,7 @@
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
 // test/extended/testdata/oauthserver/oauth-sa.yaml
+// test/extended/testdata/olm/catalogSource.yaml
 // test/extended/testdata/olm/etcd-subscription-manual.yaml
 // test/extended/testdata/olm/etcd-subscription.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
@@ -53883,6 +53884,42 @@ func testExtendedTestdataOauthserverOauthSaYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmCatalogsourceYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: CatalogSource
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    sourceType: grpc
+    image: "${IMAGE}"
+    displayName: Test Operators
+    publisher: Test
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: IMAGE
+`)
+
+func testExtendedTestdataOlmCatalogsourceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCatalogsourceYaml, nil
+}
+
+func testExtendedTestdataOlmCatalogsourceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCatalogsourceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/catalogSource.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOlmEtcdSubscriptionManualYaml = []byte(`apiVersion: v1
 kind: Template
 metadata:
@@ -58828,6 +58865,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-network.yaml": testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml": testExtendedTestdataOauthserverOauthPodYaml,
 	"test/extended/testdata/oauthserver/oauth-sa.yaml": testExtendedTestdataOauthserverOauthSaYaml,
+	"test/extended/testdata/olm/catalogSource.yaml": testExtendedTestdataOlmCatalogsourceYaml,
 	"test/extended/testdata/olm/etcd-subscription-manual.yaml": testExtendedTestdataOlmEtcdSubscriptionManualYaml,
 	"test/extended/testdata/olm/etcd-subscription.yaml": testExtendedTestdataOlmEtcdSubscriptionYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml": testExtendedTestdataOlmOperatorgroupYaml,
@@ -59559,6 +59597,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"oauth-sa.yaml": &bintree{testExtendedTestdataOauthserverOauthSaYaml, map[string]*bintree{}},
 				}},
 				"olm": &bintree{nil, map[string]*bintree{
+					"catalogSource.yaml": &bintree{testExtendedTestdataOlmCatalogsourceYaml, map[string]*bintree{}},
 					"etcd-subscription-manual.yaml": &bintree{testExtendedTestdataOlmEtcdSubscriptionManualYaml, map[string]*bintree{}},
 					"etcd-subscription.yaml": &bintree{testExtendedTestdataOlmEtcdSubscriptionYaml, map[string]*bintree{}},
 					"operatorgroup.yaml": &bintree{testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},

@@ -163,6 +163,7 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
 		etcdSub             = filepath.Join(buildPruningBaseDir, "etcd-subscription.yaml")
 		etcdSubManual       = filepath.Join(buildPruningBaseDir, "etcd-subscription-manual.yaml")
+		catSource           = filepath.Join(buildPruningBaseDir, "catalogSource.yaml")
 	)
 
 	files := []string{etcdSub}
@@ -240,7 +241,7 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		e2e.Logf(fmt.Sprintf(oc.Namespace()))
 		e2e.Logf(fmt.Sprintf("NAMESPACE=%s", oc.Namespace()))
 
-		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", etcdSubManual, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "INSTALLPLAN=Manual", "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
+		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", etcdSubManual, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "INSTALLPLAN=Manual", "SOURCENAME=test-operator", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -271,6 +272,84 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		} else {
 			e2e.Failf("No packages for evaluating if package namespace is not NULL")
 		}
+	})
+
+	// OCP-24587 - Add InstallPlan conditions to Subscription status
+	//OLM-Medium-OCP-24587-Add InstallPlan conditions to Subscription status
+	// author: scolange@redhat.com
+	g.It("OLM-Medium-OCP-24587-Add InstallPlan conditions to Subscription status", func() {
+
+		e2e.Logf("catSourceConfigFile")
+		catSourceConfigFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", catSource, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "IMAGE=quay.io/dongboyan77/operator-registry:latest").OutputToFile("config.json")
+		//catSourceConfigFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", catSource, "-p", "NAME=test-operator", "NAMESPACE=openshift-marketplace", "IMAGE=quay.io/dongboyan77/operator-registry:latest").OutputToFile("config.json")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", catSourceConfigFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		e2e.Logf("configFile")
+		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", etcdSubManual, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "INSTALLPLAN=Manual", "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		e2e.Logf("inst")
+		err = wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
+			inst, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("sub", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].spec.installPlanApproval}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(inst).To(o.Equal("Manual"))
+			if inst == "Manual" {
+				e2e.Logf("Install Approval Manual")
+				return true, nil
+			} else {
+				e2e.Failf("FAIL - Install Approval Manual ")
+				return false, nil
+			}
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		e2e.Logf("nameIP")
+		err = wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
+			e2e.Logf("nameIP***************")
+			nameIP, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("ip", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].metadata.name}").Output()
+			o.Expect(err1).NotTo(o.HaveOccurred())
+			o.Expect(nameIP).NotTo(o.Equal(""))
+			if nameIP != "" {
+				e2e.Logf("Install Plan Name FOUND")
+				return true, nil
+			} else {
+				e2e.Failf("FAIL - Install Plan Name NOT-FOUND")
+				return false, nil
+			}
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		e2e.Logf("instSub")
+		instSub, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("sub", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].status.conditions[1].type}").Output()
+		e2e.Logf(instSub)
+		o.Expect(err1).NotTo(o.HaveOccurred())
+		o.Expect(instSub).To(o.Equal("InstallPlanPending"))
+
+		nameIP, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("ip", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].metadata.name}").Output()
+		patchIP, err2 := oc.AsAdmin().WithoutNamespace().Run("patch").Args("ip", nameIP, "-n", oc.Namespace(), "--type=merge", "-p", "{\"spec\":{\"approved\": true}}").Output()
+		e2e.Logf(patchIP)
+		o.Expect(err2).NotTo(o.HaveOccurred())
+		o.Expect(patchIP).To(o.ContainSubstring("patched"))
+
+		stateSub, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("sub", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].status.state}").Output()
+		e2e.Logf(stateSub)
+		o.Expect(err1).NotTo(o.HaveOccurred())
+		o.Expect(stateSub).To(o.Equal("AtLatestKnown"))
+
+		deteleIP, err1 := oc.AsAdmin().WithoutNamespace().Run("delete").Args("ip", nameIP, "-n", oc.Namespace()).Output()
+		e2e.Logf(deteleIP)
+		o.Expect(err1).NotTo(o.HaveOccurred())
+		o.Expect(deteleIP).To(o.ContainSubstring("deleted"))
+
+		instSub1, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("sub", "-n", oc.Namespace(), "-o", "jsonpath={.items[*].status.conditions[1].type}").Output()
+		e2e.Logf(instSub1)
+		o.Expect(err1).NotTo(o.HaveOccurred())
+		o.Expect(instSub1).To(o.Equal("InstallPlanMissing"))
+
 	})
 
 })
