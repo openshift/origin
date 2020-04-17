@@ -17,9 +17,12 @@ limitations under the License.
 package image
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
@@ -112,7 +115,7 @@ var (
 	sampleRegistry  = registry.SampleRegistry
 
 	// Preconfigured image configs
-	imageConfigs = initImageConfigs()
+	imageConfigs, originalImageConfigs = initImageConfigs()
 )
 
 const (
@@ -205,7 +208,7 @@ const (
 	VolumeRBDServer
 )
 
-func initImageConfigs() map[int]Config {
+func initImageConfigs() (map[int]Config, map[int]Config) {
 	configs := map[int]Config{}
 	configs[Agnhost] = Config{e2eRegistry, "agnhost", "2.8"}
 	configs[AgnhostPrivate] = Config{PrivateRegistry, "agnhost", "2.6"}
@@ -251,7 +254,61 @@ func initImageConfigs() map[int]Config {
 	configs[VolumeISCSIServer] = Config{e2eRegistry, "volume/iscsi", "2.0"}
 	configs[VolumeGlusterServer] = Config{e2eRegistry, "volume/gluster", "1.0"}
 	configs[VolumeRBDServer] = Config{e2eRegistry, "volume/rbd", "1.0.1"}
+
+	// if requested, map all the SHAs into a known format based on the input
+	originalImageConfigs := configs
+	if repo := os.Getenv("KUBE_TEST_REPO"); len(repo) > 0 {
+		configs = GetMappedImageConfigs(originalImageConfigs, repo)
+	}
+
+	return configs, originalImageConfigs
+}
+
+// GetMappedImageConfigs returns the images if they were mapped to the provided
+// image repository.
+func GetMappedImageConfigs(originalImageConfigs map[int]Config, repo string) map[int]Config {
+	configs := make(map[int]Config)
+	reCharSafe := regexp.MustCompile(`[^\w]`)
+	reDashes := regexp.MustCompile(`-+`)
+	h := sha256.New()
+	parts := strings.SplitN(repo, "/", 2)
+	registry, destination := parts[0], parts[1]
+	for i, config := range originalImageConfigs {
+		switch i {
+		case InvalidRegistryImage, AuthenticatedAlpine,
+			AuthenticatedWindowsNanoServer, AgnhostPrivate:
+			// These images are special and can't be run out of the cloud - some because they
+			// are authenticated, and others because they are not real images. Tests that depend
+			// on these images can't be run without access to the public internet.
+			configs[i] = config
+			continue
+		}
+
+		// Build a new tag with a the index, a hash of the image spec (to be unique) and
+		// shorten and make the pull spec "safe" so it will fit in the tag
+		pullSpec := config.GetE2EImage()
+		h.Reset()
+		h.Write([]byte(pullSpec))
+		hash := base64.RawURLEncoding.EncodeToString(h.Sum(nil)[:16])
+		shortName := reCharSafe.ReplaceAllLiteralString(pullSpec, "-")
+		shortName = reDashes.ReplaceAllLiteralString(shortName, "-")
+		maxLength := 127 - 16 - 6 - 10
+		if len(shortName) > maxLength {
+			shortName = shortName[len(shortName)-maxLength:]
+		}
+		newTag := fmt.Sprintf("e2e-%d-%s-%s", i, shortName, hash)
+
+		config.SetRegistry(registry)
+		config.SetName(destination)
+		config.SetVersion(newTag)
+		configs[i] = config
+	}
 	return configs
+}
+
+// GetOriginalImageConfigs returns the configuration before any mapping rules.
+func GetOriginalImageConfigs() map[int]Config {
+	return originalImageConfigs
 }
 
 // GetImageConfigs returns the map of imageConfigs
