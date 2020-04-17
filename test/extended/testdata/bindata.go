@@ -433,6 +433,7 @@
 // test/extended/testdata/router/reencrypt-serving-cert.yaml
 // test/extended/testdata/router/router-common.yaml
 // test/extended/testdata/router/router-config-manager.yaml
+// test/extended/testdata/router/router-grpc-interop.yaml
 // test/extended/testdata/router/router-h2spec.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
 // test/extended/testdata/router/router-metrics.yaml
@@ -54977,6 +54978,283 @@ func testExtendedTestdataRouterRouterConfigManagerYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataRouterRouterGrpcInteropYaml = []byte(`apiVersion: v1
+kind: Template
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: grpc-interop
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: service-certs
+  spec:
+    selector:
+      app: grpc-interop
+    ports:
+      - port: 8443
+        name: https
+        targetPort: 8443
+        protocol: TCP
+      - port: 1110
+        name: h2c
+        targetPort: 1110
+        protocol: TCP
+- apiVersion: v1
+  kind: ConfigMap
+  labels:
+    app: grpc-interop
+  metadata:
+    name: src-config
+  data:
+    data.base64: |
+      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
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    annotations:
+      service.beta.openshift.io/inject-cabundle: "true"
+    labels:
+      app: grpc-interop
+    name: service-ca
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: grpc-interop
+    labels:
+      app: grpc-interop
+  spec:
+    containers:
+    - image: golang:1.14
+      name: server
+      command: ["/workdir/grpc-server"]
+      env:
+      - name: GRPC_GO_LOG_VERBOSITY_LEVEL
+        value: "99"
+      - name: GRPC_GO_LOG_SEVERITY_LEVEL
+        value: "info"
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      - containerPort: 1110
+        protocol: TCP
+      volumeMounts:
+      - name: service-certs
+        mountPath: /etc/service-certs
+      - name: tmp
+        mountPath: /var/run
+      - name: workdir
+        mountPath: /workdir
+      readOnly: true
+    - image: golang:1.14
+      name: client-shell
+      command: ["/bin/bash"]
+      args: ["-c", "sleep 100000"]
+      volumeMounts:
+      - name: service-certs
+        secret:
+          secretName: service-certs
+        mountPath: /etc/service-certs
+      - name: tmp
+        mountPath: /var/run
+      - name: workdir
+        mountPath: /workdir
+      - name: service-ca
+        mountPath: /etc/service-ca
+    initContainers:
+    - image: golang:1.14
+      name: builder
+      command: ["/bin/bash", "-c"]
+      args:
+        - set -e;
+          cd /workdir;
+          base64 -d /go/src/data.base64 | tar zxf -;
+          go build -v -mod=readonly -o /workdir/grpc-client client.go;
+          go build -v -mod=readonly -o /workdir/grpc-server server.go;
+      env:
+      - name: GO111MODULE
+        value: "auto"
+      - name: GOCACHE
+        value: "/tmp"
+      - name: GOPROXY
+        value: "https://goproxy.golang.org,direct"
+      volumeMounts:
+      - name: src-volume
+        mountPath: /go/src
+      - name: tmp
+        mountPath: /var/run
+      - name: workdir
+        mountPath: /workdir
+    volumes:
+    - name: src-volume
+      configMap:
+        name: src-config
+    - name: service-certs
+      secret:
+        secretName: service-certs
+    - name: tmp
+      emptyDir: {}
+    - name: workdir
+      emptyDir: {}
+    - configMap:
+        items:
+        - key: service-ca.crt
+          path: service-ca.crt
+        name: service-ca
+      name: service-ca
+  labels:
+    app: grpc-interop
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+      haproxy.router.openshift.io/enable-h2c: "true"
+    labels:
+      app: grpc-interop
+    name: grpc-interop-edge
+  spec:
+    port:
+      targetPort: 1110
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: grpc-interop
+    name: grpc-interop-reencrypt
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: grpc-interop
+    name: grpc-interop-passthrough
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: passthrough
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
+`)
+
+func testExtendedTestdataRouterRouterGrpcInteropYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterGrpcInteropYaml, nil
+}
+
+func testExtendedTestdataRouterRouterGrpcInteropYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterGrpcInteropYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-grpc-interop.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRouterRouterH2specYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
@@ -59144,6 +59422,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/reencrypt-serving-cert.yaml": testExtendedTestdataRouterReencryptServingCertYaml,
 	"test/extended/testdata/router/router-common.yaml": testExtendedTestdataRouterRouterCommonYaml,
 	"test/extended/testdata/router/router-config-manager.yaml": testExtendedTestdataRouterRouterConfigManagerYaml,
+	"test/extended/testdata/router/router-grpc-interop.yaml": testExtendedTestdataRouterRouterGrpcInteropYaml,
 	"test/extended/testdata/router/router-h2spec.yaml": testExtendedTestdataRouterRouterH2specYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml": testExtendedTestdataRouterRouterHttpEchoServerYaml,
 	"test/extended/testdata/router/router-metrics.yaml": testExtendedTestdataRouterRouterMetricsYaml,
@@ -59891,6 +60170,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
 					"router-common.yaml": &bintree{testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
 					"router-config-manager.yaml": &bintree{testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
+					"router-grpc-interop.yaml": &bintree{testExtendedTestdataRouterRouterGrpcInteropYaml, map[string]*bintree{}},
 					"router-h2spec.yaml": &bintree{testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
 					"router-metrics.yaml": &bintree{testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
