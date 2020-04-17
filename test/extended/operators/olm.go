@@ -275,7 +275,7 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 	})
 
 	// OCP-24587 - Add InstallPlan conditions to Subscription status
-	//OLM-Medium-OCP-24587-Add InstallPlan conditions to Subscription status
+	// OLM-Medium-OCP-24587-Add InstallPlan conditions to Subscription status
 	// author: scolange@redhat.com
 	g.It("OLM-Medium-OCP-24587-Add InstallPlan conditions to Subscription status", func() {
 
@@ -352,4 +352,14 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 
 	})
 
+	//OLM-Medium-OCP-21534-Check OperatorGroups on console
+	// author: scolange@redhat.com
+	g.It("OLM-Medium-OCP-21534-Check OperatorGroups on console", func() {
+
+		ogNamespace, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("og", "-n", "openshift-operators", "-o", "jsonpath={.status.namespace}").Output()
+		e2e.Logf(ogNamespace)
+		o.Expect(err1).NotTo(o.HaveOccurred())
+		o.Expect(ogNamespace).To(o.Equal(""))
+
+	})
 })
