@@ -356,10 +356,10 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 	// author: scolange@redhat.com
 	g.It("OLM-Medium-OCP-21534-Check OperatorGroups on console", func() {
 
-		ogNamespace, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("og", "-n", "openshift-operators", "-o", "jsonpath={.status.namespace}").Output()
-		e2e.Logf(ogNamespace)
+		ogNs, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("og", "-n", "openshift-operators", "-o", "jsonpath={.status.namespace}").Output()
+		e2e.Logf(ogNs)
 		o.Expect(err1).NotTo(o.HaveOccurred())
-		o.Expect(ogNamespace).To(o.Equal(""))
+		o.Expect(ogNs).To(o.Equal(""))
 
 	})
 })
