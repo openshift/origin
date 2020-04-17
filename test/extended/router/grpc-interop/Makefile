@@ -1,6 +1,7 @@
 CLUSTER_DIR := cluster
 
-TARGET := ../../testdata/router/router-grpc-interop.yaml
+BINDATA := ../../testdata/bindata.go
+TEST_FIXTURE := ../../testdata/router/router-grpc-interop.yaml
 
 SOURCES := \
 	$(CLUSTER_DIR)/go.mod \
@@ -8,14 +9,13 @@ SOURCES := \
 	$(CLUSTER_DIR)/client/client.go \
 	$(CLUSTER_DIR)/server/server.go \
 
-all: update-bindata
+all: $(BINDATA)
 
-$(TARGET): $(SOURCES) test-fixture-gen/gen.go
+$(TEST_FIXTURE): $(SOURCES) ./test-fixture-gen/gen.go Makefile
+	$(MAKE) build-check
 	go run ./test-fixture-gen/gen.go $(SOURCES) > $@
 
-test-fixture-gen/gen.go: Makefile build-check
-
-build-check: $(SOURCES)
+build-check:
 	@echo Verifying client/server builds OK...
 	@(cd $(CLUSTER_DIR); \
 		GO111MODULE=on go build -o /dev/null client/client.go; \
@@ -23,10 +23,10 @@ build-check: $(SOURCES)
 		GO111MODULE=on go mod tidy; \
 		GO111MODULE=on go mod verify)
 
-update-bindata: ../../testdata/router/router-grpc-interop.yaml
+$(BINDATA): $(TEST_FIXTURE)
 	(cd ../../../..; ./hack/update-generated-bindata.sh)
 
 clean:
-	$(RM) $(TARGET)
+	$(RM) $(TEST_FIXTURE)
 
-.PHONY: all clean
+.PHONY: all clean build-check
