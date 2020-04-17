@@ -362,4 +362,15 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		o.Expect(ogNs).To(o.Equal(""))
 
 	})
+
+	//OLM-Medium-OCP-24075-The couchbase packagemanifest labels.provider value should not be "MongoDB, Inc"
+	// author: scolange@redhat.com
+	g.It("OLM-Medium-OCP-24075-The couchbase packagemanifest labels.provider value should not be MongoDB, Inc", func() {
+		//oc get packagemanifest couchbase-enterprise-certified -n openshift-marketplace -o jsonpath={.status.provider.name}
+		NameCouchBase, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("packagemanifest", "couchbase-enterprise-certified", "-n", "openshift-marketplace", "-o", "jsonpath={.status.provider.name}").Output()
+		e2e.Logf(NameCouchBase)
+		o.Expect(err1).NotTo(o.HaveOccurred())
+		o.Expect(NameCouchBase).To(o.Equal("Couchbase"))
+
+	})
 })
