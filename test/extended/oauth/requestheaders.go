@@ -179,7 +179,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		caCerts, err := x509.SystemCertPool()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(context.Background(), "router-ca", metav1.GetOptions{})
+		routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(context.Background(), "default-ingress-cert", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, ca := range routerCA.Data {
