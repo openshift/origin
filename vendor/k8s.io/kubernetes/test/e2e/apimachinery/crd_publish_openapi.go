@@ -66,7 +66,7 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		explain the nested custom resource properties.
 	*/
 	framework.ConformanceIt("works for CRD with validation schema", func() {
-		crd, err := setupCRD(f, schemaFoo, "foo", "v1")
+		crd, err := setupCRDAndVerifySchema(f, schemaFoo, "foo", "v1")
 		if err != nil {
 			framework.Failf("%v", err)
 		}
@@ -144,7 +144,7 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		properties. Attempt kubectl explain; the output MUST contain a valid DESCRIPTION stanza.
 	*/
 	framework.ConformanceIt("works for CRD without validation schema", func() {
-		crd, err := setupCRD(f, nil, "empty", "v1")
+		crd, err := setupCRDAndVerifySchema(f, nil, "empty", "v1")
 		if err != nil {
 			framework.Failf("%v", err)
 		}
@@ -185,8 +185,11 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		properties. Attempt kubectl explain; the output MUST show the custom resource KIND.
 	*/
 	framework.ConformanceIt("works for CRD preserving unknown fields at the schema root", func() {
-		crd, err := setupCRDAndVerifySchema(f, schemaPreserveRoot, nil, "unknown-at-root", "v1")
+		crd, err := setupCRD(f, schemaPreserveRoot, "unknown-at-root", "v1")
 		if err != nil {
+			framework.Failf("%v", err)
+		}
+		if err := waitForDefinition(f, definitionName(crd, "v1"), nil); err != nil {
 			framework.Failf("%v", err)
 		}
 
@@ -227,8 +230,11 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		nested field.
 	*/
 	framework.ConformanceIt("works for CRD preserving unknown fields in an embedded object", func() {
-		crd, err := setupCRDAndVerifySchema(f, schemaPreserveNested, nil, "unknown-in-nested", "v1")
+		crd, err := setupCRD(f, schemaPreserveNested, "unknown-in-nested", "v1")
 		if err != nil {
+			framework.Failf("%v", err)
+		}
+		if err := waitForDefinition(f, definitionName(crd, "v1"), nil); err != nil {
 			framework.Failf("%v", err)
 		}
 
@@ -473,16 +479,6 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 })
 
 func setupCRD(f *framework.Framework, schema []byte, groupSuffix string, versions ...string) (*crd.TestCrd, error) {
-	expect := schema
-	if schema == nil {
-		// to be backwards compatible, we expect CRD controller to treat
-		// CRD with nil schema specially and publish an empty schema
-		expect = []byte(`type: object`)
-	}
-	return setupCRDAndVerifySchema(f, schema, expect, groupSuffix, versions...)
-}
-
-func setupCRDAndVerifySchema(f *framework.Framework, schema, expect []byte, groupSuffix string, versions ...string) (*crd.TestCrd, error) {
 	group := fmt.Sprintf("%s-test-%s.example.com", f.BaseName, groupSuffix)
 	if len(versions) == 0 {
 		return nil, fmt.Errorf("require at least one version for CRD")
@@ -522,6 +518,20 @@ func setupCRDAndVerifySchema(f *framework.Framework, schema, expect []byte, grou
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CRD: %v", err)
+	}
+	return crd, nil
+}
+
+func setupCRDAndVerifySchema(f *framework.Framework, schema []byte, groupSuffix string, versions ...string) (*crd.TestCrd, error) {
+	expect := schema
+	if schema == nil {
+		// to be backwards compatible, we expect CRD controller to treat
+		// CRD with nil schema specially and publish an empty schema
+		expect = []byte(`type: object`)
+	}
+	crd, err := setupCRD(f, schema, groupSuffix, versions...)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, v := range crd.Crd.Spec.Versions {
