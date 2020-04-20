@@ -162,6 +162,7 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")
 		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
 		etcdSub             = filepath.Join(buildPruningBaseDir, "etcd-subscription.yaml")
+		promeSub            = filepath.Join(buildPruningBaseDir, "prometheus-subscription.yaml")
 		etcdSubManual       = filepath.Join(buildPruningBaseDir, "etcd-subscription-manual.yaml")
 		catSource           = filepath.Join(buildPruningBaseDir, "catalogSource.yaml")
 	)
@@ -371,6 +372,76 @@ var _ = g.Describe("[sig-operator] an end user use OLM", func() {
 		e2e.Logf(NameCouchBase)
 		o.Expect(err1).NotTo(o.HaveOccurred())
 		o.Expect(NameCouchBase).To(o.Equal("Couchbase"))
+
+	})
+
+	//OLM-Medium-OCP-23673-Installplan can be created while Install/unistall operators via Marketplace for 20 times
+	// author: scolange@redhat.com
+	g.It("OLM-Medium-OCP-23673-Installplan can be created while Install/unistall operators via Marketplace for 20 times", func() {
+
+		ogFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", operatorGroup, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", ogFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for i := 0; i < 20; i++ {
+
+			e2e.Logf("Install Operator  ###########################")
+
+			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", promeSub, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = wait.Poll(15*time.Second, operatorWait, func() (bool, error) {
+				statusCsv, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("csv", "-n", oc.Namespace(), "-o", "jsonpath={.items[0].status.reason}").Output()
+
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(statusCsv).To(o.Equal("InstallSucceeded"))
+				if statusCsv == "InstallSucceeded" {
+					e2e.Logf("CSV prometheus InstallSucceeded is present")
+					return true, nil
+				} else {
+					e2e.Failf("FAIL - CSV prometheus InstallSucceeded is not present ")
+					return false, nil
+				}
+
+				statusSub, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("sub", "-n", oc.Namespace()).Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(statusSub).To(o.Equal("No resources found."))
+				if statusSub == "No resources found." {
+					e2e.Logf("Subscription found")
+					return true, nil
+				} else {
+					e2e.Failf("FAIL - Subscription not found ")
+					return false, nil
+				}
+
+				statusIp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("ip", "-n", oc.Namespace()).Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(statusIp).To(o.Equal("No resources found."))
+				if statusIp == "No resources found." {
+					e2e.Logf("Install Plan Found")
+					return true, nil
+				} else {
+					e2e.Failf("FAIL - Install Plan is not Foud ")
+					return false, nil
+				}
+
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			nameCsv, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("csv", "-n", oc.Namespace(), "-o", "jsonpath={.items[0].metadata.name}").Output()
+			deleteCsv, err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("csv", nameCsv, "-n", oc.Namespace()).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(deleteCsv).To(o.ContainSubstring("deleted"))
+
+			nameSub, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("sub", "-n", oc.Namespace(), "-o", "jsonpath={.items[0].metadata.name}").Output()
+			deleteSub, err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("sub", nameSub, "-n", oc.Namespace()).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(deleteSub).To(o.ContainSubstring("deleted"))
+
+		}
 
 	})
 })

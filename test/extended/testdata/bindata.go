@@ -420,6 +420,7 @@
 // test/extended/testdata/olm/etcd-subscription-manual.yaml
 // test/extended/testdata/olm/etcd-subscription.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
+// test/extended/testdata/olm/prometheus-subscription.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
 // test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml
@@ -54034,6 +54035,44 @@ func testExtendedTestdataOlmOperatorgroupYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmPrometheusSubscriptionYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    channel: beta
+    installPlanApproval: Automatic
+    name: prometheus
+    source: "${SOURCENAME}"
+    sourceNamespace: "${SOURCENAMESPACE}"
+    startingCSV: prometheusoperator.0.32.0
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SOURCENAME
+- name: SOURCENAMESPACE`)
+
+func testExtendedTestdataOlmPrometheusSubscriptionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmPrometheusSubscriptionYaml, nil
+}
+
+func testExtendedTestdataOlmPrometheusSubscriptionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmPrometheusSubscriptionYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/prometheus-subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml = []byte(`apiVersion: v1
 data:
   password: c2VjcmV0Y3JlZHN5bmMK
@@ -58869,6 +58908,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/olm/etcd-subscription-manual.yaml": testExtendedTestdataOlmEtcdSubscriptionManualYaml,
 	"test/extended/testdata/olm/etcd-subscription.yaml": testExtendedTestdataOlmEtcdSubscriptionYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml": testExtendedTestdataOlmOperatorgroupYaml,
+	"test/extended/testdata/olm/prometheus-subscription.yaml": testExtendedTestdataOlmPrometheusSubscriptionYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references": testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
 	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml": testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
@@ -59601,6 +59641,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"etcd-subscription-manual.yaml": &bintree{testExtendedTestdataOlmEtcdSubscriptionManualYaml, map[string]*bintree{}},
 					"etcd-subscription.yaml": &bintree{testExtendedTestdataOlmEtcdSubscriptionYaml, map[string]*bintree{}},
 					"operatorgroup.yaml": &bintree{testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},
+					"prometheus-subscription.yaml": &bintree{testExtendedTestdataOlmPrometheusSubscriptionYaml, map[string]*bintree{}},
 				}},
 				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
 				"releases": &bintree{nil, map[string]*bintree{
