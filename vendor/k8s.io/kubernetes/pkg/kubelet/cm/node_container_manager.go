@@ -41,10 +41,17 @@ const (
 
 //createNodeAllocatableCgroups creates Node Allocatable Cgroup when CgroupsPerQOS flag is specified as true
 func (cm *containerManagerImpl) createNodeAllocatableCgroups() error {
+	nodeAllocatable := cm.capacity
+	// Use Node Allocatable limits instead of capacity if the user requested enforcing node allocatable.
+	nc := cm.NodeConfig.NodeAllocatableConfig
+	if cm.CgroupsPerQOS && nc.EnforceNodeAllocatable.Has(kubetypes.NodeAllocatableEnforcementKey) {
+		nodeAllocatable = cm.getNodeAllocatableAbsolute()
+	}
+
 	cgroupConfig := &CgroupConfig{
 		Name: cm.cgroupRoot,
 		// The default limits for cpu shares can be very low which can lead to CPU starvation for pods.
-		ResourceParameters: getCgroupConfig(cm.capacity),
+		ResourceParameters: getCgroupConfig(nodeAllocatable),
 	}
 	if cm.cgroupManager.Exists(cgroupConfig.Name) {
 		return nil
