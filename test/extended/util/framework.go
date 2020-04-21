@@ -55,6 +55,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/origin/test/extended/testdata"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
+	utilimage "github.com/openshift/origin/test/extended/util/image"
 )
 
 // WaitForInternalRegistryHostname waits for the internal registry hostname to be made available to the cluster.
@@ -1404,18 +1405,7 @@ func FixturePath(elem ...string) string {
 
 	if testsStarted {
 		// extract the contents to disk
-		if err := testdata.RestoreAssets(fixtureDir, relativePath); err != nil {
-			panic(err)
-		}
-		if err := filepath.Walk(fullPath, func(path string, info os.FileInfo, err error) error {
-			if err := os.Chmod(path, 0640); err != nil {
-				return err
-			}
-			if stat, err := os.Lstat(path); err == nil && stat.IsDir() {
-				return os.Chmod(path, 0755)
-			}
-			return nil
-		}); err != nil {
+		if err := restoreFixtureAssets(fixtureDir, relativePath); err != nil {
 			panic(err)
 		}
 
@@ -1427,6 +1417,61 @@ func FixturePath(elem ...string) string {
 	}
 
 	return absPath
+}
+
+// restoreFixtureAsset restores an asset under the given directory and post-processes
+// any changes required by the test. It hardcodes file modes to 0640 and ensures image
+// values are replaced.
+func restoreFixtureAsset(dir, name string) error {
+	data, err := testdata.Asset(name)
+	if err != nil {
+		return err
+	}
+	data, err = utilimage.ReplaceContents(data)
+	if err != nil {
+		return err
+	}
+	info, err := testdata.AssetInfo(name)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(assetFilePath(dir, filepath.Dir(name)), os.FileMode(0755))
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(assetFilePath(dir, name), data, 0640)
+	if err != nil {
+		return err
+	}
+	err = os.Chtimes(assetFilePath(dir, name), info.ModTime(), info.ModTime())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// restoreFixtureAssets restores an asset under the given directory recursively, changing
+// any necessary content. This duplicates a method in testdata but with the additional
+// requirements for setting disk permissions and for altering image content.
+func restoreFixtureAssets(dir, name string) error {
+	children, err := testdata.AssetDir(name)
+	// File
+	if err != nil {
+		return restoreFixtureAsset(dir, name)
+	}
+	// Dir
+	for _, child := range children {
+		err = restoreFixtureAssets(dir, filepath.Join(name, child))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func assetFilePath(dir, name string) string {
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
 
 // FetchURL grabs the output from the specified url and returns it.

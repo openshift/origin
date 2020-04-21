@@ -12,5 +12,6 @@ trap "cleanup" EXIT
 os::test::junit::declare_suite_start "verify/generated"
 os::cmd::expect_success "${OS_ROOT}/hack/update-generated.sh"
 os::cmd::expect_success "git diff --quiet ${OS_ROOT}/test/extended/util/annotate/generated/"
+os::cmd::expect_success "git diff --quiet ${OS_ROOT}/test/extended/util/image/zz_generated.txt"
 
 os::test::junit::declare_suite_end

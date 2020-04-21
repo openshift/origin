@@ -19,15 +19,14 @@ import (
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/origin/test/extended/testdata"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 const (
-	// This image is used for both client and server pods. Temporary repo location.
-	OpenLDAPTestImage = "docker.io/mrogers950/origin-openldap-test:fedora29"
-	caCertFilename    = "ca.crt"
-	caKeyFilename     = "ca.key"
-	caName            = "ldap CA"
-	saName            = "ldap"
+	caCertFilename = "ca.crt"
+	caKeyFilename  = "ca.key"
+	caName         = "ldap CA"
+	saName         = "ldap"
 	// These names are in sync with those in ldapserver-deployment.yaml
 	configMountName = "ldap-config"
 	certMountName   = "ldap-cert"
@@ -179,7 +178,7 @@ func checkLDAPConn(oc *CLI, host string) error {
 // Run an ldapsearch in a pod against host.
 func runLDAPSearchInPod(oc *CLI, host string) (string, error) {
 	mounts, volumes := LDAPClientMounts()
-	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", OpenLDAPTestImage, fmt.Sprintf(ldapSearchCommandFormat, host), mounts, volumes, nil, 8*time.Minute)
+	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", image.OpenLDAPTestImage(), fmt.Sprintf(ldapSearchCommandFormat, host), mounts, volumes, nil, 8*time.Minute)
 	if len(errs) != 0 {
 		return output, fmt.Errorf("errors encountered trying to run ldapsearch pod: %v", errs)
 	}
@@ -187,8 +186,8 @@ func runLDAPSearchInPod(oc *CLI, host string) (string, error) {
 }
 
 func ReadLDAPServerTestData() (*app.Deployment, *corev1.Service, *corev1.ConfigMap, *corev1.ConfigMap) {
-	return resourceread.ReadDeploymentV1OrDie(testdata.MustAsset(
-			"test/extended/testdata/ldap/ldapserver-deployment.yaml")),
+	return resourceread.ReadDeploymentV1OrDie(image.MustReplaceContents(testdata.MustAsset(
+			"test/extended/testdata/ldap/ldapserver-deployment.yaml"))),
 		resourceread.ReadServiceV1OrDie(testdata.MustAsset(
 			"test/extended/testdata/ldap/ldapserver-service.yaml")),
 		resourceread.ReadConfigMapV1OrDie(testdata.MustAsset(
