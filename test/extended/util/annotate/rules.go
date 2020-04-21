@@ -18,8 +18,7 @@ var (
 			`\[Feature:TTLAfterFinished\]`, // flag gate is off
 			`\[Feature:GPUDevicePlugin\]`,  // GPU node needs to be available
 			`\[sig-scheduling\] GPUDevicePluginAcrossRecreate \[Feature:Recreate\]`, // GPU node needs to be available
-			`\[Feature:ExpandCSIVolumes\]`,                                          // off by default .  sig-storage
-			`\[Feature:DynamicAudit\]`,                                              // off by default.  sig-master
+			`\[Feature:DynamicAudit\]`, // off by default.  sig-master
 
 			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
 			`\[Feature:IPv6DualStack.*\]`,
