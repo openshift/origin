@@ -94,8 +94,19 @@ type resourceRef struct {
 // NewCLI initializes the CLI and Kube framework helpers with the provided
 // namespace. Should be called outside of a Ginkgo .It() function.
 func NewCLI(project string) *CLI {
+	cli := NewCLIWithoutNamespace(project)
+	// create our own project
+	g.BeforeEach(cli.SetupProject)
+	return cli
+}
+
+// NewCLIWithoutNamespace initializes the CLI and Kube framework helpers
+// without a namespace. Should be called outside of a Ginkgo .It()
+// function. Use SetupProject() to create a project for this namespace.
+func NewCLIWithoutNamespace(project string) *CLI {
 	cli := &CLI{
 		kubeFramework: &framework.Framework{
+			SkipNamespaceCreation:    true,
 			BaseName:                 project,
 			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
 			Options: framework.Options{
@@ -110,16 +121,6 @@ func NewCLI(project string) *CLI {
 	g.AfterEach(cli.TeardownProject)
 	g.AfterEach(cli.kubeFramework.AfterEach)
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
-	g.BeforeEach(cli.SetupProject)
-	return cli
-}
-
-// NewCLIWithoutNamespace initializes the CLI and Kube framework helpers
-// without a namespace. Should be called outside of a Ginkgo .It()
-// function. Use SetupProject() to create a project for this namespace.
-func NewCLIWithoutNamespace(project string) *CLI {
-	cli := NewCLI(project)
-	cli.kubeFramework.SkipNamespaceCreation = true
 	return cli
 }
 
