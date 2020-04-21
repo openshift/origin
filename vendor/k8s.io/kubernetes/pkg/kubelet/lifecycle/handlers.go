@@ -316,25 +316,29 @@ type networkReadinessAdmitHandler struct {}
 func (a *networkReadinessAdmitHandler) Admit(attrs *PodAdmitAttributes) PodAdmitResult {
 	// HostNetwork pods can always be admitted
 	if attrs.Pod.Spec.HostNetwork {
+		klog.Infof("DNR pod %s/%s can run because it is hostNetwork", attrs.Pod.Namespace, attrs.Pod.Name)
 		return PodAdmitResult{Admit: true}
 	}
 
 	// Otherwise there needs to be a "network plugin" running on the node
 	for _, pod := range attrs.OtherPods {
 		// FIXME constant
-		if _, exists := pod.Labels["networking.k8s.io/network-plugin"]; !exists {
+		if val, exists := pod.Labels["app"]; !exists || val != "sdn" {
 			continue
 		}
 
 		if podutil.IsPodReady(pod) {
+			klog.Infof("DNR pod %s/%s can run because %s/%s is a running network plugin", attrs.Pod.Namespace, attrs.Pod.Name, pod.Namespace, pod.Name)
 			return PodAdmitResult{Admit: true}
 		} else if pod.Status.Phase == v1.PodRunning || pod.Status.Phase == v1.PodPending {
+			klog.Infof("DNR pod %s/%s can't run because %s/%s is %s but not Ready", attrs.Pod.Namespace, attrs.Pod.Name, pod.Namespace, pod.Name, pod.Status.Phase)
 			return PodAdmitResult{
 				Admit:   false,
 				Reason:  "NetworkPluginStarting",
 				Message: fmt.Sprintf("The pod network is not ready; waiting for %s/%s to finish starting up", pod.Namespace, pod.Name),
 			}
 		} else {
+			klog.Infof("DNR pod %s/%s can't run (2) because %s/%s is %s", attrs.Pod.Namespace, attrs.Pod.Name, pod.Namespace, pod.Name, pod.Status.Phase)
 			return PodAdmitResult{
 				Admit:   false,
 				Reason:  "NetworkPluginExited",
@@ -343,6 +347,7 @@ func (a *networkReadinessAdmitHandler) Admit(attrs *PodAdmitAttributes) PodAdmit
 		}
 	}
 
+	klog.Infof("DNR pod %s/%s can't run because there is no network plugin", attrs.Pod.Namespace, attrs.Pod.Name)
 	return PodAdmitResult{
 		Admit:   false,
 		Reason:  "NetworkUnavailable",

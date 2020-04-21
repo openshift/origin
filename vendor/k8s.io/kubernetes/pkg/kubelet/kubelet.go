@@ -881,7 +881,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	klet.softAdmitHandlers.AddPodAdmitHandler(lifecycle.NewAppArmorAdmitHandler(klet.appArmorValidator))
 	klet.softAdmitHandlers.AddPodAdmitHandler(lifecycle.NewNoNewPrivsAdmitHandler(klet.containerRuntime))
 	klet.softAdmitHandlers.AddPodAdmitHandler(lifecycle.NewProcMountAdmitHandler(klet.containerRuntime))
-	if klet.kubeletConfiguration.DynamicNetworkReadiness {
+	if klet.kubeletConfiguration.DynamicNetworkReadiness || true {
 		klet.softAdmitHandlers.AddPodAdmitHandler(lifecycle.NewNetworkReadinessAdmitHandler())
 	}
 
