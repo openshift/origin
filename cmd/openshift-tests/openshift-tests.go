@@ -31,6 +31,10 @@ func main() {
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
+	// UGLY HACK TO TEST CI
+	sa := os.Getenv("GCP_SHARED_CREDENTIALS_FILE")
+	os.Setenv("E2E_GOOGLE_APPLICATION_CREDENTIALS", sa)
+
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
