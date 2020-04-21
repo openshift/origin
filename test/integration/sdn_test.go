@@ -10,6 +10,7 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
@@ -72,6 +73,13 @@ func TestOadmPodNetwork(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	masterConfig.NetworkConfig.NetworkPluginName = network.MultiTenantPluginName
+	// Set the cluster and service networks to something invalid since it doesn't
+	// matter for this test but they need to not conflict with the local networks
+	masterConfig.NetworkConfig.ClusterNetworks = []config.ClusterNetworkEntry{{
+		CIDR:             "0.1.0.0/16",
+		HostSubnetLength: 8,
+	}}
+	masterConfig.NetworkConfig.ServiceNetworkCIDR = "0.2.0.0/16"
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
