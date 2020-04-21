@@ -363,7 +363,7 @@ func waitForNewOAuthConfig(oc *exutil.CLI, caCerts *x509.CertPool, oauthURL stri
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
+	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
 		authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "authentication", metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Error getting authentication operator: %v", err)
