@@ -308,6 +308,9 @@ type KubeletConfiguration struct {
 	// These sysctls are namespaced but not allowed by default.  For example: "kernel.msg*,net.ipv4.route.min_pmtu"
 	// +optional
 	AllowedUnsafeSysctls []string
+	// If true, Kubelet will not attempt to start non-host-network pods unless there is a Running pod
+	// on the node with a "networking.k8s.io/network-plugin" label.
+	DynamicNetworkReadiness bool
 
 	/* the following fields are meant for Node Allocatable */
 

@@ -755,6 +755,11 @@ type KubeletConfiguration struct {
 	// Default: []
 	// +optional
 	AllowedUnsafeSysctls []string `json:"allowedUnsafeSysctls,omitempty"`
+	// If true, Kubelet will not attempt to start non-host-network pods unless there is a Running pod
+	// on the node with a "networking.k8s.io/network-plugin" label.
+	// Default: false
+	// +optional
+	DynamicNetworkReadiness bool `json:"dynamicNetworkReadiness,omitempty"`
 }
 
 type KubeletAuthorizationMode string

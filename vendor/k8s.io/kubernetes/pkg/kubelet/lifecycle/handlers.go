@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog"
+	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
@@ -304,4 +305,47 @@ func procMountIsDefault(pod *v1.Pod) bool {
 	}
 
 	return true
+}
+
+func NewNetworkReadinessAdmitHandler() PodAdmitHandler {
+	return &networkReadinessAdmitHandler{}
+}
+
+type networkReadinessAdmitHandler struct {}
+
+func (a *networkReadinessAdmitHandler) Admit(attrs *PodAdmitAttributes) PodAdmitResult {
+	// HostNetwork pods can always be admitted
+	if attrs.Pod.Spec.HostNetwork {
+		return PodAdmitResult{Admit: true}
+	}
+
+	// Otherwise there needs to be a "network plugin" running on the node
+	for _, pod := range attrs.OtherPods {
+		// FIXME constant
+		if _, exists := pod.Labels["networking.k8s.io/network-plugin"]; !exists {
+			continue
+		}
+
+		if podutil.IsPodReady(pod) {
+			return PodAdmitResult{Admit: true}
+		} else if pod.Status.Phase == v1.PodRunning || pod.Status.Phase == v1.PodPending {
+			return PodAdmitResult{
+				Admit:   false,
+				Reason:  "NetworkPluginStarting",
+				Message: fmt.Sprintf("The pod network is not ready; waiting for %s/%s to finish starting up", pod.Namespace, pod.Name),
+			}
+		} else {
+			return PodAdmitResult{
+				Admit:   false,
+				Reason:  "NetworkPluginExited",
+				Message: fmt.Sprintf("The pod network is currently not available; network plugin pod %s/%s has existed (phase %s)", pod.Namespace, pod.Name, pod.Status.Phase),
+			}
+		}
+	}
+
+	return PodAdmitResult{
+		Admit:   false,
+		Reason:  "NetworkUnavailable",
+		Message: fmt.Sprintf("The pod network is currently not available; waiting for the network plugin to be deployed on this node"),
+	}
 }
