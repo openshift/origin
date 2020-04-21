@@ -7,8 +7,10 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -28,6 +30,19 @@ import (
 )
 
 func main() {
+	// KUBE_TEST_REPO_LIST is calculated during package initialization and prevents
+	// proper mirroring of images referenced by tests. Clear the value and re-exec the
+	// current process to ensure we can verify from a known state.
+	if len(os.Getenv("KUBE_TEST_REPO_LIST")) > 0 {
+		fmt.Fprintln(os.Stderr, "warning: KUBE_TEST_REPO_LIST may not be set when using openshift-tests and will be ignored")
+		os.Setenv("KUBE_TEST_REPO_LIST", "")
+		// resolve the call to execute since Exec() does not do PATH resolution
+		if err := syscall.Exec(exec.Command(os.Args[0]).Path, os.Args, os.Environ()); err != nil {
+			panic(fmt.Sprintf("%s: %v", os.Args[0], err))
+		}
+		return
+	}
+
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
@@ -96,6 +111,7 @@ func newRunMonitorCommand() *cobra.Command {
 type imagesOptions struct {
 	Repository string
 	Upstream   bool
+	Verify     bool
 }
 
 func newImagesCommand() *cobra.Command {
@@ -129,6 +145,10 @@ func newImagesCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if opt.Verify {
+				return verifyImages()
+			}
+
 			repository := opt.Repository
 			var prefix string
 			for _, validPrefix := range []string{"file://", "s3://"} {
@@ -146,6 +166,9 @@ func newImagesCommand() *cobra.Command {
 				return fmt.Errorf("--to-repository may not include a tag or image digest")
 			}
 
+			if err := verifyImages(); err != nil {
+				return err
+			}
 			lines, err := createImageMirrorForInternalImages(prefix, ref, !opt.Upstream)
 			if err != nil {
 				return err
@@ -158,6 +181,9 @@ func newImagesCommand() *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&opt.Upstream, "upstream", opt.Upstream, "Retrieve images from the default upstream location")
 	cmd.Flags().StringVar(&opt.Repository, "to-repository", opt.Repository, "A container image repository to mirror to.")
+	// this is a private flag for debugging only
+	cmd.Flags().BoolVar(&opt.Verify, "verify", opt.Verify, "Verify the contents of the image mappings")
+	cmd.Flags().MarkHidden("verify")
 	return cmd
 }
 
@@ -190,6 +216,9 @@ func newRunCommand() *cobra.Command {
 				if !opt.DryRun {
 					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 				}
+				if err := verifyImages(); err != nil {
+					return err
+				}
 				config, err := decodeProvider(opt.Provider, opt.DryRun, true)
 				if err != nil {
 					return err
@@ -200,6 +229,8 @@ func newRunCommand() *cobra.Command {
 					return err
 				}
 				opt.MatchFn = matchFn
+				opt.AdditionalJUnitsFn = pulledInvalidImages(opt.FromRepository)
+
 				err = opt.Run(args)
 				if !opt.DryRun && len(args) > 0 && strings.HasPrefix(args[0], "openshift/csi") {
 					printStorageCapabilities(opt.Out)
@@ -245,8 +276,14 @@ func newRunUpgradeCommand() *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mirrorToFile(opt, func() error {
+				if !opt.DryRun {
+					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
+				}
 				if len(upgradeOpt.ToImage) == 0 {
 					return fmt.Errorf("--to-image must be specified to run an upgrade test")
+				}
+				if err := verifyImages(); err != nil {
+					return err
 				}
 
 				if len(args) > 0 {
@@ -274,6 +311,7 @@ func newRunUpgradeCommand() *cobra.Command {
 					return err
 				}
 				opt.MatchFn = matchFn
+				opt.AdditionalJUnitsFn = pulledInvalidImages(opt.FromRepository)
 				return opt.Run(args)
 			})
 		},
@@ -303,6 +341,9 @@ func newRunTestCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := verifyImagesWithoutEnv(); err != nil {
+				return err
+			}
 			upgradeOpts, err := initUpgrade(os.Getenv("TEST_SUITE_OPTIONS"))
 			if err != nil {
 				return err
