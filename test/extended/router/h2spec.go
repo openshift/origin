@@ -58,6 +58,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should pass the h2spec conformance tests", func() {
+			g.Skip("disabled for https://bugzilla.redhat.com/show_bug.cgi?id=1825354")
 			g.By(fmt.Sprintf("creating routes from a config file %q", configPath))
 			routerImage, err := exutil.FindRouterImage(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
