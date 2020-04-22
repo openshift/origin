@@ -26,7 +26,6 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance creation wit
 
 	g.Context("", func() {
 		g.It("should report a failure on creation", func() {
-			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			err := cli.Run("create").Args("-f", templatefixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 

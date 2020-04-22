@@ -122,7 +122,6 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 		})
 
 		g.It("should report ready soon after all annotated objects are ready", func() {
-			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			var err error
 
 			templateinstance = &templatev1.TemplateInstance{
@@ -172,7 +171,6 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 		})
 
 		g.It("should report failed soon after an annotated objects has failed", func() {
-			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			var err error
 
 			secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(context.Background(), &v1.Secret{

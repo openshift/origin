@@ -27,7 +27,6 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance object kinds
 	)
 
 	g.It("should create and delete objects from varying API groups", func() {
-		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 		g.By("creating a template instance")
 		err := cli.Run("create").Args("-f", fixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
