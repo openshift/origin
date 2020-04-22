@@ -28,7 +28,6 @@ var _ = g.Describe("[Conformance][templates] template-api", func() {
 	oc := exutil.NewCLI("templates", exutil.KubeConfigPath())
 
 	g.It("TestTemplate", func() {
-		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 		t := g.GinkgoT()
 
 		for _, version := range []schema.GroupVersion{v1.SchemeGroupVersion} {
@@ -101,7 +100,6 @@ var _ = g.Describe("[Conformance][templates] template-api", func() {
 	oc := exutil.NewCLI("templates", exutil.KubeConfigPath())
 
 	g.It("TestTemplateTransformationFromConfig", func() {
-		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 		t := g.GinkgoT()
 
 		clusterAdminClientConfig := oc.AdminConfig()

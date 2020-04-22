@@ -106,7 +106,6 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 		})
 
 		g.It("should pass bind tests", func() {
-			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			svc, err := cli.KubeClient().CoreV1().Services(cli.Namespace()).Get("service", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
