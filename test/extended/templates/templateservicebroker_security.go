@@ -161,7 +161,6 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 		})
 
 		g.It("should pass security tests", func() {
-			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			catalog()
 
 			g.By("having no permissions to the namespace, provision should fail with 403")
