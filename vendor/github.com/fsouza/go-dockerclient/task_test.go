@@ -6,7 +6,6 @@ package docker
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -234,6 +233,7 @@ func TestListTasks(t *testing.T) {
 	if !reflect.DeepEqual(tasks, expected) {
 		t.Errorf("ListTasks: Expected %#v. Got %#v.", expected, tasks)
 	}
+
 }
 
 func TestInspectTask(t *testing.T) {
@@ -359,21 +359,18 @@ func TestInspectTask(t *testing.T) {
 	if gotPath := fakeRT.requests[0].URL.Path; gotPath != expectedURL.Path {
 		t.Errorf("InspectTask(%q): Wrong path in request. Want %q. Got %q.", id, expectedURL.Path, gotPath)
 	}
+
 }
 
 func TestInspectTaskNotFound(t *testing.T) {
 	t.Parallel()
-	const taskID = "notfound"
 	client := newTestClient(&FakeRoundTripper{message: "no such task", status: http.StatusNotFound})
-	task, err := client.InspectTask(taskID)
+	task, err := client.InspectTask("notfound")
 	if task != nil {
 		t.Errorf("InspectTask: Expected <nil> task, got %#v", task)
 	}
-	var taskErr *NoSuchTask
-	if !errors.As(err, &taskErr) {
-		t.Fatalf("InspectTask: wrong error tyope returned. Want %#v. Got %#v.", taskErr, err)
-	}
-	if taskErr.ID != taskID {
-		t.Errorf("wrong taskID\nwant %q\ngot  %q", taskID, taskErr.ID)
+	expected := &NoSuchTask{ID: "notfound"}
+	if !reflect.DeepEqual(err, expected) {
+		t.Errorf("InspectTask: Wrong error returned. Want %#v. Got %#v.", expected, err)
 	}
 }

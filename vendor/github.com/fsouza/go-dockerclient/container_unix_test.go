@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 )
@@ -106,37 +105,4 @@ func TestStatsTimeoutUnixSocket(t *testing.T) {
 	case <-time.After(recvTimeout):
 		t.Fatalf("Timeout waiting to receive message after %v", recvTimeout)
 	}
-}
-
-func runStreamConnServer(t *testing.T, network, laddr string, listening chan<- string, done chan<- int, containerID string) {
-	defer close(done)
-	l, err := net.Listen(network, laddr)
-	if err != nil {
-		t.Errorf("Listen(%q, %q) failed: %v", network, laddr, err)
-		listening <- "<nil>"
-		return
-	}
-	defer l.Close()
-	listening <- l.Addr().String()
-	c, err := l.Accept()
-	if err != nil {
-		t.Logf("Accept failed: %v", err)
-		return
-	}
-	defer c.Close()
-	breader := bufio.NewReader(c)
-	req, err := http.ReadRequest(breader)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if path := "/containers/" + containerID + "/export"; req.URL.Path != path {
-		t.Errorf("wrong path. Want %q. Got %q", path, req.URL.Path)
-		return
-	}
-	c.Write([]byte("HTTP/1.1 200 OK\n\nexported container tar content"))
-}
-
-func tempfile(filename string) string {
-	return os.TempDir() + "/" + filename + "." + strconv.Itoa(os.Getpid())
 }

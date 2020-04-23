@@ -10,8 +10,8 @@ spec:
     listKind: IngressControllerList
     plural: ingresscontrollers
     singular: ingresscontroller
-  scope: ""
   preserveUnknownFields: false
+  scope: ""
   subresources:
     scale:
       labelSelectorPath: .status.selector
@@ -29,7 +29,6 @@ spec:
         may be rolled out. \n https://kubernetes.io/docs/concepts/services-networking/ingress-controllers
         \n Whenever possible, sensible defaults for the platform are used. See each
         field for more details."
-      type: object
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -45,7 +44,6 @@ spec:
           type: object
         spec:
           description: spec is the specification of the desired behavior of the IngressController.
-          type: object
           properties:
             defaultCertificate:
               description: "defaultCertificate is a reference to a secret containing
@@ -59,12 +57,12 @@ spec:
                 cluster's trust store. \n The in-use certificate (whether generated
                 or user-specified) will be automatically integrated with OpenShift's
                 built-in OAuth server."
-              type: object
               properties:
                 name:
                   description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     TODO: Add other useful fields. apiVersion, kind, uid?'
                   type: string
+              type: object
             domain:
               description: "domain is a DNS name serviced by the ingress controller
                 and is used to configure multiple features: \n * For the LoadBalancerService
@@ -87,9 +85,6 @@ spec:
                 (with External scope)   Libvirt:  HostNetwork \n Any other platform
                 types (including None) default to HostNetwork. \n endpointPublishingStrategy
                 cannot be updated."
-              type: object
-              required:
-              - type
               properties:
                 hostNetwork:
                   description: hostNetwork holds parameters for the HostNetwork endpoint
@@ -98,17 +93,17 @@ spec:
                 loadBalancer:
                   description: loadBalancer holds parameters for the load balancer.
                     Present only if type is LoadBalancerService.
-                  type: object
-                  required:
-                  - scope
                   properties:
                     scope:
                       description: scope indicates the scope at which the load balancer
                         is exposed. Possible values are "External" and "Internal".
-                      type: string
                       enum:
                       - Internal
                       - External
+                      type: string
+                  required:
+                  - scope
+                  type: object
                 nodePort:
                   description: nodePort holds parameters for the NodePortService endpoint
                     publishing strategy. Present only if type is NodePortService.
@@ -145,29 +140,132 @@ spec:
                     by OpenShift; however, to support static port allocations, user
                     changes to the node port field of the managed NodePort Service
                     will preserved."
-                  type: string
                   enum:
                   - LoadBalancerService
                   - HostNetwork
                   - Private
                   - NodePortService
+                  type: string
+              required:
+              - type
+              type: object
+            logging:
+              description: logging defines parameters for what should be logged where.  If
+                this field is empty, operational logs are enabled but access logs
+                are disabled.
+              properties:
+                access:
+                  description: "access describes how the client requests should be
+                    logged. \n If this field is empty, access logging is disabled."
+                  properties:
+                    destination:
+                      description: destination is where access logs go.
+                      properties:
+                        container:
+                          description: container holds parameters for the Container
+                            logging destination. Present only if type is Container.
+                          type: object
+                        syslog:
+                          description: syslog holds parameters for a syslog endpoint.  Present
+                            only if type is Syslog.
+                          oneOf:
+                          - properties:
+                              address:
+                                format: ipv4
+                          - properties:
+                              address:
+                                format: ipv6
+                          properties:
+                            address:
+                              description: address is the IP address of the syslog
+                                endpoint that receives log messages.
+                              type: string
+                            facility:
+                              description: "facility specifies the syslog facility
+                                of log messages. \n If this field is empty, the facility
+                                is \"local1\"."
+                              enum:
+                              - kern
+                              - user
+                              - mail
+                              - daemon
+                              - auth
+                              - syslog
+                              - lpr
+                              - news
+                              - uucp
+                              - cron
+                              - auth2
+                              - ftp
+                              - ntp
+                              - audit
+                              - alert
+                              - cron2
+                              - local0
+                              - local1
+                              - local2
+                              - local3
+                              - local4
+                              - local5
+                              - local6
+                              - local7
+                              type: string
+                            port:
+                              description: port is the UDP port number of the syslog
+                                endpoint that receives log messages.
+                              format: int32
+                              maximum: 65535
+                              minimum: 1
+                              type: integer
+                          required:
+                          - address
+                          - port
+                          type: object
+                        type:
+                          description: "type is the type of destination for logs.
+                            \ It must be one of the following: \n * Container \n The
+                            ingress operator configures the sidecar container named
+                            \"logs\" on the ingress controller pod and configures
+                            the ingress controller to write logs to the sidecar.  The
+                            logs are then available as container logs.  The expectation
+                            is that the administrator configures a custom logging
+                            solution that reads logs from this sidecar.  Note that
+                            using container logs means that logs may be dropped if
+                            the rate of logs exceeds the container runtime's or the
+                            custom logging solution's capacity. \n * Syslog \n Logs
+                            are sent to a syslog endpoint.  The administrator must
+                            specify an endpoint that can receive syslog messages.
+                            \ The expectation is that the administrator has configured
+                            a custom syslog instance."
+                          enum:
+                          - Container
+                          - Syslog
+                          type: string
+                      required:
+                      - type
+                      type: object
+                    httpLogFormat:
+                      description: "httpLogFormat specifies the format of the log
+                        message for an HTTP request. \n If this field is empty, log
+                        messages use the implementation's default HTTP log format.
+                        \ For HAProxy's default HTTP log format, see the HAProxy documentation:
+                        http://cbonte.github.io/haproxy-dconv/2.0/configuration.html#8.2.3"
+                      type: string
+                  required:
+                  - destination
+                  type: object
+              type: object
             namespaceSelector:
               description: "namespaceSelector is used to filter the set of namespaces
                 serviced by the ingress controller. This is useful for implementing
                 shards. \n If unset, the default is no filtering."
-              type: object
               properties:
                 matchExpressions:
                   description: matchExpressions is a list of label selector requirements.
                     The requirements are ANDed.
-                  type: array
                   items:
                     description: A label selector requirement is a selector that contains
                       values, a key, and an operator that relates the key and values.
-                    type: object
-                    required:
-                    - key
-                    - operator
                     properties:
                       key:
                         description: key is the label key that the selector applies
@@ -184,43 +282,42 @@ spec:
                           operator is Exists or DoesNotExist, the values array must
                           be empty. This array is replaced during a strategic merge
                           patch.
-                        type: array
                         items:
                           type: string
+                        type: array
+                    required:
+                    - key
+                    - operator
+                    type: object
+                  type: array
                 matchLabels:
+                  additionalProperties:
+                    type: string
                   description: matchLabels is a map of {key,value} pairs. A single
                     {key,value} in the matchLabels map is equivalent to an element
                     of matchExpressions, whose key field is "key", the operator is
                     "In", and the values array contains only "value". The requirements
                     are ANDed.
                   type: object
-                  additionalProperties:
-                    type: string
+              type: object
             nodePlacement:
               description: "nodePlacement enables explicit control over the scheduling
                 of the ingress controller. \n If unset, defaults are used. See NodePlacement
                 for more details."
-              type: object
               properties:
                 nodeSelector:
                   description: "nodeSelector is the node selector applied to ingress
                     controller deployments. \n If unset, the default is: \n   beta.kubernetes.io/os:
                     linux   node-role.kubernetes.io/worker: '' \n If set, the specified
                     selector is used and replaces the default."
-                  type: object
                   properties:
                     matchExpressions:
                       description: matchExpressions is a list of label selector requirements.
                         The requirements are ANDed.
-                      type: array
                       items:
                         description: A label selector requirement is a selector that
                           contains values, a key, and an operator that relates the
                           key and values.
-                        type: object
-                        required:
-                        - key
-                        - operator
                         properties:
                           key:
                             description: key is the label key that the selector applies
@@ -237,28 +334,32 @@ spec:
                               If the operator is Exists or DoesNotExist, the values
                               array must be empty. This array is replaced during a
                               strategic merge patch.
-                            type: array
                             items:
                               type: string
+                            type: array
+                        required:
+                        - key
+                        - operator
+                        type: object
+                      type: array
                     matchLabels:
+                      additionalProperties:
+                        type: string
                       description: matchLabels is a map of {key,value} pairs. A single
                         {key,value} in the matchLabels map is equivalent to an element
                         of matchExpressions, whose key field is "key", the operator
                         is "In", and the values array contains only "value". The requirements
                         are ANDed.
                       type: object
-                      additionalProperties:
-                        type: string
+                  type: object
                 tolerations:
                   description: "tolerations is a list of tolerations applied to ingress
                     controller deployments. \n The default is an empty list. \n See
                     https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/"
-                  type: array
                   items:
                     description: The pod this Toleration is attached to tolerates
                       any taint that matches the triple <key,value,effect> using the
                       matching operator <operator>.
-                    type: object
                     properties:
                       effect:
                         description: Effect indicates the taint effect to match. Empty
@@ -284,24 +385,26 @@ spec:
                           it is not set, which means tolerate the taint forever (do
                           not evict). Zero and negative values will be treated as
                           0 (evict immediately) by the system.
-                        type: integer
                         format: int64
+                        type: integer
                       value:
                         description: Value is the taint value the toleration matches
                           to. If the operator is Exists, the value should be empty,
                           otherwise just a regular string.
                         type: string
+                    type: object
+                  type: array
+              type: object
             replicas:
               description: replicas is the desired number of ingress controller replicas.
                 If unset, defaults to 2.
-              type: integer
               format: int32
+              type: integer
             routeAdmission:
               description: "routeAdmission defines a policy for handling new route
                 claims (for example, to allow or deny claims across namespaces). \n
                 If empty, defaults will be applied. See specific routeAdmission fields
                 for details about their defaults."
-              type: object
               properties:
                 namespaceOwnership:
                   description: "namespaceOwnership describes how host name claims
@@ -310,10 +413,10 @@ spec:
                     the same host. \n - InterNamespaceAllowed: Allow routes to claim
                     different paths of the same   host name across namespaces. \n
                     If empty, the default is Strict."
-                  type: string
                   enum:
                   - InterNamespaceAllowed
                   - Strict
+                  type: string
                 wildcardPolicy:
                   description: "wildcardPolicy describes how routes with wildcard
                     policies should be handled for the ingress controller. WildcardPolicy
@@ -325,27 +428,22 @@ spec:
                     of None to be readmitted by the ingress controller. \n WildcardPolicy
                     supports WildcardsAllowed and WildcardsDisallowed values. \n If
                     empty, defaults to \"WildcardsDisallowed\"."
-                  type: string
                   enum:
                   - WildcardsAllowed
                   - WildcardsDisallowed
+                  type: string
+              type: object
             routeSelector:
               description: "routeSelector is used to filter the set of Routes serviced
                 by the ingress controller. This is useful for implementing shards.
                 \n If unset, the default is no filtering."
-              type: object
               properties:
                 matchExpressions:
                   description: matchExpressions is a list of label selector requirements.
                     The requirements are ANDed.
-                  type: array
                   items:
                     description: A label selector requirement is a selector that contains
                       values, a key, and an operator that relates the key and values.
-                    type: object
-                    required:
-                    - key
-                    - operator
                     properties:
                       key:
                         description: key is the label key that the selector applies
@@ -362,18 +460,24 @@ spec:
                           operator is Exists or DoesNotExist, the values array must
                           be empty. This array is replaced during a strategic merge
                           patch.
-                        type: array
                         items:
                           type: string
+                        type: array
+                    required:
+                    - key
+                    - operator
+                    type: object
+                  type: array
                 matchLabels:
+                  additionalProperties:
+                    type: string
                   description: matchLabels is a map of {key,value} pairs. A single
                     {key,value} in the matchLabels map is equivalent to an element
                     of matchExpressions, whose key field is "key", the operator is
                     "In", and the values array contains only "value". The requirements
                     are ANDed.
                   type: object
-                  additionalProperties:
-                    type: string
+              type: object
             tlsSecurityProfile:
               description: "tlsSecurityProfile specifies settings for TLS connections
                 for ingresscontrollers. \n If unset, the default is based on the apiservers.config.openshift.io/cluster
@@ -386,7 +490,6 @@ spec:
                 controllers is 1.1, and the maximum TLS version is 1.2.  An implication
                 of this restriction is that the Modern TLS profile type cannot be
                 used because it requires TLS 1.3."
-              type: object
               properties:
                 custom:
                   description: "custom is a user-defined TLS security profile. Be
@@ -395,29 +498,29 @@ spec:
                     \n   ciphers:     - ECDHE-ECDSA-CHACHA20-POLY1305     - ECDHE-RSA-CHACHA20-POLY1305
                     \    - ECDHE-RSA-AES128-GCM-SHA256     - ECDHE-ECDSA-AES128-GCM-SHA256
                     \  minTLSVersion: TLSv1.1"
-                  type: object
+                  nullable: true
                   properties:
                     ciphers:
                       description: "ciphers is used to specify the cipher algorithms
                         that are negotiated during the TLS handshake.  Operators may
                         remove entries their operands do not support.  For example,
                         to use DES-CBC3-SHA  (yaml): \n   ciphers:     - DES-CBC3-SHA"
-                      type: array
                       items:
                         type: string
+                      type: array
                     minTLSVersion:
                       description: "minTLSVersion is used to specify the minimal version
                         of the TLS protocol that is negotiated during the TLS handshake.
                         For example, to use TLS versions 1.1, 1.2 and 1.3 (yaml):
                         \n   minTLSVersion: TLSv1.1 \n NOTE: currently the highest
                         minTLSVersion allowed is VersionTLS12"
-                      type: string
                       enum:
                       - VersionTLS10
                       - VersionTLS11
                       - VersionTLS12
                       - VersionTLS13
-                  nullable: true
+                      type: string
+                  type: object
                 intermediate:
                   description: "intermediate is a TLS security profile based on: \n
                     https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29
@@ -428,15 +531,15 @@ spec:
                     \    - ECDHE-ECDSA-CHACHA20-POLY1305     - ECDHE-RSA-CHACHA20-POLY1305
                     \    - DHE-RSA-AES128-GCM-SHA256     - DHE-RSA-AES256-GCM-SHA384
                     \  minTLSVersion: TLSv1.2"
-                  type: object
                   nullable: true
+                  type: object
                 modern:
                   description: "modern is a TLS security profile based on: \n https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
                     \n and looks like this (yaml): \n   ciphers:     - TLS_AES_128_GCM_SHA256
                     \    - TLS_AES_256_GCM_SHA384     - TLS_CHACHA20_POLY1305_SHA256
                     \  minTLSVersion: TLSv1.3 \n NOTE: Currently unsupported."
-                  type: object
                   nullable: true
+                  type: object
                 old:
                   description: "old is a TLS security profile based on: \n https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility
                     \n and looks like this (yaml): \n   ciphers:     - TLS_AES_128_GCM_SHA256
@@ -453,8 +556,8 @@ spec:
                     \    - AES256-GCM-SHA384     - AES128-SHA256     - AES256-SHA256
                     \    - AES128-SHA     - AES256-SHA     - DES-CBC3-SHA   minTLSVersion:
                     TLSv1.0"
-                  type: object
                   nullable: true
+                  type: object
                 type:
                   description: "type is one of Old, Intermediate, Modern or Custom.
                     Custom provides the ability to specify individual TLS security
@@ -466,21 +569,22 @@ spec:
                     to a process, the list may be reduced. \n Note that the Modern
                     profile is currently not supported because it is not yet well
                     adopted by common software libraries."
-                  type: string
                   enum:
                   - Old
                   - Intermediate
                   - Modern
                   - Custom
+                  type: string
+              type: object
+          type: object
         status:
           description: status is the most recently observed status of the IngressController.
-          type: object
           properties:
             availableReplicas:
               description: availableReplicas is number of observed available replicas
                 according to the ingress controller deployment.
-              type: integer
               format: int32
+              type: integer
             conditions:
               description: "conditions is a list of conditions and their status. \n
                 Available means the ingress controller deployment is available and
@@ -500,14 +604,12 @@ spec:
                 DNSReady   - True if the following conditions are met:     * DNS is
                 managed.     * DNS records have been successfully created.   - False
                 if any of those conditions are unsatisfied."
-              type: array
               items:
                 description: OperatorCondition is just the standard condition fields.
-                type: object
                 properties:
                   lastTransitionTime:
-                    type: string
                     format: date-time
+                    type: string
                   message:
                     type: string
                   reason:
@@ -516,14 +618,13 @@ spec:
                     type: string
                   type:
                     type: string
+                type: object
+              type: array
             domain:
               description: domain is the actual domain in use.
               type: string
             endpointPublishingStrategy:
               description: endpointPublishingStrategy is the actual strategy in use.
-              type: object
-              required:
-              - type
               properties:
                 hostNetwork:
                   description: hostNetwork holds parameters for the HostNetwork endpoint
@@ -532,17 +633,17 @@ spec:
                 loadBalancer:
                   description: loadBalancer holds parameters for the load balancer.
                     Present only if type is LoadBalancerService.
-                  type: object
-                  required:
-                  - scope
                   properties:
                     scope:
                       description: scope indicates the scope at which the load balancer
                         is exposed. Possible values are "External" and "Internal".
-                      type: string
                       enum:
                       - Internal
                       - External
+                      type: string
+                  required:
+                  - scope
+                  type: object
                 nodePort:
                   description: nodePort holds parameters for the NodePortService endpoint
                     publishing strategy. Present only if type is NodePortService.
@@ -579,16 +680,19 @@ spec:
                     by OpenShift; however, to support static port allocations, user
                     changes to the node port field of the managed NodePort Service
                     will preserved."
-                  type: string
                   enum:
                   - LoadBalancerService
                   - HostNetwork
                   - Private
                   - NodePortService
+                  type: string
+              required:
+              - type
+              type: object
             observedGeneration:
               description: observedGeneration is the most recent generation observed.
-              type: integer
               format: int64
+              type: integer
             selector:
               description: selector is a label selector, in string format, for ingress
                 controller pods corresponding to the IngressController. The number
@@ -597,28 +701,30 @@ spec:
             tlsProfile:
               description: tlsProfile is the TLS connection configuration that is
                 in effect.
-              type: object
               properties:
                 ciphers:
                   description: "ciphers is used to specify the cipher algorithms that
                     are negotiated during the TLS handshake.  Operators may remove
                     entries their operands do not support.  For example, to use DES-CBC3-SHA
                     \ (yaml): \n   ciphers:     - DES-CBC3-SHA"
-                  type: array
                   items:
                     type: string
+                  type: array
                 minTLSVersion:
                   description: "minTLSVersion is used to specify the minimal version
                     of the TLS protocol that is negotiated during the TLS handshake.
                     For example, to use TLS versions 1.1, 1.2 and 1.3 (yaml): \n   minTLSVersion:
                     TLSv1.1 \n NOTE: currently the highest minTLSVersion allowed is
                     VersionTLS12"
-                  type: string
                   enum:
                   - VersionTLS10
                   - VersionTLS11
                   - VersionTLS12
                   - VersionTLS13
+                  type: string
+              type: object
+          type: object
+      type: object
   version: v1
   versions:
   - name: v1

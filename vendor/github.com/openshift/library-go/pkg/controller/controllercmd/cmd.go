@@ -266,6 +266,7 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 		WithKubeConfigFile(c.basicFlags.KubeConfigFile, nil).
 		WithComponentNamespace(c.basicFlags.Namespace).
 		WithLeaderElection(config.LeaderElection, c.basicFlags.Namespace, c.componentName+"-lock").
+		WithVersion(c.version).
 		WithRestartOnChange(exitOnChangeReactorCh, startingFileContent, observedFiles...)
 
 	if !c.DisableServing {

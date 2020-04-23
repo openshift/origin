@@ -42,27 +42,6 @@ func TestBoolean(t *testing.T) {
 
 }
 
-func TestLDAPBoolean(t *testing.T) {
-	var value bool = true
-
-	packet := NewLDAPBoolean(value, "first Packet, True")
-
-	newBoolean, ok := packet.Value.(bool)
-	if !ok || newBoolean != value {
-		t.Error("error during creating packet")
-	}
-
-	encodedPacket := packet.Bytes()
-
-	newPacket := DecodePacket(encodedPacket)
-
-	newBoolean, ok = newPacket.Value.(bool)
-	if !ok || newBoolean != value {
-		t.Error("error during decoding packet")
-	}
-
-}
-
 func TestInteger(t *testing.T) {
 	var value int64 = 10
 

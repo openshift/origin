@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
+	"k8s.io/component-base/metrics"
+	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/version"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/client-go/kubernetes"
@@ -71,6 +75,8 @@ type ControllerBuilder struct {
 	authenticationConfig *operatorv1alpha1.DelegatedAuthentication
 	authorizationConfig  *operatorv1alpha1.DelegatedAuthorization
 	healthChecks         []healthz.HealthChecker
+
+	versionInfo *version.Info
 
 	// nonZeroExitFn takes a function that exit the process with non-zero code.
 	// This stub exists for unit test where we can check if the graceful termination work properly.
@@ -134,6 +140,12 @@ func (b *ControllerBuilder) WithLeaderElection(leaderElection configv1.LeaderEle
 	return b
 }
 
+// WithVersion accepts a getting that provide binary version information that is used to report build_info information to prometheus
+func (b *ControllerBuilder) WithVersion(info version.Info) *ControllerBuilder {
+	b.versionInfo = &info
+	return b
+}
+
 // WithServer adds a server that provides metrics and healthz
 func (b *ControllerBuilder) WithServer(servingInfo configv1.HTTPServingInfo, authenticationConfig operatorv1alpha1.DelegatedAuthentication, authorizationConfig operatorv1alpha1.DelegatedAuthorization) *ControllerBuilder {
 	b.servingInfo = servingInfo.DeepCopy()
@@ -192,6 +204,23 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 			eventRecorder.Warningf("OperatorRestart", "Restarted because of %s", action.String(file))
 			return originalFileObserverReactorFn(file, action)
 		}
+	}
+
+	// report the binary version metrics to prometheus
+	if b.versionInfo != nil {
+		buildInfo := metrics.NewGaugeVec(
+			&metrics.GaugeOpts{
+				Name: strings.Replace(namespace, "-", "_", -1) + "_build_info",
+				Help: "A metric with a constant '1' value labeled by major, minor, git version, git commit, git tree state, build date, Go version, " +
+					"and compiler from which " + b.componentName + " was built, and platform on which it is running.",
+				StabilityLevel: metrics.ALPHA,
+			},
+			[]string{"major", "minor", "gitVersion", "gitCommit", "gitTreeState", "buildDate", "goVersion", "compiler", "platform"},
+		)
+		legacyregistry.MustRegister(buildInfo)
+		buildInfo.WithLabelValues(b.versionInfo.Major, b.versionInfo.Minor, b.versionInfo.GitVersion, b.versionInfo.GitCommit, b.versionInfo.GitTreeState, b.versionInfo.BuildDate, b.versionInfo.GoVersion,
+			b.versionInfo.Compiler, b.versionInfo.Platform).Set(1)
+		klog.Infof("%s version %s-%s", b.componentName, b.versionInfo.GitVersion, b.versionInfo.GitCommit)
 	}
 
 	kubeConfig := ""

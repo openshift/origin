@@ -60,7 +60,7 @@ func NewPrometheusClient(ctx context.Context, kclient *kubernetes.Clientset, rc 
 
 func createClient(ctx context.Context, kclient *kubernetes.Clientset, host, bearerToken string) (prometheusv1.API, error) {
 	// retrieve router CA
-	routerCAConfigMap, err := kclient.CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "router-ca", metav1.GetOptions{})
+	routerCAConfigMap, err := kclient.CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "default-ingress-cert", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

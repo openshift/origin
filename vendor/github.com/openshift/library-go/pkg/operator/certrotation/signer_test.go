@@ -55,6 +55,7 @@ func TestEnsureSigningCertKeyPair(t *testing.T) {
 			name: "update no annotations",
 			initialSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "signer"},
+				Type:       corev1.SecretTypeTLS,
 			},
 			verifyActions: func(t *testing.T, client *kubefake.Clientset) {
 				t.Helper()

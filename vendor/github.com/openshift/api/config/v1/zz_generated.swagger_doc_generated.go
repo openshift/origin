@@ -303,7 +303,7 @@ var map_AuthenticationSpec = map[string]string{
 	"type":                       "type identifies the cluster managed, user facing authentication mode in use. Specifically, it manages the component that responds to login attempts. The default is IntegratedOAuth.",
 	"oauthMetadata":              "oauthMetadata contains the discovery endpoint data for OAuth 2.0 Authorization Server Metadata for an external OAuth server. This discovery document can be viewed from its served location: oc get --raw '/.well-known/oauth-authorization-server' For further details, see the IETF Draft: https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2 If oauthMetadata.name is non-empty, this value has precedence over any metadata reference stored in status. The key \"oauthMetadata\" is used to locate the data. If specified and the config map or expected key is not found, no metadata is served. If the specified metadata is not valid, no metadata is served. The namespace for this config map is openshift-config.",
 	"webhookTokenAuthenticators": "webhookTokenAuthenticators configures remote token reviewers. These remote authentication webhooks can be used to verify bearer tokens via the tokenreviews.authentication.k8s.io REST API.  This is required to honor bearer tokens that are provisioned by an external authentication service. The namespace for these secrets is openshift-config.",
-	"serviceAccountIssuer":       "serviceAccountIssuer is the identifier of the bound service account token issuer. The default is auth.openshift.io.",
+	"serviceAccountIssuer":       "serviceAccountIssuer is the identifier of the bound service account token issuer. The default is https://kubernetes.default.svc",
 }
 
 func (AuthenticationSpec) SwaggerDoc() map[string]string {
@@ -677,13 +677,41 @@ func (RegistrySources) SwaggerDoc() map[string]string {
 	return map_RegistrySources
 }
 
+var map_AWSPlatformSpec = map[string]string{
+	"":                 "AWSPlatformSpec holds the desired state of the Amazon Web Services infrastructure provider. This only includes fields that can be modified in the cluster.",
+	"serviceEndpoints": "serviceEndpoints list contains custom endpoints which will override default service endpoint of AWS Services. There must be only one ServiceEndpoint for a service.",
+}
+
+func (AWSPlatformSpec) SwaggerDoc() map[string]string {
+	return map_AWSPlatformSpec
+}
+
 var map_AWSPlatformStatus = map[string]string{
-	"":       "AWSPlatformStatus holds the current status of the Amazon Web Services infrastructure provider.",
-	"region": "region holds the default AWS region for new AWS resources created by the cluster.",
+	"":                 "AWSPlatformStatus holds the current status of the Amazon Web Services infrastructure provider.",
+	"region":           "region holds the default AWS region for new AWS resources created by the cluster.",
+	"serviceEndpoints": "ServiceEndpoints list contains custom endpoints which will override default service endpoint of AWS Services. There must be only one ServiceEndpoint for a service.",
 }
 
 func (AWSPlatformStatus) SwaggerDoc() map[string]string {
 	return map_AWSPlatformStatus
+}
+
+var map_AWSServiceEndpoint = map[string]string{
+	"":     "AWSServiceEndpoint store the configuration of a custom url to override existing defaults of AWS Services.",
+	"name": "name is the name of the AWS service. The list of all the service names can be found at https://docs.aws.amazon.com/general/latest/gr/aws-service-information.html This must be provided and cannot be empty.",
+	"url":  "url is fully qualified URI with scheme https, that overrides the default generated endpoint for a client. This must be provided and cannot be empty.",
+}
+
+func (AWSServiceEndpoint) SwaggerDoc() map[string]string {
+	return map_AWSServiceEndpoint
+}
+
+var map_AzurePlatformSpec = map[string]string{
+	"": "AzurePlatformSpec holds the desired state of the Azure infrastructure provider. This only includes fields that can be modified in the cluster.",
+}
+
+func (AzurePlatformSpec) SwaggerDoc() map[string]string {
+	return map_AzurePlatformSpec
 }
 
 var map_AzurePlatformStatus = map[string]string{
@@ -694,6 +722,14 @@ var map_AzurePlatformStatus = map[string]string{
 
 func (AzurePlatformStatus) SwaggerDoc() map[string]string {
 	return map_AzurePlatformStatus
+}
+
+var map_BareMetalPlatformSpec = map[string]string{
+	"": "BareMetalPlatformSpec holds the desired state of the BareMetal infrastructure provider. This only includes fields that can be modified in the cluster.",
+}
+
+func (BareMetalPlatformSpec) SwaggerDoc() map[string]string {
+	return map_BareMetalPlatformSpec
 }
 
 var map_BareMetalPlatformStatus = map[string]string{
@@ -707,6 +743,14 @@ func (BareMetalPlatformStatus) SwaggerDoc() map[string]string {
 	return map_BareMetalPlatformStatus
 }
 
+var map_GCPPlatformSpec = map[string]string{
+	"": "GCPPlatformSpec holds the desired state of the Google Cloud Platform infrastructure provider. This only includes fields that can be modified in the cluster.",
+}
+
+func (GCPPlatformSpec) SwaggerDoc() map[string]string {
+	return map_GCPPlatformSpec
+}
+
 var map_GCPPlatformStatus = map[string]string{
 	"":          "GCPPlatformStatus holds the current status of the Google Cloud Platform infrastructure provider.",
 	"projectID": "resourceGroupName is the Project ID for new GCP resources created for the cluster.",
@@ -715,6 +759,14 @@ var map_GCPPlatformStatus = map[string]string{
 
 func (GCPPlatformStatus) SwaggerDoc() map[string]string {
 	return map_GCPPlatformStatus
+}
+
+var map_IBMCloudPlatformSpec = map[string]string{
+	"": "IBMCloudPlatformSpec holds the desired state of the IBMCloud infrastructure provider. This only includes fields that can be modified in the cluster.",
+}
+
+func (IBMCloudPlatformSpec) SwaggerDoc() map[string]string {
+	return map_IBMCloudPlatformSpec
 }
 
 var map_IBMCloudPlatformStatus = map[string]string{
@@ -747,8 +799,9 @@ func (InfrastructureList) SwaggerDoc() map[string]string {
 }
 
 var map_InfrastructureSpec = map[string]string{
-	"":            "InfrastructureSpec contains settings that apply to the cluster infrastructure.",
-	"cloudConfig": "cloudConfig is a reference to a ConfigMap containing the cloud provider configuration file. This configuration file is used to configure the Kubernetes cloud provider integration when using the built-in cloud provider integration or the external cloud controller manager. The namespace for this config map is openshift-config.",
+	"":             "InfrastructureSpec contains settings that apply to the cluster infrastructure.",
+	"cloudConfig":  "cloudConfig is a reference to a ConfigMap containing the cloud provider configuration file. This configuration file is used to configure the Kubernetes cloud provider integration when using the built-in cloud provider integration or the external cloud controller manager. The namespace for this config map is openshift-config.\n\ncloudConfig should only be consumed by the kube_cloud_config controller. The controller is responsible for using the user configuration in the spec for various platforms and combining that with the user provided ConfigMap in this field to create a stitched kube cloud config. The controller generates a ConfigMap `kube-cloud-config` in `openshift-config-managed` namespace with the kube cloud config is stored in `cloud.conf` key. All the clients are expected to use the generated ConfigMap only.",
+	"platformSpec": "platformSpec holds desired information specific to the underlying infrastructure provider.",
 }
 
 func (InfrastructureSpec) SwaggerDoc() map[string]string {
@@ -769,6 +822,14 @@ func (InfrastructureStatus) SwaggerDoc() map[string]string {
 	return map_InfrastructureStatus
 }
 
+var map_OpenStackPlatformSpec = map[string]string{
+	"": "OpenStackPlatformSpec holds the desired state of the OpenStack infrastructure provider. This only includes fields that can be modified in the cluster.",
+}
+
+func (OpenStackPlatformSpec) SwaggerDoc() map[string]string {
+	return map_OpenStackPlatformSpec
+}
+
 var map_OpenStackPlatformStatus = map[string]string{
 	"":                    "OpenStackPlatformStatus holds the current status of the OpenStack infrastructure provider.",
 	"apiServerInternalIP": "apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used by components inside the cluster, like kubelets using the infrastructure rather than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI points to. It is the IP for a self-hosted load balancer in front of the API servers.",
@@ -779,6 +840,14 @@ var map_OpenStackPlatformStatus = map[string]string{
 
 func (OpenStackPlatformStatus) SwaggerDoc() map[string]string {
 	return map_OpenStackPlatformStatus
+}
+
+var map_OvirtPlatformSpec = map[string]string{
+	"": "OvirtPlatformSpec holds the desired state of the oVirt infrastructure provider. This only includes fields that can be modified in the cluster.",
+}
+
+func (OvirtPlatformSpec) SwaggerDoc() map[string]string {
+	return map_OvirtPlatformSpec
 }
 
 var map_OvirtPlatformStatus = map[string]string{
@@ -792,9 +861,26 @@ func (OvirtPlatformStatus) SwaggerDoc() map[string]string {
 	return map_OvirtPlatformStatus
 }
 
+var map_PlatformSpec = map[string]string{
+	"":          "PlatformSpec holds the desired state specific to the underlying infrastructure provider of the current cluster. Since these are used at spec-level for the underlying cluster, it is supposed that only one of the spec structs is set.",
+	"type":      "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", \"oVirt\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
+	"aws":       "AWS contains settings specific to the Amazon Web Services infrastructure provider.",
+	"azure":     "Azure contains settings specific to the Azure infrastructure provider.",
+	"gcp":       "GCP contains settings specific to the Google Cloud Platform infrastructure provider.",
+	"baremetal": "BareMetal contains settings specific to the BareMetal platform.",
+	"openstack": "OpenStack contains settings specific to the OpenStack infrastructure provider.",
+	"ovirt":     "Ovirt contains settings specific to the oVirt infrastructure provider.",
+	"vsphere":   "VSphere contains settings specific to the VSphere infrastructure provider.",
+	"ibmcloud":  "IBMCloud contains settings specific to the IBMCloud infrastructure provider.",
+}
+
+func (PlatformSpec) SwaggerDoc() map[string]string {
+	return map_PlatformSpec
+}
+
 var map_PlatformStatus = map[string]string{
 	"":          "PlatformStatus holds the current status specific to the underlying infrastructure provider of the current cluster. Since these are used at status-level for the underlying cluster, it is supposed that only one of the status structs is set.",
-	"type":      "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", \"oVirt\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
+	"type":      "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", \"oVirt\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.\n\nThis value will be synced with to the `status.platform` and `status.platformStatus.type`. Currently this value cannot be changed once set.",
 	"aws":       "AWS contains settings specific to the Amazon Web Services infrastructure provider.",
 	"azure":     "Azure contains settings specific to the Azure infrastructure provider.",
 	"gcp":       "GCP contains settings specific to the Google Cloud Platform infrastructure provider.",
@@ -807,6 +893,14 @@ var map_PlatformStatus = map[string]string{
 
 func (PlatformStatus) SwaggerDoc() map[string]string {
 	return map_PlatformStatus
+}
+
+var map_VSpherePlatformSpec = map[string]string{
+	"": "VSpherePlatformSpec holds the desired state of the vSphere infrastructure provider. This only includes fields that can be modified in the cluster.",
+}
+
+func (VSpherePlatformSpec) SwaggerDoc() map[string]string {
+	return map_VSpherePlatformSpec
 }
 
 var map_VSpherePlatformStatus = map[string]string{

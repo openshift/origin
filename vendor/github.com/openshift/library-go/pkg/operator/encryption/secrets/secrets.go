@@ -98,6 +98,7 @@ func FromKeyState(component string, ks state.KeyState) (*corev1.Secret, error) {
 		Data: map[string][]byte{
 			EncryptionSecretKeyDataKey: bs,
 		},
+		Type: corev1.SecretTypeOpaque,
 	}
 
 	if !ks.Migrated.Timestamp.IsZero() {

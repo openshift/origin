@@ -6,10 +6,7 @@ package docker
 
 import (
 	"bytes"
-	"context"
-	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -22,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/net/context"
 )
 
 func TestNewAPIClient(t *testing.T) {
@@ -219,17 +216,13 @@ func TestNewClientInvalidEndpoint(t *testing.T) {
 		"https://localhost:-20",
 	}
 	for _, c := range cases {
-		testCase := c
-		t.Run(testCase, func(t *testing.T) {
-			t.Parallel()
-			client, err := NewClient(testCase)
-			if client != nil {
-				t.Errorf("Want <nil> client for invalid endpoint, got %#v.", client)
-			}
-			if !errors.Is(err, ErrInvalidEndpoint) {
-				t.Errorf("NewClient(%q): Got invalid error for invalid endpoint. Want %#v. Got %#v.", testCase, ErrInvalidEndpoint, err)
-			}
-		})
+		client, err := NewClient(c)
+		if client != nil {
+			t.Errorf("Want <nil> client for invalid endpoint, got %#v.", client)
+		}
+		if !reflect.DeepEqual(err, ErrInvalidEndpoint) {
+			t.Errorf("NewClient(%q): Got invalid error for invalid endpoint. Want %#v. Got %#v.", c, ErrInvalidEndpoint, err)
+		}
 	}
 }
 
@@ -237,22 +230,19 @@ func TestNewClientNoSchemeEndpoint(t *testing.T) {
 	t.Parallel()
 	cases := []string{"localhost", "localhost:8080"}
 	for _, c := range cases {
-		testCase := c
-		t.Run(testCase, func(t *testing.T) {
-			client, err := NewClient(testCase)
-			if client == nil {
-				t.Errorf("Want client for scheme-less endpoint, got <nil>")
-			}
-			if err != nil {
-				t.Errorf("Got unexpected error scheme-less endpoint: %q", err)
-			}
-		})
+		client, err := NewClient(c)
+		if client == nil {
+			t.Errorf("Want client for scheme-less endpoint, got <nil>")
+		}
+		if err != nil {
+			t.Errorf("Got unexpected error scheme-less endpoint: %q", err)
+		}
 	}
 }
 
 func TestNewTLSClient(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		endpoint string
 		expected string
 	}{
@@ -262,18 +252,14 @@ func TestNewTLSClient(t *testing.T) {
 		{"http://localhost:4000", "https"},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.endpoint, func(t *testing.T) {
-			t.Parallel()
-			client, err := newTLSClient(test.endpoint)
-			if err != nil {
-				t.Error(err)
-			}
-			got := client.endpointURL.Scheme
-			if got != test.expected {
-				t.Errorf("endpointURL.Scheme: Got %s. Want %s.", got, test.expected)
-			}
-		})
+		client, err := newTLSClient(tt.endpoint)
+		if err != nil {
+			t.Error(err)
+		}
+		got := client.endpointURL.Scheme
+		if got != tt.expected {
+			t.Errorf("endpointURL.Scheme: Got %s. Want %s.", got, tt.expected)
+		}
 	}
 }
 
@@ -290,7 +276,7 @@ func TestEndpoint(t *testing.T) {
 
 func TestGetURL(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		endpoint string
 		path     string
 		expected string
@@ -303,23 +289,19 @@ func TestGetURL(t *testing.T) {
 		{nativeRealEndpoint, "/containers", "/containers"},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.endpoint+test.path, func(t *testing.T) {
-			t.Parallel()
-			client, _ := NewClient(test.endpoint)
-			client.endpoint = test.endpoint
-			client.SkipServerVersionCheck = true
-			got := client.getURL(test.path)
-			if got != test.expected {
-				t.Errorf("getURL(%q): Got %s. Want %s.", test.path, got, test.expected)
-			}
-		})
+		client, _ := NewClient(tt.endpoint)
+		client.endpoint = tt.endpoint
+		client.SkipServerVersionCheck = true
+		got := client.getURL(tt.path)
+		if got != tt.expected {
+			t.Errorf("getURL(%q): Got %s. Want %s.", tt.path, got, tt.expected)
+		}
 	}
 }
 
 func TestGetFakeNativeURL(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		endpoint string
 		path     string
 		expected string
@@ -329,17 +311,13 @@ func TestGetFakeNativeURL(t *testing.T) {
 		{nativeRealEndpoint, "/containers/ps", "http://unix.sock/containers/ps"},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.path, func(t *testing.T) {
-			t.Parallel()
-			client, _ := NewClient(test.endpoint)
-			client.endpoint = test.endpoint
-			client.SkipServerVersionCheck = true
-			got := client.getFakeNativeURL(test.path)
-			if got != test.expected {
-				t.Errorf("getURL(%q): Got %s. Want %s.", test.path, got, test.expected)
-			}
-		})
+		client, _ := NewClient(tt.endpoint)
+		client.endpoint = tt.endpoint
+		client.SkipServerVersionCheck = true
+		got := client.getFakeNativeURL(tt.path)
+		if got != tt.expected {
+			t.Errorf("getURL(%q): Got %s. Want %s.", tt.path, got, tt.expected)
+		}
 	}
 }
 
@@ -366,48 +344,36 @@ func TestQueryString(t *testing.T) {
 	v := float32(2.4)
 	f32QueryString := fmt.Sprintf("w=%s&x=10&y=10.35", strconv.FormatFloat(float64(v), 'f', -1, 64))
 	jsonPerson := url.QueryEscape(`{"Name":"gopher","age":4}`)
-	tests := []struct {
-		input   interface{}
-		want    string
-		wantAPI APIVersion
+	var tests = []struct {
+		input interface{}
+		want  string
 	}{
-		{&ListContainersOptions{All: true}, "all=1", nil},
-		{ListContainersOptions{All: true}, "all=1", nil},
-		{ListContainersOptions{Before: "something"}, "before=something", nil},
-		{ListContainersOptions{Before: "something", Since: "other"}, "before=something&since=other", nil},
-		{ListContainersOptions{Filters: map[string][]string{"status": {"paused", "running"}}}, "filters=%7B%22status%22%3A%5B%22paused%22%2C%22running%22%5D%7D", nil},
-		{dumb{X: 10, Y: 10.35000}, "x=10&y=10.35", apiVersion119},
-		{dumb{W: v, X: 10, Y: 10.35000}, f32QueryString, apiVersion124},
-		{dumb{X: 10, Y: 10.35000, Z: 10}, "x=10&y=10.35&zee=10", apiVersion119},
-		{dumb{v: 4, X: 10, Y: 10.35000}, "x=10&y=10.35", apiVersion119},
-		{dumb{T: 10, Y: 10.35000}, "y=10.35", nil},
-		{dumb{Person: &person{Name: "gopher", Age: 4}}, "p=" + jsonPerson, nil},
-		{nil, "", nil},
-		{10, "", nil},
-		{"not_a_struct", "", nil},
+		{&ListContainersOptions{All: true}, "all=1"},
+		{ListContainersOptions{All: true}, "all=1"},
+		{ListContainersOptions{Before: "something"}, "before=something"},
+		{ListContainersOptions{Before: "something", Since: "other"}, "before=something&since=other"},
+		{ListContainersOptions{Filters: map[string][]string{"status": {"paused", "running"}}}, "filters=%7B%22status%22%3A%5B%22paused%22%2C%22running%22%5D%7D"},
+		{dumb{X: 10, Y: 10.35000}, "x=10&y=10.35"},
+		{dumb{W: v, X: 10, Y: 10.35000}, f32QueryString},
+		{dumb{X: 10, Y: 10.35000, Z: 10}, "x=10&y=10.35&zee=10"},
+		{dumb{v: 4, X: 10, Y: 10.35000}, "x=10&y=10.35"},
+		{dumb{T: 10, Y: 10.35000}, "y=10.35"},
+		{dumb{Person: &person{Name: "gopher", Age: 4}}, "p=" + jsonPerson},
+		{nil, ""},
+		{10, ""},
+		{"not_a_struct", ""},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run("", func(t *testing.T) {
-			t.Parallel()
-			got := queryString(test.input)
-			if got != test.want {
-				t.Errorf("queryString(%v). Want %q. Got %q.", test.input, test.want, got)
-			}
-			gotstring, gotAPI := queryStringVersion(test.input)
-			if gotstring != test.want {
-				t.Errorf("queryStringVersion(%v). Want %q. Got %q.", test.input, test.want, gotstring)
-			}
-			if gotAPI.compare(test.wantAPI) != 0 {
-				t.Errorf("queryStringVersion(%v). Want API %q. Got API %q.", test.input, test.wantAPI, gotAPI)
-			}
-		})
+		got := queryString(tt.input)
+		if got != tt.want {
+			t.Errorf("queryString(%v). Want %q. Got %q.", tt.input, tt.want, got)
+		}
 	}
 }
 
 func TestAPIVersions(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		a                              string
 		b                              string
 		expectedALessThanB             bool
@@ -435,25 +401,21 @@ func TestAPIVersions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.a+test.b, func(t *testing.T) {
-			t.Parallel()
-			a, _ := NewAPIVersion(test.a)
-			b, _ := NewAPIVersion(test.b)
+		a, _ := NewAPIVersion(tt.a)
+		b, _ := NewAPIVersion(tt.b)
 
-			if test.expectedALessThanB && !a.LessThan(b) {
-				t.Errorf("Expected %#v < %#v", a, b)
-			}
-			if test.expectedALessThanOrEqualToB && !a.LessThanOrEqualTo(b) {
-				t.Errorf("Expected %#v <= %#v", a, b)
-			}
-			if test.expectedAGreaterThanB && !a.GreaterThan(b) {
-				t.Errorf("Expected %#v > %#v", a, b)
-			}
-			if test.expectedAGreaterThanOrEqualToB && !a.GreaterThanOrEqualTo(b) {
-				t.Errorf("Expected %#v >= %#v", a, b)
-			}
-		})
+		if tt.expectedALessThanB && !a.LessThan(b) {
+			t.Errorf("Expected %#v < %#v", a, b)
+		}
+		if tt.expectedALessThanOrEqualToB && !a.LessThanOrEqualTo(b) {
+			t.Errorf("Expected %#v <= %#v", a, b)
+		}
+		if tt.expectedAGreaterThanB && !a.GreaterThan(b) {
+			t.Errorf("Expected %#v > %#v", a, b)
+		}
+		if tt.expectedAGreaterThanOrEqualToB && !a.GreaterThanOrEqualTo(b) {
+			t.Errorf("Expected %#v >= %#v", a, b)
+		}
 	}
 }
 
@@ -497,7 +459,7 @@ func TestPingFailingWrongStatus(t *testing.T) {
 
 func TestPingErrorWithNativeClient(t *testing.T) {
 	t.Parallel()
-	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("aaaaaaaaaaa-invalid-aaaaaaaaaaa"))
 	}))
 	if err != nil {
@@ -519,7 +481,7 @@ func TestPingErrorWithNativeClient(t *testing.T) {
 
 func TestClientStreamTimeoutNotHit(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < 5; i++ {
 			fmt.Fprintf(w, "%d\n", i)
 			if f, ok := w.(http.Flusher); ok {
@@ -528,13 +490,12 @@ func TestClientStreamTimeoutNotHit(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}))
-	defer srv.Close()
 	client, err := NewClient(srv.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var w bytes.Buffer
-	err = client.stream(http.MethodPost, "/image/create", streamOptions{
+	err = client.stream("POST", "/image/create", streamOptions{
 		setRawTerminal:    true,
 		stdout:            &w,
 		inactivityTimeout: 300 * time.Millisecond,
@@ -551,7 +512,7 @@ func TestClientStreamTimeoutNotHit(t *testing.T) {
 
 func TestClientStreamInactivityTimeout(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < 5; i++ {
 			fmt.Fprintf(w, "%d\n", i)
 			if f, ok := w.(http.Flusher); ok {
@@ -560,13 +521,12 @@ func TestClientStreamInactivityTimeout(t *testing.T) {
 			time.Sleep(500 * time.Millisecond)
 		}
 	}))
-	defer srv.Close()
 	client, err := NewClient(srv.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var w bytes.Buffer
-	err = client.stream(http.MethodPost, "/image/create", streamOptions{
+	err = client.stream("POST", "/image/create", streamOptions{
 		setRawTerminal:    true,
 		stdout:            &w,
 		inactivityTimeout: 100 * time.Millisecond,
@@ -583,26 +543,25 @@ func TestClientStreamInactivityTimeout(t *testing.T) {
 
 func TestClientStreamContextDeadline(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "abc\n")
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
 		}
-		time.Sleep(time.Second)
+		time.Sleep(500 * time.Millisecond)
 		fmt.Fprint(w, "def\n")
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
 		}
 	}))
-	defer srv.Close()
 	client, err := NewClient(srv.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var w bytes.Buffer
-	ctx, cancel := context.WithTimeout(context.Background(), 400*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
-	err = client.stream(http.MethodPost, "/image/create", streamOptions{
+	err = client.stream("POST", "/image/create", streamOptions{
 		setRawTerminal: true,
 		stdout:         &w,
 		context:        ctx,
@@ -619,7 +578,7 @@ func TestClientStreamContextDeadline(t *testing.T) {
 
 func TestClientStreamContextCancel(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "abc\n")
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
@@ -630,7 +589,6 @@ func TestClientStreamContextCancel(t *testing.T) {
 			f.Flush()
 		}
 	}))
-	defer srv.Close()
 	client, err := NewClient(srv.URL)
 	if err != nil {
 		t.Fatal(err)
@@ -641,7 +599,7 @@ func TestClientStreamContextCancel(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 		cancel()
 	}()
-	err = client.stream(http.MethodPost, "/image/create", streamOptions{
+	err = client.stream("POST", "/image/create", streamOptions{
 		setRawTerminal: true,
 		stdout:         &w,
 		context:        ctx,
@@ -690,16 +648,15 @@ var mockPullOutput = `{"status":"Pulling from tsuru/static","id":"latest"}
 
 func TestClientStreamJSONDecode(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(mockPullOutput))
 	}))
-	defer srv.Close()
 	client, err := NewClient(srv.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var w bytes.Buffer
-	err = client.stream(http.MethodPost, "/image/create", streamOptions{
+	err = client.stream("POST", "/image/create", streamOptions{
 		stdout:         &w,
 		useJSONDecoder: true,
 	})
@@ -742,51 +699,46 @@ func (b *terminalBuffer) IsTerminal() bool {
 }
 
 func TestClientStreamJSONDecodeWithTerminal(t *testing.T) {
-	if !terminal.IsTerminal(int(os.Stdout.Fd())) {
-		t.Skip("requires a terminal")
-	}
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(mockPullOutput))
 	}))
-	defer srv.Close()
 	client, err := NewClient(srv.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var w terminalBuffer
-	err = client.stream(http.MethodPost, "/image/create", streamOptions{
+	err = client.stream("POST", "/image/create", streamOptions{
 		stdout:         &w,
 		useJSONDecoder: true,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	const expected = "latest: Pulling from tsuru/static\n\n" +
-		"\x1b[1A\x1b[2K\ra6aa3b66376f: Already exists \r\x1b[1B\n" +
-		"\x1b[1A\x1b[2K\r106572778bf7: Pulling fs layer \r\x1b[1B\n" +
-		"\x1b[1A\x1b[2K\rbac681833e51: Pulling fs layer \r\x1b[1B\n" +
-		"\x1b[1A\x1b[2K\r7302e23ef08a: Pulling fs layer \r\x1b[1B\x1b[2A\x1b[2K\rbac681833e51: Downloading [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[2K\rbac681833e51: Verifying Checksum \r\x1b[2B\x1b[2A\x1b[2K\rbac681833e51: Download complete \r\x1b[2B\x1b[3A\x1b[2K\r106572778bf7: Downloading [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[3A\x1b[2K\r106572778bf7: Verifying Checksum \r\x1b[3B\x1b[3A\x1b[2K\r106572778bf7: Download complete \r\x1b[3B\x1b[3A\x1b[2K\r106572778bf7: Extracting [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[3A\x1b[2K\r106572778bf7: Extracting [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[1A\x1b[2K\r7302e23ef08a: Downloading [>                                                  ]    233kB/21.06MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Downloading [=>                                                 ]  462.4kB/21.06MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Downloading [====================>                              ]  8.491MB/21.06MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Downloading [=================================================> ]  20.88MB/21.06MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Verifying Checksum \r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Download complete \r\x1b[1B\x1b[3A\x1b[2K\r106572778bf7: Pull complete \r\x1b[3B\x1b[2A\x1b[2K\rbac681833e51: Extracting [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[2K\rbac681833e51: Extracting [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[2K\rbac681833e51: Pull complete \r\x1b[2B\x1b[1A\x1b[2K\r7302e23ef08a: Extracting [>                                                  ]  229.4kB/21.06MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Extracting [=>                                                 ]  458.8kB/21.06MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Extracting [==========================>                        ]  11.24MB/21.06MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Extracting [==================================================>]  21.06MB/21.06MB\r\x1b[1B\x1b[1A\x1b[2K\r7302e23ef08a: Pull complete \r\x1b[1BDigest: sha256:b754472891aa7e33fc0214e3efa988174f2c2289285fcae868b7ec8b6675fc77\n" +
+	expected := "latest: Pulling from tsuru/static\n\n" +
+		"\x1b[1A\x1b[1K\x1b[K\ra6aa3b66376f: Already exists \r\x1b[1B\n" +
+		"\x1b[1A\x1b[1K\x1b[K\r106572778bf7: Pulling fs layer \r\x1b[1B\n" +
+		"\x1b[1A\x1b[1K\x1b[K\rbac681833e51: Pulling fs layer \r\x1b[1B\n" +
+		"\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Pulling fs layer \r\x1b[1B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Downloading [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Verifying Checksum \r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Download complete \r\x1b[2B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Downloading [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Verifying Checksum \r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Download complete \r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Extracting [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Extracting [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [>                                                  ]    233kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [=>                                                 ]  462.4kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [====================>                              ]  8.491MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [=================================================> ]  20.88MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Verifying Checksum \r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Download complete \r\x1b[1B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Pull complete \r\x1b[3B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Extracting [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Extracting [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Pull complete \r\x1b[2B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [>                                                  ]  229.4kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [=>                                                 ]  458.8kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [==========================>                        ]  11.24MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [==================================================>]  21.06MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Pull complete \r\x1b[1BDigest: sha256:b754472891aa7e33fc0214e3efa988174f2c2289285fcae868b7ec8b6675fc77\n" +
 		"Status: Downloaded newer image for 192.168.50.4:5000/tsuru/static\n"
 	result := w.String()
 	if result != expected {
-		t.Fatalf("wrong stream result\nwant %q\ngot:  %q", expected, result)
+		t.Fatalf("expected stream result %q, got: %q", expected, result)
 	}
 }
 
 func TestClientDoContextDeadline(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(500 * time.Millisecond)
 	}))
-	defer srv.Close()
 	client, err := NewClient(srv.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
-	_, err = client.do(http.MethodPost, "/image/create", doOptions{
+	_, err = client.do("POST", "/image/create", doOptions{
 		context: ctx,
 	})
 	if err != context.DeadlineExceeded {
@@ -796,10 +748,9 @@ func TestClientDoContextDeadline(t *testing.T) {
 
 func TestClientDoContextCancel(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(500 * time.Millisecond)
 	}))
-	defer srv.Close()
 	client, err := NewClient(srv.URL)
 	if err != nil {
 		t.Fatal(err)
@@ -809,7 +760,7 @@ func TestClientDoContextCancel(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		cancel()
 	}()
-	_, err = client.do(http.MethodPost, "/image/create", doOptions{
+	_, err = client.do("POST", "/image/create", doOptions{
 		context: ctx,
 	})
 	if err != context.Canceled {
@@ -819,7 +770,7 @@ func TestClientDoContextCancel(t *testing.T) {
 
 func TestClientStreamTimeoutNativeClient(t *testing.T) {
 	t.Parallel()
-	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < 5; i++ {
 			fmt.Fprintf(w, "%d\n", i)
 			if f, ok := w.(http.Flusher); ok {
@@ -839,10 +790,10 @@ func TestClientStreamTimeoutNativeClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	var w bytes.Buffer
-	err = client.stream(http.MethodPost, "/image/create", streamOptions{
+	err = client.stream("POST", "/image/create", streamOptions{
 		setRawTerminal:    true,
 		stdout:            &w,
-		inactivityTimeout: 50 * time.Millisecond,
+		inactivityTimeout: 100 * time.Millisecond,
 	})
 	if err != ErrInactivityTimeout {
 		t.Fatalf("expected request canceled error, got: %s", err)
@@ -853,32 +804,6 @@ func TestClientStreamTimeoutNativeClient(t *testing.T) {
 		t.Fatalf("expected stream result %q, got: %q", expected, result)
 	}
 }
-
-func TestClientStreamJSONDecoderEOFOutputWriter(t *testing.T) {
-	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, "{}")
-		time.Sleep(500 * time.Millisecond)
-	}))
-	defer srv.Close()
-	client, err := NewClient(srv.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var w eofWriter
-	err = client.stream(http.MethodPost, "/image/create", streamOptions{
-		setRawTerminal: true,
-		useJSONDecoder: true,
-		stdout:         &w,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-type eofWriter struct{}
-
-func (w eofWriter) Write(b []byte) (int, error) { return len(b), io.EOF }
 
 type FakeRoundTripper struct {
 	message  string
@@ -913,8 +838,8 @@ type person struct {
 type dumb struct {
 	T      int `qs:"-"`
 	v      int
-	W      float32 `ver:"1.24"`
-	X      int     `ver:"1.19"`
+	W      float32
+	X      int
 	Y      float64
 	Z      int     `qs:"zee"`
 	Person *person `qs:"p"`
