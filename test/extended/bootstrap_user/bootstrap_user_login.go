@@ -15,6 +15,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -71,24 +72,40 @@ var _ = g.Describe("[sig-auth][Feature:BootstrapUser] The bootstrap user", func(
 		_, _, err = resourceapply.ApplySecret(oc.AsAdmin().KubeClient().CoreV1(), recorder, kubeadminSecret)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		e2e.Logf("logging in as kubeadmin user")
-		err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-			out, err := oc.Run("login").Args("-u", "kubeadmin").InputString(password + "\n").Output()
-			if err != nil {
-				e2e.Logf("oc login for bootstrap user failed: %s", strings.Replace(err.Error(), password, "<redacted>", -1))
-				return false, nil
-			}
-			if !strings.Contains(out, "Login successful") {
-				e2e.Logf("oc login output did not contain success message:\n%s", strings.Replace(out, password, "<redacted>", -1))
-				return false, nil
-			}
-			return true, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		g.By("via CLI - oc login", func() {
+			err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
+				out, err := oc.Run("login").Args("-u", "kubeadmin").InputString(password + "\n").Output()
+				if err != nil {
+					e2e.Logf("oc login for bootstrap user failed: %s", strings.Replace(err.Error(), password, "<redacted>", -1))
+					return false, nil
+				}
+				if !strings.Contains(out, "Login successful") {
+					e2e.Logf("oc login output did not contain success message:\n%s", strings.Replace(out, password, "<redacted>", -1))
+					return false, nil
+				}
+				return true, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		user, err := oc.Run("whoami").Args().Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(user).To(o.ContainSubstring("kube:admin"))
+			user, err := oc.Run("whoami").Args().Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(user).To(o.ContainSubstring("kube:admin"))
+		})
+
+		g.By("to oauth-proxy wrapped service (alertmanager)", func() {
+			routeClient := oc.AdminRouteClient()
+
+			// get the route of alertmanager in the openshift-monitoring NS, which is wrapped by oauth-proxy
+			alertmanagerRoute, err := routeClient.RouteV1().Routes("openshift-monitoring").Get(context.TODO(), "alertmanager-main", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			alermanagerHost := alertmanagerRoute.Spec.Host
+
+			// the transport should already contain all CAs we need
+			openshiftTransport, err := rest.TransportFor(oc.AdminConfig())
+
+			err = testOAuthProxyLogin(&openshiftTransport, alermanagerHost, "kubeadmin", password)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
 	})
 })
 
