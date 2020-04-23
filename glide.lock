@@ -1,5 +1,5 @@
 hash: a4ad97a7f4c4fb2fdbde6b06317d2e5d45c00aec810d42a12d3d0b2bb9657c1d
-updated: 2020-04-08T14:09:46.502924+02:00
+updated: 2020-04-23T17:16:44.774089984-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -98,7 +98,7 @@ imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
-  version: c7c1fbc02894e7114f06f6a4d9ab31eee2225bdb
+  version: ee1a9a0726d2ae45f54118cac878c990d4016ded
 - name: github.com/chai2010/gettext-go
   version: c6fed771bfd517099caf0f7a961671fa8ed08723
   subpackages:
@@ -137,7 +137,7 @@ imports:
   - errdefs
   - namespaces
 - name: github.com/containerd/continuity
-  version: 0f16d7a0959cac64d7a54ce015e50cf4839d1970
+  version: 75bee3e2ccb6402e3a986ab8bd3b17003fc0fdec
   subpackages:
   - fs
   - pathdriver
@@ -213,6 +213,7 @@ imports:
   - client
   - daemon/logger/jsonfilelog/jsonlog
   - errdefs
+  - opts
   - pkg/archive
   - pkg/fileutils
   - pkg/homedir
@@ -240,6 +241,7 @@ imports:
 - name: github.com/docker/libnetwork
   version: c8a5fca4a6529415d24c9066fd833b87012bcd79
   subpackages:
+  - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
   version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
@@ -277,9 +279,9 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/fsouza/go-dockerclient
-  version: 8f346910cc5ab4f6e8028f61ec025465a8624bfa
+  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
 - name: github.com/getsentry/raven-go
-  version: 5c24d5110e0e198d9ae16f1f3465366085001d92
+  version: c977f96e109525a5d8fa10a19165341f601f38b0
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/go-openapi/analysis
@@ -355,7 +357,7 @@ imports:
 - name: github.com/gonum/floats
   version: c233463c7e827fd71a8cdb62dfda0e98f7c39ad5
 - name: github.com/gonum/graph
-  version: 678096d81a4bff34d364a7ee4ecf11cc198f8ae2
+  version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
   subpackages:
   - encoding/dot
   - formats/dot
@@ -671,7 +673,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/onsi/ginkgo
-  version: 67da0dd32db383f566d9d2b6559bf1d0ef03b5cb
+  version: 1aab3d369085457df3932c06a0bcdbc754eeb71f
   repo: https://github.com/openshift/onsi-ginkgo.git
   subpackages:
   - config
@@ -749,7 +751,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 585af27e34fd9db26ec411ba276fe2a378ef69d7
+  version: f24cbf292bdd6e6de1eec495ef88b00689d50c79
   subpackages:
   - annotations
   - apps
@@ -801,7 +803,7 @@ imports:
   - user
   - user/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 263ee09c7716fae62cf956eb6155ed7c1bc0ad2b
+  version: 2114e7ebb6a68d4c2113f4205ef0cbfe0530511c
   subpackages:
   - pkg/admission/imagepolicy
   - pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -821,7 +823,7 @@ imports:
   - pkg/securitycontextconstraints/util
   - pkg/securitycontextconstraints/util/sort
 - name: github.com/openshift/client-go
-  version: 2a6cd50aedd02a8b1573c0de49169a43061cf587
+  version: 6f6c07fc2a70e0b3fab8bfbe1b933907eedbc4de
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -925,7 +927,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 05357b77e21e1ec3f9ae06f6344e237d0e72fc40
+  version: b0e5b39cd9e72b03dfe114db19cf6861cf4375bf
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -977,7 +979,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: acd64d450fd45fb2afa41f833f3788c8a7797219
+  version: f6fe06335df110bcf1ed6d4e852b760bfc15beee
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
@@ -1460,6 +1462,8 @@ imports:
   - internal/resolver/passthrough
   - internal/syscall
   - internal/transport
+  - interop
+  - interop/grpc_testing
   - keepalive
   - metadata
   - naming
@@ -1472,7 +1476,7 @@ imports:
   - status
   - tap
 - name: gopkg.in/asn1-ber.v1
-  version: effdc98edfb5dde0d9fd8dfba266f6483e6ce9f0
+  version: f715ec2f112d1e4195b827ad68cf44017a3ef2b1
 - name: gopkg.in/fsnotify.v1
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: gopkg.in/gcfg.v1
@@ -2312,7 +2316,7 @@ imports:
   - pkg/apis/deviceplugin/v1beta1
   - pkg/apis/pluginregistration/v1
 - name: k8s.io/kubernetes
-  version: 754da5451727326671fbee043b64452ab0570572
+  version: 51b6cdd383749178d3a8889875d61692f49fcc7c
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
