@@ -967,7 +967,7 @@ func (proxier *Proxier) syncProxyRules() {
 
 		for _, endpoint := range allEndpoints {
 			if endpoint.GetIsLocal() && endpoint.IsTerminating() {
-				if endpoint.IsNotReady() {
+				if !endpoint.IsReady() {
 					localNotReadyTerminatingEndpoints = append(localNotReadyTerminatingEndpoints, endpoint)
 				} else {
 					localReadyTerminatingEndpoints = append(localReadyTerminatingEndpoints, endpoint)
@@ -975,7 +975,7 @@ func (proxier *Proxier) syncProxyRules() {
 			}
 
 			// skip adding endpoint to "all ready endpoints" if not ready or terminating
-			if endpoint.IsNotReady() || endpoint.IsTerminating() {
+			if !endpoint.IsReady() || endpoint.IsTerminating() {
 				continue
 			}
 
