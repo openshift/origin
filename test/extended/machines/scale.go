@@ -22,6 +22,8 @@ import (
 	"k8s.io/client-go/dynamic"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 const (
@@ -142,6 +144,10 @@ func scaleMachineSet(name string, replicas int) error {
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should", func() {
 	g.It("grow and decrease when scaling different machineSets simultaneously", func() {
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			e2eskipper.Skipf("IBM Cloud clusters do not contain machineset resources")
+		}
+
 		// expect new nodes to come up for machineSet
 		verifyNodeScalingFunc := func(c *kubernetes.Clientset, dc dynamic.Interface, expectedScaleOut int, machineSet objx.Map) bool {
 			nodes, err := getNodesFromMachineSet(c, dc, machineName(machineSet))

@@ -52,6 +52,7 @@ import (
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/origin/test/extended/testdata"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 // WaitForInternalRegistryHostname waits for the internal registry hostname to be made available to the cluster.
@@ -63,6 +64,24 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 	foundOCMLogs := false
 	isOCMProgressing := true
 	podLogs := map[string]string{}
+	isIBMCloud := e2e.TestContext.Provider == ibmcloud.ProviderName
+	testImageStreamName := ""
+	if isIBMCloud {
+		is := &imagev1.ImageStream{}
+		is.GenerateName = "internal-registry-test"
+		is, err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Create(context.Background(), is, metav1.CreateOptions{})
+		if err != nil {
+			e2e.Logf("Error creating internal registry test imagestream: %v", err)
+			return "", err
+		}
+		testImageStreamName = is.Name
+		defer func() {
+			err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Delete(context.Background(), is.Name, metav1.DeleteOptions{})
+			if err != nil {
+				e2e.Logf("Failed to cleanup internal-registry-test imagestream")
+			}
+		}()
+	}
 	err := wait.Poll(2*time.Second, 2*time.Minute, func() (bool, error) {
 		imageConfig, err := oc.AsAdmin().AdminConfigClient().ConfigV1().Images().Get(ctx, "cluster", metav1.GetOptions{})
 		if err != nil {
@@ -81,6 +100,26 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 		if len(registryHostname) == 0 {
 			e2e.Logf("Internal Registry Hostname is not set in image config object")
 			return false, nil
+		}
+
+		if len(testImageStreamName) > 0 {
+			is, err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), testImageStreamName, metav1.GetOptions{})
+			if err != nil {
+				e2e.Logf("Failed to fetch test imagestream openshift/%s: %v", testImageStreamName, err)
+				return false, err
+			}
+			if len(is.Status.DockerImageRepository) == 0 {
+				return false, nil
+			}
+			imgRef, err := imageutil.ParseDockerImageReference(is.Status.DockerImageRepository)
+			if err != nil {
+				e2e.Logf("Failed to parse dockerimage repository in test imagestream (%s): %v", is.Status.DockerImageRepository, err)
+				return false, err
+			}
+			if imgRef.Registry != registryHostname {
+				return false, nil
+			}
+			return true, nil
 		}
 
 		// verify that the OCM config's internal registry hostname matches
@@ -168,7 +207,7 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 		return false, nil
 	})
 
-	if !foundOCMLogs {
+	if !foundOCMLogs && !isIBMCloud {
 		e2e.Logf("dumping OCM pod logs since we never found the internal registry hostname and start build controller sequence")
 		for podName, podLog := range podLogs {
 			e2e.Logf("pod %s logs:\n%s", podName, podLog)
