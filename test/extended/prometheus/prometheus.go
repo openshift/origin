@@ -262,7 +262,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			// Currently following targets do not secure their /metrics endpoints:
 			// job="cco-metrics" - https://bugzilla.redhat.com/show_bug.cgi?id=1809194
 			// job="cluster-version-operator" - https://bugzilla.redhat.com/show_bug.cgi?id=1809195
-			// job="dns-default" - https://bugzilla.redhat.com/show_bug.cgi?id=1809197
 			// job="crio" - https://issues.redhat.com/browse/MON-1034 + https://issues.redhat.com/browse/OCPNODE-321
 			// job="sdn" - https://bugzilla.redhat.com/show_bug.cgi?id=1809205
 			// job="multus-admission-controller-monitor-service" - https://bugzilla.redhat.com/show_bug.cgi?id=1809204
@@ -272,7 +271,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			exclude := map[string]bool{
 				"cco-metrics":              true,
 				"cluster-version-operator": true,
-				"dns-default":              true,
 				"crio":                     true,
 				"sdn":                      true,
 				"multus-admission-controller-monitor-service": true,
