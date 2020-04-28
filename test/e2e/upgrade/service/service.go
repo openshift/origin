@@ -98,7 +98,7 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	ginkgo.By("hitting pods through the service's LoadBalancer")
 	timeout := service.LoadBalancerLagTimeoutAWS
 	// require thirty seconds of passing requests to continue (in case the SLB becomes available and then degrades)
-	TestReachableHTTPWithMinSuccessCount(tcpIngressIP, svcPort, 30, timeout)
+	TestReachableHTTPWithMinSuccessCount(serviceName, tcpIngressIP, svcPort, 30, timeout)
 
 	t.jig = jig
 	t.tcpService = tcpService
@@ -261,7 +261,7 @@ func locateService(svc *v1.Service) string {
 
 // TestReachableHTTPWithMinSuccessCount tests that the given host serves HTTP on the given port for a minimum of successCount number of
 // counts at a given interval. If the service reachability fails, the counter gets reset
-func TestReachableHTTPWithMinSuccessCount(host string, port int, successCount int, timeout time.Duration) {
+func TestReachableHTTPWithMinSuccessCount(serviceName string, host string, port int, successCount int, timeout time.Duration) {
 	consecutiveSuccessCnt := 0
 	err := wait.PollImmediate(framework.Poll, timeout, func() (bool, error) {
 		result := e2enetwork.PokeHTTP(host, port, "/echo?msg=hello",
@@ -276,5 +276,9 @@ func TestReachableHTTPWithMinSuccessCount(host string, port int, successCount in
 		consecutiveSuccessCnt = 0
 		return false, nil // caller can retry
 	})
-	framework.ExpectNoError(err)
+	if err == wait.ErrWaitTimeout {
+		framework.Failf("service %s load balancer at %s:%d did not have %d consecutive, successful HTTP responses in %s", serviceName, host, port, successCount, timeout)
+	} else {
+		framework.ExpectNoError(err)
+	}
 }
