@@ -47,7 +47,35 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 	oc := exutil.NewCLIWithoutNamespace("disaster-recovery")
 
 	g.It("[Feature:EtcdRecovery] Cluster should restore itself after quorum loss", func() {
-		e2eskipper.SkipUnlessProviderIs("aws")
+		config, err := framework.LoadConfig()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		dynamicClient := dynamic.NewForConfigOrDie(config)
+		ms := dynamicClient.Resource(schema.GroupVersionResource{
+			Group:    "machine.openshift.io",
+			Version:  "v1beta1",
+			Resource: "machines",
+		}).Namespace("openshift-machine-api")
+		mcps := dynamicClient.Resource(schema.GroupVersionResource{
+			Group:    "machineconfiguration.openshift.io",
+			Version:  "v1",
+			Resource: "machineconfigpools",
+		})
+		coc := dynamicClient.Resource(schema.GroupVersionResource{
+			Group:    "config.openshift.io",
+			Version:  "v1",
+			Resource: "clusteroperators",
+		})
+
+		// test for machines as a proxy for "can we recover a master"
+		machines, err := dynamicClient.Resource(schema.GroupVersionResource{
+			Group:    "machine.openshift.io",
+			Version:  "v1beta1",
+			Resource: "machines",
+		}).List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if len(machines.Items) == 0 {
+			e2eskipper.Skipf("machine API is not enabled and automatic recovery test is not possible")
+		}
 
 		disruption.Run("Quorum Loss and Restore", "quorum_restore",
 			disruption.TestData{},
@@ -60,25 +88,6 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				&apps.DaemonSetUpgradeTest{},
 			},
 			func() {
-
-				config, err := framework.LoadConfig()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				dynamicClient := dynamic.NewForConfigOrDie(config)
-				ms := dynamicClient.Resource(schema.GroupVersionResource{
-					Group:    "machine.openshift.io",
-					Version:  "v1beta1",
-					Resource: "machines",
-				}).Namespace("openshift-machine-api")
-				mcps := dynamicClient.Resource(schema.GroupVersionResource{
-					Group:    "machineconfiguration.openshift.io",
-					Version:  "v1",
-					Resource: "machineconfigpools",
-				})
-				coc := dynamicClient.Resource(schema.GroupVersionResource{
-					Group:    "config.openshift.io",
-					Version:  "v1",
-					Resource: "clusteroperators",
-				})
 
 				framework.Logf("Verify SSH is available before restart")
 				masters := masterNodes(oc)
