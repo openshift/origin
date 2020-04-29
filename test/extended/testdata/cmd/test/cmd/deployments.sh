@@ -177,8 +177,6 @@ os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --container=blah -o yaml -- echo 'hello world'" 'does not have a container named'
 # Non-existent volume
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --volumes=blah -o yaml -- echo 'hello world'" 'does not have a volume named'
-# verify the deprecated flag shorthand is working
-os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre -v blah -o yaml -- echo 'hello world'" 'shorthand -v has been deprecated'
 # Existing container
 os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --local --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'does not have a container named'
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'containerName: ruby-helloworld'

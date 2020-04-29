@@ -72,7 +72,7 @@ os::cmd::expect_success "oc create secret generic sshauth --from-file=ssh-privat
 # check to make sure incorrect SSH private-key path fail as expected
 os::cmd::expect_failure_and_text 'oc create secret generic bad-file --from-file=ssh-privatekey=/bad/path' 'error reading /bad/path: no such file or directory'
 
-# attach secrets to service account (deprecated)
+# attach secrets to service account
 # single secret with prefix
 os::cmd::expect_success 'oc secrets link deployer basicauth'
 # don't add the same secret twice
