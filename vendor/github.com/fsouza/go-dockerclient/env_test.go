@@ -14,7 +14,7 @@ import (
 
 func TestGet(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input    []string
 		query    string
 		expected string
@@ -25,21 +25,17 @@ func TestGet(t *testing.T) {
 		{[]string{"WAT="}, "WAT", ""},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run("", func(t *testing.T) {
-			t.Parallel()
-			env := Env(test.input)
-			got := env.Get(test.query)
-			if got != test.expected {
-				t.Errorf("Env.Get(%q): wrong result. Want %q. Got %q", test.query, test.expected, got)
-			}
-		})
+		env := Env(tt.input)
+		got := env.Get(tt.query)
+		if got != tt.expected {
+			t.Errorf("Env.Get(%q): wrong result. Want %q. Got %q", tt.query, tt.expected, got)
+		}
 	}
 }
 
 func TestExists(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input    []string
 		query    string
 		expected bool
@@ -49,34 +45,23 @@ func TestExists(t *testing.T) {
 		{[]string{"PATH=/usr/bin:/bin", "PYTHONPATH=/usr/local"}, "PYTHONPATHI", false},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run("", func(t *testing.T) {
-			t.Parallel()
-			env := Env(test.input)
-			got := env.Exists(test.query)
-			if got != test.expected {
-				t.Errorf("Env.Exists(%q): wrong result. Want %v. Got %v", test.query, test.expected, got)
-			}
-		})
+		env := Env(tt.input)
+		got := env.Exists(tt.query)
+		if got != tt.expected {
+			t.Errorf("Env.Exists(%q): wrong result. Want %v. Got %v", tt.query, tt.expected, got)
+		}
 	}
 }
 
 func TestGetBool(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input    string
 		expected bool
 	}{
-		{"EMPTY_VAR", false},
-		{"ZERO_VAR", false},
-		{"NO_VAR", false},
-		{"FALSE_VAR", false},
-		{"NONE_VAR", false},
-		{"TRUE_VAR", true},
-		{"WAT", true},
-		{"PATH", true},
-		{"ONE_VAR", true},
-		{"NO_VAR_TAB", false},
+		{"EMTPY_VAR", false}, {"ZERO_VAR", false}, {"NO_VAR", false},
+		{"FALSE_VAR", false}, {"NONE_VAR", false}, {"TRUE_VAR", true},
+		{"WAT", true}, {"PATH", true}, {"ONE_VAR", true}, {"NO_VAR_TAB", false},
 	}
 	env := Env([]string{
 		"EMPTY_VAR=", "ZERO_VAR=0", "NO_VAR=no", "FALSE_VAR=false",
@@ -84,24 +69,20 @@ func TestGetBool(t *testing.T) {
 		"ONE_VAR=1", "NO_VAR_TAB=0 \t\t\t",
 	})
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.input, func(t *testing.T) {
-			got := env.GetBool(test.input)
-			if got != test.expected {
-				t.Errorf("Env.GetBool(%q): wrong result. Want %v. Got %v.", test.input, test.expected, got)
-			}
-		})
+		got := env.GetBool(tt.input)
+		if got != tt.expected {
+			t.Errorf("Env.GetBool(%q): wrong result. Want %v. Got %v.", tt.input, tt.expected, got)
+		}
 	}
 }
 
 func TestSetBool(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input    bool
 		expected string
 	}{
-		{true, "1"},
-		{false, "0"},
+		{true, "1"}, {false, "0"},
 	}
 	for _, tt := range tests {
 		var env Env
@@ -114,101 +95,71 @@ func TestSetBool(t *testing.T) {
 
 func TestGetInt(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input    string
 		expected int
 	}{
-		{"NEGATIVE_INTEGER", -10},
-		{"NON_INTEGER", -1},
-		{"ONE", 1},
-		{"TWO", 2},
+		{"NEGATIVE_INTEGER", -10}, {"NON_INTEGER", -1}, {"ONE", 1}, {"TWO", 2},
 	}
 	env := Env([]string{"NEGATIVE_INTEGER=-10", "NON_INTEGER=wat", "ONE=1", "TWO=2"})
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.input, func(t *testing.T) {
-			t.Parallel()
-			got := env.GetInt(test.input)
-			if got != test.expected {
-				t.Errorf("Env.GetInt(%q): wrong result. Want %d. Got %d", test.input, test.expected, got)
-			}
-		})
+		got := env.GetInt(tt.input)
+		if got != tt.expected {
+			t.Errorf("Env.GetInt(%q): wrong result. Want %d. Got %d", tt.input, tt.expected, got)
+		}
 	}
 }
 
 func TestSetInt(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input    int
 		expected string
 	}{
-		{10, "10"},
-		{13, "13"},
-		{7, "7"},
-		{33, "33"},
-		{0, "0"},
-		{-34, "-34"},
+		{10, "10"}, {13, "13"}, {7, "7"}, {33, "33"},
+		{0, "0"}, {-34, "-34"},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.expected, func(t *testing.T) {
-			t.Parallel()
-			var env Env
-			env.SetInt("SOME", test.input)
-			if got := env.Get("SOME"); got != test.expected {
-				t.Errorf("Env.SetBool(%d): wrong result. Want %q. Got %q", test.input, test.expected, got)
-			}
-		})
+		var env Env
+		env.SetInt("SOME", tt.input)
+		if got := env.Get("SOME"); got != tt.expected {
+			t.Errorf("Env.SetBool(%d): wrong result. Want %q. Got %q", tt.input, tt.expected, got)
+		}
 	}
 }
 
 func TestGetInt64(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input    string
 		expected int64
 	}{
-		{"NEGATIVE_INTEGER", -10},
-		{"NON_INTEGER", -1},
-		{"ONE", 1},
-		{"TWO", 2},
+		{"NEGATIVE_INTEGER", -10}, {"NON_INTEGER", -1}, {"ONE", 1}, {"TWO", 2},
 	}
 	env := Env([]string{"NEGATIVE_INTEGER=-10", "NON_INTEGER=wat", "ONE=1", "TWO=2"})
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.input, func(t *testing.T) {
-			t.Parallel()
-			got := env.GetInt64(test.input)
-			if got != test.expected {
-				t.Errorf("Env.GetInt64(%q): wrong result. Want %d. Got %d", test.input, test.expected, got)
-			}
-		})
+		got := env.GetInt64(tt.input)
+		if got != tt.expected {
+			t.Errorf("Env.GetInt64(%q): wrong result. Want %d. Got %d", tt.input, tt.expected, got)
+		}
 	}
 }
 
 func TestSetInt64(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input    int64
 		expected string
 	}{
-		{10, "10"},
-		{13, "13"},
-		{7, "7"},
-		{33, "33"},
-		{0, "0"},
-		{-34, "-34"},
+		{10, "10"}, {13, "13"}, {7, "7"}, {33, "33"},
+		{0, "0"}, {-34, "-34"},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.expected, func(t *testing.T) {
-			t.Parallel()
-			var env Env
-			env.SetInt64("SOME", test.input)
-			if got := env.Get("SOME"); got != test.expected {
-				t.Errorf("Env.SetBool(%d): wrong result. Want %q. Got %q", test.input, test.expected, got)
-			}
-		})
+		var env Env
+		env.SetInt64("SOME", tt.input)
+		if got := env.Get("SOME"); got != tt.expected {
+			t.Errorf("Env.SetBool(%d): wrong result. Want %q. Got %q", tt.input, tt.expected, got)
+		}
 	}
 }
 
@@ -258,7 +209,7 @@ func TestGetJSONFailure(t *testing.T) {
 
 func TestSetJSON(t *testing.T) {
 	t.Parallel()
-	p1 := struct {
+	var p1 = struct {
 		Name string `json:"name"`
 		Age  int    `json:"age"`
 	}{Name: "Gopher", Age: 5}
@@ -294,7 +245,7 @@ func TestSetJSONFailure(t *testing.T) {
 
 func TestGetList(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input    string
 		expected []string
 	}{
@@ -339,7 +290,7 @@ func TestSet(t *testing.T) {
 
 func TestDecode(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input       string
 		expectedOut []string
 		expectedErr string
@@ -353,32 +304,28 @@ func TestDecode(t *testing.T) {
 		{`{}`, nil, ""},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.input, func(t *testing.T) {
-			t.Parallel()
-			var env Env
-			err := env.Decode(bytes.NewBufferString(test.input))
-			if test.expectedErr == "" {
-				if err != nil {
-					t.Error(err)
-				}
-			} else if test.expectedErr != err.Error() {
-				t.Errorf("Env.Decode(): invalid error. Want %q. Got %q.", test.expectedErr, err)
+		var env Env
+		err := env.Decode(bytes.NewBufferString(tt.input))
+		if tt.expectedErr == "" {
+			if err != nil {
+				t.Error(err)
 			}
-			got := []string(env)
-			sort.Strings(got)
-			sort.Strings(test.expectedOut)
-			if !reflect.DeepEqual(got, test.expectedOut) {
-				t.Errorf("Env.Decode(): wrong result. Want %v. Got %v.", test.expectedOut, got)
-			}
-		})
+		} else if tt.expectedErr != err.Error() {
+			t.Errorf("Env.Decode(): invalid error. Want %q. Got %q.", tt.expectedErr, err)
+		}
+		got := []string(env)
+		sort.Strings(got)
+		sort.Strings(tt.expectedOut)
+		if !reflect.DeepEqual(got, tt.expectedOut) {
+			t.Errorf("Env.Decode(): wrong result. Want %v. Got %v.", tt.expectedOut, got)
+		}
 	}
 }
 
 func TestSetAuto(t *testing.T) {
 	t.Parallel()
 	buf := bytes.NewBufferString("oi")
-	tests := []struct {
+	var tests = []struct {
 		input    interface{}
 		expected string
 	}{
@@ -389,21 +336,17 @@ func TestSetAuto(t *testing.T) {
 		{unmarshable{}, "{}"},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.expected, func(t *testing.T) {
-			t.Parallel()
-			var env Env
-			env.SetAuto("SOME", test.input)
-			if got := env.Get("SOME"); got != test.expected {
-				t.Errorf("Env.SetAuto(%v): wrong result. Want %q. Got %q", test.input, test.expected, got)
-			}
-		})
+		var env Env
+		env.SetAuto("SOME", tt.input)
+		if got := env.Get("SOME"); got != tt.expected {
+			t.Errorf("Env.SetAuto(%v): wrong result. Want %q. Got %q", tt.input, tt.expected, got)
+		}
 	}
 }
 
 func TestMap(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		input    []string
 		expected map[string]string
 	}{

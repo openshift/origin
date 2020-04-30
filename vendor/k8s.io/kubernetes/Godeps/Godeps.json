@@ -823,10 +823,6 @@
 			"Rev": "af01ea7f8024"
 		},
 		{
-			"ImportPath": "github.com/jteeuwen/go-bindata",
-			"Rev": "a0ff2567cfb7"
-		},
-		{
 			"ImportPath": "github.com/jtolds/gls",
 			"Rev": "v4.20.0"
 		},
@@ -1616,7 +1612,7 @@
 		},
 		{
 			"ImportPath": "k8s.io/utils",
-			"Rev": "0a110f9eb7ab"
+			"Rev": "a9aa75ae1b89"
 		},
 		{
 			"ImportPath": "modernc.org/cc",

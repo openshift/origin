@@ -28,19 +28,19 @@ require (
 	go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738
 	go.uber.org/zap v1.10.0
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
-	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
+	golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	google.golang.org/grpc v1.26.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/square/go-jose.v2 v2.2.2
 	gopkg.in/yaml.v2 v2.2.8
-	k8s.io/api v0.18.0-beta.2
-	k8s.io/apimachinery v0.18.0-beta.2
-	k8s.io/client-go v0.18.0-beta.2
-	k8s.io/component-base v0.18.0-beta.2
+	k8s.io/api v0.18.2
+	k8s.io/apimachinery v0.18.2
+	k8s.io/client-go v0.18.2
+	k8s.io/component-base v0.18.2
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
-	k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab
+	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.7
 	sigs.k8s.io/structured-merge-diff/v3 v3.0.0
 	sigs.k8s.io/yaml v1.2.0
@@ -48,9 +48,11 @@ require (
 
 replace (
 	github.com/coreos/etcd => github.com/coreos/etcd v3.3.10+incompatible
+	github.com/go-bindata/go-bindata => github.com/go-bindata/go-bindata v3.1.1+incompatible
 	github.com/google/go-cmp => github.com/google/go-cmp v0.3.0
 	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.1.0
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
+	github.com/json-iterator/go => github.com/json-iterator/go v1.1.8
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.0.0
 	github.com/vishvananda/netns => github.com/vishvananda/netns v0.0.0-20171111001504-be1fbeda1936
 	go.uber.org/atomic => go.uber.org/atomic v1.3.2

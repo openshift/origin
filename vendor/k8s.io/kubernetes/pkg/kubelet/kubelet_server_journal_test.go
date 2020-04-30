@@ -35,8 +35,6 @@ func repeatString(s string, times int) []string {
 }
 
 func Test_newJournalArgsFromURL(t *testing.T) {
-	type args struct {
-	}
 	tests := []struct {
 		name    string
 		query   url.Values

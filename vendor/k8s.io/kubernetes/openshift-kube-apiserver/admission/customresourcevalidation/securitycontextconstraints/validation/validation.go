@@ -29,7 +29,7 @@ func ValidateSecurityContextConstraints(scc *securityv1.SecurityContextConstrain
 		}
 	}
 
-	// ensure the user strat has a valid type
+	// ensure the user strategy has a valid type
 	runAsUserPath := field.NewPath("runAsUser")
 	switch scc.RunAsUser.Type {
 	case securityv1.RunAsUserStrategyMustRunAs, securityv1.RunAsUserStrategyMustRunAsNonRoot, securityv1.RunAsUserStrategyRunAsAny, securityv1.RunAsUserStrategyMustRunAsRange:
@@ -46,7 +46,7 @@ func ValidateSecurityContextConstraints(scc *securityv1.SecurityContextConstrain
 		}
 	}
 
-	// ensure the selinux strat has a valid type
+	// ensure the selinux strategy has a valid type
 	seLinuxContextPath := field.NewPath("seLinuxContext")
 	switch scc.SELinuxContext.Type {
 	case securityv1.SELinuxStrategyMustRunAs, securityv1.SELinuxStrategyRunAsAny:
@@ -56,7 +56,7 @@ func ValidateSecurityContextConstraints(scc *securityv1.SecurityContextConstrain
 		allErrs = append(allErrs, field.Invalid(seLinuxContextPath.Child("type"), scc.SELinuxContext.Type, msg))
 	}
 
-	// ensure the fsgroup strat has a valid type
+	// ensure the fsgroup strategy has a valid type
 	if scc.FSGroup.Type != securityv1.FSGroupStrategyMustRunAs && scc.FSGroup.Type != securityv1.FSGroupStrategyRunAsAny {
 		allErrs = append(allErrs, field.NotSupported(field.NewPath("fsGroup", "type"), scc.FSGroup.Type,
 			[]string{string(securityv1.FSGroupStrategyMustRunAs), string(securityv1.FSGroupStrategyRunAsAny)}))

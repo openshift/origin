@@ -329,6 +329,24 @@ func (EtcdList) SwaggerDoc() map[string]string {
 	return map_EtcdList
 }
 
+var map_AccessLogging = map[string]string{
+	"":              "AccessLogging describes how client requests should be logged.",
+	"destination":   "destination is where access logs go.",
+	"httpLogFormat": "httpLogFormat specifies the format of the log message for an HTTP request.\n\nIf this field is empty, log messages use the implementation's default HTTP log format.  For HAProxy's default HTTP log format, see the HAProxy documentation: http://cbonte.github.io/haproxy-dconv/2.0/configuration.html#8.2.3",
+}
+
+func (AccessLogging) SwaggerDoc() map[string]string {
+	return map_AccessLogging
+}
+
+var map_ContainerLoggingDestinationParameters = map[string]string{
+	"": "ContainerLoggingDestinationParameters describes parameters for the Container logging destination type.",
+}
+
+func (ContainerLoggingDestinationParameters) SwaggerDoc() map[string]string {
+	return map_ContainerLoggingDestinationParameters
+}
+
 var map_EndpointPublishingStrategy = map[string]string{
 	"":             "EndpointPublishingStrategy is a way to publish the endpoints of an IngressController, and represents the type and any additional configuration for a specific type.",
 	"type":         "type is the publishing strategy to use. Valid values are:\n\n* LoadBalancerService\n\nPublishes the ingress controller using a Kubernetes LoadBalancer Service.\n\nIn this configuration, the ingress controller deployment uses container networking. A LoadBalancer Service is created to publish the deployment.\n\nSee: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer\n\nIf domain is set, a wildcard DNS record will be managed to point at the LoadBalancer Service's external name. DNS records are managed only in DNS zones defined by dns.config.openshift.io/cluster .spec.publicZone and .spec.privateZone.\n\nWildcard DNS management is currently supported only on the AWS, Azure, and GCP platforms.\n\n* HostNetwork\n\nPublishes the ingress controller on node ports where the ingress controller is deployed.\n\nIn this configuration, the ingress controller deployment uses host networking, bound to node ports 80 and 443. The user is responsible for configuring an external load balancer to publish the ingress controller via the node ports.\n\n* Private\n\nDoes not publish the ingress controller.\n\nIn this configuration, the ingress controller deployment uses container networking, and is not explicitly published. The user must manually publish the ingress controller.\n\n* NodePortService\n\nPublishes the ingress controller using a Kubernetes NodePort Service.\n\nIn this configuration, the ingress controller deployment uses container networking. A NodePort Service is created to publish the deployment. The specific node ports are dynamically allocated by OpenShift; however, to support static port allocations, user changes to the node port field of the managed NodePort Service will preserved.",
@@ -368,6 +386,15 @@ func (IngressControllerList) SwaggerDoc() map[string]string {
 	return map_IngressControllerList
 }
 
+var map_IngressControllerLogging = map[string]string{
+	"":       "IngressControllerLogging describes what should be logged where.",
+	"access": "access describes how the client requests should be logged.\n\nIf this field is empty, access logging is disabled.",
+}
+
+func (IngressControllerLogging) SwaggerDoc() map[string]string {
+	return map_IngressControllerLogging
+}
+
 var map_IngressControllerSpec = map[string]string{
 	"":                           "IngressControllerSpec is the specification of the desired behavior of the IngressController.",
 	"domain":                     "domain is a DNS name serviced by the ingress controller and is used to configure multiple features:\n\n* For the LoadBalancerService endpoint publishing strategy, domain is\n  used to configure DNS records. See endpointPublishingStrategy.\n\n* When using a generated default certificate, the certificate will be valid\n  for domain and its subdomains. See defaultCertificate.\n\n* The value is published to individual Route statuses so that end-users\n  know where to target external DNS records.\n\ndomain must be unique among all IngressControllers, and cannot be updated.\n\nIf empty, defaults to ingress.config.openshift.io/cluster .spec.domain.",
@@ -379,6 +406,7 @@ var map_IngressControllerSpec = map[string]string{
 	"nodePlacement":              "nodePlacement enables explicit control over the scheduling of the ingress controller.\n\nIf unset, defaults are used. See NodePlacement for more details.",
 	"tlsSecurityProfile":         "tlsSecurityProfile specifies settings for TLS connections for ingresscontrollers.\n\nIf unset, the default is based on the apiservers.config.openshift.io/cluster resource.\n\nNote that when using the Old, Intermediate, and Modern profile types, the effective profile configuration is subject to change between releases. For example, given a specification to use the Intermediate profile deployed on release X.Y.Z, an upgrade to release X.Y.Z+1 may cause a new profile configuration to be applied to the ingress controller, resulting in a rollout.\n\nNote that the minimum TLS version for ingress controllers is 1.1, and the maximum TLS version is 1.2.  An implication of this restriction is that the Modern TLS profile type cannot be used because it requires TLS 1.3.",
 	"routeAdmission":             "routeAdmission defines a policy for handling new route claims (for example, to allow or deny claims across namespaces).\n\nIf empty, defaults will be applied. See specific routeAdmission fields for details about their defaults.",
+	"logging":                    "logging defines parameters for what should be logged where.  If this field is empty, operational logs are enabled but access logs are disabled.",
 }
 
 func (IngressControllerSpec) SwaggerDoc() map[string]string {
@@ -407,6 +435,17 @@ var map_LoadBalancerStrategy = map[string]string{
 
 func (LoadBalancerStrategy) SwaggerDoc() map[string]string {
 	return map_LoadBalancerStrategy
+}
+
+var map_LoggingDestination = map[string]string{
+	"":          "LoggingDestination describes a destination for log messages.",
+	"type":      "type is the type of destination for logs.  It must be one of the following:\n\n* Container\n\nThe ingress operator configures the sidecar container named \"logs\" on the ingress controller pod and configures the ingress controller to write logs to the sidecar.  The logs are then available as container logs.  The expectation is that the administrator configures a custom logging solution that reads logs from this sidecar.  Note that using container logs means that logs may be dropped if the rate of logs exceeds the container runtime's or the custom logging solution's capacity.\n\n* Syslog\n\nLogs are sent to a syslog endpoint.  The administrator must specify an endpoint that can receive syslog messages.  The expectation is that the administrator has configured a custom syslog instance.",
+	"syslog":    "syslog holds parameters for a syslog endpoint.  Present only if type is Syslog.",
+	"container": "container holds parameters for the Container logging destination. Present only if type is Container.",
+}
+
+func (LoggingDestination) SwaggerDoc() map[string]string {
+	return map_LoggingDestination
 }
 
 var map_NodePlacement = map[string]string{
@@ -443,6 +482,17 @@ var map_RouteAdmissionPolicy = map[string]string{
 
 func (RouteAdmissionPolicy) SwaggerDoc() map[string]string {
 	return map_RouteAdmissionPolicy
+}
+
+var map_SyslogLoggingDestinationParameters = map[string]string{
+	"":         "SyslogLoggingDestinationParameters describes parameters for the Syslog logging destination type.",
+	"address":  "address is the IP address of the syslog endpoint that receives log messages.",
+	"port":     "port is the UDP port number of the syslog endpoint that receives log messages.",
+	"facility": "facility specifies the syslog facility of log messages.\n\nIf this field is empty, the facility is \"local1\".",
+}
+
+func (SyslogLoggingDestinationParameters) SwaggerDoc() map[string]string {
+	return map_SyslogLoggingDestinationParameters
 }
 
 var map_KubeAPIServer = map[string]string{

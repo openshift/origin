@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 )
 
 func TestControllerBuilder_getOnStartedLeadingFunc(t *testing.T) {
@@ -21,7 +23,7 @@ func TestControllerBuilder_getOnStartedLeadingFunc(t *testing.T) {
 	}
 
 	// controllers finished prematurely, without being asked to finish
-	b.getOnStartedLeadingFunc(&ControllerContext{}, 3*time.Second)(context.TODO())
+	b.getOnStartedLeadingFunc(&ControllerContext{EventRecorder: eventstesting.NewTestingEventRecorder(t)}, 3*time.Second)(context.TODO())
 	if len(nonZeroExits) != 1 || !strings.Contains(nonZeroExits[0], "controllers terminated prematurely") {
 		t.Errorf("expected controllers to exit prematurely, got %#v", nonZeroExits)
 	}
@@ -37,7 +39,7 @@ func TestControllerBuilder_getOnStartedLeadingFunc(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		return nil
 	}
-	b.getOnStartedLeadingFunc(&ControllerContext{}, 5*time.Second)(ctx)
+	b.getOnStartedLeadingFunc(&ControllerContext{EventRecorder: eventstesting.NewTestingEventRecorder(t)}, 5*time.Second)(ctx)
 	if len(nonZeroExits) > 0 {
 		t.Errorf("expected controllers to exit gracefully, but got %#v", nonZeroExits)
 	}
@@ -53,7 +55,7 @@ func TestControllerBuilder_getOnStartedLeadingFunc(t *testing.T) {
 		time.Sleep(3 * time.Second)
 		return nil
 	}
-	b.getOnStartedLeadingFunc(&ControllerContext{}, 1*time.Second)(ctx)
+	b.getOnStartedLeadingFunc(&ControllerContext{EventRecorder: eventstesting.NewTestingEventRecorder(t)}, 1*time.Second)(ctx)
 	if len(nonZeroExits) != 1 && !strings.Contains(nonZeroExits[0], "some controllers failed to shutdown in 1s") {
 		t.Errorf("expected controllers to failed finish in 1s, got %#v", nonZeroExits)
 	}
@@ -86,7 +88,7 @@ func TestControllerBuilder_GracefulShutdown(t *testing.T) {
 	stoppedCh := make(chan struct{})
 	go func() {
 		defer close(stoppedCh)
-		b.getOnStartedLeadingFunc(&ControllerContext{}, 10*time.Second)(ctx)
+		b.getOnStartedLeadingFunc(&ControllerContext{EventRecorder: eventstesting.NewTestingEventRecorder(t)}, 10*time.Second)(ctx)
 	}()
 
 	select {
@@ -118,7 +120,7 @@ func TestControllerBuilder_OnLeadingFunc_ControllerError(t *testing.T) {
 
 	go func() {
 		defer close(stoppedCh)
-		b.getOnStartedLeadingFunc(&ControllerContext{}, 10*time.Second)(ctx)
+		b.getOnStartedLeadingFunc(&ControllerContext{EventRecorder: eventstesting.NewTestingEventRecorder(t)}, 10*time.Second)(ctx)
 	}()
 
 	<-startedCh
@@ -171,7 +173,7 @@ func TestControllerBuilder_OnLeadingFunc_NonZeroExit(t *testing.T) {
 	}()
 
 	go func() {
-		b.getOnStartedLeadingFunc(&ControllerContext{}, time.Second)(ctx) // graceful time is just 1s
+		b.getOnStartedLeadingFunc(&ControllerContext{EventRecorder: eventstesting.NewTestingEventRecorder(t)}, time.Second)(ctx) // graceful time is just 1s
 	}()
 
 	select {

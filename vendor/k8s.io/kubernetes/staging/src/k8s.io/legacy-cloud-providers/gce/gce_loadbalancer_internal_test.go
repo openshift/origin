@@ -148,6 +148,29 @@ func TestEnsureInternalBackendServiceGroups(t *testing.T) {
 	}
 }
 
+func TestEnsureInternalInstanceGroupsLimit(t *testing.T) {
+	t.Parallel()
+
+	vals := DefaultTestClusterValues()
+	nodeNames := []string{}
+	for i := 0; i < maxInstancesPerInstanceGroup+5; i++ {
+		nodeNames = append(nodeNames, fmt.Sprintf("node-%d", i))
+	}
+
+	gce, err := fakeGCECloud(vals)
+	require.NoError(t, err)
+
+	nodes, err := createAndInsertNodes(gce, nodeNames, vals.ZoneName)
+	require.NoError(t, err)
+	igName := makeInstanceGroupName(vals.ClusterID)
+	_, err = gce.ensureInternalInstanceGroups(igName, nodes)
+	require.NoError(t, err)
+
+	instances, err := gce.ListInstancesInInstanceGroup(igName, vals.ZoneName, allInstances)
+	require.NoError(t, err)
+	assert.Equal(t, maxInstancesPerInstanceGroup, len(instances))
+}
+
 func TestEnsureInternalLoadBalancer(t *testing.T) {
 	t.Parallel()
 
@@ -815,6 +838,7 @@ func TestEnsureInternalInstanceGroupsReuseGroups(t *testing.T) {
 
 	svc := fakeLoadbalancerService(string(LBTypeInternal))
 	svc, err = gce.client.CoreV1().Services(svc.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
+	assert.NoError(t, err)
 	_, err = gce.ensureInternalLoadBalancer(
 		vals.ClusterName, vals.ClusterID,
 		svc,

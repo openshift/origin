@@ -89,11 +89,11 @@ func TestValidateOpenIDIdentityProvider(t *testing.T) {
 					ClientID:     "readallPerson",
 					ClientSecret: configv1.SecretNameReference{Name: "oidc-secret"},
 					Issuer:       "https://oidc-friendly.domain.com",
-					CA:           configv1.ConfigMapNameReference{Name: "teh_Nameofaca"},
+					CA:           configv1.ConfigMapNameReference{Name: "the_Nameofaca"},
 				},
 			},
 			want: field.ErrorList{
-				field.Invalid(field.NewPath("ca", "name"), "teh_Nameofaca", wrongConfigMapSecretErrMsg),
+				field.Invalid(field.NewPath("ca", "name"), "the_Nameofaca", wrongConfigMapSecretErrMsg),
 			},
 		},
 		{

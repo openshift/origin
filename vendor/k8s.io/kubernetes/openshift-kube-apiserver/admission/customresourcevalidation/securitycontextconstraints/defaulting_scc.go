@@ -67,6 +67,9 @@ func (a *defaultSCC) Admit(ctx context.Context, attributes admission.Attributes,
 	outSCCExternal := uncastObj.(*securityv1.SecurityContextConstraints)
 	SetDefaults_SCC(outSCCExternal)
 	defaultedBytes, err := runtime.Encode(a.codecFactory.LegacyCodec(securityv1.GroupVersion), outSCCExternal)
+	if err != nil {
+		return err
+	}
 	outUnstructured := &unstructured.Unstructured{}
 	if _, _, err := unstructured.UnstructuredJSONScheme.Decode(defaultedBytes, nil, outUnstructured); err != nil {
 		return err

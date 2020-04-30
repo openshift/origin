@@ -48,6 +48,7 @@ func TestObserveFeatureFlags(t *testing.T) {
 			name:        "default",
 			configValue: configv1.Default,
 			expectedResult: []string{
+				"APIPriorityAndFairness=true",
 				"RotateKubeletServerCertificate=true",
 				"SupportPodPidsLimit=true",
 				"NodeDisruptionExclusion=true",
@@ -60,6 +61,7 @@ func TestObserveFeatureFlags(t *testing.T) {
 			name:        "techpreview",
 			configValue: configv1.TechPreviewNoUpgrade,
 			expectedResult: []string{
+				"APIPriorityAndFairness=true",
 				"RotateKubeletServerCertificate=true",
 				"SupportPodPidsLimit=true",
 				"NodeDisruptionExclusion=true",

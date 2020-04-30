@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/library-go/pkg/config/configdefaults"
 	"github.com/openshift/library-go/pkg/controller/fileobserver"
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/serviceability"
 
 	// for metrics
@@ -266,6 +267,8 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 		WithKubeConfigFile(c.basicFlags.KubeConfigFile, nil).
 		WithComponentNamespace(c.basicFlags.Namespace).
 		WithLeaderElection(config.LeaderElection, c.basicFlags.Namespace, c.componentName+"-lock").
+		WithVersion(c.version).
+		WithEventRecorderOptions(events.RecommendedClusterSingletonCorrelatorOptions()).
 		WithRestartOnChange(exitOnChangeReactorCh, startingFileContent, observedFiles...)
 
 	if !c.DisableServing {
