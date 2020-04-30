@@ -8,7 +8,7 @@ os::build::setup_env
 
 OUTPUT_PARENT=${OUTPUT_ROOT:-$OS_ROOT}
 
-pushd vendor/github.com/jteeuwen/go-bindata > /dev/null
+pushd vendor/github.com/go-bindata/go-bindata > /dev/null
   go install ./...
 popd > /dev/null
 os::util::ensure::gopath_binary_exists 'go-bindata'
@@ -45,7 +45,7 @@ if [[ "$( cat "${OUTPUT_PARENT}/test/extended/testdata/bindata.go" | wc -c )" -g
 fi
 
 pushd "${OS_ROOT}/vendor/k8s.io/kubernetes" > /dev/null
-PATH="$(dirname "$(os::util::find::gopath_binary go-bindata)"):${PATH}" hack/generate-bindata.sh
+PATH="$(dirname "$(os::util::find::gopath_binary go-bindata)"):${PATH}" SKIP_INSTALL_GO_BINDATA=y hack/generate-bindata.sh
 popd > /dev/null
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
