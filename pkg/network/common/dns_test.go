@@ -189,7 +189,7 @@ func TestUpdateDNS(t *testing.T) {
 		dns.HandleFunc(test.domainName, serverFn)
 		defer dns.HandleRemove(test.domainName)
 
-		err, _ = n.updateOne(test.domainName)
+		_, err = n.updateOne(test.domainName)
 		if test.expectFailure && err == nil {
 			t.Fatalf("Test case: %s failed, expected failure but got success", test.testCase)
 		} else if !test.expectFailure && err != nil {
