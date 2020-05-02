@@ -22,8 +22,10 @@ import (
 	"github.com/openshift/client-go/image/clientset/versioned"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
@@ -99,10 +101,17 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "schedulers.yaml"},
 			{pluginOutputDir, "namespaces", "openshift-kube-apiserver", "core", "configmaps.yaml"},
 			{pluginOutputDir, "namespaces", "openshift-kube-apiserver", "core", "secrets.yaml"},
-			{pluginOutputDir, "audit_logs", "kube-apiserver.audit_logs_listing"},
-			{pluginOutputDir, "audit_logs", "openshift-apiserver.audit_logs_listing"},
 			{pluginOutputDir, "host_service_logs", "masters", "crio_service.log"},
 			{pluginOutputDir, "host_service_logs", "masters", "kubelet_service.log"},
+		}
+
+		// Skip the kube and openshift apiserver audit logs on IBM ROKS clusters
+		// since those components live outside of the cluster.
+		if e2e.TestContext.Provider != ibmcloud.ProviderName {
+			expectedFiles = append(expectedFiles,
+				[]string{pluginOutputDir, "audit_logs", "kube-apiserver.audit_logs_listing"},
+				[]string{pluginOutputDir, "audit_logs", "openshift-apiserver.audit_logs_listing"},
+			)
 		}
 
 		for _, expectedDirectory := range expectedDirectories {
@@ -162,7 +171,12 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 				return nil
 			})
 			o.Expect(err).ToNot(o.HaveOccurred())
-			o.Expect(eventsChecked).To(o.BeNumerically(">", 10000))
+
+			// On IBM ROKS, events will not be part of the output, since audit logs do not include
+			// control plane logs.
+			if e2e.TestContext.Provider != ibmcloud.ProviderName {
+				o.Expect(eventsChecked).To(o.BeNumerically(">", 10000))
+			}
 		}
 	})
 

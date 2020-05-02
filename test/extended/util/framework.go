@@ -44,12 +44,15 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
+	securityv1 "github.com/openshift/api/security/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/origin/test/extended/testdata"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 // WaitForInternalRegistryHostname waits for the internal registry hostname to be made available to the cluster.
@@ -61,6 +64,24 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 	foundOCMLogs := false
 	isOCMProgressing := true
 	podLogs := map[string]string{}
+	isIBMCloud := e2e.TestContext.Provider == ibmcloud.ProviderName
+	testImageStreamName := ""
+	if isIBMCloud {
+		is := &imagev1.ImageStream{}
+		is.GenerateName = "internal-registry-test"
+		is, err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Create(context.Background(), is, metav1.CreateOptions{})
+		if err != nil {
+			e2e.Logf("Error creating internal registry test imagestream: %v", err)
+			return "", err
+		}
+		testImageStreamName = is.Name
+		defer func() {
+			err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Delete(context.Background(), is.Name, metav1.DeleteOptions{})
+			if err != nil {
+				e2e.Logf("Failed to cleanup internal-registry-test imagestream")
+			}
+		}()
+	}
 	err := wait.Poll(2*time.Second, 2*time.Minute, func() (bool, error) {
 		imageConfig, err := oc.AsAdmin().AdminConfigClient().ConfigV1().Images().Get(ctx, "cluster", metav1.GetOptions{})
 		if err != nil {
@@ -79,6 +100,26 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 		if len(registryHostname) == 0 {
 			e2e.Logf("Internal Registry Hostname is not set in image config object")
 			return false, nil
+		}
+
+		if len(testImageStreamName) > 0 {
+			is, err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), testImageStreamName, metav1.GetOptions{})
+			if err != nil {
+				e2e.Logf("Failed to fetch test imagestream openshift/%s: %v", testImageStreamName, err)
+				return false, err
+			}
+			if len(is.Status.DockerImageRepository) == 0 {
+				return false, nil
+			}
+			imgRef, err := imageutil.ParseDockerImageReference(is.Status.DockerImageRepository)
+			if err != nil {
+				e2e.Logf("Failed to parse dockerimage repository in test imagestream (%s): %v", is.Status.DockerImageRepository, err)
+				return false, err
+			}
+			if imgRef.Registry != registryHostname {
+				return false, nil
+			}
+			return true, nil
 		}
 
 		// verify that the OCM config's internal registry hostname matches
@@ -166,14 +207,14 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 		return false, nil
 	})
 
-	if !foundOCMLogs {
+	if !foundOCMLogs && !isIBMCloud {
 		e2e.Logf("dumping OCM pod logs since we never found the internal registry hostname and start build controller sequence")
 		for podName, podLog := range podLogs {
 			e2e.Logf("pod %s logs:\n%s", podName, podLog)
 		}
 	}
 	if err == wait.ErrWaitTimeout {
-		return "", fmt.Errorf("Timed out waiting for internal registry hostname to be published")
+		return "", fmt.Errorf("Timed out waiting for Openshift Controller Manager to be rolled out with updated internal registry hostname")
 	}
 	if err != nil {
 		return "", err
@@ -936,6 +977,32 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 		return false, nil
 	}
 	return wait.Poll(time.Duration(100*time.Millisecond), 3*time.Minute, waitFn)
+}
+
+// WaitForNamespaceSCCAnnotations waits up to 2 minutes for the cluster-policy-controller to add the SCC related
+// annotations to the provided namespace.
+func WaitForNamespaceSCCAnnotations(c projectv1typedclient.ProjectV1Interface, name string) error {
+	waitFn := func() (bool, error) {
+		proj, err := c.Projects().Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			// it is assumed the project was created prior to calling this, so we
+			// do not distinguish not found errors
+			return false, err
+		}
+		if proj.Annotations == nil {
+			return false, nil
+		}
+		for k := range proj.Annotations {
+			// annotations to check based off of
+			// https://github.com/openshift/cluster-policy-controller/blob/master/pkg/security/controller/namespace_scc_allocation_controller.go#L112
+			if k == securityv1.UIDRangeAnnotation {
+				return true, nil
+			}
+		}
+		e2e.Logf("project %s current annotation set: %#v", name, proj.Annotations)
+		return false, nil
+	}
+	return wait.Poll(time.Duration(15*time.Second), 2*time.Minute, waitFn)
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function

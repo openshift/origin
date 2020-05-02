@@ -29,7 +29,7 @@ os::cmd::expect_success 'oc login -u wheel -p pw'
 os::cmd::expect_success_and_text 'oc whoami' "wheel"
 os::cmd::expect_failure 'oc whoami --as deads'
 os::cmd::expect_success_and_text 'oc whoami --as=system:admin' "system:admin"
-os::cmd::expect_success_and_text 'oc policy can-i --list --as=system:admin' '.*'
+os::cmd::expect_success_and_text 'oc auth can-i --list --as=system:admin' '.*'
 
 os::cmd::expect_success 'oc login -u local-admin -p pw'
 os::cmd::expect_success 'oc new-project policy-login'
@@ -174,25 +174,24 @@ os::cmd::expect_success_and_text 'oc adm policy who-can create builds/custom' 's
 
 os::cmd::expect_success 'oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"'
 
-os::cmd::try_until_text 'oc policy can-i --list' 'get update.*imagestreams/layers'
-os::cmd::try_until_text 'oc policy can-i create pods --all-namespaces' 'yes'
-os::cmd::try_until_text 'oc policy can-i create pods' 'yes'
-os::cmd::try_until_text 'oc policy can-i create pods --as harold' 'no'
-os::cmd::expect_failure 'oc policy can-i create pods --as harold --user harold'
-os::cmd::expect_failure 'oc policy can-i --list --as harold --user harold'
-os::cmd::expect_failure 'oc policy can-i create pods --as harold -q'
+os::cmd::try_until_text 'oc auth can-i --list' 'get update.*imagestreams/layers'
+os::cmd::try_until_text 'oc auth can-i create pods --all-namespaces' 'yes'
+os::cmd::try_until_text 'oc auth can-i create pods' 'yes'
+os::cmd::try_until_text 'oc auth can-i create pods --as harold' 'no'
+os::cmd::expect_failure 'oc auth can-i create pods --as harold --user harold'
+os::cmd::expect_failure 'oc auth can-i --list --as harold --user harold'
+os::cmd::expect_failure 'oc auth can-i create pods --as harold -q'
 
-os::cmd::expect_success_and_text 'oc policy can-i create pods --user system:admin' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --groups system:unauthenticated --groups system:masters' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --groups system:unauthenticated' 'no'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --user harold' 'no'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --user system:admin' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --groups system:unauthenticated --groups system:masters' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --groups system:unauthenticated' 'no'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --user harold' 'no'
 
-os::cmd::expect_success_and_text 'oc policy can-i --list --user system:admin' 'get update.*imagestreams/layers'
-os::cmd::expect_success_and_text 'oc policy can-i --list --groups system:unauthenticated --groups system:cluster-readers' 'get.*imagestreams/layers'
-os::cmd::expect_success_and_not_text 'oc policy can-i --list --groups system:unauthenticated' 'get update.*imagestreams/layers'
-os::cmd::expect_success_and_not_text 'oc policy can-i --list --user harold --groups system:authenticated' 'get update.*imagestreams/layers'
-os::cmd::expect_success_and_text 'oc policy can-i --list --user harold --groups system:authenticated' 'create get.*buildconfigs/webhooks'
-
+os::cmd::expect_success_and_text 'oc auth can-i --list --user system:admin' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc auth can-i --list --groups system:unauthenticated --groups system:cluster-readers' 'get.*imagestreams/layers'
+os::cmd::expect_success_and_not_text 'oc auth can-i --list --groups system:unauthenticated' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_not_text 'oc auth can-i --list --user harold --groups system:authenticated' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc auth can-i --list --user harold --groups system:authenticated' 'create get.*buildconfigs/webhooks'
 
 os::cmd::expect_failure 'oc policy scc-subject-review'
 os::cmd::expect_failure 'oc policy scc-review'
@@ -269,14 +268,14 @@ os::cmd::expect_failure_and_text "oc replace --kubeconfig=${new_kubeconfig} clus
 
 # This test validates cluster level policy for serviceaccounts
 # ensure service account cannot list pods at the namespace level
-os::cmd::expect_success_and_text "oc policy can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
+os::cmd::expect_success_and_text "oc auth can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
 os::cmd::expect_success_and_text "oc adm policy add-role-to-user view -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/view added: "testserviceaccount"'
 # ensure service account can list pods at the namespace level after "view" role is added, but not at the cluster level
-os::cmd::try_until_text "oc policy can-i list pods --as=system:serviceaccount:${project}:testserviceaccount" "yes"
-os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "no"
+os::cmd::try_until_text "oc auth can-i list pods --as=system:serviceaccount:${project}:testserviceaccount" "yes"
+os::cmd::try_until_text "oc auth can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "no"
 # ensure service account can list pods at the cluster level after "cluster-reader" cluster role is added
 os::cmd::expect_success_and_text "oc adm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/cluster-reader added: "testserviceaccount"'
-os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
+os::cmd::try_until_text "oc auth can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
 
 # make sure users can easily create roles for RBAC based SCC access
 os::cmd::expect_success_and_text 'oc create role scc-privileged --verb=use --resource=scc --resource-name=privileged' 'role.rbac.authorization.k8s.io/scc-privileged created'

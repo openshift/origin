@@ -433,6 +433,7 @@
 // test/extended/testdata/router/reencrypt-serving-cert.yaml
 // test/extended/testdata/router/router-common.yaml
 // test/extended/testdata/router/router-config-manager.yaml
+// test/extended/testdata/router/router-grpc-interop.yaml
 // test/extended/testdata/router/router-h2spec.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
 // test/extended/testdata/router/router-metrics.yaml
@@ -31887,8 +31888,6 @@ os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --container=blah -o yaml -- echo 'hello world'" 'does not have a container named'
 # Non-existent volume
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --volumes=blah -o yaml -- echo 'hello world'" 'does not have a volume named'
-# verify the deprecated flag shorthand is working
-os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre -v blah -o yaml -- echo 'hello world'" 'shorthand -v has been deprecated'
 # Existing container
 os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --local --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'does not have a container named'
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'containerName: ruby-helloworld'
@@ -33874,16 +33873,16 @@ os::cmd::expect_success_and_text 'oc policy who-can impersonate storage-admin' '
 #os::cmd::expect_failure 'oc whoami --as=cluster-admin'
 
 # Test storage-admin can not do normal project scoped tasks
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pods --all-namespaces' 'no'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create projects' 'no'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pvc' 'no'
+os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm create pods --all-namespaces' 'no'
+os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm create projects' 'no'
+os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm create pvc' 'no'
 
 # Test storage-admin can read pvc and pods, and create pv and storageclass
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get pvc --all-namespaces' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get storageclass' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pv' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create storageclass' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get pods --all-namespaces' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm get pvc --all-namespaces' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm get storageclass' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm create pv' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm create storageclass' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm get pods --all-namespaces' 'yes'
 
 # Test failure to change policy on users for storage-admin
 os::cmd::expect_failure_and_text 'oc policy --as=storage-adm add-role-to-user admin storage-adm' ' cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"'
@@ -33894,10 +33893,10 @@ os::cmd::expect_failure_and_text 'oc policy --as=storage-adm remove-user screele
 #os::cmd::expect_success 'oc login -u storage-adm2 -p pw'
 #os::cmd::expect_success_and_text 'oc whoami' "storage-adm2"
 os::cmd::expect_success 'oc new-project --as=storage-adm2 --as-group=system:authenticated:oauth --as-group=system:authenticated policy-can-i'
-os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create pod --all-namespaces' 'no'
-os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create pod' 'yes'
-os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create pvc' 'yes'
-os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create endpoints' 'yes'
+os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm2 create pod --all-namespaces' 'no'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm2 create pod' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm2 create pvc' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm2 create endpoints' 'yes'
 os::cmd::expect_success 'oc delete project policy-can-i'
 `)
 
@@ -33947,7 +33946,7 @@ os::cmd::expect_success 'oc login -u wheel -p pw'
 os::cmd::expect_success_and_text 'oc whoami' "wheel"
 os::cmd::expect_failure 'oc whoami --as deads'
 os::cmd::expect_success_and_text 'oc whoami --as=system:admin' "system:admin"
-os::cmd::expect_success_and_text 'oc policy can-i --list --as=system:admin' '.*'
+os::cmd::expect_success_and_text 'oc auth can-i --list --as=system:admin' '.*'
 
 os::cmd::expect_success 'oc login -u local-admin -p pw'
 os::cmd::expect_success 'oc new-project policy-login'
@@ -34092,25 +34091,24 @@ os::cmd::expect_success_and_text 'oc adm policy who-can create builds/custom' 's
 
 os::cmd::expect_success 'oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"'
 
-os::cmd::try_until_text 'oc policy can-i --list' 'get update.*imagestreams/layers'
-os::cmd::try_until_text 'oc policy can-i create pods --all-namespaces' 'yes'
-os::cmd::try_until_text 'oc policy can-i create pods' 'yes'
-os::cmd::try_until_text 'oc policy can-i create pods --as harold' 'no'
-os::cmd::expect_failure 'oc policy can-i create pods --as harold --user harold'
-os::cmd::expect_failure 'oc policy can-i --list --as harold --user harold'
-os::cmd::expect_failure 'oc policy can-i create pods --as harold -q'
+os::cmd::try_until_text 'oc auth can-i --list' 'get update.*imagestreams/layers'
+os::cmd::try_until_text 'oc auth can-i create pods --all-namespaces' 'yes'
+os::cmd::try_until_text 'oc auth can-i create pods' 'yes'
+os::cmd::try_until_text 'oc auth can-i create pods --as harold' 'no'
+os::cmd::expect_failure 'oc auth can-i create pods --as harold --user harold'
+os::cmd::expect_failure 'oc auth can-i --list --as harold --user harold'
+os::cmd::expect_failure 'oc auth can-i create pods --as harold -q'
 
-os::cmd::expect_success_and_text 'oc policy can-i create pods --user system:admin' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --groups system:unauthenticated --groups system:masters' 'yes'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --groups system:unauthenticated' 'no'
-os::cmd::expect_success_and_text 'oc policy can-i create pods --user harold' 'no'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --user system:admin' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --groups system:unauthenticated --groups system:masters' 'yes'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --groups system:unauthenticated' 'no'
+os::cmd::expect_success_and_text 'oc auth can-i create pods --user harold' 'no'
 
-os::cmd::expect_success_and_text 'oc policy can-i --list --user system:admin' 'get update.*imagestreams/layers'
-os::cmd::expect_success_and_text 'oc policy can-i --list --groups system:unauthenticated --groups system:cluster-readers' 'get.*imagestreams/layers'
-os::cmd::expect_success_and_not_text 'oc policy can-i --list --groups system:unauthenticated' 'get update.*imagestreams/layers'
-os::cmd::expect_success_and_not_text 'oc policy can-i --list --user harold --groups system:authenticated' 'get update.*imagestreams/layers'
-os::cmd::expect_success_and_text 'oc policy can-i --list --user harold --groups system:authenticated' 'create get.*buildconfigs/webhooks'
-
+os::cmd::expect_success_and_text 'oc auth can-i --list --user system:admin' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc auth can-i --list --groups system:unauthenticated --groups system:cluster-readers' 'get.*imagestreams/layers'
+os::cmd::expect_success_and_not_text 'oc auth can-i --list --groups system:unauthenticated' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_not_text 'oc auth can-i --list --user harold --groups system:authenticated' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc auth can-i --list --user harold --groups system:authenticated' 'create get.*buildconfigs/webhooks'
 
 os::cmd::expect_failure 'oc policy scc-subject-review'
 os::cmd::expect_failure 'oc policy scc-review'
@@ -34187,14 +34185,14 @@ os::cmd::expect_failure_and_text "oc replace --kubeconfig=${new_kubeconfig} clus
 
 # This test validates cluster level policy for serviceaccounts
 # ensure service account cannot list pods at the namespace level
-os::cmd::expect_success_and_text "oc policy can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
+os::cmd::expect_success_and_text "oc auth can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
 os::cmd::expect_success_and_text "oc adm policy add-role-to-user view -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/view added: "testserviceaccount"'
 # ensure service account can list pods at the namespace level after "view" role is added, but not at the cluster level
-os::cmd::try_until_text "oc policy can-i list pods --as=system:serviceaccount:${project}:testserviceaccount" "yes"
-os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "no"
+os::cmd::try_until_text "oc auth can-i list pods --as=system:serviceaccount:${project}:testserviceaccount" "yes"
+os::cmd::try_until_text "oc auth can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "no"
 # ensure service account can list pods at the cluster level after "cluster-reader" cluster role is added
 os::cmd::expect_success_and_text "oc adm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/cluster-reader added: "testserviceaccount"'
-os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
+os::cmd::try_until_text "oc auth can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
 
 # make sure users can easily create roles for RBAC based SCC access
 os::cmd::expect_success_and_text 'oc create role scc-privileged --verb=use --resource=scc --resource-name=privileged' 'role.rbac.authorization.k8s.io/scc-privileged created'
@@ -34281,13 +34279,15 @@ os::test::junit::declare_suite_start "cmd/projects/lifecycle"
 # resourceaccessreview
 os::cmd::expect_success 'oc policy who-can get pods -n missing-ns'
 # selfsubjectaccessreview
-os::cmd::expect_success 'oc policy can-i get pods -n missing-ns'
+os::cmd::expect_success 'oc auth can-i get pods -n missing-ns'
 # selfsubjectrulesreivew
-os::cmd::expect_success 'oc policy can-i --list -n missing-ns'
+os::cmd::expect_success 'oc auth can-i --list -n missing-ns'
+# create bob
+os::cmd::expect_success 'oc create user bob'
 # subjectaccessreview
-os::cmd::expect_success 'oc policy can-i get pods --user=bob -n missing-ns'
+os::cmd::expect_failure_and_text 'oc auth can-i get pods --as=bob -n missing-ns' 'no'
 # subjectrulesreview
-os::cmd::expect_success 'oc policy can-i --list  --user=bob -n missing-ns'
+os::cmd::expect_success 'oc auth can-i --list  --as=bob -n missing-ns'
 echo 'project lifecycle ok'
 os::test::junit::declare_suite_end
 
@@ -34712,7 +34712,7 @@ os::cmd::expect_success "oc create secret generic sshauth --from-file=ssh-privat
 # check to make sure incorrect SSH private-key path fail as expected
 os::cmd::expect_failure_and_text 'oc create secret generic bad-file --from-file=ssh-privatekey=/bad/path' 'error reading /bad/path: no such file or directory'
 
-# attach secrets to service account (deprecated)
+# attach secrets to service account
 # single secret with prefix
 os::cmd::expect_success 'oc secrets link deployer basicauth'
 # don't add the same secret twice
@@ -35250,10 +35250,6 @@ os::cmd::try_until_not_text "oc get projects" "project-bar-2"
 #os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
 os::cmd::expect_success "oc new-project project-status --display-name='my project' --description='test project'"
 
-# Verify the deprecated flags are working
-os::cmd::expect_success_and_text 'oc status -v' 'shorthand -v has been deprecated'
-os::cmd::expect_success_and_text 'oc status --verbose' '\-\-verbose has been deprecated'
-
 # Verify jobs are showing in status
 os::cmd::expect_success "oc create job pi --image=perl -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
 os::cmd::expect_success_and_text "oc status" "job/pi manages perl"
@@ -35436,18 +35432,16 @@ os::test::junit::declare_suite_start "cmd/templates/process"
 os::cmd::expect_failure_and_text 'oc process name1 name2' 'template name must be specified only once'
 # fail to pass a filename or template by name
 os::cmd::expect_failure_and_text 'oc process' 'Must pass a filename or name of stored template'
-# can't ask for parameters and try process the template (include tests for deprecated -v/--value)
+# can't ask for parameters and try process the template
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --param=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -p someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --labels=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -l someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --output=yaml' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -o yaml' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --output-version=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output-version'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --raw' '\-\-parameters flag does not process the template, can.t be used with \-\-raw'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --template=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -t someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
-# providing a value more than once should fail (include tests for deprecated -v/--value)
+# providing a value more than once should fail
 os::cmd::expect_failure_and_text 'oc process template-name key=value key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name --param=key=value --param=key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name key=value --param=key=value' 'provided more than once: key'
@@ -46692,10 +46686,10 @@ trap os::test::junit::reconcile_output EXIT
 os::test::junit::declare_suite_start "cmd/request-timeout"
 # This test validates the global request-timeout option
 os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
-os::cmd::expect_success_and_text 'oc get dc/testdc -w --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
+os::cmd::expect_success_and_text 'oc get dc/testdc -w -v=5 --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
 os::cmd::expect_success_and_text 'oc get dc/testdc --request-timeout=1s' 'testdc'
 os::cmd::expect_success_and_text 'oc get dc/testdc --request-timeout=1' 'testdc'
-os::cmd::expect_success_and_text 'oc get pods --watch --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
+os::cmd::expect_success_and_text 'oc get pods --watch -v=5 --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
 
 echo "request-timeout: ok"
 os::test::junit::declare_suite_end
@@ -46900,7 +46894,7 @@ os::test::junit::declare_suite_start "cmd/volumes"
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/rollingupdate-daemonset.yaml'
 
-os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list' 'vol1'
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config' 'vol1'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol0 -m /opt5'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol2 --type=emptydir -m /opt'
 os::cmd::expect_failure_and_text "oc set volume dc/test-deployment-config --add --name=vol1 --type=secret --secret-name='\$ecret' -m /data" 'overwrite to replace'
@@ -46912,14 +46906,14 @@ os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vo
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --add -m /opt' "'/opt' already exists"
 os::cmd::expect_success_and_text "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby' --overwrite" 'does not have any containers'
 os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby*' --overwrite"
-os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list --name=vol2' 'mounted at /etc'
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --name=vol2' 'mounted at /etc'
 os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --dry-run --add --name=vol3 -o yaml' 'name: vol3'
-os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --list --name=vol3' 'volume "vol3" not found'
+os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --name=vol3' 'volume "vol3" not found'
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --remove' 'confirm for removing more than one volume'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --name=vol2'
-os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol2'
+os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config' 'vol2'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --confirm'
-os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol1'
+os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config' 'vol1'
 
 # ensure that resources not present in all versions of a target group
 # are still able to be encoded and patched accordingly
@@ -46977,7 +46971,7 @@ os::cmd::expect_success_and_text 'oc set volume dc/simple-dc' 'configMap/cmvol a
 # command alias
 os::cmd::expect_success 'oc set volumes --help'
 os::cmd::expect_success 'oc set volumes --help'
-os::cmd::expect_success 'oc set volumes dc/test-deployment-config --list'
+os::cmd::expect_success 'oc set volumes dc/test-deployment-config'
 
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
 echo "volumes: ok"
@@ -54977,6 +54971,283 @@ func testExtendedTestdataRouterRouterConfigManagerYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataRouterRouterGrpcInteropYaml = []byte(`apiVersion: v1
+kind: Template
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: grpc-interop
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: service-certs
+  spec:
+    selector:
+      app: grpc-interop
+    ports:
+      - port: 8443
+        name: https
+        targetPort: 8443
+        protocol: TCP
+      - port: 1110
+        name: h2c
+        targetPort: 1110
+        protocol: TCP
+- apiVersion: v1
+  kind: ConfigMap
+  labels:
+    app: grpc-interop
+  metadata:
+    name: src-config
+  data:
+    data.base64: |
+      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
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    annotations:
+      service.beta.openshift.io/inject-cabundle: "true"
+    labels:
+      app: grpc-interop
+    name: service-ca
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: grpc-interop
+    labels:
+      app: grpc-interop
+  spec:
+    containers:
+    - image: golang:1.14
+      name: server
+      command: ["/workdir/grpc-server"]
+      env:
+      - name: GRPC_GO_LOG_VERBOSITY_LEVEL
+        value: "99"
+      - name: GRPC_GO_LOG_SEVERITY_LEVEL
+        value: "info"
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      - containerPort: 1110
+        protocol: TCP
+      volumeMounts:
+      - name: service-certs
+        mountPath: /etc/service-certs
+      - name: tmp
+        mountPath: /var/run
+      - name: workdir
+        mountPath: /workdir
+      readOnly: true
+    - image: golang:1.14
+      name: client-shell
+      command: ["/bin/bash"]
+      args: ["-c", "sleep 100000"]
+      volumeMounts:
+      - name: service-certs
+        secret:
+          secretName: service-certs
+        mountPath: /etc/service-certs
+      - name: tmp
+        mountPath: /var/run
+      - name: workdir
+        mountPath: /workdir
+      - name: service-ca
+        mountPath: /etc/service-ca
+    initContainers:
+    - image: golang:1.14
+      name: builder
+      command: ["/bin/bash", "-c"]
+      args:
+        - set -e;
+          cd /workdir;
+          base64 -d /go/src/data.base64 | tar zxf -;
+          go build -v -mod=readonly -o /workdir/grpc-client client.go;
+          go build -v -mod=readonly -o /workdir/grpc-server server.go;
+      env:
+      - name: GO111MODULE
+        value: "auto"
+      - name: GOCACHE
+        value: "/tmp"
+      - name: GOPROXY
+        value: "https://goproxy.golang.org,direct"
+      volumeMounts:
+      - name: src-volume
+        mountPath: /go/src
+      - name: tmp
+        mountPath: /var/run
+      - name: workdir
+        mountPath: /workdir
+    volumes:
+    - name: src-volume
+      configMap:
+        name: src-config
+    - name: service-certs
+      secret:
+        secretName: service-certs
+    - name: tmp
+      emptyDir: {}
+    - name: workdir
+      emptyDir: {}
+    - configMap:
+        items:
+        - key: service-ca.crt
+          path: service-ca.crt
+        name: service-ca
+      name: service-ca
+  labels:
+    app: grpc-interop
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+      haproxy.router.openshift.io/enable-h2c: "true"
+    labels:
+      app: grpc-interop
+    name: grpc-interop-edge
+  spec:
+    port:
+      targetPort: 1110
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: grpc-interop
+    name: grpc-interop-reencrypt
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: grpc-interop
+    name: grpc-interop-passthrough
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: passthrough
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
+`)
+
+func testExtendedTestdataRouterRouterGrpcInteropYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterGrpcInteropYaml, nil
+}
+
+func testExtendedTestdataRouterRouterGrpcInteropYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterGrpcInteropYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-grpc-interop.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRouterRouterH2specYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
@@ -59144,6 +59415,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/reencrypt-serving-cert.yaml": testExtendedTestdataRouterReencryptServingCertYaml,
 	"test/extended/testdata/router/router-common.yaml": testExtendedTestdataRouterRouterCommonYaml,
 	"test/extended/testdata/router/router-config-manager.yaml": testExtendedTestdataRouterRouterConfigManagerYaml,
+	"test/extended/testdata/router/router-grpc-interop.yaml": testExtendedTestdataRouterRouterGrpcInteropYaml,
 	"test/extended/testdata/router/router-h2spec.yaml": testExtendedTestdataRouterRouterH2specYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml": testExtendedTestdataRouterRouterHttpEchoServerYaml,
 	"test/extended/testdata/router/router-metrics.yaml": testExtendedTestdataRouterRouterMetricsYaml,
@@ -59891,6 +60163,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
 					"router-common.yaml": &bintree{testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
 					"router-config-manager.yaml": &bintree{testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
+					"router-grpc-interop.yaml": &bintree{testExtendedTestdataRouterRouterGrpcInteropYaml, map[string]*bintree{}},
 					"router-h2spec.yaml": &bintree{testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
 					"router-metrics.yaml": &bintree{testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},

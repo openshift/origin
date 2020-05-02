@@ -12,6 +12,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.9.0
 	github.com/Azure/go-autorest/autorest/adal v0.5.0
 	github.com/Azure/go-autorest/autorest/to v0.2.0
+	github.com/Azure/go-autorest/autorest/validation v0.1.0 // indirect
 	github.com/GoogleCloudPlatform/k8s-cloud-provider v0.0.0-20190822182118-27a4ced34534
 	github.com/JeffAshton/win_pdh v0.0.0-20161109143554-76bb4ee9f0ab
 	github.com/Microsoft/go-winio v0.4.14
@@ -21,7 +22,7 @@ require (
 	github.com/aws/aws-sdk-go v1.28.2
 	github.com/bazelbuild/bazel-gazelle v0.19.1-0.20191105222053-70208cbdc798
 	github.com/bazelbuild/buildtools v0.0.0-20190917191645-69366ca98f89
-	github.com/blang/semver v3.5.0+incompatible
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/caddyserver/caddy v1.0.3
 	github.com/cespare/prettybench v0.0.0-20150116022406-03b8cfe5406c
 	github.com/client9/misspell v0.3.4
@@ -34,6 +35,7 @@ require (
 	github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/davecgh/go-spew v1.1.1
+	github.com/dnaeon/go-vcr v1.0.1 // indirect
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0
 	github.com/docker/go-connections v0.3.0
@@ -85,6 +87,7 @@ require (
 	github.com/prometheus/common v0.4.1
 	github.com/quobyte/api v0.1.2
 	github.com/robfig/cron v1.1.0
+	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
@@ -128,13 +131,14 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-aggregator v0.18.0-beta.2
 	k8s.io/kube-controller-manager v0.0.0
-	k8s.io/kube-openapi v0.0.0-20200121204235-bf4fb3bd569c
+	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
 	k8s.io/kube-proxy v0.0.0
 	k8s.io/kube-scheduler v0.0.0
 	k8s.io/kubectl v0.0.0
 	k8s.io/kubelet v0.0.0
 	k8s.io/legacy-cloud-providers v0.0.0
 	k8s.io/metrics v0.0.0
+	k8s.io/publishing-bot v0.0.0-20200406161348-10a939ba69bf // indirect
 	k8s.io/repo-infra v0.0.1-alpha.1
 	k8s.io/sample-apiserver v0.0.0
 	k8s.io/system-validators v1.0.4
@@ -549,7 +553,7 @@ replace (
 	k8s.io/klog => k8s.io/klog v1.0.0
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.18.0-beta.2
 	k8s.io/kube-controller-manager => ./staging/src/k8s.io/kube-controller-manager
-	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200121204235-bf4fb3bd569c
+	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
 	k8s.io/kube-proxy => ./staging/src/k8s.io/kube-proxy
 	k8s.io/kube-scheduler => ./staging/src/k8s.io/kube-scheduler
 	k8s.io/kubectl => ./staging/src/k8s.io/kubectl

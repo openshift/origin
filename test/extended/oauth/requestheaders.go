@@ -27,12 +27,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	configv1 "github.com/openshift/api/config/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 func init() {
@@ -61,6 +63,10 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 	var oc = exutil.NewCLI("request-headers")
 
 	g.It("test RequestHeaders IdP", func() {
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			e2eskipper.Skipf("IBM ROKS clusters do not allow customization of the Identity Providers for the cluster.")
+		}
+
 		caCert, caKey := createClientCA(oc.AdminKubeClient().CoreV1())
 		defer oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(context.Background(), clientCAName, metav1.DeleteOptions{})
 
@@ -179,7 +185,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		caCerts, err := x509.SystemCertPool()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(context.Background(), "router-ca", metav1.GetOptions{})
+		routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(context.Background(), "default-ingress-cert", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, ca := range routerCA.Data {
@@ -363,7 +369,7 @@ func waitForNewOAuthConfig(oc *exutil.CLI, caCerts *x509.CertPool, oauthURL stri
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
+	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
 		authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "authentication", metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Error getting authentication operator: %v", err)

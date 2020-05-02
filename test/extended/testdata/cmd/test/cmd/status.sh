@@ -80,10 +80,6 @@ os::cmd::try_until_not_text "oc get projects" "project-bar-2"
 #os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
 os::cmd::expect_success "oc new-project project-status --display-name='my project' --description='test project'"
 
-# Verify the deprecated flags are working
-os::cmd::expect_success_and_text 'oc status -v' 'shorthand -v has been deprecated'
-os::cmd::expect_success_and_text 'oc status --verbose' '\-\-verbose has been deprecated'
-
 # Verify jobs are showing in status
 os::cmd::expect_success "oc create job pi --image=perl -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
 os::cmd::expect_success_and_text "oc status" "job/pi manages perl"

@@ -16,7 +16,7 @@ os::test::junit::declare_suite_start "cmd/volumes"
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/rollingupdate-daemonset.yaml'
 
-os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list' 'vol1'
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config' 'vol1'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol0 -m /opt5'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol2 --type=emptydir -m /opt'
 os::cmd::expect_failure_and_text "oc set volume dc/test-deployment-config --add --name=vol1 --type=secret --secret-name='\$ecret' -m /data" 'overwrite to replace'
@@ -28,14 +28,14 @@ os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vo
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --add -m /opt' "'/opt' already exists"
 os::cmd::expect_success_and_text "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby' --overwrite" 'does not have any containers'
 os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby*' --overwrite"
-os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list --name=vol2' 'mounted at /etc'
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --name=vol2' 'mounted at /etc'
 os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --dry-run --add --name=vol3 -o yaml' 'name: vol3'
-os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --list --name=vol3' 'volume "vol3" not found'
+os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --name=vol3' 'volume "vol3" not found'
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --remove' 'confirm for removing more than one volume'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --name=vol2'
-os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol2'
+os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config' 'vol2'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --confirm'
-os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol1'
+os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config' 'vol1'
 
 # ensure that resources not present in all versions of a target group
 # are still able to be encoded and patched accordingly
@@ -93,7 +93,7 @@ os::cmd::expect_success_and_text 'oc set volume dc/simple-dc' 'configMap/cmvol a
 # command alias
 os::cmd::expect_success 'oc set volumes --help'
 os::cmd::expect_success 'oc set volumes --help'
-os::cmd::expect_success 'oc set volumes dc/test-deployment-config --list'
+os::cmd::expect_success 'oc set volumes dc/test-deployment-config'
 
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
 echo "volumes: ok"

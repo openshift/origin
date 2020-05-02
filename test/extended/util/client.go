@@ -91,11 +91,34 @@ type resourceRef struct {
 	Name      string
 }
 
+// NewCLIWithFramework initializes the CLI using the provided Kube
+// framework. It can be called inside of a Ginkgo .It() function.
+func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
+	cli := &CLI{
+		kubeFramework:   kubeFramework,
+		username:        "admin",
+		execPath:        "oc",
+		adminConfigPath: KubeConfigPath(),
+	}
+	return cli
+}
+
 // NewCLI initializes the CLI and Kube framework helpers with the provided
 // namespace. Should be called outside of a Ginkgo .It() function.
 func NewCLI(project string) *CLI {
+	cli := NewCLIWithoutNamespace(project)
+	// create our own project
+	g.BeforeEach(cli.SetupProject)
+	return cli
+}
+
+// NewCLIWithoutNamespace initializes the CLI and Kube framework helpers
+// without a namespace. Should be called outside of a Ginkgo .It()
+// function. Use SetupProject() to create a project for this namespace.
+func NewCLIWithoutNamespace(project string) *CLI {
 	cli := &CLI{
 		kubeFramework: &framework.Framework{
+			SkipNamespaceCreation:    true,
 			BaseName:                 project,
 			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
 			Options: framework.Options{
@@ -110,16 +133,6 @@ func NewCLI(project string) *CLI {
 	g.AfterEach(cli.TeardownProject)
 	g.AfterEach(cli.kubeFramework.AfterEach)
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
-	g.BeforeEach(cli.SetupProject)
-	return cli
-}
-
-// NewCLIWithoutNamespace initializes the CLI and Kube framework helpers
-// without a namespace. Should be called outside of a Ginkgo .It()
-// function. Use SetupProject() to create a project for this namespace.
-func NewCLIWithoutNamespace(project string) *CLI {
-	cli := NewCLI(project)
-	cli.kubeFramework.SkipNamespaceCreation = true
 	return cli
 }
 
@@ -195,6 +208,9 @@ func (c *CLI) SetupProject() {
 	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 	}, metav1.CreateOptions{})
+	if apierrors.IsForbidden(err) {
+		err = c.setupSelfProvisionerRoleBinding()
+	}
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	c.kubeFramework.AddNamespacesToDelete(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: newNamespace}})
@@ -260,7 +276,32 @@ func (c *CLI) SetupProject() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
+	WaitForNamespaceSCCAnnotations(c.ProjectClient().ProjectV1(), newNamespace)
+
 	framework.Logf("Project %q has been fully provisioned.", newNamespace)
+}
+
+func (c *CLI) setupSelfProvisionerRoleBinding() error {
+	framework.Logf("Creating role binding to allow self provisioning of projects")
+	rb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "e2e-self-provisioners",
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.SchemeGroupVersion.Group,
+			Kind:     "ClusterRole",
+			Name:     "self-provisioner",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				APIGroup: rbacv1.SchemeGroupVersion.Group,
+				Kind:     "Group",
+				Name:     "system:authenticated:oauth",
+			},
+		},
+	}
+	_, err := c.AdminKubeClient().RbacV1().ClusterRoleBindings().Create(context.Background(), rb, metav1.CreateOptions{})
+	return err
 }
 
 // SetupProject creates a new project and assign a random user to the project.
@@ -273,6 +314,9 @@ func (c *CLI) CreateProject() string {
 	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 	}, metav1.CreateOptions{})
+	if apierrors.IsForbidden(err) {
+		err = c.setupSelfProvisionerRoleBinding()
+	}
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	actualNs, err := c.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), newNamespace, metav1.GetOptions{})

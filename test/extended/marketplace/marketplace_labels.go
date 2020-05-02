@@ -19,19 +19,16 @@ var _ = g.Describe("[sig-operator][Feature:Marketplace] Marketplace resources wi
 
 	var (
 		oc            = exutil.NewCLI("marketplace")
-		allNs         = "openshift-operators"
 		marketplaceNs = "openshift-marketplace"
 		resourceWait  = 60 * time.Second
 
 		opsrcYamltem = exutil.FixturePath("testdata", "marketplace", "opsrc", "02-opsrc.yaml")
-		cscYamltem   = exutil.FixturePath("testdata", "marketplace", "csc", "02-csc.yaml")
 	)
 
 	g.AfterEach(func() {
 		// Clear the sub,csv resource
 		allresourcelist := [][]string{
 			{"operatorsource", "opsrctestlabel", marketplaceNs},
-			{"catalogsourceconfig", "csctestlabel", marketplaceNs},
 		}
 
 		for _, source := range allresourcelist {
@@ -77,38 +74,6 @@ var _ = g.Describe("[sig-operator][Feature:Marketplace] Marketplace resources wi
 		for _, source := range opsrcResourceList {
 			msg, _ := getResourceByPath(oc, source[0], source[1], source[2], source[3])
 			o.Expect(msg).Should(o.ContainSubstring("optestlabel"))
-		}
-		// Create one csc with provider&display&labels
-		cscYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=csctestlabel", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=camel-k-marketplace-e2e-tests", "DISPLAYNAME=csctestlabel", "PUBLISHER=csctestlabel").OutputToFile("config.json")
-		err = createResources(oc, cscYaml)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// Wait for the csc is created finished
-		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
-			output, err := oc.AsAdmin().Run("get").Args("catalogsourceconfig", "csctestlabel", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
-			if err != nil {
-				e2e.Failf("Failed to create csctestlabel, error:%v", err)
-				return false, err
-			}
-			if strings.Contains(output, "has been successfully reconciled") {
-				return true, nil
-			}
-			return false, nil
-		})
-
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		cscResourceList := [][]string{
-			{"catalogsourceconfig", "csctestlabel", "-o=jsonpath={.spec.csDisplayName}", marketplaceNs},
-			{"catalogsourceconfig", "csctestlabel", "-o=jsonpath={.spec.csPublisher}", marketplaceNs},
-			{"catalogsource", "csctestlabel", "-o=jsonpath={.spec.displayName}", allNs},
-			{"catalogsource", "csctestlabel", "-o=jsonpath={.spec.publisher}", allNs},
-		}
-
-		// Check the displayname,provider oc csc & catalogsource
-		for _, source := range cscResourceList {
-			msg, _ := getResourceByPath(oc, source[0], source[1], source[2], source[3])
-			o.Expect(msg).Should(o.ContainSubstring("csctestlabel"))
 		}
 
 		// Get the packagelist of opsrctestlabel

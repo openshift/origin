@@ -92,6 +92,9 @@ var (
 
 			// A fix is in progress: https://github.com/openshift/origin/pull/24709
 			`Multi-AZ Clusters should spread the pods of a replication controller across zones`,
+
+			// Workloads: https://bugzilla.redhat.com/show_bug.cgi?id=1731263
+			`SchedulerPreemption`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -134,6 +137,8 @@ var (
 			`Should be able to support the 1\.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
 
 			`\[Feature:HPA\] Horizontal pod autoscaling \(scale resource: CPU\) \[sig-autoscaling\] ReplicationController light Should scale from 1 pod to 2 pods`,
+
+			`should prevent Ingress creation if more than 1 IngressClass marked as default`, // https://bugzilla.redhat.com/show_bug.cgi?id=1822286
 		},
 		"[Skipped:azure]": {
 			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.
@@ -191,13 +196,57 @@ var (
 			`\[sig-network\] Services should have session affinity work for service with type clusterIP`,
 			`\[sig-network\] Services should have session affinity timeout work for NodePort service`,
 			`\[sig-network\] Services should have session affinity timeout work for service with type clusterIP`,
-			// SDN-587: OVN-Kubernetes doesn't support hairpin services
-			`\[sig-network\] Services should allow pods to hairpin back to themselves through services`,
-			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
-			// https://github.com/ovn-org/ovn-kubernetes/issues/928
-			`\[sig-network\] Services should be rejected when no endpoints exist`,
 		},
+		"[Skipped:ibmcloud]": {
+			// skip Gluster tests (not supported on ROKS worker nodes)
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1825009 - e2e: skip Glusterfs-related tests upstream for rhel7 worker nodes
+			`\[Driver: gluster\]`,
+			`GlusterFS`,
+			`GlusterDynamicProvisioner`,
 
+			// Nodes in ROKS have access to secrets in the cluster to handle encryption
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1825013 - ROKS: worker nodes have access to secrets in the cluster
+			`\[sig-auth\] \[Feature:NodeAuthorizer\] Getting a non-existent configmap should exit with the Forbidden error, not a NotFound error`,
+			`\[sig-auth\] \[Feature:NodeAuthorizer\] Getting a non-existent secret should exit with the Forbidden error, not a NotFound error`,
+			`\[sig-auth\] \[Feature:NodeAuthorizer\] Getting a secret for a workload the node has access to should succeed`,
+			`\[sig-auth\] \[Feature:NodeAuthorizer\] Getting an existing configmap should exit with the Forbidden error`,
+			`\[sig-auth\] \[Feature:NodeAuthorizer\] Getting an existing secret should exit with the Forbidden error`,
+
+			// Access to node external address is blocked from pods within a ROKS cluster by Calico
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1825016 - e2e: NodeAuthenticator tests use both external and internal addresses for node
+			`\[sig-auth\] \[Feature:NodeAuthenticator\] The kubelet's main port 10250 should reject requests with no credentials`,
+			`\[sig-auth\] \[Feature:NodeAuthenticator\] The kubelet can delegate ServiceAccount tokens to the API server`,
+
+			// The cluster-network-operator creates the kube-proxy daemonset pods without mem/cpu requests,
+			// resulting in a qosClass of BestEffort
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1825019 - kube-proxy deployment does not include any memory/cpu requests
+			`\[Feature:Platform\] Managed cluster should ensure control plane pods do not run in best-effort QoS`,
+
+			// Calico is allowing the request to timeout instead of returning 'REFUSED'
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1825021 - ROKS: calico SDN results in a request timeout when accessing services with no endpoints
+			`\[sig-network\] Services should be rejected when no endpoints exist`,
+
+			// Mode returned by RHEL7 worker contains an extra character not expected by the test: dgtrwx vs dtrwx
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1825024 - e2e: Failing test - HostPath should give a volume the correct mode
+			`\[sig-storage\] HostPath should give a volume the correct mode`,
+
+			// Currently ibm-master-proxy-static and imbcloud-block-storage-plugin tolerate all taints
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
+			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
+
+			// Prometheus is not reporting router metrics
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1825029
+			`\[Feature:Prometheus\]\[Conformance\] Prometheus when installed on the cluster should provide ingress metrics`,
+			`\[Conformance\]\[Area:Networking\]\[Feature:Router\] The HAProxy router should enable openshift-monitoring to pull metrics`,
+
+			// ROKS cluster role bindings don't match expected results
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1825030
+			`TestAuthorizationResourceAccessReview should succeed`,
+
+			// Test does not allow enough time for the pods to be created before deleting them
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1825372
+			`Pod Container Status should never report success for a pending container`,
+		},
 		"[sig-node]": {
 			`\[NodeConformance\]`,
 			`NodeLease`,

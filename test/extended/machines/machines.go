@@ -21,6 +21,8 @@ import (
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 const (
@@ -31,6 +33,9 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 	defer g.GinkgoRecover()
 
 	g.It("have machine resources", func() {
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			e2eskipper.Skipf("IBM Cloud clusters do not contain machine resources")
+		}
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c, err := e2e.LoadClientset()

@@ -59,6 +59,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 })
 
 func anonymousHttpTransport(restConfig *rest.Config) (*http.Transport, error) {
+	if len(restConfig.TLSClientConfig.CAData) == 0 {
+		return &http.Transport{}, nil
+	}
 	pool := x509.NewCertPool()
 	if ok := pool.AppendCertsFromPEM(restConfig.TLSClientConfig.CAData); !ok {
 		return nil, errors.New("failed to add server CA certificates to client pool")
