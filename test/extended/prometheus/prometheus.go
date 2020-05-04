@@ -300,8 +300,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			}()
 
 			tests := map[string]bool{
-				// should have constantly firing a watchdog alert
-				`ALERTS{alertstate="firing",alertname="AlertmanagerReceiversNotConfigured"} == 1`: true,
+				`ALERTS{alertstate=~"firing|pending",alertname="AlertmanagerReceiversNotConfigured"} == 1`: true,
 			}
 			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 
