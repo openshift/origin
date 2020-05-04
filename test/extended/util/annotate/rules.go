@@ -92,9 +92,6 @@ var (
 
 			// A fix is in progress: https://github.com/openshift/origin/pull/24709
 			`Multi-AZ Clusters should spread the pods of a replication controller across zones`,
-
-			// Workloads: https://bugzilla.redhat.com/show_bug.cgi?id=1731263
-			`SchedulerPreemption`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
