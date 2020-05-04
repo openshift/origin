@@ -415,7 +415,7 @@
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
 // test/extended/testdata/oauthserver/oauth-sa.yaml
-// test/extended/testdata/olm/etcd-subscription.yaml
+// test/extended/testdata/olm/cockroachdb-subscription.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
@@ -53846,7 +53846,7 @@ func testExtendedTestdataOauthserverOauthSaYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataOlmEtcdSubscriptionYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataOlmCockroachdbSubscriptionYaml = []byte(`apiVersion: v1
 kind: Template
 metadata:
   name: subscription-template
@@ -53857,12 +53857,12 @@ objects:
     name: "${NAME}"
     namespace: "${NAMESPACE}"
   spec:
-    channel: singlenamespace-alpha
+    channel: stable
     installPlanApproval: Automatic
-    name: etcd
+    name: cockroachdb
     source: "${SOURCENAME}"
     sourceNamespace: "${SOURCENAMESPACE}"
-    startingCSV: etcdoperator.v0.9.4
+    startingCSV: cockroachdb.v2.1.11
 parameters:
 - name: NAME
 - name: NAMESPACE
@@ -53870,17 +53870,17 @@ parameters:
 - name: SOURCENAMESPACE
 `)
 
-func testExtendedTestdataOlmEtcdSubscriptionYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataOlmEtcdSubscriptionYaml, nil
+func testExtendedTestdataOlmCockroachdbSubscriptionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCockroachdbSubscriptionYaml, nil
 }
 
-func testExtendedTestdataOlmEtcdSubscriptionYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataOlmEtcdSubscriptionYamlBytes()
+func testExtendedTestdataOlmCockroachdbSubscriptionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCockroachdbSubscriptionYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/olm/etcd-subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/olm/cockroachdb-subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -58750,7 +58750,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-network.yaml": testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml": testExtendedTestdataOauthserverOauthPodYaml,
 	"test/extended/testdata/oauthserver/oauth-sa.yaml": testExtendedTestdataOauthserverOauthSaYaml,
-	"test/extended/testdata/olm/etcd-subscription.yaml": testExtendedTestdataOlmEtcdSubscriptionYaml,
+	"test/extended/testdata/olm/cockroachdb-subscription.yaml": testExtendedTestdataOlmCockroachdbSubscriptionYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml": testExtendedTestdataOlmOperatorgroupYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references": testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
@@ -59479,7 +59479,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"oauth-sa.yaml": &bintree{testExtendedTestdataOauthserverOauthSaYaml, map[string]*bintree{}},
 				}},
 				"olm": &bintree{nil, map[string]*bintree{
-					"etcd-subscription.yaml": &bintree{testExtendedTestdataOlmEtcdSubscriptionYaml, map[string]*bintree{}},
+					"cockroachdb-subscription.yaml": &bintree{testExtendedTestdataOlmCockroachdbSubscriptionYaml, map[string]*bintree{}},
 					"operatorgroup.yaml": &bintree{testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},
 				}},
 				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},

@@ -161,11 +161,11 @@ var _ = g.Describe("[Feature:Platform] an end user use OLM", func() {
 
 		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")
 		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
-		etcdSub             = filepath.Join(buildPruningBaseDir, "etcd-subscription.yaml")
+		cockroachDBSub      = filepath.Join(buildPruningBaseDir, "cockroachdb-subscription.yaml")
 	)
 
-	files := []string{etcdSub}
-	g.It("can subscribe to the etcd operator", func() {
+	files := []string{cockroachDBSub}
+	g.It("can subscribe to the cockroachdb operator", func() {
 		g.By("Cluster-admin user subscribe the operator resource")
 
 		// configure OperatorGroup before tests
@@ -194,10 +194,10 @@ var _ = g.Describe("[Feature:Platform] an end user use OLM", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 		err = wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
-			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "csv", "etcdoperator.v0.9.4", "-o=jsonpath={.status.phase}").Output()
+			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "csv", "cockroachdb.v2.1.11", "-o=jsonpath={.status.phase}").Output()
 			if err != nil {
-				e2e.Failf("Failed to deploy etcdoperator.v0.9.4, error:%v", err)
-				return false, err
+				e2e.Logf("Failed to check cockroachdb.v2.1.11, error:%v, try next round", err)
+				return false, nil
 			}
 			if strings.Contains(output, "Succeeded") {
 				return true, nil
@@ -208,10 +208,10 @@ var _ = g.Describe("[Feature:Platform] an end user use OLM", func() {
 
 		output, err := oc.Run("get").Args("deployments", "-n", oc.Namespace()).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(output).To(o.ContainSubstring("etcd"))
+		o.Expect(output).To(o.ContainSubstring("cockroachdb"))
 
 		// clean up so that it doesn't emit an alert when namespace is deleted
-		_, err = oc.AsAdmin().Run("delete").Args("-n", oc.Namespace(), "csv", "etcdoperator.v0.9.4").Output()
+		_, err = oc.AsAdmin().Run("delete").Args("-n", oc.Namespace(), "csv", "cockroachdb.v2.1.11").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
