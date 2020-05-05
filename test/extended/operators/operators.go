@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -80,7 +81,6 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 		}
 
 		// gate on all clusteroperators being ready
-		available := make(map[string]struct{})
 		g.By(fmt.Sprintf("waiting for all cluster operators to be stable at the same time"))
 		coc := dc.Resource(schema.GroupVersionResource{Group: "config.openshift.io", Resource: "clusteroperators", Version: "v1"})
 		lastErr = nil
@@ -101,68 +101,65 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 				return false, nil
 			}
 
-			var unavailable []objx.Map
-			var unavailableNames []string
+			var unready []string
 			for _, co := range items {
-				if condition(co, "Available").Get("status").String() != "True" {
-					ns := co.Get("metadata.namespace").String()
-					name := co.Get("metadata.name").String()
-					unavailableNames = append(unavailableNames, fmt.Sprintf("%s/%s", ns, name))
-					unavailable = append(unavailable, co)
-					break
-				}
-				if condition(co, "Progressing").Get("status").String() != "False" {
-					ns := co.Get("metadata.namespace").String()
-					name := co.Get("metadata.name").String()
-					unavailableNames = append(unavailableNames, fmt.Sprintf("%s/%s", ns, name))
-					unavailable = append(unavailable, co)
-					break
-				}
-				if condition(co, "Failing").Get("status").String() != "False" {
-					ns := co.Get("metadata.namespace").String()
-					name := co.Get("metadata.name").String()
-					unavailableNames = append(unavailableNames, fmt.Sprintf("%s/%s", ns, name))
-					unavailable = append(unavailable, co)
-					break
+				badConditions, missingTypes := surprisingConditions(co)
+				if len(badConditions) > 0 || len(missingTypes) > 0 {
+					unready = append(unready, co.Get("metadata.name").String())
 				}
 			}
-			if len(unavailable) > 0 {
-				e2e.Logf("Operators still doing work: %s", strings.Join(unavailableNames, ", "))
+			if len(unready) > 0 {
+				sort.Strings(unready)
+				e2e.Logf("Operators still unready: %s", strings.Join(unready, ", "))
 				return false, nil
 			}
 			return true, nil
 		})
 
 		o.Expect(lastErr).NotTo(o.HaveOccurred())
-		var unavailable []string
+		ready := 0
+		var unready []string
 		buf := &bytes.Buffer{}
 		w := tabwriter.NewWriter(buf, 0, 4, 1, ' ', 0)
-		fmt.Fprintf(w, "NAMESPACE\tNAME\tPROGRESSING\tAVAILABLE\tVERSION\tMESSAGE\n")
+		fmt.Fprintf(w, "NAME\tTYPE\tSTATUS\tREASON\tMESSAGE\n")
 		for _, co := range lastCOs {
-			ns := co.Get("metadata.namespace").String()
 			name := co.Get("metadata.name").String()
-			if condition(co, "Available").Get("status").String() != "True" {
-				unavailable = append(unavailable, fmt.Sprintf("%s/%s", ns, name))
+			badConditions, missingTypes := surprisingConditions(co)
+			if len(badConditions) > 0 {
+				worstCondition := badConditions[0]
+				unready = append(unready, fmt.Sprintf("%s (%s=%s %s: %s)",
+					name,
+					worstCondition.Type,
+					worstCondition.Status,
+					worstCondition.Reason,
+					worstCondition.Message,
+				))
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+					name,
+					worstCondition.Type,
+					worstCondition.Status,
+					worstCondition.Reason,
+					worstCondition.Message,
+				)
+			} else if len(missingTypes) > 0 {
+				missingTypeStrings := make([]string, 0, len(missingTypes))
+				for _, missingType := range missingTypes {
+					missingTypeStrings = append(missingTypeStrings, string(missingType))
+				}
+				unready = append(unready, fmt.Sprintf("%s (missing: %s)", name, strings.Join(missingTypeStrings, ", ")))
 			} else {
-				available[fmt.Sprintf("%s/%s", ns, name)] = struct{}{}
+				ready++
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-				ns,
-				name,
-				condition(co, "Progressing").Get("status").String(),
-				condition(co, "Available").Get("status").String(),
-				co.Get("status.version").String(),
-				condition(co, "Failing").Get("message").String(),
-			)
 		}
 		w.Flush()
 		e2e.Logf("ClusterOperators:\n%s", buf.String())
 
-		if len(unavailable) > 0 {
-			e2e.Failf("Some cluster operators never became available %s", strings.Join(unavailable, ", "))
+		if len(unready) > 0 {
+			sort.Strings(unready)
+			e2e.Failf("Some cluster operators never became ready: %s", strings.Join(unready, ", "))
 		}
-		// Check at least one core operator is available
-		if len(available) == 0 {
+		// Check at least one core operator is ready
+		if ready == 0 {
 			e2e.Failf("There must be at least one cluster operator")
 		}
 	})
@@ -264,4 +261,38 @@ func condition(cv objx.Map, condition string) objx.Map {
 		}
 	}
 	return objx.Map(nil)
+}
+
+// surprisingConditions returns conditions with surprising statuses
+// (Available=False, Degraded=True, etc.) in order of descending
+// severity (e.g. Available=False is more severe than Degraded=True).
+// It also returns a slice of types for which a condition entry was
+// expected but not supplied on the ClusterOperator.
+func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusCondition, []configv1.ClusterStatusConditionType) {
+	var badConditions []configv1.ClusterOperatorStatusCondition
+	var missingTypes []configv1.ClusterStatusConditionType
+	for _, conditionType := range []configv1.ClusterStatusConditionType{
+		configv1.OperatorAvailable,
+		configv1.OperatorDegraded,
+		configv1.OperatorProgressing,
+	} {
+		cond := condition(co, string(conditionType))
+		if len(cond) == 0 {
+			missingTypes = append(missingTypes, conditionType)
+		} else {
+			expected := configv1.ConditionFalse
+			if conditionType == configv1.OperatorAvailable {
+				expected = configv1.ConditionTrue
+			}
+			if cond.Get("status").String() != string(expected) {
+				badConditions = append(badConditions, configv1.ClusterOperatorStatusCondition{
+					Type:    conditionType,
+					Status:  configv1.ConditionStatus(cond.Get("status").String()),
+					Reason:  cond.Get("reason").String(),
+					Message: cond.Get("message").String(),
+				})
+			}
+		}
+	}
+	return badConditions, missingTypes
 }
