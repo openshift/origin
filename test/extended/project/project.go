@@ -317,7 +317,7 @@ func waitForOnlyDelete(projectName string, w watch.Interface) {
 				}
 				g.Fail(fmt.Sprintf("got unexpected project %v", project.Name))
 
-			case <-time.After(30 * time.Second):
+			case <-time.After(time.Minute):
 				g.Fail(fmt.Sprintf("timeout: %v", projectName))
 			}
 		}
