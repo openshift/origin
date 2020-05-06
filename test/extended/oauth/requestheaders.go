@@ -352,6 +352,7 @@ func waitForNewOAuthConfig(oc *exutil.CLI, caCerts *x509.CertPool, oauthURL stri
 	err := wait.PollImmediate(time.Second, 2*time.Minute, func() (bool, error) {
 		pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication").List(context.Background(), metav1.ListOptions{})
 		if err != nil {
+			e2e.Logf("Error listing openshift-authentication pods: %v", err)
 			return false, err
 		}
 
@@ -359,6 +360,8 @@ func waitForNewOAuthConfig(oc *exutil.CLI, caCerts *x509.CertPool, oauthURL stri
 		for _, p := range pods.Items {
 			tstamp := p.GetCreationTimestamp()
 			if !tstamp.After(configChanged) {
+				e2e.Logf("Pod %q not ready (creation timestamp: %s, config changed: %s)", p.Name, p.GetCreationTimestamp(), configChanged)
+				e2e.Logf("Pod %q status: %s", p.Name, spew.Sdump(p.Status))
 				podsReady = false
 			}
 			if podsReady {
