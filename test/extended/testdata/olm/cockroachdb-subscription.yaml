@@ -9,12 +9,12 @@ objects:
     name: "${NAME}"
     namespace: "${NAMESPACE}"
   spec:
-    channel: singlenamespace-alpha
+    channel: stable
     installPlanApproval: Automatic
-    name: etcd
+    name: cockroachdb
     source: "${SOURCENAME}"
     sourceNamespace: "${SOURCENAMESPACE}"
-    startingCSV: etcdoperator.v0.9.4
+    startingCSV: cockroachdb.v2.1.11
 parameters:
 - name: NAME
 - name: NAMESPACE
