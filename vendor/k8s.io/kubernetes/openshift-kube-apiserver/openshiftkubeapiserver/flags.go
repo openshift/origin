@@ -3,7 +3,8 @@ package openshiftkubeapiserver
 import (
 	"fmt"
 	"io/ioutil"
-	"net"
+	"os"
+	"path/filepath"
 	"strings"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -17,11 +18,6 @@ import (
 
 func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) ([]string, error) {
 	args := unmaskArgs(kubeAPIServerConfig.APIServerArguments)
-
-	host, portString, err := net.SplitHostPort(kubeAPIServerConfig.ServingInfo.BindAddress)
-	if err != nil {
-		return nil, err
-	}
 
 	// TODO this list (and the content below) will be used to drive a config struct and a reflective test matching config to flags
 	// these flags are overridden by a patch
@@ -100,57 +96,32 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	for flag, value := range admissionFlags {
 		configflags.SetIfUnset(args, flag, value...)
 	}
-	configflags.SetIfUnset(args, "allow-privileged", "true")
-	configflags.SetIfUnset(args, "anonymous-auth", "true")
-	configflags.SetIfUnset(args, "authorization-mode", "Scope", "SystemMasters", "RBAC", "Node") // overridden later, but this runs the poststarthook for bootstrapping RBAC
-	for flag, value := range configflags.AuditFlags(&kubeAPIServerConfig.AuditConfig, configflags.ArgsWithPrefix(args, "audit-")) {
-		configflags.SetIfUnset(args, flag, value...)
+	if err := writePolicyFile(kubeAPIServerConfig.AuditConfig); err != nil {
+		return nil, err
 	}
-	configflags.SetIfUnset(args, "bind-address", host)
-	configflags.SetIfUnset(args, "client-ca-file", kubeAPIServerConfig.ServingInfo.ClientCA)
+
 	configflags.SetIfUnset(args, "cors-allowed-origins", kubeAPIServerConfig.CORSAllowedOrigins...)
-	configflags.SetIfUnset(args, "enable-logs-handler", "false")
-	configflags.SetIfUnset(args, "enable-swagger-ui", "true")
-	configflags.SetIfUnset(args, "endpoint-reconciler-type", "lease")
-	configflags.SetIfUnset(args, "etcd-cafile", kubeAPIServerConfig.StorageConfig.CA)
-	configflags.SetIfUnset(args, "etcd-certfile", kubeAPIServerConfig.StorageConfig.CertFile)
-	configflags.SetIfUnset(args, "etcd-keyfile", kubeAPIServerConfig.StorageConfig.KeyFile)
-	configflags.SetIfUnset(args, "etcd-prefix", kubeAPIServerConfig.StorageConfig.StoragePrefix)
 	configflags.SetIfUnset(args, "etcd-servers", kubeAPIServerConfig.StorageConfig.URLs...)
-	configflags.SetIfUnset(args, "event-ttl", "3h") // set a TTL long enough to last for our CI tests so we see the first set of events.
-	configflags.SetIfUnset(args, "insecure-port", "0")
-	configflags.SetIfUnset(args, "kubelet-certificate-authority", kubeAPIServerConfig.KubeletClientInfo.CA)
-	configflags.SetIfUnset(args, "kubelet-client-certificate", kubeAPIServerConfig.KubeletClientInfo.CertFile)
-	configflags.SetIfUnset(args, "kubelet-client-key", kubeAPIServerConfig.KubeletClientInfo.KeyFile)
-	configflags.SetIfUnset(args, "kubelet-https", "true")
-	configflags.SetIfUnset(args, "kubelet-preferred-address-types", "Hostname", "InternalIP", "ExternalIP")
-	configflags.SetIfUnset(args, "kubelet-read-only-port", "0")
-	configflags.SetIfUnset(args, "kubernetes-service-node-port", "0")
-	configflags.SetIfUnset(args, "max-mutating-requests-inflight", fmt.Sprintf("%d", kubeAPIServerConfig.ServingInfo.MaxRequestsInFlight/2))
-	configflags.SetIfUnset(args, "max-requests-inflight", fmt.Sprintf("%d", kubeAPIServerConfig.ServingInfo.MaxRequestsInFlight))
-	configflags.SetIfUnset(args, "min-request-timeout", fmt.Sprintf("%d", kubeAPIServerConfig.ServingInfo.RequestTimeoutSeconds))
-	configflags.SetIfUnset(args, "proxy-client-cert-file", kubeAPIServerConfig.AggregatorConfig.ProxyClientInfo.CertFile)
-	configflags.SetIfUnset(args, "proxy-client-key-file", kubeAPIServerConfig.AggregatorConfig.ProxyClientInfo.KeyFile)
-	configflags.SetIfUnset(args, "requestheader-allowed-names", kubeAPIServerConfig.AuthConfig.RequestHeader.ClientCommonNames...)
-	configflags.SetIfUnset(args, "requestheader-client-ca-file", kubeAPIServerConfig.AuthConfig.RequestHeader.ClientCA)
-	configflags.SetIfUnset(args, "requestheader-extra-headers-prefix", kubeAPIServerConfig.AuthConfig.RequestHeader.ExtraHeaderPrefixes...)
-	configflags.SetIfUnset(args, "requestheader-group-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.GroupHeaders...)
-	configflags.SetIfUnset(args, "requestheader-username-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.UsernameHeaders...)
-	configflags.SetIfUnset(args, "secure-port", portString)
-	configflags.SetIfUnset(args, "service-account-key-file", kubeAPIServerConfig.ServiceAccountPublicKeyFiles...)
-	configflags.SetIfUnset(args, "service-account-lookup", "true")
 	configflags.SetIfUnset(args, "service-cluster-ip-range", kubeAPIServerConfig.ServicesSubnet)
-	configflags.SetIfUnset(args, "service-node-port-range", kubeAPIServerConfig.ServicesNodePortRange)
-	configflags.SetIfUnset(args, "storage-backend", "etcd3")
-	configflags.SetIfUnset(args, "storage-media-type", "application/vnd.kubernetes.protobuf")
-	configflags.SetIfUnset(args, "tls-cert-file", kubeAPIServerConfig.ServingInfo.CertFile)
 	configflags.SetIfUnset(args, "tls-cipher-suites", kubeAPIServerConfig.ServingInfo.CipherSuites...)
 	configflags.SetIfUnset(args, "tls-min-version", kubeAPIServerConfig.ServingInfo.MinTLSVersion)
-	configflags.SetIfUnset(args, "tls-private-key-file", kubeAPIServerConfig.ServingInfo.KeyFile)
 	configflags.SetIfUnset(args, "tls-sni-cert-key", sniCertKeys(kubeAPIServerConfig.ServingInfo.NamedCertificates)...)
-	configflags.SetIfUnset(args, "secure-port", portString)
 
 	return configflags.ToFlagSlice(args), nil
+}
+
+const defaultAuditPolicyFilePath = "openshift.local.audit/policy.yaml"
+
+func writePolicyFile(c configv1.AuditConfig) error {
+	if len(c.PolicyConfiguration.Raw) > 0 && string(c.PolicyConfiguration.Raw) != "null" {
+		if err := os.MkdirAll(filepath.Dir(defaultAuditPolicyFilePath), 0755); err != nil {
+			return err
+		}
+		if err := ioutil.WriteFile(defaultAuditPolicyFilePath, c.PolicyConfiguration.Raw, 0644); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func admissionFlags(admissionConfig configv1.AdmissionConfig) (map[string][]string, error) {
