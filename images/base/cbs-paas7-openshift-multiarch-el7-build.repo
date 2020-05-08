@@ -5,7 +5,7 @@ enabled = 1
 gpgcheck = 0
 sslverify = 0
 skip_if_unavailable = 0
-includepkgs = golang* protobuf* goversioninfo* openvswitch* haproxy*
+includepkgs = golang* protobuf* goversioninfo* openvswitch*
 
 [centos-paas7-openshift-origin311-build]
 name = Centos OpenShift origin311  Build
