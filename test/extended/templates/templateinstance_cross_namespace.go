@@ -33,7 +33,6 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 	)
 
 	g.It("should create and delete objects across namespaces", func() {
-		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 		err := cli2.AsAdmin().Run("adm").Args("policy", "add-role-to-user", "admin", cli.Username()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
