@@ -181,7 +181,7 @@ func runLDAPSearchInPod(oc *CLI, host string) (string, error) {
 	mounts, volumes := LDAPClientMounts()
 	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", OpenLDAPTestImage, fmt.Sprintf(ldapSearchCommandFormat, host), mounts, volumes, nil, 8*time.Minute)
 	if len(errs) != 0 {
-		return output, fmt.Errorf("errours encountered trying to run ldapsearch pod: %v", errs)
+		return output, fmt.Errorf("errors encountered trying to run ldapsearch pod: %v", errs)
 	}
 	return output, nil
 }
