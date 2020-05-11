@@ -13,6 +13,7 @@ import (
 type retriable interface {
 	ShouldRetry() bool
 	Reset()
+	LastKnownError() error
 }
 
 type retryDetector struct {
@@ -38,6 +39,17 @@ func (d *retryDetector) Reset() {
 	for _, delegate := range d.delegates {
 		delegate.Reset()
 	}
+}
+
+func (d *retryDetector) LastKnownError() error {
+	for _, delegate := range d.delegates {
+		err := delegate.LastKnownError()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type statusResponseWriter struct {
@@ -87,7 +99,11 @@ func (p *hijackProtector) ShouldRetry() bool {
 }
 
 func (p *hijackProtector) Reset() {
-	// no-op
+	p.delegate.Reset()
+}
+
+func (p *hijackProtector) LastKnownError() error {
+	return p.delegate.LastKnownError()
 }
 
 type maxRetries struct {
@@ -103,7 +119,7 @@ func newMaxRetries(delegate retriable, max int) *maxRetries {
 }
 
 func (r *maxRetries) Reset() {
-	// no-op
+	r.delegate.Reset()
 }
 
 func (r *maxRetries) ShouldRetry() bool {
@@ -115,10 +131,15 @@ func (r *maxRetries) ShouldRetry() bool {
 	return r.delegate.ShouldRetry()
 }
 
+func (r *maxRetries) LastKnownError() error {
+	return r.delegate.LastKnownError()
+}
+
 type hijackResponder struct {
 	delegate proxy.ErrorResponder
 	req *http.Request
 	retry  bool
+	lastKnownError error
 }
 
 var _ proxy.ErrorResponder = &hijackResponder{}
@@ -139,10 +160,15 @@ func (hr *hijackResponder) Error(w http.ResponseWriter, r *http.Request, err err
 
 func (hr *hijackResponder) Reset() {
 	hr.retry = false
+	hr.lastKnownError = nil
 }
 
 func (hr *hijackResponder) ShouldRetry() bool {
 	return hr.retry
+}
+
+func (hr *hijackResponder) LastKnownError() error {
+	return hr.lastKnownError
 }
 
 func (hr *hijackResponder) canRetry(err error) bool {

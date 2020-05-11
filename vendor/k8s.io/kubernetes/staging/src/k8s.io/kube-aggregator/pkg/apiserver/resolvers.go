@@ -28,6 +28,19 @@ type ServiceResolver interface {
 	ResolveEndpoint(namespace, name string, port int32) (*url.URL, error)
 }
 
+// ServiceResolverWithCollector extends standard ServiceResolver by providing a method for health reporting.
+type ServiceResolverWithCollector interface {
+	// Collector a channel for sending EndpointSamples for further processing and evaluation.
+	Collector() chan <- struct{}
+}
+
+// ServiceResolverWithVisited extends standard ServiceResolver by providing a method for supporting retry mechanisms
+type ServiceResolverWithVisited interface {
+	// ResolveEndpointWithVisited resolves an endpoint excluding already visited ones.
+	// Facilitates supporting retry mechanisms.
+	ResolveEndpointWithVisited(namespace, name string, port int32, visitedEPs []*url.URL) (*url.URL, error)
+}
+
 // NewEndpointServiceResolver returns a ServiceResolver that chooses one of the
 // service's endpoints.
 func NewEndpointServiceResolver(services listersv1.ServiceLister, endpoints listersv1.EndpointsLister) ServiceResolver {

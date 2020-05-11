@@ -16,6 +16,9 @@ import (
 // TODO: test proxy with an HTTP Client as this would allow to test "NewSingleHostReverseProxy"
 //func TestProxyRetriesHTTPClient(t *testing.T) { }
 
+// TODO: test serviceReporter
+// TODO: test serviceResolverWrapper
+
 func TestProxyRetries(t *testing.T) {
 	testcases := map[string]struct {
 		APIService                   *apiregistration.APIService
