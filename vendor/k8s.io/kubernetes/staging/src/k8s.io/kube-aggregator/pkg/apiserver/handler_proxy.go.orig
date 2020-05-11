@@ -113,36 +113,74 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// TODO: to builder pattern
 	retryManager := newHijackProtector(w.(*statusResponseWriter), newMaxRetries(newRetryDetector(errRsp), 3))
 
-	usedEPs := []*url.URL{}
+	visitedEPs := []*url.URL{}
 	for {
-		// TODO: do we have to clone the req ?
-		// TODO: detect disconnected client
-		// TODO: pick up a different EP on retry
-		// TODO: always report the status to the service resolver - this will influence available EPs pool
-		// TODO: what to report ?
-		//   - success, failure
-		//   - response time
-		ep := r.serveHTTP(w, req, errRsp, usedEPs)
-		if ep != nil {
-			usedEPs = append(usedEPs, ep)
-		}
+		done := func() bool {
+			serviceHit := false
+			defer func() {
+				// TODO: always report the status to the service resolver - this will influence available EPs pool
+				// TODO: what to report ?
+				//   - success, failure
+				//   - response time
+				if serviceHit {
+					r.serviceReporter(w.(*statusResponseWriter).statusCode, retryManager.LastKnownError())
+				}
+			}()
+			// TODO: do we have to clone the req ?
+			// TODO: detect disconnected client
+			visitedEP := r.serveHTTP(w, req, errRsp, r.serviceResolverWrapper(visitedEPs))
+			if visitedEP != nil {
+				visitedEPs = append(visitedEPs, visitedEP)
+				serviceHit = true
+			}
 
-		// TODO: add logs
-		// TODO: backoff, jitter
-		if !retryManager.ShouldRetry(){
+			// TODO: add logs
+			// TODO: backoff, jitter
+			if !retryManager.ShouldRetry() {
+				return false
+			}
+			retryManager.Reset()
+			return true
+		}()
+		if !done {
 			break
 		}
-		retryManager.Reset()
 	}
 
-	if w.(*statusResponseWriter).statusCode == 0 && !w.(*statusResponseWriter).wasHijacked{
+	if w.(*statusResponseWriter).statusCode == 0 && !w.(*statusResponseWriter).wasHijacked {
 		// TODO: send HTTP 503 if the error is retriable
 		//       otherwise send HTTP 500
 		proxyError(w, req, "service unavailable", http.StatusServiceUnavailable)
 	}
 }
 
-func (r *proxyHandler) serveHTTP(w http.ResponseWriter, req *http.Request, errResponder proxy.ErrorResponder, usedEPs []*url.URL) *url.URL {
+// TODO: come up with better abstractions
+func (r *proxyHandler) serviceReporter(httpStatusCode int, lastKnownError error) {
+	if serviceReporter, ok := r.serviceResolver.(ServiceResolverWithCollector); ok {
+		select {
+		case serviceReporter.Collector() <- struct{}{}:
+		default:
+			// TODO: log that we didn't report
+		}
+	}
+}
+
+// I am not sure what it takes to add a new feature to the aggregator. Maybe the whole thing will be hidden behind a feature flag, maybe not.
+// Thus I decided to provide this wrapper as a way to encapsulate possible implementations. That is:
+//  - the old implementation
+//  - a new implementation that only supports retries (ServiceResolverWithVisited)
+//  - a new implementation that supports retries and picking up the best possible EP at the given time by examining weights assigned to EPs (ServiceResolverWithVisited, ServiceResolverWithCollector, FailureDetector)
+func (r *proxyHandler) serviceResolverWrapper(visitedEPs []*url.URL) func(namespace, name string, port int32) (*url.URL, error) {
+	serviceResolverWrapper := func(namespace, name string, port int32) (*url.URL, error) {
+		if serviceResolver, ok := r.serviceResolver.(ServiceResolverWithVisited); ok {
+			return serviceResolver.ResolveEndpointWithVisited(namespace, name, port, visitedEPs)
+		}
+		return r.serviceResolver.ResolveEndpoint(namespace, name, port)
+	}
+	return serviceResolverWrapper
+}
+
+func (r *proxyHandler) serveHTTP(w http.ResponseWriter, req *http.Request, errResponder proxy.ErrorResponder, serviceResolverFn func(namespace, name string, port int32) (*url.URL, error)) *url.URL {
 	value := r.handlingInfo.Load()
 	if value == nil {
 		r.localDelegate.ServeHTTP(w, req)
@@ -188,7 +226,7 @@ func (r *proxyHandler) serveHTTP(w http.ResponseWriter, req *http.Request, errRe
 	// write a new location based on the existing request pointed at the target service
 	location := &url.URL{}
 	location.Scheme = "https"
-	rloc, err := r.serviceResolver.ResolveEndpoint(handlingInfo.serviceNamespace, handlingInfo.serviceName, handlingInfo.servicePort)
+	rloc, err := serviceResolverFn(handlingInfo.serviceNamespace, handlingInfo.serviceName, handlingInfo.servicePort)
 	if err != nil {
 		klog.Errorf("error resolving %s/%s: %v", handlingInfo.serviceNamespace, handlingInfo.serviceName, err)
 		proxyError(w, req, "service unavailable", http.StatusServiceUnavailable)
