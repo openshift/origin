@@ -333,7 +333,7 @@ func TestApplySecret(t *testing.T) {
 				ObjectMeta: m,
 				Type:       corev1.SecretTypeTLS,
 			},
-			changed: false,
+			changed: true,
 			expected: &corev1.Secret{
 				ObjectMeta: m,
 				Type:       corev1.SecretTypeTLS,
@@ -378,7 +378,7 @@ func TestApplySecret(t *testing.T) {
 					"bar": []byte("bbb"),
 				},
 			},
-			changed: false,
+			changed: true,
 			expected: &corev1.Secret{
 				ObjectMeta: m,
 				Type:       corev1.SecretTypeTLS,
@@ -446,6 +446,65 @@ func TestApplySecret(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "recreates the secret if its type changes",
+			existing: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: m,
+					Type:       "",
+					Data: map[string][]byte{
+						"foo": []byte("bar"),
+					},
+				},
+			},
+			required: &corev1.Secret{
+				ObjectMeta: m,
+				Type:       corev1.SecretTypeOpaque,
+				Data: map[string][]byte{
+					"foo": []byte("bar"),
+				},
+			},
+			changed: true,
+			expected: &corev1.Secret{
+				ObjectMeta: m,
+				Type:       corev1.SecretTypeOpaque,
+				Data: map[string][]byte{
+					"foo": []byte("bar"),
+				},
+			},
+			actions: []clienttesting.Action{
+				clienttesting.GetActionImpl{
+					Name: m.Name,
+					ActionImpl: clienttesting.ActionImpl{
+						Namespace: m.Namespace,
+						Verb:      "get",
+						Resource:  r,
+					},
+				},
+				clienttesting.DeleteActionImpl{
+					Name: m.Name,
+					ActionImpl: clienttesting.ActionImpl{
+						Namespace: m.Namespace,
+						Verb:      "delete",
+						Resource:  r,
+					},
+				},
+				clienttesting.CreateActionImpl{
+					ActionImpl: clienttesting.ActionImpl{
+						Namespace: m.Namespace,
+						Verb:      "create",
+						Resource:  r,
+					},
+					Object: &corev1.Secret{
+						ObjectMeta: m,
+						Type:       corev1.SecretTypeOpaque,
+						Data: map[string][]byte{
+							"foo": []byte("bar"),
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
@@ -453,13 +512,14 @@ func TestApplySecret(t *testing.T) {
 			got, changed, err := ApplySecret(client.CoreV1(), events.NewInMemoryRecorder("test"), tc.required)
 			if !reflect.DeepEqual(tc.err, err) {
 				t.Errorf("expected error %v, got %v", tc.err, err)
+				return
 			}
 
 			if !equality.Semantic.DeepEqual(tc.expected, got) {
 				t.Errorf("objects don't match %s", cmp.Diff(tc.expected, got))
 			}
 
-			if !reflect.DeepEqual(tc.err, err) {
+			if tc.changed != changed {
 				t.Errorf("expected changed %t, got %t", tc.changed, changed)
 			}
 

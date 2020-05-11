@@ -155,6 +155,13 @@ type IngressControllerSpec struct {
 	//
 	// +optional
 	RouteAdmission *RouteAdmissionPolicy `json:"routeAdmission,omitempty"`
+
+	// logging defines parameters for what should be logged where.  If this
+	// field is empty, operational logs are enabled but access logs are
+	// disabled.
+	//
+	// +optional
+	Logging *IngressControllerLogging `json:"logging,omitempty"`
 }
 
 // NodePlacement describes node scheduling configuration for an ingress
@@ -381,6 +388,130 @@ const (
 	// StrictNamespaceOwnershipCheck does not allow routes to claim the same host name across namespaces.
 	StrictNamespaceOwnershipCheck NamespaceOwnershipCheck = "Strict"
 )
+
+// LoggingDestinationType is a type of destination to which to send log
+// messages.
+//
+// +kubebuilder:validation:Enum=Container;Syslog
+type LoggingDestinationType string
+
+const (
+	// Container sends log messages to a sidecar container.
+	ContainerLoggingDestinationType LoggingDestinationType = "Container"
+
+	// Syslog sends log messages to a syslog endpoint.
+	SyslogLoggingDestinationType LoggingDestinationType = "Syslog"
+
+	// ContainerLoggingSidecarContainerName is the name of the container
+	// with the log output in an ingress controller pod when container
+	// logging is used.
+	ContainerLoggingSidecarContainerName = "logs"
+)
+
+// SyslogLoggingDestinationParameters describes parameters for the Syslog
+// logging destination type.
+type SyslogLoggingDestinationParameters struct {
+	// address is the IP address of the syslog endpoint that receives log
+	// messages.
+	//
+	// +kubebuilder:validation:Required
+	// +required
+	Address string `json:"address"`
+
+	// port is the UDP port number of the syslog endpoint that receives log
+	// messages.
+	//
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// +required
+	Port uint32 `json:"port"`
+
+	// facility specifies the syslog facility of log messages.
+	//
+	// If this field is empty, the facility is "local1".
+	//
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=kern;user;mail;daemon;auth;syslog;lpr;news;uucp;cron;auth2;ftp;ntp;audit;alert;cron2;local0;local1;local2;local3;local4;local5;local6;local7
+	// +optional
+	Facility string `json:"facility,omitempty"`
+}
+
+// ContainerLoggingDestinationParameters describes parameters for the Container
+// logging destination type.
+type ContainerLoggingDestinationParameters struct {
+}
+
+// LoggingDestination describes a destination for log messages.
+// +union
+type LoggingDestination struct {
+	// type is the type of destination for logs.  It must be one of the
+	// following:
+	//
+	// * Container
+	//
+	// The ingress operator configures the sidecar container named "logs" on
+	// the ingress controller pod and configures the ingress controller to
+	// write logs to the sidecar.  The logs are then available as container
+	// logs.  The expectation is that the administrator configures a custom
+	// logging solution that reads logs from this sidecar.  Note that using
+	// container logs means that logs may be dropped if the rate of logs
+	// exceeds the container runtime's or the custom logging solution's
+	// capacity.
+	//
+	// * Syslog
+	//
+	// Logs are sent to a syslog endpoint.  The administrator must specify
+	// an endpoint that can receive syslog messages.  The expectation is
+	// that the administrator has configured a custom syslog instance.
+	//
+	// +unionDiscriminator
+	// +kubebuilder:validation:Required
+	// +required
+	Type LoggingDestinationType `json:"type"`
+
+	// syslog holds parameters for a syslog endpoint.  Present only if
+	// type is Syslog.
+	//
+	// +optional
+	Syslog *SyslogLoggingDestinationParameters `json:"syslog,omitempty"`
+
+	// container holds parameters for the Container logging destination.
+	// Present only if type is Container.
+	//
+	// +optional
+	Container *ContainerLoggingDestinationParameters `json:"container,omitempty"`
+}
+
+// AccessLogging describes how client requests should be logged.
+type AccessLogging struct {
+	// destination is where access logs go.
+	//
+	// +kubebuilder:validation:Required
+	// +required
+	Destination LoggingDestination `json:"destination"`
+
+	// httpLogFormat specifies the format of the log message for an HTTP
+	// request.
+	//
+	// If this field is empty, log messages use the implementation's default
+	// HTTP log format.  For HAProxy's default HTTP log format, see the
+	// HAProxy documentation:
+	// http://cbonte.github.io/haproxy-dconv/2.0/configuration.html#8.2.3
+	//
+	// +optional
+	HttpLogFormat string `json:"httpLogFormat,omitempty"`
+}
+
+// IngressControllerLogging describes what should be logged where.
+type IngressControllerLogging struct {
+	// access describes how the client requests should be logged.
+	//
+	// If this field is empty, access logging is disabled.
+	//
+	// +optional
+	Access *AccessLogging `json:"access,omitempty"`
+}
 
 var (
 	// Available indicates the ingress controller deployment is available.

@@ -142,8 +142,8 @@ func (c StatusSyncer) Sync(ctx context.Context, syncCtx factory.SyncContext) err
 		if equality.Semantic.DeepEqual(clusterOperatorObj, originalClusterOperatorObj) {
 			return nil
 		}
-		if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(ctx, clusterOperatorObj, metav1.UpdateOptions{}); err != nil {
-			return updateErr
+		if _, err := c.clusterOperatorClient.ClusterOperators().UpdateStatus(ctx, clusterOperatorObj, metav1.UpdateOptions{}); err != nil {
+			return err
 		}
 		syncCtx.Recorder().Eventf("OperatorStatusChanged", "Status for operator %s changed: %s", c.clusterOperatorName, configv1helpers.GetStatusDiff(originalClusterOperatorObj.Status, clusterOperatorObj.Status))
 		return nil

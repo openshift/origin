@@ -174,6 +174,7 @@ func TestEnsureTargetCertKeyPair(t *testing.T) {
 				caBundleSecret := &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "target-secret"},
 					Data:       map[string][]byte{},
+					Type:       corev1.SecretTypeTLS,
 				}
 				return caBundleSecret
 			},
@@ -356,6 +357,7 @@ func TestEnsureTargetSignerCertKeyPair(t *testing.T) {
 				caBundleSecret := &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "target-secret"},
 					Data:       map[string][]byte{},
+					Type:       corev1.SecretTypeTLS,
 				}
 				return caBundleSecret
 			},

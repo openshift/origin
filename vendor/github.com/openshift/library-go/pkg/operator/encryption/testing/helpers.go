@@ -48,6 +48,7 @@ func CreateEncryptionKeySecretNoDataWithMode(targetNS string, grs []schema.Group
 			Finalizers: []string{"encryption.apiserver.operator.openshift.io/deletion-protection"},
 		},
 		Data: map[string][]byte{},
+		Type: corev1.SecretTypeOpaque,
 	}
 
 	if len(grs) > 0 {

@@ -8,7 +8,7 @@ import "testing"
 
 func TestChangeString(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	var tests = []struct {
 		change   Change
 		expected string
 	}{
@@ -18,12 +18,8 @@ func TestChangeString(t *testing.T) {
 		{Change{"/etc/passwd", 33}, " /etc/passwd"},
 	}
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.expected, func(t *testing.T) {
-			t.Parallel()
-			if got := test.change.String(); got != test.expected {
-				t.Errorf("Change.String(): want %q. Got %q.", test.expected, got)
-			}
-		})
+		if got := tt.change.String(); got != tt.expected {
+			t.Errorf("Change.String(): want %q. Got %q.", tt.expected, got)
+		}
 	}
 }

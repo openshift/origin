@@ -148,7 +148,7 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 			expectedFSGroup:  securityv1.FSGroupStrategyMustRunAs,
 			expectedSupGroup: securityv1.SupplementalGroupsStrategyRunAsAny,
 		},
-		"default fsgroup runAsAny with mustRunAs UID strat": {
+		"default fsgroup runAsAny with mustRunAs UID strategy": {
 			scc: &securityv1.SecurityContextConstraints{
 				RunAsUser: securityv1.RunAsUserStrategyOptions{
 					Type: securityv1.RunAsUserStrategyMustRunAsRange,
@@ -160,7 +160,7 @@ func TestDefaultSecurityContextConstraints(t *testing.T) {
 			expectedFSGroup:  securityv1.FSGroupStrategyRunAsAny,
 			expectedSupGroup: securityv1.SupplementalGroupsStrategyMustRunAs,
 		},
-		"default sup group runAsAny with mustRunAs UID strat": {
+		"default sup group runAsAny with mustRunAs UID strategy": {
 			scc: &securityv1.SecurityContextConstraints{
 				RunAsUser: securityv1.RunAsUserStrategyOptions{
 					Type: securityv1.RunAsUserStrategyMustRunAsRange,

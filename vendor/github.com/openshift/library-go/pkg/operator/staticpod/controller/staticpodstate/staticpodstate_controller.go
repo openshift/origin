@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/informers"
@@ -17,10 +19,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/status"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
-)
-
-var (
-	staticPodStateControllerWorkQueueKey = "key"
 )
 
 // StaticPodStateController is a controller that watches static pods and will produce a failing status if the
@@ -58,7 +56,17 @@ func NewStaticPodStateController(
 		podsGetter:        podsGetter,
 		versionRecorder:   versionRecorder,
 	}
-	return factory.New().WithInformers(operatorClient.Informer(), kubeInformersForTargetNamespace.Core().V1().Pods().Informer()).WithSync(c.sync).ToController("StaticPodStateController", eventRecorder)
+	return factory.New().WithInformers(
+		operatorClient.Informer(),
+		kubeInformersForTargetNamespace.Core().V1().Pods().Informer(),
+	).WithSync(c.sync).ResyncEvery(30*time.Second).ToController("StaticPodStateController", eventRecorder)
+}
+
+func describeWaitingContainerState(waiting *v1.ContainerStateWaiting) string {
+	if waiting == nil {
+		return "unknown reason"
+	}
+	return fmt.Sprintf("%s: %s", waiting.Reason, waiting.Message)
 }
 
 func (c *StaticPodStateController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
@@ -88,15 +96,18 @@ func (c *StaticPodStateController) sync(ctx context.Context, syncCtx factory.Syn
 				// When container is not ready, we can't determine whether the operator is failing or not and every container will become not
 				// ready when created, so do not blip the failing state for it.
 				// We will still reflect the container not ready state in error conditions, but we don't set the operator as failed.
-				errs = append(errs, fmt.Errorf("nodes/%s pods/%s container=%q is not ready", node.NodeName, pod.Name, containerStatus.Name))
+				errs = append(errs, fmt.Errorf("pod/%s container %q is not ready: %s", pod.Name, containerStatus.Name, describeWaitingContainerState(containerStatus.State.Waiting)))
 			}
+			// if container status is waiting, but not initializing pod, increase the failing error counter
+			// this usually means the container is stucked on initializing network
 			if containerStatus.State.Waiting != nil && containerStatus.State.Waiting.Reason != "PodInitializing" {
-				errs = append(errs, fmt.Errorf("nodes/%s pods/%s container=%q is waiting: %q - %q", node.NodeName, pod.Name, containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message))
+				errs = append(errs, fmt.Errorf("pod/%s container %q is waiting: %s", pod.Name, containerStatus.Name, describeWaitingContainerState(containerStatus.State.Waiting)))
 				failingErrorCount++
 			}
 			if containerStatus.State.Terminated != nil {
 				// Containers can be terminated gracefully to trigger certificate reload, do not report these as failures.
-				errs = append(errs, fmt.Errorf("nodes/%s pods/%s container=%q is terminated: %q - %q", node.NodeName, pod.Name, containerStatus.Name, containerStatus.State.Terminated.Reason, containerStatus.State.Terminated.Message))
+				errs = append(errs, fmt.Errorf("pod/%s container %q is terminated: %s: %s", pod.Name, containerStatus.Name, containerStatus.State.Terminated.Reason,
+					containerStatus.State.Terminated.Message))
 				// Only in case when the termination was caused by error.
 				if containerStatus.State.Terminated.ExitCode != 0 {
 					failingErrorCount++

@@ -19,7 +19,7 @@ if [[ ! -d "$CONSOLE_REPO_PATH" ]]; then
 fi
 
 echo "Making sure go-bindata binary has been built..."
-pushd vendor/github.com/jteeuwen/go-bindata > /dev/null
+pushd vendor/github.com/go-bindata/go-bindata > /dev/null
   go install ./...
 popd > /dev/null
 os::util::ensure::gopath_binary_exists 'go-bindata'

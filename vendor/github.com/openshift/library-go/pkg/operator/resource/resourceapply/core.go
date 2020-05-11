@@ -273,6 +273,11 @@ func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 
 	existingCopy.Type = required.Type
 
+	// Server defaults some values and we need to do it as well or it will never equal.
+	if existingCopy.Type == "" {
+		existingCopy.Type = corev1.SecretTypeOpaque
+	}
+
 	if equality.Semantic.DeepEqual(existingCopy, existing) {
 		return existing, false, nil
 	}
@@ -280,14 +285,23 @@ func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 	if klog.V(4) {
 		klog.Infof("Secret %s/%s changes: %v", required.Namespace, required.Name, JSONPatchSecretNoError(existing, existingCopy))
 	}
-	actual, err := client.Secrets(required.Namespace).Update(context.TODO(), existingCopy, metav1.UpdateOptions{})
-	reportUpdateEvent(recorder, existingCopy, err)
 
-	if err == nil {
-		return actual, true, err
-	}
-	if !strings.Contains(err.Error(), "field is immutable") {
-		return actual, true, err
+	var actual *corev1.Secret
+	/*
+	 * Kubernetes validation silently hides failures to update secret type.
+	 * https://github.com/kubernetes/kubernetes/blob/98e65951dccfd40d3b4f31949c2ab8df5912d93e/pkg/apis/core/validation/validation.go#L5048
+	 * We need to explicitly opt for delete+create in that case.
+	 */
+	if existingCopy.Type == existing.Type {
+		actual, err = client.Secrets(required.Namespace).Update(context.TODO(), existingCopy, metav1.UpdateOptions{})
+		reportUpdateEvent(recorder, existingCopy, err)
+
+		if err == nil {
+			return actual, true, err
+		}
+		if !strings.Contains(err.Error(), "field is immutable") {
+			return actual, true, err
+		}
 	}
 
 	// if the field was immutable on a secret, we're going to be stuck until we delete it.  Try to delete and then create

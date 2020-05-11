@@ -643,11 +643,6 @@ func (client *Client) Capture(packet *Packet, captureTags map[string]string) (ev
 		packet.Logger = defaultLoggerName
 	}
 
-	// Set Severity if value is provided
-	if Severity(captureTags["level"]) != "" {
-		packet.Level = Severity(captureTags["level"])
-	}
-
 	err := packet.Init(projectID)
 	if err != nil {
 		ch <- err
@@ -1074,15 +1069,8 @@ func init() {
 //     }
 //
 // If the error does not implement Cause, the original error will
-// be returned.
-//
-// If the cause of the error is nil, then the original
-// error will be returned.
-//
-// If the error is nil, nil will be returned without further
+// be returned. If the error is nil, nil will be returned without further
 // investigation.
-//
-// Will return the deepest cause which is not nil.
 func Cause(err error) error {
 	type causer interface {
 		Cause() error
@@ -1093,13 +1081,7 @@ func Cause(err error) error {
 		if !ok {
 			break
 		}
-
-		if _cause := cause.Cause(); _cause != nil {
-			err = _cause
-		} else {
-			break
-		}
-
+		err = cause.Cause()
 	}
 	return err
 }

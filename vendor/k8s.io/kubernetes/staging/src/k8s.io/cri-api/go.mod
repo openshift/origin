@@ -10,7 +10,7 @@ require (
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/net v0.0.0-20200202094626-16171245cfb2 // indirect
+	golang.org/x/net v0.0.0-20200421231249-e086a090c8fd // indirect
 	golang.org/x/sys v0.0.0-20191022100944-742c48ecaeb7 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/grpc v1.26.0

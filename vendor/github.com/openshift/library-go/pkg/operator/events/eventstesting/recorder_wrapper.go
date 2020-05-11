@@ -23,6 +23,8 @@ func (e *EventRecorder) Event(reason, message string) {
 	e.testingEventRecorder.Event(reason, message)
 }
 
+func (e *EventRecorder) Shutdown() {}
+
 func (e *EventRecorder) Eventf(reason, messageFmt string, args ...interface{}) {
 	e.realEventRecorder.Eventf(reason, messageFmt, args...)
 	e.testingEventRecorder.Eventf(reason, messageFmt, args...)

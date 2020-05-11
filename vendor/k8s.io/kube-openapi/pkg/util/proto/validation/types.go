@@ -210,7 +210,7 @@ func (item *primitiveItem) VisitPrimitive(schema *proto.Primitive) {
 		}
 	case proto.Number:
 		switch item.Kind {
-		case proto.Integer, proto.Number:
+		case proto.Number:
 			return
 		}
 	case proto.String:
