@@ -19,6 +19,8 @@ package apiserver
 import (
 	"net/url"
 
+	failuredetector "github.com/p0lyn0mial/failure-detector"
+
 	"k8s.io/apiserver/pkg/util/proxy"
 	listersv1 "k8s.io/client-go/listers/core/v1"
 )
@@ -31,7 +33,7 @@ type ServiceResolver interface {
 // ServiceResolverWithCollector extends standard ServiceResolver by providing a method for health reporting.
 type ServiceResolverWithCollector interface {
 	// Collector a channel for sending EndpointSamples for further processing and evaluation.
-	Collector() chan <- struct{}
+	Collector() chan<- *failuredetector.EndpointSample
 }
 
 // ServiceResolverWithVisited extends standard ServiceResolver by providing a method for supporting retry mechanisms

@@ -122,6 +122,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				// TODO: what to report ?
 				//   - success, failure
 				//   - response time
+				// TODO: what if the last known error is actually unknown and status code is >= 500
 				if serviceHit {
 					r.serviceReporter(w.(*statusResponseWriter).statusCode, retryManager.LastKnownError())
 				}

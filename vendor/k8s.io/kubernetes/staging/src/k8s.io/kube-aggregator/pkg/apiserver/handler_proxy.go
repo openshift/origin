@@ -18,11 +18,14 @@ package apiserver
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	failuredetector "github.com/p0lyn0mial/failure-detector"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -116,23 +119,20 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	visitedEPs := []*url.URL{}
 	for {
 		done := func() bool {
-			serviceHit := false
+			var visitedEP *url.URL
+
 			defer func() {
-				// TODO: always report the status to the service resolver - this will influence available EPs pool
-				// TODO: what to report ?
-				//   - success, failure
-				//   - response time
-				// TODO: what if the last known error is actually unknown and status code is >= 500
-				if serviceHit {
-					r.serviceReporter(w.(*statusResponseWriter).statusCode, retryManager.LastKnownError())
+				if visitedEP != nil {
+					// TODO: what to report ?
+					//   - response time
+					r.serviceReporter(visitedEP, w.(*statusResponseWriter).statusCode, retryManager.LastKnownError())
 				}
 			}()
 			// TODO: do we have to clone the req ?
 			// TODO: detect disconnected client
-			visitedEP := r.serveHTTP(w, req, errRsp, r.serviceResolverWrapper(visitedEPs))
+			visitedEP = r.serveHTTP(w, req, errRsp, r.serviceResolverWrapper(visitedEPs))
 			if visitedEP != nil {
 				visitedEPs = append(visitedEPs, visitedEP)
-				serviceHit = true
 			}
 
 			// TODO: add logs
@@ -156,12 +156,27 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 // TODO: come up with better abstractions
-func (r *proxyHandler) serviceReporter(httpStatusCode int, lastKnownError error) {
+func (r *proxyHandler) serviceReporter(visitedEP *url.URL, httpStatusCode int, lastKnownError error) {
 	if serviceReporter, ok := r.serviceResolver.(ServiceResolverWithCollector); ok {
+		value := r.handlingInfo.Load()
+		if value == nil {
+			// should never happen
+			klog.Warning("unable to report health stats no handling info for proxy handler")
+			return
+		}
+		handlingInfo := value.(proxyHandlingInfo)
+
+		// create an error if the lastKnownError is unknown but the HTTP Status indicates an error
+		// TODO: can this ever happen ?
+		if lastKnownError == nil && httpStatusCode >= 500 {
+			lastKnownError = fmt.Errorf("%d", httpStatusCode)
+		}
+		sample := &failuredetector.EndpointSample{Namespace: handlingInfo.serviceNamespace, Service: handlingInfo.serviceName, URL: visitedEP, Err: lastKnownError}
+
 		select {
-		case serviceReporter.Collector() <- struct{}{}:
+		case serviceReporter.Collector() <- sample:
 		default:
-			// TODO: log that we didn't report
+			klog.Warningf("unable to report health stats (slow chan consumer !) for an endpoint %s in %s/%s, the last known error was %v", visitedEP.String(), handlingInfo.serviceNamespace, handlingInfo.serviceName, lastKnownError)
 		}
 	}
 }
