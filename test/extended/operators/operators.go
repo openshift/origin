@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	operatorWait = 1 * time.Minute
+	operatorWait = 5 * time.Minute
 	cvoWait      = 5 * time.Minute
 )
 
