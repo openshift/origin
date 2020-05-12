@@ -96,6 +96,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Matches: func(name string) bool {
 			return strings.Contains(name, "[sig-imageregistry]") && !strings.Contains(name, "[Local]")
 		},
+		TestTimeout: 20 * time.Minute,
 	},
 	{
 		Name: "openshift/image-ecosystem",
