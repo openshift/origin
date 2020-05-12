@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"syscall"
+	"errors"
 
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/proxy"
@@ -151,6 +154,7 @@ func newHijackResponder(delegate proxy.ErrorResponder, req *http.Request) *hijac
 
 func (hr *hijackResponder) Error(w http.ResponseWriter, r *http.Request, err error) {
 	// if we can retry the request do not send a response to the client
+	hr.lastKnownError = err
 	if !hr.canRetry(err) {
 		hr.delegate.Error(w, r, err)
 		return
@@ -172,7 +176,7 @@ func (hr *hijackResponder) LastKnownError() error {
 }
 
 func (hr *hijackResponder) canRetry(err error) bool {
-	if isHTTPVerbRetriable(hr.req) && (knet.IsConnectionReset(err) || knet.IsConnectionRefused(err)) {
+	if isHTTPVerbRetriable(hr.req) && (knet.IsConnectionReset(err) || knet.IsConnectionRefused(err) ||  isExperimental(err)) {
 		return true
 	}
 	return false
@@ -180,4 +184,18 @@ func (hr *hijackResponder) canRetry(err error) bool {
 
 func isHTTPVerbRetriable(req *http.Request) bool {
   return req.Method == "GET"
+}
+
+func isExperimental(err error) bool {
+	var osErr *os.SyscallError
+	if errors.As(err, &osErr) {
+		err = osErr.Err
+	}
+
+	// blocking the network traffic to a node gives: dial tcp 10.129.0.31:8443: connect: no route to host
+	// no rsp has been sent to the client so it's okay to retry and can pick up a different EP
+	if errno, ok := err.(syscall.Errno); ok && errno == syscall.EHOSTUNREACH {
+		return true
+	}
+	return false
 }
