@@ -25,6 +25,8 @@ import (
 	"sync"
 	"time"
 
+	failuredetector "github.com/p0lyn0mial/failure-detector"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -55,6 +57,12 @@ type certKeyFunc func() ([]byte, []byte)
 // ServiceResolver knows how to convert a service reference into an actual location.
 type ServiceResolver interface {
 	ResolveEndpoint(namespace, name string, port int32) (*url.URL, error)
+}
+
+// ServiceResolverWithCollector extends standard ServiceResolver by providing a method for health reporting.
+type ServiceResolverWithCollector interface {
+	// Collector a channel for sending EndpointSamples for further processing and evaluation.
+	Collector() chan<- *failuredetector.EndpointSample
 }
 
 // AvailableConditionController handles checking the availability of registered API services.
@@ -142,6 +150,19 @@ func NewAvailableConditionController(
 	c.syncFn = c.sync
 
 	return c, nil
+}
+
+func (c *AvailableConditionController) serviceReporter(namespace, name string, visitedEP *url.URL, httpStatusCode int, lastKnownError error) {
+	if serviceReporter, ok := c.serviceResolver.(ServiceResolverWithCollector); ok {
+		// create an error if the lastKnownError is unknown but the HTTP Status indicates an error
+		if lastKnownError == nil && (httpStatusCode < http.StatusOK || httpStatusCode >= http.StatusMultipleChoices) {
+			lastKnownError = fmt.Errorf("HTTPStatusCode:%d", httpStatusCode)
+		}
+
+		ep := &url.URL{Scheme: visitedEP.Scheme, Host: visitedEP.Host}
+		sample := &failuredetector.EndpointSample{Namespace: namespace, Service: name, URL: ep, Err: lastKnownError}
+		serviceReporter.Collector() <- sample
+	}
 }
 
 func (c *AvailableConditionController) sync(key string) error {
@@ -312,13 +333,16 @@ func (c *AvailableConditionController) sync(key string) error {
 				select {
 				case err = <-errCh:
 					if err != nil {
+						c.serviceReporter(apiService.Spec.Service.Namespace, apiService.Spec.Service.Name, discoveryURL, 0, err)
 						results <- fmt.Errorf("failing or missing response from %v: %v", discoveryURL, err)
 						return
 					}
+					c.serviceReporter(apiService.Spec.Service.Namespace, apiService.Spec.Service.Name, discoveryURL, http.StatusOK, nil)
 
 					// we had trouble with slow dial and DNS responses causing us to wait too long.
 					// we added this as insurance
 				case <-time.After(6 * time.Second):
+					c.serviceReporter(apiService.Spec.Service.Namespace, apiService.Spec.Service.Name, discoveryURL, 0, fmt.Errorf("timed out waiting for %v", discoveryURL))
 					results <- fmt.Errorf("timed out waiting for %v", discoveryURL)
 					return
 				}

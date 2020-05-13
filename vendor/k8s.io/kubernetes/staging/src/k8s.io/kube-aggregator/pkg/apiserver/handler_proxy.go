@@ -171,7 +171,8 @@ func (r *proxyHandler) serviceReporter(visitedEP *url.URL, httpStatusCode int, l
 		if lastKnownError == nil && httpStatusCode >= 500 {
 			lastKnownError = fmt.Errorf("%d", httpStatusCode)
 		}
-		sample := &failuredetector.EndpointSample{Namespace: handlingInfo.serviceNamespace, Service: handlingInfo.serviceName, URL: visitedEP, Err: lastKnownError}
+		ep := &url.URL{Scheme: visitedEP.Scheme, Host: visitedEP.Host}
+		sample := &failuredetector.EndpointSample{Namespace: handlingInfo.serviceNamespace, Service: handlingInfo.serviceName, URL: ep, Err: lastKnownError}
 
 		select {
 		case serviceReporter.Collector() <- sample:
