@@ -1677,6 +1677,18 @@
 		{
 			"ImportPath": "vbom.ml/util",
 			"Rev": "db5cfe13f5cc"
+		},
+		{
+			"ImportPath": "github.com/p0lyn0mial/failure-detector",
+			"Rev": "42e70bbc7eb0"
+		},
+		{
+			"ImportPath": "github.com/p0lyn0mial/ttl-cache",
+			"Rev": "b21b42dbc05f"
+		},
+		{
+			"ImportPath": "github.com/p0lyn0mial/batch-working-queue",
+			"Rev": "d87326ed735a"
 		}
 	]
 }
