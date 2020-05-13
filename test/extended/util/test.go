@@ -33,6 +33,7 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	"github.com/openshift/origin/pkg/version"
+	_ "github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var (

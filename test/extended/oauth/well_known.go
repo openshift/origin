@@ -11,10 +11,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("[Feature:OAuthServer] well-known endpoint", func() {
@@ -32,14 +34,19 @@ var _ = g.Describe("[Feature:OAuthServer] well-known endpoint", func() {
 		metadata := &oauthdiscovery.OauthAuthorizationServerMetadata{}
 		err = json.Unmarshal([]byte(metadataJSON), metadata)
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// If not running on an IBM ROKS cluster,
 		// compare to openshift-authentication route
-		route, err := oc.AdminRouteClient().RouteV1().Routes(oauthNamespace).Get(oauthRoute, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		u, err := url.Parse("https://" + route.Spec.Host)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		u.Path = path.Join(u.Path, "oauth/authorize")
-		authEndpointFromRoute := u.String()
-		o.Expect(metadata.AuthorizationEndpoint).To(o.Equal(authEndpointFromRoute))
+		// (On an IBM ROKS cluster the openshift-authentication route does not live in the cluster)
+		if e2e.TestContext.Provider != ibmcloud.ProviderName {
+			route, err := oc.AdminRouteClient().RouteV1().Routes(oauthNamespace).Get(oauthRoute, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			u, err := url.Parse("https://" + route.Spec.Host)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			u.Path = path.Join(u.Path, "oauth/authorize")
+			authEndpointFromRoute := u.String()
+			o.Expect(metadata.AuthorizationEndpoint).To(o.Equal(authEndpointFromRoute))
+		}
 		tlsClientConfig, err := rest.TLSConfigFor(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 

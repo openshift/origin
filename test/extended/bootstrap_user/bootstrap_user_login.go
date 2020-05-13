@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("The bootstrap user", func() {
@@ -29,6 +30,9 @@ var _ = g.Describe("The bootstrap user", func() {
 	oc := exutil.NewCLI("bootstrap-login", exutil.KubeConfigPath())
 
 	g.It("should successfully login with password decoded from kubeadmin secret [Disruptive]", func() {
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			e2e.Skipf("IBM ROKS clusters do not respond to the kube-system/kubeadmin secret's presence for authentication.")
+		}
 		var originalPasswordHash []byte
 		secretExists := true
 		recorder := events.NewInMemoryRecorder("")
