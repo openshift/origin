@@ -95,5 +95,8 @@ func (r *loopbackResolver) ResolveEndpoint(namespace, name string, port int32) (
 	if namespace == "default" && name == "kubernetes" && port == 443 {
 		return r.host, nil
 	}
+	if r.delegate == nil {
+		return nil, nil
+	}
 	return r.delegate.ResolveEndpoint(namespace, name, port)
 }

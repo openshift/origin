@@ -23,19 +23,30 @@ type FailureDetector interface {
 	EndpointStatus(namespace, service string, url *url.URL) (isHealthy bool, weight float32)
 }
 
+type fakeLoopbackResolver struct{}
+
+func (f *fakeLoopbackResolver) ResolveEndpoint(namespace, name string, port int32) (*url.URL, error) {
+	return nil, nil
+}
+
 // NewEndpointServiceResolverWithFailureDetector returns a service resolver with support for retry mechanisms, health reporting and failure detection
-func NewEndpointServiceResolverWithFailureDetector(services listersv1.ServiceLister, endpoints listersv1.EndpointsLister, failureDetector FailureDetector) ServiceResolver {
+func NewEndpointServiceResolverWithFailureDetector(services listersv1.ServiceLister, endpoints listersv1.EndpointsLister, loopbackResolver ServiceResolver, failureDetector FailureDetector) ServiceResolver {
+	if loopbackResolver == nil {
+		loopbackResolver = &fakeLoopbackResolver{}
+	}
 	return &serviceResolver{
-		services:        services,
-		endpoints:       endpoints,
-		failureDetector: failureDetector,
+		services:         services,
+		endpoints:        endpoints,
+		loopbackResolver: loopbackResolver,
+		failureDetector:  failureDetector,
 	}
 }
 
 type serviceResolver struct {
-	services        listersv1.ServiceLister
-	endpoints       listersv1.EndpointsLister
-	failureDetector FailureDetector
+	services         listersv1.ServiceLister
+	endpoints        listersv1.EndpointsLister
+	loopbackResolver ServiceResolver
+	failureDetector  FailureDetector
 }
 
 // ResolveEndpoint resolves (randomly) an endpoint to a given service.
@@ -43,12 +54,22 @@ type serviceResolver struct {
 // Note:
 // Kube uses one service resolver for webhooks and the aggregator this method satisfies webhook.ServiceResolver interface
 func (r *serviceResolver) ResolveEndpoint(namespace, name string, port int32) (*url.URL, error) {
+	localEndpoint, err := r.loopbackResolver.ResolveEndpoint(namespace, name, port)
+	if err == nil && localEndpoint != nil {
+		return localEndpoint, nil
+	}
+
 	return proxy.ResolveEndpoint(r.services, r.endpoints, namespace, name, port)
 }
 
 // ResolveEndpointWithVisited resolves an endpoint excluding already visited ones.
 // Facilitates supporting retry mechanisms.
 func (r *serviceResolver) ResolveEndpointWithVisited(namespace, name string, port int32, visitedEPs []*url.URL) (*url.URL, error) {
+	localEndpoint, err := r.loopbackResolver.ResolveEndpoint(namespace, name, port)
+	if err == nil && localEndpoint != nil {
+		return localEndpoint, nil
+	}
+
 	potentialEndpoints, err := r.remainingEndpoints(namespace, name, port, visitedEPs)
 	if err != nil {
 		return nil, err

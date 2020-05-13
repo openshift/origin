@@ -762,7 +762,13 @@ func Complete(s *options.ServerRunOptions) (completedServerRunOptions, error) {
 func buildServiceResolver(enabledAggregatorRouting bool, hostname string, informer clientgoinformers.SharedInformerFactory) (webhook.ServiceResolver, genericapiserver.PostStartHookFunc) {
 	var serviceResolver webhook.ServiceResolver
 	var serviceResolverPostStartHook func(context genericapiserver.PostStartHookContext) error
+
 	if enabledAggregatorRouting {
+		// resolve kubernetes.default.svc locally
+		var loopbackResolver aggregatorapiserver.ServiceResolver
+		if localHost, err := url.Parse(hostname); err == nil {
+			loopbackResolver = aggregatorapiserver.NewLoopbackServiceResolver(nil, localHost)
+		}
 		fd := failuredetector.NewDefaultFailureDetector()
 		serviceResolverPostStartHook = func(context genericapiserver.PostStartHookContext) error {
 			// TODO: wire context to PostStartHookContext or change the method signature to accept a chan
@@ -772,13 +778,16 @@ func buildServiceResolver(enabledAggregatorRouting bool, hostname string, inform
 		serviceResolver = aggregatorapiserver.NewEndpointServiceResolverWithFailureDetector(
 			informer.Core().V1().Services().Lister(),
 			informer.Core().V1().Endpoints().Lister(),
+			loopbackResolver,
 			fd,
 		)
+		return serviceResolver, serviceResolverPostStartHook
 	} else {
 		serviceResolver = aggregatorapiserver.NewClusterIPServiceResolver(
 			informer.Core().V1().Services().Lister(),
 		)
 	}
+
 	// resolve kubernetes.default.svc locally
 	if localHost, err := url.Parse(hostname); err == nil {
 		serviceResolver = aggregatorapiserver.NewLoopbackServiceResolver(serviceResolver, localHost)
