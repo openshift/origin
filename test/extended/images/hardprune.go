@@ -364,14 +364,14 @@ func (ba byAgeDesc) Less(i, j int) bool {
 
 // GetRegistryPod returns the youngest registry pod deployed.
 func GetRegistryPod(podsGetter kcoreclient.PodsGetter) (*kapiv1.Pod, error) {
-	podList, err := podsGetter.Pods(metav1.NamespaceDefault).List(context.Background(), metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set{"deploymentconfig": "docker-registry"}).String(),
+	podList, err := podsGetter.Pods(RegistryOperatorDeploymentNamespace).List(context.Background(), metav1.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{"docker-registry": "default"}).String(),
 	})
 	if err != nil {
 		return nil, err
 	}
 	if len(podList.Items) == 0 {
-		return nil, fmt.Errorf("failed to find any docker-registry pod")
+		return nil, fmt.Errorf("failed to find any image-registry pod")
 	}
 
 	sort.Sort(byAgeDesc(podList.Items))
@@ -387,9 +387,9 @@ func LogRegistryPod(oc *exutil.CLI) error {
 	}
 
 	ocLocal := *oc
-	path, err := ocLocal.Run("logs").Args("dc/docker-registry").OutputToFile("pod-" + pod.Name + ".log")
+	path, err := ocLocal.Run("logs").Args("deployments/image-registry").OutputToFile("pod-" + pod.Name + ".log")
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "written registry pod log to %s\n", path)
+		fmt.Fprintf(g.GinkgoWriter, "written image registry pod log to %s\n", path)
 	}
 	return err
 }
@@ -466,8 +466,9 @@ func makeReadonlyEnvValue(on bool) string {
 // GetRegistryStorageSize returns a number of bytes occupied by registry's data on its filesystem.
 func GetRegistryStorageSize(oc *exutil.CLI) (int64, error) {
 	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
-	out, err := oc.SetNamespace(metav1.NamespaceDefault).AsAdmin().Run("rsh").Args(
-		"dc/docker-registry", "du", "--bytes", "--summarize", "/registry/docker/registry").Output()
+	ConfigureImageRegistryStorageToEmptyDir(oc)
+	out, err := oc.SetNamespace(RegistryOperatorDeploymentNamespace).AsAdmin().Run("rsh").Args(
+		"deployments/image-registry", "du", "--bytes", "--summarize", "/registry/docker/registry").Output()
 	if err != nil {
 		return 0, err
 	}

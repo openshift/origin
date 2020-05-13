@@ -35,19 +35,13 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("prune-images")
 
-	var originalAcceptSchema2 *bool
-
 	var startTime time.Time
 	g.JustBeforeEach(func() {
 		startTime = time.Now()
+		g.By("Enablling Image Registry Default Route")
+		EnableRegistryPublicRoute(oc)
 	})
 	g.JustBeforeEach(func() {
-		if originalAcceptSchema2 == nil {
-			accepts, err := DoesRegistryAcceptSchema2(oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			originalAcceptSchema2 = &accepts
-		}
-
 		g.By(fmt.Sprintf("give a user %s a right to prune images with %s role", oc.Username(), "system:image-pruner"))
 		err := oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "add-cluster-role-to-user", "system:image-pruner", oc.Username()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -56,14 +50,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 	g.Describe("of schema 1", func() {
 		g.JustBeforeEach(func() {
 			var err error
-			isRedeployed := false
-			if *originalAcceptSchema2 {
-				g.By("ensure the registry does not accept schema 2")
-				isRedeployed, err = EnsureRegistryAcceptsSchema2(oc, false)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-			if !isRedeployed {
-				_, err = RedeployRegistry(oc)
+			isAvailable := false
+			if !isAvailable {
+				_, err = EnsureRegistryOperatorStatusIsAvailable(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -71,10 +60,6 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				dumpRegistryLogs(oc, startTime)
-			}
-			if *originalAcceptSchema2 {
-				_, err := EnsureRegistryAcceptsSchema2(oc, true)
-				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
@@ -84,14 +69,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 	g.Describe("of schema 2", func() {
 		g.JustBeforeEach(func() {
 			var err error
-			isRedeployed := false
-			if !*originalAcceptSchema2 {
-				g.By("ensure the registry accepts schema 2")
-				isRedeployed, err = EnsureRegistryAcceptsSchema2(oc, true)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-			if !isRedeployed {
-				_, err = RedeployRegistry(oc)
+			isAvailable := false
+			if !isAvailable {
+				_, err = EnsureRegistryOperatorStatusIsAvailable(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -99,10 +79,6 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				dumpRegistryLogs(oc, startTime)
-			}
-			if !*originalAcceptSchema2 {
-				_, err := EnsureRegistryAcceptsSchema2(oc, false)
-				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
@@ -112,14 +88,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 	g.Describe("with --prune-registry==false", func() {
 		g.JustBeforeEach(func() {
 			var err error
-			isRedeployed := false
-			if !*originalAcceptSchema2 {
-				g.By("ensure the registry accepts schema 2")
-				isRedeployed, err = EnsureRegistryAcceptsSchema2(oc, true)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-			if !isRedeployed {
-				_, err = RedeployRegistry(oc)
+			isAvailable := false
+			if !isAvailable {
+				_, err = EnsureRegistryOperatorStatusIsAvailable(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -127,10 +98,6 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				dumpRegistryLogs(oc, startTime)
-			}
-			if !*originalAcceptSchema2 {
-				_, err := EnsureRegistryAcceptsSchema2(oc, false)
-				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
@@ -140,14 +107,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 	g.Describe("with default --all flag", func() {
 		g.JustBeforeEach(func() {
 			var err error
-			isRedeployed := false
-			if !*originalAcceptSchema2 {
-				g.By("ensure the registry accepts schema 2")
-				isRedeployed, err = EnsureRegistryAcceptsSchema2(oc, true)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-			if !isRedeployed {
-				_, err = RedeployRegistry(oc)
+			isAvailable := false
+			if !isAvailable {
+				_, err = EnsureRegistryOperatorStatusIsAvailable(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -155,10 +117,6 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				dumpRegistryLogs(oc, startTime)
-			}
-			if !*originalAcceptSchema2 {
-				_, err := EnsureRegistryAcceptsSchema2(oc, false)
-				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
@@ -168,14 +126,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 	g.Describe("with --all=false flag", func() {
 		g.JustBeforeEach(func() {
 			var err error
-			isRedeployed := false
-			if !*originalAcceptSchema2 {
-				g.By("ensure the registry accepts schema 2")
-				isRedeployed, err = EnsureRegistryAcceptsSchema2(oc, true)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-			if !isRedeployed {
-				_, err = RedeployRegistry(oc)
+			isAvailable := false
+			if !isAvailable {
+				_, err = EnsureRegistryOperatorStatusIsAvailable(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -183,10 +136,6 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				dumpRegistryLogs(oc, startTime)
-			}
-			if !*originalAcceptSchema2 {
-				_, err := EnsureRegistryAcceptsSchema2(oc, false)
-				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
@@ -248,7 +197,8 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(imgKeep.DockerImageManifestMediaType).To(o.Equal(mediaType))
 
 	g.By("prune the first image uploaded (dry-run)")
-	output, err := oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0").Output()
+	registryroute, err := oc.AsAdmin().Run("get").Args("route", "default-route", "-o=jsonpath={.spec.host}", "-n", RegistryOperatorDeploymentNamespace).Output()
+	output, err := oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0", "--registry-url="+registryroute+"", "--force-insecure=true").Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
 	e2e.Logf("Prune Images Output:\n%s", output)
 
@@ -280,7 +230,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(noConfirmSize).To(o.Equal(keepSize))
 
 	g.By("prune the first image uploaded (confirm)")
-	output, err = oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0", "--confirm").Output()
+	output, err = oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0", "--registry-url="+registryroute+"", "--force-insecure=true", "--confirm").Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
 	e2e.Logf("Prune Images Output:\n%s", output)
 
@@ -345,7 +295,8 @@ func testSoftPruneImages(oc *exutil.CLI) {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("prune the first image uploaded (confirm, skipping registry)")
-	output, err := oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0", "--confirm", "--prune-registry=false").Output()
+	registryroute, err := oc.AsAdmin().Run("get").Args("route", "default-route", "-o=jsonpath={.spec.host}", "-n", RegistryOperatorDeploymentNamespace).Output()
+	output, err := oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0", "--confirm", "--prune-registry=false", "--registry-url="+registryroute+"", "--force-insecure=true").Output()
 
 	g.By("verify images, layers and configs about to be pruned")
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -420,7 +371,8 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 		}
 	}
 
-	args := []string{"prune", "images", "--keep-tag-revisions=0", "--keep-younger-than=0"}
+	registryroute, err := oc.AsAdmin().Run("get").Args("route", "default-route", "-o=jsonpath={.spec.host}", "-n", RegistryOperatorDeploymentNamespace).Output()
+	args := []string{"prune", "images", "--keep-tag-revisions=0", "--keep-younger-than=0", "--registry-url=" + registryroute + "", "--force-insecure=true"}
 	if setAllImagesToFalse {
 		args = append(args, "--all=false")
 	}
@@ -498,8 +450,8 @@ func importImageAndMirrorItsSmallestBlob(oc *exutil.CLI, imageReference, destIST
 
 func dumpRegistryLogs(oc *exutil.CLI, since time.Time) {
 	oadm := oc.AsAdmin()
-	oadm.SetNamespace("default")
-	out, err := oadm.Run("logs").Args("dc/docker-registry", "--since-time="+since.Format(time.RFC3339)).Output()
+	oadm.SetNamespace(RegistryOperatorDeploymentNamespace)
+	out, err := oadm.Run("logs").Args("deployments/image-registry", "--since-time="+since.Format(time.RFC3339)).Output()
 	if err != nil {
 		e2e.Logf("Error during retrieval of registry logs: %v", err)
 	} else {
