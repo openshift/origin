@@ -228,7 +228,6 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 	})
 
 	g.It("should pass impersonation creation tests", func() {
-		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 		// check who can create TemplateInstances (anyone with project write access
 		// AND is/can impersonate spec.requester.username)
 		for _, test := range tests {
@@ -250,7 +249,6 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 	})
 
 	g.It("should pass impersonation update tests", func() {
-		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 		// check who can update TemplateInstances.  Via Update(), spec updates
 		// should be rejected (with the exception of spec.metadata fields used
 		// by the garbage collector, not tested here).  Status updates should be
@@ -351,7 +349,6 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 	})
 
 	g.It("should pass impersonation deletion tests", func() {
-		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 		// check who can delete TemplateInstances (anyone with project write access)
 		for _, test := range tests {
 			setUser(cli, test.user)

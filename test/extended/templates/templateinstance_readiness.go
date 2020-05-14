@@ -121,7 +121,6 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		})
 
 		g.It("should report ready soon after all annotated objects are ready", func() {
-			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			var err error
 
 			templateinstance = &templatev1.TemplateInstance{
@@ -171,7 +170,6 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		})
 
 		g.It("should report failed soon after an annotated objects has failed", func() {
-			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			var err error
 
 			secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(&v1.Secret{
