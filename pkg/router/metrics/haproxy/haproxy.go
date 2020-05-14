@@ -487,10 +487,7 @@ func (e *Exporter) collectMetrics(metrics chan<- prometheus.Metric) {
 	for _, m := range e.frontendMetrics {
 		m.Collect(metrics)
 	}
-	for i, m := range e.backendMetrics {
-		if _, ok := e.reducedBackendExports[i]; !e.serverLimited && !ok {
-			continue
-		}
+	for _, m := range e.backendMetrics {
 		m.Collect(metrics)
 	}
 	if !e.serverLimited {
