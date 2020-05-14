@@ -78,6 +78,16 @@ var staticSuites = []*ginkgo.TestSuite{
 		TestTimeout: 60 * time.Minute,
 	},
 	{
+		Name: "openshift/templates",
+		Description: templates.LongDesc(`
+		Tests that exercise the OpenShift template functionality.
+		`),
+		Matches: func(name string) bool {
+			return !strings.Contains(name, "[Disabled") && strings.Contains(name, "[Feature:Templates]")
+		},
+		Parallelism: 1,
+	},
+	{
 		Name: "openshift/image-registry",
 		Description: templates.LongDesc(`
 		Tests that exercise the OpenShift image-registry functionality.
