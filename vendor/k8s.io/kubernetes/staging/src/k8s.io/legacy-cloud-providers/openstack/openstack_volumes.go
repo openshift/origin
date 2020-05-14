@@ -727,6 +727,11 @@ func (os *OpenStack) GetLabelsForVolume(ctx context.Context, pv *v1.PersistentVo
 		return nil, nil
 	}
 
+	// if volume az is to be ignored we should return nil from here
+	if os.bsOpts.IgnoreVolumeAZ {
+		return nil, nil
+	}
+
 	// Get metadata
 	md, err := getMetadata(os.metadataOpts.SearchOrder)
 	if err != nil {
