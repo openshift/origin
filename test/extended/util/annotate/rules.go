@@ -92,6 +92,9 @@ var (
 
 			// A fix is in progress: https://github.com/openshift/origin/pull/24709
 			`Multi-AZ Clusters should spread the pods of a replication controller across zones`,
+
+			// Fix is inbound for RHEL 8 soon https://bugzilla.redhat.com/show_bug.cgi?id=1781575
+			`\[sig-network\] Services should be rejected when no endpoints exist`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
