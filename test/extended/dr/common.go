@@ -77,7 +77,9 @@ func constructEtcdConnectionString(masters []string) string {
 				break
 			}
 		}
-		etcdDNSName := strings.Split(entry, "=")[1]
+		entries := strings.Split(entry, "=")
+		o.Expect(entries).To(o.HaveLen(2))
+		etcdDNSName := entries[1]
 		o.Expect(etcdDNSName).NotTo(o.BeEmpty())
 		etcdConnectionString = fmt.Sprintf("%setcd-member-%s=https://%s:2380,", etcdConnectionString, master, etcdDNSName)
 	}
