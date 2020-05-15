@@ -30415,24 +30415,18 @@ os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-n
 #os::cmd::expect_success_and_not_text 'oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth' "Warning"
 #os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=self-provisioners self-provisioner system:authenticated:oauth'
 
-os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
-os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-user'
-os::cmd::expect_success 'oc adm policy add-scc-to-user privileged -z fake-sa'
-os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
-os::cmd::expect_success 'oc adm policy add-scc-to-group privileged fake-group'
-os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-group'
-os::cmd::expect_success 'oc adm policy remove-scc-from-user privileged fake-user'
-os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-user'
-os::cmd::expect_success 'oc adm policy remove-scc-from-user privileged -z fake-sa'
-os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
-os::cmd::expect_success 'oc adm policy remove-scc-from-group privileged fake-group'
-os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-group'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user privileged fake-user --dry-run=client -oyaml' 'fake-user'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user privileged -z fake-sa --dry-run=client -oyaml' 'fake-sa'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group privileged fake-group --dry-run=client -oyaml' 'fake-group'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-user privileged fake-user --dry-run=client -oyaml' 'fake-user'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-user privileged -z fake-sa --dry-run=client -oyaml' 'fake-sa'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-group privileged fake-group --dry-run=client -oyaml' 'fake-group'
 
 # check pruning
 os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
-os::cmd::expect_success_and_text 'oc adm prune auth users/fake-user' 'securitycontextconstraints.security.openshift.io/privileged updated'
+os::cmd::expect_success_and_text 'oc adm prune auth users/fake-user' 'privileged updated'
 os::cmd::expect_success 'oc adm policy add-scc-to-group privileged fake-group'
-os::cmd::expect_success_and_text 'oc adm prune auth groups/fake-group' 'securitycontextconstraints.security.openshift.io/privileged updated'
+os::cmd::expect_success_and_text 'oc adm prune auth groups/fake-group' 'privileged updated'
 echo "admin-scc: ok"
 os::test::junit::declare_suite_end
 
