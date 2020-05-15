@@ -49,6 +49,7 @@ import (
 const (
 	openshiftCNIFile = "80-openshift-network.conf"
 	hostLocalDataDir = "/var/lib/cni/networks"
+	cniIPStorePath   = hostLocalDataDir + "/openshift-sdn/"
 )
 
 type osdnPolicy interface {
@@ -372,6 +373,7 @@ func (node *OsdnNode) Start() error {
 	}
 
 	go kwait.Forever(node.policy.SyncVNIDRules, time.Hour)
+	go kwait.Forever(node.syncCNIDir, time.Hour*24)
 	go kwait.Forever(func() {
 		gatherPeriodicMetrics(node.oc.ovs)
 	}, time.Minute*2)
@@ -396,6 +398,38 @@ func (node *OsdnNode) Start() error {
 
 	glog.V(2).Infof("openshift-sdn network plugin ready")
 	return nil
+}
+
+// syncCNIDir synchronizes /var/lib/cni/networks/openshift-sdn with running
+// Sandbox pods in the event that something has gone wrong with the cluster, we don't receive the CNI_DEL
+// and we stock stale IP addresses on the node (which leads to IP allocation saturation after X amount of time)
+// This method tries to clean up as much as possible, and thus does not fail.
+// NOTE: Careful with "last_reserved_ip.0", there's no sandbox ID in that, so just skip it
+func (node *OsdnNode) syncCNIDir() {
+	existingSandboxPods, err := node.getSDNPodSandboxes()
+	if err != nil {
+		glog.Errorf("unable to list node sandbox pods: %v", err)
+		return
+	}
+	filepath.Walk(cniIPStorePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+		sandboxID := strings.TrimSpace(string(data))
+		if ip := net.ParseIP(sandboxID); ip != nil {
+			return nil
+		}
+		if _, isFound := existingSandboxPods[sandboxID]; !isFound {
+			if err := os.Remove(path); err != nil {
+				glog.Errorf("unable to remove file: %s, err: %v", path, err)
+			}
+		}
+		return nil
+	})
 }
 
 // reattachPods takes an array containing the information about pods that had been
