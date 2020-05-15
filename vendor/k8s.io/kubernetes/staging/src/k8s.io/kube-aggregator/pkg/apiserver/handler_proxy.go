@@ -111,10 +111,16 @@ func proxyError(w http.ResponseWriter, req *http.Request, error string, code int
 }
 
 func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	w = newStatusResponseWriter(w, req)
+	_, supportsCloseNotifier := w.(http.CloseNotifier)
+	_, supportsFlusher := w.(http.Flusher)
+	if supportsCloseNotifier && supportsFlusher {
+		w = newExtendedResponseWriterInterceptor(newResponseWriterInterceptor(w))
+	} else {
+		w = newResponseWriterInterceptor(w)
+	}
 	errRsp := newHijackResponder(&responder{w: w}, req)
 	// TODO: to builder pattern
-	retryManager := newHijackProtector(w.(*statusResponseWriter), newMaxRetries(newRetryDetector(errRsp), 3))
+	retryManager := newHijackProtector(w.(responseWriterInterceptor), newMaxRetries(newRetryDetector(errRsp), 3))
 
 	visitedEPs := []*url.URL{}
 	for {
@@ -125,7 +131,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				if visitedEP != nil {
 					// TODO: what to report ?
 					//   - response time
-					r.serviceReporter(visitedEP, w.(*statusResponseWriter).statusCode, retryManager.LastKnownError())
+					r.serviceReporter(visitedEP, w.(responseWriterInterceptor).StatusCode(), retryManager.LastKnownError())
 				}
 			}()
 			// TODO: do we have to clone the req ?
@@ -148,7 +154,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if w.(*statusResponseWriter).statusCode == 0 && !w.(*statusResponseWriter).wasHijacked {
+	if w.(responseWriterInterceptor).StatusCode() == 0 && !w.(responseWriterInterceptor).WasHijacked() {
 		// TODO: send HTTP 503 if the error is retriable
 		//       otherwise send HTTP 500
 		proxyError(w, req, "service unavailable", http.StatusServiceUnavailable)
