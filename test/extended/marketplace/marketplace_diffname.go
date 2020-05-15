@@ -79,10 +79,16 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace diff name test", func() {
 		cscYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=samename", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=camel-k-marketplace-e2e-tests", "DISPLAYNAME=samename", "PUBLISHER=samename").OutputToFile("config.json")
 		err = createResources(oc, cscYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
+
 		// Check the csc status
-		outMesg, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("catalogsourceconfig", "samename", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
-		o.Expect(outMesg).Should(o.ContainSubstring("Deployment samename exists"))
-		outStatus, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("catalogsourceconfig", "samename", "-o=jsonpath={.status.currentPhase.phase.name}", "-n", marketplaceNs).Output()
-		o.Expect(outStatus).Should(o.ContainSubstring("Configuring"))
+		err = wait.Poll(5*time.Second, resourceWait, func() (bool, error) {
+			outStatus, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("catalogsourceconfig", "samename", "-o=jsonpath={.status.currentPhase.phase.name}", "-n", marketplaceNs).Output()
+			outMesg, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("catalogsourceconfig", "samename", "-o=jsonpath={.status.currentPhase.phase.message}", "-n", marketplaceNs).Output()
+			if strings.Contains(outStatus, "Configuring") && strings.Contains(outMesg, "Deployment samename exists") {
+				return true, nil
+			}
+			return false, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
