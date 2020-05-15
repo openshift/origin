@@ -19,12 +19,14 @@ import (
 	certv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	kubeclient "k8s.io/client-go/kubernetes"
 	certclientv1beta1 "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
 	restclient "k8s.io/client-go/rest"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("node client cert requests armoring:", func() {
@@ -32,6 +34,13 @@ var _ = g.Describe("node client cert requests armoring:", func() {
 	defer g.GinkgoRecover()
 
 	g.It("deny pod's access to /config/master API endpoint", func() {
+
+		// https://issues.redhat.com/browse/CO-760
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			e2e.Skipf("IBM ROKS clusters do not expose machine configuration externally because they don't use RHCOS workers. " +
+				"Remove this skip when https://issues.redhat.com/browse/CO-760 (RHCOS support) is implemented")
+		}
+
 		// the /config/master API port+endpoint is only visible from inside the cluster
 		// (-> we need to create a pod to try to reach it)  and contains the token
 		// of the node-bootstrapper SA, so no random pods should be able to see it
@@ -59,6 +68,10 @@ var _ = g.Describe("node client cert requests armoring:", func() {
 	})
 
 	g.It("node-approver SA token compromised, don't approve random CSRs with client auth", func() {
+
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			e2e.Skipf("IBM ROKS clusters do not handle node bootstrapping in the cluster. The openshift-machine-config-operator/node-bootstrapper service account does not exist")
+		}
 		// we somehow were able to get the node-approver token, make sure we can't
 		// create node certs with client auth with it
 		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
