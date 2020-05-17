@@ -436,6 +436,7 @@
 // test/extended/testdata/router/router-grpc-interop.yaml
 // test/extended/testdata/router/router-h2spec.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
+// test/extended/testdata/router/router-http2.yaml
 // test/extended/testdata/router/router-metrics.yaml
 // test/extended/testdata/router/router-override-domains.yaml
 // test/extended/testdata/router/router-override.yaml
@@ -55634,6 +55635,235 @@ func testExtendedTestdataRouterRouterHttpEchoServerYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataRouterRouterHttp2Yaml = []byte(`apiVersion: v1
+kind: Template
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: http2
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: serving-cert-http2
+  spec:
+    selector:
+      name: http2
+    ports:
+      - name: https
+        protocol: TCP
+        port: 27443
+        targetPort: 8443
+      - name: http
+        protocol: TCP
+        port: 8080
+        targetPort: 8080
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: src-config
+  data:
+    data.base64: |
+      H4sIAAAAAAAC/+xW32vbMBD2q/VXaIKBvWWObCdpaenDKA2FBhbqsDEYFONcXBNZSiU5xSv+34cU
+      t01Y1/1gaynz93I29919d7qTcS6CUsydfwpKKR2NBsaGe0O6bTeIqRPGo+FgGA8HcezQMBzuUQdT
+      5wlQKZ1Kh9K0KB/l/czftnJnXwhKMa8Y4IxVSoNEKBc4DMIYOR3+C+QiUFX5zPeffnf/R2HU3f+n
+      gAK5Bhnk4vnmH4VRbOc/iqLhHg0dGkZx1H3/nwSrNFumOeAyLThCRbkSUmMPuWRRaoJcwkRuDAfd
+      v9R6ZZ6FIshHKBNcWeocFmnF9OlsNp2aaHyEyT7dp2THlVifcQ0G8b1rNkmOTYyN6oPO+mYjC56/
+      y0DqvmYqyKTe4Z9B/Sh/CbUtcFHxDDMhltXqhK+9JdQ93Gb5mDKstCx47rcW3yC3WOB1ynpYLPHB
+      ERYqmGwH+4fGcYNcV4KuJDdc5Dbo9vU+NWpacXOonm9iMqnHBQOT974iMpskF8fnM3JX1+Y0fOQu
+      of4B/+zk8w7/DGofIdcMJzhN+ZzBuOKZR/qkh00R3jW2vnNQK8EVfJKFBtnDEq7wm9ZzVYHStk53
+      UepgvJIF1961JQVTKbTwkds8LHMJKdOXX/+GGpGQzmtyq5WLTcoN1S7m7nGYtbqYftg+wNsl9JHr
+      MpEHU5N74ZFJoTRwM2fBsU31ev2Fk559NmJm+CClUbBlbgLe83liPpAeOSBvDbWHecH8Q0t9dWRe
+      bHFWa5zqlHkgpRFvkNt4v9xF8kAbyeN9KMgqCaz+s4Zmk2Srp3Y7e7hdu9/vUgGDTOObBjXdr2OH
+      Dh06vAR8CwAA//+plR+uABIAAA==
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: http2
+    labels:
+      name: http2
+  spec:
+    containers:
+    - image: golang:1.14
+      name: server
+      command: ["/workdir/http2-server"]
+      readinessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+        initialDelaySeconds: 3
+        periodSeconds: 3
+      env:
+      - name: GODEBUG
+        value: http2debug=1
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      - containerPort: 8080
+        protocol: TCP
+      volumeMounts:
+      - name: cert
+        mountPath: /etc/serving-cert
+      - name: workdir
+        mountPath: /workdir
+    initContainers:
+    - image: golang:1.14
+      name: builder
+      command: ["/bin/bash", "-c"]
+      args:
+        - set -e;
+          cd /workdir;
+          base64 -d /go/src/data.base64 | tar zxf -;
+          go build -v -mod=readonly -o /workdir/http2-server server.go;
+      env:
+      - name: GO111MODULE
+        value: "auto"
+      - name: GOCACHE
+        value: "/tmp"
+      - name: GOPROXY
+        value: "https://goproxy.golang.org,direct"
+      volumeMounts:
+      - name: cert
+        mountPath: /etc/serving-cert
+      - name: src-volume
+        mountPath: /go/src
+      - name: workdir
+        mountPath: /workdir
+    volumes:
+    - name: src-volume
+      configMap:
+        name: src-config
+    - name: cert
+      secret:
+        secretName: serving-cert-http2
+    - name: workdir
+      emptyDir: {}
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: http2-default-cert-edge
+  spec:
+    port:
+      targetPort: 8080
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: http2
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: http2-default-cert-reencrypt
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: http2
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: http2-custom-cert-edge
+  spec:
+    port:
+      targetPort: 8080
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+      key: |-
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIAW+ecg2cZR47ItbI898N3nJduh9UJNv+b0cOwH/Z1BEoAoGCCqGSM49
+        AwEHoUQDQgAEx0/5sEgiUPFdcbd4dSllkul8s68RQ5WxIjfwWYMdfYLiLLqP1lkz
+        4UYpwAW/t63qBx3jRhPgkUxh5saJP9Qu5Q==
+        -----END EC PRIVATE KEY-----
+      certificate: |-
+        -----BEGIN CERTIFICATE-----
+        MIIBgTCCASagAwIBAgIRALutWdExjxX8fWljW+lcYbswCgYIKoZIzj0EAwIwJDEQ
+        MA4GA1UEChMHUmVkIEhhdDEQMA4GA1UEAxMHUm9vdCBDQTAgFw0yMDA1MTExMDU2
+        NThaGA8yMTIwMDQxNzEwNTY1OFowJjEQMA4GA1UEChMHUmVkIEhhdDESMBAGA1UE
+        AwwJdGVzdF9jZXJ0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEx0/5sEgiUPFd
+        cbd4dSllkul8s68RQ5WxIjfwWYMdfYLiLLqP1lkz4UYpwAW/t63qBx3jRhPgkUxh
+        5saJP9Qu5aM1MDMwDgYDVR0PAQH/BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMB
+        MAwGA1UdEwEB/wQCMAAwCgYIKoZIzj0EAwIDSQAwRgIhAOIx8885y8tX/Vv94UGx
+        hWC/O1Hzi15kOT0WQ/UKUMjMAiEA40uW9P6k+i1cDwgfBBMzgDFQa9GAb4FqM8Wr
+        PaUMdqg=
+        -----END CERTIFICATE-----
+    to:
+      kind: Service
+      name: http2
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: http2-custom-cert-reencrypt
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+      key: |-
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIBk5BXzGWoGiRD9726TFPcvKHuwNVBUfPBlbF5fISRFPoAoGCCqGSM49
+        AwEHoUQDQgAEjCp5jERwCaBpjhoaOxgD1DDaPwKkWu+a8mJLn9Cn9+LcSub05zPa
+        MQy0a+FkvZSyTA2y8a8/IMM1f2MQC6bATg==
+        -----END EC PRIVATE KEY-----
+      certificate: |-
+        -----BEGIN CERTIFICATE-----
+        MIIBgTCCASagAwIBAgIRAO2UsHGM2j+IZfxSG0KSSH0wCgYIKoZIzj0EAwIwJDEQ
+        MA4GA1UEChMHUmVkIEhhdDEQMA4GA1UEAxMHUm9vdCBDQTAgFw0yMDA1MTExMDU2
+        NThaGA8yMTIwMDQxNzEwNTY1OFowJjEQMA4GA1UEChMHUmVkIEhhdDESMBAGA1UE
+        AwwJdGVzdF9jZXJ0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEjCp5jERwCaBp
+        jhoaOxgD1DDaPwKkWu+a8mJLn9Cn9+LcSub05zPaMQy0a+FkvZSyTA2y8a8/IMM1
+        f2MQC6bATqM1MDMwDgYDVR0PAQH/BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMB
+        MAwGA1UdEwEB/wQCMAAwCgYIKoZIzj0EAwIDSQAwRgIhALwL+vTFS37a/R6RMeNN
+        fKKM6dOZeTSIVk6eGen6ZmZmAiEAhdLQwSu7ev/GrGwINF1rraoyrgiq4mFdPwHa
+        TctfSDo=
+        -----END CERTIFICATE-----
+    to:
+      kind: Service
+      name: http2
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: http2-passthrough
+  spec:
+    port:
+      targetPort: 8443
+    tls:
+      termination: passthrough
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: http2
+      weight: 100
+    wildcardPolicy: None
+`)
+
+func testExtendedTestdataRouterRouterHttp2YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterHttp2Yaml, nil
+}
+
+func testExtendedTestdataRouterRouterHttp2Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterHttp2YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-http2.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRouterRouterMetricsYaml = []byte(`apiVersion: v1
 kind: List
 items:
@@ -59427,6 +59657,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/router-grpc-interop.yaml":                                                          testExtendedTestdataRouterRouterGrpcInteropYaml,
 	"test/extended/testdata/router/router-h2spec.yaml":                                                                testExtendedTestdataRouterRouterH2specYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                                      testExtendedTestdataRouterRouterHttpEchoServerYaml,
+	"test/extended/testdata/router/router-http2.yaml":                                                                 testExtendedTestdataRouterRouterHttp2Yaml,
 	"test/extended/testdata/router/router-metrics.yaml":                                                               testExtendedTestdataRouterRouterMetricsYaml,
 	"test/extended/testdata/router/router-override-domains.yaml":                                                      testExtendedTestdataRouterRouterOverrideDomainsYaml,
 	"test/extended/testdata/router/router-override.yaml":                                                              testExtendedTestdataRouterRouterOverrideYaml,
@@ -60176,6 +60407,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"router-grpc-interop.yaml":     &bintree{testExtendedTestdataRouterRouterGrpcInteropYaml, map[string]*bintree{}},
 					"router-h2spec.yaml":           &bintree{testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
+					"router-http2.yaml":            &bintree{testExtendedTestdataRouterRouterHttp2Yaml, map[string]*bintree{}},
 					"router-metrics.yaml":          &bintree{testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
 					"router-override-domains.yaml": &bintree{testExtendedTestdataRouterRouterOverrideDomainsYaml, map[string]*bintree{}},
 					"router-override.yaml":         &bintree{testExtendedTestdataRouterRouterOverrideYaml, map[string]*bintree{}},
