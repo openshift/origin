@@ -1,6 +1,7 @@
 package openshiftkubeapiserver
 
 import (
+	"net/url"
 	"time"
 
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
@@ -34,10 +35,16 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
 )
 
-type KubeAPIServerConfigFunc func(config *genericapiserver.Config, versionedInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) error
+
+type FailureDetector interface {
+	// EndpointStatus returns the current status of the given endpoint for the given service
+	EndpointStatus(namespace, service string, url *url.URL) (isHealthy bool, weight float32)
+}
+
+type KubeAPIServerConfigFunc func(config *genericapiserver.Config, versionedInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer, fd FailureDetector) error
 
 func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) KubeAPIServerConfigFunc {
-	return func(genericConfig *genericapiserver.Config, kubeInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) error {
+	return func(genericConfig *genericapiserver.Config, kubeInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer, fd FailureDetector) error {
 		openshiftInformers, err := newInformers(genericConfig.LoopbackClientConfig)
 		if err != nil {
 			return err
@@ -73,7 +80,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev
 		// END ADMISSION
 
 		// HANDLER CHAIN (with oauth server and web console)
-		genericConfig.BuildHandlerChainFunc, err = BuildHandlerChain(kubeAPIServerConfig.ConsolePublicURL, kubeAPIServerConfig.AuthConfig.OAuthMetadataFile)
+		genericConfig.BuildHandlerChainFunc, err = BuildHandlerChain(kubeAPIServerConfig.ConsolePublicURL, kubeAPIServerConfig.AuthConfig.OAuthMetadataFile, fd)
 		if err != nil {
 			return err
 		}

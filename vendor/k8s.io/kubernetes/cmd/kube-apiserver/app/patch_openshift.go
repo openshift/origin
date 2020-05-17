@@ -9,10 +9,10 @@ import (
 
 var OpenShiftKubeAPIServerConfigPatch openshiftkubeapiserver.KubeAPIServerConfigFunc = nil
 
-func PatchKubeAPIServerConfig(config *genericapiserver.Config, versionedInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) error {
+func PatchKubeAPIServerConfig(config *genericapiserver.Config, versionedInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer, fd FailureDetector) error {
 	if OpenShiftKubeAPIServerConfigPatch == nil {
 		return nil
 	}
 
-	return OpenShiftKubeAPIServerConfigPatch(config, versionedInformers, pluginInitializers)
+	return OpenShiftKubeAPIServerConfigPatch(config, versionedInformers, pluginInitializers, fd)
 }

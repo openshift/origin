@@ -1,7 +1,10 @@
 package openshiftkubeapiserver
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -12,7 +15,7 @@ import (
 )
 
 // TODO switch back to taking a kubeapiserver config.  For now make it obviously safe for 3.11
-func BuildHandlerChain(consolePublicURL string, oauthMetadataFile string) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, error) {
+func BuildHandlerChain(consolePublicURL string, oauthMetadataFile string, fd FailureDetector) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, error) {
 	// load the oauthmetadata when we can return an error
 	oAuthMetadata := []byte{}
 	if len(oauthMetadataFile) > 0 {
@@ -36,9 +39,63 @@ func BuildHandlerChain(consolePublicURL string, oauthMetadataFile string) (func(
 			// redirects from / and /console to consolePublicURL if you're using a browser
 			handler = withConsoleRedirect(handler, consolePublicURL)
 
+			handler = withCustomFdDetector(handler, fd)
+
 			return handler
 		},
 		nil
+}
+
+func withCustomFdDetector(handler http.Handler, fd FailureDetector) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/fd" {
+			// Dispatch to the next handler
+			handler.ServeHTTP(w, r)
+			return
+		}
+
+		type weightedEndpoint struct {
+			Host      string
+			Weight    float32
+			IsHealthy bool
+		}
+
+		errRsp := func(msg string) {
+			w.WriteHeader(500)
+			w.Write([]byte(msg))
+		}
+
+		ns := r.URL.Query()["ns"]
+		sn := r.URL.Query()["svc"]
+		eps := r.URL.Query()["eps"]
+		if len(ns) == 0 || len(sn) == 0 || len(eps) == 0 {
+			errRsp(fmt.Sprintf("missing %q or/and %q, %q query parameters", "ns", "svc", "eps"))
+			return
+		}
+		namespace := ns[0]
+		serviceName := sn[0]
+		endPoints := strings.Split(eps[0], ",")
+
+		allEndpoints := []*weightedEndpoint{}
+		for _, ep := range endPoints {
+			u, err := url.Parse(fmt.Sprintf("https://%v", ep))
+			if err != nil {
+				errRsp(fmt.Sprintf("unable to parse the given endpoint %v, err %v", ep, err))
+				return
+			}
+			isHealthy, weight := fd.EndpointStatus(namespace, serviceName, u)
+			allEndpoints = append(allEndpoints, &weightedEndpoint{Host: u.Host, Weight: weight, IsHealthy: isHealthy})
+		}
+
+		data, err := json.Marshal(allEndpoints)
+		if err != nil {
+			errRsp(fmt.Sprintf("unable to construct final rsp, err %v", err))
+			return
+		}
+
+		w.Write(data)
+		w.Write([]byte("\n"))
+	})
 }
 
 // If we know the location of the asset server, redirect to it when / is requested

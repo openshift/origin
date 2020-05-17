@@ -35,8 +35,8 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 
-	"github.com/spf13/cobra"
 	failuredetector "github.com/p0lyn0mial/failure-detector"
+	"github.com/spf13/cobra"
 
 	corev1 "k8s.io/api/core/v1"
 	extensionsapiserver "k8s.io/apiextensions-apiserver/pkg/apiserver"
@@ -96,6 +96,11 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	utilflag "k8s.io/kubernetes/pkg/util/flag"
 )
+
+type FailureDetector interface {
+	// EndpointStatus returns the current status of the given endpoint for the given service
+	EndpointStatus(namespace, service string, url *url.URL) (isHealthy bool, weight float32)
+}
 
 const (
 	etcdRetryLimit    = 60
@@ -214,7 +219,7 @@ func CreateServerChain(completedOptions completedServerRunOptions, stopCh <-chan
 		return nil, err
 	}
 
-	kubeAPIServerConfig, insecureServingInfo, serviceResolver, pluginInitializer, err := CreateKubeAPIServerConfig(completedOptions, nodeTunneler, proxyTransport)
+	kubeAPIServerConfig, insecureServingInfo, serviceResolver, pluginInitializer, _, err := CreateKubeAPIServerConfig(completedOptions, nodeTunneler, proxyTransport)
 	if err != nil {
 		return nil, err
 	}
@@ -321,16 +326,17 @@ func CreateKubeAPIServerConfig(
 	*genericapiserver.DeprecatedInsecureServingInfo,
 	aggregatorapiserver.ServiceResolver,
 	[]admission.PluginInitializer,
+	FailureDetector,
 	error,
 ) {
-	genericConfig, versionedInformers, insecureServingInfo, serviceResolver, serviceResolverPostStartHook, pluginInitializers, admissionPostStartHook, storageFactory, err := buildGenericConfig(s.ServerRunOptions, proxyTransport)
+	genericConfig, versionedInformers, insecureServingInfo, serviceResolver, serviceResolverPostStartHook, failureDetector, pluginInitializers, admissionPostStartHook, storageFactory, err := buildGenericConfig(s.ServerRunOptions, proxyTransport)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	if _, port, err := net.SplitHostPort(s.Etcd.StorageConfig.Transport.ServerList[0]); err == nil && port != "0" && len(port) != 0 {
 		if err := utilwait.PollImmediate(etcdRetryInterval, etcdRetryLimit*etcdRetryInterval, preflight.EtcdConnection{ServerList: s.Etcd.StorageConfig.Transport.ServerList}.CheckEtcdServers); err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("error waiting for etcd connection: %v", err)
+			return nil, nil, nil, nil, nil, fmt.Errorf("error waiting for etcd connection: %v", err)
 		}
 	}
 
@@ -351,7 +357,7 @@ func CreateKubeAPIServerConfig(
 
 	serviceIPRange, apiServerServiceIP, err := master.ServiceIPRange(s.PrimaryServiceClusterIPRange)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	// defaults to empty range and ip
@@ -360,14 +366,14 @@ func CreateKubeAPIServerConfig(
 	if s.SecondaryServiceClusterIPRange.IP != nil {
 		secondaryServiceIPRange, _, err = master.ServiceIPRange(s.SecondaryServiceClusterIPRange)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 	}
 
 	var eventStorage *eventstorage.REST
 	eventStorage, err = eventstorage.NewREST(genericConfig.RESTOptionsGetter, uint64(s.EventTTL.Seconds()))
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	genericConfig.EventSink = eventRegistrySink{eventStorage}
 
@@ -404,13 +410,13 @@ func CreateKubeAPIServerConfig(
 
 	clientCAProvider, err := s.Authentication.ClientCert.GetClientCAContentProvider()
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	config.ExtraConfig.ClusterAuthenticationInfo.ClientCA = clientCAProvider
 
 	requestHeaderConfig, err := s.Authentication.RequestHeader.ToAuthenticationRequestHeaderConfig()
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	if requestHeaderConfig != nil {
 		config.ExtraConfig.ClusterAuthenticationInfo.RequestHeaderCA = requestHeaderConfig.CAContentProvider
@@ -421,12 +427,12 @@ func CreateKubeAPIServerConfig(
 	}
 
 	if err := config.GenericConfig.AddPostStartHook("start-kube-apiserver-admission-initializer", admissionPostStartHook); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	if serviceResolverPostStartHook != nil {
 		if err := config.GenericConfig.AddPostStartHook("start-kube-apiserver-service-resolver", serviceResolverPostStartHook); err != nil {
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 	}
 
@@ -442,7 +448,7 @@ func CreateKubeAPIServerConfig(
 		networkContext := egressselector.Cluster.AsNetworkContext()
 		dialer, err := config.GenericConfig.EgressSelector.Lookup(networkContext)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 		c := proxyTransport.Clone()
 		c.DialContext = dialer
@@ -455,7 +461,7 @@ func CreateKubeAPIServerConfig(
 		for _, f := range s.Authentication.ServiceAccounts.KeyFiles {
 			keys, err := keyutil.PublicKeysFromFile(f)
 			if err != nil {
-				return nil, nil, nil, nil, fmt.Errorf("failed to parse key file %q: %v", f, err)
+				return nil, nil, nil, nil, nil, fmt.Errorf("failed to parse key file %q: %v", f, err)
 			}
 			pubKeys = append(pubKeys, keys...)
 		}
@@ -465,7 +471,7 @@ func CreateKubeAPIServerConfig(
 		config.ExtraConfig.ServiceAccountPublicKeys = pubKeys
 	}
 
-	return config, insecureServingInfo, serviceResolver, pluginInitializers, nil
+	return config, insecureServingInfo, serviceResolver, pluginInitializers, failureDetector, nil
 }
 
 // BuildGenericConfig takes the master server options and produces the genericapiserver.Config associated with it
@@ -479,6 +485,7 @@ func buildGenericConfig(
 	insecureServingInfo *genericapiserver.DeprecatedInsecureServingInfo,
 	serviceResolver aggregatorapiserver.ServiceResolver,
 	serviceResolverPostStartHook genericapiserver.PostStartHookFunc,
+	failureDetector FailureDetector,
 	pluginInitializers []admission.PluginInitializer,
 	admissionPostStartHook genericapiserver.PostStartHookFunc,
 	storageFactory *serverstorage.DefaultStorageFactory,
@@ -573,7 +580,7 @@ func buildGenericConfig(
 		LoopbackClientConfig: genericConfig.LoopbackClientConfig,
 		CloudConfigFile:      s.CloudProvider.CloudConfigFile,
 	}
-	serviceResolver, serviceResolverPostStartHook = buildServiceResolver(s.EnableAggregatorRouting, genericConfig.LoopbackClientConfig.Host, versionedInformers)
+	serviceResolver, serviceResolverPostStartHook, failureDetector = buildServiceResolver(s.EnableAggregatorRouting, genericConfig.LoopbackClientConfig.Host, versionedInformers)
 
 	authInfoResolverWrapper := webhook.NewDefaultAuthenticationInfoResolverWrapper(proxyTransport, genericConfig.EgressSelector, genericConfig.LoopbackClientConfig)
 
@@ -597,7 +604,7 @@ func buildGenericConfig(
 		return
 	}
 
-	if err := PatchKubeAPIServerConfig(genericConfig, versionedInformers, &pluginInitializers); err != nil {
+	if err := PatchKubeAPIServerConfig(genericConfig, versionedInformers, &pluginInitializers, failureDetector); err != nil {
 		lastErr = fmt.Errorf("failed to patch: %v", err)
 		return
 	}
@@ -759,7 +766,7 @@ func Complete(s *options.ServerRunOptions) (completedServerRunOptions, error) {
 	return options, nil
 }
 
-func buildServiceResolver(enabledAggregatorRouting bool, hostname string, informer clientgoinformers.SharedInformerFactory) (webhook.ServiceResolver, genericapiserver.PostStartHookFunc) {
+func buildServiceResolver(enabledAggregatorRouting bool, hostname string, informer clientgoinformers.SharedInformerFactory) (webhook.ServiceResolver, genericapiserver.PostStartHookFunc, FailureDetector) {
 	var serviceResolver webhook.ServiceResolver
 	var serviceResolverPostStartHook func(context genericapiserver.PostStartHookContext) error
 
@@ -781,7 +788,7 @@ func buildServiceResolver(enabledAggregatorRouting bool, hostname string, inform
 			loopbackResolver,
 			fd,
 		)
-		return serviceResolver, serviceResolverPostStartHook
+		return serviceResolver, serviceResolverPostStartHook, fd
 	} else {
 		serviceResolver = aggregatorapiserver.NewClusterIPServiceResolver(
 			informer.Core().V1().Services().Lister(),
@@ -792,7 +799,7 @@ func buildServiceResolver(enabledAggregatorRouting bool, hostname string, inform
 	if localHost, err := url.Parse(hostname); err == nil {
 		serviceResolver = aggregatorapiserver.NewLoopbackServiceResolver(serviceResolver, localHost)
 	}
-	return serviceResolver, serviceResolverPostStartHook
+	return serviceResolver, serviceResolverPostStartHook, nil
 }
 
 func getServiceIPAndRanges(serviceClusterIPRanges string) (net.IP, net.IPNet, net.IPNet, error) {
