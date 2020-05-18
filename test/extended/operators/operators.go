@@ -274,7 +274,6 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 	for _, conditionType := range []configv1.ClusterStatusConditionType{
 		configv1.OperatorAvailable,
 		configv1.OperatorDegraded,
-		configv1.OperatorProgressing,
 	} {
 		cond := condition(co, string(conditionType))
 		if len(cond) == 0 {
