@@ -115,6 +115,9 @@ var _ = g.Describe("[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] te
 				5*time.Minute,
 			)
 			e2e.Logf("Logs from the container: %s", log)
+			for _, err := range errs {
+				e2e.Logf("Errors from the container: %#v", err)
+			}
 			o.Expect(errs).To(o.HaveLen(0))
 		})
 	}

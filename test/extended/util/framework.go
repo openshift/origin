@@ -1640,25 +1640,30 @@ func RunOneShotCommandPod(
 	}
 
 	// Wait for command completion.
-	err = wait.PollImmediate(1*time.Second, timeout, func() (done bool, err error) {
+	err = wait.PollImmediate(5*time.Second, timeout, func() (done bool, err error) {
 		cmdPod, getErr := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 		if getErr != nil {
-			e2e.Logf("failed to get pod %q: %v", pod.Name, err)
+			e2e.Logf("failed to get pod %q: %v", pod.Name, getErr)
 			return false, nil
 		}
 
 		if podHasErrored(cmdPod) {
-			e2e.Logf("pod %q errored trying to run the command: %v", pod.Name, err)
+			e2e.Logf("pod %q errored trying to run the command", pod.Name)
 			return false, nil
 		}
 		return podHasCompleted(cmdPod), nil
 	})
 	if err != nil {
-		errs = append(errs, fmt.Errorf("error waiting for the pod '%s' to complete: %v", pod.Name, err))
+		cmdPod, getErr := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
+		if getErr != nil {
+			errs = append(errs, fmt.Errorf("error waiting for the pod %s to complete: %v, also failed to get pod debug info", pod.Name, err))
+		} else {
+			errs = append(errs, fmt.Errorf("error waiting for the pod %s to complete: %v, pod status was: %#v", pod.Name, err, cmdPod.Status))
+		}
 	}
 
 	// Gather pod log output
-	err = wait.PollImmediate(1*time.Second, timeout, func() (done bool, err error) {
+	err = wait.PollImmediate(5*time.Second, timeout, func() (done bool, err error) {
 		logs, logErr := getPodLogs(oc, pod)
 		if logErr != nil {
 			return false, logErr
