@@ -92,6 +92,8 @@ var (
 
 			// A fix is in progress: https://github.com/openshift/origin/pull/24709
 			`Multi-AZ Clusters should spread the pods of a replication controller across zones`,
+
+			`Cluster should restore itself after quorum loss`, // https://bugzilla.redhat.com/show_bug.cgi?id=1837157
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
