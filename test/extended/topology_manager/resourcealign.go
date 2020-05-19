@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
@@ -34,7 +33,6 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 		client             clientset.Interface // shortcut
 		roleWorkerLabel    string
 		workerNodes        []corev1.Node
-		topoMgrNodes       []corev1.Node
 		deviceResourceName string
 		err                error
 	)
@@ -48,8 +46,6 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 		workerNodes, err = getNodeByRole(client, roleWorkerLabel)
 		e2e.ExpectNoError(err)
 		o.Expect(workerNodes).ToNot(o.BeEmpty())
-
-		topoMgrNodes = filterNodeWithTopologyManagerPolicy(workerNodes, client, oc, kubeletconfigv1beta1.SingleNumaNodeTopologyManager)
 
 		deviceResourceName = getValueFromEnv(resourceNameEnvVar, defaultResourceName, "resource name")
 		// we don't handle yet an uneven device amount on worker nodes. IOW, we expect the same amount of devices on each node
@@ -95,10 +91,8 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 		)
 
 		g.BeforeEach(func() {
-			expectNonZeroNodes(topoMgrNodes, "topology manager not configured on all nodes")
-
 			var nn int
-			node, nn = findNodeWithMultiNuma(topoMgrNodes, client, oc)
+			node, nn = findNodeWithMultiNuma(workerNodes, client, oc)
 
 			message := "multi-NUMA node system not found in the cluster"
 			if _, ok := os.LookupEnv(strictCheckEnvVar); ok {
@@ -148,10 +142,10 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 					},
 				}
 
-				if requestCpu, ok := enoughCoresInTheCluster(topoMgrNodes, pps); !ok {
+				if requestCpu, ok := enoughCoresInTheCluster(workerNodes, pps); !ok {
 					g.Skip(fmt.Sprintf("not enough CPU resources in the cluster requested=%v", requestCpu))
 				}
-				if requestDevices, ok := enoughDevicesInTheCluster(topoMgrNodes, deviceResourceName, pps); !ok {
+				if requestDevices, ok := enoughDevicesInTheCluster(workerNodes, deviceResourceName, pps); !ok {
 					g.Skip(fmt.Sprintf("not enough devices %q in the cluster requested=%v", deviceResourceName, requestDevices))
 				}
 
@@ -204,7 +198,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 					}},
 				}
 				e2e.Logf("using cpuReq=%d PodParams: %#v", cpuReq, pp)
-				if requestDevices, ok := enoughDevicesInTheCluster(topoMgrNodes, deviceResourceName, PodParamsList{pp}); !ok {
+				if requestDevices, ok := enoughDevicesInTheCluster(workerNodes, deviceResourceName, PodParamsList{pp}); !ok {
 					g.Skip(fmt.Sprintf("not enough devices %q in the cluster requested=%v", deviceResourceName, requestDevices))
 				}
 				testFw := oc.KubeFramework()
@@ -249,7 +243,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 					},
 				}
 				e2e.Logf("using cpuReq=%d PodParams: %#v", cpuReq, pps)
-				if requestDevices, ok := enoughDevicesInTheCluster(topoMgrNodes, deviceResourceName, pps); !ok {
+				if requestDevices, ok := enoughDevicesInTheCluster(workerNodes, deviceResourceName, pps); !ok {
 					g.Skip(fmt.Sprintf("not enough devices %q in the cluster requested=%v", deviceResourceName, requestDevices))
 				}
 
@@ -318,7 +312,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 
 				e2e.Logf("using PodParams: %#v", pps)
 
-				if requestDevices, ok := enoughDevicesInTheCluster(topoMgrNodes, deviceResourceName, pps); !ok {
+				if requestDevices, ok := enoughDevicesInTheCluster(workerNodes, deviceResourceName, pps); !ok {
 					g.Skip(fmt.Sprintf("not enough devices %q in the cluster requested=%v", deviceResourceName, requestDevices))
 				}
 
@@ -356,12 +350,10 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 
 		t.DescribeTable("should guarantee NUMA-aligned cpu cores in gu pods",
 			func(pps PodParamsList) {
-				expectNonZeroNodes(topoMgrNodes, "topology manager not configured on all nodes")
-
-				if requestCpu, ok := enoughCoresInTheCluster(topoMgrNodes, pps); !ok {
+				if requestCpu, ok := enoughCoresInTheCluster(workerNodes, pps); !ok {
 					g.Skip(fmt.Sprintf("not enough CPU resources in the cluster requested=%v", requestCpu))
 				}
-				if requestDevices, ok := enoughDevicesInTheCluster(topoMgrNodes, deviceResourceName, pps); !ok {
+				if requestDevices, ok := enoughDevicesInTheCluster(workerNodes, deviceResourceName, pps); !ok {
 					g.Skip(fmt.Sprintf("not enough devices %q in the cluster requested=%v", deviceResourceName, requestDevices))
 				}
 

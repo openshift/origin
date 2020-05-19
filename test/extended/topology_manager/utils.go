@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,9 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
-	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	"sigs.k8s.io/yaml"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -84,25 +81,6 @@ func findNodeWithMultiNuma(nodes []corev1.Node, c clientset.Interface, oc *exuti
 		}
 	}
 	return nil, 0
-}
-
-func filterNodeWithTopologyManagerPolicy(workerNodes []corev1.Node, client clientset.Interface, oc *exutil.CLI, policy string) []corev1.Node {
-	ocRaw := (*oc).WithoutNamespace()
-
-	var topoMgrNodes []corev1.Node
-
-	for _, node := range workerNodes {
-		kubeletConfig, err := getKubeletConfig(client, ocRaw, &node)
-		e2e.ExpectNoError(err)
-
-		e2e.Logf("kubelet %s CPU Manager policy: %q", node.Name, kubeletConfig.CPUManagerPolicy)
-		if kubeletConfig.TopologyManagerPolicy != policy {
-			e2e.Logf("kubelet %s Topology Manager policy: %q", node.Name, kubeletConfig.TopologyManagerPolicy)
-			continue
-		}
-		topoMgrNodes = append(topoMgrNodes, node)
-	}
-	return topoMgrNodes
 }
 
 func getNodeByRole(c clientset.Interface, role string) ([]corev1.Node, error) {
@@ -211,22 +189,6 @@ func execCommandOnMachineConfigDaemon(c clientset.Interface, oc *exutil.CLI, nod
 	}
 	args := append(initialArgs, command...)
 	return oc.AsAdmin().Run("rsh").Args(args...).Output()
-}
-
-// getKubeletConfig returns KubeletConfiguration loaded from the node /etc/kubernetes/kubelet.conf
-func getKubeletConfig(c clientset.Interface, oc *exutil.CLI, node *corev1.Node) (*kubeletconfigv1beta1.KubeletConfiguration, error) {
-	command := []string{"cat", path.Join("/rootfs", filePathKubeletConfig)}
-	kubeletData, err := execCommandOnMachineConfigDaemon(c, oc, node, command)
-	if err != nil {
-		return nil, err
-	}
-
-	e2e.Logf("command output: %s", kubeletData)
-	kubeletConfig := &kubeletconfigv1beta1.KubeletConfiguration{}
-	if err := yaml.Unmarshal([]byte(kubeletData), kubeletConfig); err != nil {
-		return nil, err
-	}
-	return kubeletConfig, err
 }
 
 func parseSysfsNodeOnline(data string) (int, error) {
