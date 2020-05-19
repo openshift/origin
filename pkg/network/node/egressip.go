@@ -62,10 +62,9 @@ func (eip *egressIPWatcher) Start(networkInformers networkinformers.SharedInform
 
 	eip.iptables = iptables
 
-	updates := make(chan *egressVXLANNode)
+	updates := make(chan struct{}, 1)
 	eip.vxlanMonitor = newEgressVXLANMonitor(eip.oc.ovs, eip.tracker, updates)
 	go eip.watchVXLAN(updates)
-
 	eip.tracker.Start(networkInformers.Network().V1().HostSubnets(), networkInformers.Network().V1().NetNamespaces())
 	return nil
 }
@@ -248,8 +247,10 @@ func (eip *egressIPWatcher) releaseEgressIP(egressIP, mark string) error {
 	return nil
 }
 
-func (eip *egressIPWatcher) watchVXLAN(updates chan *egressVXLANNode) {
-	for node := range updates {
-		eip.tracker.SetNodeOffline(node.nodeIP, node.offline)
+func (eip *egressIPWatcher) watchVXLAN(updates chan struct{}) {
+	for range updates {
+		for _, node := range eip.vxlanMonitor.GetUpdates() {
+			eip.tracker.SetNodeOffline(node.nodeIP, node.offline)
+		}
 	}
 }
