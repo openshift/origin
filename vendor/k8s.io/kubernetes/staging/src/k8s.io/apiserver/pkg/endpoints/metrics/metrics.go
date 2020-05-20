@@ -26,7 +26,6 @@ import (
 	"sync"
 	"time"
 
-	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/emicklei/go-restful"
@@ -192,7 +191,8 @@ func RecordLongRunning(req *http.Request, requestInfo *request.RequestInfo, fn f
 // a request. verb must be uppercase to be backwards compatible with existing monitoring tooling.
 func MonitorRequest(req *http.Request, verb, resource, subresource, scope, contentType string, httpCode, respSize int, elapsed time.Duration) {
 	reportedVerb := cleanVerb(verb, req)
-	client := cleanUserAgent(utilnet.GetHTTPClient(req))
+	// blank out client string here, in order to avoid cardinality issues
+	client := ""
 	elapsedMicroseconds := float64(elapsed / time.Microsecond)
 	requestCounter.WithLabelValues(reportedVerb, resource, subresource, scope, client, contentType, codeToString(httpCode)).Inc()
 	requestLatencies.WithLabelValues(reportedVerb, resource, subresource, scope).Observe(elapsedMicroseconds)
