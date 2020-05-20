@@ -5,9 +5,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-
+	"github.com/openshift/api/annotations"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	projectv1 "github.com/openshift/api/project/v1"
+	"github.com/openshift/apiserver-library-go/pkg/authorization/scope"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	"github.com/openshift/origin/test/extended/authorization"
+	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,15 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
-
-	"github.com/openshift/api/annotations"
-	authorizationv1 "github.com/openshift/api/authorization/v1"
-	oauthv1 "github.com/openshift/api/oauth/v1"
-	projectv1 "github.com/openshift/api/project/v1"
-	"github.com/openshift/apiserver-library-go/pkg/authorization/scope"
-	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-	"github.com/openshift/origin/test/extended/authorization"
-	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
@@ -292,9 +291,18 @@ func waitForOnlyDelete(projectName string, w watch.Interface) {
 		hasTerminated := sets.NewString()
 		for {
 			select {
-			case event := <-w.ResultChan():
-				project := event.Object.(*projectv1.Project)
+			case event, ok := <-w.ResultChan():
+				if !ok {
+					g.Fail("watch was closed")
+				}
+
+				project, isProject := event.Object.(*projectv1.Project)
+				if !isProject {
+					framework.Logf("got a not-project %v %v", event.Type, spew.Sdump(event.Object))
+					continue
+				}
 				framework.Logf("got %#v %#v", event, project)
+
 				if project.Name == projectName {
 					if event.Type == watch.Deleted {
 						return
