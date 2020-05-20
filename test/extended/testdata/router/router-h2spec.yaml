@@ -187,6 +187,11 @@ objects:
         protocol: TCP
       - containerPort: 8080
         protocol: TCP
+      readinessProbe:
+        tcpSocket:
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 3
       volumeMounts:
       - name: service-certs
         mountPath: /etc/service-certs
@@ -236,6 +241,24 @@ objects:
       targetPort: 8080
     tls:
       termination: edge
+      key: |-
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIFTS3l3jU0kF0cQ27MTn+a27Oz1CMr5gSnDQQwZ3BI0moAoGCCqGSM49
+        AwEHoUQDQgAE0XRkp541S/i1bBYEtl/xWsKHDtmuFu7X1rIQiRAU4SB43B52iDxJ
+        V5P5usDcYPghidR7m0hVj6s5iMskxwLr6g==
+        -----END EC PRIVATE KEY-----
+      certificate: |-
+        -----BEGIN CERTIFICATE-----
+        MIIBizCCATGgAwIBAgIQJN1GzcsQZOXK7xqks+2aijAKBggqhkjOPQQDAjAoMRQw
+        EgYDVQQKEwtDZXJ0IEdlbiBDbzEQMA4GA1UEAxMHUm9vdCBDQTAgFw0yMDA1MTgw
+        OTU3MjNaGA8yMTIwMDQyNDA5NTcyM1owLjEZMBcGA1UEChMQQ2VydCBHZW4gQ29t
+        cGFueTERMA8GA1UEAxMIdGVzdGNlcnQwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNC
+        AATRdGSnnjVL+LVsFgS2X/FawocO2a4W7tfWshCJEBThIHjcHnaIPElXk/m6wNxg
+        +CGJ1HubSFWPqzmIyyTHAuvqozUwMzAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAww
+        CgYIKwYBBQUHAwEwDAYDVR0TAQH/BAIwADAKBggqhkjOPQQDAgNIADBFAiBgjygk
+        ycGFHUK+b3hdvylD3ftaRT/muv+FKuuMqNCHsAIhAPW1owpVKlLHC/NaApFW/d0f
+        Gf2Mda0JAqYv0ehJUh7w
+        -----END CERTIFICATE-----
     to:
       kind: Service
       name: h2spec-haproxy
@@ -252,6 +275,24 @@ objects:
       targetPort: 8443
     tls:
       termination: reencrypt
+      key: |-
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIDKH71OdAhMZUgZ2Pf6p4/EBVR+KwyULozkTqQr8KDiQoAoGCCqGSM49
+        AwEHoUQDQgAEo8hY5B0vhT69FhEXVzzIsJzd8Uz8gXlsrvN0kBN9LyEZQIF/jEaz
+        JkczsyB718xQ69sePwAz9mz4IziYevSsBw==
+        -----END EC PRIVATE KEY-----
+      certificate: |-
+        -----BEGIN CERTIFICATE-----
+        MIIBjTCCATKgAwIBAgIRAJ08uWkebJb9qoYo8hJS7C8wCgYIKoZIzj0EAwIwKDEU
+        MBIGA1UEChMLQ2VydCBHZW4gQ28xEDAOBgNVBAMTB1Jvb3QgQ0EwIBcNMjAwNTE4
+        MDk1NzU5WhgPMjEyMDA0MjQwOTU3NTlaMC4xGTAXBgNVBAoTEENlcnQgR2VuIENv
+        bXBhbnkxETAPBgNVBAMTCHRlc3RjZXJ0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
+        QgAEo8hY5B0vhT69FhEXVzzIsJzd8Uz8gXlsrvN0kBN9LyEZQIF/jEazJkczsyB7
+        18xQ69sePwAz9mz4IziYevSsB6M1MDMwDgYDVR0PAQH/BAQDAgWgMBMGA1UdJQQM
+        MAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQCMAAwCgYIKoZIzj0EAwIDSQAwRgIhAKhn
+        j6sLRgUGcHdi/PTcM0vCD5d0sgakmQQB8M8Fdq5NAiEAxwuNfS8p2mJpnygCeMr2
+        YWcPcuBP6slsMyV/nyuk4DM=
+        -----END CERTIFICATE-----
     to:
       kind: Service
       name: h2spec-haproxy

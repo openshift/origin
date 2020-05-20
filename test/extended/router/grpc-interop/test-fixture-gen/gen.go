@@ -146,10 +146,20 @@ objects:
         value: "99"
       - name: GRPC_GO_LOG_SEVERITY_LEVEL
         value: "info"
+      - name: GODEBUG
+        value: http2debug=1
+      readinessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 3
       ports:
       - containerPort: 8443
         protocol: TCP
       - containerPort: 1110
+        protocol: TCP
+      - containerPort: 8080
         protocol: TCP
       volumeMounts:
       - name: service-certs
@@ -163,6 +173,15 @@ objects:
       name: client-shell
       command: ["/bin/bash"]
       args: ["-c", "sleep 100000"]
+      readinessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 3
+      ports:
+      - containerPort: 8080
+        protocol: TCP
       volumeMounts:
       - name: service-certs
         secret:
@@ -231,6 +250,24 @@ objects:
     tls:
       termination: edge
       insecureEdgeTerminationPolicy: Redirect
+      key: |-
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEILIc8XqIk7IYA4rXr88Vm/h2uor640AdLH1pa8Fny+kOoAoGCCqGSM49
+        AwEHoUQDQgAEEwTH3nocuTpgDmVYN2Ep9DqTIyErsPeeY+mVJB/rzLHI+00cTRBf
+        pxb9UEx7a+fWhG7/yONFcKEv5ZlIGbFG8w==
+        -----END EC PRIVATE KEY-----
+      certificate: |-
+        -----BEGIN CERTIFICATE-----
+        MIIBizCCATGgAwIBAgIQTEs2NjcG/9z0WyA5M0LrWTAKBggqhkjOPQQDAjAoMRQw
+        EgYDVQQKEwtDZXJ0IEdlbiBDbzEQMA4GA1UEAxMHUm9vdCBDQTAgFw0yMDA1MTgw
+        OTU1MTFaGA8yMTIwMDQyNDA5NTUxMVowLjEZMBcGA1UEChMQQ2VydCBHZW4gQ29t
+        cGFueTERMA8GA1UEAxMIdGVzdGNlcnQwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNC
+        AAQTBMfeehy5OmAOZVg3YSn0OpMjISuw955j6ZUkH+vMscj7TRxNEF+nFv1QTHtr
+        59aEbv/I40VwoS/lmUgZsUbzozUwMzAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAww
+        CgYIKwYBBQUHAwEwDAYDVR0TAQH/BAIwADAKBggqhkjOPQQDAgNIADBFAiEAxsUz
+        yNl/2DJktyy7xDmBeZPybPbyWv4ApnpaaoQoVUMCIFEwJtfwGEO+NN4HAbPKQTOS
+        pK6nUhQqHPWhu7t15yec
+        -----END CERTIFICATE-----
     to:
       kind: Service
       name: grpc-interop
@@ -248,6 +285,24 @@ objects:
     tls:
       termination: reencrypt
       insecureEdgeTerminationPolicy: Redirect
+      key: |-
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEILY+Vji+NywGUmWhjLGf0teANh5t8CVSl7yNCQ/1v05woAoGCCqGSM49
+        AwEHoUQDQgAEqHrMdKmzQfVZiBUHX0AI9vdMp5/GGLNc7nOA7xNmsGHUq642Av3x
+        k3gJlKJOd3Il6gbP+Dd8jLVaVcPHQY/d0g==
+        -----END EC PRIVATE KEY-----
+      certificate: |
+        -----BEGIN CERTIFICATE-----
+        MIIBjDCCATKgAwIBAgIRAJGHhBTYpRl7nsRAVtlKPbAwCgYIKoZIzj0EAwIwKDEU
+        MBIGA1UEChMLQ2VydCBHZW4gQ28xEDAOBgNVBAMTB1Jvb3QgQ0EwIBcNMjAwNTE4
+        MDk1NTI4WhgPMjEyMDA0MjQwOTU1MjhaMC4xGTAXBgNVBAoTEENlcnQgR2VuIENv
+        bXBhbnkxETAPBgNVBAMTCHRlc3RjZXJ0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
+        QgAEqHrMdKmzQfVZiBUHX0AI9vdMp5/GGLNc7nOA7xNmsGHUq642Av3xk3gJlKJO
+        d3Il6gbP+Dd8jLVaVcPHQY/d0qM1MDMwDgYDVR0PAQH/BAQDAgWgMBMGA1UdJQQM
+        MAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIhAKqc
+        1sgVy/pkQzVK+qY3wL2jgvMFlNNrCNWT2utyFws7AiAVKaAxGN0cSMpx+sB/HD/X
+        vYc0adnWNkSLc62dIXsA7Q==
+        -----END CERTIFICATE-----
     to:
       kind: Service
       name: grpc-interop
