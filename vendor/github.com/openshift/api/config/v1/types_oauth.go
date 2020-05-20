@@ -14,10 +14,11 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 type OAuth struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
-
+	// spec holds user settable values for configuration
 	// +kubebuilder:validation:Required
 	// +required
 	Spec OAuthSpec `json:"spec"`
+	// status holds observed values from the cluster. They may not be overridden.
 	// +optional
 	Status OAuthStatus `json:"status"`
 }

@@ -40,6 +40,7 @@ spec:
         metadata:
           type: object
         spec:
+          description: spec holds user settable values for configuration
           type: object
           properties:
             additionalCORSAllowedOrigins:
@@ -226,4 +227,6 @@ spec:
                   - Modern
                   - Custom
         status:
+          description: status holds observed values from the cluster. They may not
+            be overridden.
           type: object
