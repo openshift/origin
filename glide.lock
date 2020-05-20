@@ -1,5 +1,5 @@
-hash: 450f64dbfa45fb40fe2452743e1818285f82ca013744b7eabe6894444c42e93f
-updated: 2020-03-18T23:33:51.131907-04:00
+hash: 0321c461c9996ff8becdd4c3b6f3a4613d9e51cea7c042036d04ed59f7bf9860
+updated: 2020-05-20T12:43:17.595493+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -1366,7 +1366,7 @@ imports:
 - name: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - name: gopkg.in/yaml.v2
-  version: f221b8435cfb71e54062f6c6e99e9ade30b124d5
+  version: 53403b58ad1b561927d19068c655246f2db79d48
 - name: k8s.io/api
   version: 2d6f90ab1293a1fb871cf149423ebb72aa7423aa
   repo: https://github.com/openshift/kubernetes-api.git
@@ -1863,7 +1863,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 3d9b26a086e1160ab595aa5f3be7249a010c0f17
+  version: 1ccffe3ceb2c1e91822bc36495852fb72c47c1f4
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
