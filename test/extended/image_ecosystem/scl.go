@@ -17,10 +17,6 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-func getPodNameForTest(image string, t tc) string {
-	return fmt.Sprintf("%s-%s-centos7", image, t.Version)
-}
-
 // defineTest will create the gingko test.  This ensures the test
 // is created with a local copy of all variables the test will need,
 // since the test may not run immediately and may run in parallel with other
