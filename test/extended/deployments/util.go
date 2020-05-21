@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -735,14 +736,48 @@ func (d *deployerPodInvariantChecker) UpdatePod(pod *corev1.Pod) {
 	d.checkInvariants(key, d.cache[key])
 }
 
+func (d *deployerPodInvariantChecker) handleEvent(event watch.Event) {
+	t := event.Type
+	if t != watch.Added && t != watch.Modified && t != watch.Deleted {
+		o.Expect(fmt.Errorf("unexpected event: %#v", event)).NotTo(o.HaveOccurred())
+	}
+	pod := event.Object.(*corev1.Pod)
+	if !strings.HasSuffix(pod.Name, "-deploy") {
+		return
+	}
+
+	switch t {
+	case watch.Added:
+		d.AddPod(pod)
+	case watch.Modified:
+		d.UpdatePod(pod)
+	case watch.Deleted:
+		d.RemovePod(pod)
+	}
+}
+
 func (d *deployerPodInvariantChecker) doChecking() {
 	defer g.GinkgoRecover()
-
-	watcher, err := d.client.CoreV1().Pods(d.namespace).Watch(context.Background(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
 	defer d.wg.Done()
-	defer watcher.Stop()
 
+	podList, err := d.client.CoreV1().Pods(d.namespace).List(d.ctx, metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	for i := range podList.Items {
+		pod := &podList.Items[i]
+		d.handleEvent(watch.Event{
+			Type:   watch.Added,
+			Object: pod,
+		})
+	}
+
+	watcher, err := watchtools.NewRetryWatcher(podList.ResourceVersion, &cache.ListWatch{
+		WatchFunc: func(options metav1.ListOptions) (i watch.Interface, e error) {
+			return d.client.CoreV1().Pods(d.namespace).Watch(d.ctx, metav1.ListOptions{})
+		},
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	defer watcher.Stop()
 	for {
 		select {
 		case <-d.ctx.Done():
