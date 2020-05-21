@@ -24,22 +24,22 @@ type tc struct {
 var s2iImages = map[string][]tc{
 	"ruby": {
 		{
-			Version:    "22",
+			Version:    "26",
 			Cmd:        "ruby --version",
-			Expected:   "ruby 2.2",
-			Repository: "centos",
+			Expected:   "ruby 2.6",
+			Repository: "rhscl",
 		},
 		{
-			Version:    "23",
+			Version:    "25",
 			Cmd:        "ruby --version",
-			Expected:   "ruby 2.3",
-			Repository: "centos",
+			Expected:   "ruby 2.5",
+			Repository: "rhscl",
 		},
 		{
 			Version:    "24",
 			Cmd:        "ruby --version",
 			Expected:   "ruby 2.4",
-			Repository: "centos",
+			Repository: "rhscl",
 		},
 	},
 	"python": {
@@ -47,67 +47,49 @@ var s2iImages = map[string][]tc{
 			Version:    "27",
 			Cmd:        "python --version",
 			Expected:   "Python 2.7",
-			Repository: "centos",
-		},
-		{
-			Version:    "34",
-			Cmd:        "python --version",
-			Expected:   "Python 3.4",
-			Repository: "centos",
-		},
-		{
-			Version:    "35",
-			Cmd:        "python --version",
-			Expected:   "Python 3.5",
-			Repository: "centos",
+			Repository: "rhscl",
 		},
 		{
 			Version:    "36",
 			Cmd:        "python --version",
 			Expected:   "Python 3.6",
-			Repository: "centos",
+			Repository: "rhscl",
 		},
 	},
 	"nodejs": {
 		{
-			Version:    "4",
+			Version:    "10",
 			Cmd:        "node --version",
-			Expected:   "v4",
-			Repository: "centos",
+			Expected:   "v10",
+			Repository: "rhscl",
 		},
 		{
-			Version:    "6",
+			Version:    "12",
 			Cmd:        "node --version",
-			Expected:   "v6",
-			Repository: "centos",
+			Expected:   "v12",
+			Repository: "rhscl",
 		},
 	},
 	"perl": {
 		{
-			Version:    "520",
+			Version:    "526",
 			Cmd:        "perl --version",
-			Expected:   "v5.20",
-			Repository: "centos",
-		},
-		{
-			Version:    "524",
-			Cmd:        "perl --version",
-			Expected:   "v5.24",
-			Repository: "centos",
+			Expected:   "v5.26",
+			Repository: "rhscl",
 		},
 	},
 	"php": {
 		{
-			Version:    "56",
+			Version:    "72",
 			Cmd:        "php --version",
-			Expected:   "5.6",
-			Repository: "centos",
+			Expected:   "7.2",
+			Repository: "rhscl",
 		},
 		{
-			Version:    "70",
+			Version:    "73",
 			Cmd:        "php --version",
-			Expected:   "7.0",
-			Repository: "centos",
+			Expected:   "7.3",
+			Repository: "rhscl",
 		},
 	},
 }
@@ -128,5 +110,5 @@ func resolveDockerImageReference(name string, t *tc) {
 	if len(t.Repository) == 0 {
 		t.Repository = "openshift"
 	}
-	t.DockerImageReference = fmt.Sprintf("%s/%s-%s-centos7", t.Repository, name, t.Version)
+	t.DockerImageReference = fmt.Sprintf("registry.redhat.io/%s/%s-%s-rhel7", t.Repository, name, t.Version)
 }
