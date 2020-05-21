@@ -673,7 +673,7 @@ func (az *Cloud) reconcileLoadBalancer(clusterName string, service *v1.Service, 
 	isInternal := requiresInternalLoadBalancer(service)
 	isBackendPoolPreConfigured := az.isBackendPoolPreConfigured(service)
 	serviceName := getServiceName(service)
-	klog.V(2).Infof("reconcileLoadBalancer for service(%s) - wantLb(%t): started", serviceName, wantLb)
+	klog.V(2).Infof("reconcileLoadBalancer for service(%s) - wantLb(%t) backendPoolPreconfigured(%t): started", serviceName, wantLb, isBackendPoolPreConfigured)
 	lb, _, _, err := az.getServiceLoadBalancer(service, clusterName, nodes, wantLb)
 	if err != nil {
 		klog.Errorf("reconcileLoadBalancer: failed to get load balancer for service %q, error: %v", serviceName, err)
