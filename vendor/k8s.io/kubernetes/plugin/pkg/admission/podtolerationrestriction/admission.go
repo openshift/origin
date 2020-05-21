@@ -90,7 +90,7 @@ func (p *podTolerationsPlugin) Admit(a admission.Attributes) error {
 	}
 
 	pod := a.GetObject().(*api.Pod)
-	var finalTolerations []api.Toleration
+	var extraTolerations []api.Toleration
 	updateUninitialized, err := util.IsUpdatingUninitializedObject(a)
 	if err != nil {
 		return err
@@ -107,36 +107,19 @@ func (p *podTolerationsPlugin) Admit(a admission.Attributes) error {
 			ts = p.pluginConfig.Default
 		}
 
-		if len(ts) > 0 {
-			if len(pod.Spec.Tolerations) > 0 {
-				if tolerations.IsConflict(ts, pod.Spec.Tolerations) {
-					return fmt.Errorf("namespace tolerations and pod tolerations conflict")
-				}
-
-				// modified pod tolerations = namespace tolerations + current pod tolerations
-				finalTolerations = tolerations.MergeTolerations(ts, pod.Spec.Tolerations)
-			} else {
-				finalTolerations = ts
-
-			}
-		} else {
-			finalTolerations = pod.Spec.Tolerations
-		}
-	} else {
-		finalTolerations = pod.Spec.Tolerations
+		extraTolerations = ts
 	}
 
 	if qoshelper.GetPodQOS(pod) != api.PodQOSBestEffort {
-		finalTolerations = tolerations.MergeTolerations(finalTolerations, []api.Toleration{
-			{
-				Key:      algorithm.TaintNodeMemoryPressure,
-				Operator: api.TolerationOpExists,
-				Effect:   api.TaintEffectNoSchedule,
-			},
+		extraTolerations = append(extraTolerations, api.Toleration{
+			Key:      algorithm.TaintNodeMemoryPressure,
+			Operator: api.TolerationOpExists,
+			Effect:   api.TaintEffectNoSchedule,
 		})
 	}
-	pod.Spec.Tolerations = finalTolerations
-
+	if len(extraTolerations) > 0 {
+		pod.Spec.Tolerations = tolerations.MergeTolerations(pod.Spec.Tolerations, extraTolerations)
+	}
 	return p.Validate(a)
 }
 func (p *podTolerationsPlugin) Validate(a admission.Attributes) error {
