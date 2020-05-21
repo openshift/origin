@@ -30,9 +30,17 @@ func fakeMasterNode(name string) *corev1.Node {
 }
 
 func makeNodeNotReady(node *corev1.Node) *corev1.Node {
+	return addNodeReadyCondition(node, corev1.ConditionFalse)
+}
+
+func makeNodeReady(node *corev1.Node) *corev1.Node {
+	return addNodeReadyCondition(node, corev1.ConditionTrue)
+}
+
+func addNodeReadyCondition(node *corev1.Node, status corev1.ConditionStatus) *corev1.Node {
 	con := corev1.NodeCondition{}
 	con.Type = corev1.NodeReady
-	con.Status = corev1.ConditionFalse
+	con.Status = status
 	con.Reason = "TestReason"
 	con.Message = "test message"
 	con.LastTransitionTime = metav1.Time{Time: time.Date(2018, 01, 12, 22, 51, 48, 324359102, time.UTC)}
@@ -59,7 +67,7 @@ func TestNodeControllerDegradedConditionType(t *testing.T) {
 		// scenario 1
 		{
 			name:        "scenario 1: one unhealthy master node is reported",
-			masterNodes: []runtime.Object{makeNodeNotReady(fakeMasterNode("test-node-1")), fakeMasterNode("test-node-2")},
+			masterNodes: []runtime.Object{makeNodeNotReady(fakeMasterNode("test-node-1")), makeNodeReady(fakeMasterNode("test-node-2"))},
 			evaluateNodeStatus: func(conditions []operatorv1.OperatorCondition) error {
 				if len(conditions) != 1 {
 					return fmt.Errorf("expected exaclty 1 condition, got %d", len(conditions))
@@ -83,7 +91,7 @@ func TestNodeControllerDegradedConditionType(t *testing.T) {
 		// scenario 2
 		{
 			name:        "scenario 2: all master nodes are healthy",
-			masterNodes: []runtime.Object{fakeMasterNode("test-node-1"), fakeMasterNode("test-node-2")},
+			masterNodes: []runtime.Object{makeNodeReady(fakeMasterNode("test-node-1")), makeNodeReady(fakeMasterNode("test-node-2"))},
 			evaluateNodeStatus: func(conditions []operatorv1.OperatorCondition) error {
 				if len(conditions) != 1 {
 					return fmt.Errorf("expected exaclty 1 condition, got %d", len(conditions))
@@ -107,7 +115,7 @@ func TestNodeControllerDegradedConditionType(t *testing.T) {
 		// scenario 3
 		{
 			name:        "scenario 3: multiple master nodes are unhealthy",
-			masterNodes: []runtime.Object{makeNodeNotReady(fakeMasterNode("test-node-1")), fakeMasterNode("test-node-2"), makeNodeNotReady(fakeMasterNode("test-node-3"))},
+			masterNodes: []runtime.Object{makeNodeNotReady(fakeMasterNode("test-node-1")), makeNodeReady(fakeMasterNode("test-node-2")), makeNodeNotReady(fakeMasterNode("test-node-3"))},
 			evaluateNodeStatus: func(conditions []operatorv1.OperatorCondition) error {
 				if len(conditions) != 1 {
 					return fmt.Errorf("expected exaclty 1 condition, got %d", len(conditions))
@@ -121,6 +129,30 @@ func TestNodeControllerDegradedConditionType(t *testing.T) {
 					return fmt.Errorf("incorrect condition.status, expected %v, got %v", operatorv1.ConditionTrue, con.Status)
 				}
 				expectedMsg := `The master nodes not ready: node "test-node-1" not ready since 2018-01-12 22:51:48.324359102 +0000 UTC because TestReason (test message), node "test-node-3" not ready since 2018-01-12 22:51:48.324359102 +0000 UTC because TestReason (test message)`
+				if con.Message != expectedMsg {
+					return fmt.Errorf("incorrect condition.message, expected %s, got %s", expectedMsg, con.Message)
+				}
+				return nil
+			},
+		},
+
+		// scenario 4: Ready condition not present in status block
+		{
+			name:        "scenario 4: Ready condition not present in status block",
+			masterNodes: []runtime.Object{makeNodeReady(fakeMasterNode("test-node-1")), fakeMasterNode("test-node-2")},
+			evaluateNodeStatus: func(conditions []operatorv1.OperatorCondition) error {
+				if len(conditions) != 1 {
+					return fmt.Errorf("expected exaclty 1 condition, got %d", len(conditions))
+				}
+
+				con := conditions[0]
+				if err := validateCommonNodeControllerDegradedCondtion(con); err != nil {
+					return err
+				}
+				if con.Status != operatorv1.ConditionTrue {
+					return fmt.Errorf("incorrect condition.status, expected %v, got %v", operatorv1.ConditionTrue, con.Status)
+				}
+				expectedMsg := `The master nodes not ready: node "test-node-2" not ready, no Ready condition found in status block`
 				if con.Message != expectedMsg {
 					return fmt.Errorf("incorrect condition.message, expected %s, got %s", expectedMsg, con.Message)
 				}

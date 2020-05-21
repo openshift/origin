@@ -20,14 +20,14 @@ require (
 	go.uber.org/atomic v1.3.3-0.20181018215023-8dc6146f7569 // indirect
 	go.uber.org/multierr v1.1.1-0.20180122172545-ddea229ff1df // indirect
 	golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
-	k8s.io/api v0.18.2
-	k8s.io/apimachinery v0.18.2
-	k8s.io/apiserver v0.18.2
-	k8s.io/client-go v0.18.2
-	k8s.io/code-generator v0.18.2
-	k8s.io/component-base v0.18.2
+	k8s.io/api v0.18.3
+	k8s.io/apimachinery v0.18.3
+	k8s.io/apiserver v0.18.3
+	k8s.io/client-go v0.18.3
+	k8s.io/code-generator v0.18.3
+	k8s.io/component-base v0.18.3
 	k8s.io/klog v1.0.0
-	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
+	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6 // release-1.18
 	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 )
 

@@ -40,7 +40,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: OAuthSpec contains desired cluster auth configuration
+          description: spec holds user settable values for configuration
           type: object
           properties:
             identityProviders:
@@ -647,6 +647,6 @@ spec:
                   type: integer
                   format: int32
         status:
-          description: OAuthStatus shows current known state of OAuth server in the
-            cluster
+          description: status holds observed values from the cluster. They may not
+            be overridden.
           type: object

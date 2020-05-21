@@ -20,6 +20,15 @@ var AllowAllCapabilities corev1.Capability = "*"
 // That exposure is deprecated and will be removed in a future release - users
 // should instead use the security.openshift.io group to manage
 // SecurityContextConstraints.
+// +kubebuilder:printcolumn:name="Priv",type=string,JSONPath=`.allowPrivilegedContainer`,description="Determines if a container can request to be run as privileged"
+// +kubebuilder:printcolumn:name="Caps",type=string,JSONPath=`.allowedCapabilities`,description="A list of capabilities that can be requested to add to the container"
+// +kubebuilder:printcolumn:name="SELinux",type=string,JSONPath=`.seLinuxContext.type`,description="Strategy that will dictate what labels will be set in the SecurityContext"
+// +kubebuilder:printcolumn:name="RunAsUser",type=string,JSONPath=`.runAsUser.type`,description="Strategy that will dictate what RunAsUser is used in the SecurityContext"
+// +kubebuilder:printcolumn:name="FSGroup",type=string,JSONPath=`.fsGroup.type`,description="Strategy that will dictate what fs group is used by the SecurityContext"
+// +kubebuilder:printcolumn:name="SupGroup",type=string,JSONPath=`.supplementalGroups.type`,description="Strategy that will dictate what supplemental groups are used by the SecurityContext"
+// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.priority`,description="Sort order of SCCs"
+// +kubebuilder:printcolumn:name="ReadOnlyRootFS",type=string,JSONPath=`.readOnlyRootFilesystem`,description="Force containers to run with a read only root file system"
+// +kubebuilder:printcolumn:name="Volumes",type=string,JSONPath=`.volumes`,description="White list of allowed volume plugins"
 // +kubebuilder:singular=securitycontextconstraint
 type SecurityContextConstraints struct {
 	metav1.TypeMeta   `json:",inline"`

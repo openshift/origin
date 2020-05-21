@@ -15,7 +15,7 @@ spec:
       port: https
       scheme: https
       tlsConfig:
-        caFile: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+        caFile: /etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt
         serverName: apiserver.{{ .TargetNamespace }}.svc
   jobLabel: component
   namespaceSelector:

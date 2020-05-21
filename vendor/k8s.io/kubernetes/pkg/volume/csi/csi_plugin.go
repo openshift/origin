@@ -921,15 +921,6 @@ func highestSupportedVersion(versions []string) (*utilversion.Version, error) {
 	return highestSupportedVersion, nil
 }
 
-func isV0Version(version string) bool {
-	parsedVersion, err := utilversion.ParseGeneric(version)
-	if err != nil {
-		return false
-	}
-
-	return parsedVersion.Major() == 0
-}
-
 // waitForAPIServerForever waits forever to get a CSINode instance as a proxy
 // for a healthy APIServer
 func waitForAPIServerForever(client clientset.Interface, nodeName types.NodeName) error {

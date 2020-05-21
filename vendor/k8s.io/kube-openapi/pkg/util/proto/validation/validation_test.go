@@ -36,6 +36,12 @@ func Validate(models proto.Models, model string, data string) []error {
 	if err := yaml.Unmarshal([]byte(data), &obj); err != nil {
 		return []error{fmt.Errorf("pre-validation: failed to parse yaml: %v", err)}
 	}
+	return ValidateObj(models, model, obj)
+}
+
+// ValidateObj validates an object produced by decoding json or yaml.
+// Numbers may be int64 or float64.
+func ValidateObj(models proto.Models, model string, obj interface{}) []error {
 	schema := models.LookupModel(model)
 	if schema == nil {
 		return []error{fmt.Errorf("pre-validation: couldn't find model %s", model)}
@@ -364,6 +370,47 @@ spec:
   - name: name
     image: image
 `)
+		Expect(err).To(BeNil())
+	})
+
+	// verify integer literals are considered to be compatible with float schema fields
+	It("validates integer values for float fields", func() {
+		err := ValidateObj(models, "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceDefinition", map[string]interface{}{
+			"apiVersion": "apiextensions.k8s.io/v1",
+			"kind":       "CustomResourceDefinition",
+			"metadata":   map[string]interface{}{"name": "foo"},
+			"spec": map[string]interface{}{
+				"scope": "Namespaced",
+				"group": "example.com",
+				"names": map[string]interface{}{
+					"plural": "numbers",
+					"kind":   "Number",
+				},
+				"versions": []interface{}{
+					map[string]interface{}{
+						"name":    "v1",
+						"served":  true,
+						"storage": true,
+						"schema": map[string]interface{}{
+							"openAPIV3Schema": map[string]interface{}{
+								"properties": map[string]interface{}{
+									"replicas": map[string]interface{}{
+										"default": int64(1),
+										"minimum": int64(0),
+										"type":    "integer",
+									},
+									"resources": map[string]interface{}{
+										"default": float64(1.1),
+										"minimum": float64(0.1),
+										"type":    "number",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		})
 		Expect(err).To(BeNil())
 	})
 })
