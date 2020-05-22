@@ -21,15 +21,15 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy
 	defer g.GinkgoRecover()
 
 	var (
-		oc               = exutil.NewCLI("s2i-python")
-		djangoRepository = "https://github.com/sclorg/django-ex.git"
-		modifyCommand    = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
-		pageCountFn      = func(count int) string { return fmt.Sprintf("Page views: %d", count) }
-		dcName           = "django-ex"
-		rcNameOne        = fmt.Sprintf("%s-1", dcName)
-		rcNameTwo        = fmt.Sprintf("%s-2", dcName)
-		dcLabelOne       = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameOne))
-		dcLabelTwo       = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameTwo))
+		oc             = exutil.NewCLI("s2i-python")
+		djangoTemplate = "django-psql-example"
+		modifyCommand  = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
+		pageCountFn    = func(count int) string { return fmt.Sprintf("Page views: %d", count) }
+		dcName         = "django-psql-example"
+		rcNameOne      = fmt.Sprintf("%s-1", dcName)
+		rcNameTwo      = fmt.Sprintf("%s-2", dcName)
+		dcLabelOne     = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameOne))
+		dcLabelTwo     = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameTwo))
 	)
 
 	g.Context("", func() {
@@ -49,13 +49,13 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy
 
 				err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By(fmt.Sprintf("calling oc new-app %s", djangoRepository))
+				g.By(fmt.Sprintf("calling oc new-app %s", djangoTemplate))
 				// gunicorn workers read the application source lazily.  For
 				// this test to succeed reliably, we must have one worker only
 				// (WEB_CONCURRENCY=1).  Having primed the worker via
 				// assertPageCountIs, we can then expect it not to read in the
 				// modified application source when hot deploy is disabled.
-				err = oc.Run("new-app").Args(djangoRepository, "--strategy=source", "-e", "WEB_CONCURRENCY=1").Execute()
+				err = oc.Run("new-app").Args(djangoTemplate, "-e", "WEB_CONCURRENCY=1").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for build to finish")
@@ -127,7 +127,8 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("modifying the source code with enabled hot deploy")
-				assertPageCountIs(1, dcLabelTwo)
+				// now using a persistent template, the count does not reset
+				assertPageCountIs(4, dcLabelTwo)
 				err = RunInPodContainer(oc, dcLabelTwo, modifyCommand)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				assertPageCountIs(1337, dcLabelTwo)
