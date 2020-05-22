@@ -135,7 +135,7 @@ func (ut *Tester) Within(t time.Duration, tests ...*Test) {
 	o.Expect(err).ToNot(o.HaveOccurred())
 }
 
-// createExecPod creates a simple centos:7 pod in a sleep loop used as a
+// createExecPod creates a simple pod in a sleep loop used as a
 // vessel for kubectl exec commands.
 // Returns the name of the created pod.
 func createExecPod(clientset kclientset.Interface, ns, name string) (string, error) {
@@ -151,7 +151,7 @@ func createExecPod(clientset kclientset.Interface, ns, name string) (string, err
 				{
 					Command:         []string{"/bin/bash", "-c", "exec sleep 10000"},
 					Name:            "hostexec",
-					Image:           "centos:7",
+					Image:           "registry.redhat.io/rhel7:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
 				},
 			},
