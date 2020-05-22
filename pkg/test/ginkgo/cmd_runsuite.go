@@ -3,6 +3,7 @@ package ginkgo
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -244,6 +245,19 @@ func (opt *Options) Run(args []string) error {
 	// anomalies
 	var syntheticTestResults []*JUnitTestCase
 	if events := m.Events(time.Time{}, time.Time{}); len(events) > 0 {
+		// Serialize the interval data for easier external analysis
+		if len(opt.JUnitDir) > 0 {
+			if file, err := os.OpenFile(filepath.Join(opt.JUnitDir, "intervals.json"), os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm); err != nil {
+				fmt.Fprintf(opt.ErrOut, "error: Failed to create event output: %v\n", err)
+			} else {
+				if err := json.NewEncoder(file).Encode(events); err != nil {
+					fmt.Fprintf(opt.ErrOut, "error: Failed to encode event output: %v\n", err)
+				}
+				if err := file.Close(); err != nil {
+					fmt.Fprintf(opt.ErrOut, "error: Failed to close event output: %v\n", err)
+				}
+			}
+		}
 		buf, errBuf := &bytes.Buffer{}, &bytes.Buffer{}
 		fmt.Fprintf(buf, "\nTimeline:\n\n")
 		errorCount := 0
