@@ -19,7 +19,7 @@ import (
 
 func isNonAMD(oc *exutil.CLI) bool {
 	nonAMD := false
-	allWorkerNodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+	allWorkerNodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(metav1.ListOptions{
 		LabelSelector: "node-role.kubernetes.io/worker",
 	})
 	if err != nil {
