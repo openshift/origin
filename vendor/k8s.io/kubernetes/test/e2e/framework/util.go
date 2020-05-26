@@ -169,9 +169,6 @@ var (
 	// BusyBoxImage is the image URI of BusyBox.
 	BusyBoxImage = imageutils.GetE2EImage(imageutils.BusyBox)
 
-	// AgnHostImage is the image URI of AgnHost
-	AgnHostImage = imageutils.GetE2EImage(imageutils.Agnhost)
-
 	// ProvidersWithSSH are those providers where each node is accessible with SSH
 	ProvidersWithSSH = []string{"gce", "gke", "aws", "local"}
 
@@ -1827,25 +1824,6 @@ func (f *Framework) NewTestPod(name string, requests v1.ResourceList, limits v1.
 						Requests: requests,
 						Limits:   limits,
 					},
-				},
-			},
-		},
-	}
-}
-
-// NewAgnhostPod returns a pod that uses the agnhost image. The image's binary supports various subcommands
-// that behave the same, no matter the underlying OS.
-func (f *Framework) NewAgnhostPod(name string, args ...string) *v1.Pod {
-	return &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: v1.PodSpec{
-			Containers: []v1.Container{
-				{
-					Name:  "agnhost",
-					Image: AgnHostImage,
-					Args:  args,
 				},
 			},
 		},
