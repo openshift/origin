@@ -33,7 +33,6 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	cacheddiscovery "k8s.io/client-go/discovery/cached/memory"
 	storagev1informer "k8s.io/client-go/informers/storage/v1"
 	storagev1beta1informer "k8s.io/client-go/informers/storage/v1beta1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -505,7 +504,6 @@ func startGarbageCollectorController(ctx ControllerContext) (http.Handler, bool,
 	}
 
 	gcClientset := ctx.ClientBuilder.ClientOrDie("generic-garbage-collector")
-	discoveryClient := cacheddiscovery.NewMemCacheClient(gcClientset.Discovery())
 
 	config := ctx.ClientBuilder.ConfigOrDie("generic-garbage-collector")
 	metadataClient, err := metadata.NewForConfig(config)
@@ -513,8 +511,6 @@ func startGarbageCollectorController(ctx ControllerContext) (http.Handler, bool,
 		return nil, true, err
 	}
 
-	// Get an initial set of deletable resources to prime the garbage collector.
-	deletableResources := garbagecollector.GetDeletableResources(discoveryClient)
 	ignoredResources := make(map[schema.GroupResource]struct{})
 	for _, r := range ctx.ComponentConfig.GarbageCollectorController.GCIgnoredResources {
 		ignoredResources[schema.GroupResource{Group: r.Group, Resource: r.Resource}] = struct{}{}
@@ -522,7 +518,6 @@ func startGarbageCollectorController(ctx ControllerContext) (http.Handler, bool,
 	garbageCollector, err := garbagecollector.NewGarbageCollector(
 		metadataClient,
 		ctx.RESTMapper,
-		deletableResources,
 		ignoredResources,
 		ctx.ObjectOrMetadataInformerFactory,
 		ctx.InformersStarted,
