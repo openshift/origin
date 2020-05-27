@@ -1,6 +1,8 @@
 package image_ecosystem
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type ImageBaseType string
 
@@ -18,6 +20,9 @@ type tc struct {
 
 	// Internal: We resolve this in JustBeforeEach
 	DockerImageReference string
+
+	// whether this image is supported on s390x or ppc64le
+	NonAMD bool
 }
 
 // This is a complete list of supported S2I images
@@ -28,18 +33,21 @@ var s2iImages = map[string][]tc{
 			Cmd:        "ruby --version",
 			Expected:   "ruby 2.6",
 			Repository: "rhscl",
+			NonAMD:     true,
 		},
 		{
 			Version:    "25",
 			Cmd:        "ruby --version",
 			Expected:   "ruby 2.5",
 			Repository: "rhscl",
+			NonAMD:     true,
 		},
 		{
 			Version:    "24",
 			Cmd:        "ruby --version",
 			Expected:   "ruby 2.4",
 			Repository: "rhscl",
+			NonAMD:     false,
 		},
 	},
 	"python": {
@@ -48,12 +56,14 @@ var s2iImages = map[string][]tc{
 			Cmd:        "python --version",
 			Expected:   "Python 2.7",
 			Repository: "rhscl",
+			NonAMD:     true,
 		},
 		{
 			Version:    "36",
 			Cmd:        "python --version",
 			Expected:   "Python 3.6",
 			Repository: "rhscl",
+			NonAMD:     true,
 		},
 	},
 	"nodejs": {
@@ -62,12 +72,14 @@ var s2iImages = map[string][]tc{
 			Cmd:        "node --version",
 			Expected:   "v10",
 			Repository: "rhscl",
+			NonAMD:     true,
 		},
 		{
 			Version:    "12",
 			Cmd:        "node --version",
 			Expected:   "v12",
 			Repository: "rhscl",
+			NonAMD:     true,
 		},
 	},
 	"perl": {
@@ -76,6 +88,7 @@ var s2iImages = map[string][]tc{
 			Cmd:        "perl --version",
 			Expected:   "v5.26",
 			Repository: "rhscl",
+			NonAMD:     true,
 		},
 	},
 	"php": {
@@ -84,12 +97,14 @@ var s2iImages = map[string][]tc{
 			Cmd:        "php --version",
 			Expected:   "7.2",
 			Repository: "rhscl",
+			NonAMD:     true,
 		},
 		{
 			Version:    "73",
 			Cmd:        "php --version",
 			Expected:   "7.3",
 			Repository: "rhscl",
+			NonAMD:     true,
 		},
 	},
 }

@@ -18,14 +18,37 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+func isNonAMD(oc *exutil.CLI) bool {
+	nonAMD := false
+	allWorkerNodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+		LabelSelector: "node-role.kubernetes.io/worker",
+	})
+	if err != nil {
+		e2e.Logf("problem getting nodes for arch check: %s", err)
+	}
+	for _, node := range allWorkerNodes.Items {
+		if node.Status.NodeInfo.Architecture != "amd64" {
+			nonAMD = true
+			break
+		}
+	}
+	return nonAMD
+}
+
 // defineTest will create the gingko test.  This ensures the test
 // is created with a local copy of all variables the test will need,
 // since the test may not run immediately and may run in parallel with other
 // tests, so sharing a variable reference is problematic.  (Sharing the oc client
 // is ok for these tests).
-func defineTest(image string, t tc, oc *exutil.CLI) {
+func defineTest(name string, t tc, oc *exutil.CLI) {
 	g.Describe("returning s2i usage when running the image", func() {
 		g.It(fmt.Sprintf("%q should print the usage", t.DockerImageReference), func() {
+			e2e.Logf("checking %s/%s for architecture compatibility", name, t.Version)
+			if isNonAMD(oc) && !t.NonAMD {
+				e2e.Logf("skipping %s/%s because non-amd64 architecture", name, t.Version)
+				return
+			}
+			e2e.Logf("%s/%s passed architecture compatibility", name, t.Version)
 			g.By(fmt.Sprintf("creating a sample pod for %q", t.DockerImageReference))
 			pod := exutil.GetPodForContainer(kapiv1.Container{
 				Name:  "test",
@@ -63,6 +86,12 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 	})
 	g.Describe("using the SCL in s2i images", func() {
 		g.It(fmt.Sprintf("%q should be SCL enabled", t.DockerImageReference), func() {
+			e2e.Logf("checking %s/%s for architecture compatibility", name, t.Version)
+			if isNonAMD(oc) && !t.NonAMD {
+				e2e.Logf("skipping %s/%s because non-amd64 architecture", name, t.Version)
+				return
+			}
+			e2e.Logf("%s/%s passed architecture compatibility", name, t.Version)
 			g.By(fmt.Sprintf("creating a sample pod for %q with /bin/bash -c command", t.DockerImageReference))
 			pod := exutil.GetPodForContainer(kapiv1.Container{
 				Image:   t.DockerImageReference,
@@ -138,9 +167,9 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift images s
 			}
 		})
 
-		for image, tcs := range GetTestCaseForImages() {
+		for name, tcs := range GetTestCaseForImages() {
 			for _, t := range tcs {
-				defineTest(image, t, oc)
+				defineTest(name, t, oc)
 			}
 		}
 	})
