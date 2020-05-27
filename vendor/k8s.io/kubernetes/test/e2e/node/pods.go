@@ -228,12 +228,12 @@ var _ = SIGDescribe("Pods Extended", func() {
 
 	framework.KubeDescribe("Pod Container Status", func() {
 		var podClient *framework.PodClient
-		ginkgo.BeforeEach(func() {
+		BeforeEach(func() {
 			podClient = f.PodClient()
 		})
 
-		ginkgo.It("should never report success for a pending container", func() {
-			ginkgo.By("creating pods that should always exit 1 and terminating the pod after a random delay")
+		It("should never report success for a pending container", func() {
+			By("creating pods that should always exit 1 and terminating the pod after a random delay")
 
 			var (
 				lock sync.Mutex
