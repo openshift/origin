@@ -148,6 +148,12 @@ var (
 			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume`,
 			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV`,
 		},
+		"[Skipped:ovirt]": {
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1838751
+			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
+			`\[sig-network\] Networking Granular Checks: Services should function for node-Service`,
+			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service`,
+		},
 		"[Skipped:gce]": {
 			// Requires creation of a different compute instance in a different zone and is not compatible with volumeBindingMode of WaitForFirstConsumer which we use in 4.x
 			`\[sig-scheduling\] Multi-AZ Cluster Volumes \[sig-storage\] should only be allowed to provision PDs in zones where nodes exist`,
