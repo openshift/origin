@@ -125,17 +125,18 @@ func (BuildLog) SwaggerDoc() map[string]string {
 }
 
 var map_BuildLogOptions = map[string]string{
-	"":             "BuildLogOptions is the REST options for a build log",
-	"container":    "cointainer for which to stream logs. Defaults to only container if there is one container in the pod.",
-	"follow":       "follow if true indicates that the build log should be streamed until the build terminates.",
-	"previous":     "previous returns previous build logs. Defaults to false.",
-	"sinceSeconds": "sinceSeconds is a relative time in seconds before the current time from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
-	"sinceTime":    "sinceTime is an RFC3339 timestamp from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
-	"timestamps":   "timestamps, If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output. Defaults to false.",
-	"tailLines":    "tailLines, If set, is the number of lines from the end of the logs to show. If not specified, logs are shown from the creation of the container or sinceSeconds or sinceTime",
-	"limitBytes":   "limitBytes, If set, is the number of bytes to read from the server before terminating the log output. This may not display a complete final line of logging, and may return slightly more or slightly less than the specified limit.",
-	"nowait":       "noWait if true causes the call to return immediately even if the build is not available yet. Otherwise the server will wait until the build has started.",
-	"version":      "version of the build for which to view logs.",
+	"":                             "BuildLogOptions is the REST options for a build log",
+	"container":                    "cointainer for which to stream logs. Defaults to only container if there is one container in the pod.",
+	"follow":                       "follow if true indicates that the build log should be streamed until the build terminates.",
+	"previous":                     "previous returns previous build logs. Defaults to false.",
+	"sinceSeconds":                 "sinceSeconds is a relative time in seconds before the current time from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
+	"sinceTime":                    "sinceTime is an RFC3339 timestamp from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
+	"timestamps":                   "timestamps, If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output. Defaults to false.",
+	"tailLines":                    "tailLines, If set, is the number of lines from the end of the logs to show. If not specified, logs are shown from the creation of the container or sinceSeconds or sinceTime",
+	"limitBytes":                   "limitBytes, If set, is the number of bytes to read from the server before terminating the log output. This may not display a complete final line of logging, and may return slightly more or slightly less than the specified limit.",
+	"nowait":                       "noWait if true causes the call to return immediately even if the build is not available yet. Otherwise the server will wait until the build has started.",
+	"version":                      "version of the build for which to view logs.",
+	"insecureSkipTLSVerifyBackend": "insecureSkipTLSVerifyBackend indicates that the apiserver should not confirm the validity of the serving certificate of the backend it is connecting to.  This will make the HTTPS connection between the apiserver and the backend insecure. This means the apiserver cannot verify the log data it is receiving came from the real kubelet.  If the kubelet is configured to verify the apiserver's TLS credentials, it does not mean the connection to the real kubelet is vulnerable to a man in the middle attack (e.g. an attacker could not intercept the actual log data coming from the real kubelet).",
 }
 
 func (BuildLogOptions) SwaggerDoc() map[string]string {

@@ -5,8 +5,8 @@ module k8s.io/kube-controller-manager
 go 1.13
 
 require (
-	k8s.io/apimachinery v0.18.2
-	k8s.io/component-base v0.18.2
+	k8s.io/apimachinery v0.18.3
+	k8s.io/component-base v0.18.3
 )
 
 replace (

@@ -6,9 +6,9 @@ go 1.13
 
 require (
 	github.com/google/go-cmp v0.3.1
-	k8s.io/api v0.18.2
-	k8s.io/apimachinery v0.18.2
-	k8s.io/component-base v0.18.2
+	k8s.io/api v0.18.3
+	k8s.io/apimachinery v0.18.3
+	k8s.io/component-base v0.18.3
 )
 
 replace (
