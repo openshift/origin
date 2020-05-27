@@ -41,7 +41,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				if err != nil {
 					panic(err)
 				}
-				exutil.DumpPodsCommand(oc.AdminKubeClient(), ns, selector, "cat /var/lib/haproxy/router/routes.json /var/lib/haproxy/conf/haproxy.config")
+				exutil.DumpPodsCommand(oc.AdminKubeClient(), ns, selector, "cat /var/lib/haproxy/conf/haproxy.config")
 			}
 		}
 	})
