@@ -6,6 +6,7 @@ package docker
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -34,7 +35,7 @@ func TestBuildImageMultipleContextsError(t *testing.T) {
 		ContextDir:          "testing/data",
 	}
 	err := client.BuildImage(opts)
-	if err != ErrMultipleContexts {
+	if !errors.Is(err, ErrMultipleContexts) {
 		t.Errorf("BuildImage: providing both InputStream and ContextDir should produce an error")
 	}
 }

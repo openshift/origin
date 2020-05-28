@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -213,7 +214,7 @@ func TestRemoveImageNotFound(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such image", status: http.StatusNotFound})
 	err := client.RemoveImage("test:")
-	if err != ErrNoSuchImage {
+	if !errors.Is(err, ErrNoSuchImage) {
 		t.Errorf("RemoveImage: wrong error. Want %#v. Got %#v.", ErrNoSuchImage, err)
 	}
 }
@@ -309,7 +310,7 @@ func TestInspectImageNotFound(t *testing.T) {
 	if image != nil {
 		t.Errorf("InspectImage(%q): expected <nil> image, got %#v.", name, image)
 	}
-	if err != ErrNoSuchImage {
+	if !errors.Is(err, ErrNoSuchImage) {
 		t.Errorf("InspectImage(%q): wrong error. Want %#v. Got %#v.", name, ErrNoSuchImage, err)
 	}
 }
@@ -431,7 +432,7 @@ func TestPushImageNoName(t *testing.T) {
 	t.Parallel()
 	client := Client{}
 	err := client.PushImage(PushImageOptions{}, AuthConfiguration{})
-	if err != ErrNoSuchImage {
+	if !errors.Is(err, ErrNoSuchImage) {
 		t.Errorf("PushImage: got wrong error. Want %#v. Got %#v.", ErrNoSuchImage, err)
 	}
 }
@@ -632,7 +633,7 @@ func TestPullImageNoRepository(t *testing.T) {
 	var opts PullImageOptions
 	client := Client{}
 	err := client.PullImage(opts, AuthConfiguration{})
-	if err != ErrNoSuchImage {
+	if !errors.Is(err, ErrNoSuchImage) {
 		t.Errorf("PullImage: got wrong error. Want %#v. Got %#v.", ErrNoSuchImage, err)
 	}
 }
@@ -872,7 +873,7 @@ func TestBuildImageMissingRepoAndNilInput(t *testing.T) {
 		OutputStream:   &buf,
 	}
 	err := client.BuildImage(opts)
-	if err != ErrMissingRepo {
+	if !errors.Is(err, ErrMissingRepo) {
 		t.Errorf("BuildImage: wrong error returned. Want %#v. Got %#v.", ErrMissingRepo, err)
 	}
 }
@@ -883,7 +884,7 @@ func TestBuildImageMissingOutputStream(t *testing.T) {
 	client := newTestClient(fakeRT)
 	opts := BuildImageOptions{Name: "testImage"}
 	err := client.BuildImage(opts)
-	if err != ErrMissingOutputStream {
+	if !errors.Is(err, ErrMissingOutputStream) {
 		t.Errorf("BuildImage: wrong error returned. Want %#v. Got %#v.", ErrMissingOutputStream, err)
 	}
 }
@@ -972,7 +973,7 @@ func TestTagImageMissingRepo(t *testing.T) {
 	client := newTestClient(fakeRT)
 	opts := TagImageOptions{Repo: "testImage"}
 	err := client.TagImage("", opts)
-	if err != ErrNoSuchImage {
+	if !errors.Is(err, ErrNoSuchImage) {
 		t.Errorf("TestTag: wrong error returned. Want %#v. Got %#v.",
 			ErrNoSuchImage, err)
 	}
@@ -1080,7 +1081,7 @@ func TestExportImagesNoNames(t *testing.T) {
 	if err == nil {
 		t.Error("Expected an error")
 	}
-	if err != ErrMustSpecifyNames {
+	if !errors.Is(err, ErrMustSpecifyNames) {
 		t.Error(err)
 	}
 }

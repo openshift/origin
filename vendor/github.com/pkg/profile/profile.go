@@ -43,6 +43,10 @@ type Profile struct {
 	// memProfileRate holds the rate for the memory profile.
 	memProfileRate int
 
+	// memProfileType holds the profile type for memory
+	// profiles. Allowed values are `heap` and `allocs`.
+	memProfileType string
+
 	// closer holds a cleanup function that run after each profile
 	closer func()
 
@@ -80,6 +84,24 @@ func MemProfile(p *Profile) {
 func MemProfileRate(rate int) func(*Profile) {
 	return func(p *Profile) {
 		p.memProfileRate = rate
+		p.mode = memMode
+	}
+}
+
+// MemProfileHeap changes which type of memory profiling to profile
+// the heap.
+func MemProfileHeap() func(*Profile) {
+	return func(p *Profile) {
+		p.memProfileType = "heap"
+		p.mode = memMode
+	}
+}
+
+// MemProfileAllocs changes which type of memory to profile
+// allocations.
+func MemProfileAllocs() func(*Profile) {
+	return func(p *Profile) {
+		p.memProfileType = "allocs"
 		p.mode = memMode
 	}
 }
@@ -158,6 +180,10 @@ func Start(options ...func(*Profile)) interface {
 		}
 	}
 
+	if prof.memProfileType == "" {
+		prof.memProfileType = "heap"
+	}
+
 	switch prof.mode {
 	case cpuMode:
 		fn := filepath.Join(path, "cpu.pprof")
@@ -183,7 +209,7 @@ func Start(options ...func(*Profile)) interface {
 		runtime.MemProfileRate = prof.memProfileRate
 		logf("profile: memory profiling enabled (rate %d), %s", runtime.MemProfileRate, fn)
 		prof.closer = func() {
-			pprof.Lookup("heap").WriteTo(f, 0)
+			pprof.Lookup(prof.memProfileType).WriteTo(f, 0)
 			f.Close()
 			runtime.MemProfileRate = old
 			logf("profile: memory profiling disabled, %s", fn)

@@ -64,7 +64,7 @@ spec:
                   type: string
             serviceAccountIssuer:
               description: serviceAccountIssuer is the identifier of the bound service
-                account token issuer. The default is auth.openshift.io.
+                account token issuer. The default is https://kubernetes.default.svc
               type: string
             type:
               description: type identifies the cluster managed, user facing authentication

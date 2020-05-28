@@ -148,7 +148,7 @@ func TestCustomHandler(t *testing.T) {
 	server, _ := NewServer("127.0.0.1:0", nil, nil)
 	defer server.Stop()
 	addContainers(server, 2)
-	server.CustomHandler("/containers/json", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server.CustomHandler("/containers/json", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		called = true
 		fmt.Fprint(w, "Hello world")
 	}))
@@ -169,7 +169,7 @@ func TestCustomHandlerRegexp(t *testing.T) {
 	server, _ := NewServer("127.0.0.1:0", nil, nil)
 	defer server.Stop()
 	addContainers(server, 2)
-	server.CustomHandler("/containers/.*/json", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server.CustomHandler("/containers/.*/json", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		called = true
 		fmt.Fprint(w, "Hello world")
 	}))
@@ -2252,7 +2252,7 @@ func TestStatsContainerStream(t *testing.T) {
 	server.buildMuxer()
 	expected := docker.Stats{}
 	expected.CPUStats.CPUUsage.TotalUsage = 20
-	server.PrepareStats(containers[0].ID, func(id string) docker.Stats {
+	server.PrepareStats(containers[0].ID, func(string) docker.Stats {
 		time.Sleep(50 * time.Millisecond)
 		return expected
 	})
