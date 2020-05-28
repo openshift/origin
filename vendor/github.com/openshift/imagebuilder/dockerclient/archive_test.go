@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/docker/docker/pkg/archive"
+	"github.com/pkg/errors"
 )
 
 type testDirectoryCheck map[string]bool
@@ -64,11 +65,27 @@ func (g *archiveGenerator) Reader() io.Reader {
 					}
 				}
 			}
-			return w.Flush()
+			return w.Close()
 		}()
 		pw.CloseWithError(err)
 	}()
 	return pr
+}
+
+// errors.Cause() plus unwrapping go1.13-style wrapped errors
+func unwrapError(err error) error {
+	type unwrapper interface {
+		Unwrap() error
+	}
+	if errors.Cause(err) == nil {
+		return nil
+	}
+	unwrappable, ok := errors.Cause(err).(unwrapper)
+	for ok && err != nil {
+		err = errors.Cause(unwrappable.Unwrap())
+		unwrappable, ok = err.(unwrapper)
+	}
+	return err
 }
 
 func Test_archiveFromFile(t *testing.T) {
@@ -93,6 +110,7 @@ func Test_archiveFromFile(t *testing.T) {
 		file     string
 		gen      *archiveGenerator
 		src      string
+		closeErr error
 		dst      string
 		excludes []string
 		expect   []string
@@ -240,6 +258,11 @@ func Test_archiveFromFile(t *testing.T) {
 				"subdir",
 			},
 		},
+		{
+			file:     testArchive,
+			src:      "subdir/no-such-file",
+			closeErr: os.ErrNotExist,
+		},
 	}
 	for i := range testCases {
 		testCase := testCases[i]
@@ -266,7 +289,10 @@ func Test_archiveFromFile(t *testing.T) {
 				}
 				found = append(found, h.Name)
 			}
-			c.Close()
+			closeErr := c.Close()
+			if unwrapError(testCase.closeErr) != unwrapError(closeErr) {
+				t.Fatalf("expected error %q, got %q", unwrapError(testCase.closeErr), unwrapError(closeErr))
+			}
 			sort.Strings(found)
 			if !reflect.DeepEqual(testCase.expect, found) {
 				t.Errorf("unexpected files:\n%v\n%v", testCase.expect, found)
@@ -279,6 +305,7 @@ func Test_archiveFromContainer(t *testing.T) {
 	testCases := []struct {
 		gen      *archiveGenerator
 		src      string
+		closeErr error
 		dst      string
 		excludes []string
 		expect   []string
@@ -406,19 +433,21 @@ func Test_archiveFromContainer(t *testing.T) {
 			},
 		},
 		{
-			gen:    newArchiveGenerator().Dir("").File("b"),
-			src:    "/a/b",
-			dst:    "/a",
-			path:   "/a",
-			expect: nil,
+			gen:      newArchiveGenerator().Dir("").File("b"),
+			src:      "/a/b",
+			closeErr: os.ErrNotExist,
+			dst:      "/a",
+			path:     "/a",
+			expect:   nil,
 		},
 		{
-			gen:    newArchiveGenerator().File("b"),
-			src:    "/a/b",
-			dst:    "/a",
-			check:  map[string]bool{"/a": true},
-			path:   "/a",
-			expect: nil,
+			gen:      newArchiveGenerator().File("b"),
+			src:      "/a/b",
+			closeErr: os.ErrNotExist,
+			dst:      "/a",
+			check:    map[string]bool{"/a": true},
+			path:     "/a",
+			expect:   nil,
 		},
 		{
 			gen:  newArchiveGenerator().Dir("a/").File("a/b"),
@@ -436,11 +465,23 @@ func Test_archiveFromContainer(t *testing.T) {
 			path:   ".",
 			expect: []string{"/a/b"},
 		},
+		{
+			gen:      newArchiveGenerator().Dir("/a").File("/a/b"),
+			src:      "/a/c",
+			path:     "/a",
+			closeErr: os.ErrNotExist,
+		},
+		{
+			gen:      newArchiveGenerator().Dir("/a").File("/a/b"),
+			src:      "/a/c*",
+			path:     "/a",
+			closeErr: os.ErrNotExist,
+		},
 	}
 	for i := range testCases {
 		testCase := testCases[i]
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			r, path, err := archiveFromContainer(
+			rc, path, err := archiveFromContainer(
 				testCase.gen.Reader(),
 				testCase.src,
 				testCase.dst,
@@ -453,7 +494,7 @@ func Test_archiveFromContainer(t *testing.T) {
 			if filepath.Clean(path) != testCase.path {
 				t.Errorf("unexpected path: %s != %s", filepath.Clean(path), testCase.path)
 			}
-			tr := tar.NewReader(r)
+			tr := tar.NewReader(rc)
 			var found []string
 			for {
 				h, err := tr.Next()
@@ -464,6 +505,10 @@ func Test_archiveFromContainer(t *testing.T) {
 					t.Fatal(err)
 				}
 				found = append(found, h.Name)
+			}
+			closeErr := rc.Close()
+			if unwrapError(testCase.closeErr) != unwrapError(closeErr) {
+				t.Fatalf("expected error %q, got %q", unwrapError(testCase.closeErr), unwrapError(closeErr))
 			}
 			sort.Strings(found)
 			if !reflect.DeepEqual(testCase.expect, found) {
