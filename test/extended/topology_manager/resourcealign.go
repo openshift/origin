@@ -1,5 +1,17 @@
 package topologymanager
 
+/*
+ * PLEASE NOTE:
+ * this code liberally uses "core" as alias of "logical CPU".
+ * this is not completely correct (e.g. HyperThreading), and partially comes from
+ * the kubernetes itself which is a bit liberal with the terms
+ * (see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu)
+ * The general workload may not really care if the "cpu" it requests is a logical
+ * or physical core, but to test topology manager we most definitely do.
+ * So, while more precise term would be desiderable, the test description is part of the
+ * `openshift-tests` output we cannot change it anymore.
+ */
+
 import (
 	"context"
 	"fmt"
@@ -85,9 +97,9 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 
 	g.Context("with gu workload", func() {
 		var (
-			node      *corev1.Node
-			numaNodes int64
-			coreCount int64
+			node            *corev1.Node
+			numaNodes       int64
+			logicalCPUCount int64
 		)
 
 		g.BeforeEach(func() {
@@ -108,12 +120,12 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 			o.Expect(ok).To(o.BeTrue())
 			o.Expect(cpuCapacity.IsZero()).To(o.BeFalse())
 
-			coreCount, ok = cpuCapacity.AsInt64()
+			logicalCPUCount, ok = cpuCapacity.AsInt64()
 			o.Expect(ok).To(o.BeTrue(), fmt.Sprintf("failed to convert the CPU resource: %v", cpuCapacity))
-			o.Expect(coreCount).ToNot(o.BeZero(), fmt.Sprintf("capacity cores %d equals zero", coreCount))
-			o.Expect(coreCount%numaNodes).To(o.BeZero(), fmt.Sprintf("capacity cores %d not multiple of detected NUMA nodes count %d", coreCount, numaNodes))
+			o.Expect(logicalCPUCount).ToNot(o.BeZero(), fmt.Sprintf("capacity cores %d equals zero", logicalCPUCount))
+			o.Expect(logicalCPUCount%numaNodes).To(o.BeZero(), fmt.Sprintf("capacity cores %d not multiple of detected NUMA nodes count %d", logicalCPUCount, numaNodes))
 
-			e2e.Logf("CPU capacity on %q: %d", node.Name, coreCount)
+			e2e.Logf("CPU capacity on %q: %d", node.Name, logicalCPUCount)
 		})
 
 		g.Describe("attached to SRIOV networks", func() {
@@ -188,7 +200,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 				// 2. even amount of cores in the system. Gone forever are the times of the athlon II X3?
 				// so for any even number of numa nodes > 1, there is no way this request can be fullfilled
 				// by just a single NUMA
-				cpuReq := 1 + (coreCount / int64(numaNodes))
+				cpuReq := 1 + (logicalCPUCount / int64(numaNodes))
 				pp := PodParams{
 					Containers: []ContainerParams{{
 						CpuRequest:    cpuReq * 1000,
@@ -231,7 +243,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 			})
 
 			g.It("should allow a pod requesting as many cores as a full NUMA node have", func() {
-				cpuReq := coreCount / int64(numaNodes)
+				cpuReq := logicalCPUCount / int64(numaNodes)
 				pps := PodParamsList{
 					{
 						Containers: []ContainerParams{{
@@ -273,15 +285,15 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 				// by just a single NUMA
 
 				// random fraction of a NUMA node, we try to make low enough to fit in low-end servers (16 cores per node)
-				coreDelta := (coreCount / int64(numaNodes)) / 4
-				if coreDelta < 1 {
-					e2e.Logf("too low coreDelta with %v cores and %v numa nodes, forced to 1", coreCount, numaNodes)
-					coreDelta = 1
+				logicalCPUDelta := (logicalCPUCount / int64(numaNodes)) / 4
+				if logicalCPUDelta < 1 {
+					e2e.Logf("too low logicalCPUDelta with %v cores and %v numa nodes, forced to 1", logicalCPUCount, numaNodes)
+					logicalCPUDelta = 1
 				}
 
-				cpuReq1 := (coreCount / int64(numaNodes)) - coreDelta
-				cpuReq2 := coreDelta * 2
-				// so the total we asking is ((coreCount / numaNodes) - coreDelta) + (coreDelta * 2)  = (coreCount / numaNodes) + coreDelta < coreCount
+				cpuReq1 := (logicalCPUCount / int64(numaNodes)) - logicalCPUDelta
+				cpuReq2 := logicalCPUDelta * 2
+				// so the total we asking is ((logicalCPUCount / numaNodes) - logicalCPUDelta) + (logicalCPUDelta * 2)  = (logicalCPUCount / numaNodes) + logicalCPUDelta < logicalCPUCount
 				// we know we fit on the node granted the systemReservedCpus are configured properly,
 				// so no need to check for enoughCoresInTheCluster
 
