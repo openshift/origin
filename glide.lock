@@ -1,5 +1,5 @@
-hash: 0321c461c9996ff8becdd4c3b6f3a4613d9e51cea7c042036d04ed59f7bf9860
-updated: 2020-05-20T12:43:17.595493+02:00
+hash: 58f332a15d7df757f7646a0245bd767ff7f95e6d75d9b699f22cde1cdbd9f751
+updated: 2020-05-28T11:51:25.251385012-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -1098,7 +1098,7 @@ imports:
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/seccomp/libseccomp-golang
-  version: 1b506fc7c24eec5a3693cdcbed40d9c226cfc6a1
+  version: 689e3c1541a84461afc49c1c87352a6cedf72e9c
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - name: github.com/sirupsen/logrus
@@ -1508,7 +1508,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: e46c46eda5f2d5bbf60122c71895782b33d05784
+  version: d11f61f412e0f0df591679e682fddcc1ca9d74d5
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1863,7 +1863,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 1ccffe3ceb2c1e91822bc36495852fb72c47c1f4
+  version: b3b92b285f38984ad0b5b4d4ba6b150ac119dd2a
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2630,7 +2630,6 @@ imports:
   - plugin/pkg/auth/authorizer/node
   - plugin/pkg/auth/authorizer/rbac
   - plugin/pkg/auth/authorizer/rbac/bootstrappolicy
-  - staging/src/k8s.io/apimachinery/pkg/labels
   - test/e2e
   - test/e2e/apimachinery
   - test/e2e/apps
