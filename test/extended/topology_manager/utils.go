@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -253,6 +254,25 @@ func setNodeForPods(pods []*corev1.Pod, node *corev1.Node) {
 		}
 	}
 
+}
+
+func deletePods(oc *exutil.CLI, pods []*corev1.Pod) {
+	client := oc.AsAdmin().KubeFramework().ClientSet
+
+	var wg sync.WaitGroup
+	num := len(pods)
+	for i := 0; i < num; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			defer g.GinkgoRecover()
+
+			e2e.Logf("deleting pod %d/%d", idx, num)
+			err := e2epod.DeletePodWithWaitByName(client, pods[idx].Name, pods[idx].Namespace)
+			e2e.ExpectNoError(err)
+		}(i)
+	}
+	wg.Wait()
 }
 
 type podPhaseChecker func(corev1.PodPhase) bool

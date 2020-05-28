@@ -639,13 +639,6 @@ func isTopologyAffinityError(pod *corev1.Pod) bool {
 	return re.MatchString(pod.Status.Reason)
 }
 
-func deletePods(oc *exutil.CLI, pods []*corev1.Pod) {
-	client := oc.AsAdmin().KubeFramework().ClientSet
-	for _, pod := range pods {
-		e2epod.DeletePodWithWait(client, pod)
-	}
-}
-
 func expectSinglePodHaveAlignedResources(pod *corev1.Pod, oc *exutil.CLI, deviceResourceName string) {
 	for _, cnt := range pod.Spec.Containers {
 		out, err := getAllowedCpuListForContainer(oc, pod, &cnt)
