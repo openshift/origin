@@ -1,13 +1,11 @@
 package operators
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -27,11 +25,6 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 )
 
-const (
-	operatorWait = 1 * time.Minute
-	cvoWait      = 5 * time.Minute
-)
-
 var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
@@ -47,82 +40,36 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 		g.By("checking for the cluster version operator")
 		skipUnlessCVO(c.CoreV1().Namespaces())
 
-		g.By("waiting for the cluster version to be applied")
+		g.By("ensuring cluster version is stable")
 		cvc := dc.Resource(schema.GroupVersionResource{Group: "config.openshift.io", Resource: "clusterversions", Version: "v1"})
-		var lastErr error
-		var lastCV objx.Map
-		if err := wait.PollImmediate(3*time.Second, cvoWait, func() (bool, error) {
-			obj, err := cvc.Get(context.Background(), "version", metav1.GetOptions{})
-			if err != nil {
-				lastErr = err
-				e2e.Logf("Unable to check for cluster version: %v", err)
-				return false, nil
-			}
-			cv := objx.Map(obj.UnstructuredContent())
-			lastErr = nil
-			lastCV = cv
-			if cond := condition(cv, "Progressing"); cond.Get("status").String() != "False" {
-				e2e.Logf("ClusterVersion is still progressing: %s", cond.Get("message").String())
-				return false, nil
-			}
-			if cond := condition(cv, "Available"); cond.Get("status").String() != "True" {
-				e2e.Logf("ClusterVersion is not available: %s", cond.Get("message").String())
-				return false, nil
-			}
-			e2e.Logf("ClusterVersion available: %s", condition(cv, "Progressing").Get("message").String())
-			return true, nil
-		}); err != nil {
-			o.Expect(lastErr).NotTo(o.HaveOccurred())
-			e2e.Logf("Last cluster version seen: %s", lastCV)
-			if msg := condition(lastCV, "Failing").Get("message").String(); len(msg) > 0 {
-				e2e.Logf("ClusterVersion is reporting a failure: %s", msg)
-			}
-			e2e.Failf("ClusterVersion never became available: %s", condition(lastCV, "Progressing").Get("message").String())
+		obj, err := cvc.Get(context.Background(), "version", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		cv := objx.Map(obj.UnstructuredContent())
+		if cond := condition(cv, "Available"); cond.Get("status").String() != "True" {
+			e2e.Failf("ClusterVersion Available=%s: %s: %s", cond.Get("status").String(), cond.Get("reason").String(), cond.Get("message").String())
+		}
+		if cond := condition(cv, "Failing"); cond.Get("status").String() != "False" {
+			e2e.Failf("ClusterVersion Failing=%s: %s: %s", cond.Get("status").String(), cond.Get("reason").String(), cond.Get("message").String())
+		}
+		if cond := condition(cv, "Progressing"); cond.Get("status").String() != "False" {
+			e2e.Failf("ClusterVersion Progressing=%s: %s: %s", cond.Get("status").String(), cond.Get("reason").String(), cond.Get("message").String())
 		}
 
 		// gate on all clusteroperators being ready
-		g.By(fmt.Sprintf("waiting for all cluster operators to be stable at the same time"))
+		g.By("ensuring all cluster operators are stable")
 		coc := dc.Resource(schema.GroupVersionResource{Group: "config.openshift.io", Resource: "clusteroperators", Version: "v1"})
-		lastErr = nil
-		var lastCOs []objx.Map
-		wait.PollImmediate(time.Second, operatorWait, func() (bool, error) {
-			obj, err := coc.List(context.Background(), metav1.ListOptions{})
-			if err != nil {
-				lastErr = err
-				e2e.Logf("Unable to check for cluster operators: %v", err)
-				return false, nil
-			}
-			cv := objx.Map(obj.UnstructuredContent())
-			lastErr = nil
-			items := objects(cv.Get("items"))
-			lastCOs = items
+		clusterOperatorsObj, err := coc.List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-			if len(items) == 0 {
-				return false, nil
-			}
+		clusterOperators := objx.Map(clusterOperatorsObj.UnstructuredContent())
+		items := objects(clusterOperators.Get("items"))
+		if len(items) == 0 {
+			e2e.Failf("There must be at least one cluster operator")
+		}
 
-			var unready []string
-			for _, co := range items {
-				badConditions, missingTypes := surprisingConditions(co)
-				if len(badConditions) > 0 || len(missingTypes) > 0 {
-					unready = append(unready, co.Get("metadata.name").String())
-				}
-			}
-			if len(unready) > 0 {
-				sort.Strings(unready)
-				e2e.Logf("Operators still unready: %s", strings.Join(unready, ", "))
-				return false, nil
-			}
-			return true, nil
-		})
-
-		o.Expect(lastErr).NotTo(o.HaveOccurred())
-		ready := 0
 		var unready []string
-		buf := &bytes.Buffer{}
-		w := tabwriter.NewWriter(buf, 0, 4, 1, ' ', 0)
-		fmt.Fprintf(w, "NAME\tTYPE\tSTATUS\tREASON\tMESSAGE\n")
-		for _, co := range lastCOs {
+		for _, co := range items {
 			name := co.Get("metadata.name").String()
 			badConditions, missingTypes := surprisingConditions(co)
 			if len(badConditions) > 0 {
@@ -134,33 +81,17 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 					worstCondition.Reason,
 					worstCondition.Message,
 				))
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-					name,
-					worstCondition.Type,
-					worstCondition.Status,
-					worstCondition.Reason,
-					worstCondition.Message,
-				)
 			} else if len(missingTypes) > 0 {
 				missingTypeStrings := make([]string, 0, len(missingTypes))
 				for _, missingType := range missingTypes {
 					missingTypeStrings = append(missingTypeStrings, string(missingType))
 				}
 				unready = append(unready, fmt.Sprintf("%s (missing: %s)", name, strings.Join(missingTypeStrings, ", ")))
-			} else {
-				ready++
 			}
 		}
-		w.Flush()
-		e2e.Logf("ClusterOperators:\n%s", buf.String())
-
 		if len(unready) > 0 {
 			sort.Strings(unready)
-			e2e.Failf("Some cluster operators never became ready: %s", strings.Join(unready, ", "))
-		}
-		// Check at least one core operator is ready
-		if ready == 0 {
-			e2e.Failf("There must be at least one cluster operator")
+			e2e.Failf("Some cluster operators are not ready: %s", strings.Join(unready, ", "))
 		}
 	})
 })
