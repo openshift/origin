@@ -90,6 +90,9 @@ type JUnitTestCase struct {
 
 	// SystemErr is output written to stderr during the execution of this test case
 	SystemErr string `xml:"system-err,omitempty"`
+
+	// Properties holds other properties of the test case as a mapping of name to value.
+	Properties *JUnitProperties `xml:"properties,omitempty"`
 }
 
 // SkipMessage holds a message explaining why a test was skipped
@@ -149,12 +152,27 @@ func renderJUnitReport(name string, tests []*testCase, duration time.Duration, a
 		case test.failed:
 			s.NumTests++
 			s.NumFailed++
+			weight := "failure"
+			for _, retry := range test.retries {
+				if retry.success {
+					weight = "flake"
+					break
+				}
+			}
 			s.TestCases = append(s.TestCases, &JUnitTestCase{
 				Name:      test.name,
 				SystemOut: string(test.out),
 				Duration:  test.duration.Seconds(),
 				FailureOutput: &FailureOutput{
 					Output: lastLinesUntil(string(test.out), 100, "fail ["),
+				},
+				Properties: &JUnitProperties{
+					Properties: []JUnitProperty{
+						{
+							Name:  "weight",
+							Value: weight,
+						},
+					},
 				},
 			})
 		case test.success:

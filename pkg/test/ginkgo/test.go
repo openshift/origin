@@ -29,6 +29,7 @@ type testCase struct {
 	success  bool
 	failed   bool
 	skipped  bool
+	retries  []*testCase
 
 	previous *testCase
 }

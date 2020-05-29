@@ -290,6 +290,14 @@ func (opt *Options) Run(args []string) error {
 				FailureOutput: &FailureOutput{
 					Output: fmt.Sprintf("%d error level events were detected during this test run:\n\n%s", errorCount, errBuf.String()),
 				},
+				Properties: &JUnitProperties{
+					Properties: []JUnitProperty{
+						{
+							Name:  "weight",
+							Value: "informer",
+						},
+					},
+				},
 			})
 		}
 
@@ -300,7 +308,9 @@ func (opt *Options) Run(args []string) error {
 	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
 		var retries []*testCase
 		for _, test := range failing {
-			retries = append(retries, test.Retry())
+			retry := test.Retry()
+			test.retries = append(test.retries, retry)
+			retries = append(retries, retry)
 			if len(retries) > suite.MaximumAllowedFlakes {
 				break
 			}

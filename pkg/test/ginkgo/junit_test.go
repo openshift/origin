@@ -58,6 +58,14 @@ func Test_renderJUnitReport(t *testing.T) {
 			Message: "the additional widget exploded",
 			Output:  "bing! bang! boom!",
 		},
+		Properties: &JUnitProperties{
+			Properties: []JUnitProperty{
+				{
+					Name:  "weight",
+					Value: "informer",
+				},
+			},
+		},
 	}
 
 	data, err := renderJUnitReport("openshift-tests", tests, 4*time.Second, additionalResult)
@@ -65,7 +73,7 @@ func Test_renderJUnitReport(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := `<testsuite name="openshift-tests" tests="3" skipped="0" failures="2" time="4"><properties><property name="TestVersion" value="unknown"></property></properties><testcase name="Testing a failure" time="0"><failure>the main widget exploded</failure><system-out>the main widget exploded</system-out></testcase><testcase name="Testing a success" time="0"></testcase><testcase name="Additional testing" time="3"><failure message="the additional widget exploded">bing! bang! boom!</failure><system-out>system out bla, bla, bla</system-out></testcase></testsuite>`
+	expected := `<testsuite name="openshift-tests" tests="3" skipped="0" failures="2" time="4"><properties><property name="TestVersion" value="unknown"></property></properties><testcase name="Testing a failure" time="0"><failure>the main widget exploded</failure><system-out>the main widget exploded</system-out><properties><property name="weight" value="failure"></property></properties></testcase><testcase name="Testing a success" time="0"></testcase><testcase name="Additional testing" time="3"><failure message="the additional widget exploded">bing! bang! boom!</failure><system-out>system out bla, bla, bla</system-out><properties><property name="weight" value="informer"></property></properties></testcase></testsuite>`
 	if string(data) != expected {
 		t.Fatalf("unexpected report:\n\n%s\n\nexpected:\n\n%s", string(data), expected)
 	}
