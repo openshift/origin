@@ -2,10 +2,6 @@ package ginkgo
 
 import (
 	"encoding/xml"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -45,8 +41,8 @@ type JUnitTestSuite struct {
 	// Duration is the time taken in seconds to run all tests in the suite
 	Duration float64 `xml:"time,attr"`
 
-	// Properties holds other properties of the test suite as a mapping of name to value
-	Properties []*TestSuiteProperty `xml:"properties,omitempty"`
+	// Properties holds other properties of the test suite as a mapping of name to value.
+	Properties *JUnitProperties `xml:"properties,omitempty"`
 
 	// TestCases are the test cases contained in the test suite
 	TestCases []*JUnitTestCase `xml:"testcase"`
@@ -55,8 +51,15 @@ type JUnitTestSuite struct {
 	Children []*JUnitTestSuite `xml:"testsuite"`
 }
 
-// TestSuiteProperty contains a mapping of a property name to a value
-type TestSuiteProperty struct {
+// JUnitProperties contains a slice of property elements.
+type JUnitProperties struct {
+	XMLName xml.Name `xml:"properties"`
+
+	Properties []JUnitProperty `xml:"property"`
+}
+
+// JUnitProperty contains a mapping of a property name to a value.
+type JUnitProperty struct {
 	XMLName xml.Name `xml:"property"`
 
 	Name  string `xml:"name,attr"`
@@ -102,7 +105,7 @@ type FailureOutput struct {
 	XMLName xml.Name `xml:"failure"`
 
 	// Message holds the failure message from the test
-	Message string `xml:"message,attr"`
+	Message string `xml:"message,attr,omitempty"`
 
 	// Output holds verbose failure output from the test
 	Output string `xml:",chardata"`
@@ -117,14 +120,16 @@ const (
 	TestResultFail TestResult = "fail"
 )
 
-func writeJUnitReport(filePrefix, name string, tests []*testCase, dir string, duration time.Duration, errOut io.Writer, additionalResults ...*JUnitTestCase) error {
+func renderJUnitReport(name string, tests []*testCase, duration time.Duration, additionalResults ...*JUnitTestCase) ([]byte, error) {
 	s := &JUnitTestSuite{
 		Name:     name,
 		Duration: duration.Seconds(),
-		Properties: []*TestSuiteProperty{
-			{
-				Name:  "TestVersion",
-				Value: version.Get().String(),
+		Properties: &JUnitProperties{
+			Properties: []JUnitProperty{
+				{
+					Name:  "TestVersion",
+					Value: version.Get().String(),
+				},
 			},
 		},
 	}
@@ -170,13 +175,7 @@ func writeJUnitReport(filePrefix, name string, tests []*testCase, dir string, du
 		s.NumTests++
 		s.TestCases = append(s.TestCases, result)
 	}
-	out, err := xml.Marshal(s)
-	if err != nil {
-		return err
-	}
-	path := filepath.Join(dir, fmt.Sprintf("%s_%s.xml", filePrefix, time.Now().UTC().Format("20060102-150405")))
-	fmt.Fprintf(errOut, "Writing JUnit report to %s\n\n", path)
-	return ioutil.WriteFile(path, out, 0640)
+	return xml.Marshal(s)
 }
 
 func lastLinesUntil(output string, max int, until ...string) string {

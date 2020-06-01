@@ -332,8 +332,14 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	if len(opt.JUnitDir) > 0 {
-		if err := writeJUnitReport("junit_e2e", "openshift-tests", tests, opt.JUnitDir, duration, opt.ErrOut, syntheticTestResults...); err != nil {
-			fmt.Fprintf(opt.Out, "error: Unable to write e2e JUnit results: %v", err)
+		data, err := renderJUnitReport("openshift-tests", tests, duration, syntheticTestResults...)
+		if err == nil {
+			path := filepath.Join(opt.JUnitDir, fmt.Sprintf("junit_e2e_%s.xml", time.Now().UTC().Format("20060102-150405")))
+			fmt.Fprintf(opt.Out, "Writing JUnit report to %s\n\n", path)
+			err = ioutil.WriteFile(path, data, 0640)
+		}
+		if err != nil {
+			fmt.Fprintf(opt.ErrOut, "error: Unable to write e2e JUnit results: %v", err)
 		}
 	}
 
