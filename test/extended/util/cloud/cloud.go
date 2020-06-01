@@ -12,6 +12,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
 	"github.com/openshift/origin/test/extended/util/azure"
 )
 
@@ -27,7 +28,7 @@ type ClusterConfiguration struct {
 	MultiZone   bool
 	ConfigFile  string
 
-	NetworkPlugin string
+	NetworkPluginIDs []string
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -46,17 +47,24 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 	if err != nil {
 		return nil, err
 	}
-	client, err := configclient.NewForConfig(clientConfig)
+	configClient, err := configclient.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+	operatorClient, err := operatorclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	var networkPlugin string
-	if networkConfig, err := client.ConfigV1().Networks().Get("cluster", metav1.GetOptions{}); err == nil {
-		networkPlugin = networkConfig.Spec.NetworkType
+	var networkPluginIDs []string
+	if networkConfig, err := operatorClient.OperatorV1().Networks().Get("cluster", metav1.GetOptions{}); err == nil {
+		networkPluginIDs = append(networkPluginIDs, string(networkConfig.Spec.DefaultNetwork.Type))
+		if networkConfig.Spec.DefaultNetwork.OpenShiftSDNConfig != nil && networkConfig.Spec.DefaultNetwork.OpenShiftSDNConfig.Mode != "" {
+			networkPluginIDs = append(networkPluginIDs, string(networkConfig.Spec.DefaultNetwork.Type)+"/"+string(networkConfig.Spec.DefaultNetwork.OpenShiftSDNConfig.Mode))
+		}
 	}
 
-	infra, err := client.ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
+	infra, err := configClient.ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +74,7 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 	}
 	if p.Type == configv1.NonePlatformType {
 		return &ClusterConfiguration{
-			NetworkPlugin: networkPlugin,
+			NetworkPluginIDs: networkPluginIDs,
 		}, nil
 	}
 
@@ -90,9 +98,9 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 	}
 
 	config := &ClusterConfiguration{
-		MultiMaster:   len(masters.Items) > 1,
-		MultiZone:     zones.Len() > 1,
-		NetworkPlugin: networkPlugin,
+		MultiMaster:      len(masters.Items) > 1,
+		MultiZone:        zones.Len() > 1,
+		NetworkPluginIDs: networkPluginIDs,
 	}
 	if zones.Len() > 0 {
 		config.Zone = zones.List()[0]
