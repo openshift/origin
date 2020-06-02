@@ -5,7 +5,7 @@ package iptables
 import "k8s.io/kubernetes/pkg/util/async"
 
 func (p *Proxier) SyncProxyRules() {
-	p.syncProxyRules()
+	p.maybeSyncProxyRules()
 }
 
 func (p *Proxier) SetSyncRunner(b *async.BoundedFrequencyRunner) {

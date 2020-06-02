@@ -32,7 +32,6 @@ type RunnableProxy interface {
 type HybridProxier struct {
 	mainProxy     RunnableProxy
 	unidlingProxy RunnableProxy
-	syncPeriod    time.Duration
 	minSyncPeriod time.Duration
 	serviceLister kcorelisters.ServiceLister
 
@@ -69,7 +68,6 @@ func NewHybridProxier(
 	p := &HybridProxier{
 		mainProxy:     mainProxy,
 		unidlingProxy: unidlingProxy,
-		syncPeriod:    syncPeriod,
 		minSyncPeriod: minSyncPeriod,
 		serviceLister: serviceLister,
 
