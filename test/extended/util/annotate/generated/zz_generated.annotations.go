@@ -1707,6 +1707,14 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny an import of a repository exceeding limit on openshift.io/image-tags resource": "should deny an import of a repository exceeding limit on openshift.io/image-tags resource [Disabled:SpecialConfig] [Suite:openshift]",
 
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial] ImageStream API TestImportImageFromBlockedRegistry": "TestImportImageFromBlockedRegistry [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial] ImageStream API TestImportImageFromInsecureRegistry": "TestImportImageFromInsecureRegistry [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial] ImageStream API TestImportRepositoryFromBlockedRegistry": "TestImportRepositoryFromBlockedRegistry [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial] ImageStream API TestImportRepositoryFromInsecureRegistry": "TestImportRepositoryFromInsecureRegistry [Suite:openshift/conformance/serial]",
+
 	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Annotation trigger reconciles after the image is overwritten": "reconciles after the image is overwritten [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestMultipleImageChangeBuildTriggers": "TestMultipleImageChangeBuildTriggers [Suite:openshift/conformance/parallel]",

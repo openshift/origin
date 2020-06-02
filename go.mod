@@ -19,6 +19,7 @@ require (
 	github.com/google/go-cmp v0.4.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v0.0.0-00010101000000-000000000000 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/gorilla/context v0.0.0-00010101000000-000000000000 // indirect
 	github.com/heketi/tests v0.0.0-00010101000000-000000000000 // indirect
 	github.com/lestrrat-go/jspointer v0.0.0-20181205001929-82fadba7561c // indirect
