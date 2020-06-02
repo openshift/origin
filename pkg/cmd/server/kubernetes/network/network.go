@@ -173,7 +173,6 @@ func (c *NetworkConfig) RunProxy(waitChan chan<- bool) {
 		proxier, err = hybrid.NewHybridProxier(
 			hp,
 			unidlingUserspaceProxy,
-			c.ProxyConfig.IPTables.SyncPeriod.Duration,
 			c.ProxyConfig.IPTables.MinSyncPeriod.Duration,
 			c.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
 		)

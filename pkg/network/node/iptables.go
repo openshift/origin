@@ -12,16 +12,12 @@ import (
 
 	"github.com/golang/glog"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/iptables"
-	kexec "k8s.io/utils/exec"
 )
 
 type NodeIPTables struct {
 	ipt                iptables.Interface
 	clusterNetworkCIDR []string
-	syncPeriod         time.Duration
 	masqueradeServices bool
 	vxlanPort          uint32
 	masqueradeBitHex   string // the masquerade bit as hex value
@@ -31,11 +27,10 @@ type NodeIPTables struct {
 	egressIPs map[string]string
 }
 
-func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masqueradeServices bool, vxlanPort uint32, masqueradeBit uint32) *NodeIPTables {
+func newNodeIPTables(ipt iptables.Interface, clusterNetworkCIDR []string, masqueradeServices bool, vxlanPort uint32, masqueradeBit uint32) *NodeIPTables {
 	return &NodeIPTables{
-		ipt:                iptables.New(kexec.New(), iptables.ProtocolIpv4),
+		ipt:                ipt,
 		clusterNetworkCIDR: clusterNetworkCIDR,
-		syncPeriod:         syncPeriod,
 		masqueradeServices: masqueradeServices,
 		vxlanPort:          vxlanPort,
 		masqueradeBitHex:   fmt.Sprintf("%#x", 1<<masqueradeBit),
@@ -47,15 +42,6 @@ func (n *NodeIPTables) Setup() error {
 	if err := n.syncIPTableRules(); err != nil {
 		return err
 	}
-
-	go n.ipt.Monitor(iptables.Chain("OPENSHIFT-SDN-CANARY"),
-		[]iptables.Table{iptables.TableMangle, iptables.TableNAT, iptables.TableFilter},
-		func() {
-			if err := n.syncIPTableRules(); err != nil {
-				utilruntime.HandleError(fmt.Errorf("Reloading openshift iptables failed: %v", err))
-			}
-		},
-		n.syncPeriod, utilwait.NeverStop)
 	return nil
 }
 

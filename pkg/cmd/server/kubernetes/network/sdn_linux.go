@@ -11,6 +11,7 @@ import (
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
+	"k8s.io/kubernetes/pkg/util/iptables"
 
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
@@ -23,7 +24,8 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 	kubeClientset kclientset.Interface, kubeClient kinternalclientset.Interface,
 	internalKubeInformers kinternalinformers.SharedInformerFactory,
 	internalNetworkInformers networkinformers.SharedInformerFactory,
-	proxyconfig *kubeproxyconfig.KubeProxyConfiguration) (NodeInterface, ProxyInterface, error) {
+	proxyconfig *kubeproxyconfig.KubeProxyConfiguration,
+	ipt iptables.Interface) (NodeInterface, ProxyInterface, error) {
 
 	runtimeEndpoint := options.DockerConfig.DockerShimSocket
 	runtime, ok := options.KubeletArguments["container-runtime"]
@@ -53,23 +55,23 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, kclientv1.EventSource{Component: "openshift-sdn", Host: options.NodeName})
 
 	node, err := sdnnode.New(&sdnnode.OsdnNodeConfig{
-		PluginName:         options.NetworkConfig.NetworkPluginName,
-		Hostname:           options.NodeName,
-		SelfIP:             options.NodeIP,
-		DNSIP:              options.DNSIP,
-		RuntimeEndpoint:    runtimeEndpoint,
-		CNIBinDir:          cniBinDir,
-		CNIConfDir:         cniConfDir,
-		MTU:                options.NetworkConfig.MTU,
-		NetworkClient:      networkClient,
-		KClient:            kubeClient,
-		KubeInformers:      internalKubeInformers,
-		NetworkInformers:   internalNetworkInformers,
-		IPTablesSyncPeriod: proxyconfig.IPTables.SyncPeriod.Duration,
-		MasqueradeBit:      proxyconfig.IPTables.MasqueradeBit,
-		ProxyMode:          proxyconfig.Mode,
-		EnableHostports:    enableHostports,
-		Recorder:           recorder,
+		PluginName:       options.NetworkConfig.NetworkPluginName,
+		Hostname:         options.NodeName,
+		SelfIP:           options.NodeIP,
+		DNSIP:            options.DNSIP,
+		RuntimeEndpoint:  runtimeEndpoint,
+		CNIBinDir:        cniBinDir,
+		CNIConfDir:       cniConfDir,
+		MTU:              options.NetworkConfig.MTU,
+		NetworkClient:    networkClient,
+		KClient:          kubeClient,
+		KubeInformers:    internalKubeInformers,
+		NetworkInformers: internalNetworkInformers,
+		IPTables:         ipt,
+		MasqueradeBit:    proxyconfig.IPTables.MasqueradeBit,
+		ProxyMode:        proxyconfig.Mode,
+		EnableHostports:  enableHostports,
+		Recorder:         recorder,
 	})
 	if err != nil {
 		return nil, nil, err
