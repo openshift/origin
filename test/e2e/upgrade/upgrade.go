@@ -234,8 +234,6 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 	return upgCtx, nil
 }
 
-var errControlledAbort = fmt.Errorf("beginning abort")
-
 func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
