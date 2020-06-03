@@ -198,7 +198,7 @@ func testRemoteConnectivityCommand(protocol v1.Protocol, localHostPort, host str
 		protocolType = "udp"
 		dialCommand = fmt.Sprintf("echo%%20%s", echoMessage)
 	default:
-		return nil, fmt.Errorf("nc does not support protocol %s", protocol)
+		return nil, fmt.Errorf("curl does not support protocol %s", protocol)
 	}
 
 	//func (config *NetworkingTestConfig) DialFromContainer(protocol, dialCommand, containerIP, targetIP string, containerHTTPPort, targetPort, maxTries, minTries int, expectedResponses sets.String) {
