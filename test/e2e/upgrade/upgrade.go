@@ -111,35 +111,44 @@ func SetUpgradeAbortAt(policy string) error {
 	return fmt.Errorf("abort-at must be empty, set to 'random', or an integer in [0,100], inclusive")
 }
 
-var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
+var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade] Upgrading", func() {
 	f := framework.NewDefaultFramework("cluster-upgrade")
 	f.SkipNamespaceCreation = true
 	f.SkipPrivilegedPSPBinding = true
+	var (
+		config *rest.Config
+		client *configv1client.Clientset
+		dynamicClient dynamic.Interface
+		upgCtx *upgrades.UpgradeContext
+	)
 
-	g.It("Cluster should remain functional during upgrade [Disruptive]", func() {
-		config, err := framework.LoadConfig()
+	g.It("should load the test configuration", func() {
+		var err error
+		config, err = framework.LoadConfig()
 		framework.ExpectNoError(err)
-		client := configv1client.NewForConfigOrDie(config)
-		dynamicClient := dynamic.NewForConfigOrDie(config)
+		client = configv1client.NewForConfigOrDie(config)
+		dynamicClient = dynamic.NewForConfigOrDie(config)
 
-		upgCtx, err := getUpgradeContext(client, upgradeToImage)
+		upgCtx, err = getUpgradeContext(client, upgradeToImage)
 		framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", "", upgradeToImage)
-
-		disruption.Run(
-			"Cluster upgrade",
-			"upgrade",
-			disruption.TestData{
-				UpgradeType:    upgrades.ClusterUpgrade,
-				UpgradeContext: *upgCtx,
-			},
-			upgradeTests,
-			func() {
-				for i := 1; i < len(upgCtx.Versions); i++ {
-					framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
-				}
-			},
-		)
 	})
+
+	disruption.Run(
+		"Cluster upgrade",
+		"upgrade",
+		disruption.TestData{
+			UpgradeType:    upgrades.ClusterUpgrade,
+			UpgradeContext: *upgCtx,
+		},
+		upgradeTests,
+		func() {
+			for i := 1; i < len(upgCtx.Versions); i++ {
+				g.It(fmt.Sprintf("from %s to %s should succeed [Disruptive]", upgCtx.Versions[i-1].NodeImage, upgCtx.Versions[i].NodeImage), func() {
+					framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[i]))
+				})
+			}
+		},
+	)
 })
 
 func latestHistory(history []configv1.UpdateHistory) *configv1.UpdateHistory {
