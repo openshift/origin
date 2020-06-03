@@ -182,6 +182,7 @@ type Proxier struct {
 	endpointsSynced bool
 	servicesSynced  bool
 	initialized     int32
+	changesPending  bool
 	syncRunner      *async.BoundedFrequencyRunner // governs calls to syncProxyRules
 
 	// These are effectively const and do not need the mutex to be held.
@@ -308,10 +309,10 @@ func NewProxier(ipt utiliptables.Interface,
 	// We pass syncPeriod to ipt.Monitor, which will call us only if it needs to.
 	// We need to pass *some* maxInterval to NewBoundedFrequencyRunner anyway though.
 	// time.Hour is arbitrary.
-	proxier.syncRunner = async.NewBoundedFrequencyRunner("sync-runner", proxier.syncProxyRules, minSyncPeriod, syncPeriod, burstSyncs)
+	proxier.syncRunner = async.NewBoundedFrequencyRunner("sync-runner", proxier.maybeSyncProxyRules, minSyncPeriod, syncPeriod, burstSyncs)
 	go ipt.Monitor(utiliptables.Chain("KUBE-PROXY-CANARY"),
 		[]utiliptables.Table{utiliptables.TableMangle, utiliptables.TableNAT, utiliptables.TableFilter},
-		proxier.syncProxyRules, syncPeriod, wait.NeverStop)
+		proxier.forceSyncProxyRules, syncPeriod, wait.NeverStop)
 	return proxier, nil
 }
 
@@ -444,6 +445,7 @@ func (proxier *Proxier) probability(n int) string {
 
 // Sync is called to synchronize the proxier state to iptables as soon as possible.
 func (proxier *Proxier) Sync() {
+	proxier.changesPending = true
 	proxier.syncRunner.Run()
 }
 
@@ -474,6 +476,7 @@ func (proxier *Proxier) OnServiceAdd(service *api.Service) {
 
 func (proxier *Proxier) OnServiceUpdate(oldService, service *api.Service) {
 	if proxier.serviceChanges.Update(oldService, service) && proxier.isInitialized() {
+		proxier.changesPending = true
 		proxier.syncRunner.Run()
 	}
 }
@@ -490,7 +493,7 @@ func (proxier *Proxier) OnServiceSynced() {
 	proxier.mu.Unlock()
 
 	// Sync unconditionally - this is called once per lifetime.
-	proxier.syncProxyRules()
+	proxier.forceSyncProxyRules()
 }
 
 func (proxier *Proxier) OnEndpointsAdd(endpoints *api.Endpoints) {
@@ -499,6 +502,7 @@ func (proxier *Proxier) OnEndpointsAdd(endpoints *api.Endpoints) {
 
 func (proxier *Proxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints) {
 	if proxier.endpointsChanges.Update(oldEndpoints, endpoints) && proxier.isInitialized() {
+		proxier.changesPending = true
 		proxier.syncRunner.Run()
 	}
 }
@@ -514,7 +518,7 @@ func (proxier *Proxier) OnEndpointsSynced() {
 	proxier.mu.Unlock()
 
 	// Sync unconditionally - this is called once per lifetime.
-	proxier.syncProxyRules()
+	proxier.forceSyncProxyRules()
 }
 
 // portProtoHash takes the ServicePortName and protocol for a service
@@ -585,10 +589,18 @@ func (proxier *Proxier) deleteEndpointConnections(connectionMap []proxy.ServiceE
 	}
 }
 
+func (proxier *Proxier) maybeSyncProxyRules() {
+	proxier.syncProxyRules(false)
+}
+
+func (proxier *Proxier) forceSyncProxyRules() {
+	proxier.syncProxyRules(true)
+}
+
 // This is where all of the iptables-save/restore calls happen.
 // The only other iptables rules are those that are setup in iptablesInit()
 // This assumes proxier.mu is NOT held
-func (proxier *Proxier) syncProxyRules() {
+func (proxier *Proxier) syncProxyRules(force bool) {
 	proxier.mu.Lock()
 	defer proxier.mu.Unlock()
 
@@ -600,6 +612,14 @@ func (proxier *Proxier) syncProxyRules() {
 	// don't sync rules till we've received services and endpoints
 	if !proxier.endpointsSynced || !proxier.servicesSynced {
 		glog.V(2).Info("Not syncing iptables until Services and Endpoints have been received from master")
+		return
+	}
+
+	if !force && !proxier.changesPending {
+		// Nothing to do; just update healthz timestamp.
+		if proxier.healthzServer != nil {
+			proxier.healthzServer.UpdateTimestamp()
+		}
 		return
 	}
 
@@ -1291,6 +1311,7 @@ func (proxier *Proxier) syncProxyRules() {
 		utilproxy.RevertPorts(replacementPortsMap, proxier.portsMap)
 		return
 	}
+	proxier.changesPending = false
 
 	// Close old local ports and save new ones.
 	for k, v := range proxier.portsMap {
