@@ -272,6 +272,12 @@ func generateHAProxyMap(name string, td templateData) []string {
 	return templateutil.SortMapPaths(lines, `^[^\.]*\.`)
 }
 
+// toList converts a given string with custom delimiter to list
+func toList(s string, delimiter string) []string {
+	v := strings.Split(s, delimiter)
+	return v
+}
+
 var helperFunctions = template.FuncMap{
 	"endpointsForAlias":        endpointsForAlias,        //returns the list of valid endpoints
 	"processEndpointsForAlias": processEndpointsForAlias, //returns the list of valid endpoints after processing them
@@ -294,4 +300,5 @@ var helperFunctions = template.FuncMap{
 	"generateHAProxyMap":           generateHAProxyMap,           //generates a haproxy map content
 	"validateHAProxyWhiteList":     validateHAProxyWhiteList,     //validates a haproxy whitelist (acl) content
 	"generateHAProxyWhiteListFile": generateHAProxyWhiteListFile, //generates a haproxy whitelist file for use in an acl
+	"toList":	toList, //convert a given string with custom delimiter to list
 }
