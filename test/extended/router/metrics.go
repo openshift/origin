@@ -236,7 +236,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				}
 
 				maxSessionsInvariant := func(v []float64) bool {
-					return len(v) >= 2 && v[0] > 0 && v[1] > 0
+					return len(v) == 1 && v[0] > 0
 				}
 
 				updatedMetrics, err := refreshMetrics()
@@ -245,7 +245,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 					return false, err
 				}
 
-				if len(findGaugesWithLabels(updatedMetrics["haproxy_server_up"], serverLabels)) < 2 {
+				if len(findGaugesWithLabels(updatedMetrics["haproxy_server_up"], serverLabels)) != 1 {
 					e2e.Logf("haproxy_server_up: %v", findGaugesWithLabels(updatedMetrics["haproxy_server_up"], serverLabels))
 					g.By("sending traffic to a weighted route")
 					return false, expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), "weighted.metrics.example.com", http.StatusOK, times, proxyProtocol)
