@@ -61,8 +61,8 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 				ns := oc.KubeFramework().Namespace.Name
 				testingPods := pps.MakeBusyboxPods(ns, deviceResourceName)
 				// we just want to run pods and check they actually go running
-				createPods(client, ns, testingPods...)
-				defer deletePods(oc, testingPods)
+				updatedPods := createPods(client, ns, testingPods...)
+				defer deletePods(oc, updatedPods)
 			},
 			// rhbz#1813397 - k8s issue83775
 			t.Entry("with single pod, single container requesting 1 core", []PodParams{
