@@ -296,13 +296,15 @@ func setNodeForPods(pods []*corev1.Pod, node *corev1.Node) {
 type podPhaseChecker func(corev1.PodPhase) bool
 
 func createPodsAndWait(client clientset.Interface, namespace string, phaseChecker podPhaseChecker, testPods ...*corev1.Pod) []*corev1.Pod {
-	updatedPods := make([]*corev1.Pod, len(testPods), len(testPods))
+	num := len(testPods)
+	updatedPods := make([]*corev1.Pod, num, num)
 	var wg sync.WaitGroup
 
-	for i := 0; i < len(testPods); i++ {
+	for i := 0; i < num; i++ {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
+			defer g.GinkgoRecover()
 
 			created, err := client.CoreV1().Pods(namespace).Create(context.Background(), testPods[idx], metav1.CreateOptions{})
 			e2e.ExpectNoError(err)
