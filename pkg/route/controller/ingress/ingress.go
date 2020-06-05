@@ -1,6 +1,7 @@
 package ingress
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -9,7 +10,7 @@ import (
 
 	"k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -357,7 +358,7 @@ func (c *Controller) sync(key queueKey) error {
 	}
 
 	ingress, err := c.ingressLister.Ingresses(key.namespace).Get(key.name)
-	if errors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		return nil
 	}
 	if err != nil {
@@ -441,7 +442,7 @@ func (c *Controller) sync(key queueKey) error {
 
 	// purge any previously managed routes
 	for _, route := range old {
-		if err := c.client.Routes(route.Namespace).Delete(route.Name, nil); err != nil && !errors.IsNotFound(err) {
+		if err := c.client.Routes(route.Namespace).Delete(route.Name, nil); err != nil && !kerrors.IsNotFound(err) {
 			errs = append(errs, err)
 		}
 	}
@@ -494,10 +495,15 @@ func newRouteForIngress(
 		}
 	}
 
-	targetPort := targetPortForService(ingress.Namespace, path, serviceLister)
-	if targetPort == nil {
+	targetPort, err := targetPortForService(ingress.Namespace, path, serviceLister)
+	if err != nil {
 		// no valid target port
 		return nil
+	}
+
+	var port *routev1.RoutePort
+	if targetPort != nil {
+		port = &routev1.RoutePort{TargetPort: *targetPort}
 	}
 
 	t := true
@@ -517,10 +523,8 @@ func newRouteForIngress(
 			To: routev1.RouteTargetReference{
 				Name: path.Backend.ServiceName,
 			},
-			Port: &routev1.RoutePort{
-				TargetPort: *targetPort,
-			},
-			TLS: tlsConfig,
+			Port: port,
+			TLS:  tlsConfig,
 		},
 	}
 }
@@ -547,16 +551,21 @@ func routeMatchesIngress(
 	match := route.Spec.Host == rule.Host &&
 		route.Spec.Path == path.Path &&
 		route.Spec.To.Name == path.Backend.ServiceName &&
-		route.Spec.Port != nil &&
 		route.Spec.WildcardPolicy == routev1.WildcardPolicyNone &&
 		len(route.Spec.AlternateBackends) == 0
 	if !match {
 		return false
 	}
 
-	targetPort := targetPortForService(ingress.Namespace, path, serviceLister)
-	if targetPort == nil || *targetPort != route.Spec.Port.TargetPort {
+	targetPort, err := targetPortForService(ingress.Namespace, path, serviceLister)
+	if err != nil {
 		// not valid
+		return false
+	}
+	if targetPort == nil && route.Spec.Port != nil {
+		return false
+	}
+	if targetPort != nil && (route.Spec.Port == nil || *targetPort != route.Spec.Port.TargetPort) {
 		return false
 	}
 
@@ -573,28 +582,46 @@ func routeMatchesIngress(
 	return true
 }
 
-func targetPortForService(namespace string, path *extensionsv1beta1.HTTPIngressPath, serviceLister corelisters.ServiceLister) *intstr.IntOrString {
+// targetPortForService returns a target port for a Route based on the given
+// Ingress path.  If the Ingress references a Service or port that cannot be
+// found, targetPortForService returns an error.  If the Ingress references a
+// port that has no name, a nil value is returned for the target port.
+// Otherwise, the port name is returned as the target port.
+//
+// Note that an Ingress specifies a port on a Service whereas a Route specifies
+// a port on an Endpoints resource.  The ports on a Service resource and the
+// ports on its corresponding Endpoints resource have the same names but may
+// have different numbers.  If there is only one port, it may be nameless, but
+// in this case, the Route need have no port specification because omitting the
+// port specification causes the Route to target every port (in this case, the
+// only port) on the Endpoints resource.
+func targetPortForService(namespace string, path *extensionsv1beta1.HTTPIngressPath, serviceLister corelisters.ServiceLister) (*intstr.IntOrString, error) {
 	service, err := serviceLister.Services(namespace).Get(path.Backend.ServiceName)
 	if err != nil {
 		// service doesn't exist yet, wait
-		return nil
+		return nil, err
 	}
 	if path.Backend.ServicePort.Type == intstr.String {
 		expect := path.Backend.ServicePort.StrVal
 		for _, port := range service.Spec.Ports {
 			if port.Name == expect {
-				return &port.TargetPort
+				targetPort := intstr.FromString(port.Name)
+				return &targetPort, nil
 			}
 		}
 	} else {
+		expect := path.Backend.ServicePort.IntVal
 		for _, port := range service.Spec.Ports {
-			expect := path.Backend.ServicePort.IntVal
 			if port.Port == expect {
-				return &port.TargetPort
+				if len(port.Name) == 0 {
+					return nil, nil
+				}
+				targetPort := intstr.FromString(port.Name)
+				return &targetPort, nil
 			}
 		}
 	}
-	return nil
+	return nil, errors.New("no port found")
 }
 
 func secretMatchesRoute(secret *v1.Secret, tlsConfig *routev1.TLSConfig) bool {
@@ -671,7 +698,7 @@ func createRouteWithName(client routeclient.RoutesGetter, ingress *extensionsv1b
 
 		// if we aren't generating names (or if we got any other type of error)
 		// return right away
-		if len(base) == 0 || !errors.IsAlreadyExists(err) {
+		if len(base) == 0 || !kerrors.IsAlreadyExists(err) {
 			return err
 		}
 		lastErr = err
