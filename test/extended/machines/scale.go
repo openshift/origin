@@ -225,7 +225,8 @@ var _ = g.Describe("[Feature:Machines][Serial] Managed cluster should", func() {
 			// Azure actuator takes something over 3 minutes to delete a machine.
 			// The worst observable case to delete a machine was 5m15s however.
 			// Also, there are two instances to be deleted.
-			// Rounding to 7 minutes to accomodate for future new and slower cloud providers.
-		}, 7*time.Minute, 5*time.Second).Should(o.BeTrue())
+			// Rounding to 10 minutes to accommodate for future new and slower cloud providers.
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1812240
+		}, 10*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 })
