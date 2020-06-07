@@ -59,12 +59,20 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcloud.C
 
 	// given the configuration we have loaded, skip tests that our provider should exclude
 	// or our network plugin should exclude
-	skipProvider := fmt.Sprintf("[Skipped:%s", config.ProviderName)
-	skipNetworkPlugin := fmt.Sprintf("[Skipped:Network/%s", config.NetworkPlugin)
-	skipFn := func(name string) bool {
-		return !strings.Contains(name, skipProvider) && !strings.Contains(name, skipNetworkPlugin)
+	var skips []string
+	skips = append(skips, fmt.Sprintf("[Skipped:%s]", config.ProviderName))
+	for _, id := range config.NetworkPluginIDs {
+		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", id))
 	}
-	return skipFn, nil
+	matchFn := func(name string) bool {
+		for _, skip := range skips {
+			if strings.Contains(name, skip) {
+				return false
+			}
+		}
+		return true
+	}
+	return matchFn, nil
 }
 
 func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.ClusterConfiguration, error) {
