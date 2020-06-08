@@ -43,6 +43,9 @@ func NewOpenShiftKubeAPIServerConfigPatch(kubeAPIServerConfig *kubecontrolplanev
 			return err
 		}
 
+		// add a custom checker that allow us to see what else is using /healhtz endpoint in the system.
+		genericConfig.HealthzChecks = append(genericConfig.HealthzChecks, LogRequestToHealthz)
+
 		// AUTHORIZER
 		genericConfig.RequestInfoResolver = apiserverconfig.OpenshiftRequestInfoResolver()
 		// END AUTHORIZER
