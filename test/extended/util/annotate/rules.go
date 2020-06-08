@@ -93,8 +93,7 @@ var (
 			// A fix is in progress: https://github.com/openshift/origin/pull/24709
 			`Multi-AZ Clusters should spread the pods of a replication controller across zones`,
 
-			// Workloads: https://bugzilla.redhat.com/show_bug.cgi?id=1731263
-			`SchedulerPreemption`,
+			`Cluster should restore itself after quorum loss`, // https://bugzilla.redhat.com/show_bug.cgi?id=1837157
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -139,6 +138,8 @@ var (
 			`\[Feature:HPA\] Horizontal pod autoscaling \(scale resource: CPU\) \[sig-autoscaling\] ReplicationController light Should scale from 1 pod to 2 pods`,
 
 			`should prevent Ingress creation if more than 1 IngressClass marked as default`, // https://bugzilla.redhat.com/show_bug.cgi?id=1822286
+
+			`\[sig-network\] IngressClass \[Feature:Ingress\] should set default value on new IngressClass`, //https://bugzilla.redhat.com/show_bug.cgi?id=1833583
 		},
 		"[Skipped:azure]": {
 			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.
@@ -146,6 +147,12 @@ var (
 			// openshift-tests cannot access Azure API to create in-line or pre-provisioned volumes, https://bugzilla.redhat.com/show_bug.cgi?id=1723603
 			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume`,
 			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV`,
+		},
+		"[Skipped:ovirt]": {
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1838751
+			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
+			`\[sig-network\] Networking Granular Checks: Services should function for node-Service`,
+			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service`,
 		},
 		"[Skipped:gce]": {
 			// Requires creation of a different compute instance in a different zone and is not compatible with volumeBindingMode of WaitForFirstConsumer which we use in 4.x

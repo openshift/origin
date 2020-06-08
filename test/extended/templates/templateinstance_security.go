@@ -128,7 +128,6 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance security tes
 		})
 
 		g.It("should pass security tests", func() {
-			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			tests := []struct {
 				by              string
 				user            *userv1.User

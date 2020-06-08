@@ -780,6 +780,7 @@ func validateSecretWithEncryptionConfig(actualSecret *corev1.Secret, expectedEnc
 			Finalizers: []string{"encryption.apiserver.operator.openshift.io/deletion-protection"},
 		},
 		Data: actualSecret.Data,
+		Type: corev1.SecretTypeOpaque,
 	}
 
 	// those are filled by the server

@@ -1,12 +1,11 @@
 package operators
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -26,11 +25,6 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 )
 
-const (
-	operatorWait = 1 * time.Minute
-	cvoWait      = 5 * time.Minute
-)
-
 var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
@@ -46,124 +40,58 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 		g.By("checking for the cluster version operator")
 		skipUnlessCVO(c.CoreV1().Namespaces())
 
-		g.By("waiting for the cluster version to be applied")
+		g.By("ensuring cluster version is stable")
 		cvc := dc.Resource(schema.GroupVersionResource{Group: "config.openshift.io", Resource: "clusterversions", Version: "v1"})
-		var lastErr error
-		var lastCV objx.Map
-		if err := wait.PollImmediate(3*time.Second, cvoWait, func() (bool, error) {
-			obj, err := cvc.Get(context.Background(), "version", metav1.GetOptions{})
-			if err != nil {
-				lastErr = err
-				e2e.Logf("Unable to check for cluster version: %v", err)
-				return false, nil
-			}
-			cv := objx.Map(obj.UnstructuredContent())
-			lastErr = nil
-			lastCV = cv
-			if cond := condition(cv, "Progressing"); cond.Get("status").String() != "False" {
-				e2e.Logf("ClusterVersion is still progressing: %s", cond.Get("message").String())
-				return false, nil
-			}
-			if cond := condition(cv, "Available"); cond.Get("status").String() != "True" {
-				e2e.Logf("ClusterVersion is not available: %s", cond.Get("message").String())
-				return false, nil
-			}
-			e2e.Logf("ClusterVersion available: %s", condition(cv, "Progressing").Get("message").String())
-			return true, nil
-		}); err != nil {
-			o.Expect(lastErr).NotTo(o.HaveOccurred())
-			e2e.Logf("Last cluster version seen: %s", lastCV)
-			if msg := condition(lastCV, "Failing").Get("message").String(); len(msg) > 0 {
-				e2e.Logf("ClusterVersion is reporting a failure: %s", msg)
-			}
-			e2e.Failf("ClusterVersion never became available: %s", condition(lastCV, "Progressing").Get("message").String())
+		obj, err := cvc.Get(context.Background(), "version", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		cv := objx.Map(obj.UnstructuredContent())
+		if cond := condition(cv, "Available"); cond.Get("status").String() != "True" {
+			e2e.Failf("ClusterVersion Available=%s: %s: %s", cond.Get("status").String(), cond.Get("reason").String(), cond.Get("message").String())
+		}
+		if cond := condition(cv, "Failing"); cond.Get("status").String() != "False" {
+			e2e.Failf("ClusterVersion Failing=%s: %s: %s", cond.Get("status").String(), cond.Get("reason").String(), cond.Get("message").String())
+		}
+		if cond := condition(cv, "Progressing"); cond.Get("status").String() != "False" {
+			e2e.Failf("ClusterVersion Progressing=%s: %s: %s", cond.Get("status").String(), cond.Get("reason").String(), cond.Get("message").String())
 		}
 
 		// gate on all clusteroperators being ready
-		available := make(map[string]struct{})
-		g.By(fmt.Sprintf("waiting for all cluster operators to be stable at the same time"))
+		g.By("ensuring all cluster operators are stable")
 		coc := dc.Resource(schema.GroupVersionResource{Group: "config.openshift.io", Resource: "clusteroperators", Version: "v1"})
-		lastErr = nil
-		var lastCOs []objx.Map
-		wait.PollImmediate(time.Second, operatorWait, func() (bool, error) {
-			obj, err := coc.List(context.Background(), metav1.ListOptions{})
-			if err != nil {
-				lastErr = err
-				e2e.Logf("Unable to check for cluster operators: %v", err)
-				return false, nil
-			}
-			cv := objx.Map(obj.UnstructuredContent())
-			lastErr = nil
-			items := objects(cv.Get("items"))
-			lastCOs = items
+		clusterOperatorsObj, err := coc.List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-			if len(items) == 0 {
-				return false, nil
-			}
-
-			var unavailable []objx.Map
-			var unavailableNames []string
-			for _, co := range items {
-				if condition(co, "Available").Get("status").String() != "True" {
-					ns := co.Get("metadata.namespace").String()
-					name := co.Get("metadata.name").String()
-					unavailableNames = append(unavailableNames, fmt.Sprintf("%s/%s", ns, name))
-					unavailable = append(unavailable, co)
-					break
-				}
-				if condition(co, "Progressing").Get("status").String() != "False" {
-					ns := co.Get("metadata.namespace").String()
-					name := co.Get("metadata.name").String()
-					unavailableNames = append(unavailableNames, fmt.Sprintf("%s/%s", ns, name))
-					unavailable = append(unavailable, co)
-					break
-				}
-				if condition(co, "Failing").Get("status").String() != "False" {
-					ns := co.Get("metadata.namespace").String()
-					name := co.Get("metadata.name").String()
-					unavailableNames = append(unavailableNames, fmt.Sprintf("%s/%s", ns, name))
-					unavailable = append(unavailable, co)
-					break
-				}
-			}
-			if len(unavailable) > 0 {
-				e2e.Logf("Operators still doing work: %s", strings.Join(unavailableNames, ", "))
-				return false, nil
-			}
-			return true, nil
-		})
-
-		o.Expect(lastErr).NotTo(o.HaveOccurred())
-		var unavailable []string
-		buf := &bytes.Buffer{}
-		w := tabwriter.NewWriter(buf, 0, 4, 1, ' ', 0)
-		fmt.Fprintf(w, "NAMESPACE\tNAME\tPROGRESSING\tAVAILABLE\tVERSION\tMESSAGE\n")
-		for _, co := range lastCOs {
-			ns := co.Get("metadata.namespace").String()
-			name := co.Get("metadata.name").String()
-			if condition(co, "Available").Get("status").String() != "True" {
-				unavailable = append(unavailable, fmt.Sprintf("%s/%s", ns, name))
-			} else {
-				available[fmt.Sprintf("%s/%s", ns, name)] = struct{}{}
-			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-				ns,
-				name,
-				condition(co, "Progressing").Get("status").String(),
-				condition(co, "Available").Get("status").String(),
-				co.Get("status.version").String(),
-				condition(co, "Failing").Get("message").String(),
-			)
-		}
-		w.Flush()
-		e2e.Logf("ClusterOperators:\n%s", buf.String())
-
-		if len(unavailable) > 0 {
-			e2e.Failf("Some cluster operators never became available %s", strings.Join(unavailable, ", "))
-		}
-		// Check at least one core operator is available
-		if len(available) == 0 {
+		clusterOperators := objx.Map(clusterOperatorsObj.UnstructuredContent())
+		items := objects(clusterOperators.Get("items"))
+		if len(items) == 0 {
 			e2e.Failf("There must be at least one cluster operator")
+		}
+
+		var unready []string
+		for _, co := range items {
+			name := co.Get("metadata.name").String()
+			badConditions, missingTypes := surprisingConditions(co)
+			if len(badConditions) > 0 {
+				worstCondition := badConditions[0]
+				unready = append(unready, fmt.Sprintf("%s (%s=%s %s: %s)",
+					name,
+					worstCondition.Type,
+					worstCondition.Status,
+					worstCondition.Reason,
+					worstCondition.Message,
+				))
+			} else if len(missingTypes) > 0 {
+				missingTypeStrings := make([]string, 0, len(missingTypes))
+				for _, missingType := range missingTypes {
+					missingTypeStrings = append(missingTypeStrings, string(missingType))
+				}
+				unready = append(unready, fmt.Sprintf("%s (missing: %s)", name, strings.Join(missingTypeStrings, ", ")))
+			}
+		}
+		if len(unready) > 0 {
+			sort.Strings(unready)
+			e2e.Failf("Some cluster operators are not ready: %s", strings.Join(unready, ", "))
 		}
 	})
 })
@@ -264,4 +192,37 @@ func condition(cv objx.Map, condition string) objx.Map {
 		}
 	}
 	return objx.Map(nil)
+}
+
+// surprisingConditions returns conditions with surprising statuses
+// (Available=False, Degraded=True, etc.) in order of descending
+// severity (e.g. Available=False is more severe than Degraded=True).
+// It also returns a slice of types for which a condition entry was
+// expected but not supplied on the ClusterOperator.
+func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusCondition, []configv1.ClusterStatusConditionType) {
+	var badConditions []configv1.ClusterOperatorStatusCondition
+	var missingTypes []configv1.ClusterStatusConditionType
+	for _, conditionType := range []configv1.ClusterStatusConditionType{
+		configv1.OperatorAvailable,
+		configv1.OperatorDegraded,
+	} {
+		cond := condition(co, string(conditionType))
+		if len(cond) == 0 {
+			missingTypes = append(missingTypes, conditionType)
+		} else {
+			expected := configv1.ConditionFalse
+			if conditionType == configv1.OperatorAvailable {
+				expected = configv1.ConditionTrue
+			}
+			if cond.Get("status").String() != string(expected) {
+				badConditions = append(badConditions, configv1.ClusterOperatorStatusCondition{
+					Type:    conditionType,
+					Status:  configv1.ConditionStatus(cond.Get("status").String()),
+					Reason:  cond.Get("reason").String(),
+					Message: cond.Get("message").String(),
+				})
+			}
+		}
+	}
+	return badConditions, missingTypes
 }

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 
 	"google.golang.org/grpc"
@@ -13,10 +15,11 @@ import (
 )
 
 const (
-	defaultH2Port  = "8443"
-	defaultH2CPort = "1110"
-	defaultTLSCrt  = "/etc/service-certs/tls.crt"
-	defaultTLSKey  = "/etc/service-certs/tls.key"
+	defaultHealthPort = "8080"
+	defaultH2Port     = "8443"
+	defaultH2CPort    = "1110"
+	defaultTLSCrt     = "/etc/service-certs/tls.crt"
+	defaultTLSKey     = "/etc/service-certs/tls.key"
 )
 
 func lookupEnv(key, defaultVal string) string {
@@ -67,5 +70,15 @@ func main() {
 		}
 	}()
 
-	select {}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "ready")
+	})
+
+	port := lookupEnv("HTTP_PORT", defaultHealthPort)
+	log.Printf("Listening on port %v\n", port)
+
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
+		log.Fatal(err)
+	}
 }

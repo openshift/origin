@@ -582,6 +582,34 @@ func TestGetIndexedIP(t *testing.T) {
 			expectError: false,
 			expectedIP:  "192.168.1.255",
 		},
+		{
+			cidr:        "255.255.255.0/24",
+			index:       256,
+			expectError: true,
+		},
+		{
+			cidr:        "fd:11:b2:be::/120",
+			index:       20,
+			expectError: false,
+			expectedIP:  "fd:11:b2:be::14",
+		},
+		{
+			cidr:        "fd:11:b2:be::/126",
+			index:       10,
+			expectError: true,
+		},
+		{
+			cidr:        "fd:11:b2:be::/120",
+			index:       255,
+			expectError: false,
+			expectedIP:  "fd:11:b2:be::ff",
+		},
+		{
+			cidr:        "00:00:00:be::/120",
+			index:       255,
+			expectError: false,
+			expectedIP:  "::be:0:0:0:ff",
+		},
 	}
 
 	for _, tc := range testCases {

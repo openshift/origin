@@ -33,6 +33,8 @@ type Recorder interface {
 	// ComponentName returns the current source component name for the event.
 	// This allows to suffix the original component name with 'sub-component'.
 	ComponentName() string
+
+	Shutdown()
 }
 
 // podNameEnv is a name of environment variable inside container that specifies the name of the current replica set.
@@ -158,6 +160,8 @@ type recorder struct {
 func (r *recorder) ComponentName() string {
 	return r.sourceComponent
 }
+
+func (r *recorder) Shutdown() {}
 
 func (r *recorder) ForComponent(componentName string) Recorder {
 	newRecorderForComponent := *r

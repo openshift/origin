@@ -169,9 +169,3 @@ func testConfigUpdateAllow() *ingressadmission.IngressAdmissionConfig {
 		AllowHostnameChanges: true,
 	}
 }
-
-func testConfigUpdateDeny() *ingressadmission.IngressAdmissionConfig {
-	return &ingressadmission.IngressAdmissionConfig{
-		AllowHostnameChanges: false,
-	}
-}

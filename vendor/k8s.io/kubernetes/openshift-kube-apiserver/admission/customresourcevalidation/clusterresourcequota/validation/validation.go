@@ -12,15 +12,6 @@ import (
 	quotav1 "github.com/openshift/api/quota/v1"
 )
 
-// convertClusterResourceQuotaToAppliedClusterQuota returns back a converted AppliedClusterResourceQuota which is NOT a deep copy.
-func convertAppliedClusterResourceQuotaToClusterResourceQuota(in *quotav1.AppliedClusterResourceQuota) *quotav1.ClusterResourceQuota {
-	return &quotav1.ClusterResourceQuota{
-		ObjectMeta: in.ObjectMeta,
-		Spec:       in.Spec,
-		Status:     in.Status,
-	}
-}
-
 func ValidateClusterResourceQuota(clusterquota *quotav1.ClusterResourceQuota) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&clusterquota.ObjectMeta, false, validation.ValidateResourceQuotaName, field.NewPath("metadata"))
 

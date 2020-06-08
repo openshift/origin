@@ -106,7 +106,6 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker bind te
 		})
 
 		g.It("should pass bind tests", func() {
-			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			svc, err := cli.KubeClient().CoreV1().Services(cli.Namespace()).Get(context.Background(), "service", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 

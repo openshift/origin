@@ -53,7 +53,7 @@ type AuthenticationSpec struct {
 
 	// serviceAccountIssuer is the identifier of the bound service account token
 	// issuer.
-	// The default is auth.openshift.io.
+	// The default is https://kubernetes.default.svc
 	// +optional
 	ServiceAccountIssuer string `json:"serviceAccountIssuer"`
 }

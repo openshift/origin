@@ -29,15 +29,15 @@ require (
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/sys v0.0.0-20191022100944-742c48ecaeb7
 	gopkg.in/yaml.v2 v2.2.8
-	k8s.io/api v0.18.0-beta.2
-	k8s.io/apimachinery v0.18.0-beta.2
+	k8s.io/api v0.18.3
+	k8s.io/apimachinery v0.18.3
 	k8s.io/cli-runtime v0.0.0
-	k8s.io/client-go v0.18.0-beta.2
-	k8s.io/component-base v0.18.0-beta.2
+	k8s.io/client-go v0.18.3
+	k8s.io/component-base v0.18.3
 	k8s.io/klog v1.0.0
-	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
+	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6 // release-1.18
 	k8s.io/metrics v0.0.0
-	k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab
+	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 	sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/yaml v1.2.0
 	vbom.ml/util v0.0.0-20180919145318-efcd4e0f9787
@@ -45,9 +45,11 @@ require (
 
 replace (
 	github.com/coreos/etcd => github.com/coreos/etcd v3.3.10+incompatible
+	github.com/go-bindata/go-bindata => github.com/go-bindata/go-bindata v3.1.1+incompatible
 	github.com/google/go-cmp => github.com/google/go-cmp v0.3.0
 	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.1.0
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
+	github.com/json-iterator/go => github.com/json-iterator/go v1.1.8
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.0.0
 	github.com/vishvananda/netns => github.com/vishvananda/netns v0.0.0-20171111001504-be1fbeda1936
 	go.uber.org/atomic => go.uber.org/atomic v1.3.2

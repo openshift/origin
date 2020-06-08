@@ -92,6 +92,10 @@ func GetStatusDiff(oldStatus configv1.ClusterOperatorStatus, newStatus configv1.
 		messages = append(messages, fmt.Sprintf("status.extension changed from %q to %q", oldStatus.Extension, newStatus.Extension))
 	}
 
+	if !equality.Semantic.DeepEqual(oldStatus.Versions, newStatus.Versions) {
+		messages = append(messages, fmt.Sprintf("status.versions changed from %q to %q", oldStatus.Versions, newStatus.Versions))
+	}
+
 	if len(messages) == 0 {
 		// ignore errors
 		originalJSON := &bytes.Buffer{}

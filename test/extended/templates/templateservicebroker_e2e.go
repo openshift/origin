@@ -357,7 +357,6 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 		})
 
 		g.It("should pass an end-to-end test", func() {
-			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			catalog()
 			provision()
 			bind()

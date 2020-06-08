@@ -30,9 +30,11 @@ func TestSyncSecret(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset(
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Namespace: "config", Name: "foo"},
+			Type:       corev1.SecretTypeOpaque,
 		},
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Namespace: "operator", Name: "to-remove"},
+			Type:       corev1.SecretTypeOpaque,
 		},
 	)
 
@@ -79,9 +81,9 @@ func TestSyncSecret(t *testing.T) {
 				destinationSecretBarChecked = true
 				destinationSecretBarCheckedMutex.Unlock()
 			case "empty-source":
-				destinationSecretBarCheckedMutex.Lock()
+				destinationSecretEmptySourceCheckedMutex.Lock()
 				destinationSecretEmptySourceChecked = true
-				destinationSecretBarCheckedMutex.Unlock()
+				destinationSecretEmptySourceCheckedMutex.Unlock()
 			}
 		}
 		return false, nil, nil

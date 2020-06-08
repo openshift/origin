@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 
@@ -166,9 +167,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 			j = jenkins.NewRef(oc)
 
 			g.By("wait for jenkins to come up")
-			_, err = j.WaitForContent("", 200, 10*time.Minute, "")
+			resp, err := j.WaitForContent("", 200, 5*time.Minute, "")
 
 			if err != nil {
+				e2e.Logf("wait for jenkins to come up got err and resp string %s and err %s, dumping pods", resp, err.Error())
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 			}
 
@@ -215,7 +217,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 	g.Context("jenkins-client-plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
-			g.Skip("disabling Jenkins until https://bugzilla.redhat.com/show_bug.cgi?id=1783530 sorted out")
 			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
@@ -248,15 +249,9 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 				}
 
 				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "sample-pipeline-openshift-client-plugin").Execute()
+				err = oc.Run("delete").Args("bc", "--all").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("dc", "jenkins-second-deployment").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("bc", "ruby").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("is", "ruby").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("is", "ruby-25-centos7").Execute()
+				err = oc.Run("delete").Args("is", "--all").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// doing this as admin to avoid errors like this:
@@ -271,7 +266,9 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("secret", "mongodb").Execute()
+				err = oc.Run("delete").Args("secret", "mongodb", "--ignore-not-found=true").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("service", "mongodb", "--ignore-not-found=true").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
@@ -382,7 +379,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 	g.Context("Sync plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
-			g.Skip("disabling Jenkins until https://bugzilla.redhat.com/show_bug.cgi?id=1783530 sorted out")
 			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 

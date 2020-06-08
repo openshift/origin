@@ -258,7 +258,7 @@ func Fail(message string, callerSkip ...int) {
 		skip = callerSkip[0]
 	}
 
-	globalFailer.Fail(message, codelocation.New(skip+1))
+	globalFailer.Fail(message, codelocation.NewWithStack(skip+1))
 	panic(GINKGO_PANIC)
 }
 
@@ -275,7 +275,7 @@ func Fail(message string, callerSkip ...int) {
 func GinkgoRecover() {
 	e := recover()
 	if e != nil {
-		globalFailer.Panic(codelocation.New(1), e)
+		globalFailer.Panic(codelocation.NewWithStack(1), e)
 	}
 }
 

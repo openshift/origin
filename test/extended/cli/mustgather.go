@@ -62,6 +62,10 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		// let audit log writes occurs to disk (best effort, should be enough to make the test fail most of the time)
 		time.Sleep(10 * time.Second)
 
+		// wait for the default service account to be avaiable
+		err := exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
 		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
 		o.Expect(err).ToNot(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)

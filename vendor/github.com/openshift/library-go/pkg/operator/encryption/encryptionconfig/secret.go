@@ -70,5 +70,6 @@ func ToSecret(ns, name string, encryptionCfg *apiserverconfigv1.EncryptionConfig
 		Data: map[string][]byte{
 			EncryptionConfSecretName: rawEncryptionCfg,
 		},
+		Type: corev1.SecretTypeOpaque,
 	}, nil
 }

@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -457,7 +457,7 @@ var _ = SIGDescribe("NoExecuteTaintManager Multiple Pods [Serial]", func() {
 				if err == nil {
 					return false, nil
 				}
-				if errors.IsNotFound(err) {
+				if apierrors.IsNotFound(err) {
 					deleted++
 				} else {
 					return false, err

@@ -9,8 +9,9 @@ RUN for p in vendor/k8s.io/kubernetes/cmd/kube-apiserver vendor/k8s.io/kubernete
     /tmp/build
 
 FROM registry.svc.ci.openshift.org/ocp/4.2:base
+RUN yum install -y --setopt=tsflags=nodocs --setopt=skip_missing_names_on_install=False iproute && yum clean all
 COPY --from=builder /tmp/build/* /usr/bin/
 LABEL io.k8s.display-name="OpenShift Kubernetes Server Commands" \
       io.k8s.description="OpenShift is a platform for developing, building, and deploying containerized applications." \
       io.openshift.tags="openshift,hyperkube" \
-      io.openshift.build.versions="kubernetes=1.18.0"
+      io.openshift.build.versions="kubernetes=1.18.3"

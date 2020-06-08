@@ -3,6 +3,7 @@ package codelocation
 import (
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"strings"
 
 	"github.com/onsi/ginkgo/types"
@@ -11,6 +12,12 @@ import (
 func New(skip int) types.CodeLocation {
 	_, file, line, _ := runtime.Caller(skip + 1)
 	return types.CodeLocation{FileName: file, LineNumber: line}
+}
+
+func NewWithStack(skip int) types.CodeLocation {
+	_, file, line, _ := runtime.Caller(skip + 1)
+	stackTrace := PruneStack(string(debug.Stack()), skip)
+	return types.CodeLocation{FileName: file, LineNumber: line, FullStackTrace: stackTrace}
 }
 
 func PruneStack(fullStackTrace string, skip int) string {

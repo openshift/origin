@@ -8,83 +8,83 @@ import:
 # kube first
 - package: k8s.io/api
   repo:    https://github.com/openshift/kubernetes-api.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/apiextensions-apiserver
   repo:    https://github.com/openshift/kubernetes-apiextensions-apiserver.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/apimachinery
   repo:    https://github.com/openshift/kubernetes-apimachinery.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/apiserver
   repo:    https://github.com/openshift/kubernetes-apiserver.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/client-go
   repo:    https://github.com/openshift/kubernetes-client-go.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/cli-runtime
   repo:    https://github.com/openshift/kubernetes-cli-runtime.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/cloud-provider
   repo:    https://github.com/openshift/kubernetes-cloud-provider.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/cluster-bootstrap
   repo:    https://github.com/openshift/kubernetes-cluster-bootstrap.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/code-generator
   repo:    https://github.com/openshift/kubernetes-code-generator.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/component-base
   repo:    https://github.com/openshift/kubernetes-component-base.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/csi-translation-lib
   repo:    https://github.com/openshift/kubernetes-csi-translation-lib.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/kube-aggregator
   repo:    https://github.com/openshift/kubernetes-kube-aggregator.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/kube-controller-manager
   repo:    https://github.com/openshift/kubernetes-kube-controller-manager.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/kubectl
   repo:    https://github.com/openshift/kubernetes-kubectl.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/kubelet
   repo:    https://github.com/openshift/kubernetes-kubelet.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/kube-proxy
   repo:    https://github.com/openshift/kubernetes-kube-proxy.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/kube-scheduler
   repo:    https://github.com/openshift/kubernetes-kube-scheduler.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/legacy-cloud-providers
   repo:    https://github.com/openshift/kubernetes-legacy-cloud-providers.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/metrics
   repo:    https://github.com/openshift/kubernetes-metrics.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/sample-apiserver
   repo:    https://github.com/openshift/kubernetes-sample-apiserver.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/sample-cli-plugin
   repo:    https://github.com/openshift/kubernetes-sample-cli-plugin.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/sample-controller
   repo:    https://github.com/openshift/kubernetes-sample-controller.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/kubernetes
   repo:    https://github.com/openshift/kubernetes.git
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 - package: k8s.io/cri-api
   repo:    https://github.com/openshift/kubernetes-cri-api
-  version: origin-4.5-kubernetes-1.18.0-rc.1
+  version: origin-4.5-kubernetes-1.18.3
 # this matches the 1.18 branch from kube
 - package: k8s.io/gengo
   version: 36b2048a9120
 - package: k8s.io/utils
-  version: 0a110f9eb7ab
+  version: a9aa75ae1b89
 - package: k8s.io/kube-openapi
-  version: bf4fb3bd569c
+  version: 61e04a5be9a6
 - package: k8s.io/klog
   version: v1.0.0
 - package: gopkg.in/yaml.v2
@@ -94,6 +94,8 @@ import:
   version: origin-4.5-v3.0.0
 - package: github.com/google/cadvisor
   version: v0.35.0
+- package: github.com/go-bindata/go-bindata
+  version: v3.1.2
 
 # pin for etcd
 - package: google.golang.org/grpc
@@ -133,9 +135,6 @@ import:
   version: delegate-to-klog
 
 # mine: specific to openshift
-# master? for bindata
-- package: github.com/jteeuwen/go-bindata
-  version: a0ff2567cfb70903282db057e799fd826784d41d
 
 - package: github.com/ghodss/yaml
   version: v1.0.0
@@ -161,18 +160,6 @@ import:
 - package: go.mongodb.org/mongo-driver
   version: v1.1.2
 
-# needed to get the
-- package: github.com/lestrrat/go-jspointer
-  repo:    https://github.com/lestrrat/go-jspointer.git
-- package: github.com/lestrrat/go-pdebug
-  repo:    https://github.com/lestrrat/go-pdebug.git
-- package: github.com/lestrrat/go-jsref
-  repo:    https://github.com/lestrrat/go-jsref.git
-  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
-- package: github.com/lestrrat/go-structinfo
-  repo:    https://github.com/lestrrat/go-structinfo.git
-  version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
-
 - package: github.com/mailru/easyjson
   version: v0.7.0
 - package: google.golang.org/api
@@ -187,7 +174,7 @@ import:
 
 # required by opencontainers
 - package: github.com/sirupsen/logrus
-  version: 839c75faf7f98a33d445d181f3018b5c3409a45e
+  version: v1.4.2
 
 # DROP: go-openapi for k/k #85223
 - package: github.com/docker/go-units

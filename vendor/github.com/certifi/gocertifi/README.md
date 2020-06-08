@@ -9,14 +9,14 @@ This is the same CA bundle that ships with the
 Golang specific port of [certifi](https://github.com/kennethreitz/certifi). The
 CA bundle is derived from Mozilla's canonical set.
 
-## Usage
+## Usage
 
 You can use the `gocertifi` package as follows:
 
 ```go
 import "github.com/certifi/gocertifi"
 
-certPool, err := gocertifi.CACerts()
+cert_pool, err := gocertifi.CACerts()
 ```
 
 You can use the returned `*x509.CertPool` as part of an HTTP transport, for example:
@@ -29,22 +29,8 @@ import (
 
 // Setup an HTTP client with a custom transport
 transport := &http.Transport{
-  Proxy: ProxyFromEnvironment,
-  DialContext: (&net.Dialer{
-    Timeout:   30 * time.Second,
-    KeepAlive: 30 * time.Second,
-    DualStack: true,
-  }).DialContext,
-  ForceAttemptHTTP2:     true,
-  MaxIdleConns:          100,
-  IdleConnTimeout:       90 * time.Second,
-  TLSHandshakeTimeout:   10 * time.Second,
-  ExpectContinueTimeout: 1 * time.Second,
+	TLSClientConfig: &tls.Config{RootCAs: cert_pool},
 }
-// or, starting with go1.13 simply use:
-// transport := http.DefaultTransport.(*http.Transport).Clone()
-
-transport.TLSClientConfig = &tls.Config{RootCAs: certPool}
 client := &http.Client{Transport: transport}
 
 // Make an HTTP request using our custom transport

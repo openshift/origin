@@ -16,18 +16,6 @@ const (
 	oauthMetadataEndpoint = "/.well-known/oauth-authorization-server"
 )
 
-// PKCE [RFC7636] code challenge methods supported
-// https://tools.ietf.org/html/rfc7636#section-4.3
-const (
-	codeChallengeMethodPlain  = "plain"
-	codeChallengeMethodSHA256 = "S256"
-)
-
-var codeChallengeMethodsSupported = []string{codeChallengeMethodPlain, codeChallengeMethodSHA256}
-
-// TODO: promote this struct as it is not effectively part of our API, since we
-// validate configuration using LoadOAuthMetadataFile
-
 func validateURL(urlString string) error {
 	urlObj, err := url.Parse(urlString)
 	if err != nil {

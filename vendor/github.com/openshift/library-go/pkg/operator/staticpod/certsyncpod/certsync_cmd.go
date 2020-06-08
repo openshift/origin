@@ -82,7 +82,7 @@ func (o *CertSyncControllerOptions) Run() error {
 
 	kubeInformers := informers.NewSharedInformerFactoryWithOptions(o.kubeClient, 10*time.Minute, informers.WithNamespace(o.Namespace))
 
-	eventRecorder := events.NewKubeRecorder(o.kubeClient.CoreV1().Events(o.Namespace), "cert-syncer",
+	eventRecorder := events.NewKubeRecorderWithOptions(o.kubeClient.CoreV1().Events(o.Namespace), events.RecommendedClusterSingletonCorrelatorOptions(), "cert-syncer",
 		&corev1.ObjectReference{
 			APIVersion: "v1",
 			Kind:       "Pod",

@@ -24,6 +24,7 @@ type Factory struct {
 	resyncInterval        time.Duration
 	informers             []Informer
 	informerQueueKeys     []informersWithQueueKey
+	bareInformers         []Informer
 	postStartHooks        []PostStartHook
 	namespaceInformers    []*namespaceInformer
 	cachesToSync          []cache.InformerSynced
@@ -74,6 +75,16 @@ func (f *Factory) WithSync(syncFn SyncFunc) *Factory {
 // is called.
 func (f *Factory) WithInformers(informers ...Informer) *Factory {
 	f.informers = append(f.informers, informers...)
+	return f
+}
+
+// WithBareInformers allow to register informer that already has custom event handlers registered and no additional
+// event handlers will be added to this informer.
+// The controller will wait for the cache of this informer to be synced.
+// The existing event handlers will have to respect the queue key function or the sync() implementation will have to
+// count with custom queue keys.
+func (f *Factory) WithBareInformers(informers ...Informer) *Factory {
+	f.bareInformers = append(f.bareInformers, informers...)
 	return f
 }
 
@@ -167,6 +178,10 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 			return DefaultQueueKey
 		}, sets.NewString()))
 		c.cachesToSync = append(c.cachesToSync, f.informers[i].HasSynced)
+	}
+
+	for i := range f.bareInformers {
+		c.cachesToSync = append(c.cachesToSync, f.bareInformers[i].HasSynced)
 	}
 
 	for i := range f.namespaceInformers {

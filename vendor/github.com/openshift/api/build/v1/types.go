@@ -35,7 +35,7 @@ type BuildSpec struct {
 
 	// triggeredBy describes which triggers started the most recent update to the
 	// build configuration and contains information about those triggers.
-	TriggeredBy []BuildTriggerCause `json:"triggeredBy" protobuf:"bytes,2,rep,name=triggeredBy"`
+	TriggeredBy []BuildTriggerCause `json:"triggeredBy,omitempty" protobuf:"bytes,2,rep,name=triggeredBy"`
 }
 
 // OptionalNodeSelector is a map that may also be left nil to distinguish between set and unset.
@@ -464,13 +464,13 @@ type ImageSource struct {
 	// does not reference an image source it is ignored. This field and paths may both be set, in which case
 	// the contents will be used twice.
 	// +optional
-	As []string `json:"as" protobuf:"bytes,4,rep,name=as"`
+	As []string `json:"as,omitempty" protobuf:"bytes,4,rep,name=as"`
 
 	// paths is a list of source and destination paths to copy from the image. This content will be copied
 	// into the build context prior to starting the build. If no paths are set, the build context will
 	// not be altered.
 	// +optional
-	Paths []ImageSourcePath `json:"paths" protobuf:"bytes,2,rep,name=paths"`
+	Paths []ImageSourcePath `json:"paths,omitempty" protobuf:"bytes,2,rep,name=paths"`
 
 	// pullSecret is a reference to a secret to be used to pull the image from a registry
 	// If the image is pulled from the OpenShift registry, this field does not need to be set.
@@ -1165,7 +1165,7 @@ type BuildRequest struct {
 
 	// triggeredBy describes which triggers started the most recent update to the
 	// build configuration and contains information about those triggers.
-	TriggeredBy []BuildTriggerCause `json:"triggeredBy" protobuf:"bytes,8,rep,name=triggeredBy"`
+	TriggeredBy []BuildTriggerCause `json:"triggeredBy,omitempty" protobuf:"bytes,8,rep,name=triggeredBy"`
 
 	// DockerStrategyOptions contains additional docker-strategy specific options for the build
 	DockerStrategyOptions *DockerStrategyOptions `json:"dockerStrategyOptions,omitempty" protobuf:"bytes,9,opt,name=dockerStrategyOptions"`
@@ -1246,6 +1246,15 @@ type BuildLogOptions struct {
 
 	// version of the build for which to view logs.
 	Version *int64 `json:"version,omitempty" protobuf:"varint,10,opt,name=version"`
+
+	// insecureSkipTLSVerifyBackend indicates that the apiserver should not confirm the validity of the
+	// serving certificate of the backend it is connecting to.  This will make the HTTPS connection between the apiserver
+	// and the backend insecure. This means the apiserver cannot verify the log data it is receiving came from the real
+	// kubelet.  If the kubelet is configured to verify the apiserver's TLS credentials, it does not mean the
+	// connection to the real kubelet is vulnerable to a man in the middle attack (e.g. an attacker could not intercept
+	// the actual log data coming from the real kubelet).
+	// +optional
+	InsecureSkipTLSVerifyBackend bool `json:"insecureSkipTLSVerifyBackend,omitempty" protobuf:"varint,11,opt,name=insecureSkipTLSVerifyBackend"`
 }
 
 // SecretSpec specifies a secret to be included in a build pod and its corresponding mount point

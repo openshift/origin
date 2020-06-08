@@ -130,7 +130,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 							protocol := protocols[k]
 							testingMsg := fmt.Sprintf("[%s: %s -> %s:%d]", protocol, from.Spec.NodeName, to.Spec.NodeName, ports[k])
 							testMsg := fmt.Sprintf("%s-from-%s-to-%s", "hello", from.Status.PodIP, to.Status.PodIP)
-							command, err := testRemoteConnectivityCommand(protocol, "localhost:"+strconv.Itoa(nodeTCPPort), to.Spec.NodeName, ports[k], testMsg)
+							command, err := testRemoteConnectivityCommand(protocol, "localhost:"+strconv.Itoa(nodeTCPPort), to.Status.HostIP, ports[k], testMsg)
 							if err != nil {
 								return fmt.Errorf("test of %s failed: %v", testingMsg, err)
 							}
@@ -198,7 +198,7 @@ func testRemoteConnectivityCommand(protocol v1.Protocol, localHostPort, host str
 		protocolType = "udp"
 		dialCommand = fmt.Sprintf("echo%%20%s", echoMessage)
 	default:
-		return nil, fmt.Errorf("nc does not support protocol %s", protocol)
+		return nil, fmt.Errorf("curl does not support protocol %s", protocol)
 	}
 
 	//func (config *NetworkingTestConfig) DialFromContainer(protocol, dialCommand, containerIP, targetIP string, containerHTTPPort, targetPort, maxTries, minTries int, expectedResponses sets.String) {

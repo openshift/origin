@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"bitbucket.org/ww/goautoneg"
+	"github.com/munnerz/goautoneg"
 )
 
 // PrefersHTML returns true if the request was made by something that looks like a browser, or can receive HTML

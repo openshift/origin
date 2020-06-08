@@ -14,9 +14,11 @@ import (
 type APIServer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+	// spec holds user settable values for configuration
 	// +kubebuilder:validation:Required
 	// +required
 	Spec APIServerSpec `json:"spec"`
+	// status holds observed values from the cluster. They may not be overridden.
 	// +optional
 	Status APIServerStatus `json:"status"`
 }

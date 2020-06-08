@@ -88,12 +88,19 @@ func (c NodeController) sync(ctx context.Context, syncCtx factory.SyncContext) e
 	// detect and report master nodes that are not ready
 	notReadyNodes := []string{}
 	for _, node := range nodes {
-		for _, con := range node.Status.Conditions {
-			if con.Type == coreapiv1.NodeReady && con.Status != coreapiv1.ConditionTrue {
-				notReadyNodes = append(notReadyNodes, fmt.Sprintf("node %q not ready since %s because %s (%s)", node.Name, con.LastTransitionTime, con.Reason, con.Message))
-			}
+		nodeReadyCondition := nodeConditionFinder(&node.Status, coreapiv1.NodeReady)
+
+		// If a "Ready" condition is not found, that node should be deemed as not Ready by default.
+		if nodeReadyCondition == nil {
+			notReadyNodes = append(notReadyNodes, fmt.Sprintf("node %q not ready, no Ready condition found in status block", node.Name))
+			continue
+		}
+
+		if nodeReadyCondition.Status != coreapiv1.ConditionTrue {
+			notReadyNodes = append(notReadyNodes, fmt.Sprintf("node %q not ready since %s because %s (%s)", node.Name, nodeReadyCondition.LastTransitionTime, nodeReadyCondition.Reason, nodeReadyCondition.Message))
 		}
 	}
+
 	newCondition := operatorv1.OperatorCondition{
 		Type: condition.NodeControllerDegradedConditionType,
 	}
@@ -108,12 +115,12 @@ func (c NodeController) sync(ctx context.Context, syncCtx factory.SyncContext) e
 	}
 
 	oldStatus := &operatorv1.StaticPodOperatorStatus{}
-	_, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(newCondition), func(status *operatorv1.StaticPodOperatorStatus) error {
-		status.NodeStatuses = newTargetNodeStates
-		return nil
-	}, func(status *operatorv1.StaticPodOperatorStatus) error {
-		//a hack for storing the old status (before the update)
+	_, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorClient, func(status *operatorv1.StaticPodOperatorStatus) error {
+		//a hack for storing the old status (before we mutate it)
 		oldStatus = status
+		return nil
+	}, v1helpers.UpdateStaticPodConditionFn(newCondition), func(status *operatorv1.StaticPodOperatorStatus) error {
+		status.NodeStatuses = newTargetNodeStates
 		return nil
 	})
 
@@ -125,11 +132,20 @@ func (c NodeController) sync(ctx context.Context, syncCtx factory.SyncContext) e
 		return nil
 	}
 
-	for _, oldCondition := range oldStatus.Conditions {
-		if oldCondition.Type == condition.NodeControllerDegradedConditionType && oldCondition.Message != newCondition.Message {
-			syncCtx.Recorder().Eventf("MasterNodesReadyChanged", newCondition.Message)
-			break
+	oldNodeDegradedCondition := v1helpers.FindOperatorCondition(oldStatus.Conditions, condition.NodeControllerDegradedConditionType)
+	if oldNodeDegradedCondition == nil || oldNodeDegradedCondition.Message != newCondition.Message {
+		syncCtx.Recorder().Eventf("MasterNodesReadyChanged", newCondition.Message)
+	}
+
+	return nil
+}
+
+func nodeConditionFinder(status *coreapiv1.NodeStatus, condType coreapiv1.NodeConditionType) *coreapiv1.NodeCondition {
+	for i := range status.Conditions {
+		if status.Conditions[i].Type == condType {
+			return &status.Conditions[i]
 		}
 	}
+
 	return nil
 }

@@ -53,6 +53,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] well-known endpoint", func()
 
 		rt := http.Transport{
 			TLSClientConfig: tlsClientConfig,
+			Proxy:           http.ProxyFromEnvironment,
 		}
 
 		req, err := http.NewRequest(http.MethodHead, metadata.Issuer, nil)

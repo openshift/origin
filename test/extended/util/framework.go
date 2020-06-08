@@ -1648,7 +1648,8 @@ func RunOneShotCommandPod(
 		}
 
 		if podHasErrored(cmdPod) {
-			return true, fmt.Errorf("the pod errored trying to run the command")
+			e2e.Logf("pod %q errored trying to run the command: %v", pod.Name, err)
+			return false, nil
 		}
 		return podHasCompleted(cmdPod), nil
 	})
@@ -1707,7 +1708,7 @@ func newCommandPod(name, image, command string, args []string, volumeMounts []co
 		},
 		Spec: corev1.PodSpec{
 			Volumes:       volumes,
-			RestartPolicy: corev1.RestartPolicyNever,
+			RestartPolicy: corev1.RestartPolicyOnFailure,
 			Containers: []corev1.Container{
 				{
 					Name:            name,
