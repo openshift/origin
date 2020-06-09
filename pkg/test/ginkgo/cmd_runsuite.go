@@ -300,7 +300,9 @@ func (opt *Options) Run(args []string) error {
 	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
 		var retries []*testCase
 		for _, test := range failing {
-			retries = append(retries, test.Retry())
+			retry := test.Retry()
+			retries = append(retries, retry)
+			tests = append(tests, retry)
 			if len(retries) > suite.MaximumAllowedFlakes {
 				break
 			}
