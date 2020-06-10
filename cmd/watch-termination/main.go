@@ -72,7 +72,7 @@ func main() {
 	fmt.Printf("Launching %v\n", cmd)
 	rc := 0
 	if err := cmd.Run(); err != nil {
-		if exitError, ok := err.(*exec.ExitError); !ok {
+		if exitError, ok := err.(*exec.ExitError); ok {
 			rc = exitError.ExitCode()
 		} else {
 			fmt.Fprintf(stderr, "Failed to launch %s: %v\n", args[0], err)
