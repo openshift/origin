@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 		// the /config/master API port+endpoint is only visible from inside the cluster
 		// (-> we need to create a pod to try to reach it)  and contains the token
 		// of the node-bootstrapper SA, so no random pods should be able to see it
-		pod, err := exutil.NewPodExecutor(oc, "get-bootstrap-creds", "registry.fedoraproject.org/fedora:30")
+		pod, err := exutil.NewPodExecutor(oc, "get-bootstrap-creds", "docker.io/centos:centos7")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// get the API server URL, mutate to internal API (use infra.Status.APIServerURLInternal) once API is bumped
