@@ -15,6 +15,9 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	exutilcloud "github.com/openshift/origin/test/extended/util/cloud"
 
+	// Initialize ovirt as a provider
+	_ "github.com/openshift/origin/test/extended/util/ovirt"
+
 	// these are loading important global flags that we need to get and set
 	_ "k8s.io/kubernetes/test/e2e"
 	_ "k8s.io/kubernetes/test/e2e/lifecycle"
