@@ -238,8 +238,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 						exutil.DumpBuilds(oc)
 						exutil.DumpBuildLogs("ruby", oc)
 						exutil.DumpDeploymentLogs("mongodb", 1, oc)
-						exutil.DumpDeploymentLogs("jenkins-second-deployment", 1, oc)
-						exutil.DumpDeploymentLogs("jenkins-second-deployment", 2, oc)
 					}
 					br.AssertSuccess()
 
