@@ -234,8 +234,6 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 						exutil.DumpBuilds(oc)
 						exutil.DumpBuildLogs("ruby", oc)
 						exutil.DumpDeploymentLogs("mongodb", 1, oc)
-						exutil.DumpDeploymentLogs("jenkins-second-deployment", 1, oc)
-						exutil.DumpDeploymentLogs("jenkins-second-deployment", 2, oc)
 					}
 					br.AssertSuccess()
 
