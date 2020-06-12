@@ -31034,7 +31034,7 @@ os::test::junit::declare_suite_start "cmd/basicresources/setprobe"
 # Validate the probe command
 arg="-f ${TEST_DATA}/hello-openshift/hello-pod.json"
 os::cmd::expect_failure_and_text "oc set probe" "error: one or more resources"
-os::cmd::expect_failure_and_text "oc set probe ${arg}" "error: you must specify one of --readiness, --liveness or both"
+os::cmd::expect_failure_and_text "oc set probe ${arg}" "error: you must specify"
 os::cmd::expect_failure_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1/path" "port must be specified as part of a url"
 os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness" 'livenessProbe: \{\}'
 os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --initial-delay-seconds=10" "livenessProbe:"
