@@ -4,13 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func main() {
@@ -48,6 +49,12 @@ func main() {
 	go func() {
 		defer wg.Done()
 		for s := range sigCh {
+			select {
+			case <-termCh:
+			default:
+				close(termCh)
+			}
+
 			fmt.Fprintf(stderr, "Received signal %s\n", s)
 
 			if len(*terminationLock) > 0 {
@@ -58,11 +65,6 @@ func main() {
 				}
 			}
 
-			select {
-			case <-termCh:
-			default:
-				close(termCh)
-			}
 			cmd.Process.Signal(s)
 		}
 	}()
@@ -70,7 +72,7 @@ func main() {
 	fmt.Printf("Launching %v\n", cmd)
 	rc := 0
 	if err := cmd.Run(); err != nil {
-		if exitError, ok := err.(*exec.ExitError); !ok {
+		if exitError, ok := err.(*exec.ExitError); ok {
 			rc = exitError.ExitCode()
 		} else {
 			fmt.Fprintf(stderr, "Failed to launch %s: %v\n", args[0], err)
@@ -99,21 +101,24 @@ type terminationFileWriter struct {
 	fn                 string
 	startFileLoggingCh <-chan struct{}
 
-	f *os.File
+	logger io.Writer
 }
 
 func (w *terminationFileWriter) Write(bs []byte) (int, error) {
 	select {
 	case <-w.startFileLoggingCh:
-		if w.f == nil {
-			f, err := os.OpenFile(w.fn, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			if err != nil {
-				log.Fatal(err)
+		if w.logger == nil {
+			l := &lumberjack.Logger{
+				Filename:   w.fn,
+				MaxSize:    100,
+				MaxBackups: 3,
+				MaxAge:     28,
+				Compress:   false,
 			}
-			w.f = f
+			w.logger = l
 			fmt.Println("Starting logging to", w.fn)
 		}
-		if n, err := w.f.Write(bs); err != nil {
+		if n, err := w.logger.Write(bs); err != nil {
 			return n, err
 		} else if n != len(bs) {
 			return n, io.ErrShortWrite
