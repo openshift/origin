@@ -88,6 +88,20 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		e2e.Logf("Watchdog alert is firing")
 	})
 
+	g.It("should not have any alerts in pending state the entire cluster run", func() {
+		oc.SetupProject()
+		ns := oc.Namespace()
+		execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+		defer func() {
+			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+		}()
+
+		tests := map[string]bool{
+			`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh", alertstate="pending"}[2h])`: false,
+		}
+		helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+	})
+
 	g.It("shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster", func() {
 		if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 			e2eskipper.Skipf("Telemetry is disabled")
