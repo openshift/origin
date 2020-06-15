@@ -12,11 +12,16 @@ import (
 	"time"
 
 	"gopkg.in/natefinch/lumberjack.v2"
+	"k8s.io/klog"
 )
 
 func main() {
 	terminationLog := flag.String("termination-log-file", "", "Write logs after SIGTERM to this file (in addition to stderr)")
 	terminationLock := flag.String("termination-touch-file", "", "Touch this file on SIGTERM and delete on termination")
+
+	klog.InitFlags(nil)
+	flag.Set("logtostderr", "true")
+	flag.Set("v", "2")
 
 	flag.Parse()
 	args := flag.CommandLine.Args()
@@ -35,6 +40,7 @@ func main() {
 			fn:                 *terminationLog,
 			startFileLoggingCh: termCh,
 		}
+		klog.SetOutput(stderr)
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -55,12 +61,12 @@ func main() {
 				close(termCh)
 			}
 
-			fmt.Fprintf(stderr, "Received signal %s\n", s)
+			klog.Infof("Received signal %s. Forwarding to sub-process %q.", s, args[0])
 
 			if len(*terminationLock) > 0 {
-				fmt.Fprintln(stderr, "Touching", *terminationLock)
+				klog.Infof("Touching termination lock file %q", *terminationLock)
 				if err := touch(*terminationLock); err != nil {
-					fmt.Fprintln(stderr, fmt.Errorf("error touching %s: %v", *terminationLock, err))
+					klog.Infof("error touching %s: %v", *terminationLock, err)
 					// keep going
 				}
 			}
@@ -69,13 +75,13 @@ func main() {
 		}
 	}()
 
-	fmt.Printf("Launching %v\n", cmd)
+	klog.Infof("Launching sub-process %q", cmd)
 	rc := 0
 	if err := cmd.Run(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			rc = exitError.ExitCode()
 		} else {
-			fmt.Fprintf(stderr, "Failed to launch %s: %v\n", args[0], err)
+			klog.Infof("Failed to launch %s: %v", args[0], err)
 			os.Exit(255)
 		}
 	}
@@ -86,10 +92,11 @@ func main() {
 	wg.Wait()
 
 	if len(*terminationLock) > 0 {
+		klog.Infof("Deleting termination lock file %q", *terminationLock)
 		os.Remove(*terminationLock)
 	}
 
-	fmt.Fprintf(stderr, "Exit code %d\n", rc)
+	klog.Infof("Termination finished with exit code %d", rc)
 	os.Exit(rc)
 }
 
@@ -116,7 +123,7 @@ func (w *terminationFileWriter) Write(bs []byte) (int, error) {
 				Compress:   false,
 			}
 			w.logger = l
-			fmt.Println("Starting logging to", w.fn)
+			klog.Infof("Redirecting termination logs to %q", w.fn)
 		}
 		if n, err := w.logger.Write(bs); err != nil {
 			return n, err
