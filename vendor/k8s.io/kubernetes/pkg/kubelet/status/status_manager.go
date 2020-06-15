@@ -337,10 +337,14 @@ func (m *manager) TerminatePod(pod *v1.Pod) {
 		if status.ContainerStatuses[i].State.Terminated != nil || status.ContainerStatuses[i].State.Waiting != nil {
 			continue
 		}
+		msg := ""
+		if status.ContainerStatuses[i].State.Running != nil {
+			msg = fmt.Sprintf(", running state %v", status.ContainerStatuses[i].State.Running)
+		}
 		status.ContainerStatuses[i].State = v1.ContainerState{
 			Terminated: &v1.ContainerStateTerminated{
 				Reason:   "ContainerStatusUnknown",
-				Message:  "The container could not be located when the pod was terminated",
+				Message:  "The container could not be located when the pod was terminated" + msg,
 				ExitCode: 137,
 			},
 		}
@@ -349,10 +353,14 @@ func (m *manager) TerminatePod(pod *v1.Pod) {
 		if status.InitContainerStatuses[i].State.Terminated != nil || status.InitContainerStatuses[i].State.Waiting != nil {
 			continue
 		}
+		msg := ""
+		if status.InitContainerStatuses[i].State.Running != nil {
+			msg = fmt.Sprintf(", init running state %v", status.InitContainerStatuses[i].State.Running)
+		}
 		status.InitContainerStatuses[i].State = v1.ContainerState{
 			Terminated: &v1.ContainerStateTerminated{
 				Reason:   "ContainerStatusUnknown",
-				Message:  "The container could not be located when the pod was terminated",
+				Message:  "The container could not be located when the pod was terminated" + msg,
 				ExitCode: 137,
 			},
 		}
