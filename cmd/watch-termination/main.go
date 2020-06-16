@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -121,6 +122,12 @@ type terminationFileWriter struct {
 }
 
 func (w *terminationFileWriter) Write(bs []byte) (int, error) {
+	// temporary hack to avoid logging sensitive tokens.
+	// TODO: drop when we moved to a non-sensitive storage format
+	if strings.Contains(string(bs), "URI=\"/apis/oauth.openshift.io/v1/oauthaccesstokens/") || strings.Contains(string(bs), "URI=\"/apis/oauth.openshift.io/v1/oauthauthorizetokens/") {
+		return len(bs), nil
+	}
+
 	select {
 	case <-w.startFileLoggingCh:
 		if w.logger == nil {
