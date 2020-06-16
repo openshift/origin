@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -187,7 +188,7 @@ func (d *NetworkDiagnostic) getPodLogs(nsList []string) (string, error) {
 		}
 
 		for _, pod := range podList.Items {
-			opts := &kapi.PodLogOptions{
+			opts := &corev1.PodLogOptions{
 				TypeMeta:   pod.TypeMeta,
 				Container:  pod.Name,
 				Follow:     true,
