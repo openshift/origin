@@ -235,6 +235,7 @@ var _ = SIGDescribe("Pods Extended", func() {
 		It("should never report success for a pending container", func() {
 			By("creating pods that should always exit 1 and terminating the pod after a random delay")
 
+			var reBug88766 = regexp.MustCompile(`rootfs_linux.*kubernetes\.io~secret.*no such file or directory`)
 			var (
 				lock sync.Mutex
 				errs []error
@@ -361,19 +362,19 @@ var _ = SIGDescribe("Pods Extended", func() {
 							}
 							hasRunningContainers = status.State.Waiting == nil && status.State.Terminated == nil
 							if t != nil {
-								switch t.ExitCode {
-								case 1:
+								if !t.FinishedAt.Time.IsZero() {
+									duration = t.FinishedAt.Sub(t.StartedAt.Time)
+									completeDuration = t.FinishedAt.Sub(pod.CreationTimestamp.Time)
+								}
+
+								defer func() { hasTerminated = true }()
+								switch {
+								case t.ExitCode == 1:
 									// expected
-									if !t.FinishedAt.Time.IsZero() {
-										duration = t.FinishedAt.Sub(t.StartedAt.Time)
-										completeDuration = t.FinishedAt.Sub(pod.CreationTimestamp.Time)
-									}
-									hasTerminated = true
+								case t.ExitCode == 128 && (t.Reason == "StartError" || t.Reason == "ContainerCannotRun") && reBug88766.MatchString(t.Message):
+									// pod volume teardown races with container start in CRI, which reports a failure
+									framework.Logf("pod %s on node %s failed with the symptoms of https://github.com/kubernetes/kubernetes/issues/88766")
 								default:
-									if !hasTerminated {
-										framework.Logf("Pod %s listed as terminating with container exit code %d", pod.Name, t.ExitCode)
-									}
-									hasTerminated = true
 									return fmt.Errorf("pod %s on node %s container unexpected exit code %d: start=%s end=%s reason=%s message=%s", pod.Name, pod.Spec.NodeName, t.ExitCode, t.StartedAt, t.FinishedAt, t.Reason, t.Message)
 								}
 							}
