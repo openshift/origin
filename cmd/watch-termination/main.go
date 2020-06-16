@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -20,8 +21,11 @@ func main() {
 	terminationLock := flag.String("termination-touch-file", "", "Touch this file on SIGTERM and delete on termination")
 
 	klog.InitFlags(nil)
-	flag.Set("logtostderr", "true")
-	flag.Set("v", "2")
+	flag.Set("v", "9")
+
+	// never log to stderr, only through our termination log writer (which sends it also to stderr)
+	flag.Set("logtostderr", "false")
+	flag.Set("stderrthreshold", "99")
 
 	flag.Parse()
 	args := flag.CommandLine.Args()
@@ -40,7 +44,12 @@ func main() {
 			fn:                 *terminationLog,
 			startFileLoggingCh: termCh,
 		}
-		klog.SetOutput(stderr)
+
+		// do the klog file writer dance: klog writes to all outputs of lower
+		// severity. No idea why. So we discard for anything other than info.
+		// Otherwise, we would see errors multiple times.
+		klog.SetOutput(ioutil.Discard)
+		klog.SetOutputBySeverity("INFO", stderr)
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -123,7 +132,7 @@ func (w *terminationFileWriter) Write(bs []byte) (int, error) {
 				Compress:   false,
 			}
 			w.logger = l
-			klog.Infof("Redirecting termination logs to %q", w.fn)
+			fmt.Fprintf(os.Stderr, "Copying termination logs to %q\n", w.fn)
 		}
 		if n, err := w.logger.Write(bs); err != nil {
 			return n, err
