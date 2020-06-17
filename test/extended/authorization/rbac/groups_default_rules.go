@@ -62,6 +62,9 @@ const (
 	legacyTemplateGroup = ""
 	legacyUserGroup     = ""
 	legacyOauthGroup    = ""
+
+	// Provided as CRD via cluster-csi-snapshot-controller-operator
+	snapshotGroup = "snapshot.storage.k8s.io"
 )
 
 // Do not change any of these lists without approval from the auth and master teams
@@ -110,6 +113,7 @@ var (
 			rbacv1helpers.NewRule("get", "list").Groups(authzGroup, legacyAuthzGroup).Resources("clusterroles").RuleOrDie(),
 			rbacv1helpers.NewRule(read...).Groups(rbacGroup).Resources("clusterroles").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list").Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
+			rbacv1helpers.NewRule("get", "list", "watch").Groups(snapshotGroup).Resources("volumesnapshotclasses").RuleOrDie(),
 			rbacv1helpers.NewRule("list", "watch").Groups(projectGroup, legacyProjectGroup).Resources("projects").RuleOrDie(),
 
 			// These custom resources are used to extend console functionality
