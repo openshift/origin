@@ -19,13 +19,14 @@ import (
 var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
-	g.It("have no crashlooping pods in core namespaces over two minutes", func() {
+	g.It("have no crashlooping pods in core namespaces over four minutes", func() {
 		c, err := e2e.LoadClientset()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		restartingContainers := make(map[containerName]int)
 		podsWithProblems := make(map[string]*corev1.Pod)
 		var lastPending map[string]*corev1.Pod
-		wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+		wait.PollImmediate(5*time.Second, 4*time.Minute, func() (bool, error) {
 			allPods, err := c.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -64,7 +65,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 				case hasCreateContainerError(pod):
 				case hasImagePullError(pod):
 				case isCrashLooping(pod):
-				case hasExcessiveRestarts(pod):
+				case hasExcessiveRestarts(pod, 2, restartingContainers):
 				case hasFailingContainer(pod):
 				default:
 					continue
@@ -173,10 +174,24 @@ func isCrashLooping(pod *corev1.Pod) bool {
 	return false
 }
 
-func hasExcessiveRestarts(pod *corev1.Pod) bool {
+type containerName struct {
+	namespace string
+	name      string
+	container string
+}
+
+func hasExcessiveRestarts(pod *corev1.Pod, excessiveCount int, counts map[containerName]int) bool {
 	for _, status := range append(append([]corev1.ContainerStatus{}, pod.Status.InitContainerStatuses...), pod.Status.ContainerStatuses...) {
-		if status.RestartCount > 5 {
-			pod.Status.Message = fmt.Sprintf("container %s has restarted more than 5 times", status.Name)
+		name := containerName{namespace: pod.Namespace, name: pod.Name, container: status.Name}
+		count, ok := counts[name]
+		if !ok {
+			counts[name] = int(status.RestartCount)
+			continue
+		}
+
+		current := int(status.RestartCount) - count
+		if current >= excessiveCount {
+			pod.Status.Message = fmt.Sprintf("container %s has restarted %d times (>= %d) within the allowed interval", status.Name, current, excessiveCount)
 			return true
 		}
 	}
