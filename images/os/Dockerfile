@@ -1,4 +1,4 @@
-FROM fedora:29 AS build
+FROM fedora:32 AS build
 
 COPY --from=registry.svc.ci.openshift.org/openshift/origin-v4.0:machine-os-content /srv/ /srv/
 RUN set -x && yum install -y ostree rpm-ostree yum-utils selinux-policy-targeted && \
