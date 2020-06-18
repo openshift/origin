@@ -130,8 +130,7 @@ var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", 
 
 			g.By(fmt.Sprintf("get olm version from the %s pod", v))
 			oc.SetNamespace("openshift-operator-lifecycle-manager")
-			commands := []string{"exec", podName, "--", "olm", "--version"}
-			olmVersion, err := oc.AsAdmin().Run(commands...).Args().Output()
+			olmVersion, err := oc.AsAdmin().Run("exec").Args("-n", "openshift-operator-lifecycle-manager", podName, "--", "olm", "--version").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			idSlice := strings.Split(olmVersion, ":")
 			gitCommitID := strings.TrimSpace(idSlice[len(idSlice)-1])

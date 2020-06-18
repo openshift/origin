@@ -70,6 +70,7 @@ type CLI struct {
 	verb               string
 	configPath         string
 	adminConfigPath    string
+	token              string
 	username           string
 	globalArgs         []string
 	commandArgs        []string
@@ -127,9 +128,9 @@ func NewCLIWithoutNamespace(project string) *CLI {
 				ClientBurst: 50,
 			},
 		},
-		username:        "admin",
-		execPath:        "oc",
-		adminConfigPath: KubeConfigPath(),
+		username:         "admin",
+		execPath:         "oc",
+		adminConfigPath:  KubeConfigPath(),
 		withoutNamespace: true,
 	}
 	g.AfterEach(cli.TeardownProject)
@@ -195,6 +196,13 @@ func (c *CLI) SetNamespace(ns string) *CLI {
 // WithoutNamespace instructs the command should be invoked without adding --namespace parameter
 func (c CLI) WithoutNamespace() *CLI {
 	c.withoutNamespace = true
+	return &c
+}
+
+// WithToken instructs the command should be invoked with --token rather than --kubeconfig flag
+func (c CLI) WithToken(token string) *CLI {
+	c.configPath = ""
+	c.token = token
 	return &c
 }
 
@@ -517,27 +525,19 @@ func (c *CLI) Run(commands ...string) *CLI {
 		adminConfigPath: c.adminConfigPath,
 		configPath:      c.configPath,
 		username:        c.username,
-		globalArgs: append([]string{
-			fmt.Sprintf("--kubeconfig=%s", c.configPath),
-		}, commands...),
+		globalArgs:      commands,
+	}
+	if len(c.configPath) > 0 {
+		nc.globalArgs = append([]string{fmt.Sprintf("--kubeconfig=%s", c.configPath)}, nc.globalArgs...)
+	}
+	if len(c.configPath) == 0 && len(c.token) > 0 {
+		nc.globalArgs = append([]string{fmt.Sprintf("--token=%s", c.token)}, nc.globalArgs...)
 	}
 	if !c.withoutNamespace {
 		nc.globalArgs = append([]string{fmt.Sprintf("--namespace=%s", c.Namespace())}, nc.globalArgs...)
 	}
 	nc.stdin, nc.stdout, nc.stderr = in, out, errout
 	return nc.setOutput(c.stdout)
-}
-
-// Template sets a Go template for the OpenShift CLI command.
-// This is equivalent of running "oc get foo -o template --template='{{ .spec }}'"
-func (c *CLI) Template(t string) *CLI {
-	if c.verb != "get" {
-		FatalErr("Cannot use Template() for non-get verbs.")
-	}
-	templateArgs := []string{"--output=template", fmt.Sprintf("--template=%s", t)}
-	commandArgs := append(c.commandArgs, templateArgs...)
-	c.finalArgs = append(c.globalArgs, commandArgs...)
-	return c
 }
 
 // InputString adds expected input to the command
@@ -549,7 +549,6 @@ func (c *CLI) InputString(input string) *CLI {
 // Args sets the additional arguments for the OpenShift CLI command
 func (c *CLI) Args(args ...string) *CLI {
 	c.commandArgs = args
-	c.finalArgs = append(c.globalArgs, c.commandArgs...)
 	return c
 }
 
@@ -565,6 +564,7 @@ type ExitError struct {
 
 // Output executes the command and returns stdout/stderr combined into one string
 func (c *CLI) Output() (string, error) {
+	c.finalArgs = append(c.globalArgs, c.commandArgs...)
 	if c.verbose {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
 	}
@@ -595,6 +595,7 @@ func (c *CLI) Output() (string, error) {
 
 // Outputs executes the command and returns the stdout/stderr output as separate strings
 func (c *CLI) Outputs() (string, string, error) {
+	c.finalArgs = append(c.globalArgs, c.commandArgs...)
 	if c.verbose {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
 	}
