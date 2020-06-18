@@ -211,7 +211,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					framework.Logf("Wait for masters to join as nodes and go ready")
-					err = wait.Poll(30*time.Second, 50*time.Minute, func() (done bool, err error) {
+					err = wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
 						defer func() {
 							if r := recover(); r != nil {
 								fmt.Println("Recovered from panic", r)
@@ -246,7 +246,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 					exutil.ParseLabelsOrDie("k8s-app=etcd"),
 					exutil.CheckPodIsReady,
 					expectedNumberOfMasters,
-					40*time.Minute,
+					10*time.Minute,
 				)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
