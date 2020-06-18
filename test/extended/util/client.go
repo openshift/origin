@@ -107,6 +107,7 @@ func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
 // namespace. Should be called outside of a Ginkgo .It() function.
 func NewCLI(project string) *CLI {
 	cli := NewCLIWithoutNamespace(project)
+	cli.withoutNamespace = false
 	// create our own project
 	g.BeforeEach(cli.SetupProject)
 	return cli
@@ -129,6 +130,7 @@ func NewCLIWithoutNamespace(project string) *CLI {
 		username:        "admin",
 		execPath:        "oc",
 		adminConfigPath: KubeConfigPath(),
+		withoutNamespace: true,
 	}
 	g.AfterEach(cli.TeardownProject)
 	g.AfterEach(cli.kubeFramework.AfterEach)
