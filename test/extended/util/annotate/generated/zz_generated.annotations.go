@@ -1127,11 +1127,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply toleration override configuration to build pod": "Apply toleration override configuration to build pod [Suite:openshift]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should allow registries to be blacklisted": "should allow registries to be blacklisted [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  without ocm rollout should allow registries to be blacklisted": "should allow registries to be blacklisted [Suite:openshift]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should allow registries to be whitelisted": "should allow registries to be whitelisted [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  without ocm rollout should allow registries to be whitelisted": "should allow registries to be whitelisted [Suite:openshift]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should default registry search to docker.io for image pulls": "should default registry search to docker.io for image pulls [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  without ocm rollout should apply a custom PKI from the cluster to the build pod": "should apply a custom PKI from the cluster to the build pod [Suite:openshift]",
+
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  without ocm rollout should default registry search to docker.io for image pulls": "should default registry search to docker.io for image pulls [Suite:openshift]",
 
 	"[Top Level] [sig-builds][Feature:Builds][Slow] Capabilities should be dropped for s2i builders  s2i build with a rootable builder should not be able to switch to root with an assemble script": "should not be able to switch to root with an assemble script [Suite:openshift]",
 

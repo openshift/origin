@@ -3,6 +3,7 @@ package builds
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -21,6 +22,12 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+const dummyCA = `
+-----BEGIN CERTIFICATE-----
+GzAZBgNVBAMMElJlZCBIYXQgSVQgUm9vdCBDQTEhMB8GCSqGSIb3DQEJARYSaW5m
+-----END CERTIFICATE-----
+`
+
 // e2e tests of the build controller configuration.
 // These are tagged [Serial] because each test modifies the cluster-wide build controller config.
 var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration", func() {
@@ -32,6 +39,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 		blacklistConfigFixture    = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-blacklist.yaml")
 		whitelistConfigFixture    = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-whitelist.yaml")
 		invalidproxyConfigFixture = exutil.FixturePath("testdata", "builds", "cluster-config", "invalid-build-cluster-config.yaml")
+		caBuildFixture            = exutil.FixturePath("testdata", "builds", "cluster-config", "ca-build.yaml")
 		oc                        = exutil.NewCLI("build-cluster-config")
 		checkPodProxyEnvs         = func(containers []v1.Container, proxySpec *configv1.ProxySpec) {
 			o.Expect(containers).NotTo(o.BeNil())
@@ -179,9 +187,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			}
 		})
 
-		g.Context("registries config context", func() {
-
-			// Altering registries config does not force an OCM rollout
+		g.Context("without ocm rollout", func() {
 			g.AfterEach(func() {
 				oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
 			})
@@ -236,6 +242,69 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				buildLog, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildLog).To(o.ContainSubstring("Source image rejected"))
+			})
+
+			g.It("should apply a custom PKI from the cluster to the build pod", func() {
+				ctx := context.Background()
+				g.By("creating BuildConfig to verify dummy CA")
+				err := oc.Run("create").Args("-f", caBuildFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				// Check that the cluster doesn't have a custom PKI already defined
+				g.By("checking the PKI available on the cluster")
+				proxyConfig, err := oc.AsAdmin().AdminConfigClient().ConfigV1().Proxies().Get(ctx, "cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(proxyConfig).NotTo(o.BeNil())
+				caConfigMapName := proxyConfig.Spec.TrustedCA.Name
+				defer func() {
+					g.By("restoring proxy config to previous state")
+					proxy, err := oc.AsAdmin().AdminConfigClient().ConfigV1().Proxies().Get(ctx, "cluster", metav1.GetOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(proxy).NotTo(o.BeNil())
+					proxy.Spec.TrustedCA.Name = caConfigMapName
+					_, err = oc.AsAdmin().AdminConfigClient().ConfigV1().Proxies().Update(ctx, proxy, metav1.UpdateOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}()
+				var caData string
+
+				if len(proxyConfig.Spec.TrustedCA.Name) > 0 {
+					caConfigMap, err := oc.AsAdmin().AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Get(ctx, proxyConfig.Spec.TrustedCA.Name, metav1.GetOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(caConfigMap).NotTo(o.BeNil())
+					caData = caConfigMap.Data["ca-bundle.crt"]
+				}
+				if len(caData) == 0 {
+					// Fall back to reading the local PKI
+					// Othwerise things which rely on public CAs will break (ex: image registry on AWS)
+					g.By("reading the local PKI trust bundle")
+					pki, err := ioutil.ReadFile("/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem")
+					o.Expect(err).NotTo(o.HaveOccurred())
+					caData = string(pki)
+				}
+				// Append the dummy CA and update the cluster PKI
+				g.By("appending a dummy CA certificate to the cluster PKI")
+				caData = caData + "\n" + dummyCA
+				testCAConfigMap := &v1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-user-ca-bundle-build",
+						Namespace: "openshift-config",
+					},
+					Data: map[string]string{
+						"ca-bundle.crt": caData,
+					},
+				}
+				_, err = oc.AsAdmin().AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Create(ctx, testCAConfigMap, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				defer oc.AsAdmin().AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(ctx, "test-user-ca-bundle-build", metav1.DeleteOptions{})
+				proxyConfig.Spec.TrustedCA.Name = "test-user-ca-bundle-build"
+				_, err = oc.AsAdmin().AdminConfigClient().ConfigV1().Proxies().Update(ctx, proxyConfig, metav1.UpdateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("starting build which prints the CA bundle")
+				br, err := exutil.StartBuildAndWait(oc, "ca-test")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertSuccess()
+				log, err := br.LogsNoTimestamp()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(log).To(o.ContainSubstring("GzAZBgNVBAMMElJlZCBIYXQgSVQgUm9vdCBDQTEhMB8GCSqGSIb3DQEJARYSaW5m"))
 			})
 
 		})

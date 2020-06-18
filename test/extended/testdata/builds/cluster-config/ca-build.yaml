@@ -1,0 +1,11 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: ca-test
+spec:
+  source:
+    dockerfile: |
+      FROM registry.redhat.io/ubi8/ubi:latest
+      RUN cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+  strategy:
+    dockerStrategy: {}

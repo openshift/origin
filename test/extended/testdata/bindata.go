@@ -84,6 +84,7 @@
 // test/extended/testdata/builds/build-timing/test-docker-build.json
 // test/extended/testdata/builds/build-timing/test-is.json
 // test/extended/testdata/builds/build-timing/test-s2i-build.json
+// test/extended/testdata/builds/cluster-config/ca-build.yaml
 // test/extended/testdata/builds/cluster-config/invalid-build-cluster-config.yaml
 // test/extended/testdata/builds/cluster-config/registry-blacklist.yaml
 // test/extended/testdata/builds/cluster-config/registry-whitelist.yaml
@@ -20250,6 +20251,34 @@ func testExtendedTestdataBuildsBuildTimingTestS2iBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsClusterConfigCaBuildYaml = []byte(`kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: ca-test
+spec:
+  source:
+    dockerfile: |
+      FROM registry.redhat.io/ubi8/ubi:latest
+      RUN cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+  strategy:
+    dockerStrategy: {}
+`)
+
+func testExtendedTestdataBuildsClusterConfigCaBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsClusterConfigCaBuildYaml, nil
+}
+
+func testExtendedTestdataBuildsClusterConfigCaBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsClusterConfigCaBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/cluster-config/ca-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -59401,6 +59430,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/build-timing/test-docker-build.json":                                               testExtendedTestdataBuildsBuildTimingTestDockerBuildJson,
 	"test/extended/testdata/builds/build-timing/test-is.json":                                                         testExtendedTestdataBuildsBuildTimingTestIsJson,
 	"test/extended/testdata/builds/build-timing/test-s2i-build.json":                                                  testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/builds/cluster-config/ca-build.yaml":                                                      testExtendedTestdataBuildsClusterConfigCaBuildYaml,
 	"test/extended/testdata/builds/cluster-config/invalid-build-cluster-config.yaml":                                  testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYaml,
 	"test/extended/testdata/builds/cluster-config/registry-blacklist.yaml":                                            testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml,
 	"test/extended/testdata/builds/cluster-config/registry-whitelist.yaml":                                            testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml,
@@ -59970,6 +60000,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-s2i-build.json":    {testExtendedTestdataBuildsBuildTimingTestS2iBuildJson, map[string]*bintree{}},
 					}},
 					"cluster-config": {nil, map[string]*bintree{
+						"ca-build.yaml":                     {testExtendedTestdataBuildsClusterConfigCaBuildYaml, map[string]*bintree{}},
 						"invalid-build-cluster-config.yaml": {testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYaml, map[string]*bintree{}},
 						"registry-blacklist.yaml":           {testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml, map[string]*bintree{}},
 						"registry-whitelist.yaml":           {testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml, map[string]*bintree{}},
