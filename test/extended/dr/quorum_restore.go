@@ -3,17 +3,13 @@ package dr
 import (
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"strings"
 	"time"
-
-	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -60,11 +56,7 @@ var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
 				config, err := framework.LoadConfig()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				dynamicClient := dynamic.NewForConfigOrDie(config)
-				ms := dynamicClient.Resource(schema.GroupVersionResource{
-					Group:    "machine.openshift.io",
-					Version:  "v1beta1",
-					Resource: "machines",
-				}).Namespace("openshift-machine-api")
+
 				mcps := dynamicClient.Resource(schema.GroupVersionResource{
 					Group:    "machineconfiguration.openshift.io",
 					Version:  "v1",
@@ -79,62 +71,40 @@ var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
 				framework.Logf("Verify SSH is available before restart")
 				masters := masterNodes(oc)
 				o.Expect(len(masters)).To(o.BeNumerically(">=", 1))
-				survivingNode := masters[rand.Intn(len(masters))]
-				survivingNodeName := survivingNode.Name
-				expectSSH("true", survivingNode)
 
 				err = scaleEtcdQuorum(oc.AdminKubeClient(), 0)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				expectedNumberOfMasters := len(masters)
-				survivingMachineName := getMachineNameByNodeName(oc, survivingNodeName)
-				survivingMachine, err := ms.Get(survivingMachineName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				framework.Logf("Destroy %d masters", len(masters)-1)
-				var masterMachines []string
-				for _, node := range masters {
-					masterMachine := getMachineNameByNodeName(oc, node.Name)
-					masterMachines = append(masterMachines, masterMachine)
+				firstMaster := masters[0]
+				framework.Logf("Make etcd backup on first master %v", firstMaster)
+				expectSSH("sudo -i /bin/bash -cx 'rm -rf /home/core/backup; /usr/local/bin/cluster-backup.sh ~core/backup'", firstMaster)
 
-					if node.Name == survivingNodeName {
+				for i, node := range masters {
+					if i == 0 {
 						continue
 					}
+					framework.Logf("Stopping etcd and kube-apiserver pods and removing data-dir from %s", node.Name)
 
-					framework.Logf("Destroying %s", masterMachine)
-					err = ms.Delete(masterMachine, &metav1.DeleteOptions{})
-					o.Expect(err).NotTo(o.HaveOccurred())
+					expectSSH("sudo -i /bin/bash -cx 'mv /etc/kubernetes/manifests/etcd-pod.yaml /tmp'", node)
+					time.Sleep(180 * time.Second)
+
+					expectSSH("sudo -i /bin/bash -cx 'mv /etc/kubernetes/manifests/kube-apiserver-pod.yaml /tmp; rm -rf /var/lib/etcd'", node)
+					time.Sleep(180 * time.Second)
+
+					expectSSH("sudo -i /bin/bash -cx 'mv /etc/kubernetes/manifests/kube-scheduler-pod.yaml /tmp'", node)
+					time.Sleep(180 * time.Second)
 				}
+
+				framework.Logf("Restore etcd and control-plane on  %s", firstMaster)
+				expectSSH("sudo -i /bin/bash -cx '/usr/local/bin/cluster-restore.sh /home/core/backup'", firstMaster)
+
 				pollConfig := rest.CopyConfig(config)
 				pollConfig.Timeout = 5 * time.Second
 				pollClient, err := kubernetes.NewForConfig(pollConfig)
 				o.Expect(err).NotTo(o.HaveOccurred())
-
-				if len(masters) != 1 {
-					framework.Logf("Wait for control plane to become unresponsive (may take several minutes)")
-					failures := 0
-					err = wait.Poll(5*time.Second, 30*time.Minute, func() (done bool, err error) {
-						_, err = pollClient.CoreV1().Nodes().List(metav1.ListOptions{})
-						if err != nil {
-							failures++
-						} else {
-							failures = 0
-						}
-
-						// there is a small chance the cluster restores the default replica size during
-						// this loop process, so keep forcing quorum guard to be zero, without failing on
-						// errors
-						scaleEtcdQuorum(pollClient, 0)
-
-						// wait to see the control plane go down for good to avoid a transient failure
-						return failures > 4, nil
-					})
-				}
-
-				framework.Logf("Perform etcd backup on remaining machine %s (machine %s)", survivingNodeName, survivingMachineName)
-				expectSSH("sudo -i /bin/bash -cx 'rm -rf /home/core/backup; /usr/local/bin/cluster-backup.sh ~core/backup'", survivingNode)
-				framework.Logf("Restore etcd and control-plane on remaining node %s (machine %s)", survivingNodeName, survivingMachineName)
-				expectSSH("sudo -i /bin/bash -cx '/usr/local/bin/cluster-restore.sh /home/core/backup'", survivingNode)
 
 				framework.Logf("Wait for API server to come up")
 				time.Sleep(30 * time.Second)
@@ -148,76 +118,26 @@ var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
 				})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				if expectedNumberOfMasters == 1 {
-					framework.Logf("Cannot create new masters, you must manually create masters and update their DNS entries according to the docs")
-				} else {
-					framework.Logf("Create new masters")
-					for _, master := range masterMachines {
-						if master == survivingMachineName {
-							continue
+				framework.Logf("Wait for masters to join as nodes and go ready")
+				err = wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
+					defer func() {
+						if r := recover(); r != nil {
+							fmt.Println("Recovered from panic", r)
 						}
-						framework.Logf("Creating master %s", master)
-						newMaster := survivingMachine.DeepCopy()
-						// The providerID is relied upon by the machine controller to determine a machine
-						// has been provisioned
-						// https://github.com/openshift/cluster-api/blob/c4a461a19efb8a25b58c630bed0829512d244ba7/pkg/controller/machine/controller.go#L306-L308
-						unstructured.SetNestedField(newMaster.Object, "", "spec", "providerID")
-						newMaster.SetName(master)
-						newMaster.SetResourceVersion("")
-						newMaster.SetSelfLink("")
-						newMaster.SetUID("")
-						newMaster.SetCreationTimestamp(metav1.NewTime(time.Time{}))
-						// retry until the machine gets created
-						err := wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
-							_, err := ms.Create(newMaster, metav1.CreateOptions{})
-							if errors.IsAlreadyExists(err) {
-								framework.Logf("Waiting for old machine object %s to be deleted so we can create a new one", master)
-								return false, nil
-							}
-							if err != nil {
-								return false, err
-							}
-							return true, nil
-						})
-						o.Expect(err).NotTo(o.HaveOccurred())
+					}()
+					nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
+					if err != nil {
+						// scale up to 2nd etcd will make this error inevitable
+						return false, nil
 					}
-
-					framework.Logf("Waiting for machines to be created")
-					err = wait.Poll(30*time.Second, 10*time.Minute, func() (done bool, err error) {
-						mastersList, err := ms.List(metav1.ListOptions{
-							LabelSelector: "machine.openshift.io/cluster-api-machine-role=master",
-						})
-						if err != nil {
-							return false, err
-						}
-						if mastersList.Items == nil {
-							return false, nil
-						}
-						return len(mastersList.Items) == expectedNumberOfMasters, nil
-					})
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					framework.Logf("Wait for masters to join as nodes and go ready")
-					err = wait.Poll(30*time.Second, 50*time.Minute, func() (done bool, err error) {
-						defer func() {
-							if r := recover(); r != nil {
-								fmt.Println("Recovered from panic", r)
-							}
-						}()
-						nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
-						if err != nil {
-							// scale up to 2nd etcd will make this error inevitable
-							return false, nil
-						}
-						ready := countReady(nodes.Items)
-						if ready != expectedNumberOfMasters {
-							framework.Logf("%d nodes still unready", expectedNumberOfMasters-ready)
-							return false, nil
-						}
-						return true, nil
-					})
-					o.Expect(err).NotTo(o.HaveOccurred())
-				}
+					ready := countReady(nodes.Items)
+					if ready != expectedNumberOfMasters {
+						framework.Logf("%d nodes still unready", expectedNumberOfMasters-ready)
+						return false, nil
+					}
+					return true, nil
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				framework.Logf("Force new revision of etcd-pod")
 				_, err = oc.AdminOperatorClient().OperatorV1().Etcds().Patch("cluster", types.MergePatchType, []byte(`{"spec": {"forceRedeploymentReason": "recover-etcd"}}`))
