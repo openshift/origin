@@ -9,13 +9,13 @@ parameters:
     name: NAMESPACE
     required: true
 objects:
-  - apiVersion: v1
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
-      creationTimestamp: null
       name: basic-user
     rules:
-    - apiGroups: null
+    - apiGroups:
+      - ""
       attributeRestrictions: null
       resourceNames:
       - "~"
@@ -23,20 +23,23 @@ objects:
       - users
       verbs:
       - get
-    - apiGroups: null
+    - apiGroups:
+      - project.openshift.io
       attributeRestrictions: null
       resources:
       - projectrequests
       verbs:
       - list
-    - apiGroups: null
+    - apiGroups:
+      - rbac.authorization.k8s.io
       attributeRestrictions: null
       resources:
       - clusterroles
       verbs:
       - get
       - list
-    - apiGroups: null
+    - apiGroups:
+      - project.openshift.io
       attributeRestrictions: null
       resources:
       - projects
@@ -49,17 +52,19 @@ objects:
       - selfsubjectaccessreviews
       verbs:
       - create
-  - apiVersion: v1
+  - apiVersion: rbac.authorization.k8s.io/v1
     groupNames:
     - system:authenticated
     kind: RoleBinding
     metadata:
-      creationTimestamp: null
       name: basic-users
     roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
       name: basic-user
       namespace: ${NAMESPACE}
     subjects:
-    - kind: SystemGroup
+    - apiGroup: rbac.authorization.k8s.io
+      kind: Group
       name: system:authenticated
     userNames: null
