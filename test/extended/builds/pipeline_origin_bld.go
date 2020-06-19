@@ -389,6 +389,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				g.By(fmt.Sprintf("calling oc new-app -f %q", origPipelinePath))
 				err := oc.Run("new-app").Args("-f", origPipelinePath).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
+				exutil.StartBuild(oc, "sample-pipeline")
 
 				g.By("verify job is in jenkins")
 				_, err = j.WaitForContent("", 200, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
