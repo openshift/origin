@@ -232,8 +232,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 						targets.Expect(labels{"job": "kube-state-metrics"}, "up", "^https://.*/metrics$"),
 
 						// Cluster version operator
-						// TODO: require HTTPS once https://github.com/openshift/cluster-version-operator/pull/385 lands
-						targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^https?://.*/metrics$"),
+						targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^https://.*/metrics$"),
 					)
 				}
 
