@@ -217,6 +217,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 	g.Context("jenkins-client-plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
+			g.Skip("skipping because second deployment does not exist")
 			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
