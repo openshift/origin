@@ -65,27 +65,6 @@ func masterNodes(oc *exutil.CLI) []*corev1.Node {
 	return nodes
 }
 
-func constructEtcdConnectionString(masters []string) string {
-	//TODO vrutkovs: replace this nonsense with `etcdctl member list -w json ...`
-	etcdConnectionString := ""
-	for _, master := range masters {
-		result, err := e2essh.SSH("cat /run/etcd/environment", master+":22", e2e.TestContext.Provider)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		var entry string
-		for _, entry = range strings.Split(result.Stdout, "\n") {
-			if strings.HasPrefix(entry, "ETCD_DNS_NAME=") {
-				break
-			}
-		}
-		entries := strings.Split(entry, "=")
-		o.Expect(entries).To(o.HaveLen(2))
-		etcdDNSName := entries[1]
-		o.Expect(etcdDNSName).NotTo(o.BeEmpty())
-		etcdConnectionString = fmt.Sprintf("%setcd-member-%s=https://%s:2380,", etcdConnectionString, master, etcdDNSName)
-	}
-	return etcdConnectionString[:len(etcdConnectionString)-1]
-}
-
 func waitForMastersToUpdate(oc *exutil.CLI, mcps dynamic.NamespaceableResourceInterface) {
 	e2elog.Logf("Waiting for MachineConfig master to finish rolling out")
 	err := wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
