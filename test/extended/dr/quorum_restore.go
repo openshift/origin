@@ -99,11 +99,12 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 						continue
 					}
 					framework.Logf("Stopping etcd and kube-apiserver pods and removing data-dir from %s", node.Name)
-					expectSSH("sudo -i /bin/bash -cx 'mv /etc/kubernetes/manifests/etcd-pod.yaml /tmp'", node)
 
+					expectSSH("sudo -i /bin/bash -cx 'mv /etc/kubernetes/manifests/etcd-pod.yaml /tmp'", node)
 					time.Sleep(180 * time.Second)
 
 					expectSSH("sudo -i /bin/bash -cx 'mv /etc/kubernetes/manifests/kube-apiserver-pod.yaml /tmp; rm -rf /var/lib/etcd'", node)
+					time.Sleep(180 * time.Second)
 				}
 
 				framework.Logf("Restore etcd and control-plane on  %s", firstMaster)
