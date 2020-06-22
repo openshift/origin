@@ -443,6 +443,7 @@ func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName string, temp
 		identifier := map[string]interface{}{"IDENTIFIER": i}
 		identifierParams := convertVariablesToString(identifier)
 		idArgs := append(allArgs, identifierParams...)
+		idArgs = append(idArgs, "--ignore-unknown-parameters")
 		e2e.Logf("args: %v", idArgs)
 		configFile, err := oc.SetNamespace(nsName).Run("process").Args(idArgs...).OutputToFile("config.json")
 		if err != nil {
