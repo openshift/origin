@@ -13,6 +13,15 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	discocache "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
+	kclientset "k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
+	etcddata "k8s.io/kubernetes/test/integration/etcd"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -21,13 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	discocache "k8s.io/client-go/discovery/cached"
-	"k8s.io/client-go/dynamic"
-	kclientset "k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
 	etcdv3 "go.etcd.io/etcd/clientv3"
 )
@@ -263,6 +265,10 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 			t.Fatalf("error deleting test namespace: %#v", err)
 		}
 	}()
+
+	if err := exutil.WaitForServiceAccount(kubeClient.CoreV1().ServiceAccounts(testNamespace), "default"); err != nil {
+		t.Fatalf("error waiting for the default service account: %v", err)
+	}
 
 	etcdStorageData := etcddata.GetEtcdStorageData()
 
