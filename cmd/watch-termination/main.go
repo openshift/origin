@@ -18,6 +18,10 @@ import (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	terminationLog := flag.String("termination-log-file", "", "Write logs after SIGTERM to this file (in addition to stderr)")
 	terminationLock := flag.String("termination-touch-file", "", "Touch this file on SIGTERM and delete on termination")
 
@@ -33,7 +37,7 @@ func main() {
 
 	if len(args) == 0 {
 		fmt.Println("Missing command line")
-		os.Exit(1)
+		return 1
 	}
 
 	// use special tee-like writer when termination log is set
@@ -51,6 +55,20 @@ func main() {
 		// Otherwise, we would see errors multiple times.
 		klog.SetOutput(ioutil.Discard)
 		klog.SetOutputBySeverity("INFO", stderr)
+	}
+
+	// touch file early. If the file is not removed on termination, we are not
+	// terminating cleanly via SIGTERM.
+	if len(*terminationLock) > 0 {
+		klog.Infof("Touching termination lock file %q", *terminationLock)
+		if err := touch(*terminationLock); err != nil {
+			klog.Infof("error touching %s: %v", *terminationLock, err)
+			// keep going
+		}
+		defer func() {
+			klog.Infof("Deleting termination lock file %q", *terminationLock)
+			os.Remove(*terminationLock)
+		}()
 	}
 
 	cmd := exec.Command(args[0], args[1:]...)
@@ -73,14 +91,6 @@ func main() {
 
 			klog.Infof("Received signal %s. Forwarding to sub-process %q.", s, args[0])
 
-			if len(*terminationLock) > 0 {
-				klog.Infof("Touching termination lock file %q", *terminationLock)
-				if err := touch(*terminationLock); err != nil {
-					klog.Infof("error touching %s: %v", *terminationLock, err)
-					// keep going
-				}
-			}
-
 			cmd.Process.Signal(s)
 		}
 	}()
@@ -92,7 +102,7 @@ func main() {
 			rc = exitError.ExitCode()
 		} else {
 			klog.Infof("Failed to launch %s: %v", args[0], err)
-			os.Exit(255)
+			return 255
 		}
 	}
 
@@ -101,13 +111,8 @@ func main() {
 	close(sigCh)
 	wg.Wait()
 
-	if len(*terminationLock) > 0 {
-		klog.Infof("Deleting termination lock file %q", *terminationLock)
-		os.Remove(*terminationLock)
-	}
-
 	klog.Infof("Termination finished with exit code %d", rc)
-	os.Exit(rc)
+	return rc
 }
 
 // terminationFileWriter forwards everything to the embedded writer. When
