@@ -105,6 +105,9 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 
 					expectSSH("sudo -i /bin/bash -cx 'mv /etc/kubernetes/manifests/kube-apiserver-pod.yaml /tmp; rm -rf /var/lib/etcd'", node)
 					time.Sleep(180 * time.Second)
+
+					expectSSH("sudo -i /bin/bash -cx 'mv /etc/kubernetes/manifests/kube-scheduler-pod.yaml /tmp'", node)
+					time.Sleep(180 * time.Second)
 				}
 
 				framework.Logf("Restore etcd and control-plane on  %s", firstMaster)
