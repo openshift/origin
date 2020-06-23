@@ -422,7 +422,7 @@ import:
 - package: github.com/mrunalp/fileutils
   version: 4ee1cc9a80582a0c75febdd5cfa779ee4361cbca
 - package: github.com/mtrmac/gpgme
-  version: b2432428689ca58c2b8e8dea9449d3295cf96fc9
+  version: v0.1.2
 - package: github.com/mxk/go-flowrate
   version: cca7078d478f8520f85629ad7c68962d31ed7682
 - package: github.com/Nvveen/Gotty

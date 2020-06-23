@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"runtime"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -64,7 +64,7 @@ pupeR7ut6pWJxr6MND793yoFGoRYwKklQdfP4xzFCatYRU4RkPBp95KJ
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	os.Setenv("GNUPGHOME", testGPGHome)
+	os.Setenv("GNUPGHOME", absTestGPGHome())
 	unsetenvGPGAgentInfo()
 	os.Exit(m.Run())
 }
@@ -327,7 +327,64 @@ func TestContext_Import(t *testing.T) {
 	}
 }
 
+func TestContext_Export(t *testing.T) {
+	ctx, err := New()
+	checkError(t, err)
+
+	data, err := NewData()
+	checkError(t, err)
+
+	err = ctx.Export("", 0, data)
+	checkError(t, err)
+
+	data.Seek(0, 0)
+	allKeys, err := ioutil.ReadAll(data)
+	checkError(t, err)
+	if len(allKeys) < 1 {
+		t.Error("Expected exported keys, got empty buffer")
+	}
+}
+
+func TestContext_AssuanSend(t *testing.T) {
+	// Launch a gpg-agent in daemon mode
+	cmd := exec.Command("gpg-connect-agent", "--verbose", "/bye")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		t.Skip(err)
+	}
+
+	ctx, err := New()
+	checkError(t, err)
+	err = ctx.SetProtocol(ProtocolAssuan)
+	checkError(t, err)
+
+	// NOP should simply succeed
+	err = ctx.AssuanSend("NOP", nil, nil, nil)
+	checkError(t, err)
+
+	// GETINFO should return a version in Data
+	var versionData []byte
+	err = ctx.AssuanSend("GETINFO version",
+		func(data []byte) error {
+			versionData = data
+			return nil
+		},
+		nil,
+		nil,
+	)
+	checkError(t, err)
+	if len(versionData) == 0 {
+		t.Error("Expected version data")
+	}
+
+	err = ctx.AssuanSend("KILLAGENT", nil, nil, nil)
+	checkError(t, err)
+}
+
 func isVersion(t testing.TB, version string) bool {
+	t.Helper()
 	var info *EngineInfo
 	info, err := GetEngineInfo()
 	checkError(t, err)
@@ -347,6 +404,7 @@ var gpgBins = []string{"gpg2", "gpg1", "gpg"}
 
 // ensureVersion tries to setup gpgme with a specific version or skip
 func ensureVersion(t testing.TB, version, msg string) {
+	t.Helper()
 	if isVersion(t, version) {
 		return
 	}
@@ -355,7 +413,7 @@ func ensureVersion(t testing.TB, version, msg string) {
 		if err != nil {
 			continue
 		}
-		if err := SetEngineInfo(ProtocolOpenPGP, path, testGPGHome); err != nil {
+		if err := SetEngineInfo(ProtocolOpenPGP, path, absTestGPGHome()); err != nil {
 			continue
 		}
 		if isVersion(t, version) {
@@ -366,6 +424,7 @@ func ensureVersion(t testing.TB, version, msg string) {
 }
 
 func diff(t *testing.T, dst, src []byte) {
+	t.Helper()
 	line := 1
 	offs := 0 // line offset
 	for i := 0; i < len(dst) && i < len(src); i++ {
@@ -387,20 +446,17 @@ func diff(t *testing.T, dst, src []byte) {
 }
 
 func checkError(t testing.TB, err error) {
+	t.Helper()
 	if err == nil {
 		return
 	}
-	_, file, line, ok := runtime.Caller(1)
-	if ok {
-		// Truncate file name at last file name separator.
-		if index := strings.LastIndex(file, "/"); index >= 0 {
-			file = file[index+1:]
-		} else if index = strings.LastIndex(file, "\\"); index >= 0 {
-			file = file[index+1:]
-		}
-	} else {
-		file = "???"
-		line = 1
+	t.Fatal(err)
+}
+
+func absTestGPGHome() string {
+	f, err := filepath.Abs(testGPGHome)
+	if err != nil {
+		panic(err)
 	}
-	t.Fatalf("%s:%d: %s", file, line, err)
+	return f
 }
