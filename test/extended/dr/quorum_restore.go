@@ -102,6 +102,15 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 
 					expectSSH("sudo -i /bin/bash -cx 'mv /etc/kubernetes/manifests/etcd-pod.yaml /tmp'", node)
 					exutil.WaitUntilPodIsGone(oc.AdminKubeClient().CoreV1().Pods("openshift-etcd"), "etcd", 5*time.Minute)
+					time.Sleep(1 * time.Minute)
+					pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(context.Background(), metav1.ListOptions{})
+					if err != nil {
+						framework.Logf("pods returned error %v", err)
+						return
+					}
+					for _, pod := range pods.Items {
+						framework.Logf("rphillips - %s", pod.Name)
+					}
 
 					expectSSH("sudo -i /bin/bash -cx 'mv /etc/kubernetes/manifests/kube-apiserver-pod.yaml /tmp; rm -rf /var/lib/etcd'", node)
 				}
