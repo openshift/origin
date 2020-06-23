@@ -14,7 +14,7 @@ objects:
     name: cockroachdb
     source: "${SOURCENAME}"
     sourceNamespace: "${SOURCENAMESPACE}"
-    startingCSV: cockroachdb.v2.1.11
+    startingCSV: cockroachdb.v3.0.7
 parameters:
 - name: NAME
 - name: NAMESPACE
