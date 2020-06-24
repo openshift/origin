@@ -8,6 +8,7 @@ import (
 
 	"github.com/miekg/dns"
 
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -77,38 +78,44 @@ func (d *DNS) Add(dns string) error {
 	defer d.lock.Unlock()
 
 	d.dnsMap[dns] = dnsValue{}
-	_, err := d.updateOne(dns)
+	err, _ := d.updateOne(dns)
 	if err != nil {
 		delete(d.dnsMap, dns)
 	}
 	return err
 }
 
-func (d *DNS) Delete(dns string) {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	delete(d.dnsMap, dns)
-}
-
-func (d *DNS) Update(dnsName string) (bool, error) {
+func (d *DNS) Update() (error, bool) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	return d.updateOne(dnsName)
+	errList := []error{}
+	changed := false
+	for dns := range d.dnsMap {
+		err, updated := d.updateOne(dns)
+		if err != nil {
+			errList = append(errList, err)
+			continue
+		}
+		if updated {
+			changed = true
+		}
+	}
+	return kerrors.NewAggregate(errList), changed
 }
 
-func (d *DNS) updateOne(dns string) (bool, error) {
+func (d *DNS) updateOne(dns string) (error, bool) {
 	res, ok := d.dnsMap[dns]
 	if !ok {
 		// Should not happen, all operations on dnsMap are synchronized by d.lock
-		return false, fmt.Errorf("DNS value not found in dnsMap for domain: %q", dns)
+		return fmt.Errorf("DNS value not found in dnsMap for domain: %q", dns), false
 	}
 
 	ips, ttl, err := d.getIPsAndMinTTL(dns)
 	if err != nil {
 		res.nextQueryTime = time.Now().Add(defaultTTL)
 		d.dnsMap[dns] = res
-		return false, err
+		return err, false
 	}
 
 	changed := false
@@ -119,7 +126,7 @@ func (d *DNS) updateOne(dns string) (bool, error) {
 	res.ttl = ttl
 	res.nextQueryTime = time.Now().Add(res.ttl)
 	d.dnsMap[dns] = res
-	return changed, nil
+	return nil, changed
 }
 
 func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
@@ -176,23 +183,20 @@ func (d *DNS) getIPsAndMinTTL(domain string) ([]net.IP, time.Duration, error) {
 	return removeDuplicateIPs(ips), ttl, nil
 }
 
-func (d *DNS) GetNextQueryTime() (time.Time, string, bool) {
+func (d *DNS) GetMinQueryTime() (time.Time, bool) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
 	timeSet := false
 	var minTime time.Time
-	var dns string
-
-	for dnsName, res := range d.dnsMap {
+	for _, res := range d.dnsMap {
 		if (timeSet == false) || res.nextQueryTime.Before(minTime) {
 			timeSet = true
 			minTime = res.nextQueryTime
-			dns = dnsName
 		}
 	}
 
-	return minTime, dns, timeSet
+	return minTime, timeSet
 }
 
 func ipsEqual(oldips, newips []net.IP) bool {

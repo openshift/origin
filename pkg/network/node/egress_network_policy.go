@@ -119,20 +119,19 @@ func (plugin *OsdnNode) syncEgressDNSPolicyRules() {
 
 	for {
 		policyUpdates := <-plugin.egressDNS.Updates
-		for _, policyUpdate := range policyUpdates {
-			glog.V(5).Infof("Egress dns sync: updating policy: %v", policyUpdate.UID)
-			vnid, err := plugin.policy.GetVNID(policyUpdate.Namespace)
-			if err != nil {
-				glog.Warningf("Could not find netid for namespace %q: %v", policyUpdate.Namespace, err)
-				continue
-			}
+		glog.V(5).Infof("Egress dns sync: updating policy: %v", policyUpdates.UID)
 
-			func() {
-				plugin.egressPoliciesLock.Lock()
-				defer plugin.egressPoliciesLock.Unlock()
-
-				plugin.updateEgressNetworkPolicyRules(vnid)
-			}()
+		vnid, err := plugin.policy.GetVNID(policyUpdates.Namespace)
+		if err != nil {
+			glog.Warningf("Could not find netid for namespace %q: %v", policyUpdates.Namespace, err)
+			continue
 		}
+
+		func() {
+			plugin.egressPoliciesLock.Lock()
+			defer plugin.egressPoliciesLock.Unlock()
+
+			plugin.updateEgressNetworkPolicyRules(vnid)
+		}()
 	}
 }

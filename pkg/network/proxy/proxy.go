@@ -67,16 +67,12 @@ type OsdnProxy struct {
 // Called by higher layers to create the proxy plugin instance; only used by nodes
 func New(pluginName string, networkClient networkclient.Interface, kClient kclientset.Interface,
 	networkInformers networkinformers.SharedInformerFactory) (*OsdnProxy, error) {
-	egressDNS, err := common.NewEgressDNS()
-	if err != nil {
-		return nil, err
-	}
 	return &OsdnProxy{
 		kClient:          kClient,
 		networkClient:    networkClient,
 		networkInformers: networkInformers,
 		ids:              make(map[string]uint32),
-		egressDNS:        egressDNS,
+		egressDNS:        common.NewEgressDNS(),
 		firewall:         make(map[string]*proxyFirewallItem),
 		allEndpoints:     make(map[ktypes.UID]*proxyEndpoints),
 	}, nil
@@ -201,7 +197,7 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy networkapi.EgressNetwor
 			}
 			firewall = append(firewall, firewallItem{rule.Type, cidr})
 		} else if len(rule.To.DNSName) > 0 {
-			cidrs := proxy.egressDNS.GetNetCIDRs(rule.To.DNSName)
+			cidrs := proxy.egressDNS.GetNetCIDRs(policy, rule.To.DNSName)
 			for _, cidr := range cidrs {
 				firewall = append(firewall, firewallItem{rule.Type, &cidr})
 			}
@@ -380,26 +376,24 @@ func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
 
 	for {
 		policyUpdates := <-proxy.egressDNS.Updates
-		for _, policyUpdate := range policyUpdates {
-			glog.V(5).Infof("Egress dns sync: update proxy firewall for policy: %v", policyUpdate.UID)
+		glog.V(5).Infof("Egress dns sync: update proxy firewall for policy: %v", policyUpdates.UID)
 
-			policy, ok := getPolicy(policyUpdate.UID, policies)
-			if !ok {
-				policies, err = proxy.networkClient.Network().EgressNetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
-				if err != nil {
-					utilruntime.HandleError(fmt.Errorf("Failed to update proxy firewall for policy: %v, Could not get EgressNetworkPolicies: %v", policyUpdate.UID, err))
-					continue
-				}
-
-				policy, ok = getPolicy(policyUpdate.UID, policies)
-				if !ok {
-					glog.Warningf("Unable to update proxy firewall for policy: %v, policy not found", policyUpdate.UID)
-					continue
-				}
+		policy, ok := getPolicy(policyUpdates.UID, policies)
+		if !ok {
+			policies, err = proxy.networkClient.Network().EgressNetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
+			if err != nil {
+				utilruntime.HandleError(fmt.Errorf("Failed to update proxy firewall for policy: %v, Could not get EgressNetworkPolicies: %v", policyUpdates.UID, err))
+				continue
 			}
 
-			proxy.updateEgressNetworkPolicyLocked(policy)
+			policy, ok = getPolicy(policyUpdates.UID, policies)
+			if !ok {
+				glog.Warningf("Unable to update proxy firewall for policy: %v, policy not found", policyUpdates.UID)
+				continue
+			}
 		}
+
+		proxy.updateEgressNetworkPolicyLocked(policy)
 	}
 }
 

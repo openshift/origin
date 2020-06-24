@@ -173,11 +173,6 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		masqBit = uint32(*c.MasqueradeBit)
 	}
 
-	egressDNS, err := common.NewEgressDNS()
-	if err != nil {
-		return nil, err
-	}
-
 	plugin := &OsdnNode{
 		policy:             policy,
 		kClient:            c.KClient,
@@ -192,7 +187,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		mtu:                c.MTU,
 		masqueradeBit:      masqBit,
 		egressPolicies:     make(map[uint32][]networkapi.EgressNetworkPolicy),
-		egressDNS:          egressDNS,
+		egressDNS:          common.NewEgressDNS(),
 		kubeInformers:      c.KubeInformers,
 		networkInformers:   c.NetworkInformers,
 		egressIP:           newEgressIPWatcher(oc, c.SelfIP, c.MasqueradeBit),

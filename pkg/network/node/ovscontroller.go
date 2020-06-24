@@ -525,7 +525,7 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 			if len(rule.To.CIDRSelector) > 0 {
 				selectors = append(selectors, rule.To.CIDRSelector)
 			} else if len(rule.To.DNSName) > 0 {
-				ips := egressDNS.GetIPs(rule.To.DNSName)
+				ips := egressDNS.GetIPs(policies[0], rule.To.DNSName)
 				for _, ip := range ips {
 					selectors = append(selectors, ip.String())
 				}
