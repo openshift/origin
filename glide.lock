@@ -389,7 +389,8 @@ imports:
 - name: github.com/google/btree
   version: 4030bb1f1f0c35b30ca7009e9ebd06849dd45306
 - name: github.com/google/cadvisor
-  version: 49033161cc529be82d2672805a196752a74eac9d
+  repo: https://github.com/openshift/cadvisor
+  version: 52275b81dc5b670043d8a320f81341b0b7e6f6f8
   subpackages:
   - accelerators
   - cache/memory
