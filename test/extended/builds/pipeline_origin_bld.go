@@ -164,9 +164,10 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 			j = jenkins.NewRef(oc)
 
 			g.By("wait for jenkins to come up")
-			_, err = j.WaitForContent("", 200, 10*time.Minute, "")
+			resp, err := j.WaitForContent("", 200, 5*time.Minute, "")
 
 			if err != nil {
+				e2e.Logf("wait for jenkins to come up got err and resp string %s and err %s, dumping pods", resp, err.Error())
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 			}
 
@@ -245,15 +246,9 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				}
 
 				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "sample-pipeline-openshift-client-plugin").Execute()
+				err = oc.Run("delete").Args("bc", "--all").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("dc", "jenkins-second-deployment").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("bc", "ruby").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("is", "ruby").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("is", "ruby-25-centos7").Execute()
+				err = oc.Run("delete").Args("is", "--all").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// doing this as admin to avoid errors like this:
@@ -268,7 +263,9 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("secret", "mongodb").Execute()
+				err = oc.Run("delete").Args("secret", "mongodb", "--ignore-not-found=true").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("service", "mongodb", "--ignore-not-found=true").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
