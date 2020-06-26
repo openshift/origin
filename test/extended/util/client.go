@@ -270,6 +270,8 @@ func (c *CLI) SetupProject() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
+	WaitForNamespaceSCCAnnotations(c.ProjectClient().ProjectV1(), newNamespace)
+
 	e2e.Logf("Project %q has been fully provisioned.", newNamespace)
 }
 
