@@ -53,7 +53,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 		secretPath                             = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
 		successfulPipeline                     = exutil.FixturePath("testdata", "builds", "build-pruning", "successful-pipeline.yaml")
 		failedPipeline                         = exutil.FixturePath("testdata", "builds", "build-pruning", "failed-pipeline.yaml")
-		clientPluginPipelinePath               = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
 		multiNamespaceClientPluginPipelinePath = exutil.FixturePath("testdata", "multi-namespace-pipeline.yaml")
 		verifyServiceClientPluginPipelinePath  = exutil.FixturePath("testdata", "verifyservice-pipeline-template.yaml")
 		pollingInterval                        = time.Second
@@ -217,61 +216,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 	g.Context("jenkins-client-plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
-			g.Skip("skipping because second deployment does not exist")
 			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			g.By("Pipeline using jenkins-client-plugin")
-
-			g.By("should build and complete successfully", func() {
-				// instantiate the bc
-				g.By("create the jenkins pipeline strategy build config that leverages openshift client plugin")
-				err := oc.Run("create").Args("-f", clientPluginPipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// start the build - we run it twice because our sample pipeline exercises different paths of the client
-				// plugin based on whether certain resources already exist or not
-				for i := 0; i < 2; i++ {
-					g.By(fmt.Sprintf("starting the pipeline build and waiting for it to complete, pass: %d", i))
-					br, err := exutil.StartBuildAndWait(oc, "sample-pipeline-openshift-client-plugin")
-					if err != nil || !br.BuildSuccess {
-						debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-openshift-client-plugin", oc, true)
-						exutil.DumpBuilds(oc)
-						exutil.DumpBuildLogs("ruby", oc)
-						exutil.DumpDeploymentLogs("mongodb", 1, oc)
-						exutil.DumpDeploymentLogs("jenkins-second-deployment", 1, oc)
-						exutil.DumpDeploymentLogs("jenkins-second-deployment", 2, oc)
-					}
-					br.AssertSuccess()
-
-					g.By("get build console logs and see if succeeded")
-					_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-					o.Expect(err).NotTo(o.HaveOccurred())
-				}
-
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "--all").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("is", "--all").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// doing this as admin to avoid errors like this:
-				// Dec 14 13:13:02.275: INFO: Error running &{/usr/bin/oc [oc delete --config=/tmp/configfile590595709 --namespace=e2e-test-jenkins-pipeline-2z82q all -l template=mongodb-ephemeral-template] []   replicationcontroller "mongodb-1" deleted
-				// service "mongodb" deleted
-				// deploymentconfig.apps.openshift.io "mongodb" deleted
-				// Error from server (Forbidden): clusterserviceversions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list clusterserviceversions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-				// Error from server (Forbidden): catalogsources.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list catalogsources.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-				// Error from server (Forbidden): installplans.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list installplans.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-				// Error from server (Forbidden): subscriptions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list subscriptions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-				err = oc.AsAdmin().Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("secret", "mongodb", "--ignore-not-found=true").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("service", "mongodb", "--ignore-not-found=true").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
 
 			g.By("should verify services successfully", func() {
 				redisTemplate := "redis-ephemeral"
