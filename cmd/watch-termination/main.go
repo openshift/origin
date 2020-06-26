@@ -67,7 +67,7 @@ func run() int {
 
 	var client kubernetes.Interface
 	if len(*kubeconfigPath) > 0 {
-		loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: *kubeconfigPath}, nil)
+		loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: *kubeconfigPath}, &clientcmd.ConfigOverrides{})
 		if cfg, err := loader.ClientConfig(); err != nil {
 			klog.Errorf("failed to load kubeconfig %q: %v", *kubeconfigPath, err)
 			return 1
