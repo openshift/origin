@@ -428,6 +428,37 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			}
 			helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
 		})
+		g.It("should provide named network metrics", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+
+			cs, err := newDynClientSet()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = addNetwork(cs, "secondary", ns)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			defer func() {
+				err := removeNetwork(cs, "secondary", ns)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}()
+
+			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) {
+				pod.Annotations = map[string]string{
+					"k8s.v1.cni.cncf.io/networks": "secondary",
+				}
+			})
+
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
+
+			g.By("verifying named metrics keys")
+			queries := map[string]bool{
+				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",interface="eth0"} == 0`, execPod.Name, execPod.Namespace):         true,
+				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",network_name="secondary"} == 0`, execPod.Name, execPod.Namespace): true,
+			}
+			helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
+		})
 	})
 })
 
