@@ -303,7 +303,7 @@ var map_AuthenticationSpec = map[string]string{
 	"type":                       "type identifies the cluster managed, user facing authentication mode in use. Specifically, it manages the component that responds to login attempts. The default is IntegratedOAuth.",
 	"oauthMetadata":              "oauthMetadata contains the discovery endpoint data for OAuth 2.0 Authorization Server Metadata for an external OAuth server. This discovery document can be viewed from its served location: oc get --raw '/.well-known/oauth-authorization-server' For further details, see the IETF Draft: https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2 If oauthMetadata.name is non-empty, this value has precedence over any metadata reference stored in status. The key \"oauthMetadata\" is used to locate the data. If specified and the config map or expected key is not found, no metadata is served. If the specified metadata is not valid, no metadata is served. The namespace for this config map is openshift-config.",
 	"webhookTokenAuthenticators": "webhookTokenAuthenticators configures remote token reviewers. These remote authentication webhooks can be used to verify bearer tokens via the tokenreviews.authentication.k8s.io REST API.  This is required to honor bearer tokens that are provisioned by an external authentication service. The namespace for these secrets is openshift-config.",
-	"serviceAccountIssuer":       "serviceAccountIssuer is the identifier of the bound service account token issuer. The default is auth.openshift.io.",
+	"serviceAccountIssuer":       "serviceAccountIssuer is the identifier of the bound service account token issuer. The default is https://kubernetes.default.svc",
 }
 
 func (AuthenticationSpec) SwaggerDoc() map[string]string {

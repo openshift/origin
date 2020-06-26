@@ -701,7 +701,7 @@ func (s *DockerServer) startContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	var hostConfig *docker.HostConfig
 	err = json.NewDecoder(r.Body).Decode(&hostConfig)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

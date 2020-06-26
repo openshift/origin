@@ -75,10 +75,7 @@ func TestRemoveSecretNotFound(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such secret", status: http.StatusNotFound})
 	err := client.RemoveSecret(RemoveSecretOptions{ID: "a2334"})
-	expected := &NoSuchSecret{ID: "a2334"}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("RemoveSecret: Wrong error returned. Want %#v. Got %#v.", expected, err)
-	}
+	expectNoSuchSecret(t, "a2334", err)
 }
 
 func TestUpdateSecret(t *testing.T) {
@@ -167,10 +164,7 @@ func TestUpdateSecretNotFound(t *testing.T) {
 	client := newTestClient(&FakeRoundTripper{message: "no such Secret", status: http.StatusNotFound})
 	update := UpdateSecretOptions{}
 	err := client.UpdateSecret("notfound", update)
-	expected := &NoSuchSecret{ID: "notfound"}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("UpdateSecret: Wrong error returned. Want %#v. Got %#v.", expected, err)
-	}
+	expectNoSuchSecret(t, "notfound", err)
 }
 
 func TestInspectSecretNotFound(t *testing.T) {
@@ -180,10 +174,7 @@ func TestInspectSecretNotFound(t *testing.T) {
 	if secret != nil {
 		t.Errorf("InspectSecret: Expected <nil> Secret, got %#v", secret)
 	}
-	expected := &NoSuchSecret{ID: "notfound"}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("InspectSecret: Wrong error returned. Want %#v. Got %#v.", expected, err)
-	}
+	expectNoSuchSecret(t, "notfound", err)
 }
 
 func TestInspectSecret(t *testing.T) {

@@ -74,7 +74,7 @@ func (s *DockerServer) swarmInit(w http.ResponseWriter, r *http.Request) {
 	}
 	var req swarm.InitRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

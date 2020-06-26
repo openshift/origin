@@ -23,7 +23,7 @@ const (
 
 func TestNewTSLAPIClientUnixEndpoint(t *testing.T) {
 	t.Parallel()
-	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("ok"))
 	}))
 	if err != nil {

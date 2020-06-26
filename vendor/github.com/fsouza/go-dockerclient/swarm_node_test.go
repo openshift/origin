@@ -182,10 +182,7 @@ func TestInspectNodeNotFound(t *testing.T) {
 	if node != nil {
 		t.Errorf("InspectNode: Expected <nil> task, got %#v", node)
 	}
-	expected := &NoSuchNode{ID: "notfound"}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("InspectNode: Wrong error returned. Want %#v. Got %#v.", expected, err)
-	}
+	expectNoSuchNode(t, "notfound", err)
 }
 
 func TestUpdateNode(t *testing.T) {
@@ -223,10 +220,7 @@ func TestUpdateNodeNotFound(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such node", status: http.StatusNotFound})
 	err := client.UpdateNode("notfound", UpdateNodeOptions{})
-	expected := &NoSuchNode{ID: "notfound"}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("UpdateNode: Wrong error returned. Want %#v. Got %#v.", expected, err)
-	}
+	expectNoSuchNode(t, "notfound", err)
 }
 
 func TestRemoveNode(t *testing.T) {
@@ -252,8 +246,5 @@ func TestRemoveNodeNotFound(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such node", status: http.StatusNotFound})
 	err := client.RemoveNode(RemoveNodeOptions{ID: "notfound"})
-	expected := &NoSuchNode{ID: "notfound"}
-	if !reflect.DeepEqual(err, expected) {
-		t.Errorf("RemoveNode: Wrong error returned. Want %#v. Got %#v.", expected, err)
-	}
+	expectNoSuchNode(t, "notfound", err)
 }

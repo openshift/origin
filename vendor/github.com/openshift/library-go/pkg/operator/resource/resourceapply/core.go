@@ -335,6 +335,24 @@ func SyncSecret(client coreclientv1.SecretsGetter, recorder events.Recorder, sou
 	case err != nil:
 		return nil, false, err
 	default:
+		if source.Type == corev1.SecretTypeServiceAccountToken {
+
+			// Make sure the token is already present, otherwise we have to wait before creating the target
+			if len(source.Data[corev1.ServiceAccountTokenKey]) == 0 {
+				return nil, false, fmt.Errorf("secret %s/%s doesn't have a token yet", source.Namespace, source.Name)
+			}
+
+			if source.Annotations != nil {
+				// When syncing a service account token we have to remove the SA annotation to disable injection into copies
+				delete(source.Annotations, corev1.ServiceAccountNameKey)
+				// To make it clean, remove the dormant annotations as well
+				delete(source.Annotations, corev1.ServiceAccountUIDKey)
+			}
+
+			// SecretTypeServiceAccountToken implies required fields and injection which we do not want in copies
+			source.Type = corev1.SecretTypeOpaque
+		}
+
 		source.Namespace = targetNamespace
 		source.Name = targetName
 		source.ResourceVersion = ""
