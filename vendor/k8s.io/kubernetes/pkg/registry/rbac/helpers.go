@@ -44,7 +44,6 @@ func IsOnlyMutatingGCFields(obj, old runtime.Object, equalities conversion.Equal
 	copiedMeta.SetOwnerReferences(oldMeta.GetOwnerReferences())
 	copiedMeta.SetFinalizers(oldMeta.GetFinalizers())
 	copiedMeta.SetSelfLink(oldMeta.GetSelfLink())
-	copiedMeta.SetManagedFields(oldMeta.GetManagedFields())
 
 	return equalities.DeepEqual(copied, old)
 }

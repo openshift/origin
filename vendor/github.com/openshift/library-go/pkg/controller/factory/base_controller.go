@@ -156,6 +156,7 @@ func (c *baseController) runWorker(queueCtx context.Context) {
 	var workerWaitGroup sync.WaitGroup
 	workerWaitGroup.Add(1)
 	go func() {
+		defer utilruntime.HandleCrash()
 		defer workerWaitGroup.Done()
 		for {
 			select {
@@ -214,7 +215,7 @@ func (c *baseController) processNextWorkItem(queueCtx context.Context) {
 	if err := c.reconcile(queueCtx, syncCtx); err != nil {
 		if err == SyntheticRequeueError {
 			// logging this helps detecting wedged controllers with missing pre-requirements
-			klog.Infof("%q controller requested synthetic requeue with key %q", c.name, key)
+			klog.V(5).Infof("%q controller requested synthetic requeue with key %q", c.name, key)
 		} else {
 			utilruntime.HandleError(fmt.Errorf("%q controller failed to sync %q, err: %w", c.name, key, err))
 		}
