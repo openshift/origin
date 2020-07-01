@@ -31,9 +31,12 @@ import (
 // polled just a few milliseconds after some packets went out, in which case we obviously
 // need to give the remote node more time to respond before declaring it offline.)
 //
-// When the monitor decides a node has gone offline, it alerts its owner via the updates
-// channel, and then starts periodically pinging the node's SDN IP address, until the
-// incoming packet count increases, at which point it marks the node online again.
+// When the monitor decides a node has gone offline, the monitor adds the node to the
+// updateNodes map and it alerts its owner via the updates channel. Then it starts
+// periodically pinging the node's SDN IP address, until the incoming packet count
+// increases, at which point it marks the node online again by using the same mechanism.
+// The updatesNodes map is cleaned every time evm.GetUpdates() is called so that we aren't
+// needlessly calling egressIPTracker.SetNodeOffline().
 //
 // The fact that we (normally) use pod-to-egress traffic to do the monitoring rather than
 // actively pinging the nodes means that if an egress node falls over while no one is
@@ -45,7 +48,8 @@ type egressVXLANMonitor struct {
 
 	ovsif        ovs.Interface
 	tracker      *common.EgressIPTracker
-	updates      chan<- *egressVXLANNode
+	updates      chan<- struct{}
+	updateNodes  map[string]*egressVXLANNode
 	pollInterval time.Duration
 
 	monitorNodes map[string]*egressVXLANNode
@@ -69,11 +73,12 @@ const (
 	maxRetries          = 2
 )
 
-func newEgressVXLANMonitor(ovsif ovs.Interface, tracker *common.EgressIPTracker, updates chan<- *egressVXLANNode) *egressVXLANMonitor {
+func newEgressVXLANMonitor(ovsif ovs.Interface, tracker *common.EgressIPTracker, updates chan<- struct{}) *egressVXLANMonitor {
 	return &egressVXLANMonitor{
 		ovsif:        ovsif,
 		tracker:      tracker,
 		updates:      updates,
+		updateNodes:  make(map[string]*egressVXLANNode),
 		pollInterval: defaultPollInterval,
 		monitorNodes: make(map[string]*egressVXLANNode),
 	}
@@ -212,7 +217,7 @@ func (evm *egressVXLANMonitor) check(retryOnly bool) bool {
 			if in > node.in {
 				glog.Infof("Node %s is back online", node.nodeIP)
 				node.offline = false
-				evm.updates <- node
+				evm.updateNode(node)
 			} else if evm.tracker != nil {
 				// We can ignore the return value because if the node responds
 				// (with either success or "connection refused") we'll see it
@@ -238,7 +243,7 @@ func (evm *egressVXLANMonitor) check(retryOnly bool) bool {
 					glog.Warningf("Node %s is offline", node.nodeIP)
 					node.retries = 0
 					node.offline = true
-					evm.updates <- node
+					evm.updateNode(node)
 				} else {
 					glog.V(2).Infof("Node %s may be offline... retrying", node.nodeIP)
 					retry = true
@@ -256,6 +261,17 @@ func (evm *egressVXLANMonitor) check(retryOnly bool) bool {
 	return retry
 }
 
+func (evm *egressVXLANMonitor) updateNode(node *egressVXLANNode) {
+	evm.updateNodes[node.nodeIP] = node
+
+	// Don't update the updates channel if it already contains an entry.
+	// Otherwise we'll block this goroutine.
+	select {
+	case evm.updates <- struct{}{}:
+	default:
+	}
+}
+
 func (evm *egressVXLANMonitor) poll() (bool, error) {
 	evm.Lock()
 	defer evm.Unlock()
@@ -266,4 +282,17 @@ func (evm *egressVXLANMonitor) poll() (bool, error) {
 		retry = evm.check(true)
 	}
 	return false, nil
+}
+
+func (evm *egressVXLANMonitor) GetUpdates() []egressVXLANNode {
+	evm.Lock()
+	defer evm.Unlock()
+	values := []egressVXLANNode{}
+	for _, value := range evm.updateNodes {
+		values = append(values, *value)
+	}
+	// Cleanup so that when GetUpdates is called again we don't
+	// call egressIPTracker.SetNodeOffline on nodes without changes.
+	evm.updateNodes = make(map[string]*egressVXLANNode)
+	return values
 }
