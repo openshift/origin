@@ -242,13 +242,17 @@ func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSecon
 	cmd := fmt.Sprintf(`
 		set -e
 		STOP=$(($(date '+%%s') + %d))
+		ok_responses=0
 		while [ $(date '+%%s') -lt $STOP ]; do
 			rc=0
 			code=$( curl -k -s -m 5 -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
 				echo $code
 				if [[ $code -eq 200 ]]; then
-					exit 0
+					if ((++ok_responses >= 5)); then
+						exit 0
+					fi
+					continue
 				fi
 				if [[ $code -ne 503 ]]; then
 					exit 1
@@ -266,6 +270,9 @@ func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSecon
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	if lines[len(lines)-1] != "200" {
 		return fmt.Errorf("last response from server was not 200:\n%s", output)
+	}
+	if !strings.HasSuffix(output, "200\n200\n200\n200\n200\n") {
+		return fmt.Errorf("last 5 responses from server were not all 200:\n%s", output)
 	}
 	return nil
 }
