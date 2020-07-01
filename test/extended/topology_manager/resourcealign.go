@@ -2,6 +2,7 @@ package topologymanager
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -49,13 +50,18 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 		e2e.ExpectNoError(err)
 		o.Expect(workerNodes).ToNot(o.BeEmpty())
 
+		for _, node := range workerNodes {
+			nsJSON, _ := json.MarshalIndent(node.Status, "", "    ")
+			e2e.Logf("node %q status: %s", node.Name, nsJSON)
+		}
+
 		topoMgrNodes = filterNodeWithTopologyManagerPolicy(workerNodes, client, oc, kubeletconfigv1beta1.SingleNumaNodeTopologyManager)
 
 		deviceResourceName = getValueFromEnv(resourceNameEnvVar, defaultResourceName, "resource name")
 		// we don't handle yet an uneven device amount on worker nodes. IOW, we expect the same amount of devices on each node
 	})
 
-	g.Context("[Disabled:Broken] with non-gu workload", func() {
+	g.Context("with non-gu workload", func() {
 		t.DescribeTable("should run with no regressions",
 			func(pps PodParamsList) {
 				ns := oc.KubeFramework().Namespace.Name
