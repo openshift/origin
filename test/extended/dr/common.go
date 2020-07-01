@@ -65,6 +65,20 @@ func masterNodes(oc *exutil.CLI) []*corev1.Node {
 	return nodes
 }
 
+func clusterNodes(oc *exutil.CLI) (masters, workers []*corev1.Node) {
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	for i := range nodes.Items {
+		node := &nodes.Items[i]
+		if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+			masters = append(masters, node)
+		} else {
+			workers = append(workers, node)
+		}
+	}
+	return
+}
+
 func waitForMastersToUpdate(oc *exutil.CLI, mcps dynamic.NamespaceableResourceInterface) {
 	e2elog.Logf("Waiting for MachineConfig master to finish rolling out")
 	err := wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
