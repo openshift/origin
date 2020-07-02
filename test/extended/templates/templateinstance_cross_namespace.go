@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -129,9 +130,10 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 		err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete(context.Background(), templateinstance.Name, metav1.DeleteOptions{PropagationPolicy: &foreground})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		t := &templatev1.TemplateInstance{}
 		// wait for garbage collector to do its thing
 		err = wait.Poll(100*time.Millisecond, 30*time.Second, func() (bool, error) {
-			t, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), templateinstance.Name, metav1.GetOptions{})
+			t, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), templateinstance.Name, metav1.GetOptions{})
 			if kerrors.IsNotFound(err) {
 				return true, nil
 			}
@@ -160,13 +162,22 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 
 			return false, err
 		})
+		if err != nil {
+			if t.DeletionTimestamp != nil && len(t.Finalizers) == 1 && t.Finalizers[0] == "foregroundDeletion" &&
+				s1.DeletionTimestamp != nil && len(s1.Finalizers) == 0 && s1.Finalizers[0] == "foregroundDeletion" &&
+				s2.DeletionTimestamp != nil && len(s2.Finalizers) == 0 && s2.Finalizers[0] == "foregroundDeletion" {
+				e2elog.Logf("template not deleted but template controller finalizer has done everything it could")
+				return
+			}
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Template instances use a finalizer to delete objects, rather than owner references. As a result, objects
 		// created by the template can be deleted after the TemplateInstance itself is deleted.
+		var e1, e2 error
 		err = wait.Poll(100*time.Millisecond, 30*time.Second, func() (bool, error) {
-			_, e1 := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(context.Background(), "secret1", metav1.GetOptions{})
-			_, e2 := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(context.Background(), "secret2", metav1.GetOptions{})
+			s1, e1 = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(context.Background(), "secret1", metav1.GetOptions{})
+			s2, e2 = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(context.Background(), "secret2", metav1.GetOptions{})
 			if e1 == nil || e2 == nil {
 				return false, nil
 			}
@@ -178,6 +189,17 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance cross-namesp
 			}
 			return true, nil
 		})
+		if err != nil {
+			if s1.DeletionTimestamp != nil && len(s1.Finalizers) == 0 && s1.Finalizers[0] == "foregroundDeletion" &&
+				s2.DeletionTimestamp != nil && len(s2.Finalizers) == 0 && s2.Finalizers[0] == "foregroundDeletion" {
+				e2elog.Logf("secrets primed for deletion, but foreground GC slow")
+				return
+			}
+			s2JSON, _ := json.MarshalIndent(s2, "", "    ")
+			framework.Logf("secret2: during deletion: %s", string(s2JSON))
+			s1JSON, _ := json.MarshalIndent(s1, "", "    ")
+			framework.Logf("secret1 during deletion: %s", string(s1JSON))
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 	})
