@@ -2,6 +2,7 @@ package util
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -222,6 +223,11 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 	return registryHostname, nil
 }
 
+func processScanError(log string) error {
+	e2e.Logf(log)
+	return fmt.Errorf(log)
+}
+
 // WaitForOpenShiftNamespaceImageStreams waits for the standard set of imagestreams to be imported
 func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	ctx := context.Background()
@@ -232,19 +238,17 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 		return err
 	}
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "mysql", "postgresql", "mongodb", "jenkins"}
-	scan := func() bool {
+	scan := func() error {
 		// check the samples operator to see about imagestream import status
 		samplesOperatorConfig, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "openshift-samples", metav1.GetOptions{})
 		if err != nil {
-			e2e.Logf("Samples Operator ClusterOperator Error: %#v", err)
-			return false
+			return processScanError(fmt.Sprintf("Samples Operator ClusterOperator Error: %#v", err))
 		}
 		for _, condition := range samplesOperatorConfig.Status.Conditions {
 			switch {
 			case condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue:
 				// if degraded, bail ... unexpected results can ensue
-				e2e.Logf("SamplesOperator degraded!!!")
-				return false
+				return processScanError("SamplesOperator degraded!!!")
 			case condition.Type == configv1.OperatorProgressing:
 				// if the imagestreams for one of our langs above failed, we abort,
 				// but if it is for say only EAP streams, we allow
@@ -255,8 +259,7 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 							e2e.Logf("SamplesOperator detected error during imagestream import: %s with details %s", condition.Reason, condition.Message)
 							stream, err := oc.AsAdmin().ImageClient().ImageV1().ImageStreams("openshift").Get(ctx, lang, metav1.GetOptions{})
 							if err != nil {
-								e2e.Logf("after seeing FailedImageImports for %s retrieval failed with %s", lang, err.Error())
-								return false
+								return processScanError(fmt.Sprintf("after seeing FailedImageImports for %s retrieval failed with %s", lang, err.Error()))
 							}
 							isi := &imagev1.ImageStreamImport{}
 							isi.Name = lang
@@ -276,21 +279,18 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 							}
 							_, err = oc.AsAdmin().ImageClient().ImageV1().ImageStreamImports("openshift").Create(ctx, isi, metav1.CreateOptions{})
 							if err != nil {
-								e2e.Logf("after seeing FailedImageImports for %s the manual image import failed with %s", lang, err.Error())
+								return processScanError(fmt.Sprintf("after seeing FailedImageImports for %s the manual image import failed with %s", lang, err.Error()))
 							}
-							e2e.Logf("after seeing FailedImageImports for %s a manual image-import was submitted", lang)
-							return false
+							return processScanError(fmt.Sprintf("after seeing FailedImageImports for %s a manual image-import was submitted", lang))
 						}
 					}
 				}
 				if condition.Status == configv1.ConditionTrue {
 					// updates still in progress ... not "ready"
-					e2e.Logf("SamplesOperator still in progress")
-					return false
+					return processScanError(fmt.Sprintf("SamplesOperator still in progress"))
 				}
 			case condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse:
-				e2e.Logf("SamplesOperator not available")
-				return false
+				return processScanError(fmt.Sprintf("SamplesOperator not available"))
 			default:
 				e2e.Logf("SamplesOperator at steady state")
 			}
@@ -299,22 +299,19 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 			e2e.Logf("Checking language %v \n", lang)
 			is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(ctx, lang, metav1.GetOptions{})
 			if err != nil {
-				e2e.Logf("ImageStream Error: %#v \n", err)
-				return false
+				return processScanError(fmt.Sprintf("ImageStream Error: %#v \n", err))
 			}
 			if !strings.HasPrefix(is.Status.DockerImageRepository, registryHostname) {
-				e2e.Logf("ImageStream repository %s does not match expected host %s \n", is.Status.DockerImageRepository, registryHostname)
-				return false
+				return processScanError(fmt.Sprintf("ImageStream repository %s does not match expected host %s \n", is.Status.DockerImageRepository, registryHostname))
 			}
 			for _, tag := range is.Spec.Tags {
 				e2e.Logf("Checking tag %v \n", tag)
 				if _, found := imageutil.StatusHasTag(is, tag.Name); !found {
-					e2e.Logf("Tag Error: %#v \n", tag)
-					return false
+					return processScanError(fmt.Sprintf("Tag Error: %#v \n", tag))
 				}
 			}
 		}
-		return true
+		return nil
 	}
 
 	// with the move to ocp/rhel as the default for the samples in 4.0, there are alot more imagestreams;
@@ -326,18 +323,32 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	// we've also determined that e2e-aws-image-ecosystem can be started before all the operators have completed; while
 	// that is getting sorted out, the longer time will help there as well
 	e2e.Logf("Scanning openshift ImageStreams \n")
-	success := false
-	wait.Poll(10*time.Second, 150*time.Second, func() (bool, error) {
-		success = scan()
-		return success, nil
+	var scanErr error
+	pollErr := wait.Poll(10*time.Second, 150*time.Second, func() (bool, error) {
+		scanErr = scan()
+		if scanErr != nil {
+			return false, nil
+		}
+		return true, nil
 	})
-	if success {
+	if pollErr == nil {
 		e2e.Logf("Success! \n")
 		return nil
 	}
 	DumpImageStreams(oc)
 	DumpSampleOperator(oc)
-	return fmt.Errorf("Failed to import expected imagestreams")
+	errorString := ""
+	if strings.Contains(scanErr.Error(), "FailedImageImports") {
+		strbuf := bytes.Buffer{}
+		strbuf.WriteString(fmt.Sprintf("Issues exist pulling images from registry.redhat.io: %s\n", scanErr.Error()))
+		strbuf.WriteString(" - check status at https://status.redhat.com (catalog.redhat.com) for reported outages\n")
+		strbuf.WriteString(" - if no outages reported there, email Terms-Based-Registry-Team@redhat.com with a report of the error\n")
+		strbuf.WriteString("   and prepare to work with the test platform team to get the current set of tokens for CI\n")
+		errorString = strbuf.String()
+	} else {
+		errorString = fmt.Sprintf("Failed to import expected imagestreams, latest error status: %s", scanErr.Error())
+	}
+	return fmt.Errorf(errorString)
 }
 
 //DumpImageStreams will dump both the openshift namespace and local namespace imagestreams
