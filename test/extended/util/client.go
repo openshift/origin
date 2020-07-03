@@ -91,6 +91,18 @@ type resourceRef struct {
 	Name      string
 }
 
+// NewCLIWithFramework initializes the CLI using the provided Kube
+// framework. It can be called inside of a Ginkgo .It() function.
+func NewCLIWithFramework(kubeFramework *e2e.Framework) *CLI {
+	cli := &CLI{
+		kubeFramework:   kubeFramework,
+		username:        "admin",
+		execPath:        "oc",
+		adminConfigPath: KubeConfigPath(),
+	}
+	return cli
+}
+
 // NewCLI initialize the upstream E2E framework and set the namespace to match
 // with the project name. Note that this function does not initialize the project
 // role bindings for the namespace.
