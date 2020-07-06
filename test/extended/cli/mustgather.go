@@ -103,9 +103,8 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "oauths.yaml"},
 			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "projects.yaml"},
 			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "schedulers.yaml"},
-			// TODO: This got broken and we need to fix this. Disabled temporarily.
-			// {pluginOutputDir, "namespaces", "openshift-kube-apiserver", "core", "configmaps.yaml"},
-			// {pluginOutputDir, "namespaces", "openshift-kube-apiserver", "core", "secrets.yaml"},
+			{pluginOutputDir, "namespaces", "openshift-kube-apiserver", "core", "configmaps.yaml"},
+			{pluginOutputDir, "namespaces", "openshift-kube-apiserver", "core", "secrets.yaml"},
 			{pluginOutputDir, "host_service_logs", "masters", "crio_service.log"},
 			{pluginOutputDir, "host_service_logs", "masters", "kubelet_service.log"},
 		}
