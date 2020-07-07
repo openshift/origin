@@ -139,8 +139,8 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 						e2e.Logf("unable to run command:%v with error: %v", commands, err)
 						continue
 					}
-					e2e.Logf("Image relase info:%s", result)
-					if !strings.Contains(result, "Red Hat Enterprise Linux Server") {
+					e2e.Logf("Image release info: %s", result)
+					if !strings.Contains(result, "Red Hat Enterprise Linux") {
 						invalidPodContainerDownstreamImages.Insert(fmt.Sprintf("%s/%s invalid downstream image!", pod.Name, containerName))
 					}
 				}
