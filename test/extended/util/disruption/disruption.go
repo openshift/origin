@@ -102,6 +102,27 @@ func runChaosmonkey(
 	defer func() {
 		testSuite.Update()
 		testSuite.Time = time.Since(start).Seconds()
+
+		// if the test fails and all failures are described as "Flake", create a second
+		// test case that is listed as success so the test is properly marked as flaky
+		for _, testCase := range testSuite.TestCases {
+			allFlakes := len(testCase.Failures) > 0 && len(testCase.Errors) == 0 && len(testCase.Skipped) == 0
+			for _, failure := range testCase.Failures {
+				if failure.Type == "Flake" {
+					failure.Type = "Failure"
+				} else {
+					allFlakes = false
+				}
+			}
+			if allFlakes {
+				testSuite.TestCases = append(testSuite.TestCases, &junit.TestCase{
+					Name:      testCase.Name,
+					Classname: testCase.Classname,
+					Time:      testCase.Time,
+				})
+			}
+		}
+
 		if framework.TestContext.ReportDir != "" {
 			fname := filepath.Join(framework.TestContext.ReportDir, fmt.Sprintf("junit_%s_%d.xml", testSuite.Package, time.Now().Unix()))
 			f, err := os.Create(fname)
@@ -154,7 +175,7 @@ func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
 				if summary.SummaryKind() == "Flake" {
 					tc.Failures = append(tc.Failures, &junit.Failure{
 						Message: summary.PrintHumanReadable(),
-						Type:    "Failure",
+						Type:    "Flake",
 						Value:   summary.PrintHumanReadable(),
 					})
 				}
