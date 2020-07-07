@@ -4,7 +4,6 @@ package node
 
 import (
 	"fmt"
-	"net"
 	"os/exec"
 	"syscall"
 	"time"
@@ -32,9 +31,6 @@ type egressIPWatcher struct {
 
 	vxlanMonitor *egressVXLANMonitor
 
-	localEgressLink netlink.Link
-	localEgressNet  *net.IPNet
-
 	testModeChan chan string
 }
 
@@ -54,12 +50,6 @@ func newEgressIPWatcher(oc *ovsController, localIP string, masqueradeBit *int32)
 }
 
 func (eip *egressIPWatcher) Start(networkInformers networkinformers.SharedInformerFactory, iptables *NodeIPTables) error {
-	var err error
-	if eip.localEgressLink, eip.localEgressNet, err = GetLinkDetails(eip.localIP); err != nil {
-		// Not expected, should already be caught by node.New()
-		return nil
-	}
-
 	eip.iptables = iptables
 
 	updates := make(chan struct{}, 1)
@@ -178,34 +168,39 @@ func (eip *egressIPWatcher) assignEgressIP(egressIP, mark string) error {
 		return nil
 	}
 
-	localEgressIPMaskLen, _ := eip.localEgressNet.Mask.Size()
+	localEgressLink, localEgressNet, err := GetLinkDetails(eip.localIP)
+	if err != nil {
+		return fmt.Errorf("unable to get egress link details: %v", err)
+	}
+
+	localEgressIPMaskLen, _ := localEgressNet.Mask.Size()
 	egressIPNet := fmt.Sprintf("%s/%d", egressIP, localEgressIPMaskLen)
 	addr, err := netlink.ParseAddr(egressIPNet)
 	if err != nil {
 		return fmt.Errorf("could not parse egress IP %q: %v", egressIPNet, err)
 	}
-	if !eip.localEgressNet.Contains(addr.IP) {
-		return fmt.Errorf("egress IP %q is not in local network %s of interface %s", egressIP, eip.localEgressNet.String(), eip.localEgressLink.Attrs().Name)
+	if !localEgressNet.Contains(addr.IP) {
+		return fmt.Errorf("egress IP %q is not in local network %s of interface %s", egressIP, localEgressNet.String(), localEgressLink.Attrs().Name)
 	}
-	addr.Label, _ = egressIPLabel(eip.localEgressLink)
-	err = netlink.AddrAdd(eip.localEgressLink, addr)
+	addr.Label, _ = egressIPLabel(localEgressLink)
+	err = netlink.AddrAdd(localEgressLink, addr)
 	if err != nil {
 		if err == syscall.EEXIST {
-			glog.V(2).Infof("Egress IP %q already exists on %s", egressIPNet, eip.localEgressLink.Attrs().Name)
+			glog.V(2).Infof("Egress IP %q already exists on %s", egressIPNet, localEgressLink.Attrs().Name)
 		} else {
-			return fmt.Errorf("could not add egress IP %q to %s: %v", egressIPNet, eip.localEgressLink.Attrs().Name, err)
+			return fmt.Errorf("could not add egress IP %q to %s: %v", egressIPNet, localEgressLink.Attrs().Name, err)
 		}
 	}
 	// Use arping to try to update other hosts ARP caches, in case this IP was
 	// previously active on another node. (Based on code from "ifup".)
 	go func() {
-		out, err := exec.Command("/sbin/arping", "-q", "-A", "-c", "1", "-I", eip.localEgressLink.Attrs().Name, egressIP).CombinedOutput()
+		out, err := exec.Command("/sbin/arping", "-q", "-A", "-c", "1", "-I", localEgressLink.Attrs().Name, egressIP).CombinedOutput()
 		if err != nil {
 			glog.Warningf("Failed to send ARP claim for egress IP %q: %v (%s)", egressIP, err, string(out))
 			return
 		}
 		time.Sleep(2 * time.Second)
-		_ = exec.Command("/sbin/arping", "-q", "-U", "-c", "1", "-I", eip.localEgressLink.Attrs().Name, egressIP).Run()
+		_ = exec.Command("/sbin/arping", "-q", "-U", "-c", "1", "-I", localEgressLink.Attrs().Name, egressIP).Run()
 	}()
 
 	if err := eip.iptables.AddEgressIPRules(egressIP, mark); err != nil {
@@ -225,18 +220,23 @@ func (eip *egressIPWatcher) releaseEgressIP(egressIP, mark string) error {
 		return nil
 	}
 
-	localEgressIPMaskLen, _ := eip.localEgressNet.Mask.Size()
+	localEgressLink, localEgressNet, err := GetLinkDetails(eip.localIP)
+	if err != nil {
+		return fmt.Errorf("unable to get egress link details: %v", err)
+	}
+
+	localEgressIPMaskLen, _ := localEgressNet.Mask.Size()
 	egressIPNet := fmt.Sprintf("%s/%d", egressIP, localEgressIPMaskLen)
 	addr, err := netlink.ParseAddr(egressIPNet)
 	if err != nil {
 		return fmt.Errorf("could not parse egress IP %q: %v", egressIPNet, err)
 	}
-	err = netlink.AddrDel(eip.localEgressLink, addr)
+	err = netlink.AddrDel(localEgressLink, addr)
 	if err != nil {
 		if err == syscall.EADDRNOTAVAIL {
-			glog.V(2).Infof("Could not delete egress IP %q from %s: no such address", egressIPNet, eip.localEgressLink.Attrs().Name)
+			glog.V(2).Infof("Could not delete egress IP %q from %s: no such address", egressIPNet, localEgressLink.Attrs().Name)
 		} else {
-			return fmt.Errorf("could not delete egress IP %q from %s: %v", egressIPNet, eip.localEgressLink.Attrs().Name, err)
+			return fmt.Errorf("could not delete egress IP %q from %s: %v", egressIPNet, localEgressLink.Attrs().Name, err)
 		}
 	}
 
