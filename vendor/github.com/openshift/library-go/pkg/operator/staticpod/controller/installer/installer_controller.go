@@ -817,7 +817,7 @@ func (c InstallerController) Sync(ctx context.Context, syncCtx factory.SyncConte
 	if err == nil {
 		requeue, syncErr := c.manageInstallationPods(ctx, operatorSpec, operatorStatus, resourceVersion)
 		if requeue && syncErr == nil {
-			return fmt.Errorf("synthetic requeue request")
+			return factory.SyntheticRequeueError
 		}
 		err = syncErr
 	}

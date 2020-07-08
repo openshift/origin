@@ -13,7 +13,7 @@ var errEOF = io.ErrUnexpectedEOF.Error()
 
 // Tests from http://www.strozhevsky.com/free_docs/free_asn1_testsuite_descr.pdf
 // Source files and descriptions at http://www.strozhevsky.com/free_docs/TEST_SUITE.zip
-var testcases = []struct {
+var testCases = []struct {
 	// File contains the path to the BER-encoded file
 	File string
 	// Error indicates whether a decoding error is expected
@@ -30,18 +30,18 @@ var testcases = []struct {
 	{File: "tests/tc4.ber", Error: "invalid length byte 0xff"},
 	{File: "tests/tc5.ber", Error: "", AbnormalEncoding: true},
 	// Real numbers (some expected failures are disabled until support is added)
-	{File: "tests/tc6.ber", Error: ""}, // Error: "REAL value +0 must be encoded with zero-length value block"},
-	{File: "tests/tc7.ber", Error: ""}, // Error: "REAL value -0 must be encoded as a special value"},
-	{File: "tests/tc8.ber", Error: ""},
-	{File: "tests/tc9.ber", Error: ""}, // Error: "Bits 6 and 5 of information octet for REAL are equal to 11"
+	{File: "tests/tc6.ber", Error: "REAL value +0 must be encoded with zero-length value block"},
+	{File: "tests/tc7.ber", Error: "REAL value -0 must be encoded as a special value"},
+	{File: "tests/tc8.ber", Error: `encoding of "special value" must not contain exponent and mantissa`},
+	{File: "tests/tc9.ber", Error: "bits 6 and 5 of information octet for REAL are equal to 11"},
 	{File: "tests/tc10.ber", Error: ""},
-	{File: "tests/tc11.ber", Error: ""}, // Error: "Incorrect NR form"
-	{File: "tests/tc12.ber", Error: ""}, // Error: "Encoding of "special value" not from ASN.1 standard"
+	{File: "tests/tc11.ber", Error: "incorrect NR form"},
+	{File: "tests/tc12.ber", Error: `encoding of "special value" not from ASN.1 standard`},
 	{File: "tests/tc13.ber", Error: errEOF},
 	{File: "tests/tc14.ber", Error: errEOF},
-	{File: "tests/tc15.ber", Error: ""}, // Error: "Too big value of exponent"
-	{File: "tests/tc16.ber", Error: ""}, // Error: "Too big value of mantissa"
-	{File: "tests/tc17.ber", Error: ""}, // Error: "Too big values for exponent and mantissa + using of "scaling factor" value"
+	{File: "tests/tc15.ber", Error: "too big value of exponent"},
+	{File: "tests/tc16.ber", Error: "too big value of mantissa"},
+	{File: "tests/tc17.ber", Error: "too big value of exponent"}, // Error: "Too big values for exponent and mantissa + using of "scaling factor" value"
 	// Integers
 	{File: "tests/tc18.ber", Error: ""},
 	{File: "tests/tc19.ber", Error: errEOF},
@@ -61,7 +61,7 @@ var testcases = []struct {
 	{File: "tests/tc30.ber", Error: ""},
 	{File: "tests/tc31.ber", Error: errEOF},
 	{File: "tests/tc32.ber", Error: ""},
-	// Bitstring (some expected failures are disabled until support is added)
+	// Bit string (some expected failures are disabled until support is added)
 	{File: "tests/tc33.ber", Error: ""}, // Error: "Too big value for "unused bits""
 	{File: "tests/tc34.ber", Error: errEOF},
 	{File: "tests/tc35.ber", Error: "", IndefiniteEncoding: true}, // Error: "Using of different from BIT STRING types as internal types for constructive encoding"
@@ -76,7 +76,7 @@ var testcases = []struct {
 	{File: "tests/tc43.ber", Error: errEOF},
 	{File: "tests/tc44.ber", Error: ""},
 	{File: "tests/tc45.ber", Error: ""},
-	// Bitstring
+	// Bit string
 	{File: "tests/tc46.ber", Error: "indefinite length used with primitive type"},
 	{File: "tests/tc47.ber", Error: "eoc child not allowed with definite length"},
 	{File: "tests/tc48.ber", Error: "", IndefiniteEncoding: true}, // Error: "Using of more than 7 "unused bits" in BIT STRING with constrictive encoding form"
@@ -96,7 +96,7 @@ func is64bit(a, b string) string {
 
 func TestSuiteDecodePacket(t *testing.T) {
 	// Debug = true
-	for _, tc := range testcases {
+	for _, tc := range testCases {
 		file := tc.File
 
 		dataIn, err := ioutil.ReadFile(file)
@@ -146,7 +146,7 @@ func TestSuiteDecodePacket(t *testing.T) {
 }
 
 func TestSuiteReadPacket(t *testing.T) {
-	for _, tc := range testcases {
+	for _, tc := range testCases {
 		file := tc.File
 
 		dataIn, err := ioutil.ReadFile(file)

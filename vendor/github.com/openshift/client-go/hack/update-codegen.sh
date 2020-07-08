@@ -30,7 +30,7 @@ for group in apps authorization build config console image imageregistry network
     ${verify}
 done
 
-for group in servicecertsigner; do
+for group in servicecertsigner operatorcontrolplane; do
   bash ${CODEGEN_PKG}/generate-groups.sh "client,lister,informer" \
     github.com/openshift/client-go/${group} \
     github.com/openshift/api \

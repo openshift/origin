@@ -23,7 +23,7 @@ const (
 
 func TestNewTSLAPIClientUnixEndpoint(t *testing.T) {
 	t.Parallel()
-	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("ok"))
 	}))
 	if err != nil {
@@ -40,7 +40,7 @@ func TestNewTSLAPIClientUnixEndpoint(t *testing.T) {
 	if client.endpoint != endpoint {
 		t.Errorf("Expected endpoint %s. Got %s.", endpoint, client.endpoint)
 	}
-	rsp, err := client.do("GET", "/", doOptions{})
+	rsp, err := client.do(http.MethodGet, "/", doOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

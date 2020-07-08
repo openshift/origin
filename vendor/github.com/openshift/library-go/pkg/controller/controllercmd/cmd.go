@@ -41,6 +41,9 @@ type ControllerCommandConfig struct {
 
 	// DisableServing disables serving metrics, debug and health checks and so on.
 	DisableServing bool
+
+	// DisableLeaderElection allows leader election to be suspended
+	DisableLeaderElection bool
 }
 
 // NewControllerConfig returns a new ControllerCommandConfig which can be used to wire up all the boiler plate of a controller
@@ -53,7 +56,8 @@ func NewControllerCommandConfig(componentName string, version version.Info, star
 
 		basicFlags: NewControllerFlags(),
 
-		DisableServing: false,
+		DisableServing:        false,
+		DisableLeaderElection: false,
 	}
 }
 
@@ -262,6 +266,8 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 			cancel()
 		}
 	}()
+
+	config.LeaderElection.Disable = c.DisableLeaderElection
 
 	builder := NewController(c.componentName, c.startFunc).
 		WithKubeConfigFile(c.basicFlags.KubeConfigFile, nil).

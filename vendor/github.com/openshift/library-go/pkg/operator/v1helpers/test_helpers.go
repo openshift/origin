@@ -83,6 +83,10 @@ type fakeStaticPodOperatorClient struct {
 
 func (c *fakeStaticPodOperatorClient) Informer() cache.SharedIndexInformer {
 	return &fakeSharedIndexInformer{}
+
+}
+func (c *fakeStaticPodOperatorClient) GetObjectMeta() (*metav1.ObjectMeta, error) {
+	panic("not supported")
 }
 
 func (c *fakeStaticPodOperatorClient) GetStaticPodOperatorState() (*operatorv1.StaticPodOperatorSpec, *operatorv1.StaticPodOperatorStatus, string, error) {
@@ -199,6 +203,10 @@ type fakeOperatorClient struct {
 
 func (c *fakeOperatorClient) Informer() cache.SharedIndexInformer {
 	return &fakeSharedIndexInformer{}
+}
+
+func (c *fakeOperatorClient) GetObjectMeta() (*metav1.ObjectMeta, error) {
+	panic("not supported")
 }
 
 func (c *fakeOperatorClient) GetOperatorState() (*operatorv1.OperatorSpec, *operatorv1.OperatorStatus, string, error) {

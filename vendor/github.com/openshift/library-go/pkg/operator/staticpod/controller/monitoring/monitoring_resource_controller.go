@@ -28,8 +28,6 @@ const (
 	manifestDir = "pkg/operator/staticpod/controller/monitoring"
 )
 
-var syntheticRequeueError = fmt.Errorf("synthetic requeue request")
-
 type MonitoringResourceController struct {
 	targetNamespace          string
 	serviceMonitorName       string
@@ -100,7 +98,7 @@ func (c MonitoringResourceController) sync(ctx context.Context, syncCtx factory.
 		// yet (the CRD is provided by prometheus operator). This produce noise and plenty of events.
 		if errors.IsNotFound(serviceMonitorErr) {
 			klog.V(4).Infof("Unable to apply service monitor: %v", err)
-			return syntheticRequeueError
+			return factory.SyntheticRequeueError
 		} else if serviceMonitorErr != nil {
 			errs = append(errs, serviceMonitorErr)
 		}

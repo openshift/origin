@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/prune"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
@@ -191,13 +192,14 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 }
 
 func (c RevisionController) createNewRevision(recorder events.Recorder, revision int32) error {
+	// Create a new InProgress status configmap
 	statusConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: c.targetNamespace,
 			Name:      nameFor("revision-status", revision),
 		},
 		Data: map[string]string{
-			"status":   "InProgress",
+			"status":   prune.StatusInProgress,
 			"revision": fmt.Sprintf("%d", revision),
 		},
 	}
@@ -205,6 +207,26 @@ func (c RevisionController) createNewRevision(recorder events.Recorder, revision
 	if err != nil {
 		return err
 	}
+
+	// After we create a new revision, check if any of the previous existing
+	// revisions got interrupted while InProgress and mark them Abandoned.
+	configMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, configMap := range configMaps.Items {
+		if !strings.HasPrefix(configMap.Name, "revision-status-") || configMap.Name == statusConfigMap.Name {
+			continue
+		}
+		if configMap.Data["status"] == prune.StatusInProgress {
+			configMap.Data["status"] = prune.StatusAbandoned
+			_, _, err = resourceapply.ApplyConfigMap(c.configMapGetter, recorder, &configMap)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	ownerRefs := []metav1.OwnerReference{{
 		APIVersion: "v1",
 		Kind:       "ConfigMap",
@@ -281,15 +303,18 @@ func (c RevisionController) sync(ctx context.Context, syncCtx factory.SyncContex
 		}
 		if latestRevision != 0 {
 			// Then make sure that revision number is what's in the operator status
-			_, _, err = c.operatorClient.UpdateLatestRevisionOperatorStatus(latestRevision)
-			// If we made a change return and requeue with the correct status
-			return fmt.Errorf("synthetic requeue request (err: %v)", err)
+			_, _, err := c.operatorClient.UpdateLatestRevisionOperatorStatus(latestRevision)
+			if err != nil {
+				return err
+			}
+			// regardless of whether we made a change, requeue to rerun the sync with updated status
+			return factory.SyntheticRequeueError
 		}
 	}
 
 	requeue, syncErr := c.createRevisionIfNeeded(syncCtx.Recorder(), latestAvailableRevision, resourceVersion)
 	if requeue && syncErr == nil {
-		return fmt.Errorf("synthetic requeue request (err: %v)", syncErr)
+		return factory.SyntheticRequeueError
 	}
 	err = syncErr
 

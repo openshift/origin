@@ -20,6 +20,10 @@ func (c *FakeOperatorV1) CSISnapshotControllers() v1.CSISnapshotControllerInterf
 	return &FakeCSISnapshotControllers{c}
 }
 
+func (c *FakeOperatorV1) Configs() v1.ConfigInterface {
+	return &FakeConfigs{c}
+}
+
 func (c *FakeOperatorV1) Consoles() v1.ConsoleInterface {
 	return &FakeConsoles{c}
 }
@@ -74,6 +78,10 @@ func (c *FakeOperatorV1) ServiceCatalogAPIServers() v1.ServiceCatalogAPIServerIn
 
 func (c *FakeOperatorV1) ServiceCatalogControllerManagers() v1.ServiceCatalogControllerManagerInterface {
 	return &FakeServiceCatalogControllerManagers{c}
+}
+
+func (c *FakeOperatorV1) Storages() v1.StorageInterface {
+	return &FakeStorages{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

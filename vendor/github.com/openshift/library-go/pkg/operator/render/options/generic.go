@@ -80,7 +80,7 @@ func (o *GenericOptions) Validate() error {
 	return nil
 }
 
-// ApplyTo applies the options ot the given config struct using the provides text/template data.
+// ApplyTo applies the options to the given config struct using the provided text/template data.
 func (o *GenericOptions) ApplyTo(cfg *FileConfig, defaultConfig, bootstrapOverrides Template, templateData interface{}, specialCases map[string]resourcemerge.MergeFunc) error {
 	var err error
 

@@ -56,6 +56,15 @@ type DNSRecordSpec struct {
 type DNSRecordStatus struct {
 	// zones are the status of the record in each zone.
 	Zones []DNSZoneStatus `json:"zones,omitempty"`
+
+	// observedGeneration is the most recently observed generation of the
+	// DNSRecord.  When the DNSRecord is updated, the controller updates the
+	// corresponding record in each managed zone.  If an update for a
+	// particular zone fails, that failure is recorded in the status
+	// condition for the zone so that the controller can determine that it
+	// needs to retry the update for that specific zone.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // DNSZoneStatus is the status of a record within a specific zone.

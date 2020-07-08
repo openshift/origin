@@ -5,6 +5,8 @@
 package docker
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -22,7 +24,7 @@ func TestInitSwarm(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := "POST"
+	expectedMethod := http.MethodPost
 	if req.Method != expectedMethod {
 		t.Errorf("InitSwarm: Wrong HTTP method. Want %s. Got %s.", expectedMethod, req.Method)
 	}
@@ -40,12 +42,12 @@ func TestInitSwarmAlreadyInSwarm(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "", status: http.StatusNotAcceptable})
 	_, err := client.InitSwarm(InitSwarmOptions{})
-	if err != ErrNodeAlreadyInSwarm {
+	if !errors.Is(err, ErrNodeAlreadyInSwarm) {
 		t.Errorf("InitSwarm: Wrong error type. Want %#v. Got %#v", ErrNodeAlreadyInSwarm, err)
 	}
 	client = newTestClient(&FakeRoundTripper{message: "", status: http.StatusServiceUnavailable})
 	_, err = client.InitSwarm(InitSwarmOptions{})
-	if err != ErrNodeAlreadyInSwarm {
+	if !errors.Is(err, ErrNodeAlreadyInSwarm) {
 		t.Errorf("InitSwarm: Wrong error type. Want %#v. Got %#v", ErrNodeAlreadyInSwarm, err)
 	}
 }
@@ -59,7 +61,7 @@ func TestJoinSwarm(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := "POST"
+	expectedMethod := http.MethodPost
 	if req.Method != expectedMethod {
 		t.Errorf("JoinSwarm: Wrong HTTP method. Want %s. Got %s.", expectedMethod, req.Method)
 	}
@@ -73,12 +75,12 @@ func TestJoinSwarmAlreadyInSwarm(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "", status: http.StatusNotAcceptable})
 	err := client.JoinSwarm(JoinSwarmOptions{})
-	if err != ErrNodeAlreadyInSwarm {
+	if !errors.Is(err, ErrNodeAlreadyInSwarm) {
 		t.Errorf("JoinSwarm: Wrong error type. Want %#v. Got %#v", ErrNodeAlreadyInSwarm, err)
 	}
 	client = newTestClient(&FakeRoundTripper{message: "", status: http.StatusServiceUnavailable})
 	err = client.JoinSwarm(JoinSwarmOptions{})
-	if err != ErrNodeAlreadyInSwarm {
+	if !errors.Is(err, ErrNodeAlreadyInSwarm) {
 		t.Errorf("JoinSwarm: Wrong error type. Want %#v. Got %#v", ErrNodeAlreadyInSwarm, err)
 	}
 }
@@ -87,7 +89,7 @@ func TestLeaveSwarm(t *testing.T) {
 	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
-	var testData = []struct {
+	testData := []struct {
 		force       bool
 		expectedURI string
 	}{
@@ -99,7 +101,7 @@ func TestLeaveSwarm(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		expectedMethod := "POST"
+		expectedMethod := http.MethodPost
 		req := fakeRT.requests[i]
 		if req.Method != expectedMethod {
 			t.Errorf("LeaveSwarm: Wrong HTTP method. Want %s. Got %s.", expectedMethod, req.Method)
@@ -115,12 +117,12 @@ func TestLeaveSwarmNotInSwarm(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "", status: http.StatusNotAcceptable})
 	err := client.LeaveSwarm(LeaveSwarmOptions{})
-	if err != ErrNodeNotInSwarm {
+	if !errors.Is(err, ErrNodeNotInSwarm) {
 		t.Errorf("LeaveSwarm: Wrong error type. Want %#v. Got %#v", ErrNodeNotInSwarm, err)
 	}
 	client = newTestClient(&FakeRoundTripper{message: "", status: http.StatusServiceUnavailable})
 	err = client.LeaveSwarm(LeaveSwarmOptions{})
-	if err != ErrNodeNotInSwarm {
+	if !errors.Is(err, ErrNodeNotInSwarm) {
 		t.Errorf("LeaveSwarm: Wrong error type. Want %#v. Got %#v", ErrNodeNotInSwarm, err)
 	}
 }
@@ -139,7 +141,7 @@ func TestUpdateSwarm(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := "POST"
+	expectedMethod := http.MethodPost
 	if req.Method != expectedMethod {
 		t.Errorf("UpdateSwarm: Wrong HTTP method. Want %s. Got %s.", expectedMethod, req.Method)
 	}
@@ -162,12 +164,12 @@ func TestUpdateSwarmNotInSwarm(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "", status: http.StatusNotAcceptable})
 	err := client.UpdateSwarm(UpdateSwarmOptions{})
-	if err != ErrNodeNotInSwarm {
+	if !errors.Is(err, ErrNodeNotInSwarm) {
 		t.Errorf("UpdateSwarm: Wrong error type. Want %#v. Got %#v", ErrNodeNotInSwarm, err)
 	}
 	client = newTestClient(&FakeRoundTripper{message: "", status: http.StatusServiceUnavailable})
 	err = client.UpdateSwarm(UpdateSwarmOptions{})
-	if err != ErrNodeNotInSwarm {
+	if !errors.Is(err, ErrNodeNotInSwarm) {
 		t.Errorf("UpdateSwarm: Wrong error type. Want %#v. Got %#v", ErrNodeNotInSwarm, err)
 	}
 }
@@ -176,12 +178,12 @@ func TestInspectSwarm(t *testing.T) {
 	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: `{"ID": "123"}`, status: http.StatusOK}
 	client := newTestClient(fakeRT)
-	response, err := client.InspectSwarm(nil)
+	response, err := client.InspectSwarm(context.TODO())
 	if err != nil {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := "GET"
+	expectedMethod := http.MethodGet
 	if req.Method != expectedMethod {
 		t.Errorf("InspectSwarm: Wrong HTTP method. Want %s. Got %s.", expectedMethod, req.Method)
 	}
@@ -198,13 +200,13 @@ func TestInspectSwarm(t *testing.T) {
 func TestInspectSwarmNotInSwarm(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "", status: http.StatusNotAcceptable})
-	_, err := client.InspectSwarm(nil)
-	if err != ErrNodeNotInSwarm {
+	_, err := client.InspectSwarm(context.TODO())
+	if !errors.Is(err, ErrNodeNotInSwarm) {
 		t.Errorf("InspectSwarm: Wrong error type. Want %#v. Got %#v", ErrNodeNotInSwarm, err)
 	}
 	client = newTestClient(&FakeRoundTripper{message: "", status: http.StatusServiceUnavailable})
-	_, err = client.InspectSwarm(nil)
-	if err != ErrNodeNotInSwarm {
+	_, err = client.InspectSwarm(context.TODO())
+	if !errors.Is(err, ErrNodeNotInSwarm) {
 		t.Errorf("InspectSwarm: Wrong error type. Want %#v. Got %#v", ErrNodeNotInSwarm, err)
 	}
 }

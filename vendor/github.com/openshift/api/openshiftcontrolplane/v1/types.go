@@ -303,8 +303,12 @@ type SourceStrategyDefaultsConfig struct {
 type BuildOverridesConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// forcePull indicates whether the build strategy should always be set to ForcePull=true
-	ForcePull bool `json:"forcePull"`
+	// forcePull overrides, if set, the equivalent value in the builds,
+	// i.e. false disables force pull for all builds,
+	// true enables force pull for all builds,
+	// independently of what each build specifies itself
+	// +optional
+	ForcePull *bool `json:"forcePull,omitempty"`
 
 	// imageLabels is a list of labels that are applied to the resulting image.
 	// If user provided a label in their Build/BuildConfig with the same name as one in this

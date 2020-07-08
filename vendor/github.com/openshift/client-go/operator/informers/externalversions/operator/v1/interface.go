@@ -12,6 +12,8 @@ type Interface interface {
 	Authentications() AuthenticationInformer
 	// CSISnapshotControllers returns a CSISnapshotControllerInformer.
 	CSISnapshotControllers() CSISnapshotControllerInformer
+	// Configs returns a ConfigInformer.
+	Configs() ConfigInformer
 	// Consoles returns a ConsoleInformer.
 	Consoles() ConsoleInformer
 	// DNSes returns a DNSInformer.
@@ -40,6 +42,8 @@ type Interface interface {
 	ServiceCatalogAPIServers() ServiceCatalogAPIServerInformer
 	// ServiceCatalogControllerManagers returns a ServiceCatalogControllerManagerInformer.
 	ServiceCatalogControllerManagers() ServiceCatalogControllerManagerInformer
+	// Storages returns a StorageInformer.
+	Storages() StorageInformer
 }
 
 type version struct {
@@ -61,6 +65,11 @@ func (v *version) Authentications() AuthenticationInformer {
 // CSISnapshotControllers returns a CSISnapshotControllerInformer.
 func (v *version) CSISnapshotControllers() CSISnapshotControllerInformer {
 	return &cSISnapshotControllerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// Configs returns a ConfigInformer.
+func (v *version) Configs() ConfigInformer {
+	return &configInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Consoles returns a ConsoleInformer.
@@ -131,4 +140,9 @@ func (v *version) ServiceCatalogAPIServers() ServiceCatalogAPIServerInformer {
 // ServiceCatalogControllerManagers returns a ServiceCatalogControllerManagerInformer.
 func (v *version) ServiceCatalogControllerManagers() ServiceCatalogControllerManagerInformer {
 	return &serviceCatalogControllerManagerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// Storages returns a StorageInformer.
+func (v *version) Storages() StorageInformer {
+	return &storageInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

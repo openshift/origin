@@ -69,6 +69,15 @@ spec:
           description: status is the most recently observed status of the dnsRecord.
           type: object
           properties:
+            observedGeneration:
+              description: observedGeneration is the most recently observed generation
+                of the DNSRecord.  When the DNSRecord is updated, the controller updates
+                the corresponding record in each managed zone.  If an update for a
+                particular zone fails, that failure is recorded in the status condition
+                for the zone so that the controller can determine that it needs to
+                retry the update for that specific zone.
+              type: integer
+              format: int64
             zones:
               description: zones are the status of the record in each zone.
               type: array

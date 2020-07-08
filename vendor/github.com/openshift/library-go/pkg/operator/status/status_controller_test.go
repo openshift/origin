@@ -355,6 +355,10 @@ func (c *statusClient) Informer() cache.SharedIndexInformer {
 	return nil
 }
 
+func (c *statusClient) GetObjectMeta() (*metav1.ObjectMeta, error) {
+	panic("missing")
+}
+
 func (c *statusClient) GetOperatorState() (*operatorv1.OperatorSpec, *operatorv1.OperatorStatus, string, error) {
 	return &c.spec, &c.status, "", nil
 }
