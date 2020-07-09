@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -100,7 +101,7 @@ type metricID struct {
 }
 
 // counterValuesByMetric is used to track values across reloads
-type counterValuesByMetric map[metricID]map[int]int64
+type counterValuesByMetric map[metricID][]int64
 
 // defaultSelectedMetrics is the list of metrics included by default. These metrics are a subset
 // of the metrics exposed by haproxy_exporter by default for performance reasons.
@@ -134,12 +135,19 @@ type Exporter struct {
 	serverThresholdCurrent, serverThresholdLimit   prometheus.Gauge
 	frontendMetrics, backendMetrics, serverMetrics map[int]*prometheus.GaugeVec
 
-	// baseCounterValues is added to the value specific haproxy frontend, backend, or server counter
+	// counterValues is added to the value specific haproxy frontend, backend, or server counter
 	// metrics. This allows metrics to be tracked across restarts. This map is updated whenever CollectNow
 	// is invoked.
-	baseCounterValues counterValuesByMetric
-	// the metrics to append to baseCounterValues
-	counterMetrics map[int]struct{}
+	counterValues counterValuesByMetric
+	// counterIndices records the index in the packed array of metrics (under counterValuesByMetric).
+	// A zero indicates the field index is not a counter, a non-zero value is the index in the packed
+	// array. The first position is always zero
+	// Example: Given counter fields 2, 4, and 5, the array should be:
+	//          []byte{0, 0, 0, 1, 0, 2, 3}
+	//          indicating that position 0 in the packed array is where the second field is stored.
+	counterIndices []byte
+	// counterIndexSize the number of counters for each remembered counterValues
+	counterIndexSize int
 }
 
 // NewExporter returns an initialized Exporter. baseScrapeInterval is how often to scrape per 1000 entries
@@ -160,9 +168,16 @@ func NewExporter(opts PrometheusOptions) (*Exporter, error) {
 		return nil, fmt.Errorf("unsupported scheme: %q", u.Scheme)
 	}
 
-	counterMetrics := make(map[int]struct{})
+	// use a compact table representation of previous counter values
+	if len(defaultCounterMetrics) >= math.MaxUint8 {
+		return nil, fmt.Errorf("too many default counter metrics")
+	}
+	sort.Ints(defaultCounterMetrics)
+	var counterIndexSize int
+	counterIndices := make([]byte, defaultCounterMetrics[len(defaultCounterMetrics)-1]+1)
 	for _, m := range defaultCounterMetrics {
-		counterMetrics[m] = struct{}{}
+		counterIndexSize++
+		counterIndices[m] = byte(counterIndexSize)
 	}
 
 	return &Exporter{
@@ -275,7 +290,8 @@ func NewExporter(opts PrometheusOptions) (*Exporter, error) {
 			44: newServerMetric("http_responses_total", "Total of HTTP responses.", prometheus.Labels{"code": "other"}),
 			60: newServerMetric("http_average_response_latency_milliseconds", "Average response latency of the last 1024 requests in milliseconds.", nil),
 		}),
-		counterMetrics: counterMetrics,
+		counterIndices:   counterIndices,
+		counterIndexSize: counterIndexSize + 1,
 	}, nil
 }
 
@@ -381,9 +397,9 @@ func fetchUnix(u *url.URL, timeout time.Duration) func() (io.ReadCloser, error) 
 func (e *Exporter) scrape(record bool) {
 	e.totalScrapes.Inc()
 
-	var targetValues counterValuesByMetric
+	var updatedValues counterValuesByMetric
 	if record {
-		targetValues = make(counterValuesByMetric)
+		updatedValues = make(counterValuesByMetric)
 	}
 
 	body, err := e.fetch()
@@ -425,6 +441,10 @@ loop:
 			return
 		}
 
+		if rows == 0 && len(e.counterIndices) < len(row) {
+			e.counterIndices = append(e.counterIndices, make([]byte, len(row)-len(e.counterIndices))...)
+		}
+
 		// If we exceed the server threshold, ignore the rest of the servers because we will be
 		// displaying only backends and frontends.
 		if row[32] == serverType {
@@ -435,12 +455,12 @@ loop:
 		}
 
 		rows++
-		e.parseRow(row, targetValues)
+		e.parseRow(row, updatedValues)
 	}
 
 	// swap the counter values
 	if record {
-		e.baseCounterValues = targetValues
+		e.counterValues = updatedValues
 	}
 
 	e.serverLimited = servers > e.opts.ServerThreshold
@@ -482,32 +502,32 @@ func (e *Exporter) collectMetrics(metrics chan<- prometheus.Metric) {
 
 // parseRow identifies which metrics to capture for a given row based on type and the value of pxname and svname. If the
 // proxy and server names match our conventions they are labelled to the given route, service, or pod - if they don't match
-// then a generic label set is applied. If targetValues is non-nil then the map will be populated with the updated counter state
+// then a generic label set is applied. If updatedValues is non-nil then the map will be populated with the updated counter state
 // for each metric.
-func (e *Exporter) parseRow(csvRow []string, targetValues counterValuesByMetric) {
+func (e *Exporter) parseRow(csvRow []string, updatedValues counterValuesByMetric) {
 	pxname, svname, typ := csvRow[0], csvRow[1], csvRow[32]
 
 	switch typ {
 	case frontendType:
-		e.exportAndRecordRow(e.frontendMetrics, metricID{proxyType: serverType, proxyName: pxname}, targetValues, csvRow, pxname)
+		e.exportAndRecordRow(e.frontendMetrics, metricID{proxyType: serverType, proxyName: pxname}, updatedValues, csvRow, pxname)
 	case backendType:
 		if mode, value, ok := knownBackendSegment(pxname); ok {
 			if namespace, name, ok := parseNameSegment(value); ok {
-				e.exportAndRecordRow(e.backendMetrics, metricID{proxyType: serverType, proxyName: pxname}, targetValues, csvRow, mode, namespace, name)
+				e.exportAndRecordRow(e.backendMetrics, metricID{proxyType: serverType, proxyName: pxname}, updatedValues, csvRow, mode, namespace, name)
 				return
 			}
 		}
-		e.exportAndRecordRow(e.backendMetrics, metricID{proxyType: serverType, proxyName: pxname}, targetValues, csvRow, "other/"+pxname, "", "")
+		e.exportAndRecordRow(e.backendMetrics, metricID{proxyType: serverType, proxyName: pxname}, updatedValues, csvRow, "other/"+pxname, "", "")
 	case serverType:
 		pod, service, server, _ := knownServerSegment(svname)
 
 		if _, value, ok := knownBackendSegment(pxname); ok {
 			if namespace, name, ok := parseNameSegment(value); ok {
-				e.exportAndRecordRow(e.serverMetrics, metricID{serverType, pxname, svname}, targetValues, csvRow, server, namespace, name, pod, service)
+				e.exportAndRecordRow(e.serverMetrics, metricID{serverType, pxname, svname}, updatedValues, csvRow, server, namespace, name, pod, service)
 				return
 			}
 		}
-		e.exportAndRecordRow(e.serverMetrics, metricID{proxyType: serverType, serverName: svname}, targetValues, csvRow, server, "", "", pod, service)
+		e.exportAndRecordRow(e.serverMetrics, metricID{proxyType: serverType, serverName: svname}, updatedValues, csvRow, server, "", "", pod, service)
 	}
 }
 
@@ -571,31 +591,35 @@ func parseStatusField(value string) int64 {
 	return 0
 }
 
-// exportAndRecordRow parses the provided csvRow labels for the specified metrics and then updates their value given labels. If targetValues is
+// exportAndRecordRow parses the provided csvRow labels for the specified metrics and then updates their value given labels. If updatedValues is
 // non-nil the current value of the metric will be written back to rowID. This allows baseline values to be recorded and used across restarts of
 // HAProxy.
-func (e *Exporter) exportAndRecordRow(metrics metrics, rowID metricID, targetValues counterValuesByMetric, csvRow []string, labels ...string) {
-	updateValues := targetValues != nil
-	baseCounterValues := e.baseCounterValues[rowID]
-	if updateValues && baseCounterValues == nil {
-		baseCounterValues = make(map[int]int64)
+func (e *Exporter) exportAndRecordRow(metrics metrics, rowID metricID, updatedValues counterValuesByMetric, csvRow []string, labels ...string) {
+	var updatedBaseValues []int64
+	baseValues := e.counterValues[rowID]
+	if updatedValues != nil {
+		if baseValues == nil {
+			baseValues = make([]int64, e.counterIndexSize)
+		}
+		updatedValues[rowID] = baseValues
+		updatedBaseValues = baseValues
 	}
 
-	exportCSVFields(e.csvParseFailures, metrics, baseCounterValues, updateValues, csvRow, labels)
-
-	if updateValues {
-		targetValues[rowID] = baseCounterValues
-	}
+	exportCSVFields(e.csvParseFailures, metrics, baseValues, updatedBaseValues, e.counterIndices, csvRow, labels)
 }
 
 // exportCSVFields iterates over the returned CSV values and sets the appropriate metric in the map. Empty values or parse errors result in
-// no metric being scraped.
-func exportCSVFields(csvParseFailures prometheus.Counter, metrics metrics, baselineValues map[int]int64, updateBaseline bool, csvRow []string, labels []string) {
+// no metric being scraped. If updatedBaseValues is not nil then it is updated with the latest value of the metric. If baseValues is nil
+// or the field is not a counter (according to counterIndices) then no value is incremented
+func exportCSVFields(csvParseFailures prometheus.Counter, metrics metrics, baseValues, updatedBaseValues []int64, counterIndices []byte, csvRow []string, labels []string) {
 	for fieldIdx, metric := range metrics {
 		valueStr := csvRow[fieldIdx]
 		if valueStr == "" {
 			continue
 		}
+
+		// the stored position of the previous value
+		storedIdx := counterIndices[byte(fieldIdx)]
 
 		var value int64
 		switch fieldIdx {
@@ -609,10 +633,12 @@ func exportCSVFields(csvParseFailures prometheus.Counter, metrics metrics, basel
 				csvParseFailures.Inc()
 				continue
 			}
-			value += baselineValues[fieldIdx]
+			if baseValues != nil && storedIdx > 0 {
+				value += baseValues[storedIdx]
+			}
 		}
-		if updateBaseline {
-			baselineValues[fieldIdx] = value
+		if updatedBaseValues != nil && storedIdx > 0 {
+			updatedBaseValues[storedIdx] = value
 		}
 
 		metric.WithLabelValues(labels...).Set(float64(value))
@@ -660,25 +686,7 @@ type PrometheusOptions struct {
 // provided HAProxy stats port. It will start goroutines. Use the default
 // prometheus handler to access these metrics.
 func NewPrometheusCollector(opts PrometheusOptions) (*Exporter, error) {
-	if len(opts.ScrapeURI) == 0 {
-		opts.ScrapeURI = "unix:///var/lib/haproxy/run/haproxy.sock"
-	}
-	if len(opts.PidFile) == 0 {
-		opts.PidFile = "/var/lib/haproxy/run/haproxy.pid"
-	}
-	if opts.Timeout == 0 {
-		opts.Timeout = 5 * time.Second
-	}
-	if opts.BaseScrapeInterval == 0 {
-		opts.BaseScrapeInterval = 5 * time.Second
-	}
-	if len(opts.ExportedMetrics) == 0 {
-		opts.ExportedMetrics = defaultSelectedMetrics
-	}
-	if opts.ServerThreshold == 0 {
-		opts.ServerThreshold = 500
-	}
-
+	opts = defaultOptions(opts)
 	exporter, err := NewExporter(opts)
 	if err != nil {
 		return nil, err
@@ -708,4 +716,26 @@ func NewPrometheusCollector(opts PrometheusOptions) (*Exporter, error) {
 	}
 
 	return exporter, nil
+}
+
+func defaultOptions(opts PrometheusOptions) PrometheusOptions {
+	if len(opts.ScrapeURI) == 0 {
+		opts.ScrapeURI = "unix:///var/lib/haproxy/run/haproxy.sock"
+	}
+	if len(opts.PidFile) == 0 {
+		opts.PidFile = "/var/lib/haproxy/run/haproxy.pid"
+	}
+	if opts.Timeout == 0 {
+		opts.Timeout = 5 * time.Second
+	}
+	if opts.BaseScrapeInterval == 0 {
+		opts.BaseScrapeInterval = 5 * time.Second
+	}
+	if len(opts.ExportedMetrics) == 0 {
+		opts.ExportedMetrics = defaultSelectedMetrics
+	}
+	if opts.ServerThreshold == 0 {
+		opts.ServerThreshold = 500
+	}
+	return opts
 }
