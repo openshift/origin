@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -91,6 +92,16 @@ func StartKubeAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest
 }
 
 func StartOpenShiftAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
+	if err := StartOpenShiftAPIMonitoringWithGET(ctx, m, clusterConfig, timeout); err != nil {
+		return err
+	}
+	if err := StartOpenShiftAPIMonitoringWithPATCH(ctx, m, clusterConfig, timeout); err != nil {
+		return err
+	}
+	return nil
+}
+
+func StartOpenShiftAPIMonitoringWithGET(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	pollingConfig := *clusterConfig
 	pollingConfig.Timeout = timeout
 	pollingClient, err := clientimagev1.NewForConfig(&pollingConfig)
@@ -98,9 +109,30 @@ func StartOpenShiftAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig 
 		return err
 	}
 
+	return startOpenShiftAPIMonitoringFor(ctx, m, "GET", func() error {
+		_, err := pollingClient.ImageStreams("openshift-apiserver").Get(ctx, "missing", metav1.GetOptions{})
+		return err
+	})
+}
+
+func StartOpenShiftAPIMonitoringWithPATCH(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
+	pollingConfig := *clusterConfig
+	pollingConfig.Timeout = timeout
+	pollingClient, err := clientimagev1.NewForConfig(&pollingConfig)
+	if err != nil {
+		return err
+	}
+
+	return startOpenShiftAPIMonitoringFor(ctx, m, "PATCH", func() error {
+		_, err := pollingClient.ImageStreams("openshift-apiserver").Patch(ctx, "missing", types.JSONPatchType, nil, metav1.PatchOptions{})
+		return err
+	})
+}
+
+func startOpenShiftAPIMonitoringFor(ctx context.Context, m *Monitor, httpMethod string, pollingClientFn func() error) error {
 	m.AddSampler(
 		StartSampling(ctx, m, time.Second, func(previous bool) (condition *Condition, next bool) {
-			_, err := pollingClient.ImageStreams("openshift-apiserver").Get(ctx, "missing", metav1.GetOptions{})
+			err := pollingClientFn()
 			if !errors.IsUnexpectedServerError(err) && errors.IsNotFound(err) {
 				err = nil
 			}
@@ -109,23 +141,24 @@ func StartOpenShiftAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig 
 				condition = &Condition{
 					Level:   Info,
 					Locator: "openshift-apiserver",
-					Message: "OpenShift API started responding to GET requests",
+					Message: fmt.Sprintf("OpenShift API started responding to %s requests", httpMethod),
 				}
 			case err != nil && previous:
 				condition = &Condition{
 					Level:   Info,
 					Locator: "openshift-apiserver",
-					Message: fmt.Sprintf("OpenShift API stopped responding to GET requests: %v", err),
+					Message: fmt.Sprintf("OpenShift API stopped responding to %s requests: %v", httpMethod, err),
 				}
 			}
 			return condition, err == nil
 		}).ConditionWhenFailing(&Condition{
 			Level:   Error,
 			Locator: "openshift-apiserver",
-			Message: fmt.Sprintf("OpenShift API is not responding to GET requests"),
+			Message: fmt.Sprintf("OpenShift API is not responding to %s requests", httpMethod),
 		}),
 	)
 	return nil
+
 }
 
 func findContainerStatus(status []corev1.ContainerStatus, name string, position int) *corev1.ContainerStatus {
