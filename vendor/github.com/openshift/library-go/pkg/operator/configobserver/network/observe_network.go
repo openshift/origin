@@ -6,9 +6,9 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/openshift/library-go/pkg/operator/events"
+	"k8s.io/apimachinery/pkg/api/errors"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 )
 
 // GetClusterCIDRs reads the cluster CIDRs from the global network configuration resource. Emits events if CIDRs are not found.
@@ -126,4 +126,27 @@ func validateCIDRs(in []string) error {
 		}
 	}
 	return nil
+}
+
+// GetServiceNodePortRange retrieves the ServiceNodePortRange for the cluster.
+func GetServiceNodePortRange(lister configlistersv1.NetworkLister, recorder events.Recorder) (string, error) {
+	network, err := lister.Get("cluster")
+	if errors.IsNotFound(err) {
+		recorder.Warningf("GetServiceNodePortRangeFailed", "Required networks.%s/cluster not found", configv1.GroupName)
+		return "", nil
+	}
+	if err != nil {
+		recorder.Warningf("GetServiceNodePortRangeFailed", "error getting networks.%s/cluster: %v", configv1.GroupName, err)
+		return "", err
+	}
+
+	if network.Spec.ServiceNodePortRange == "" {
+		return "", nil
+	}
+
+	if _, err = utilnet.ParsePortRange(network.Spec.ServiceNodePortRange); err != nil {
+		return "", err
+	}
+
+	return network.Spec.ServiceNodePortRange, nil
 }

@@ -88,6 +88,7 @@ var map_ImageRegistryConfigStorageAzure = map[string]string{
 	"":            "ImageRegistryConfigStorageAzure holds the information to configure the registry to use Azure Blob Storage for backend storage.",
 	"accountName": "accountName defines the account to be used by the registry.",
 	"container":   "container defines Azure's container to be used by registry.",
+	"cloudName":   "cloudName is the name of the Azure cloud environment to be used by the registry. If empty, the operator will set it based on the infrastructure object.",
 }
 
 func (ImageRegistryConfigStorageAzure) SwaggerDoc() map[string]string {
@@ -220,8 +221,9 @@ var map_ImagePrunerSpec = map[string]string{
 	"":                           "ImagePrunerSpec defines the specs for the running image pruner.",
 	"schedule":                   "schedule specifies when to execute the job using standard cronjob syntax: https://wikipedia.org/wiki/Cron. Defaults to `0 0 * * *`.",
 	"suspend":                    "suspend specifies whether or not to suspend subsequent executions of this cronjob. Defaults to false.",
-	"keepTagRevisions":           "keepTagRevisions specifies the number of image revisions for a tag in an image stream that will be preserved. Defaults to 5.",
-	"keepYoungerThan":            "keepYoungerThan specifies the minimum age of an image and its referrers for it to be considered a candidate for pruning. Defaults to 96h (96 hours).",
+	"keepTagRevisions":           "keepTagRevisions specifies the number of image revisions for a tag in an image stream that will be preserved. Defaults to 3.",
+	"keepYoungerThan":            "keepYoungerThan specifies the minimum age in nanoseconds of an image and its referrers for it to be considered a candidate for pruning. DEPRECATED: This field is deprecated in favor of keepYoungerThanDuration. If both are set, this field is ignored and keepYoungerThanDuration takes precedence.",
+	"keepYoungerThanDuration":    "keepYoungerThanDuration specifies the minimum age of an image and its referrers for it to be considered a candidate for pruning. Defaults to 60m (60 minutes).",
 	"resources":                  "resources defines the resource requests and limits for the image pruner pod.",
 	"affinity":                   "affinity is a group of node affinity scheduling rules for the image pruner pod.",
 	"nodeSelector":               "nodeSelector defines the node selection constraints for the image pruner pod.",

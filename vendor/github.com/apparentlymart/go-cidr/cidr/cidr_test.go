@@ -3,6 +3,7 @@ package cidr
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"net"
 	"strconv"
 	"testing"
@@ -95,6 +96,97 @@ func TestSubnet(t *testing.T) {
 	}
 }
 
+func TestSubnetBig(t *testing.T) {
+	cases := []struct {
+		Base   string
+		Bits   int
+		Num    *big.Int
+		Output string
+		Error  bool
+	}{
+		{
+			Base:   "192.168.2.0/20",
+			Bits:   4,
+			Num:    big.NewInt(int64(6)),
+			Output: "192.168.6.0/24",
+		},
+		{
+			Base:   "192.168.2.0/20",
+			Bits:   4,
+			Num:    big.NewInt(int64(0)),
+			Output: "192.168.0.0/24",
+		},
+		{
+			Base:   "192.168.0.0/31",
+			Bits:   1,
+			Num:    big.NewInt(int64(1)),
+			Output: "192.168.0.1/32",
+		},
+		{
+			Base:   "192.168.0.0/21",
+			Bits:   4,
+			Num:    big.NewInt(int64(7)),
+			Output: "192.168.3.128/25",
+		},
+		{
+			Base:   "fe80::/48",
+			Bits:   16,
+			Num:    big.NewInt(int64(6)),
+			Output: "fe80:0:0:6::/64",
+		},
+		{
+			Base:   "fe80::/48",
+			Bits:   33,
+			Num:    big.NewInt(int64(6)),
+			Output: "fe80::3:0:0:0/81",
+		},
+		{
+			Base:   "fe80::/49",
+			Bits:   16,
+			Num:    big.NewInt(int64(7)),
+			Output: "fe80:0:0:3:8000::/65",
+		},
+		{
+			Base:  "192.168.2.0/31",
+			Bits:  2,
+			Num:   big.NewInt(int64(0)),
+			Error: true, // not enough bits to expand into
+		},
+		{
+			Base:  "fe80::/126",
+			Bits:  4,
+			Num:   big.NewInt(int64(0)),
+			Error: true, // not enough bits to expand into
+		},
+		{
+			Base:  "192.168.2.0/24",
+			Bits:  4,
+			Num:   big.NewInt(int64(16)),
+			Error: true, // can't fit 16 into 4 bits
+		},
+	}
+
+	for _, testCase := range cases {
+		_, base, _ := net.ParseCIDR(testCase.Base)
+		gotNet, err := SubnetBig(base, testCase.Bits, testCase.Num)
+		desc := fmt.Sprintf("SubnetBig(%#v,%#v,%#v)", testCase.Base, testCase.Bits, testCase.Num)
+		if err != nil {
+			if !testCase.Error {
+				t.Errorf("%s failed: %s", desc, err.Error())
+			}
+		} else {
+			got := gotNet.String()
+			if testCase.Error {
+				t.Errorf("%s = %s; want error", desc, got)
+			} else {
+				if got != testCase.Output {
+					t.Errorf("%s = %s; want %s", desc, got, testCase.Output)
+				}
+			}
+		}
+	}
+}
+
 func TestHost(t *testing.T) {
 	type Case struct {
 		Range  string
@@ -155,6 +247,81 @@ func TestHost(t *testing.T) {
 		_, network, _ := net.ParseCIDR(testCase.Range)
 		gotIP, err := Host(network, testCase.Num)
 		desc := fmt.Sprintf("Host(%#v,%#v)", testCase.Range, testCase.Num)
+		if err != nil {
+			if !testCase.Error {
+				t.Errorf("%s failed: %s", desc, err.Error())
+			}
+		} else {
+			got := gotIP.String()
+			if testCase.Error {
+				t.Errorf("%s = %s; want error", desc, got)
+			} else {
+				if got != testCase.Output {
+					t.Errorf("%s = %s; want %s", desc, got, testCase.Output)
+				}
+			}
+		}
+	}
+}
+
+func TestHostBig(t *testing.T) {
+	cases := []struct {
+		Range  string
+		Num    *big.Int
+		Output string
+		Error  bool
+	}{
+		{
+			Range:  "192.168.2.0/20",
+			Num:    big.NewInt(int64(6)),
+			Output: "192.168.0.6",
+		},
+		{
+			Range:  "192.168.0.0/20",
+			Num:    big.NewInt(int64(257)),
+			Output: "192.168.1.1",
+		},
+		{
+			Range:  "2001:db8::/32",
+			Num:    big.NewInt(int64(1)),
+			Output: "2001:db8::1",
+		},
+		{
+			Range: "192.168.1.0/24",
+			Num:   big.NewInt(int64(256)),
+			Error: true, // only 0-255 will fit in 8 bits
+		},
+		{
+			Range:  "192.168.0.0/30",
+			Num:    big.NewInt(int64(-3)),
+			Output: "192.168.0.1", // 4 address (0-3) in 2 bits; 3rd from end = 1
+		},
+		{
+			Range:  "192.168.0.0/30",
+			Num:    big.NewInt(int64(-4)),
+			Output: "192.168.0.0", // 4 address (0-3) in 2 bits; 4th from end = 0
+		},
+		{
+			Range: "192.168.0.0/30",
+			Num:   big.NewInt(int64(-5)),
+			Error: true, // 4 address (0-3) in 2 bits; cannot accomodate 5
+		},
+		{
+			Range:  "fd9d:bc11:4020::/64",
+			Num:    big.NewInt(int64(2)),
+			Output: "fd9d:bc11:4020::2",
+		},
+		{
+			Range:  "fd9d:bc11:4020::/64",
+			Num:    big.NewInt(int64(-2)),
+			Output: "fd9d:bc11:4020:0:ffff:ffff:ffff:fffe",
+		},
+	}
+
+	for _, testCase := range cases {
+		_, network, _ := net.ParseCIDR(testCase.Range)
+		gotIP, err := HostBig(network, testCase.Num)
+		desc := fmt.Sprintf("HostBig(%v,%v)", testCase.Range, testCase.Num)
 		if err != nil {
 			if !testCase.Error {
 				t.Errorf("%s failed: %s", desc, err.Error())

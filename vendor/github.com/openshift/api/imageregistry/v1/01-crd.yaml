@@ -619,14 +619,22 @@ spec:
               format: int32
             keepTagRevisions:
               description: keepTagRevisions specifies the number of image revisions
-                for a tag in an image stream that will be preserved. Defaults to 5.
+                for a tag in an image stream that will be preserved. Defaults to 3.
               type: integer
             keepYoungerThan:
-              description: keepYoungerThan specifies the minimum age of an image and
-                its referrers for it to be considered a candidate for pruning. Defaults
-                to 96h (96 hours).
+              description: 'keepYoungerThan specifies the minimum age in nanoseconds
+                of an image and its referrers for it to be considered a candidate
+                for pruning. DEPRECATED: This field is deprecated in favor of keepYoungerThanDuration.
+                If both are set, this field is ignored and keepYoungerThanDuration
+                takes precedence.'
               type: integer
               format: int64
+            keepYoungerThanDuration:
+              description: keepYoungerThanDuration specifies the minimum age of an
+                image and its referrers for it to be considered a candidate for pruning.
+                Defaults to 60m (60 minutes).
+              type: string
+              format: duration
             nodeSelector:
               description: nodeSelector defines the node selection constraints for
                 the image pruner pod.

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/library-go/pkg/controller/factory"
@@ -114,6 +115,10 @@ type statusClient struct {
 func (c *statusClient) Informer() cache.SharedIndexInformer {
 	c.t.Log("Informer called")
 	return nil
+}
+
+func (c *statusClient) GetObjectMeta() (*metav1.ObjectMeta, error) {
+	panic("missing")
 }
 
 func (c *statusClient) GetOperatorState() (*operatorv1.OperatorSpec, *operatorv1.OperatorStatus, string, error) {

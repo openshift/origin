@@ -38,7 +38,7 @@ func watchForMigrationControllerProgressingCondition(t testing.TB, getOperatorCo
 		return false, nil
 	})
 	if err != nil {
-		t.Logf("failed waiting for the condition %q with the reason %q to be set to true", "EncryptionMigrationControllerProgressing", "Migrating")
+		t.Logf("failed waiting for the condition %q with the reason %q to be set to true, err was %v", "EncryptionMigrationControllerProgressing", "Migrating", err)
 	}
 }
 

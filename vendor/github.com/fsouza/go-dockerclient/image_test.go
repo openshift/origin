@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -112,7 +113,7 @@ func TestListImagesParameters(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "GET" {
+	if req.Method != http.MethodGet {
 		t.Errorf("ListImages({All: false}: Wrong HTTP method. Want GET. Got %s.", req.Method)
 	}
 	if all := req.URL.Query().Get("all"); all != "0" && all != "" {
@@ -199,7 +200,7 @@ func TestRemoveImage(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := "DELETE"
+	expectedMethod := http.MethodDelete
 	if req.Method != expectedMethod {
 		t.Errorf("RemoveImage(%q): Wrong HTTP method. Want %s. Got %s.", name, expectedMethod, req.Method)
 	}
@@ -213,7 +214,7 @@ func TestRemoveImageNotFound(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such image", status: http.StatusNotFound})
 	err := client.RemoveImage("test:")
-	if err != ErrNoSuchImage {
+	if !errors.Is(err, ErrNoSuchImage) {
 		t.Errorf("RemoveImage: wrong error. Want %#v. Got %#v.", ErrNoSuchImage, err)
 	}
 }
@@ -228,7 +229,7 @@ func TestRemoveImageExtended(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := fakeRT.requests[0]
-	expectedMethod := "DELETE"
+	expectedMethod := http.MethodDelete
 	if req.Method != expectedMethod {
 		t.Errorf("RemoveImage(%q): Wrong HTTP method. Want %s. Got %s.", name, expectedMethod, req.Method)
 	}
@@ -292,7 +293,7 @@ func TestInspectImage(t *testing.T) {
 		t.Errorf("InspectImage(%q): Wrong image returned. Want %#v. Got %#v.", expected.ID, expected, *image)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "GET" {
+	if req.Method != http.MethodGet {
 		t.Errorf("InspectImage(%q): Wrong HTTP method. Want GET. Got %s.", expected.ID, req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/images/" + expected.ID + "/json"))
@@ -309,7 +310,7 @@ func TestInspectImageNotFound(t *testing.T) {
 	if image != nil {
 		t.Errorf("InspectImage(%q): expected <nil> image, got %#v.", name, image)
 	}
-	if err != ErrNoSuchImage {
+	if !errors.Is(err, ErrNoSuchImage) {
 		t.Errorf("InspectImage(%q): wrong error. Want %#v. Got %#v.", name, ErrNoSuchImage, err)
 	}
 }
@@ -328,7 +329,7 @@ func TestPushImage(t *testing.T) {
 		t.Errorf("PushImage: Wrong output. Want %q. Got %q.", expected, buf.String())
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
+	if req.Method != http.MethodPost {
 		t.Errorf("PushImage: Wrong HTTP method. Want POST. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/images/test/push"))
@@ -339,13 +340,9 @@ func TestPushImage(t *testing.T) {
 		t.Errorf("PushImage: Wrong query string. Want no parameters, got %q.", query)
 	}
 
-	auth, err := base64.URLEncoding.DecodeString(req.Header.Get("X-Registry-Auth"))
-	if err != nil {
-		t.Errorf("PushImage: caught error decoding auth. %#v", err.Error())
-	}
-	if strings.TrimSpace(string(auth)) != "{}" {
-		t.Errorf("PushImage: wrong body. Want %q. Got %q.",
-			base64.URLEncoding.EncodeToString([]byte("{}")), req.Header.Get("X-Registry-Auth"))
+	authHeader, ok := req.Header["X-Registry-Auth"]
+	if ok {
+		t.Errorf("PushImage: unexpected non-empty X-Registry-Auth header: %v", authHeader)
 	}
 }
 
@@ -435,7 +432,7 @@ func TestPushImageNoName(t *testing.T) {
 	t.Parallel()
 	client := Client{}
 	err := client.PushImage(PushImageOptions{}, AuthConfiguration{})
-	if err != ErrNoSuchImage {
+	if !errors.Is(err, ErrNoSuchImage) {
 		t.Errorf("PushImage: got wrong error. Want %#v. Got %#v.", ErrNoSuchImage, err)
 	}
 }
@@ -455,7 +452,7 @@ func TestPullImage(t *testing.T) {
 		t.Errorf("PullImage: Wrong output. Want %q. Got %q.", expected, buf.String())
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
+	if req.Method != http.MethodPost {
 		t.Errorf("PullImage: Wrong HTTP method. Want POST. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/images/create"))
@@ -485,7 +482,7 @@ func TestPullImageWithDigest(t *testing.T) {
 		t.Errorf("PullImage: Wrong output. Want %q. Got %q.", expected, buf.String())
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
+	if req.Method != http.MethodPost {
 		t.Errorf("PullImage: Wrong HTTP method. Want POST. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/images/create"))
@@ -522,7 +519,7 @@ func TestPullImageWithDigestAndTag(t *testing.T) {
 		t.Errorf("PullImage: Wrong output. Want %q. Got %q.", expected, buf.String())
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
+	if req.Method != http.MethodPost {
 		t.Errorf("PullImage: Wrong HTTP method. Want POST. Got %s.", req.Method)
 	}
 	u, _ := url.Parse(client.getURL("/images/create"))
@@ -636,7 +633,7 @@ func TestPullImageNoRepository(t *testing.T) {
 	var opts PullImageOptions
 	client := Client{}
 	err := client.PullImage(opts, AuthConfiguration{})
-	if err != ErrNoSuchImage {
+	if !errors.Is(err, ErrNoSuchImage) {
 		t.Errorf("PullImage: got wrong error. Want %#v. Got %#v.", ErrNoSuchImage, err)
 	}
 }
@@ -744,6 +741,9 @@ func TestImportImageShouldPassTarContentToBodyWhenSourceIsFilePath(t *testing.T)
 	}
 	req := fakeRT.requests[0]
 	tarContent, err := ioutil.ReadAll(tar)
+	if err != nil {
+		t.Fatal(err)
+	}
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -801,6 +801,7 @@ func TestBuildImageParameters(t *testing.T) {
 		Labels:              map[string]string{"k": "v"},
 		NetworkMode:         "host",
 		CgroupParent:        "cgparent",
+		SecurityOpt:         []string{"securityoptions"},
 	}
 	err := client.BuildImage(opts)
 	if err != nil && !strings.Contains(err.Error(), "build image fail") {
@@ -810,6 +811,7 @@ func TestBuildImageParameters(t *testing.T) {
 	expected := map[string][]string{
 		"t":            {opts.Name},
 		"nocache":      {"1"},
+		"cachefrom":    {`["test1","test2"]`},
 		"q":            {"1"},
 		"pull":         {"1"},
 		"rm":           {"1"},
@@ -825,10 +827,15 @@ func TestBuildImageParameters(t *testing.T) {
 		"buildargs":    {`{"SOME_VAR":"some_value"}`},
 		"networkmode":  {"host"},
 		"cgroupparent": {"cgparent"},
+		"securityopt":  {"securityoptions"},
 	}
 	got := map[string][]string(req.URL.Query())
 	if !reflect.DeepEqual(got, expected) {
-		t.Errorf("BuildImage: wrong query string. Want %#v. Got %#v.", expected, got)
+		t.Errorf("BuildImage: wrong query string. Want %#v.\n Got %#v.", expected, got)
+	}
+	expectedPrefix := "http://localhost:4243/v1.25/"
+	if !strings.HasPrefix(req.URL.String(), expectedPrefix) {
+		t.Errorf("BuildImage: wrong URL version Want Prefix %s.\n Got URL: %s", expectedPrefix, req.URL.String())
 	}
 }
 
@@ -866,7 +873,7 @@ func TestBuildImageMissingRepoAndNilInput(t *testing.T) {
 		OutputStream:   &buf,
 	}
 	err := client.BuildImage(opts)
-	if err != ErrMissingRepo {
+	if !errors.Is(err, ErrMissingRepo) {
 		t.Errorf("BuildImage: wrong error returned. Want %#v. Got %#v.", ErrMissingRepo, err)
 	}
 }
@@ -877,7 +884,7 @@ func TestBuildImageMissingOutputStream(t *testing.T) {
 	client := newTestClient(fakeRT)
 	opts := BuildImageOptions{Name: "testImage"}
 	err := client.BuildImage(opts)
-	if err != ErrMissingOutputStream {
+	if !errors.Is(err, ErrMissingOutputStream) {
 		t.Errorf("BuildImage: wrong error returned. Want %#v. Got %#v.", ErrMissingOutputStream, err)
 	}
 }
@@ -966,7 +973,7 @@ func TestTagImageMissingRepo(t *testing.T) {
 	client := newTestClient(fakeRT)
 	opts := TagImageOptions{Repo: "testImage"}
 	err := client.TagImage("", opts)
-	if err != ErrNoSuchImage {
+	if !errors.Is(err, ErrNoSuchImage) {
 		t.Errorf("TestTag: wrong error returned. Want %#v. Got %#v.",
 			ErrNoSuchImage, err)
 	}
@@ -1002,8 +1009,8 @@ func TestLoadImage(t *testing.T) {
 		t.Error(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "POST" {
-		t.Errorf("LoadImage: wrong method. Expected %q. Got %q.", "POST", req.Method)
+	if req.Method != http.MethodPost {
+		t.Errorf("LoadImage: wrong method. Expected %q. Got %q.", http.MethodPost, req.Method)
 	}
 	if req.URL.Path != "/images/load" {
 		t.Errorf("LoadImage: wrong URL. Expected %q. Got %q.", "/images/load", req.URL.Path)
@@ -1021,8 +1028,8 @@ func TestExportImage(t *testing.T) {
 		t.Error(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "GET" {
-		t.Errorf("ExportImage: wrong method. Expected %q. Got %q.", "GET", req.Method)
+	if req.Method != http.MethodGet {
+		t.Errorf("ExportImage: wrong method. Expected %q. Got %q.", http.MethodGet, req.Method)
 	}
 	expectedPath := "/images/testimage/get"
 	if req.URL.Path != expectedPath {
@@ -1035,19 +1042,32 @@ func TestExportImages(t *testing.T) {
 	var buf bytes.Buffer
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
+	client.requestedAPIVersion = apiVersion125
 	opts := ExportImagesOptions{Names: []string{"testimage1", "testimage2:latest"}, OutputStream: &buf}
 	err := client.ExportImages(opts)
 	if nil != err {
 		t.Error(err)
 	}
 	req := fakeRT.requests[0]
-	if req.Method != "GET" {
-		t.Errorf("ExportImage: wrong method. Expected %q. Got %q.", "GET", req.Method)
+	if req.Method != http.MethodGet {
+		t.Errorf("ExportImages: wrong method. Expected %q. Got %q.", http.MethodGet, req.Method)
 	}
-	expected := "http://localhost:4243/images/get?names=testimage1&names=testimage2%3Alatest"
+	expected := "http://localhost:4243/v1.25/images/get?names=testimage1%2Ctestimage2%3Alatest"
 	got := req.URL.String()
 	if !reflect.DeepEqual(got, expected) {
-		t.Errorf("ExportIMage: wrong path. Expected %q. Got %q.", expected, got)
+		t.Errorf("ExportImages: wrong path. Expected %q. Got %q.", expected, got)
+	}
+
+	client.requestedAPIVersion = apiVersion124
+	err = client.ExportImages(opts)
+	if nil != err {
+		t.Error(err)
+	}
+	req = fakeRT.requests[1]
+	expected = "http://localhost:4243/v1.24/images/get?names=testimage1&names=testimage2%3Alatest"
+	got = req.URL.String()
+	if !reflect.DeepEqual(got, expected) {
+		t.Errorf("ExportImages: wrong path. Expected %q. Got %q.", expected, got)
 	}
 }
 
@@ -1061,7 +1081,7 @@ func TestExportImagesNoNames(t *testing.T) {
 	if err == nil {
 		t.Error("Expected an error")
 	}
-	if err != ErrMustSpecifyNames {
+	if !errors.Is(err, ErrMustSpecifyNames) {
 		t.Error(err)
 	}
 }

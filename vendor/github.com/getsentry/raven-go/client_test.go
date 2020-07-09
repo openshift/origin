@@ -3,6 +3,7 @@ package raven
 import (
 	"encoding/json"
 	"fmt"
+	pkgErrors "github.com/pkg/errors"
 	"reflect"
 	"testing"
 	"time"
@@ -283,6 +284,41 @@ func TestCaptureNilError(t *testing.T) {
 	eventID := client.CaptureError(nil, nil)
 	if eventID != "" {
 		t.Error("expected empty eventID:", eventID)
+	}
+}
+
+// Custom error which implements causer
+type customErr struct {
+	msg   string
+	cause error
+}
+
+func (e *customErr) Error() (errorMsg string) {
+	if e.msg != "" && e.cause != nil {
+		errorMsg = fmt.Sprintf("%v \n\t==>> %v", e.msg, e.cause)
+	} else if e.msg == "" && e.cause != nil {
+		errorMsg = fmt.Sprintf("%v", e.cause)
+	} else if e.msg != "" && e.cause == nil {
+		errorMsg = fmt.Sprintf("%s", e.msg)
+	}
+	return
+}
+
+// Implementing the causer interface from github.com/pkg/errors
+func (e *customErr) Cause() error {
+	return e.cause
+}
+
+func TestCaptureNilCauseError(t *testing.T) {
+	var client = DefaultClient
+	err := pkgErrors.WithStack(&customErr{
+		// Setting a nil cause
+		cause: nil,
+		msg:   "This is a test",
+	})
+	eventID := client.CaptureError(err, nil)
+	if eventID == "" {
+		t.Error("expected non-empty eventID:", eventID)
 	}
 }
 

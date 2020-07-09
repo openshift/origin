@@ -47,6 +47,15 @@ func (c dynamicOperatorClient) Informer() cache.SharedIndexInformer {
 	return c.informer.Informer()
 }
 
+func (c dynamicOperatorClient) GetObjectMeta() (*metav1.ObjectMeta, error) {
+	uncastInstance, err := c.informer.Lister().Get(globalConfigName)
+	if err != nil {
+		return nil, err
+	}
+	instance := uncastInstance.(*unstructured.Unstructured)
+	return getObjectMetaFromUnstructured(instance.UnstructuredContent())
+}
+
 func (c dynamicOperatorClient) GetOperatorState() (*operatorv1.OperatorSpec, *operatorv1.OperatorStatus, string, error) {
 	uncastInstance, err := c.informer.Lister().Get(globalConfigName)
 	if err != nil {
@@ -120,6 +129,22 @@ func (c dynamicOperatorClient) UpdateOperatorStatus(resourceVersion string, stat
 	}
 
 	return retStatus, nil
+}
+
+func getObjectMetaFromUnstructured(obj map[string]interface{}) (*metav1.ObjectMeta, error) {
+	uncastMeta, exists, err := unstructured.NestedMap(obj, "metadata")
+	if !exists {
+		return &metav1.ObjectMeta{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &metav1.ObjectMeta{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(uncastMeta, ret); err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 func getOperatorSpecFromUnstructured(obj map[string]interface{}) (*operatorv1.OperatorSpec, error) {

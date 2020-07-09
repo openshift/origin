@@ -11,6 +11,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 
@@ -205,6 +206,64 @@ func TestControllerWithInformer(t *testing.T) {
 		cancel()
 	case <-time.After(30 * time.Second):
 		t.Fatal("test timeout")
+	}
+}
+
+func TestControllerScheduled(t *testing.T) {
+	syncCalled := make(chan struct{})
+	controller := New().ResyncSchedule("@every 1s").WithSync(func(ctx context.Context, controllerContext SyncContext) error {
+		syncCalled <- struct{}{}
+		return nil
+	}).ToController("test", events.NewInMemoryRecorder("fake-controller"))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	syncCounter := 0
+	var syncMutex sync.Mutex
+
+	// observe sync calls
+	go func() {
+		for {
+			select {
+			case <-syncCalled:
+				syncMutex.Lock()
+				syncCounter++
+				t.Logf("#%d sync called", syncCounter)
+				syncMutex.Unlock()
+			case <-ctx.Done():
+				t.Logf("controller finished")
+				return
+			}
+		}
+	}()
+
+	go controller.Run(ctx, 1)
+
+	timeoutCtx, timeoutCtxCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer timeoutCtxCancel()
+	if err := wait.PollImmediateUntil(500*time.Millisecond, func() (done bool, err error) {
+		syncMutex.Lock()
+		defer syncMutex.Unlock()
+		return syncCounter > 3, nil
+	}, timeoutCtx.Done()); err != nil {
+		t.Errorf("failed to observe at least 3 sync calls: %v", err)
+	}
+}
+
+func TestControllerSyncAfterStart(t *testing.T) {
+	syncCalled := make(chan struct{})
+	controller := New().ResyncEvery(10*time.Second).WithSync(func(ctx context.Context, controllerContext SyncContext) error {
+		close(syncCalled)
+		return nil
+	}).ToController("test", events.NewInMemoryRecorder("fake-controller"))
+
+	go controller.Run(context.TODO(), 1)
+	select {
+	case <-syncCalled:
+		return
+	case <-time.After(5 * time.Second):
+		t.Error("expected sync to be called right after controller is started")
 	}
 }
 

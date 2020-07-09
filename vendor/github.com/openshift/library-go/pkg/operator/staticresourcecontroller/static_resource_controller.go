@@ -10,6 +10,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -141,6 +142,10 @@ func (c *StaticResourceController) AddKubeInformers(kubeInformersByNamespace v1h
 			ret = ret.AddInformer(informer.Rbac().V1().Roles().Informer())
 		case *rbacv1.RoleBinding:
 			ret = ret.AddInformer(informer.Rbac().V1().RoleBindings().Informer())
+		case *storagev1.StorageClass:
+			ret = ret.AddInformer(informer.Storage().V1().StorageClasses().Informer())
+		case *storagev1.CSIDriver:
+			ret = ret.AddInformer(informer.Storage().V1().CSIDrivers().Informer())
 		default:
 			// if there's a missing case, the caller can add an informer or count on a time based trigger.
 			// if the controller doesn't handle it, then there will be failure from the underlying apply.

@@ -2,9 +2,12 @@ package factory
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/robfig/cron"
 	"k8s.io/apimachinery/pkg/runtime"
+	errorutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 
@@ -22,6 +25,7 @@ type Factory struct {
 	syncContext           SyncContext
 	syncDegradedClient    operatorv1helpers.OperatorClient
 	resyncInterval        time.Duration
+	resyncSchedules       []string
 	informers             []Informer
 	informerQueueKeys     []informersWithQueueKey
 	bareInformers         []Informer
@@ -127,6 +131,21 @@ func (f *Factory) ResyncEvery(interval time.Duration) *Factory {
 	return f
 }
 
+// ResyncSchedule allows to supply a Cron syntax schedule that will be used to schedule the sync() call runs.
+// This allows more fine-tuned controller scheduling than ResyncEvery.
+// Examples:
+//
+// factory.New().ResyncSchedule("@every 1s").ToController()     // Every second
+// factory.New().ResyncSchedule("@hourly").ToController()       // Every hour
+// factory.New().ResyncSchedule("30 * * * *").ToController()	// Every hour on the half hour
+//
+// Note: The controller context passed to Sync() function in this case does not contain the object metadata or object itself.
+//       This can be used to detect periodical resyncs, but normal Sync() have to be cautious about `nil` objects.
+func (f *Factory) ResyncSchedule(schedules ...string) *Factory {
+	f.resyncSchedules = append(f.resyncSchedules, schedules...)
+	return f
+}
+
 // WithSyncContext allows to specify custom, existing sync context for this factory.
 // This is useful during unit testing where you can override the default event recorder or mock the runtime objects.
 // If this function not called, a SyncContext is created by the factory automatically.
@@ -145,7 +164,7 @@ func (f *Factory) WithSyncDegradedOnError(operatorClient operatorv1helpers.Opera
 // Controller produce a runnable controller.
 func (f *Factory) ToController(name string, eventRecorder events.Recorder) Controller {
 	if f.sync == nil {
-		panic("WithSync() must be used before calling ToController()")
+		panic(fmt.Errorf("WithSync() must be used before calling ToController() in %q", name))
 	}
 
 	var ctx SyncContext
@@ -155,11 +174,27 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 		ctx = NewSyncContext(name, eventRecorder)
 	}
 
+	var cronSchedules []cron.Schedule
+	if len(f.resyncSchedules) > 0 {
+		var errors []error
+		for _, schedule := range f.resyncSchedules {
+			if s, err := cron.ParseStandard(schedule); err != nil {
+				errors = append(errors, err)
+			} else {
+				cronSchedules = append(cronSchedules, s)
+			}
+		}
+		if err := errorutil.NewAggregate(errors); err != nil {
+			panic(fmt.Errorf("failed to parse controller schedules for %q: %v", name, err))
+		}
+	}
+
 	c := &baseController{
 		name:               name,
 		syncDegradedClient: f.syncDegradedClient,
 		sync:               f.sync,
 		resyncEvery:        f.resyncInterval,
+		resyncSchedules:    cronSchedules,
 		cachesToSync:       append([]cache.InformerSynced{}, f.cachesToSync...),
 		syncContext:        ctx,
 	}

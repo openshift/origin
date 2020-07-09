@@ -7,7 +7,7 @@ import (
 )
 
 func TestReadHeader(t *testing.T) {
-	testcases := map[string]struct {
+	testCases := map[string]struct {
 		Data               []byte
 		ExpectedIdentifier Identifier
 		ExpectedLength     int
@@ -84,7 +84,7 @@ func TestReadHeader(t *testing.T) {
 		},
 	}
 
-	for k, tc := range testcases {
+	for k, tc := range testCases {
 		reader := bytes.NewBuffer(tc.Data)
 		identifier, length, read, err := readHeader(reader)
 

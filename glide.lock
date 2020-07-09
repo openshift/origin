@@ -1,5 +1,5 @@
-hash: 8f00acf84071cc43e26f2aba37ab4c35338fa972ab6fbcbfa299800ac5f6e589
-updated: 2020-05-21T17:07:05.922027948-07:00
+hash: 1063c029a6da33a42cbb350986c07b5fde0ea12008e322db11e13dc6637b1e7d
+updated: 2020-07-08T13:09:05.116908+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -13,7 +13,7 @@ imports:
 - name: github.com/andreyvit/diff
   version: c7f18ee00883bfd3b00e0a2bf7607827e0148ad4
 - name: github.com/apparentlymart/go-cidr
-  version: c0fb5fbe0acb592411e2db59add389a43260ad44
+  version: d07067359aee8ee9101c1a79a4f286cf0cea059f
   subpackages:
   - cidr
 - name: github.com/armon/circbuf
@@ -55,7 +55,6 @@ imports:
   - private/protocol/query
   - private/protocol/query/queryutil
   - private/protocol/rest
-  - private/protocol/restxml
   - private/protocol/xml/xmlutil
   - service/autoscaling
   - service/ec2
@@ -63,7 +62,6 @@ imports:
   - service/elb
   - service/elbv2
   - service/kms
-  - service/route53
   - service/sts
   - service/sts/stsiface
 - name: github.com/Azure/azure-sdk-for-go
@@ -98,7 +96,7 @@ imports:
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/certifi/gocertifi
-  version: ee1a9a0726d2ae45f54118cac878c990d4016ded
+  version: c7c1fbc02894e7114f06f6a4d9ab31eee2225bdb
 - name: github.com/chai2010/gettext-go
   version: c6fed771bfd517099caf0f7a961671fa8ed08723
   subpackages:
@@ -137,11 +135,10 @@ imports:
   - errdefs
   - namespaces
 - name: github.com/containerd/continuity
-  version: 75bee3e2ccb6402e3a986ab8bd3b17003fc0fdec
+  version: f1c9af8e2a206bd1b9f06b2c7d250deaf4791cf7
   subpackages:
   - fs
   - pathdriver
-  - syscallx
   - sysx
 - name: github.com/containernetworking/cni
   version: 4cfb7b568922a3c79a23e438dc52fe537fc9687e
@@ -213,7 +210,6 @@ imports:
   - client
   - daemon/logger/jsonfilelog/jsonlog
   - errdefs
-  - opts
   - pkg/archive
   - pkg/fileutils
   - pkg/homedir
@@ -238,10 +234,6 @@ imports:
   - tlsconfig
 - name: github.com/docker/go-units
   version: 519db1ee28dcc9fd2474ae59fca29a810482bfb1
-- name: github.com/docker/libnetwork
-  version: c8a5fca4a6529415d24c9066fd833b87012bcd79
-  subpackages:
-  - ipamutils
 - name: github.com/docker/libtrust
   version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
 - name: github.com/docker/spdystream
@@ -257,7 +249,7 @@ imports:
   subpackages:
   - log
 - name: github.com/emirpasic/gods
-  version: 80e934ed68b9084f386ae25f74f839aaecfb54d8
+  version: 7e23495895315fb6a2a939b3f760a233e77dd282
   subpackages:
   - containers
   - lists
@@ -278,9 +270,9 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/fsouza/go-dockerclient
-  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
+  version: fa0591b4dbc9207fc5d5902b363651ab88a326b1
 - name: github.com/getsentry/raven-go
-  version: c977f96e109525a5d8fa10a19165341f601f38b0
+  version: 5c24d5110e0e198d9ae16f1f3465366085001d92
 - name: github.com/ghodss/yaml
   version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/go-bindata/go-bindata
@@ -358,7 +350,7 @@ imports:
 - name: github.com/gonum/floats
   version: c233463c7e827fd71a8cdb62dfda0e98f7c39ad5
 - name: github.com/gonum/graph
-  version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
+  version: 678096d81a4bff34d364a7ee4ecf11cc198f8ae2
   subpackages:
   - encoding/dot
   - formats/dot
@@ -389,8 +381,8 @@ imports:
 - name: github.com/google/btree
   version: 4030bb1f1f0c35b30ca7009e9ebd06849dd45306
 - name: github.com/google/cadvisor
-  repo: https://github.com/openshift/cadvisor
   version: 52275b81dc5b670043d8a320f81341b0b7e6f6f8
+  repo: https://github.com/openshift/cadvisor
   subpackages:
   - accelerators
   - cache/memory
@@ -739,7 +731,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 4090b8d67ad86a9f3d1c5049b96fb293f7f3342e
+  version: de5b010b2b386867fc61c4f718080755f9707748
   subpackages:
   - annotations
   - apps
@@ -770,6 +762,8 @@ imports:
   - operator
   - operator/v1
   - operator/v1alpha1
+  - operatorcontrolplane
+  - operatorcontrolplane/v1alpha1
   - osin
   - osin/v1
   - pkg/serialization
@@ -811,7 +805,7 @@ imports:
   - pkg/securitycontextconstraints/util
   - pkg/securitycontextconstraints/util/sort
 - name: github.com/openshift/client-go
-  version: 05eb9880269c5ff1696fe20f511f9efa8bbdba0e
+  version: 83993cebb5aee533bf2f2dded2d87b9e32835f4a
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -915,7 +909,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: eeebfaa62843201e865e96a61eb961ee2c446775
+  version: 5bce47ff103f8db23908ad05e8871836eb1f30c0
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -967,7 +961,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: f6fe06335df110bcf1ed6d4e852b760bfc15beee
+  version: 3704c8d23324a3fc0771ad2c1cef0aa4e9459f6f
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
@@ -1464,7 +1458,7 @@ imports:
   - status
   - tap
 - name: gopkg.in/asn1-ber.v1
-  version: f715ec2f112d1e4195b827ad68cf44017a3ef2b1
+  version: 940d7ce7ec9605bce53ac9a6b2b846acb44e67ba
 - name: gopkg.in/fsnotify.v1
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: gopkg.in/gcfg.v1
@@ -1589,7 +1583,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 9130ec550d41f5cf7d70e18ae0c456f8a8c97b67
+  version: bb793e9bd9cf7356d0bcf0e14edc33a5493abeec
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apihelpers
@@ -1635,7 +1629,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: 486331e63b6ae160381030bac9dfb4c3c93452d2
+  version: aa9aa8ba5d659192a5a6df53600ffb02300d5205
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1701,7 +1695,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 82adc803690168af723f6cacdd1b3b7e43675c51
+  version: 1deecc721469e2e0127da1ecb6b73087fc1e4dae
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2211,15 +2205,15 @@ imports:
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kube-scheduler
-  version: 03ae14b8002f6f0f0e9d68b173cb9aa8c06a39ed
+  version: 2b94b01094e943e44e29689aec4e215c56aadff6
   repo: https://github.com/openshift/kubernetes-kube-scheduler.git
   subpackages:
   - config/v1
   - config/v1alpha1
-  - config/v1alpha2
+  - config/v1beta1
   - extender/v1
 - name: k8s.io/kubectl
-  version: f0cfedb470ab38495a58e0c0b1c439a9d62b2b28
+  version: 9fb4d7b8ee32055adec23f29c6cfedb7ce9cd8aa
   repo: https://github.com/openshift/kubernetes-kubectl.git
   subpackages:
   - pkg/apps
@@ -2304,7 +2298,7 @@ imports:
   - pkg/apis/deviceplugin/v1beta1
   - pkg/apis/pluginregistration/v1
 - name: k8s.io/kubernetes
-  version: 8e3449361348b1ab53198c449eb7764436eadfa9
+  version: 5644f08d096deabb3b972267ca342922011b30bd
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -2939,7 +2933,7 @@ imports:
   - pkg/scheduler/apis/config/scheme
   - pkg/scheduler/apis/config/v1
   - pkg/scheduler/apis/config/v1alpha1
-  - pkg/scheduler/apis/config/v1alpha2
+  - pkg/scheduler/apis/config/v1beta1
   - pkg/scheduler/apis/config/validation
   - pkg/scheduler/core
   - pkg/scheduler/framework/plugins
@@ -3205,7 +3199,7 @@ imports:
   - third_party/forked/gonum/graph/traverse
   - third_party/forked/ipvs
 - name: k8s.io/legacy-cloud-providers
-  version: f400846d7a24a0c771a5730d50ca1b80b522dea9
+  version: 23ef6c93cd6f074544c1057ec2ae8de2816b7dd1
   repo: https://github.com/openshift/kubernetes-legacy-cloud-providers.git
   subpackages:
   - aws

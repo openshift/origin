@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/fake"
 	ktesting "k8s.io/client-go/testing"
@@ -25,6 +26,10 @@ import (
 
 func (c *fakeOperatorClient) Informer() cache.SharedIndexInformer {
 	return nil
+}
+
+func (c *fakeOperatorClient) GetObjectMeta() (*metav1.ObjectMeta, error) {
+	panic("not supported")
 }
 
 func (c *fakeOperatorClient) GetOperatorState() (spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, resourceVersion string, err error) {
