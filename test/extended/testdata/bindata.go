@@ -33825,8 +33825,7 @@ os::cmd::expect_failure_and_text 'oc observe services --once --names echo' '\-\-
 os::cmd::expect_success_and_text 'oc observe services --exit-after=1s' 'Shutting down after 1s ...'
 os::cmd::expect_success_and_text 'oc observe services --exit-after=1s --all-namespaces --print-metrics-on-exit' 'observe_counts{type="Sync"}'
 os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces' 'default kubernetes'
-# TODO: fix #31755 and make this a --once test
-os::cmd::expect_success_and_text 'oc observe services --exit-after=3s --all-namespaces --names echo --names default/notfound --delete echo --delete remove' 'remove default notfound'
+os::cmd::expect_success_and_text 'oc observe services --once --exit-after=3s --all-namespaces --names echo --names default/notfound --delete echo --delete remove' 'remove default notfound'
 
 # error counting
 os::cmd::expect_failure_and_text 'oc observe services --exit-after=1m --all-namespaces --maximum-errors=1 -- /bin/sh -c "exit 1"' 'reached maximum error limit of 1, exiting'
@@ -33839,13 +33838,15 @@ os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a
 os::cmd::expect_failure_and_text 'oc observe services --once --all-namespaces -a "bad{ .missingkey }key" --strict-templates' 'missingkey is not found'
 os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{{ .unknown }}" --output=gotemplate' '""'
 os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ or (.unknown) \"\" }}key" --output=gotemplate' 'badkey'
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ .unknown }}key" --output=gotemplate --strict-templates' '\<no value\>'
+# TODO: bring back when oc#472 merges
+# os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ .unknown }}key" --output=gotemplate --strict-templates' 'map has no entry for key'
 
 # --type-env-var
 os::cmd::expect_success_and_text 'MYENV=should_be_passed oc observe services --once --all-namespaces --type-env-var=EVENT -- /bin/sh -c "echo \$EVENT \$MYENV"' 'Sync should_be_passed'
 
 echo "observe: ok"
-os::test::junit::declare_suite_end`)
+os::test::junit::declare_suite_end
+`)
 
 func testExtendedTestdataCmdTestCmdObserveShBytes() ([]byte, error) {
 	return _testExtendedTestdataCmdTestCmdObserveSh, nil
