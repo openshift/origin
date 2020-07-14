@@ -22,7 +22,7 @@ filters:
     - sttts
     - smarterclayton
     - tbielawa # also for build and automated release tooling changes
-  "^\\.glide.(lock|yaml)$":
+  "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"
   "^vendor/.*":
