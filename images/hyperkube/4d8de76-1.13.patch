@@ -1,0 +1,154 @@
+diff --git a/src/net/http/export_test.go b/src/net/http/export_test.go
+index e5c06a8903..0357b5137f 100644
+--- a/src/net/http/export_test.go
++++ b/src/net/http/export_test.go
+@@ -268,6 +268,17 @@ func (s *Server) ExportAllConnsIdle() bool {
+ 	return true
+ }
+ 
++func (s *Server) ExportAllConnsByState() map[ConnState]int {
++	states := map[ConnState]int{}
++	s.mu.Lock()
++	defer s.mu.Unlock()
++	for c := range s.activeConn {
++		st, _ := c.getState()
++		states[st] += 1
++	}
++	return states
++}
++
+ func (r *Request) WithT(t *testing.T) *Request {
+ 	return r.WithContext(context.WithValue(r.Context(), tLogKey{}, t.Logf))
+ }
+diff --git a/src/net/http/serve_test.go b/src/net/http/serve_test.go
+index 90f112b2ee..c082f21e2f 100644
+--- a/src/net/http/serve_test.go
++++ b/src/net/http/serve_test.go
+@@ -5542,19 +5542,26 @@ func TestServerSetKeepAlivesEnabledClosesConns(t *testing.T) {
+ 	}
+ }
+ 
+-func TestServerShutdown_h1(t *testing.T) { testServerShutdown(t, h1Mode) }
+-func TestServerShutdown_h2(t *testing.T) { testServerShutdown(t, h2Mode) }
++func TestServerShutdown_h1(t *testing.T) {
++	testServerShutdown(t, h1Mode)
++}
++func TestServerShutdown_h2(t *testing.T) {
++	testServerShutdown(t, h2Mode)
++}
+ 
+ func testServerShutdown(t *testing.T, h2 bool) {
+ 	setParallel(t)
+ 	defer afterTest(t)
+ 	var doShutdown func() // set later
++	var doStateCount func()
+ 	var shutdownRes = make(chan error, 1)
++	var statesRes = make(chan map[ConnState]int, 1)
+ 	var gotOnShutdown = make(chan struct{}, 1)
+ 	handler := HandlerFunc(func(w ResponseWriter, r *Request) {
++		doStateCount()
+ 		go doShutdown()
+ 		// Shutdown is graceful, so it should not interrupt
+-		// this in-flight response. Add a tiny sleep here to
++		// this in-flight response. Add a sleep here to
+ 		// increase the odds of a failure if shutdown has
+ 		// bugs.
+ 		time.Sleep(20 * time.Millisecond)
+@@ -5568,6 +5575,9 @@ func testServerShutdown(t *testing.T, h2 bool) {
+ 	doShutdown = func() {
+ 		shutdownRes <- cst.ts.Config.Shutdown(context.Background())
+ 	}
++	doStateCount = func() {
++		statesRes <- cst.ts.Config.ExportAllConnsByState()
++	}
+ 	get(t, cst.c, cst.ts.URL) // calls t.Fail on failure
+ 
+ 	if err := <-shutdownRes; err != nil {
+@@ -5579,6 +5589,10 @@ func testServerShutdown(t *testing.T, h2 bool) {
+ 		t.Errorf("onShutdown callback not called, RegisterOnShutdown broken?")
+ 	}
+ 
++	if states := <-statesRes; states[StateActive] != 1 {
++		t.Errorf("connection in wrong state, %v", states)
++	}
++
+ 	res, err := cst.c.Get(cst.ts.URL)
+ 	if err == nil {
+ 		res.Body.Close()
+diff --git a/src/net/http/server.go b/src/net/http/server.go
+index 8252e45aca..ee367526f8 100644
+--- a/src/net/http/server.go
++++ b/src/net/http/server.go
+@@ -323,7 +323,7 @@ func (c *conn) hijackLocked() (rwc net.Conn, buf *bufio.ReadWriter, err error) {
+ 			return nil, nil, fmt.Errorf("unexpected Peek failure reading buffered byte: %v", err)
+ 		}
+ 	}
+-	c.setState(rwc, StateHijacked)
++	c.setState(rwc, StateHijacked, true)
+ 	return
+ }
+ 
+@@ -1703,7 +1703,7 @@ func validNPN(proto string) bool {
+ 	return true
+ }
+ 
+-func (c *conn) setState(nc net.Conn, state ConnState) {
++func (c *conn) setState(nc net.Conn, state ConnState, runHook bool) {
+ 	srv := c.server
+ 	switch state {
+ 	case StateNew:
+@@ -1716,6 +1716,9 @@ func (c *conn) setState(nc net.Conn, state ConnState) {
+ 	}
+ 	packedState := uint64(time.Now().Unix()<<8) | uint64(state)
+ 	atomic.StoreUint64(&c.curState.atomic, packedState)
++	if !runHook {
++		return
++	}
+ 	if hook := srv.ConnState; hook != nil {
+ 		hook(nc, state)
+ 	}
+@@ -1769,7 +1772,7 @@ func (c *conn) serve(ctx context.Context) {
+ 		}
+ 		if !c.hijacked() {
+ 			c.close()
+-			c.setState(c.rwc, StateClosed)
++			c.setState(c.rwc, StateClosed, true)
+ 		}
+ 	}()
+ 
+@@ -1797,6 +1800,8 @@ func (c *conn) serve(ctx context.Context) {
+ 		if proto := c.tlsState.NegotiatedProtocol; validNPN(proto) {
+ 			if fn := c.server.TLSNextProto[proto]; fn != nil {
+ 				h := initNPNRequest{ctx, tlsConn, serverHandler{c.server}}
++				// issue 39776: prevent closeIdleConns from closing these connections
++				c.setState(c.rwc, StateActive, false)
+ 				fn(c.server, tlsConn, h)
+ 			}
+ 			return
+@@ -1817,7 +1822,7 @@ func (c *conn) serve(ctx context.Context) {
+ 		w, err := c.readRequest(ctx)
+ 		if c.r.remain != c.server.initialReadLimitSize() {
+ 			// If we read any bytes off the wire, we're active.
+-			c.setState(c.rwc, StateActive)
++			c.setState(c.rwc, StateActive, true)
+ 		}
+ 		if err != nil {
+ 			const errorHeaders = "\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n"
+@@ -1899,7 +1904,7 @@ func (c *conn) serve(ctx context.Context) {
+ 			}
+ 			return
+ 		}
+-		c.setState(c.rwc, StateIdle)
++		c.setState(c.rwc, StateIdle, true)
+ 		c.curReq.Store((*response)(nil))
+ 
+ 		if !w.conn.server.doKeepAlives() {
+@@ -2924,7 +2929,7 @@ func (srv *Server) Serve(l net.Listener) error {
+ 		}
+ 		tempDelay = 0
+ 		c := srv.newConn(rw)
+-		c.setState(c.rwc, StateNew) // before Serve can return
++		c.setState(c.rwc, StateNew, true) // before Serve can return
+ 		go c.serve(connCtx)
+ 	}
+ }

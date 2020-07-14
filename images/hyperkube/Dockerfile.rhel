@@ -1,6 +1,10 @@
 FROM registry.svc.ci.openshift.org/ocp/builder:golang-1.13 AS builder
 WORKDIR /go/src/github.com/openshift/origin
 COPY . .
+# apply a patch to net/http2 library that fixes the graceful termination of active connections, more details at: https://github.com/golang/go/issues/39776
+# this patch was prepared based on https://go-review.googlesource.com/c/go/+/240278/. The original patch is targeting the master branch and didn't apply to 1.13 version
+RUN patch -d /usr/local/go -p1 < images/hyperkube/4d8de76-1.13.patch
+RUN go test -v --race images/hyperkube/gc_test.go
 RUN for p in vendor/k8s.io/kubernetes/cmd/kube-apiserver vendor/k8s.io/kubernetes/cmd/kube-controller-manager \
     vendor/k8s.io/kubernetes/cmd/kube-scheduler vendor/k8s.io/kubernetes/cmd/kubelet cmd/watch-termination; do make build WHAT=$p; done && \
     mkdir -p /tmp/build && \
