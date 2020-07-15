@@ -147,6 +147,21 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 					return nil
 				}
 
+				// TODO: remove when https://github.com/openshift/must-gather/pull/162 has merged
+				if strings.HasSuffix(path, ".terminating.gz") {
+					return nil
+				}
+
+				if (strings.Contains(path, "-termination-") && strings.HasSuffix(path, ".log.gz")) || strings.HasSuffix(path, "termination.log.gz") {
+					// these are expected, but have unstructured log format
+					return nil
+				}
+
+				isAuditFile := (strings.Contains(path, "-audit-") && strings.HasSuffix(path, ".log.gz")) || strings.HasSuffix(path, "audit.log.gz")
+				o.Expect(isAuditFile).To(o.BeTrue())
+
+				// at this point, we expect only audit files with json events, one per line
+
 				readFile := false
 
 				file, err := os.Open(path)
