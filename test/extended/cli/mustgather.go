@@ -31,9 +31,16 @@ import (
 var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("oc-adm-must-gather").AsAdmin()
+
+	g.JustBeforeEach(func() {
+		// wait for the default service account to be avaiable
+		err := exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
 	g.It("runs successfully", func() {
 		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
-		o.Expect(err).ToNot(o.HaveOccurred())
+		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
 		o.Expect(oc.Run("adm", "must-gather").Args("--dest-dir", tempDir).Execute()).To(o.Succeed())
 
@@ -89,7 +96,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			expectedFilePath := path.Join(expectedFile...)
 			o.Expect(expectedFilePath).To(o.BeAnExistingFile())
 			stat, err := os.Stat(expectedFilePath)
-			o.Expect(err).ToNot(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred())
 			if size := stat.Size(); size < 50 {
 				emptyFiles = append(emptyFiles, expectedFilePath)
 			}
@@ -101,7 +108,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 	g.It("runs successfully with options", func() {
 		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
-		o.Expect(err).ToNot(o.HaveOccurred())
+		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
 		args := []string{
 			"--dest-dir", tempDir,
@@ -114,7 +121,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		expectedFilePath := path.Join(getPluginOutputDir(oc, tempDir), "ls.log")
 		o.Expect(expectedFilePath).To(o.BeAnExistingFile())
 		stat, err := os.Stat(expectedFilePath)
-		o.Expect(err).ToNot(o.HaveOccurred())
+		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(stat.Size()).To(o.BeNumerically(">", 0))
 	})
 
@@ -133,7 +140,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			UserName:    "a",
 			UserUID:     "1",
 		}, metav1.CreateOptions{})
-		o.Expect(err1).ToNot(o.HaveOccurred())
+		o.Expect(err1).NotTo(o.HaveOccurred())
 		_, err2 := oauthClient.OAuthAuthorizeTokens().Create(context.Background(), &oauthv1.OAuthAuthorizeToken{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: tokenName,
@@ -145,18 +152,14 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			UserName:    "a",
 			UserUID:     "1",
 		}, metav1.CreateOptions{})
-		o.Expect(err2).ToNot(o.HaveOccurred())
+		o.Expect(err2).NotTo(o.HaveOccurred())
 
 		// let audit log writes occurs to disk (best effort, should be enough to make the test fail most of the time)
 		time.Sleep(10 * time.Second)
 
-		// wait for the default service account to be avaiable
-		err := exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
-		o.Expect(err).ToNot(o.HaveOccurred())
-
 		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
-		o.Expect(err).ToNot(o.HaveOccurred())
-		defer os.RemoveAll(tempDir)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		// defer os.RemoveAll(tempDir)
 
 		args := []string{
 			"--dest-dir", tempDir,
@@ -185,13 +188,8 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			eventsChecked := 0
 			err := filepath.Walk(path.Join(auditDirectory...), func(path string, info os.FileInfo, err error) error {
 				g.By(path)
-				o.Expect(err).ToNot(o.HaveOccurred())
+				o.Expect(err).NotTo(o.HaveOccurred())
 				if info.IsDir() {
-					return nil
-				}
-
-				// TODO: remove when https://github.com/openshift/must-gather/pull/162 has merged
-				if strings.HasSuffix(path, ".terminating.gz") {
 					return nil
 				}
 
@@ -208,11 +206,20 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 				readFile := false
 
 				file, err := os.Open(path)
-				o.Expect(err).ToNot(o.HaveOccurred())
+				o.Expect(err).NotTo(o.HaveOccurred())
 				defer file.Close()
 
+				fi, err := file.Stat()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// it will happen that the audit files are sometimes empty, we can
+				// safely ignore these files since they don't provide valuable information
+				if fi.Size() == 0 {
+					return nil
+				}
+
 				gzipReader, err := gzip.NewReader(file)
-				o.Expect(err).ToNot(o.HaveOccurred())
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				scanner := bufio.NewScanner(gzipReader)
 				for scanner.Scan() {
@@ -222,23 +229,23 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 					}
 					o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
 					for _, token := range []string{"oauthaccesstokens", "oauthauthorizetokens", tokenName} {
-						o.Expect(text).ToNot(o.ContainSubstring(token))
+						o.Expect(text).NotTo(o.ContainSubstring(token))
 					}
 					readFile = true
 					eventsChecked++
 				}
 				// ignore this error as we usually fail to read the whole GZ file
-				// o.Expect(scanner.Err()).ToNot(o.HaveOccurred())
+				// o.Expect(scanner.Err()).NotTo(o.HaveOccurred())
 				o.Expect(readFile).To(o.BeTrue())
 
 				return nil
 			})
-			o.Expect(err).ToNot(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// On IBM ROKS, events will not be part of the output, since audit logs do not include
 			// control plane logs.
 			if e2e.TestContext.Provider != ibmcloud.ProviderName {
-				o.Expect(eventsChecked).To(o.BeNumerically(">", 10000))
+				o.Expect(eventsChecked).To(o.BeNumerically(">", 1000))
 			}
 		}
 
@@ -247,7 +254,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			expectedFilePath := path.Join(expectedFile...)
 			o.Expect(expectedFilePath).To(o.BeAnExistingFile())
 			stat, err := os.Stat(expectedFilePath)
-			o.Expect(err).ToNot(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred())
 			if size := stat.Size(); size < 50 {
 				emptyFiles = append(emptyFiles, expectedFilePath)
 			}
@@ -261,7 +268,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 func getPluginOutputDir(oc *exutil.CLI, tempDir string) string {
 	imageClient := versioned.NewForConfigOrDie(oc.AdminConfig())
 	stream, err := imageClient.ImageV1().ImageStreams("openshift").Get(context.Background(), "must-gather", metav1.GetOptions{})
-	o.Expect(err).ToNot(o.HaveOccurred())
+	o.Expect(err).NotTo(o.HaveOccurred())
 	imageId, ok := imageutil.ResolveLatestTaggedImage(stream, "latest")
 	o.Expect(ok).To(o.BeTrue())
 	pluginOutputDir := path.Join(tempDir, regexp.MustCompile("[^A-Za-z0-9]+").ReplaceAllString(imageId, "-"))
