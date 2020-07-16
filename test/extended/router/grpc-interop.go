@@ -22,11 +22,11 @@ import (
 const (
 	// gRPCInteropTestTimeout is the timeout value for the
 	// internal tests.
-	gRPCInteropTestTimeout = 2 * time.Minute
+	gRPCInteropTestTimeout = 5 * time.Minute
 
 	// gRPCInteropTestCaseIterations is the number of times each gRPC
 	// interop test case should be invoked.
-	gRPCInteropTestCaseIterations = 5
+	gRPCInteropTestCaseIterations = 2
 )
 
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router]", func() {
@@ -55,7 +55,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			g.By(fmt.Sprintf("creating test fixture from a config file %q", configPath))
 			err := oc.Run("new-app").Args("-f", configPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			e2e.ExpectNoError(oc.KubeFramework().WaitForPodRunning("grpc-interop"))
+			e2e.ExpectNoError(oc.KubeFramework().WaitForPodRunningSlow("grpc-interop"))
 
 			g.By("Discovering the set of supported test cases")
 			ns := oc.KubeFramework().Namespace.Name
