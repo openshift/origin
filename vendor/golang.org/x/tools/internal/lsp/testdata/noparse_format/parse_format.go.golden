@@ -1,9 +1,0 @@
--- gofmt --
-package noparse_format //@format("package")
-
-func _() {
-	f()
-}
-
--- gofmt-d --
-

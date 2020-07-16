@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/component-base/metrics"
 	"k8s.io/component-base/metrics/legacyregistry"
@@ -206,6 +207,10 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 		klog.Warningf("unable to get owner reference (falling back to namespace): %v", err)
 	}
 	eventRecorder := events.NewKubeRecorderWithOptions(kubeClient.CoreV1().Events(namespace), b.eventRecorderOptions, b.componentName, controllerRef)
+
+	utilruntime.PanicHandlers = append(utilruntime.PanicHandlers, func(r interface{}) {
+		eventRecorder.Warningf(fmt.Sprintf("%sPanic", strings.Title(b.componentName)), "Panic observed: %v", r)
+	})
 
 	// if there is file observer defined for this command, add event into default reaction function.
 	if b.fileObserverReactorFn != nil {

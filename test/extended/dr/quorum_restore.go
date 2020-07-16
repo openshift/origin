@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"

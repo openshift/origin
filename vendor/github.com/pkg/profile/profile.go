@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
-	"runtime/trace"
 	"sync/atomic"
 )
 
@@ -21,7 +20,6 @@ const (
 	blockMode
 	traceMode
 	threadCreateMode
-	goroutineMode
 )
 
 // Profile represents an active profiling session.
@@ -42,10 +40,6 @@ type Profile struct {
 
 	// memProfileRate holds the rate for the memory profile.
 	memProfileRate int
-
-	// memProfileType holds the profile type for memory
-	// profiles. Allowed values are `heap` and `allocs`.
-	memProfileType string
 
 	// closer holds a cleanup function that run after each profile
 	closer func()
@@ -88,20 +82,6 @@ func MemProfileRate(rate int) func(*Profile) {
 	}
 }
 
-// MemProfileHeap changes which type of memory profiling to profile
-// the heap.
-func MemProfileHeap(p *Profile) {
-	p.memProfileType = "heap"
-	p.mode = memMode
-}
-
-// MemProfileAllocs changes which type of memory to profile
-// allocations.
-func MemProfileAllocs(p *Profile) {
-	p.memProfileType = "allocs"
-	p.mode = memMode
-}
-
 // MutexProfile enables mutex profiling.
 // It disables any previous profiling settings.
 func MutexProfile(p *Profile) { p.mode = mutexMode }
@@ -117,10 +97,6 @@ func TraceProfile(p *Profile) { p.mode = traceMode }
 // ThreadcreationProfile enables thread creation profiling..
 // It disables any previous profiling settings.
 func ThreadcreationProfile(p *Profile) { p.mode = threadCreateMode }
-
-// GoroutineProfile enables goroutine profiling.
-// It disables any previous profiling settings.
-func GoroutineProfile(p *Profile) { p.mode = goroutineMode }
 
 // ProfilePath controls the base path where various profiling
 // files are written. If blank, the base path will be generated
@@ -176,10 +152,6 @@ func Start(options ...func(*Profile)) interface {
 		}
 	}
 
-	if prof.memProfileType == "" {
-		prof.memProfileType = "heap"
-	}
-
 	switch prof.mode {
 	case cpuMode:
 		fn := filepath.Join(path, "cpu.pprof")
@@ -205,7 +177,7 @@ func Start(options ...func(*Profile)) interface {
 		runtime.MemProfileRate = prof.memProfileRate
 		logf("profile: memory profiling enabled (rate %d), %s", runtime.MemProfileRate, fn)
 		prof.closer = func() {
-			pprof.Lookup(prof.memProfileType).WriteTo(f, 0)
+			pprof.Lookup("heap").WriteTo(f, 0)
 			f.Close()
 			runtime.MemProfileRate = old
 			logf("profile: memory profiling disabled, %s", fn)
@@ -217,14 +189,14 @@ func Start(options ...func(*Profile)) interface {
 		if err != nil {
 			log.Fatalf("profile: could not create mutex profile %q: %v", fn, err)
 		}
-		runtime.SetMutexProfileFraction(1)
+		enableMutexProfile()
 		logf("profile: mutex profiling enabled, %s", fn)
 		prof.closer = func() {
 			if mp := pprof.Lookup("mutex"); mp != nil {
 				mp.WriteTo(f, 0)
 			}
 			f.Close()
-			runtime.SetMutexProfileFraction(0)
+			disableMutexProfile()
 			logf("profile: mutex profiling disabled, %s", fn)
 		}
 
@@ -264,28 +236,13 @@ func Start(options ...func(*Profile)) interface {
 		if err != nil {
 			log.Fatalf("profile: could not create trace output file %q: %v", fn, err)
 		}
-		if err := trace.Start(f); err != nil {
+		if err := startTrace(f); err != nil {
 			log.Fatalf("profile: could not start trace: %v", err)
 		}
 		logf("profile: trace enabled, %s", fn)
 		prof.closer = func() {
-			trace.Stop()
+			stopTrace()
 			logf("profile: trace disabled, %s", fn)
-		}
-
-	case goroutineMode:
-		fn := filepath.Join(path, "goroutine.pprof")
-		f, err := os.Create(fn)
-		if err != nil {
-			log.Fatalf("profile: could not create goroutine profile %q: %v", fn, err)
-		}
-		logf("profile: goroutine profiling enabled, %s", fn)
-		prof.closer = func() {
-			if mp := pprof.Lookup("goroutine"); mp != nil {
-				mp.WriteTo(f, 0)
-			}
-			f.Close()
-			logf("profile: goroutine profiling disabled, %s", fn)
 		}
 	}
 

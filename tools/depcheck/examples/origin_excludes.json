@@ -1,4 +1,0 @@
-[
-	"github.com/openshift/origin/images",
-	"github.com/openshift/origin/pkg/build/builder"
-]

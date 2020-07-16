@@ -28,16 +28,6 @@ import (
 // For example, 10.3.0.0/16, extended by 8 bits, with a network number
 // of 5, becomes 10.3.5.0/24 .
 func Subnet(base *net.IPNet, newBits int, num int) (*net.IPNet, error) {
-	return SubnetBig(base, newBits, big.NewInt(int64(num)))
-}
-
-// SubnetBig takes a parent CIDR range and creates a subnet within it with the
-// given number of additional prefix bits and the given network number. It
-// differs from Subnet in that it takes a *big.Int for the num, instead of an int.
-//
-// For example, 10.3.0.0/16, extended by 8 bits, with a network number of 5,
-// becomes 10.3.5.0/24 .
-func SubnetBig(base *net.IPNet, newBits int, num *big.Int) (*net.IPNet, error) {
 	ip := base.IP
 	mask := base.Mask
 
@@ -49,32 +39,24 @@ func SubnetBig(base *net.IPNet, newBits int, num *big.Int) (*net.IPNet, error) {
 	}
 
 	maxNetNum := uint64(1<<uint64(newBits)) - 1
-	if num.Uint64() > maxNetNum {
+	if uint64(num) > maxNetNum {
 		return nil, fmt.Errorf("prefix extension of %d does not accommodate a subnet numbered %d", newBits, num)
 	}
 
 	return &net.IPNet{
-		IP:   insertNumIntoIP(ip, num, newPrefixLen),
+		IP:   insertNumIntoIP(ip, big.NewInt(int64(num)), newPrefixLen),
 		Mask: net.CIDRMask(newPrefixLen, addrLen),
 	}, nil
 }
 
-// Host takes a parent CIDR range and turns it into a host IP address with the
-// given host number.
+// Host takes a parent CIDR range and turns it into a host IP address with
+// the given host number.
 //
 // For example, 10.3.0.0/16 with a host number of 2 gives 10.3.0.2.
 func Host(base *net.IPNet, num int) (net.IP, error) {
-	return HostBig(base, big.NewInt(int64(num)))
-}
-
-// HostBig takes a parent CIDR range and turns it into a host IP address with
-// the given host number. It differs from Host in that it takes a *big.Int for
-// the num, instead of an int.
-//
-// For example, 10.3.0.0/16 with a host number of 2 gives 10.3.0.2.
-func HostBig(base *net.IPNet, num *big.Int) (net.IP, error) {
 	ip := base.IP
 	mask := base.Mask
+	bigNum := big.NewInt(int64(num))
 
 	parentLen, addrLen := mask.Size()
 	hostLen := addrLen - parentLen
@@ -83,11 +65,11 @@ func HostBig(base *net.IPNet, num *big.Int) (net.IP, error) {
 	maxHostNum.Lsh(maxHostNum, uint(hostLen))
 	maxHostNum.Sub(maxHostNum, big.NewInt(1))
 
-	numUint64 := big.NewInt(int64(num.Uint64()))
-	if num.Cmp(big.NewInt(0)) == -1 {
-		numUint64.Neg(num)
+	numUint64 := big.NewInt(int64(bigNum.Uint64()))
+	if bigNum.Cmp(big.NewInt(0)) == -1 {
+		numUint64.Neg(bigNum)
 		numUint64.Sub(numUint64, big.NewInt(int64(1)))
-		num.Sub(maxHostNum, numUint64)
+		bigNum.Sub(maxHostNum, numUint64)
 	}
 
 	if numUint64.Cmp(maxHostNum) == 1 {
@@ -99,7 +81,7 @@ func HostBig(base *net.IPNet, num *big.Int) (net.IP, error) {
 	} else {
 		bitlength = 128
 	}
-	return insertNumIntoIP(ip, num, bitlength), nil
+	return insertNumIntoIP(ip, bigNum, bitlength), nil
 }
 
 // AddressRange returns the first and last addresses in the given CIDR range.

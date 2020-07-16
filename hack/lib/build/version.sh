@@ -65,9 +65,6 @@ function os::build::version::git_vars() {
 			fi
 		fi
 	fi
-
-	os::build::version::etcd_vars
-	os::build::version::kubernetes_vars
 }
 readonly -f os::build::version::git_vars
 
