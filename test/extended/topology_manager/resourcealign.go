@@ -58,6 +58,10 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 	g.Context("with non-gu workload", func() {
 		t.DescribeTable("should run with no regressions",
 			func(pps PodParamsList) {
+				if requestCpu, ok := enoughCoresInTheCluster(workerNodes, pps); !ok {
+					g.Skip(fmt.Sprintf("not enough CPU resources in the cluster requested=%v", requestCpu))
+				}
+
 				ns := oc.KubeFramework().Namespace.Name
 				testingPods := pps.MakeBusyboxPods(ns, deviceResourceName)
 				// we just want to run pods and check they actually go running
