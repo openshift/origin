@@ -827,6 +827,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:OAuthServer] ClientSecretWithPlus should create oauthclient": "should create oauthclient [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth Authenticator accepts classic non-prefixed access tokens": "accepts classic non-prefixed access tokens [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth Authenticator accepts sha256 access tokens": "accepts sha256 access tokens [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics": "has the correct token and certificate fallback semantics [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth server should use http1.1 only to prevent http2 connection reuse": "should use http1.1 only to prevent http2 connection reuse [Suite:openshift/conformance/parallel]",
