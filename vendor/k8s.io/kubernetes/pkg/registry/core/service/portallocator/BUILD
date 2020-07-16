@@ -44,6 +44,7 @@ filegroup(
     srcs = [
         ":package-srcs",
         "//pkg/registry/core/service/portallocator/controller:all-srcs",
+        "//pkg/registry/core/service/portallocator/storage:all-srcs",
     ],
     tags = ["automanaged"],
 )
