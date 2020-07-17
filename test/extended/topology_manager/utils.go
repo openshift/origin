@@ -293,19 +293,23 @@ func setNodeForPods(pods []*corev1.Pod, node *corev1.Node) {
 
 }
 
-func createPods(client clientset.Interface, namespace string, testPods ...*corev1.Pod) []*corev1.Pod {
-	updatedPods := make([]*corev1.Pod, len(testPods), len(testPods))
+type podPhaseChecker func(corev1.PodPhase) bool
+
+func createPodsAndWait(client clientset.Interface, namespace string, phaseChecker podPhaseChecker, testPods ...*corev1.Pod) []*corev1.Pod {
+	num := len(testPods)
+	updatedPods := make([]*corev1.Pod, num, num)
 	var wg sync.WaitGroup
 
-	for i := 0; i < len(testPods); i++ {
+	for i := 0; i < num; i++ {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
+			defer g.GinkgoRecover()
 
 			created, err := client.CoreV1().Pods(namespace).Create(context.Background(), testPods[idx], metav1.CreateOptions{})
 			e2e.ExpectNoError(err)
 
-			err = waitForPhase(client, created.Namespace, created.Name, corev1.PodRunning, 5*time.Minute)
+			err = waitForPhase(client, created.Namespace, created.Name, phaseChecker, 5*time.Minute)
 			e2e.ExpectNoError(err)
 
 			updatedPods[idx], err = client.CoreV1().Pods(created.Namespace).Get(context.Background(), created.Name, metav1.GetOptions{})
@@ -317,14 +321,21 @@ func createPods(client clientset.Interface, namespace string, testPods ...*corev
 	return updatedPods
 }
 
-func waitForPhase(c clientset.Interface, namespace, name string, phase corev1.PodPhase, timeout time.Duration) error {
+func createPods(client clientset.Interface, namespace string, testPods ...*corev1.Pod) []*corev1.Pod {
+	isRunning := func(phase corev1.PodPhase) bool {
+		return phase == corev1.PodRunning
+	}
+	return createPodsAndWait(client, namespace, isRunning, testPods...)
+}
+
+func waitForPhase(c clientset.Interface, namespace, name string, phaseChecker podPhaseChecker, timeout time.Duration) error {
 	return wait.PollImmediate(time.Second, timeout, func() (bool, error) {
 		updatedPod, err := c.CoreV1().Pods(namespace).Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}
 		e2e.Logf("pod %q phase %s", updatedPod.Name, updatedPod.Status.Phase)
-		if updatedPod.Status.Phase == phase {
+		if phaseChecker(updatedPod.Status.Phase) {
 			return true, nil
 		}
 		return false, nil
