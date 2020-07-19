@@ -953,6 +953,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC": "TestAllowedSCCViaRBAC [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodDefaultCapabilities": "TestPodDefaultCapabilities [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement": "TestPodUpdateSCCEnforcement [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:UserAPI] groups should work": "groups should work [Suite:openshift/conformance/parallel]",
