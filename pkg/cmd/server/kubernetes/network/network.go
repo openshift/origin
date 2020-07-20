@@ -174,6 +174,7 @@ func (c *NetworkConfig) RunProxy(waitChan chan<- bool) {
 			hp,
 			unidlingUserspaceProxy,
 			c.ProxyConfig.IPTables.MinSyncPeriod.Duration,
+			c.ProxyConfig.IPTables.SyncPeriod.Duration,
 			c.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
 		)
 		if err != nil {
