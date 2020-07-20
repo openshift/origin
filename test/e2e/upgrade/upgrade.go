@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/test/extended/networking"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -48,6 +50,7 @@ func AllTests() []upgrades.Test {
 		&apps.JobUpgradeTest{},
 		&upgrades.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
+		&networking.NetworkOutageUpgradeTest{},
 	}
 }
 
