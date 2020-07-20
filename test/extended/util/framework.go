@@ -1654,18 +1654,18 @@ func RunOneShotCommandPod(
 	err = wait.PollImmediate(1*time.Second, timeout, func() (done bool, err error) {
 		cmdPod, getErr := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 		if getErr != nil {
-			e2e.Logf("failed to get pod %q: %v", pod.Name, err)
+			e2e.Logf("failed to get pod %q: %v", pod.Name, getErr)
 			return false, nil
 		}
 
 		if podHasErrored(cmdPod) {
-			e2e.Logf("pod %q errored trying to run the command: %v", pod.Name, err)
+			e2e.Logf("pod %q errored trying to run the command: %#+v", pod.Name, cmdPod.Status.ContainerStatuses[0].State.Terminated)
 			return false, nil
 		}
 		return podHasCompleted(cmdPod), nil
 	})
 	if err != nil {
-		errs = append(errs, fmt.Errorf("error waiting for the pod '%s' to complete: %v", pod.Name, err))
+		errs = append(errs, fmt.Errorf("error waiting for the pod %q to complete: %v", pod.Name, err))
 	}
 
 	// Gather pod log output
