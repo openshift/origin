@@ -714,6 +714,8 @@ github.com/openshift/client-go/operator/clientset/versioned
 github.com/openshift/client-go/operator/clientset/versioned/scheme
 github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1
 github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1alpha1
+github.com/openshift/client-go/operatorcontrolplane/clientset/versioned/scheme
+github.com/openshift/client-go/operatorcontrolplane/clientset/versioned/typed/operatorcontrolplane/v1alpha1
 github.com/openshift/client-go/project/clientset/versioned
 github.com/openshift/client-go/project/clientset/versioned/scheme
 github.com/openshift/client-go/project/clientset/versioned/typed/project/v1
