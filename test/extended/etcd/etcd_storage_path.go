@@ -73,7 +73,7 @@ var OpenshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 
 	// github.com/openshift/api/apps/v1
 	gvr("apps.openshift.io", "v1", "deploymentconfigs"): {
-		Stub:             `{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
+		Stub:             `{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "name": "container2"}]}}}}`,
 		ExpectedEtcdPath: "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1g",
 	},
 	// --
@@ -84,7 +84,7 @@ var OpenshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 		ExpectedEtcdPath: "openshift.io/imagestreams/etcdstoragepathtestnamespace/is1g",
 	},
 	gvr("image.openshift.io", "v1", "images"): {
-		Stub:             `{"dockerImageReference": "fedora:latest", "metadata": {"name": "image1g"}}`,
+		Stub:             `{"dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "metadata": {"name": "image1g"}}`,
 		ExpectedEtcdPath: "openshift.io/images/image1g",
 	},
 	// --

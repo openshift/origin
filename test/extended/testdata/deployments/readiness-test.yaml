@@ -17,7 +17,7 @@ spec:
       - command:
         - /bin/sleep
         - "infinity"
-        image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+        image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         name: never-ready
         readinessProbe:

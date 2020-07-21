@@ -13,6 +13,7 @@ import (
 	"time"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -250,7 +251,7 @@ func makeBusyboxPod(namespace string) *corev1.Pod {
 			Containers: []corev1.Container{
 				{
 					Name:    "test",
-					Image:   "busybox",
+					Image:   image.ShellImage(),
 					Command: []string{"sleep", "10h"},
 				},
 			},

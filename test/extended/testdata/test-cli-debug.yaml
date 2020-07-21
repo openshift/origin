@@ -15,7 +15,7 @@ items:
       type: Docker
     source:
       type: Git
-      dockerfile: "FROM busybox:latest\n"
+      dockerfile: "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest\n"
     output:
       to:
         kind: ImageStreamTag
@@ -94,7 +94,7 @@ items:
       spec:
         containers:
         - name: busybox
-          image: busybox
+          image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 
 - kind: DeploymentConfig
   apiVersion: v1
@@ -111,7 +111,7 @@ items:
       spec:
         containers:
         - name: busybox
-          image: busybox
+          image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
           command:
           - foo
           - bar

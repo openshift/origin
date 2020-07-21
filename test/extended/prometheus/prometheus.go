@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		}
 		oc.SetupProject()
 		ns := oc.Namespace()
-		execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 		defer func() {
 			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 		}()
@@ -75,7 +75,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	g.It("should have a Watchdog alert in firing state the entire cluster run", func() {
 		oc.SetupProject()
 		ns := oc.Namespace()
-		execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 		defer func() {
 			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 		}()
@@ -97,7 +97,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		oc.SetupProject()
 		ns := oc.Namespace()
 
-		execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 		defer func() {
 			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 		}()
@@ -138,7 +138,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
 
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
@@ -163,7 +163,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		g.It("should start and expose a secured proxy and unsecured metrics", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
@@ -290,7 +290,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		g.It("should have a AlertmanagerReceiversNotConfigured alert in firing state", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
@@ -306,7 +306,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		g.It("should have important platform topology metrics", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
@@ -332,7 +332,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		g.It("should have non-Pod host cAdvisor metrics", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
@@ -346,7 +346,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		g.It("shouldn't have failing rules evaluation", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
@@ -361,7 +361,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			g.It("should be able to get the sdn ovs flows", func() {
 				oc.SetupProject()
 				ns := oc.Namespace()
-				execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+				execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 				defer func() {
 					oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 				}()
@@ -380,7 +380,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			}
 			oc.SetupProject()
 			ns := oc.Namespace()
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
@@ -396,7 +396,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
 
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
@@ -444,7 +444,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}()
 
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) {
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) {
 				pod.Annotations = map[string]string{
 					"k8s.v1.cni.cncf.io/networks": "secondary",
 				}

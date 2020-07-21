@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/test/extended/testdata"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -35,16 +36,16 @@ var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 		_, err = oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "anyuid", oc.Username()).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		pod, err := exutil.NewPodExecutor(oc, "groupsync", "fedora:29")
+		pod, err := exutil.NewPodExecutor(oc, "groupsync", image.OpenLDAPTestImage())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Install stuff needed for the exec pod to run groupsync.sh and hack/lib
 		for i := 0; i < 5; i++ {
-			if _, err = pod.Exec("dnf install -y findutils golang docker which bc openldap-clients"); err == nil {
+			if _, err = pod.Exec("yum install -y findutils golang docker which bc openldap-clients"); err == nil {
 				break
 			}
 			// it apparently hit error syncing caches, clean all to try again
-			pod.Exec("dnf clean all")
+			pod.Exec("yum clean all")
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 

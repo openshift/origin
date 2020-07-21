@@ -18,7 +18,7 @@
               "containers": [
                 {
                   "name": "test",
-                  "image": "busybox",
+                  "image": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
                   "imagePullPolicy": "IfNotPresent"
                 }
               ],

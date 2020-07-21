@@ -10,6 +10,7 @@ import (
 
 	imageeco "github.com/openshift/origin/test/extended/image_ecosystem"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -102,7 +103,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 				repo, err := exutil.NewGitRepo("contextdir")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				defer repo.Remove()
-				err = repo.AddAndCommit("2.3/Dockerfile", "FROM busybox")
+				err = repo.AddAndCommit("2.3/Dockerfile", fmt.Sprintf("FROM %s", image.ShellImage()))
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)

@@ -14,17 +14,34 @@ func init() {
 		// used by open ldap tests
 		"docker.io/mrogers950/origin-openldap-test:fedora29": -1,
 
-		// part of CSI tests
-		"quay.io/k8scsi/csi-attacher:v2.1.0":              -1,
-		"quay.io/k8scsi/csi-node-driver-registrar:v1.2.0": -1,
-		"quay.io/k8scsi/csi-provisioner:v1.5.0":           -1,
-		"quay.io/k8scsi/csi-snapshotter:v2.0.0":           -1,
-		"quay.io/k8scsi/hostpathplugin:v1.4.0-rc2":        -1,
-		"quay.io/k8scsi/livenessprobe:v1.1.0":             -1,
-		"quay.io/k8scsi/mock-driver":                      -1,
+		// used by multicast test, should be moved to publish to quay
+		"docker.io/openshift/test-multicast:latest": -1,
 
-		// allowed upstream kube images - index and value must match
-		"docker.io/library/nginx:1.15-alpine": 24,
+		// used by oc mirror test, should be moved to publish to quay
+		"docker.io/library/registry:2.7.1": -1,
+
+		// moved to GCR
+		"k8s.gcr.io/sig-storage/csi-attacher:v2.2.0":              -1,
+		"k8s.gcr.io/sig-storage/csi-attacher:v3.0.0":              -1,
+		"k8s.gcr.io/sig-storage/csi-node-driver-registrar:v1.2.0": -1,
+		"k8s.gcr.io/sig-storage/csi-node-driver-registrar:v1.3.0": -1,
+		"k8s.gcr.io/sig-storage/csi-provisioner:v1.6.0":           -1,
+		"k8s.gcr.io/sig-storage/csi-provisioner:v2.0.0":           -1,
+		"k8s.gcr.io/sig-storage/csi-resizer:v0.4.0":               -1,
+		"k8s.gcr.io/sig-storage/csi-resizer:v0.5.0":               -1,
+		"k8s.gcr.io/sig-storage/csi-snapshotter:v2.0.1":           -1,
+		"k8s.gcr.io/sig-storage/csi-snapshotter:v2.1.0":           -1,
+		"k8s.gcr.io/sig-storage/hostpathplugin:v1.4.0":            -1,
+		"k8s.gcr.io/sig-storage/livenessprobe:v1.1.0":             -1,
+		"k8s.gcr.io/sig-storage/mock-driver:v3.1.0":               -1,
+		"k8s.gcr.io/sig-storage/snapshot-controller:v2.1.1":       -1,
+
+		// allowed upstream kube images - index and value must match upstream or
+		// tests will fail
+		"k8s.gcr.io/e2e-test-images/agnhost:2.20": 1,
+		"docker.io/library/nginx:1.14-alpine":     23,
+		"docker.io/library/nginx:1.15-alpine":     24,
+		"docker.io/library/redis:5.0.5-alpine":    31,
 	}
 
 	images = GetMappedImages(allowedImages, os.Getenv("KUBE_TEST_REPO"))
@@ -94,12 +111,23 @@ func ShellImage() string {
 	return "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
 }
 
+// LimitedShellImage returns a docker pull spec that any pod on the cluster
+// has access to that contains bash and standard commandline tools.
+// This image should be used when you only need oc and can't use the shell image.
+// This image has oc.
+//
+// TODO: this will be removed when https://bugzilla.redhat.com/show_bug.cgi?id=1843232
+// is fixed
+func LimitedShellImage() string {
+	return "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest"
+}
+
 // OpenLDAPTestImage returns the LDAP test image.
 func OpenLDAPTestImage() string {
 	return LocationFor("docker.io/mrogers950/origin-openldap-test:fedora29")
 }
 
-// OriginalImages() returns a map of the original image namesp
+// OriginalImages returns a map of the original image names.
 func OriginalImages() map[string]int {
 	images := make(map[string]int)
 	for k, v := range allowedImages {
