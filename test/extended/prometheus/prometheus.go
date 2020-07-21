@@ -110,6 +110,25 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		e2e.Logf("Total number of series sent via telemetry is below the limit")
 	})
 
+	g.It("shouldn't exceed the 200k number of series in the head block", func() {
+		oc.SetupProject()
+		ns := oc.Namespace()
+
+		execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+		defer func() {
+			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+		}()
+
+		tests := map[string]bool{
+			// This is a rough current estimate of us to detect if we go over
+			// a given limit to possibly detect higher cardinality metrics.
+			`max_over_time(prometheus_tsdb_head_series[2h]) >= 200000`: false,
+		}
+		helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+
+		e2e.Logf("Total number of series in the head block went above the limit")
+	})
+
 })
 
 var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
