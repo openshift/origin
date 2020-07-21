@@ -183,9 +183,20 @@ func pulledInvalidImages(fromRepository string) func(events monitor.EventInterva
 		// openshift so that it is automatically excluded
 		"grafana/loki",
 		"grafana/promtail",
-		// this is used by an operator hub test and is not replaced today (in the future OLM should
-		// use image streams to reference these and we can exclude those that match)
-		"quay.io/helmoperators/cockroachdb",
+
+		// installed alongside OLM and managed externally
+		"registry.redhat.io/redhat/community-operator-index",
+		"registry.redhat.io/redhat/certified-operator-index",
+		"registry.redhat.io/redhat/redhat-marketplace-index",
+		"registry.redhat.io/redhat/redhat-operator-index",
+
+		// used by OLM tests
+		"registry.redhat.io/amq7/amq-streams-rhel7-operator",
+		"registry.redhat.io/amq7/amqstreams-rhel7-operator-metadata",
+
+		// used to test pull secrets against an authenticated registry
+		// TODO: will not work for a disconnected test environment and should be moved
+		"registry.redhat.io/rhscl/nodejs-10-rhel7:latest",
 	)
 	if len(fromRepository) > 0 {
 		allowedPrefixes.Insert(fromRepository)

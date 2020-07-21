@@ -21,6 +21,7 @@ import (
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 const podStartupTimeout = 3 * time.Minute
@@ -45,7 +46,7 @@ spec:
     - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
       value: /tmp
   - name: shell
-    image: openshift/origin:latest
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     command:
     - /bin/sleep
     - infinity
@@ -83,7 +84,7 @@ spec:
     - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
       value: /tmp
   - name: shell
-    image: openshift/origin:latest
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     command:
     - /bin/sleep
     - infinity
@@ -234,14 +235,15 @@ func testNewBuild(oc *exutil.CLI) (string, string) {
 	isName := "mirror-" + getRandName()
 	istName := isName + ":latest"
 
-	testDockerfile := fmt.Sprintf(`FROM busybox:latest
-RUN echo %s > /1
-RUN echo %s > /2
-RUN echo %s > /3
+	testDockerfile := fmt.Sprintf(`FROM %[4]s
+RUN echo %[1]s > /1
+RUN echo %[2]s > /2
+RUN echo %[3]s > /3
 `,
 		getRandName(),
 		getRandName(),
 		getRandName(),
+		image.ShellImage(),
 	)
 
 	err := oc.Run("new-build").Args("-D", "-", "--to", istName).InputString(testDockerfile).Execute()

@@ -2,6 +2,7 @@ package builds
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,6 +11,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds][Slow] testing build configuration hooks", func() {
@@ -163,7 +165,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] testing build configurati
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"output":{"to":{"kind":"ImageStreamTag","name":"mydockertest:latest"}}}}`).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"source":{"dockerfile":"FROM busybox:latest \n ENTRYPOINT /bin/sleep 600 \n"}}}`).Execute()
+				err = oc.Run("patch").Args("bc/mydockertest", "-p", fmt.Sprintf(`{"spec":{"source":{"dockerfile":"FROM %s \n ENTRYPOINT /bin/sleep 600 \n"}}}`, image.ShellImage())).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("starting a build")

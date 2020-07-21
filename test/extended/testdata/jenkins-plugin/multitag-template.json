@@ -18,7 +18,7 @@
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             }
           }
         ]
@@ -36,7 +36,7 @@
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             }
           }
         ]
@@ -54,7 +54,7 @@
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             }
           }
         ]

@@ -79,7 +79,8 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -96,7 +97,8 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http

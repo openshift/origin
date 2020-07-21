@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 		var out string
 		out, err = oc.Run("debug").Args("dc/local-busybox1").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("Starting pod/local-busybox1-debug, command was: sh\n"))
+		o.Expect(out).To(o.ContainSubstring("Starting pod/local-busybox1-debug, command was: /usr/bin/bash\n"))
 
 		g.By("should print the overridden imagestream-based container entrypoint/command")
 		out, err = oc.Run("debug").Args("dc/local-busybox2").Output()

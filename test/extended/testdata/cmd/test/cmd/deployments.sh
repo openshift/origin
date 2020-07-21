@@ -20,7 +20,7 @@ os::cmd::expect_success 'oc describe deploymentConfigs test-deployment-config'
 os::cmd::expect_success_and_text 'oc get dc -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
 os::cmd::try_until_success 'oc get rc/test-deployment-config-1'
 os::cmd::expect_success_and_text 'oc describe dc test-deployment-config' 'deploymentconfig=test-deployment-config'
-os::cmd::expect_success_and_text 'oc status' 'dc/test-deployment-config deploys docker.io/openshift/origin-pod:latest'
+os::cmd::expect_success_and_text 'oc status' 'dc/test-deployment-config deploys image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
 os::cmd::try_until_text 'oc status' 'pod/hello-openshift runs openshift/hello-openshift'
 

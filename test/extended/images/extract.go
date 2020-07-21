@@ -10,6 +10,7 @@ import (
 
 	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8simage "k8s.io/kubernetes/test/utils/image"
 
 	imageapi "github.com/openshift/api/image/v1"
 	imageclientset "github.com/openshift/client-go/image/clientset/versioned"
@@ -40,6 +41,16 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 		cli := oc.KubeFramework().PodClient()
 		client := imageclientset.NewForConfigOrDie(oc.UserConfig()).ImageV1()
 
+		// import tools:latest into this namespace - working around a pull through bug with referenced docker images
+		// https://bugzilla.redhat.com/show_bug.cgi?id=1843253
+		_, err = client.ImageStreamTags(ns).Create(context.Background(), &imageapi.ImageStreamTag{
+			ObjectMeta: metav1.ObjectMeta{Name: "1:tools"},
+			Tag: &imageapi.TagReference{
+				From: &kapi.ObjectReference{Kind: "ImageStreamTag", Namespace: "openshift", Name: "tools:latest"},
+			},
+		}, metav1.CreateOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
 		_, err = client.ImageStreamImports(ns).Create(context.Background(), &imageapi.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "1",
@@ -48,11 +59,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 				Import: true,
 				Images: []imageapi.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{Kind: "DockerImage", Name: "busybox:latest"},
-						To:   &kapi.LocalObjectReference{Name: "busybox"},
-					},
-					{
-						From: kapi.ObjectReference{Kind: "DockerImage", Name: "mysql:latest"},
+						From: kapi.ObjectReference{Kind: "DockerImage", Name: k8simage.GetE2EImage(k8simage.Agnhost)},
 						To:   &kapi.LocalObjectReference{Name: "mysql"},
 					},
 				},
@@ -60,8 +67,8 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 		}, metav1.CreateOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		// busyboxLayers := isi.Status.Images[0].Image.DockerImageLayers
-		// busyboxLen := len(busyboxLayers)
+		// toolsLayers := isi.Status.Images[0].Image.DockerImageLayers
+		// toolsLen := len(toolsLayers)
 		// mysqlLayers := isi.Status.Images[1].Image.DockerImageLayers
 		// mysqlLen := len(mysqlLayers)
 
@@ -69,25 +76,24 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 			set -x
 
 			# command exits if directory doesn't exist
-			! oc image extract --insecure %[2]s/%[1]s/1:busybox --path=/:/tmp/doesnotexist
+			! oc image extract --insecure %[2]s/%[1]s/1:tools --path=/:/tmp/doesnotexist
 			# command exits if directory isn't empty
-			! oc image extract --insecure %[2]s/%[1]s/1:busybox --path=/:/
+			! oc image extract --insecure %[2]s/%[1]s/1:tools --path=/:/
 
-			# extract busybox to a directory, verify the contents
+			# extract a directory to a directory, verify the contents
 			mkdir -p /tmp/test
-			oc image extract --insecure %[2]s/%[1]s/1:busybox --path=/:/tmp/test
-			[ -d /tmp/test/etc ] && [ -d /tmp/test/bin ]
-			[ -f /tmp/test/etc/passwd ] && grep root /tmp/test/etc/passwd
+			oc image extract --insecure %[2]s/%[1]s/1:tools --path=/etc/cron.d/:/tmp/test/
+			[ -f /tmp/test/0hourly ] && grep root /tmp/test/0hourly
 
 			# extract multiple individual files
 			mkdir -p /tmp/test2
-			oc image extract --insecure %[2]s/%[1]s/1:busybox --path=/etc/shadow:/tmp/test2 --path=/etc/localtime:/tmp/test2
-			[ -f /tmp/test2/shadow ] && [ -f /tmp/test2/localtime ]
+			oc image extract --insecure %[2]s/%[1]s/1:tools --path=/etc/shadow:/tmp/test2 --path=/etc/system-release:/tmp/test2
+			[ -f /tmp/test2/shadow ] && [ -L /tmp/test2/system-release ]
 
 			# extract a single file to the current directory
 			mkdir -p /tmp/test3
 			cd /tmp/test3
-			oc image extract --insecure %[2]s/%[1]s/1:busybox --file=/etc/shadow
+			oc image extract --insecure %[2]s/%[1]s/1:tools --file=/etc/shadow
 			[ -f /tmp/test3/shadow ]
 		`, ns, registry)))
 		cli.WaitForSuccess(pod.Name, podStartupTimeout)

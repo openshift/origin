@@ -13,6 +13,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds] Optimized image builds", func() {
@@ -20,11 +21,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds] Optimized image builds", func()
 	var (
 		oc             = exutil.NewCLI("build-dockerfile-env")
 		skipLayers     = buildv1.ImageOptimizationSkipLayers
-		testDockerfile = `
-FROM centos:7
+		testDockerfile = fmt.Sprintf(`
+FROM %s
 RUN yum list installed
 USER 1001
-`
+`, image.ShellImage())
 	)
 
 	g.Context("", func() {

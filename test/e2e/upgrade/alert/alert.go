@@ -75,7 +75,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	}
 	t.oc.SetupProject()
 	ns := t.oc.Namespace()
-	execPod := exutil.CreateUbiExecPodOrFail(t.oc.AdminKubeClient(), ns, "execpod", nil)
+	execPod := exutil.CreateExecPodOrFail(t.oc.AdminKubeClient(), ns, "execpod")
 	defer func() {
 		t.oc.AdminKubeClient().CoreV1().Pods(ns).Delete(ctx, execPod.Name, *metav1.NewDeleteOptions(1))
 	}()
