@@ -169,7 +169,8 @@ func verifyImagesWithoutEnv() error {
 // pulledInvalidImages returns a function that checks whether the cluster pulled an image that is
 // outside the allowed list of images. The list is defined as a set of static test case images, the
 // local cluster registry, any repository referenced by the image streams in the cluster's 'openshift'
-// namespace, or the location that input images are cloned from.
+// namespace, or the location that input images are cloned from. Only namespaces prefixed with 'e2e-'
+// are checked.
 func pulledInvalidImages(fromRepository string) func(events monitor.EventIntervals) ([]*ginkgo.JUnitTestCase, bool) {
 	// static allowed images
 	allowedImages := sets.NewString("image/webserver:404")
@@ -179,13 +180,20 @@ func pulledInvalidImages(fromRepository string) func(events monitor.EventInterva
 		"gcr.io/authenticated-image-pulling/",
 		"invalid.com/",
 
-		// used by the CI infrastructure, eventually should be created as an image stream tag in
-		// openshift so that it is automatically excluded
-		"grafana/loki",
-		"grafana/promtail",
-		// this is used by an operator hub test and is not replaced today (in the future OLM should
-		// use image streams to reference these and we can exclude those that match)
-		"quay.io/helmoperators/cockroachdb",
+		// installed alongside OLM and managed externally
+		"registry.redhat.io/redhat/community-operator-index",
+		"registry.redhat.io/redhat/certified-operator-index",
+		"registry.redhat.io/redhat/redhat-marketplace-index",
+		"registry.redhat.io/redhat/redhat-operator-index",
+
+		// used by OLM tests
+		"registry.redhat.io/amq7/amq-streams-rhel7-operator",
+		"registry.redhat.io/amq7/amqstreams-rhel7-operator-metadata",
+
+		// used to test pull secrets against an authenticated registry
+		// TODO: will not work for a disconnected test environment and should be emulated by launching
+		//   an authenticated registry in a pod on cluster
+		"registry.redhat.io/rhscl/nodejs-10-rhel7:latest",
 	)
 	if len(fromRepository) > 0 {
 		allowedPrefixes.Insert(fromRepository)
@@ -207,9 +215,15 @@ func pulledInvalidImages(fromRepository string) func(events monitor.EventInterva
 
 		pulls := make(map[string]sets.String)
 		for _, event := range events {
+			// only messages that include a Pulled reason
 			if !strings.Contains(event.Message, " reason/Pulled ") {
 				continue
 			}
+			// only look at pull events from an e2e-* namespace
+			if !strings.Contains(event.Locator, " ns/e2e-") {
+				continue
+			}
+
 			parts := strings.Split(event.Message, " ")
 			if len(parts) == 0 {
 				continue

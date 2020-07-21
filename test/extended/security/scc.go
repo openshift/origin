@@ -269,6 +269,9 @@ func getPrivilegedPod(name string) *corev1.Pod {
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec: corev1.PodSpec{
+			NodeSelector: map[string]string{
+				"e2e.openshift.io/unschedulable": "should-not-run",
+			},
 			Containers: []corev1.Container{
 				{Name: "first", Image: "something-innocuous"},
 			},

@@ -9,14 +9,14 @@
     "triggers":[],
     "source":{
       "type":"Dockerfile",
-      "dockerfile":"FROM docker.io/busybox:latest\nRUN sleep 10m"
+      "dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest\nRUN sleep 10m"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"docker.io/busybox:latest"
+          "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         }
       }
     }

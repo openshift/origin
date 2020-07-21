@@ -48,7 +48,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -77,7 +77,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -105,7 +105,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -134,7 +134,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -162,7 +162,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue
@@ -188,7 +188,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: quay.io/quay/busybox:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     resources: {}
     postCommit: {}
     nodeSelector: 
@@ -214,7 +214,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: quay.io/quay/busybox:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         buildArgs:
         - name: foo
           value: default

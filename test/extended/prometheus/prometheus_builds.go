@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 			ns := oc.Namespace()
 			appTemplate := exutil.FixturePath("testdata", "builds", "build-pruning", "successful-build-config.yaml")
 
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()

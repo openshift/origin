@@ -20,9 +20,9 @@ os::cmd::expect_success 'oc describe deploymentConfigs test-deployment-config'
 os::cmd::expect_success_and_text 'oc get dc -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
 os::cmd::try_until_success 'oc get rc/test-deployment-config-1'
 os::cmd::expect_success_and_text 'oc describe dc test-deployment-config' 'deploymentconfig=test-deployment-config'
-os::cmd::expect_success_and_text 'oc status' 'dc/test-deployment-config deploys docker.io/openshift/origin-pod:latest'
+os::cmd::expect_success_and_text 'oc status' 'dc/test-deployment-config deploys image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
-os::cmd::try_until_text 'oc status' 'pod/hello-openshift runs openshift/hello-openshift'
+os::cmd::try_until_text 'oc status' 'pod/hello-openshift runs'
 
 os::test::junit::declare_suite_start "cmd/deployments/env"
 # Patch a nil list
@@ -122,7 +122,7 @@ os::cmd::try_until_success 'oc rollout history dc/database --revision=2'
 # rolling back to the same revision should fail
 os::cmd::expect_failure 'oc rollback dc/database --to-version=2'
 # undo --dry-run should report the original image
-os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'mysql-57-centos7'
+os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'image-registry.openshift-image-registry.svc:5000/openshift/mysql:5.7'
 echo "rollback: ok"
 os::test::junit::declare_suite_end
 

@@ -1482,18 +1482,13 @@ func assetFilePath(dir, name string) string {
 // FetchURL grabs the output from the specified url and returns it.
 // It will retry once per second for duration retryTimeout if an error occurs during the request.
 func FetchURL(oc *CLI, url string, retryTimeout time.Duration) (string, error) {
-
 	ns := oc.KubeFramework().Namespace.Name
-	execPodName := CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, string(uuid.NewUUID()))
+	execPod := CreateExecPodOrFail(oc.AdminKubeClient(), ns, string(uuid.NewUUID()))
 	defer func() {
-		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 	}()
 
-	execPod, err := oc.AdminKubeClient().CoreV1().Pods(ns).Get(context.Background(), execPodName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
+	var err error
 	var response string
 	waitFn := func() (bool, error) {
 		e2e.Logf("Waiting up to %v to wget %s", retryTimeout, url)
@@ -1596,26 +1591,6 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%s:%d", endpoint.Subsets[0].Addresses[0].IP, endpoint.Subsets[0].Ports[0].Port), nil
-}
-
-// CreateExecPodOrFail creates a simple busybox pod in a sleep loop used as a
-// vessel for kubectl exec commands.
-// Returns the name of the created pod.
-// TODO: expose upstream
-func CreateExecPodOrFail(client corev1client.CoreV1Interface, ns, name string) string {
-	e2e.Logf("Creating new exec pod")
-	execPod := e2epod.NewExecPodSpec(ns, name, false)
-	created, err := client.Pods(ns).Create(context.Background(), execPod, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	err = wait.PollImmediate(e2e.Poll, 5*time.Minute, func() (bool, error) {
-		retrievedPod, err := client.Pods(execPod.Namespace).Get(context.Background(), created.Name, metav1.GetOptions{})
-		if err != nil {
-			return false, nil
-		}
-		return retrievedPod.Status.Phase == corev1.PodRunning, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return created.Name
 }
 
 // CheckForBuildEvent will poll a build for up to 1 minute looking for an event with
@@ -1901,37 +1876,6 @@ func GetRouterPodTemplate(oc *CLI) (*corev1.PodTemplateSpec, string, error) {
 		}
 	}
 	return nil, "", kapierrs.NewNotFound(schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"}, "router")
-}
-
-// FindImageFormatString returns a format string for components on the cluster. It returns false
-// if no format string could be inferred from the cluster. OpenShift 4.0 clusters will not be able
-// to infer an image format string, so you must wrap this method in one that can locate your specific
-// image.
-func FindImageFormatString(oc *CLI) (string, bool) {
-	// legacy support for 3.x clusters
-	template, _, err := GetRouterPodTemplate(oc)
-	if err == nil {
-		if strings.Contains(template.Spec.Containers[0].Image, "haproxy-router") {
-			return strings.Replace(template.Spec.Containers[0].Image, "haproxy-router", "${component}", -1), true
-		}
-	}
-	// in openshift 4.0, no image format can be calculated on cluster
-	return "openshift/origin-${component}:latest", false
-}
-
-func FindCLIImage(oc *CLI) (string, bool) {
-	// look up image stream
-	is, err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "cli", metav1.GetOptions{})
-	if err == nil {
-		for _, tag := range is.Spec.Tags {
-			if tag.Name == "latest" && tag.From != nil && tag.From.Kind == "DockerImage" {
-				return tag.From.Name, true
-			}
-		}
-	}
-
-	format, ok := FindImageFormatString(oc)
-	return strings.Replace(format, "${component}", "cli", -1), ok
 }
 
 func FindRouterImage(oc *CLI) (string, error) {

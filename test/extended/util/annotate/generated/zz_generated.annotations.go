@@ -1061,7 +1061,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-autoscaling] [HPA] Horizontal pod autoscaling (scale resource: Custom Metrics from Stackdriver) should scale up with two metrics of type Pod from Stackdriver [Feature:CustomMetricsAutoscaling]": "should scale up with two metrics of type Pod from Stackdriver [Feature:CustomMetricsAutoscaling] [Skipped:gce] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-builds][Feature:Builds] Multi-stage image builds  should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] Multi-stage image builds should succeed": "should succeed [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds] Optimized image builds  should succeed": "should succeed [Suite:openshift/conformance/parallel]",
 

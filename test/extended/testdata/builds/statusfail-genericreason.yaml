@@ -11,7 +11,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
       scripts: "http://example.org/scripts"
       env:
         - name: http_proxy
