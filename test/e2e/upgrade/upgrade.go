@@ -135,7 +135,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 			upgradeTests,
 			func() {
 				for i := 1; i < len(upgCtx.Versions); i++ {
-					framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
+					framework.ExpectNoError(clusterUpgrade(f, client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
 				}
 			},
 		)
@@ -236,7 +236,7 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 
 var errControlledAbort = fmt.Errorf("beginning abort")
 
-func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
+func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
 
@@ -302,7 +302,8 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 
 	}); err != nil {
 		monitor.Output()
-		return fmt.Errorf("Cluster did not acknowledge request to upgrade in a reasonable time: %v", err)
+		disruption.Flakef(f, "Cluster did not acknowledge request to upgrade in a reasonable time: %v", err)
+		return fmt.Errorf("Cluster did not acknowledge request to upgrade in a reasonable time: %w", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
