@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -1647,9 +1648,9 @@ func RunOneShotCommandPod(
 			return false, nil
 		}
 
-		if podHasErrored(cmdPod) {
+		if err := podHasErrored(cmdPod); err != nil {
 			e2e.Logf("pod %q errored trying to run the command: %v", pod.Name, err)
-			return false, nil
+			return false, err
 		}
 		return podHasCompleted(cmdPod), nil
 	})
@@ -1682,10 +1683,13 @@ func podHasCompleted(pod *corev1.Pod) bool {
 		pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Completed"
 }
 
-func podHasErrored(pod *corev1.Pod) bool {
-	return len(pod.Status.ContainerStatuses) > 0 &&
+func podHasErrored(pod *corev1.Pod) error {
+	if len(pod.Status.ContainerStatuses) > 0 &&
 		pod.Status.ContainerStatuses[0].State.Terminated != nil &&
-		pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Error"
+		pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Error" {
+		return errors.New(pod.Status.ContainerStatuses[0].State.Terminated.Message)
+	}
+	return nil
 }
 
 func getPodLogs(oc *CLI, pod *corev1.Pod) (string, error) {
@@ -1711,13 +1715,14 @@ func newCommandPod(name, image, command string, args []string, volumeMounts []co
 			RestartPolicy: corev1.RestartPolicyOnFailure,
 			Containers: []corev1.Container{
 				{
-					Name:            name,
-					Image:           image,
-					Command:         []string{command},
-					Args:            args,
-					VolumeMounts:    volumeMounts,
-					ImagePullPolicy: "Always",
-					Env:             env,
+					Name:                     name,
+					Image:                    image,
+					Command:                  []string{command},
+					Args:                     args,
+					VolumeMounts:             volumeMounts,
+					ImagePullPolicy:          "Always",
+					Env:                      env,
+					TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 				},
 			},
 		},
