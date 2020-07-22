@@ -77,7 +77,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 			e2eskipper.Skipf("machine API is not enabled and automatic recovery test is not possible")
 		}
 
-		disruption.Run("Quorum Loss and Restore", "quorum_restore",
+		disruption.Run(f, "Quorum Loss and Restore", "quorum_restore",
 			disruption.TestData{},
 			[]upgrades.Test{
 				&upgrades.ServiceUpgradeTest{},
