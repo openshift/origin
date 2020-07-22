@@ -125,9 +125,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		upgCtx, err := getUpgradeContext(client, upgradeToImage)
 		framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", "", upgradeToImage)
 
-		disruption.Run(
-			"Cluster upgrade",
-			"upgrade",
+		disruption.Run(f, "Cluster upgrade", "upgrade",
 			disruption.TestData{
 				UpgradeType:    upgrades.ClusterUpgrade,
 				UpgradeContext: *upgCtx,
@@ -135,7 +133,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 			upgradeTests,
 			func() {
 				for i := 1; i < len(upgCtx.Versions); i++ {
-					framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
+					framework.ExpectNoError(clusterUpgrade(f, client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
 				}
 			},
 		)
@@ -236,7 +234,7 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 
 var errControlledAbort = fmt.Errorf("beginning abort")
 
-func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
+func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
 
@@ -269,40 +267,58 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded", upgradeAbortAt)
 	}
 
-	// trigger the update
-	cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	oldImage := cv.Status.Desired.Image
-	oldVersion := cv.Status.Desired.Version
-	desired := configv1.Update{
-		Version: version.Version.String(),
-		Image:   version.NodeImage,
-		Force:   true,
-	}
-	cv.Spec.DesiredUpdate = &desired
-	updated, err := c.ConfigV1().ClusterVersions().Update(context.Background(), cv, metav1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
+	var (
+		desired  configv1.Update
+		original *configv1.ClusterVersion
+		updated  *configv1.ClusterVersion
+	)
 
 	monitor := versionMonitor{
-		client:     c,
-		oldVersion: oldVersion,
+		client: c,
 	}
+	defer monitor.Describe(f)
 
-	// wait until the cluster acknowledges the update
-	if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
-		cv, _, err := monitor.Check(updated.Generation, desired)
-		if err != nil || cv == nil {
-			return false, err
-		}
-		return cv.Status.ObservedGeneration >= updated.Generation, nil
+	// trigger the update and record verification as an independent step
+	if err := disruption.RecordJUnit(
+		f,
+		"[sig-cluster-lifecycle] Cluster version operator acknowledges upgrade",
+		func() error {
+			cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
 
-	}); err != nil {
-		monitor.Output()
-		return fmt.Errorf("Cluster did not acknowledge request to upgrade in a reasonable time: %v", err)
+			original = cv
+			cv = cv.DeepCopy()
+			desired = configv1.Update{
+				Version: version.Version.String(),
+				Image:   version.NodeImage,
+				Force:   true,
+			}
+			monitor.oldVersion = original.Status.Desired.Version
+
+			cv.Spec.DesiredUpdate = &desired
+			cv, err = c.ConfigV1().ClusterVersions().Update(context.Background(), cv, metav1.UpdateOptions{})
+			if err != nil {
+				return err
+			}
+			updated = cv
+
+			// wait until the cluster acknowledges the update
+			if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+				cv, _, err := monitor.Check(updated.Generation, desired)
+				if err != nil || cv == nil {
+					return false, err
+				}
+				return cv.Status.ObservedGeneration >= updated.Generation, nil
+
+			}); err != nil {
+				return fmt.Errorf("timed out waiting for cluster to acknowledge upgrade: %v", err)
+			}
+			return nil
+		},
+	); err != nil {
+		return err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -323,9 +339,9 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 		}
 
 		if !aborted && monitor.ShouldUpgradeAbort(abortAt) {
-			framework.Logf("Instructing the cluster to return to %s / %s", oldVersion, oldImage)
+			framework.Logf("Instructing the cluster to return to %s / %s", original.Status.Desired.Version, original.Status.Desired.Image)
 			desired = configv1.Update{
-				Image: oldImage,
+				Image: original.Status.Desired.Image,
 				Force: true,
 			}
 			if err := retry.RetryOnConflict(wait.Backoff{Steps: 10, Duration: time.Second}, func() error {
@@ -349,7 +365,6 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 		return monitor.Reached(cv, desired)
 
 	}); err != nil {
-		monitor.Output()
 		if lastMessage != "" {
 			return fmt.Errorf("Cluster did not complete upgrade: %v: %s", err, lastMessage)
 		}
