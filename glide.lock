@@ -1,5 +1,5 @@
-hash: 8f00acf84071cc43e26f2aba37ab4c35338fa972ab6fbcbfa299800ac5f6e589
-updated: 2020-05-21T17:07:05.922027948-07:00
+hash: 0f7cfa4789bdfcec6a27aace5cf6e1e2ea4fa19fe2fae1c87d698cccdc01c84f
+updated: 2020-07-09T10:00:16.576926+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -55,7 +55,6 @@ imports:
   - private/protocol/query
   - private/protocol/query/queryutil
   - private/protocol/rest
-  - private/protocol/restxml
   - private/protocol/xml/xmlutil
   - service/autoscaling
   - service/ec2
@@ -63,7 +62,6 @@ imports:
   - service/elb
   - service/elbv2
   - service/kms
-  - service/route53
   - service/sts
   - service/sts/stsiface
 - name: github.com/Azure/azure-sdk-for-go
@@ -389,8 +387,8 @@ imports:
 - name: github.com/google/btree
   version: 4030bb1f1f0c35b30ca7009e9ebd06849dd45306
 - name: github.com/google/cadvisor
-  repo: https://github.com/openshift/cadvisor
   version: 52275b81dc5b670043d8a320f81341b0b7e6f6f8
+  repo: https://github.com/openshift/cadvisor
   subpackages:
   - accelerators
   - cache/memory
@@ -1589,7 +1587,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 9130ec550d41f5cf7d70e18ae0c456f8a8c97b67
+  version: bb793e9bd9cf7356d0bcf0e14edc33a5493abeec
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apihelpers
@@ -1701,7 +1699,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 82adc803690168af723f6cacdd1b3b7e43675c51
+  version: e7585ae3a3784f2c0ca4b69d57e0b048aaf47502
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2219,7 +2217,7 @@ imports:
   - config/v1alpha2
   - extender/v1
 - name: k8s.io/kubectl
-  version: f0cfedb470ab38495a58e0c0b1c439a9d62b2b28
+  version: 9fb4d7b8ee32055adec23f29c6cfedb7ce9cd8aa
   repo: https://github.com/openshift/kubernetes-kubectl.git
   subpackages:
   - pkg/apps
@@ -2304,7 +2302,7 @@ imports:
   - pkg/apis/deviceplugin/v1beta1
   - pkg/apis/pluginregistration/v1
 - name: k8s.io/kubernetes
-  version: 8e3449361348b1ab53198c449eb7764436eadfa9
+  version: cb0cba374fbdfc57e00b127d6f266aaa58bfcc46
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -3205,7 +3203,7 @@ imports:
   - third_party/forked/gonum/graph/traverse
   - third_party/forked/ipvs
 - name: k8s.io/legacy-cloud-providers
-  version: f400846d7a24a0c771a5730d50ca1b80b522dea9
+  version: b6226989142af5acc03b7f747df109059f31b32c
   repo: https://github.com/openshift/kubernetes-legacy-cloud-providers.git
   subpackages:
   - aws
@@ -3289,7 +3287,6 @@ imports:
 - name: sigs.k8s.io/apiserver-network-proxy
   version: da0186e6db180d4ff153be228cc7465bfe44425f
   subpackages:
-  - konnectivity-client
   - konnectivity-client/pkg/client
   - konnectivity-client/proto/client
 - name: sigs.k8s.io/kustomize
