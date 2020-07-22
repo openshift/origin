@@ -18,8 +18,10 @@ type KubeAvailableTest struct {
 	availableTest
 }
 
-func (KubeAvailableTest) Name() string        { return "kubernetes-api-available" }
-func (KubeAvailableTest) DisplayName() string { return "Kubernetes APIs remain available" }
+func (KubeAvailableTest) Name() string { return "kubernetes-api-available" }
+func (KubeAvailableTest) DisplayName() string {
+	return "[sig-api-machinery] Kubernetes APIs remain available"
+}
 func (t *KubeAvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	t.availableTest.test(f, done, upgrade, monitor.StartKubeAPIMonitoring)
 }
@@ -29,8 +31,10 @@ type OpenShiftAvailableTest struct {
 	availableTest
 }
 
-func (OpenShiftAvailableTest) Name() string        { return "openshift-api-available" }
-func (OpenShiftAvailableTest) DisplayName() string { return "OpenShift APIs remain available" }
+func (OpenShiftAvailableTest) Name() string { return "openshift-api-available" }
+func (OpenShiftAvailableTest) DisplayName() string {
+	return "[sig-api-machinery] OpenShift APIs remain available"
+}
 func (t *OpenShiftAvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	t.availableTest.test(f, done, upgrade, monitor.StartOpenShiftAPIMonitoring)
 }

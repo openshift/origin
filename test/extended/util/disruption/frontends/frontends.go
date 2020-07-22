@@ -44,7 +44,7 @@ type Frontend struct {
 
 func (AvailableTest) Name() string { return "frontend-ingress-available" }
 func (AvailableTest) DisplayName() string {
-	return "Cluster frontend ingress remain available"
+	return "[sig-network-edge] Cluster frontend ingress remain available"
 }
 
 // Setup finds the routes the platform exposes by default

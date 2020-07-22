@@ -34,7 +34,7 @@ type UpgradeTest struct {
 
 func (UpgradeTest) Name() string { return "k8s-service-lb-available" }
 func (UpgradeTest) DisplayName() string {
-	return "Application behind service load balancer with PDB is not disrupted"
+	return "[sig-network-edge] Application behind service load balancer with PDB is not disrupted"
 }
 
 func shouldTestPDBs() bool { return true }
