@@ -1769,6 +1769,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation] MetricsGrabber should grab all metrics from a Scheduler.": "should grab all metrics from a Scheduler. [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should expose metrics following Prometheus best practices": "should expose metrics following Prometheus best practices [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state": "should have a AlertmanagerReceiversNotConfigured alert in firing state [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have important platform topology metrics": "should have important platform topology metrics [Suite:openshift/conformance/parallel]",
