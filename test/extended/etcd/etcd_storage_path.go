@@ -193,6 +193,16 @@ var kindWhiteList = sets.NewString(
 	"ClusterResourceQuota",
 	"SecurityContextConstraints",
 	"RoleBindingRestriction",
+	// TODO @hexfusion
+	// temporary whitelist to unblock rebase
+	"Event",
+	"Events",
+	"CertificateSigningRequest",
+	"CertificateSigningRequests",
+	"IngressClass",
+	"IngressClasses",
+	"Ingress",
+	"Ingresses",
 )
 
 // namespace used for all tests, do not change this
