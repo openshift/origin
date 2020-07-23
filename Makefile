@@ -43,6 +43,7 @@ build-docs:
 #   make verify-origin
 verify-origin:
 	hack/verify-jsonformat.sh
+	hack/verify-generated.sh
 .PHONY: verify-origin
 verify: verify-origin
 
@@ -51,7 +52,7 @@ verify: verify-origin
 # Example:
 #   make update
 update: update-bindata
-	go generate ./test/extended
+	hack/update-generated.sh
 .PHONY: update
 
 # Update external examples

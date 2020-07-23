@@ -1,6 +1,6 @@
 package extended
 
-//go:generate go run ./util/annotate -- ./util/annotate/generated/zz_generated.annotations.go
+//go:generate go run -mod vendor ./util/annotate -- ./util/annotate/generated/zz_generated.annotations.go
 
 import (
 	_ "k8s.io/kubernetes/test/e2e"

@@ -90,7 +90,7 @@ func init() {
 		}	
 	})
 }
-`, strings.Join(pairs, "\n"))
+`, strings.Join(pairs, "\n\n"))
 	if err := ioutil.WriteFile(filename, []byte(contents), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v", err)
 		os.Exit(1)
@@ -230,7 +230,7 @@ func (r *ginkgoTestRenamer) generateRename(name, parentName string, node types.T
 	if strings.Contains(node.CodeLocation().FileName, "/origin/test/") && !strings.Contains(name, "[Suite:openshift") {
 		name += " [Suite:openshift]"
 	}
-	if strings.Contains(node.CodeLocation().FileName, "/kubernetes/test/e2e/") {
+	if strings.Contains(node.CodeLocation().FileName, "/k8s.io/kubernetes/test/e2e/") {
 		name += " [Suite:k8s]"
 	}
 
