@@ -30,7 +30,12 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
 		excludeNamespaces := sets.NewString("openshift-operator-lifecycle-manager")
-		excludePodPrefix := sets.NewString("revision-pruner-", "installer-", "must-gather-")
+		excludePodPrefix := sets.NewString(
+			"revision-pruner-",  // operators have retry logic built in. these are like jobs but cannot rely on jobs
+			"installer-",        // operators have retry logic built in. these are like jobs but cannot rely on jobs
+			"must-gather-",      // operators have retry logic built in. these are like jobs but cannot rely on jobs
+			"recycler-for-nfs-", // recyclers are allowed to fail.  I guess a cluster-admin works out that he needs to take manual action.  sig-storage
+		)
 		for _, pod := range pods.Items {
 			// exclude non-control plane namespaces
 			if !hasPrefixSet(pod.Namespace, namespacePrefixes) {
