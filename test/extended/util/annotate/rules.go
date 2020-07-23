@@ -265,6 +265,7 @@ var (
 			`Downward API should create a pod that prints his name and namespace`,
 			`Liveness liveness pods should be automatically restarted`,
 			`Secret should create a pod that reads a secret`,
+			`Pods should delete a collection of pods`,
 		},
 		"[sig-cluster-lifecycle]": {
 			`Feature:ClusterAutoscalerScalability`,
