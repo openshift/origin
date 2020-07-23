@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Repository represents a git source repository

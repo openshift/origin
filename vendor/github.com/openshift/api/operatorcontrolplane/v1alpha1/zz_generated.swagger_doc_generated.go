@@ -25,9 +25,12 @@ func (LogEntry) SwaggerDoc() map[string]string {
 }
 
 var map_OutageEntry = map[string]string{
-	"":      "OutageEntry records time period of an outage",
-	"start": "Start of outage detected",
-	"end":   "End of outage detected",
+	"":          "OutageEntry records time period of an outage",
+	"start":     "Start of outage detected",
+	"end":       "End of outage detected",
+	"startLogs": "StartLogs contains log entries related to the start of this outage. Should contain the original failure, any entries where the failure mode changed.",
+	"endLogs":   "EndLogs contains log entries related to the end of this outage. Should contain the success entry that resolved the outage and possibly a few of the failure log entries that preceded it.",
+	"message":   "Message summarizes outage details in a human readable format.",
 }
 
 func (OutageEntry) SwaggerDoc() map[string]string {
@@ -69,6 +72,7 @@ func (PodNetworkConnectivityCheckList) SwaggerDoc() map[string]string {
 var map_PodNetworkConnectivityCheckSpec = map[string]string{
 	"sourcePod":      "SourcePod names the pod from which the condition will be checked",
 	"targetEndpoint": "EndpointAddress to check. A TCP address of the form host:port. Note that if host is a DNS name, then the check would fail if the DNS name cannot be resolved. Specify an IP address for host to bypass DNS name lookup.",
+	"tlsClientCert":  "TLSClientCert, if specified, references a kubernetes.io/tls type secret with 'tls.crt' and 'tls.key' entries containing an optional TLS client certificate and key to be used when checking endpoints that require a client certificate in order to gracefully preform the scan without causing excessive logging in the endpoint process. The secret must exist in the same namespace as this resource.",
 }
 
 func (PodNetworkConnectivityCheckSpec) SwaggerDoc() map[string]string {
