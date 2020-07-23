@@ -236,16 +236,17 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	crdClient := apiextensionsclientset.NewForConfigOrDie(kubeConfig)
 
 	// create CRDs so we can make sure that custom resources do not get lost
-	etcddata.CreateTestCRDs(tt, crdClient, false, etcddata.GetCustomResourceDefinitionData()...)
+	etcddataCRDs := etcddata.GetCustomResourceDefinitionData()
+	etcddata.CreateTestCRDs(tt, crdClient, false, etcddataCRDs...)
 	defer func() {
 		deleteCRD := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete
 		ctx := context.Background()
 		delOptions := metav1.DeleteOptions{}
-		if err := errors.NewAggregate([]error{
-			deleteCRD(ctx, "foos.cr.bar.com", delOptions),
-			deleteCRD(ctx, "pandas.awesome.bears.com", delOptions),
-			deleteCRD(ctx, "pants.custom.fancy.com", delOptions),
-		}); err != nil {
+		var errs []error
+		for _, crd := range etcddataCRDs {
+			errs = append(errs, deleteCRD(ctx, crd.Name, delOptions))
+		}
+		if err := errors.NewAggregate(errs); err != nil {
 			t.Fatal(err)
 		}
 	}()
