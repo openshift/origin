@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -67,7 +68,7 @@ var _ = g.Describe("[sig-node] supplemental groups", func() {
 
 			// wait for the pod to run so we can inspect it.
 			g.By("waiting for the pod to become running")
-			err = f.WaitForPodRunning(submittedPod.Name)
+			err = e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, submittedPod.Name, f.Namespace.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			out, stderr, err := oc.Run("exec").Args("-p", supplementalGroupsPod, "--", "/usr/bin/id", "-G").Outputs()

@@ -80,7 +80,7 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1beta1().Events("")})
+	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1()})
 	r := newBroadcaster.NewRecorder(scheme.Scheme, "openshift.io/frontends-available-test")
 	newBroadcaster.StartRecordingToSink(stopCh)
 
