@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -628,10 +629,10 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
-			metadata, err := getInsecureURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/metadata", prometheusSvcURL))
+			metadata, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/metadata", prometheusSvcURL), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			series, err := getInsecureURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/series?", prometheusSvcURL), fmt.Sprintf("match[]={__name__=~%q}", ".+"))
+			series, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/series?", prometheusSvcURL), bearerToken, fmt.Sprintf("match[]={__name__=~%q}", ".+"))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			families, err := helper.SeriesToMetricFamilies([]byte(metadata), []byte(series))
@@ -762,8 +763,24 @@ func findMetricLabels(f *dto.MetricFamily, labels map[string]string, match strin
 	return result
 }
 
-func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
-	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
+func expectBearerTokenURLStatusCodeExec(ns, execPodName, url, bearer string, statusCode int) error {
+	cmd := fmt.Sprintf("curl -k -s -H 'Authorization: Bearer %s' -o /dev/null -w '%%{http_code}' %q", bearer, url)
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	if err != nil {
+		return fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	if output != strconv.Itoa(statusCode) {
+		return fmt.Errorf("last response from server was not %d: %s", statusCode, output)
+	}
+	return nil
+}
+
+func getBearerTokenURLViaPod(ns, execPodName, url, bearer string, params ...string) (string, error) {
+	cmd := fmt.Sprintf("curl -G -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
+	for _, param := range params {
+		cmd = fmt.Sprintf("%s --data-urlencode %q", cmd, param)
+	}
+
 	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
@@ -783,12 +800,8 @@ func telemetryIsEnabled(ctx context.Context, client clientset.Interface) (enable
 	return isTelemeterClientEnabled(ctx, client)
 }
 
-func getInsecureURLViaPod(ns, execPodName, url string, params ...string) (string, error) {
-	cmd := fmt.Sprintf("curl -G -s -k %s", url)
-	for _, param := range params {
-		cmd = fmt.Sprintf("%s --data-urlencode %q", cmd, param)
-	}
-
+func getInsecureURLViaPod(ns, execPodName, url string) (string, error) {
+	cmd := fmt.Sprintf("curl -s -k %q", url)
 	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
