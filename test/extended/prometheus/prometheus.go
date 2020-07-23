@@ -619,6 +619,30 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), queries, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+		g.It("should expose metrics following Prometheus best practices", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
+
+			metadata, err := getInsecureURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/metadata", prometheusSvcURL))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			series, err := getInsecureURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/series?", prometheusSvcURL), fmt.Sprintf("match[]={__name__=~%q}", ".+"))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			families, err := helper.SeriesToMetricFamilies([]byte(metadata), []byte(series))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("linting metrics with promlint")
+			linter := helper.NewPromLinterWithMetricFamilies(families)
+			problems, err := linter.Lint()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(problems).To(o.BeEmpty())
+		})
 	})
 })
 
@@ -757,6 +781,19 @@ func telemetryIsEnabled(ctx context.Context, client clientset.Interface) (enable
 	}
 
 	return isTelemeterClientEnabled(ctx, client)
+}
+
+func getInsecureURLViaPod(ns, execPodName, url string, params ...string) (string, error) {
+	cmd := fmt.Sprintf("curl -G -s -k %s", url)
+	for _, param := range params {
+		cmd = fmt.Sprintf("%s --data-urlencode %q", cmd, param)
+	}
+
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	if err != nil {
+		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	return output, nil
 }
 
 func hasPullSecret(ctx context.Context, client clientset.Interface, name string) (enabled error, err error) {
