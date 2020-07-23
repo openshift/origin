@@ -34,6 +34,10 @@ type Options struct {
 	// MatchFn if set is also used to filter the suite contents
 	MatchFn func(name string) bool
 
+	// AdditionalJUnitsFn allows the caller to translate events or outside
+	// context into a failure.
+	AdditionalJUnitsFn func(events monitor.EventIntervals) (results []*JUnitTestCase, passed bool)
+
 	IncludeSuccessOutput bool
 
 	Provider     string
@@ -229,20 +233,21 @@ func (opt *Options) Run(args []string) error {
 	q = newParallelTestQueue(normal)
 	q.Execute(ctx, parallelism, status.Run)
 
+	// run Late test suits after everything else
+	q = newParallelTestQueue(late)
+	q.Execute(ctx, parallelism, status.Run)
+
 	duration := time.Now().Sub(start).Round(time.Second / 10)
 	if duration > time.Minute {
 		duration = duration.Round(time.Second)
 	}
-
-	// run Late test suits after everything else
-	q = newParallelTestQueue(late)
-	q.Execute(ctx, parallelism, status.Run)
 
 	pass, fail, skip, failing := summarizeTests(tests)
 
 	// monitor the cluster while the tests are running and report any detected
 	// anomalies
 	var syntheticTestResults []*JUnitTestCase
+	var syntheticFailure bool
 	if events := m.Events(time.Time{}, time.Time{}); len(events) > 0 {
 		buf, errBuf := &bytes.Buffer{}, &bytes.Buffer{}
 		fmt.Fprintf(buf, "\nTimeline:\n\n")
@@ -283,14 +288,31 @@ func (opt *Options) Run(args []string) error {
 		fmt.Fprintln(buf)
 
 		if errorCount > 0 {
-			syntheticTestResults = append(syntheticTestResults, &JUnitTestCase{
-				Name:      "Monitor cluster while tests execute",
-				SystemOut: buf.String(),
-				Duration:  duration.Seconds(),
-				FailureOutput: &FailureOutput{
-					Output: fmt.Sprintf("%d error level events were detected during this test run:\n\n%s", errorCount, errBuf.String()),
+			syntheticTestResults = append(
+				syntheticTestResults,
+				&JUnitTestCase{
+					Name:      "[sig-arch] Monitor cluster while tests execute",
+					SystemOut: buf.String(),
+					Duration:  duration.Seconds(),
+					FailureOutput: &FailureOutput{
+						Output: fmt.Sprintf("%d error level events were detected during this test run:\n\n%s", errorCount, errBuf.String()),
+					},
 				},
-			})
+				// write a passing test to trigger detection of this issue as a flake, indicating we have no idea whether
+				// these are actual failures or not
+				&JUnitTestCase{
+					Name:     "[sig-arch] Monitor cluster while tests execute",
+					Duration: duration.Seconds(),
+				},
+			)
+		}
+
+		if opt.AdditionalJUnitsFn != nil {
+			testCases, passed := opt.AdditionalJUnitsFn(events)
+			syntheticTestResults = append(syntheticTestResults, testCases...)
+			if !passed {
+				syntheticFailure = true
+			}
 		}
 
 		opt.Out.Write(buf.Bytes())
@@ -344,6 +366,10 @@ func (opt *Options) Run(args []string) error {
 			return fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
 		}
 		fmt.Fprintf(opt.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
+	}
+
+	if syntheticFailure {
+		return fmt.Errorf("failed because an invariant was violated, %d pass, %d skip (%s)\n", pass, skip, duration)
 	}
 
 	fmt.Fprintf(opt.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
