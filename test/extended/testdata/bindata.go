@@ -30926,7 +30926,7 @@ os::test::junit::declare_suite_start "cmd/basicresources/versionreporting"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/status"
-os::cmd::expect_success_and_text 'oc status -h' 'oc describe buildConfig'
+os::cmd::expect_success_and_text 'oc status -h' 'oc describe buildconfig'
 os::cmd::expect_success_and_text 'oc status' 'oc new-app'
 echo "status help output: ok"
 os::test::junit::declare_suite_end
@@ -32360,8 +32360,6 @@ os::cmd::expect_failure 'oc policy TYPO'
 os::cmd::expect_failure 'oc secrets TYPO'
 
 # make sure that LDAP group sync and prune exist under both experimental and ` + "`" + `oc adm` + "`" + `
-os::cmd::expect_success_and_text 'oc ex sync-groups --help' 'external provider'
-os::cmd::expect_success_and_text 'oc ex prune-groups --help' 'external provider'
 os::cmd::expect_success_and_text 'oc adm groups sync --help' 'external provider'
 os::cmd::expect_success_and_text 'oc adm groups prune --help' 'external provider'
 os::cmd::expect_success_and_text 'oc adm prune groups --help' 'external provider'
