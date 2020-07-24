@@ -486,18 +486,18 @@ var _ = SIGDescribe("Kubectl client", func() {
 			framework.ExpectEqual(ok, true)
 			framework.ExpectEqual(ee.ExitStatus(), 42)
 
-			ginkgo.By("running a failing command without --restart=Never")
-			_, err = framework.NewKubectlCommand(ns, nsFlag, "run", "-i", "--image="+busyboxImage, "--restart=OnFailure", "failure-2", "--", "/bin/sh", "-c", "cat && exit 42").
-				WithStdinData("abcd1234").
-				Exec()
-			framework.ExpectNoError(err)
+			// ginkgo.By("running a failing command without --restart=Never")
+			// _, err = framework.NewKubectlCommand(ns, nsFlag, "run", "-i", "--image="+busyboxImage, "--restart=OnFailure", "failure-2", "--", "/bin/sh", "-c", "cat && exit 42").
+			// 	WithStdinData("abcd1234").
+			// 	Exec()
+			// framework.ExpectNoError(err)
 
-			ginkgo.By("running a failing command without --restart=Never, but with --rm")
-			_, err = framework.NewKubectlCommand(ns, nsFlag, "run", "-i", "--image="+busyboxImage, "--restart=OnFailure", "--rm", "failure-3", "--", "/bin/sh", "-c", "cat && exit 42").
-				WithStdinData("abcd1234").
-				Exec()
-			framework.ExpectNoError(err)
-			e2epod.WaitForPodToDisappear(f.ClientSet, ns, "failure-3", labels.Everything(), 2*time.Second, wait.ForeverTestTimeout)
+			// ginkgo.By("running a failing command without --restart=Never, but with --rm")
+			// _, err = framework.NewKubectlCommand(ns, nsFlag, "run", "-i", "--image="+busyboxImage, "--restart=OnFailure", "--rm", "failure-3", "--", "/bin/sh", "-c", "cat && exit 42").
+			// 	WithStdinData("abcd1234").
+			// 	Exec()
+			// framework.ExpectNoError(err)
+			// e2epod.WaitForPodToDisappear(f.ClientSet, ns, "failure-3", labels.Everything(), 2*time.Second, wait.ForeverTestTimeout)
 
 			ginkgo.By("running a failing command with --leave-stdin-open")
 			_, err = framework.NewKubectlCommand(ns, nsFlag, "run", "-i", "--image="+busyboxImage, "--restart=Never", "failure-4", "--leave-stdin-open", "--", "/bin/sh", "-c", "exit 42").
