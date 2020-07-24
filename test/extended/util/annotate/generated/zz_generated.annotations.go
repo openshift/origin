@@ -1355,7 +1355,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should handle in-cluster config": "should handle in-cluster config [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes": "should return command exit codes [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes": "should return command exit codes [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through an HTTP proxy": "should support exec through an HTTP proxy [Suite:openshift/conformance/parallel] [Suite:k8s]",
 

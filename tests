@@ -1,0 +1,6 @@
+"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/basicresources.sh [Suite:openshift]"
+"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/edit.sh [Suite:openshift]"
+"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/env.sh [Suite:openshift]"
+"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/help.sh [Suite:openshift]"
+"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh [Suite:openshift]"
+"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh [Suite:openshift]"

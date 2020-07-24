@@ -94,6 +94,9 @@ var (
 			`Multi-AZ Clusters should spread the pods of a replication controller across zones`,
 
 			`Cluster should restore itself after quorum loss`, // https://bugzilla.redhat.com/show_bug.cgi?id=1837157
+
+			// disabled until oc and origin are on k8s 1.19 - workloads team
+			`should return command exit codes`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
