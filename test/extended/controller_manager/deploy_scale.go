@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/scale"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	g "github.com/onsi/ginkgo"
 	"github.com/openshift/api/apps"
@@ -71,11 +70,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			if err != nil {
 				return false, nil
 			}
-			externalConfig := &appsv1.DeploymentConfig{}
-			if err := legacyscheme.Scheme.Convert(config, externalConfig, nil); err != nil {
-				panic(err)
-			}
-			return appsutil.HasSynced(externalConfig, generation), nil
+			return appsutil.HasSynced(config, generation), nil
 		}
 		if err := wait.PollImmediate(500*time.Millisecond, 10*time.Second, condition); err != nil {
 			t.Fatalf("Deployment config never synced: %v", err)

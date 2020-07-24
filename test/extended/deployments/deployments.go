@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -1001,13 +1000,9 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 					return false, nil
 				}
 
-				externalDeploymentConfig := &appsv1.DeploymentConfig{}
-				if err := legacyscheme.Scheme.Convert(deploymentConfig, externalDeploymentConfig, nil); err != nil {
-					return false, err
-				}
 				// we need to filter out any deployments that we don't care about,
 				// namely the active deployment and any newer deployments
-				oldDeployments := appsutil.DeploymentsForCleanup(externalDeploymentConfig, deployments)
+				oldDeployments := appsutil.DeploymentsForCleanup(deploymentConfig, deployments)
 
 				// we should not have more deployments than acceptable
 				if len(oldDeployments) != revisionHistoryLimit {
