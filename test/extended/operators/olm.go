@@ -74,8 +74,8 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 				// Ensure expected version exists in spec.versions and is both served and stored
 				raw, err := oc.AsAdmin().Run("get").Args("crds", fmt.Sprintf("%s.%s", api.plural, api.group), fmt.Sprintf("-o=jsonpath={.spec.versions[?(@.name==\"%s\")]}", api.version)).Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(raw).To(o.ContainSubstring("served:true"))
-				o.Expect(raw).To(o.ContainSubstring("storage:true"))
+				o.Expect(raw).To(o.MatchRegexp(`served.?:true`))
+				o.Expect(raw).To(o.MatchRegexp(`storage.?:true`))
 			}
 		})
 	}
