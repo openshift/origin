@@ -1373,6 +1373,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client Update Demo should scale a replication controller  [Conformance]": "should scale a replication controller  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
+	"[Top Level] [sig-cli] oc adm must-gather runs successfully for audit logs": "runs successfully for audit logs [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc adm must-gather runs successfully with options": "runs successfully with options [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm must-gather runs successfully": "runs successfully [Suite:openshift/conformance/parallel]",
