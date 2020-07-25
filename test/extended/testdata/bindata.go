@@ -30926,7 +30926,7 @@ os::test::junit::declare_suite_start "cmd/basicresources/versionreporting"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/status"
-os::cmd::expect_success_and_text 'oc status -h' 'oc describe buildConfig'
+os::cmd::expect_success_and_text 'oc status -h' 'oc describe buildconfig'
 os::cmd::expect_success_and_text 'oc status' 'oc new-app'
 echo "status help output: ok"
 os::test::junit::declare_suite_end
@@ -31406,8 +31406,8 @@ os::cmd::expect_success 'oc cancel-build build/ruby-sample-build-1'
 os::cmd::expect_success "oc start-build bc/ruby-sample-build"
 os::cmd::expect_success "oc start-build bc/ruby-sample-build"
 lastbuild="$(basename $(oc start-build -o=name bc/ruby-sample-build))"
-os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build', "build.build.openshift.io/${lastbuild} cancelled"
-os::cmd::expect_success_and_text "oc get build ${lastbuild} -o template --template '{{.status.phase}}'", 'Cancelled'
+os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build' "build.build.openshift.io/${lastbuild} cancelled"
+os::cmd::expect_success_and_text "oc get build ${lastbuild} -o template --template '{{.status.phase}}'" 'Cancelled'
 builds=$(oc get builds -o template --template '{{range .items}}{{ .status.phase }} {{end}}')
 for state in $builds; do
   os::cmd::expect_success "[ \"${state}\" == \"Cancelled\" ]"
@@ -32038,14 +32038,14 @@ os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit svc' 'kind: List'
 os::cmd::expect_success 'oc create imagestream test'
 os::cmd::expect_success 'oc tag --source=docker docker.io/busybox:latest test:new'
 os::cmd::try_until_success 'oc get istag/test:new'
-os::cmd::expect_success_and_not_text 'oc get istag/test:new -o jsonpath={.metadata.annotations}' "tags:hidden"
+os::cmd::expect_success_and_not_text 'oc get istag/test:new -o jsonpath={.metadata.annotations}' "tags.?:.?hidden"
 editorfile="$(mktemp -d)/tmp-editor.sh"
 echo '#!/bin/bash' > ${editorfile}
 echo 'sed -i "s/^tag: null/tag:\n  referencePolicy:\n    type: Source/g" $1' >> ${editorfile}
 echo 'sed -i "s/^metadata:$/metadata:\n  annotations:\n    tags: hidden/g" $1' >> ${editorfile}
 chmod +x ${editorfile}
 os::cmd::expect_success "EDITOR=${editorfile} oc edit istag/test:new"
-os::cmd::expect_success_and_text 'oc get istag/test:new -o jsonpath={.metadata.annotations}' "tags:hidden"
+os::cmd::expect_success_and_text 'oc get istag/test:new -o jsonpath={.metadata.annotations}' "tags.?:.?hidden"
 
 echo "edit: ok"
 os::test::junit::declare_suite_end
@@ -32086,10 +32086,10 @@ os::cmd::expect_success_and_text 'oc set env dc/testdc key=value' 'deploymentcon
 os::cmd::expect_success_and_text 'oc set env dc/testdc dots.in.a.key=dots.in.a.value' 'deploymentconfig.apps.openshift.io/testdc updated'
 os::cmd::expect_success_and_text 'oc set env dc --all --containers="default-container" --env=key-' 'deploymentconfig.apps.openshift.io/testdc updated'
 # ensure deleting a var through --env actually deletes the env var
-os::cmd::expect_success_and_not_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name\:key'
-os::cmd::expect_success_and_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name\:dots.in.a.key'
+os::cmd::expect_success_and_not_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name.?\:.?key'
+os::cmd::expect_success_and_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name.?\:.?dots.in.a.key'
 os::cmd::expect_success_and_text 'oc set env dc --all --containers="default-container" --env=dots.in.a.key-' 'deploymentconfig.apps.openshift.io/testdc updated'
-os::cmd::expect_success_and_not_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name\:dots.in.a.key'
+os::cmd::expect_success_and_not_text "oc get dc/testdc -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"default-container\")].env }'" 'name.?\:.?dots.in.a.key'
 
 # check that env vars are not split at commas
 os::cmd::expect_success_and_text 'oc set env -o yaml dc/testdc PASS=x,y=z' 'value: x,y=z'
@@ -32118,7 +32118,7 @@ os::cmd::expect_success_and_text "oc get bc fake-pipeline -o jsonpath='{ .spec.s
 # attempt to set an environment variable
 os::cmd::expect_success_and_text 'oc set env bc/fake-pipeline FOO=BAR' 'buildconfig.build.openshift.io/fake\-pipeline updated'
 # ensure environment variable was set
-os::cmd::expect_success_and_text "oc get bc fake-pipeline -o jsonpath='{ .spec.strategy.jenkinsPipelineStrategy.env }'" 'name\:FOO'
+os::cmd::expect_success_and_text "oc get bc fake-pipeline -o jsonpath='{ .spec.strategy.jenkinsPipelineStrategy.env }'" 'name.?\:.?FOO'
 os::cmd::expect_success 'oc delete bc fake-pipeline'
 
 echo "oc set env: ok"
@@ -32360,8 +32360,6 @@ os::cmd::expect_failure 'oc policy TYPO'
 os::cmd::expect_failure 'oc secrets TYPO'
 
 # make sure that LDAP group sync and prune exist under both experimental and ` + "`" + `oc adm` + "`" + `
-os::cmd::expect_success_and_text 'oc ex sync-groups --help' 'external provider'
-os::cmd::expect_success_and_text 'oc ex prune-groups --help' 'external provider'
 os::cmd::expect_success_and_text 'oc adm groups sync --help' 'external provider'
 os::cmd::expect_success_and_text 'oc adm groups prune --help' 'external provider'
 os::cmd::expect_success_and_text 'oc adm prune groups --help' 'external provider'
