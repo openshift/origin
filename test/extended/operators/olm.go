@@ -3,17 +3,15 @@ package operators
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/google/go-github/github"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	"path/filepath"
-	"strings"
-	"time"
-
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -152,68 +150,65 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 })
 
 // This context will cover test case: OCP-23440, author: jiazha@redhat.com
-// Uses cockroachdb community operator - maintained by Daniel Messer. etcd operator is no longer maintained.
-var _ = g.Describe("[sig-operator] an end user use OLM", func() {
+// Uses nfd operator
+var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc           = exutil.NewCLI("olm-23440")
-		operatorWait = 150 * time.Second
+		oc = exutil.NewCLI("olm-23440")
 
 		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")
 		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
-		cockroachDBSub      = filepath.Join(buildPruningBaseDir, "cockroachdb-subscription.yaml")
+		sub                 = filepath.Join(buildPruningBaseDir, "subscription.yaml")
 	)
 
-	files := []string{cockroachDBSub}
-	g.It("can subscribe to the cockroachdb operator", func() {
+	files := []string{sub}
+	g.It("can subscribe to the operator", func() {
 		g.By("Cluster-admin user subscribe the operator resource")
 
 		// configure OperatorGroup before tests
-		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", operatorGroup, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
+		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", operatorGroup, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
+
+		o.Eventually(func() string {
 			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "operatorgroup", "test-operator", "-o=jsonpath={.status.namespaces}").Output()
 			if err != nil {
 				e2e.Logf("Failed to get valid operatorgroup, error:%v", err)
-				return false, nil
+				return ""
 			}
-			if strings.Contains(output, oc.Namespace()) {
-				return true, nil
-			}
-			e2e.Logf("%#v", output)
-			return false, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+			return output
+		}, 5*time.Minute, time.Second).Should(o.Equal("[]"))
 
 		for _, v := range files {
-			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=community-operators", "SOURCENAMESPACE=openshift-marketplace").OutputToFile("config.json")
+			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=redhat-operators", "SOURCENAMESPACE=openshift-marketplace", "PACKAGE=amq-streams", "CHANNEL=stable").OutputToFile("config.json")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
-		err = wait.Poll(10*time.Second, operatorWait, func() (bool, error) {
-			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "csv", "cockroachdb.v2.1.11", "-o=jsonpath={.status.phase}").Output()
-			if err != nil {
-				e2e.Logf("Failed to check cockroachdb.v2.1.11, error:%v, try next round", err)
-				return false, nil
-			}
-			e2e.Logf("the output is %s", output)
-			if strings.Contains(output, "Succeeded") {
-				return true, nil
-			}
-			return false, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
 
-		output, err := oc.Run("get").Args("deployments", "-n", oc.Namespace()).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(output).To(o.ContainSubstring("cockroachdb"))
+		var current string
+		o.Eventually(func() string {
+			var err error
+			current, err = oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "subscription", "test-operator", "-o=jsonpath={.status.installedCSV}").Output()
+			if err != nil {
+				e2e.Logf("Failed to check test-operator, error: %v, try next round", err)
+			}
+			return current
+		}, 5*time.Minute, time.Second).ShouldNot(o.Equal(""))
+
+		o.Eventually(func() string {
+			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "csv", current, "-o=jsonpath={.status.phase}").Output()
+			if err != nil {
+				e2e.Logf("Failed to check %s, error: %v, try next round", current, err)
+			}
+			return output
+
+		}, 5*time.Minute, time.Second).Should(o.ContainSubstring("Succeeded"))
 
 		// clean up so that it doesn't emit an alert when namespace is deleted
-		_, err = oc.AsAdmin().Run("delete").Args("-n", oc.Namespace(), "csv", "cockroachdb.v2.1.11").Output()
+		_, err = oc.AsAdmin().Run("delete").Args("-n", oc.Namespace(), "csv", current).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
