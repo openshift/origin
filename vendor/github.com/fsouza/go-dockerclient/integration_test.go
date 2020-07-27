@@ -77,12 +77,10 @@ func getLines(buf *bytes.Buffer) []string {
 
 func pullImage(t *testing.T) string {
 	os := runtime.GOOS
-	platform := runtime.GOOS + "/" + runtime.GOARCH
 	if os != "windows" {
 		os = "linux"
-	} else {
-		platform = runtime.GOOS
 	}
+	platform := os + "/" + runtime.GOARCH
 	imageName := "fsouza/go-dockerclient-integration:" + os
 	var buf bytes.Buffer
 	pullOpts := PullImageOptions{

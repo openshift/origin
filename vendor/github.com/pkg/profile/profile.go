@@ -90,20 +90,16 @@ func MemProfileRate(rate int) func(*Profile) {
 
 // MemProfileHeap changes which type of memory profiling to profile
 // the heap.
-func MemProfileHeap() func(*Profile) {
-	return func(p *Profile) {
-		p.memProfileType = "heap"
-		p.mode = memMode
-	}
+func MemProfileHeap(p *Profile) {
+	p.memProfileType = "heap"
+	p.mode = memMode
 }
 
 // MemProfileAllocs changes which type of memory to profile
 // allocations.
-func MemProfileAllocs() func(*Profile) {
-	return func(p *Profile) {
-		p.memProfileType = "allocs"
-		p.mode = memMode
-	}
+func MemProfileAllocs(p *Profile) {
+	p.memProfileType = "allocs"
+	p.mode = memMode
 }
 
 // MutexProfile enables mutex profiling.

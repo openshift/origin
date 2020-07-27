@@ -131,7 +131,7 @@ type fileHandler struct {
 func (h *fileHandler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	if h.offset != req.Offset {
 		if seeker, ok := h.reader.(io.Seeker); ok {
-			if _, err := seeker.Seek(req.Offset, os.SEEK_SET); err != nil {
+			if _, err := seeker.Seek(req.Offset, io.SeekStart); err != nil {
 				logrus.Debugf("Error seeking: %v", err)
 				return err
 			}

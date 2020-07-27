@@ -20,11 +20,11 @@ package fs
 
 import (
 	"io"
-	"path/filepath"
-	"math/rand"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/containerd/continuity/testutil"
@@ -59,7 +59,7 @@ func TestCopyReflinkWithXFS(t *testing.T) {
 	}
 	unmounted := false
 	defer func() {
-		if !unmounted{
+		if !unmounted {
 			testutil.Unmount(t, mnt)
 		}
 		loop.Close()

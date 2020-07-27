@@ -541,7 +541,16 @@ func (c *Client) streamURL(method, url string, streamOptions streamOptions) erro
 			return err
 		}
 	}
-	req, err := http.NewRequest(method, url, streamOptions.in)
+
+	// make a sub-context so that our active cancellation does not affect parent
+	ctx := streamOptions.context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	subCtx, cancelRequest := context.WithCancel(ctx)
+	defer cancelRequest()
+
+	req, err := http.NewRequestWithContext(ctx, method, url, streamOptions.in)
 	if err != nil {
 		return err
 	}
@@ -561,14 +570,6 @@ func (c *Client) streamURL(method, url string, streamOptions streamOptions) erro
 	if streamOptions.stderr == nil {
 		streamOptions.stderr = ioutil.Discard
 	}
-
-	// make a sub-context so that our active cancellation does not affect parent
-	ctx := streamOptions.context
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	subCtx, cancelRequest := context.WithCancel(ctx)
-	defer cancelRequest()
 
 	if protocol == unixProtocol || protocol == namedPipeProtocol {
 		var dial net.Conn
@@ -958,6 +959,7 @@ func queryString(opts interface{}) string {
 }
 
 func addQueryStringValue(items url.Values, key string, v reflect.Value) bool {
+	//nolint:exhaustive
 	switch v.Kind() {
 	case reflect.Bool:
 		if v.Bool() {

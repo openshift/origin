@@ -15,6 +15,7 @@ issues:
     - path: testing[/\\].+\.go
       linters:
         - gosec
+        - noctx
 
 linters:
   enable-all: true
@@ -27,6 +28,7 @@ linters:
     - goconst
     - godot
     - goerr113
+    - gofumpt
     - gomnd
     - lll
     - nestif

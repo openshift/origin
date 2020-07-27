@@ -17,17 +17,14 @@ func TestEncodeDecodeInteger(t *testing.T) {
 		if v != dec {
 			t.Errorf("TestEncodeDecodeInteger failed for %d (got %d)", v, dec)
 		}
-
 	}
 }
 
 func TestBoolean(t *testing.T) {
-	var value bool = true
-
-	packet := NewBoolean(ClassUniversal, TypePrimitive, TagBoolean, value, "first Packet, True")
+	packet := NewBoolean(ClassUniversal, TypePrimitive, TagBoolean, true, "first Packet, True")
 
 	newBoolean, ok := packet.Value.(bool)
-	if !ok || newBoolean != value {
+	if !ok || newBoolean != true {
 		t.Error("error during creating packet")
 	}
 
@@ -36,19 +33,16 @@ func TestBoolean(t *testing.T) {
 	newPacket := DecodePacket(encodedPacket)
 
 	newBoolean, ok = newPacket.Value.(bool)
-	if !ok || newBoolean != value {
+	if !ok || newBoolean != true {
 		t.Error("error during decoding packet")
 	}
-
 }
 
 func TestLDAPBoolean(t *testing.T) {
-	var value bool = true
-
-	packet := NewLDAPBoolean(value, "first Packet, True")
+	packet := NewLDAPBoolean(ClassUniversal, TypePrimitive, TagBoolean, true, "first Packet, True")
 
 	newBoolean, ok := packet.Value.(bool)
-	if !ok || newBoolean != value {
+	if !ok || newBoolean != true {
 		t.Error("error during creating packet")
 	}
 
@@ -57,10 +51,9 @@ func TestLDAPBoolean(t *testing.T) {
 	newPacket := DecodePacket(encodedPacket)
 
 	newBoolean, ok = newPacket.Value.(bool)
-	if !ok || newBoolean != value {
+	if !ok || newBoolean != true {
 		t.Error("error during decoding packet")
 	}
-
 }
 
 func TestInteger(t *testing.T) {
@@ -81,14 +74,14 @@ func TestInteger(t *testing.T) {
 
 	{
 		newInteger, ok := newPacket.Value.(int64)
-		if !ok || int64(newInteger) != value {
+		if !ok || newInteger != value {
 			t.Error("error decoding packet")
 		}
 	}
 }
 
 func TestString(t *testing.T) {
-	var value string = "Hic sunt dracones"
+	var value = "Hic sunt dracones"
 
 	packet := NewString(ClassUniversal, TypePrimitive, TagOctetString, value, "String")
 
@@ -105,11 +98,9 @@ func TestString(t *testing.T) {
 	if !ok || newValue != value {
 		t.Error("error during decoding packet")
 	}
-
 }
 
 func TestSequenceAndAppendChild(t *testing.T) {
-
 	values := []string{
 		"HIC SVNT LEONES",
 		"Iñtërnâtiônàlizætiøn",
@@ -141,10 +132,11 @@ func TestSequenceAndAppendChild(t *testing.T) {
 
 func TestReadPacket(t *testing.T) {
 	packet := NewString(ClassUniversal, TypePrimitive, TagOctetString, "Ad impossibilia nemo tenetur", "string")
-	var buffer io.ReadWriter
-	buffer = new(bytes.Buffer)
+	var buffer io.ReadWriter = new(bytes.Buffer)
 
-	buffer.Write(packet.Bytes())
+	if _, err := buffer.Write(packet.Bytes()); err != nil {
+		t.Error("error writing packet", err)
+	}
 
 	newPacket, err := ReadPacket(buffer)
 	if err != nil {
@@ -173,7 +165,7 @@ func TestBinaryInteger(t *testing.T) {
 	}
 
 	for _, d := range data {
-		if b := NewInteger(ClassUniversal, TypePrimitive, TagInteger, int64(d.v), "").Bytes(); !bytes.Equal(d.e, b) {
+		if b := NewInteger(ClassUniversal, TypePrimitive, TagInteger, d.v, "").Bytes(); !bytes.Equal(d.e, b) {
 			t.Errorf("Wrong binary generated for %d : got % X, expected % X", d.v, b, d.e)
 		}
 	}

@@ -1,0 +1,131 @@
+name: Continuity
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  checks:
+    name: CI Checks
+    runs-on: ubuntu-18.04
+    timeout-minutes: 5
+    steps:
+
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+
+    - name: Setup Go binary path
+      shell: bash
+      run: |
+        echo "::set-env name=GOPATH::${{ github.workspace }}"
+        echo "::add-path::${{ github.workspace }}/bin"
+
+    - name: Check out code
+      uses: actions/checkout@v2
+      with:
+        path: src/github.com/containerd/continuity
+        fetch-depth: 25
+
+    - name: Checkout project
+      uses: actions/checkout@v2
+      with:
+        repository: containerd/project
+        path: src/github.com/containerd/project
+
+    - name: Install dependencies
+      env:
+        GO111MODULE: off
+      run: |
+        go get -u github.com/vbatts/git-validation
+        go get -u github.com/kunalkushwaha/ltag
+
+    - name: Check DCO/whitespace/commit message
+      env:
+        GITHUB_COMMIT_URL: ${{ github.event.pull_request.commits_url }}
+        DCO_VERBOSITY: "-q"
+        DCO_RANGE: ""
+      working-directory: src/github.com/containerd/continuity
+      run: |
+        if [ -z "${GITHUB_COMMIT_URL}" ]; then
+          DCO_RANGE=$(jq -r '.before +".."+ .after' ${GITHUB_EVENT_PATH})
+        else
+          DCO_RANGE=$(curl ${GITHUB_COMMIT_URL} | jq -r '.[0].parents[0].sha +".."+ .[-1].sha')
+        fi
+        ../project/script/validate/dco
+
+    - name: Check file headers
+      run: ../project/script/validate/fileheader ../project/
+      working-directory: src/github.com/containerd/continuity
+
+    - name: Check vendor
+      run: ../project/script/validate/vendor
+      working-directory: src/github.com/containerd/continuity
+
+  tests:
+    name: CI Tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    needs: [checks]
+
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, macos-10.15, windows-2019]
+
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+
+    - name: Setup Go binary path
+      shell: bash
+      run: |
+        echo "::set-env name=GOPATH::${{ github.workspace }}"
+        echo "::add-path::${{ github.workspace }}/bin"
+
+    - name: Git line endings
+      shell: bash
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.eol lf
+
+    - name: Check out code
+      uses: actions/checkout@v2
+      with:
+        path: src/github.com/containerd/continuity
+        fetch-depth: 25
+
+    - name: Dependencies
+      env:
+        GO111MODULE: on
+      shell: bash
+      run: go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.23.8
+
+    - name: Lint
+      shell: bash
+      run: make lint
+      working-directory: src/github.com/containerd/continuity
+
+    - name: Build
+      shell: bash
+      run: make build binaries
+      working-directory: src/github.com/containerd/continuity
+
+    - name: Linux Tests
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        make test
+        sudo GOPATH=$GOPATH make root-test
+      working-directory: src/github.com/containerd/continuity
+
+    - name: Non-Linux Tests
+      if: ${{ !startsWith(matrix.os, 'ubuntu') }}
+      shell: bash
+      run: make test-compile
+      working-directory: src/github.com/containerd/continuity

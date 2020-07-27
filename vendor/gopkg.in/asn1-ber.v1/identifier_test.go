@@ -8,7 +8,7 @@ import (
 )
 
 func TestReadIdentifier(t *testing.T) {
-	testcases := map[string]struct {
+	testCases := map[string]struct {
 		Data []byte
 
 		ExpectedIdentifier Identifier
@@ -181,7 +181,7 @@ func TestReadIdentifier(t *testing.T) {
 		},
 	}
 
-	for k, tc := range testcases {
+	for k, tc := range testCases {
 		reader := bytes.NewBuffer(tc.Data)
 		identifier, read, err := readIdentifier(reader)
 
@@ -228,7 +228,7 @@ func TestReadIdentifier(t *testing.T) {
 }
 
 func TestEncodeIdentifier(t *testing.T) {
-	testcases := map[string]struct {
+	testCases := map[string]struct {
 		Identifier    Identifier
 		ExpectedBytes []byte
 	}{
@@ -335,9 +335,9 @@ func TestEncodeIdentifier(t *testing.T) {
 		},
 	}
 
-	for k, tc := range testcases {
+	for k, tc := range testCases {
 		b := encodeIdentifier(tc.Identifier)
-		if bytes.Compare(tc.ExpectedBytes, b) != 0 {
+		if !bytes.Equal(tc.ExpectedBytes, b) {
 			t.Errorf("%s: Expected\n\t%#v\ngot\n\t%#v", k, tc.ExpectedBytes, b)
 		}
 	}

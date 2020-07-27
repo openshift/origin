@@ -37,6 +37,7 @@ type OperatorHubStatus struct {
 // the state of the default hub sources for OperatorHub on the cluster from
 // enabled to disabled and vice versa.
 // +kubebuilder:subresource:status
+// +genclient
 // +genclient:nonNamespaced
 type OperatorHub struct {
 	metav1.TypeMeta   `json:",inline"`

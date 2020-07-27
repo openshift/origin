@@ -29,6 +29,16 @@ func ExampleMemProfileRate() {
 	defer profile.Start(profile.MemProfileRate(2048)).Stop()
 }
 
+func ExampleMemProfileHeap() {
+	// use heap memory profiling.
+	defer profile.Start(profile.MemProfileHeap).Stop()
+}
+
+func ExampleMemProfileAllocs() {
+	// use allocs memory profiling.
+	defer profile.Start(profile.MemProfileAllocs).Stop()
+}
+
 func ExampleProfilePath() {
 	// set the location that the profile will be written to
 	defer profile.Start(profile.ProfilePath(os.Getenv("HOME"))).Stop()

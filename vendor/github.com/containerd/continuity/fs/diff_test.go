@@ -72,6 +72,22 @@ func TestSimpleDiff(t *testing.T) {
 	}
 }
 
+func TestEmptyFileDiff(t *testing.T) {
+	skipDiffTestOnWindows(t)
+	tt := time.Now().Truncate(time.Second)
+	l1 := fstest.Apply(
+		fstest.CreateDir("/etc", 0755),
+		fstest.CreateFile("/etc/empty", []byte(""), 0644),
+		fstest.Chtimes("/etc/empty", tt, tt),
+	)
+	l2 := fstest.Apply()
+	diff := []TestChange{}
+
+	if err := testDiffWithBase(l1, l2, diff); err != nil {
+		t.Fatalf("Failed diff with base: %+v", err)
+	}
+}
+
 func TestNestedDeletion(t *testing.T) {
 	skipDiffTestOnWindows(t)
 	l1 := fstest.Apply(

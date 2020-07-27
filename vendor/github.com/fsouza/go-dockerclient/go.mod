@@ -11,7 +11,7 @@ require (
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200505174321-1655290016ac+incompatible
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0
-	github.com/google/go-cmp v0.4.1
+	github.com/google/go-cmp v0.5.1
 	github.com/gorilla/mux v1.7.4
 	github.com/moby/sys/mount v0.1.0 // indirect
 	github.com/moby/term v0.0.0-20200429084858-129dac9f73f6 // indirect

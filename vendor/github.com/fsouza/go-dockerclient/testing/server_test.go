@@ -2685,7 +2685,7 @@ func TestUploadToContainerWithBodyTarFile(t *testing.T) {
 	defer tw.Close()
 	hdr := &tar.Header{
 		Name: "test.tar.gz",
-		Mode: 0600,
+		Mode: 0o600,
 		Size: int64(buf.Len()),
 	}
 	tw.WriteHeader(hdr)

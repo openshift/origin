@@ -120,7 +120,7 @@ func TestWalkFS(t *testing.T) {
 		// },
 
 		// TODO(stevvooe): Must add tests for xattrs, with symlinks,
-		// directorys and regular files.
+		// directories and regular files.
 
 		{
 			kind: rnamedpipe,

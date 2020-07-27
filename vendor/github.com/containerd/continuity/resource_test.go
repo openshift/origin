@@ -14,6 +14,7 @@
    limitations under the License.
 */
 
+//nolint:unused,deadcode
 package continuity
 
 type resourceUpdate struct {

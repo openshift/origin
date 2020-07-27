@@ -2,10 +2,10 @@ name: Build
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
   schedule:
     - cron: "0 0 * * 4"
 
@@ -30,13 +30,13 @@ jobs:
     name: test (${{ matrix.os }}/go-${{ matrix.go_version }}/${{ matrix.goarch }})
     runs-on: ${{ matrix.os }}-latest
     steps:
-      - uses: actions/setup-go@master
+      - uses: actions/setup-go@v2.0.3
         id: go
         with:
           stable: false
           go-version: ${{ matrix.go_version }}
 
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2.3.1
 
       - run: go mod download
 

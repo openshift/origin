@@ -217,7 +217,6 @@ func TestGetPluginPrivilegesWithOptions(t *testing.T) {
 		Context: context.Background(),
 		Auth:    AuthConfiguration{Username: "XY"},
 	})
-
 	if err != nil {
 		t.Fatal(err)
 	}
