@@ -454,8 +454,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 
 			g.By("verifying named metrics keys")
 			queries := map[string]bool{
-				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",interface="eth0"} == 0`, execPod.Name, execPod.Namespace):         true,
-				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",network_name="secondary"} == 0`, execPod.Name, execPod.Namespace): true,
+				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",interface="eth0"} == 0`, execPod.Name, execPod.Namespace):                true,
+				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",network_name="%s/secondary"} == 0`, execPod.Name, execPod.Namespace, ns): true,
 			}
 			helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
 		})
