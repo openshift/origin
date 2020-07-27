@@ -274,10 +274,11 @@ var _ = SIGDescribe("DisruptionController", func() {
 		createReplicaSetOrDie(cs, ns, 3, false)
 
 		ginkgo.By("First trying to evict a pod which shouldn't be evictable")
+		waitForPodsOrDie(cs, ns, 3) // make sure that they are running and so would be evictable with a different pdb
+
 		pod, err := locateRunningPod(cs, ns)
 		framework.ExpectNoError(err)
 
-		waitForPodsOrDie(cs, ns, 3) // make sure that they are running and so would be evictable with a different pdb
 		e := &policyv1beta1.Eviction{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pod.Name,
@@ -310,9 +311,9 @@ var _ = SIGDescribe("DisruptionController", func() {
 			return jsonpatch.CreateMergePatch(oldData, newData)
 		})
 
+		waitForPodsOrDie(cs, ns, 3)
 		pod, err = locateRunningPod(cs, ns) // locate a new running pod
 		framework.ExpectNoError(err)
-		waitForPodsOrDie(cs, ns, 3)
 		e = &policyv1beta1.Eviction{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pod.Name,
@@ -483,7 +484,7 @@ func waitForPodsOrDie(cs kubernetes.Interface, ns string, n int) {
 		ready := 0
 		for i := range pods.Items {
 			pod := pods.Items[i]
-			if podutil.IsPodReady(&pod) {
+			if podutil.IsPodReady(&pod) && pod.ObjectMeta.DeletionTimestamp.IsZero() {
 				ready++
 			}
 		}
@@ -542,7 +543,7 @@ func locateRunningPod(cs kubernetes.Interface, ns string) (pod *v1.Pod, err erro
 
 		for i := range podList.Items {
 			p := podList.Items[i]
-			if podutil.IsPodReady(&p) {
+			if podutil.IsPodReady(&p) && pod.ObjectMeta.DeletionTimestamp.IsZero() {
 				pod = &p
 				return true, nil
 			}
