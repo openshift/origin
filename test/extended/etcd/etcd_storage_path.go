@@ -276,6 +276,8 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		t.Fatal(err)
 	}
 
+	t.Logf("Kubernetes API server version: %+v", version)
+
 	etcdStorageData := etcddata.GetEtcdStorageData()
 
 	removeStorageData(t, etcdStorageData,
