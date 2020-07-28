@@ -262,20 +262,12 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Currently following targets do not secure their /metrics endpoints:
-			// job="cco-metrics" - https://bugzilla.redhat.com/show_bug.cgi?id=1809194
-			// job="cluster-version-operator" - https://bugzilla.redhat.com/show_bug.cgi?id=1809195
 			// job="crio" - https://issues.redhat.com/browse/MON-1034 + https://issues.redhat.com/browse/OCPNODE-321
-			// job="sdn" - https://bugzilla.redhat.com/show_bug.cgi?id=1809205
-			// job="multus-admission-controller-monitor-service" - https://bugzilla.redhat.com/show_bug.cgi?id=1809204
 			// job="ovnkube-master" - https://issues.redhat.com/browse/SDN-912
 			// job="ovnkube-node" - https://issues.redhat.com/browse/SDN-912
 			// Exclude list should be reduced to 0
 			exclude := map[string]bool{
-				"cco-metrics":              true,
-				"cluster-version-operator": true,
-				"crio":                     true,
-				"sdn":                      true,
-				"multus-admission-controller-monitor-service": true,
+				"crio":           true,
 				"ovnkube-master": true,
 				"ovnkube-node":   true,
 			}
