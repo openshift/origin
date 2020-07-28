@@ -14,48 +14,54 @@ var (
 		},
 		// alpha features that are not gated
 		"[Disabled:Alpha]": {
-			`\[Feature:Initializers\]`,     // admission controller disabled
-			`\[Feature:TTLAfterFinished\]`, // flag gate is off
-			`\[Feature:GPUDevicePlugin\]`,  // GPU node needs to be available
-			`\[sig-scheduling\] GPUDevicePluginAcrossRecreate \[Feature:Recreate\]`, // GPU node needs to be available
-			`\[Feature:ExpandCSIVolumes\]`,                                          // off by default .  sig-storage
-			`\[Feature:DynamicAudit\]`,                                              // off by default.  sig-master
-
-			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
+			// ALPHA features in 1.19, disabled by default.
+			// !!! Review their status as part of the 1.20 rebase.
+			`\[Feature:CSIStorageCapacity\]`,
 			`\[Feature:IPv6DualStack.*\]`,
-			`\[Feature:ImmutableEphemeralVolume\]`,      // flag gate is off
-			`\[Feature:ServiceAccountIssuerDiscovery\]`, // flag gate is off
+			`\[Feature:ServiceAccountIssuerDiscovery\]`,
+			`\[Feature:SetHostnameAsFQDN\]`,
+			`\[Feature:TTLAfterFinished\]`,
+
+			// BETA features in 1.19, enabled by default
+			// Their enablement is tracked via bz's targeted at 4.6.
+			`\[Feature:ExpandCSIVolumes\]`,         // https://bugzilla.redhat.com/show_bug.cgi?id=1861218
+			`\[Feature:ImmutableEphemeralVolume\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1820422
+			`\[Feature:SCTPConnectivity\]`,         // https://bugzilla.redhat.com/show_bug.cgi?id=1861606
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
-			`\[Feature:Networking-IPv6\]`,     // openshift-sdn doesn't support yet
-			`Monitoring`,                      // Not installed, should be
-			`Cluster level logging`,           // Not installed yet
-			`Kibana`,                          // Not installed
-			`Ubernetes`,                       // Can't set zone labels today
-			`kube-ui`,                         // Not installed by default
-			`Kubernetes Dashboard`,            // Not installed by default (also probably slow image pull)
-			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
-			`\[Feature:RuntimeClass\]`,        // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
+			`\[Feature:Networking-IPv6\]`, // openshift-sdn doesn't support yet
+			`Monitoring`,                  // Not installed, should be
+			`Cluster level logging`,       // Not installed yet
+			`Kibana`,                      // Not installed
+			`Ubernetes`,                   // Can't set zone labels today
+			`kube-ui`,                     // Not installed by default
+			`Kubernetes Dashboard`,        // Not installed by default (also probably slow image pull)
 
 			`NetworkPolicy.*egress`,     // not supported
 			`NetworkPolicy.*named port`, // not yet implemented
 			`enforce egress policy`,     // not support
 			`should proxy to cadvisor`,  // we don't expose cAdvisor port directly for security reasons
+
+			`NetworkPolicy.*IPBlock`,          // not supported
+			`NetworkPolicy.*Egress`,           // not supported
+			`NetworkPolicy.*default-deny-all`, // not supported
 		},
 		// tests that rely on special configuration that we do not yet support
 		"[Disabled:SpecialConfig]": {
+			// GPU node needs to be available
+			`\[Feature:GPUDevicePlugin\]`,
+			`\[sig-scheduling\] GPUDevicePluginAcrossRecreate \[Feature:Recreate\]`,
+
 			`\[Feature:ImageQuota\]`,                    // Quota isn't turned on by default, we should do that and then reenable these tests
 			`\[Feature:Audit\]`,                         // Needs special configuration
 			`\[Feature:LocalStorageCapacityIsolation\]`, // relies on a separate daemonset?
 			`\[sig-cloud-provider-gcp\]`,                // these test require a different configuration - note that GCE tests from the sig-cluster-lifecycle were moved to the sig-cloud-provider-gcpcluster lifecycle see https://github.com/kubernetes/kubernetes/commit/0b3d50b6dccdc4bbd0b3e411c648b092477d79ac#diff-3b1910d08fb8fd8b32956b5e264f87cb
-			`\[Feature:StatefulUpgrade\]`,               // related to cluster lifecycle (in e2e/lifecycle package) and requires an upgrade hook we don't use
 
 			`kube-dns-autoscaler`, // Don't run kube-dns
 			`should check if Kubernetes master services is included in cluster-info`, // Don't run kube-dns
 			`DNS configMap`, // this tests dns federation configuration via configmap, which we don't support yet
 
-			`authentication: OpenLDAP`,              // needs separate setup and bucketing for openldap bootstrapping
 			`NodeProblemDetector`,                   // requires a non-master node to run on
 			`Advanced Audit should audit API calls`, // expects to be able to call /logs
 
@@ -94,6 +100,19 @@ var (
 			`Multi-AZ Clusters should spread the pods of a replication controller across zones`,
 
 			`Cluster should restore itself after quorum loss`, // https://bugzilla.redhat.com/show_bug.cgi?id=1837157
+
+			// Fix is in progress upstream and tracked via https://bugzilla.redhat.com/show_bug.cgi?id=1861215
+			`Secret should create a pod that reads a secret`,
+
+			// disabled until oc and origin are on k8s 1.19 - workloads team
+			`should return command exit codes`,
+
+			// Disabled as per networking team. Follow-up tracked via https://bugzilla.redhat.com/show_bug.cgi?id=1861214
+			`EndpointSliceMirroring should mirror a custom Endpoints resource through create update and delete`,
+
+			// Test passes but container it uses exits with non-zero.
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1861526
+			`ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -106,8 +125,6 @@ var (
 			`should create and stop a working application`, // Inordinately slow tests
 
 			`\[Feature:PerformanceDNS\]`, // very slow
-
-			`should ensure that critical pod is scheduled in case there is no resources available`, // should be tagged disruptive, consumes 100% of cluster CPU
 
 			`validates that there exists conflict between pods with same hostPort and protocol but one using 0\.0\.0\.0 hostIP`, // 5m, really?
 		},
@@ -122,13 +139,10 @@ var (
 		// tests that must be run without competition
 		"[Serial]": {
 			`\[Disruptive\]`,
-			`\[Feature:Performance\]`,            // requires isolation
-			`\[Feature:ManualPerformance\]`,      // requires isolation
-			`\[Feature:HighDensityPerformance\]`, // requires no other namespaces
+			`\[Feature:Performance\]`, // requires isolation
 
 			`Service endpoints latency`, // requires low latency
 			`Clean up pods on node`,     // schedules up to max pods per node
-			`should allow starting 95 pods per node`,
 			`DynamicProvisioner should test that deleting a claim before the volume is provisioned deletes the volume`, // test is very disruptive to other tests
 
 			`Multi-AZ Clusters should spread the pods of a service across zones`, // spreading is a priority, not a predicate, and if the node is temporarily full the priority will be ignored
@@ -167,7 +181,7 @@ var (
 			`\[sig-auth\] Metadata Concealment should run a check-metadata-concealment job to completion`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1740959
-			`\[sig-api-machinery\] AdmissionWebhook Should be able to deny pod and configmap creation`,
+			`\[sig-api-machinery\] AdmissionWebhook should be able to deny pod and configmap creation`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1745720
 			`\[sig-storage\] CSI Volumes \[Driver: pd.csi.storage.gke.io\]\[Serial\]`,
