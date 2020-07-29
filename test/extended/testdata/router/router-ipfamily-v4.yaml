@@ -1,0 +1,49 @@
+kind: List
+apiVersion: v1
+items:
+# create a basic route
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route
+    labels:
+      test: router
+  spec:
+    host: test.example.com
+    path: /test
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
+# a service to be routed to using a v4 endpoint/endpointslice
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: endpoints
+    labels:
+      test: router
+  spec:
+    ipFamily: IPv4
+    selector:
+      test: router
+      endpoints: router
+    ports:
+    - port: 8080
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint
+    labels:
+      test: router
+      endpoints: router
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
