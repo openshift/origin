@@ -2,8 +2,11 @@ package oauth
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strings"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -108,7 +111,7 @@ func testTokenFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequest
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(user.Name).To(o.Equal("testuser"))
 	// Make sure the token exists with the overridden time
-	tokenObj, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Get(context.Background(), token, metav1.GetOptions{})
+	tokenObj, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Get(context.Background(), toAccessTokenName(token), metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(tokenObj.ExpiresIn).To(o.BeNumerically("==", expectedExpiresIn))
 }
@@ -170,7 +173,16 @@ func testCodeFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestT
 	o.Expect(user.Name).To(o.Equal("testuser"))
 
 	// Make sure the token exists with the overridden time
-	tokenObj, err := oauthClientSet.OauthV1().OAuthAccessTokens().Get(context.Background(), token, metav1.GetOptions{})
+	tokenObj, err := oauthClientSet.OauthV1().OAuthAccessTokens().Get(context.Background(), toAccessTokenName(token), metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(tokenObj.ExpiresIn).To(o.BeNumerically("==", expectedExpiresIn))
+}
+
+func toAccessTokenName(token string) string {
+	if strings.HasPrefix(token, "sha256:") {
+		withoutPrefix := strings.TrimPrefix(token, "sha256:")
+		h := sha256.Sum256([]byte(withoutPrefix))
+		return "sha256:" + base64.RawURLEncoding.EncodeToString(h[0:])
+	}
+	return token
 }
