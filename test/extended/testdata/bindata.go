@@ -437,6 +437,8 @@
 // test/extended/testdata/router/router-h2spec.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
 // test/extended/testdata/router/router-http2.yaml
+// test/extended/testdata/router/router-ipfamily-v4.yaml
+// test/extended/testdata/router/router-ipfamily-v6.yaml
 // test/extended/testdata/router/router-metrics.yaml
 // test/extended/testdata/router/router-override-domains.yaml
 // test/extended/testdata/router/router-override.yaml
@@ -55963,6 +55965,138 @@ func testExtendedTestdataRouterRouterHttp2Yaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataRouterRouterIpfamilyV4Yaml = []byte(`kind: List
+apiVersion: v1
+items:
+# create a basic route
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route
+    labels:
+      test: router
+  spec:
+    host: test.example.com
+    path: /test
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
+# a service to be routed to using a v4 endpoint/endpointslice
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: endpoints
+    labels:
+      test: router
+  spec:
+    ipFamily: IPv4
+    selector:
+      test: router
+      endpoints: router
+    ports:
+    - port: 8080
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint
+    labels:
+      test: router
+      endpoints: router
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+`)
+
+func testExtendedTestdataRouterRouterIpfamilyV4YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterIpfamilyV4Yaml, nil
+}
+
+func testExtendedTestdataRouterRouterIpfamilyV4Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterIpfamilyV4YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-ipfamily-v4.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterRouterIpfamilyV6Yaml = []byte(`kind: List
+apiVersion: v1
+items:
+# create a basic route
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route
+    labels:
+      test: router
+  spec:
+    host: test.example.com
+    path: /test
+    to:
+      name: endpoints
+    ports:
+    - targetPort: 8080
+# a service to be routed to using a v6 endpoint/endpointslice
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: endpoints
+    labels:
+      test: router
+  spec:
+    ipFamily: IPv6
+    selector:
+      test: router
+      endpoints: router
+    ports:
+    - port: 8080
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint
+    labels:
+      test: router
+      endpoints: router
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+`)
+
+func testExtendedTestdataRouterRouterIpfamilyV6YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterIpfamilyV6Yaml, nil
+}
+
+func testExtendedTestdataRouterRouterIpfamilyV6Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterIpfamilyV6YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-ipfamily-v6.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRouterRouterMetricsYaml = []byte(`apiVersion: v1
 kind: List
 items:
@@ -59757,6 +59891,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/router-h2spec.yaml":                                                                testExtendedTestdataRouterRouterH2specYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                                      testExtendedTestdataRouterRouterHttpEchoServerYaml,
 	"test/extended/testdata/router/router-http2.yaml":                                                                 testExtendedTestdataRouterRouterHttp2Yaml,
+	"test/extended/testdata/router/router-ipfamily-v4.yaml":                                                           testExtendedTestdataRouterRouterIpfamilyV4Yaml,
+	"test/extended/testdata/router/router-ipfamily-v6.yaml":                                                           testExtendedTestdataRouterRouterIpfamilyV6Yaml,
 	"test/extended/testdata/router/router-metrics.yaml":                                                               testExtendedTestdataRouterRouterMetricsYaml,
 	"test/extended/testdata/router/router-override-domains.yaml":                                                      testExtendedTestdataRouterRouterOverrideDomainsYaml,
 	"test/extended/testdata/router/router-override.yaml":                                                              testExtendedTestdataRouterRouterOverrideYaml,
@@ -60507,6 +60643,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"router-h2spec.yaml":           {testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
 					"router-http2.yaml":            {testExtendedTestdataRouterRouterHttp2Yaml, map[string]*bintree{}},
+					"router-ipfamily-v4.yaml":      {testExtendedTestdataRouterRouterIpfamilyV4Yaml, map[string]*bintree{}},
+					"router-ipfamily-v6.yaml":      {testExtendedTestdataRouterRouterIpfamilyV6Yaml, map[string]*bintree{}},
 					"router-metrics.yaml":          {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
 					"router-override-domains.yaml": {testExtendedTestdataRouterRouterOverrideDomainsYaml, map[string]*bintree{}},
 					"router-override.yaml":         {testExtendedTestdataRouterRouterOverrideYaml, map[string]*bintree{}},

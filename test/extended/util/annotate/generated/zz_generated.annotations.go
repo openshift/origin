@@ -2149,6 +2149,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] services when using a plugin that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": "should prevent connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network][Feature:IPv6DualStack][Feature:Router] The HAProxy router should serve a basic route using a service with ipFamily set to IPV4 on a single stack ipv4 cluster": "should serve a basic route using a service with ipFamily set to IPV4 on a single stack ipv4 cluster [Disabled:Alpha] [Suite:openshift]",
+
+	"[Top Level] [sig-network][Feature:IPv6DualStack][Feature:Router] The HAProxy router should serve a basic route using a service with ipFamily set to IPV6 on a single stack ipv6 cluster": "should serve a basic route using a service with ipFamily set to IPV6 on a single stack ipv6 cluster [Disabled:Alpha] [Suite:openshift]",
+
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing conflicting status": "converges when multiple routers are writing conflicting status [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing status": "converges when multiple routers are writing status [Suite:openshift/conformance/parallel]",
