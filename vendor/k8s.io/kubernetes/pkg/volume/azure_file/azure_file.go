@@ -266,18 +266,20 @@ func (b *azureFileMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) e
 	}
 
 	mountOptions := []string{}
+	var sensitiveMountOptions []string
 	source := ""
 	osSeparator := string(os.PathSeparator)
 	source = fmt.Sprintf("%s%s%s.file.%s%s%s", osSeparator, osSeparator, accountName, getStorageEndpointSuffix(b.plugin.host.GetCloudProvider()), osSeparator, b.shareName)
 
 	if runtime.GOOS == "windows" {
-		mountOptions = []string{fmt.Sprintf("AZURE\\%s", accountName), accountKey}
+		sensitiveMountOptions = []string{fmt.Sprintf("AZURE\\%s", accountName), accountKey}
 	} else {
 		if err := os.MkdirAll(dir, 0700); err != nil {
 			return err
 		}
 		// parameters suggested by https://azure.microsoft.com/en-us/documentation/articles/storage-how-to-use-files-linux/
-		options := []string{fmt.Sprintf("username=%s,password=%s", accountName, accountKey)}
+		options := []string{}
+		sensitiveMountOptions = []string{fmt.Sprintf("username=%s,password=%s", accountName, accountKey)}
 		if b.readOnly {
 			options = append(options, "ro")
 		}
@@ -285,7 +287,7 @@ func (b *azureFileMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs) e
 		mountOptions = appendDefaultMountOptions(mountOptions, mounterArgs.FsGroup)
 	}
 
-	err = b.mounter.Mount(source, dir, "cifs", mountOptions)
+	err = b.mounter.MountSensitive(source, dir, "cifs", mountOptions, sensitiveMountOptions)
 	if err != nil {
 		notMnt, mntErr := b.mounter.IsLikelyNotMountPoint(dir)
 		if mntErr != nil {

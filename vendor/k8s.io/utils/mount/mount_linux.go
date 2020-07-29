@@ -70,16 +70,25 @@ func New(mounterPath string) Interface {
 // currently come from mount(8), e.g. "ro", "remount", "bind", etc. If no more option is
 // required, call Mount with an empty string list or nil.
 func (mounter *Mounter) Mount(source string, target string, fstype string, options []string) error {
+	return mounter.MountSensitive(source, target, fstype, options, nil)
+}
+
+// MountSensitive is the same as Mount() but this method allows
+// sensitiveOptions to be passed in a separate parameter from the normal
+// mount options and ensures the sensitiveOptions are never logged. This
+// method should be used by callers that pass sensitive material (like
+// passwords) as mount options.
+func (mounter *Mounter) MountSensitive(source string, target string, fstype string, options []string, sensitiveOptions []string) error {
 	// Path to mounter binary if containerized mounter is needed. Otherwise, it is set to empty.
 	// All Linux distros are expected to be shipped with a mount utility that a support bind mounts.
 	mounterPath := ""
-	bind, bindOpts, bindRemountOpts := MakeBindOpts(options)
+	bind, bindOpts, bindRemountOpts, bindRemountOptsSensitive := MakeBindOptsSensitive(options, sensitiveOptions)
 	if bind {
-		err := mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindOpts)
+		err := mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindOpts, bindRemountOptsSensitive)
 		if err != nil {
 			return err
 		}
-		return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindRemountOpts)
+		return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindRemountOpts, bindRemountOptsSensitive)
 	}
 	// The list of filesystems that require containerized mounter on GCI image cluster
 	fsTypesNeedMounter := map[string]struct{}{
@@ -91,14 +100,16 @@ func (mounter *Mounter) Mount(source string, target string, fstype string, optio
 	if _, ok := fsTypesNeedMounter[fstype]; ok {
 		mounterPath = mounter.mounterPath
 	}
-	return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, options)
+	return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, options, sensitiveOptions)
 }
 
 // doMount runs the mount command. mounterPath is the path to mounter binary if containerized mounter is used.
-func (mounter *Mounter) doMount(mounterPath string, mountCmd string, source string, target string, fstype string, options []string) error {
-	mountArgs := MakeMountArgs(source, target, fstype, options)
+// sensitiveOptions is an extention of options except they will not be logged (because they may contain sensitive material)
+func (mounter *Mounter) doMount(mounterPath string, mountCmd string, source string, target string, fstype string, options []string, sensitiveOptions []string) error {
+	mountArgs, mountArgsLogStr := MakeMountArgsSensitive(source, target, fstype, options, sensitiveOptions)
 	if len(mounterPath) > 0 {
 		mountArgs = append([]string{mountCmd}, mountArgs...)
+		mountArgsLogStr = mountCmd + " " + mountArgsLogStr
 		mountCmd = mounterPath
 	}
 
@@ -125,21 +136,21 @@ func (mounter *Mounter) doMount(mounterPath string, mountCmd string, source stri
 		//
 		// systemd-mount is not used because it's too new for older distros
 		// (CentOS 7, Debian Jessie).
-		mountCmd, mountArgs = AddSystemdScope("systemd-run", target, mountCmd, mountArgs)
+		mountCmd, mountArgs, mountArgsLogStr = AddSystemdScopeSensitive("systemd-run", target, mountCmd, mountArgs, mountArgsLogStr)
 	} else {
 		// No systemd-run on the host (or we failed to check it), assume kubelet
 		// does not run as a systemd service.
 		// No code here, mountCmd and mountArgs are already populated.
 	}
 
-	klog.V(4).Infof("Mounting cmd (%s) with arguments (%s)", mountCmd, mountArgs)
+	// Logging with sensitive mount options removed.
+	klog.V(4).Infof("Mounting cmd (%s) with arguments (%s)", mountCmd, mountArgsLogStr)
 	command := exec.Command(mountCmd, mountArgs...)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		args := strings.Join(mountArgs, " ")
-		klog.Errorf("Mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s\n", err, mountCmd, args, string(output))
+		klog.Errorf("Mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s\n", err, mountCmd, mountArgsLogStr, string(output))
 		return fmt.Errorf("mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s",
-			err, mountCmd, args, string(output))
+			err, mountCmd, mountArgsLogStr, string(output))
 	}
 	return err
 }
@@ -170,31 +181,57 @@ func detectSystemd() bool {
 }
 
 // MakeMountArgs makes the arguments to the mount(8) command.
-// Implementation is shared with NsEnterMounter
-func MakeMountArgs(source, target, fstype string, options []string) []string {
-	// Build mount command as follows:
-	//   mount [-t $fstype] [-o $options] [$source] $target
-	mountArgs := []string{}
-	if len(fstype) > 0 {
-		mountArgs = append(mountArgs, "-t", fstype)
-	}
-	if len(options) > 0 {
-		mountArgs = append(mountArgs, "-o", strings.Join(options, ","))
-	}
-	if len(source) > 0 {
-		mountArgs = append(mountArgs, source)
-	}
-	mountArgs = append(mountArgs, target)
-
+// options MUST not contain sensitive material (like passwords).
+func MakeMountArgs(source, target, fstype string, options []string) (mountArgs []string) {
+	mountArgs, _ = MakeMountArgsSensitive(source, target, fstype, options, nil /* sensitiveOptions */)
 	return mountArgs
 }
 
+// MakeMountArgsSensitive makes the arguments to the mount(8) command.
+// sensitiveOptions is an extention of options except they will not be logged (because they may contain sensitive material)
+func MakeMountArgsSensitive(source, target, fstype string, options []string, sensitiveOptions []string) (mountArgs []string, mountArgsLogStr string) {
+	// Build mount command as follows:
+	//   mount [-t $fstype] [-o $options] [$source] $target
+	mountArgs = []string{}
+	mountArgsLogStr = ""
+	if len(fstype) > 0 {
+		mountArgs = append(mountArgs, "-t", fstype)
+		mountArgsLogStr += strings.Join(mountArgs, " ")
+	}
+	if len(options) > 0 || len(sensitiveOptions) > 0 {
+		combinedOptions := []string{}
+		combinedOptions = append(combinedOptions, options...)
+		combinedOptions = append(combinedOptions, sensitiveOptions...)
+		mountArgs = append(mountArgs, "-o", strings.Join(combinedOptions, ","))
+		// exclude sensitiveOptions from log string
+		mountArgsLogStr += " -o " + sanitizedOptionsForLogging(options, sensitiveOptions)
+	}
+	if len(source) > 0 {
+		mountArgs = append(mountArgs, source)
+		mountArgsLogStr += " " + source
+	}
+	mountArgs = append(mountArgs, target)
+	mountArgsLogStr += " " + target
+
+	return mountArgs, mountArgsLogStr
+}
+
 // AddSystemdScope adds "system-run --scope" to given command line
-// implementation is shared with NsEnterMounter
+// If args contains sensitive material, use AddSystemdScopeSensitive to construct
+// a safe to log string.
 func AddSystemdScope(systemdRunPath, mountName, command string, args []string) (string, []string) {
 	descriptionArg := fmt.Sprintf("--description=Kubernetes transient mount for %s", mountName)
 	systemdRunArgs := []string{descriptionArg, "--scope", "--", command}
 	return systemdRunPath, append(systemdRunArgs, args...)
+}
+
+// AddSystemdScopeSensitive adds "system-run --scope" to given command line
+// It also accepts takes a sanitized string containing mount arguments, mountArgsLogStr,
+// and returns the string appended to the systemd command for logging.
+func AddSystemdScopeSensitive(systemdRunPath, mountName, command string, args []string, mountArgsLogStr string) (string, []string, string) {
+	descriptionArg := fmt.Sprintf("--description=Kubernetes transient mount for %s", mountName)
+	systemdRunArgs := []string{descriptionArg, "--scope", "--", command}
+	return systemdRunPath, append(systemdRunArgs, args...), strings.Join(systemdRunArgs, " ") + " " + mountArgsLogStr
 }
 
 // Unmount unmounts the target.
@@ -258,12 +295,21 @@ func (mounter *Mounter) GetMountRefs(pathname string) ([]string, error) {
 }
 
 // formatAndMount uses unix utils to format and mount the given disk
-func (mounter *SafeFormatAndMount) formatAndMount(source string, target string, fstype string, options []string) error {
+func (mounter *SafeFormatAndMount) formatAndMountSensitive(source string, target string, fstype string, options []string, sensitiveOptions []string) error {
 	readOnly := false
 	for _, option := range options {
 		if option == "ro" {
 			readOnly = true
 			break
+		}
+	}
+	if !readOnly {
+		// Check sensitiveOptions for ro
+		for _, option := range sensitiveOptions {
+			if option == "ro" {
+				readOnly = true
+				break
+			}
 		}
 	}
 
@@ -326,7 +372,8 @@ func (mounter *SafeFormatAndMount) formatAndMount(source string, target string, 
 				klog.Infof("Disk successfully formatted (mkfs): %s - %s %s", fstype, source, target)
 				return mounter.Interface.Mount(source, target, fstype, options)
 			}
-			klog.Errorf("format of disk %q failed: type:(%q) target:(%q) options:(%q)error:(%v)", source, fstype, target, options, err)
+			sensitiveOptionsLog := sanitizedOptionsForLogging(options, sensitiveOptions)
+			klog.Errorf("format of disk %q failed: type:(%q) target:(%q) options:(%q)error:(%v)", source, fstype, target, sensitiveOptionsLog, err)
 			return err
 		}
 		// Disk is already formatted and failed to mount
@@ -412,7 +459,8 @@ func parseProcMounts(content []byte) ([]MountPoint, error) {
 		}
 		fields := strings.Fields(line)
 		if len(fields) != expectedNumFieldsPerLine {
-			return nil, fmt.Errorf("wrong number of fields (expected %d, got %d): %s", expectedNumFieldsPerLine, len(fields), line)
+			// Do not log line in case it contains sensitive Mount options
+			return nil, fmt.Errorf("wrong number of fields (expected %d, got %d)", expectedNumFieldsPerLine, len(fields))
 		}
 
 		mp := MountPoint{
@@ -455,7 +503,8 @@ func SearchMountPoints(hostSource, mountInfoPath string) ([]string, error) {
 
 	mountID := 0
 	rootPath := ""
-	majorMinor := ""
+	major := -1
+	minor := -1
 
 	// Finding the underlying root path and major:minor if possible.
 	// We need search in backward order because it's possible for later mounts
@@ -465,12 +514,13 @@ func SearchMountPoints(hostSource, mountInfoPath string) ([]string, error) {
 			// If it's a mount point or path under a mount point.
 			mountID = mis[i].ID
 			rootPath = filepath.Join(mis[i].Root, strings.TrimPrefix(hostSource, mis[i].MountPoint))
-			majorMinor = mis[i].MajorMinor
+			major = mis[i].Major
+			minor = mis[i].Minor
 			break
 		}
 	}
 
-	if rootPath == "" || majorMinor == "" {
+	if rootPath == "" || major == -1 || minor == -1 {
 		return nil, fmt.Errorf("failed to get root path and major:minor for %s", hostSource)
 	}
 
@@ -480,7 +530,7 @@ func SearchMountPoints(hostSource, mountInfoPath string) ([]string, error) {
 			// Ignore mount entry for mount source itself.
 			continue
 		}
-		if mis[i].Root == rootPath && mis[i].MajorMinor == majorMinor {
+		if mis[i].Root == rootPath && mis[i].Major == major && mis[i].Minor == minor {
 			refs = append(refs, mis[i].MountPoint)
 		}
 	}
