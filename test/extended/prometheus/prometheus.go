@@ -632,11 +632,13 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			metadata, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/metadata", prometheusSvcURL), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			series, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/series?", prometheusSvcURL), bearerToken, fmt.Sprintf("match[]={__name__=~%q}", ".+"))
+			families, err := helper.CreateMetricFamilies([]byte(metadata))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			families, err := helper.SeriesToMetricFamilies([]byte(metadata), []byte(series))
+			invalidLabels, err := helper.GetInvalidLabelsPerMetric(ns, execPod.Name, prometheusSvcURL, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			helper.SetMetricsLabels(families, invalidLabels)
 
 			g.By("linting metrics with promlint")
 			linter := helper.NewPromLinterWithMetricFamilies(families)
@@ -775,12 +777,8 @@ func expectBearerTokenURLStatusCodeExec(ns, execPodName, url, bearer string, sta
 	return nil
 }
 
-func getBearerTokenURLViaPod(ns, execPodName, url, bearer string, params ...string) (string, error) {
-	cmd := fmt.Sprintf("curl -G -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
-	for _, param := range params {
-		cmd = fmt.Sprintf("%s --data-urlencode %q", cmd, param)
-	}
-
+func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
+	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
 	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
