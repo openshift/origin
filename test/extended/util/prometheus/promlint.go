@@ -21,7 +21,6 @@ var exceptionMetrics = sets.NewString(
 
 	// library-go
 	"event_recorder_total_events_count",
-	"openshift_authentication_operator_build_info",
 
 	// default/apiserver
 	"aggregator_openapi_v2_regeneration_count",
@@ -64,6 +63,9 @@ var exceptionMetrics = sets.NewString(
 	"openshift_auth_basic_password_count_result",
 	"openshift_auth_form_password_count",
 	"openshift_auth_form_password_count_result",
+
+	// openshift-authentication-operator/metrics
+	"openshift_authentication_operator_build_info",
 
 	// openshift-config-operator/metrics
 	"openshift_config_operator_build_info",
