@@ -1181,10 +1181,36 @@ func NewPodAffinityPredicate(info NodeInfo, podLister algorithm.PodLister) algor
 	return checker.InterPodAffinityMatches
 }
 
+func validatePodAffinityValues(pod *v1.Pod) error {
+	if pod.Spec.Affinity == nil {
+		return nil
+	}
+	if pod.Spec.Affinity.PodAntiAffinity != nil {
+		for _, term := range pod.Spec.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution {
+			if _, err := metav1.LabelSelectorAsSelector(term.LabelSelector); err != nil {
+				return err
+			}
+		}
+	}
+	if pod.Spec.Affinity.PodAffinity != nil {
+		for _, term := range pod.Spec.Affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution {
+			if _, err := metav1.LabelSelectorAsSelector(term.LabelSelector); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // InterPodAffinityMatches checks if a pod can be scheduled on the specified node with pod affinity/anti-affinity configuration.
 // First return value indicates whether a pod can be scheduled on the specified node while the second return value indicates the
 // predicate failure reasons if the pod cannot be scheduled on the specified node.
 func (c *PodAffinityChecker) InterPodAffinityMatches(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	// first check to see if the incoming pod has valid affinity values (see https://bugzilla.redhat.com/show_bug.cgi?id=1760807)
+	if err := validatePodAffinityValues(pod); err != nil {
+		return false, []algorithm.PredicateFailureReason{ErrPodAffinityNotMatch}, err
+	}
+
 	node := nodeInfo.Node()
 	if node == nil {
 		return false, nil, fmt.Errorf("node not found")
