@@ -179,7 +179,7 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 				return ""
 			}
 			return output
-		}, 5*time.Minute, time.Second).Should(o.Equal("[]"))
+		}, 5*time.Minute, time.Second).Should(o.MatchRegexp(`\["{0,2}\]`)) // this matches [] and [""]
 
 		for _, v := range files {
 			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=redhat-operators", "SOURCENAMESPACE=openshift-marketplace", "PACKAGE=amq-streams", "CHANNEL=stable").OutputToFile("config.json")
