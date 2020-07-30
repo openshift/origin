@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/sirupsen/logrus"
 )
@@ -12,11 +12,11 @@ import (
 // InitLogrusFromKlog sets the logrus trace level based on the klog trace level.
 func InitLogrusFromKlog() {
 	switch {
-	case bool(klog.V(4)):
+	case klog.V(4).Enabled():
 		InitLogrus("DEBUG")
-	case bool(klog.V(2)):
+	case klog.V(2).Enabled():
 		InitLogrus("INFO")
-	case bool(klog.V(0)):
+	case klog.V(0).Enabled():
 		InitLogrus("WARN")
 	}
 }

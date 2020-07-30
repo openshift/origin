@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/client/conditions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -58,7 +59,7 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the pod to be running")
-			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
+			err = e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), pod.Name, oc.Namespace())
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 				if e != nil {
@@ -102,7 +103,7 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
+			err = e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), pod.Name, oc.Namespace())
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 				if e != nil {
@@ -135,7 +136,7 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 			_, err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
+			err = e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), pod.Name, oc.Namespace())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("calling the binary using 'oc exec /bin/bash -c'")

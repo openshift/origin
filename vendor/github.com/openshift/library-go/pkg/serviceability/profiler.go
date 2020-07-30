@@ -8,7 +8,7 @@ import (
 
 	_ "net/http/pprof" // include the default Go profiler mux
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // StartProfiler starts the golang profiler on a port if `web` is specified.  It uses the "standard" openshift env vars

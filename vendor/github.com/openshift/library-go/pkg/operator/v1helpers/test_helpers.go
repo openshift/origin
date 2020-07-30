@@ -59,6 +59,10 @@ func (fakeSharedIndexInformer) GetIndexer() cache.Indexer {
 	panic("implement me")
 }
 
+func (fakeSharedIndexInformer) SetWatchErrorHandler(handler cache.WatchErrorHandler) error {
+	panic("implement me")
+}
+
 // NewFakeStaticPodOperatorClient returns a fake operator client suitable to use in static pod controller unit tests.
 func NewFakeStaticPodOperatorClient(
 	staticPodSpec *operatorv1.StaticPodOperatorSpec, staticPodStatus *operatorv1.StaticPodOperatorStatus,

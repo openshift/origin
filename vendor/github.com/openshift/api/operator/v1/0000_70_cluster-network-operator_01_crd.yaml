@@ -307,6 +307,12 @@ spec:
                                 type: integer
                                 format: int32
                                 minimum: 0
+                        hybridOverlayVXLANPort:
+                          description: HybridOverlayVXLANPort defines the VXLAN port
+                            number to be used by the additional overlay network. Default
+                            is 4789
+                          type: integer
+                          format: int32
                     mtu:
                       description: mtu is the MTU to use for the tunnel interface.
                         This must be 100 bytes smaller than the uplink mtu. Default

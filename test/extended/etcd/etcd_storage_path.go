@@ -291,41 +291,16 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
 	)
 
-	// Apply output of git diff origin/release-1.18 origin/release-1.19 test/integration/etcd/data.go. This is needed
+	// Apply output of git diff origin/release-1.19 origin/release-1.20 test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
-	if strings.HasPrefix(version.Minor, "19") {
+	if strings.HasPrefix(version.Minor, "20") {
 		namespace := "etcdstoragepathtestnamespace"
+		_ = namespace
 
 		// Added etcd data.
 		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
-			// k8s.io/kubernetes/pkg/apis/certificates/v1
-			gvr("certificates.k8s.io", "v1", "certificatesigningrequests"): {
-				Stub:             `{"metadata": {"name": "csr2"}, "spec": {"signerName":"example.com/signer", "usages":["any"], "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQnlqQ0NBVE1DQVFBd2dZa3hDekFKQmdOVkJBWVRBbFZUTVJNd0VRWURWUVFJRXdwRFlXeHBabTl5Ym1saApNUll3RkFZRFZRUUhFdzFOYjNWdWRHRnBiaUJXYVdWM01STXdFUVlEVlFRS0V3cEhiMjluYkdVZ1NXNWpNUjh3CkhRWURWUVFMRXhaSmJtWnZjbTFoZEdsdmJpQlVaV05vYm05c2IyZDVNUmN3RlFZRFZRUURFdzUzZDNjdVoyOXYKWjJ4bExtTnZiVENCbnpBTkJna3Foa2lHOXcwQkFRRUZBQU9CalFBd2dZa0NnWUVBcFp0WUpDSEo0VnBWWEhmVgpJbHN0UVRsTzRxQzAzaGpYK1prUHl2ZFlkMVE0K3FiQWVUd1htQ1VLWUhUaFZSZDVhWFNxbFB6eUlCd2llTVpyCldGbFJRZGRaMUl6WEFsVlJEV3dBbzYwS2VjcWVBWG5uVUsrNWZYb1RJL1VnV3NocmU4dEoreC9UTUhhUUtSL0oKY0lXUGhxYVFoc0p1elpidkFkR0E4MEJMeGRNQ0F3RUFBYUFBTUEwR0NTcUdTSWIzRFFFQkJRVUFBNEdCQUlobAo0UHZGcStlN2lwQVJnSTVaTStHWng2bXBDejQ0RFRvMEprd2ZSRGYrQnRyc2FDMHE2OGVUZjJYaFlPc3E0ZmtIClEwdUEwYVZvZzNmNWlKeENhM0hwNWd4YkpRNnpWNmtKMFRFc3VhYU9oRWtvOXNkcENvUE9uUkJtMmkvWFJEMkQKNmlOaDhmOHowU2hHc0ZxakRnRkh5RjNvK2xVeWorVUM2SDFRVzdibgotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0="}}`,
-				ExpectedEtcdPath: "/registry/certificatesigningrequests/csr2",
-				ExpectedGVK:      gvkP("certificates.k8s.io", "v1beta1", "CertificateSigningRequest"),
-			},
-			// --
-
-			// k8s.io/kubernetes/pkg/apis/events/v1
-			gvr("events.k8s.io", "v1", "events"): {
-				Stub:             `{"metadata": {"name": "event3"}, "regarding": {"namespace": "` + namespace + `"}, "note": "some data here", "eventTime": "2017-08-09T15:04:05.000000Z", "reportingInstance": "node-xyz", "reportingController": "k8s.io/my-controller", "action": "DidNothing", "reason": "Laziness", "type": "Normal"}`,
-				ExpectedEtcdPath: "/registry/events/" + namespace + "/event3",
-				ExpectedGVK:      gvkP("", "v1", "Event"),
-			},
-			// --
-
-			// k8s.io/kubernetes/pkg/apis/networking/v1
-			gvr("networking.k8s.io", "v1", "ingresses"): {
-				Stub:             `{"metadata": {"name": "ingress3"}, "spec": {"defaultBackend": {"service":{"name":"service", "port":{"number": 5000}}}}}`,
-				ExpectedEtcdPath: "/registry/ingress/" + namespace + "/ingress3",
-				ExpectedGVK:      gvkP("networking.k8s.io", "v1beta1", "Ingress"),
-			},
-			gvr("networking.k8s.io", "v1", "ingressclasses"): {
-				Stub:             `{"metadata": {"name": "ingressclass3"}, "spec": {"controller": "example.com/controller"}}`,
-				ExpectedEtcdPath: "/registry/ingressclasses/ingressclass3",
-				ExpectedGVK:      gvkP("networking.k8s.io", "v1beta1", "IngressClass"),
-			},
+			// TODO: fill when 1.20 rebase has started
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
@@ -334,19 +309,18 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		}
 
 		// Modified etcd data.
-
-		// none right now.
+		//
+		// TODO: fill when 1.20 rebase has started
 
 		// Removed etcd data.
-		removeStorageData(t, etcdStorageData,
-			gvr("auditregistration.k8s.io", "v1alpha1", "auditsinks"),
-		)
+		removeStorageData(t, etcdStorageData) // TODO: fill when 1.20 rebase has started
+
 	} else {
-		// Remove 1.18 only alpha versions
-		removeStorageData(t, etcdStorageData,
-			// these alphas resources are not enabled in a real cluster but worked fine in the integration test
-			gvr("auditregistration.k8s.io", "v1alpha1", "auditsinks"),
-		)
+		// Remove 1.19 only alpha versions
+		removeStorageData(t, etcdStorageData) // these alphas resources are not enabled in a real cluster but worked fine in the integration test
+		//
+		// TODO: fill when 1.20 rebase has started
+
 	}
 
 	// flowcontrol may or may not be on.  This allows us to ratchet in turning it on.

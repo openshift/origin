@@ -111,7 +111,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1beta1().Events("")})
+	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1()})
 	r := newBroadcaster.NewRecorder(scheme.Scheme, "openshift.io/upgrade-test-service")
 	newBroadcaster.StartRecordingToSink(stopCh)
 

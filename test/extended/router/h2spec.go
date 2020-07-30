@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 const h2specDialTimeoutInSeconds = 15
@@ -66,7 +67,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			err = oc.Run("new-app").Args("-f", configPath, "-p", "HAPROXY_IMAGE="+routerImage).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			e2e.ExpectNoError(oc.KubeFramework().WaitForPodRunning("h2spec-haproxy"))
+			e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(oc.KubeClient(), "h2spec-haproxy", oc.KubeFramework().Namespace.Name))
 
 			routeTypeTests := []h2specRouteTypeTest{{
 				routeType: routev1.TLSTerminationEdge,
@@ -153,7 +154,7 @@ func failingTests(testSuites []*h2spec.JUnitTestSuite) []h2specFailingTest {
 
 func runConformanceTests(oc *exutil.CLI, t h2specRouteTypeTest) []*h2spec.JUnitTestSuite {
 	podName := "h2spec"
-	e2e.ExpectNoError(oc.KubeFramework().WaitForPodRunning(podName))
+	e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(oc.KubeClient(), podName, oc.KubeFramework().Namespace.Name))
 
 	var results []*h2spec.JUnitTestSuite
 

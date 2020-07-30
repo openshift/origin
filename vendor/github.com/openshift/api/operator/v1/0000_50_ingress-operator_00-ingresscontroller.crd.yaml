@@ -94,6 +94,60 @@ spec:
                   description: loadBalancer holds parameters for the load balancer.
                     Present only if type is LoadBalancerService.
                   properties:
+                    providerParameters:
+                      description: "providerParameters holds desired load balancer
+                        information specific to the underlying infrastructure provider.
+                        \n If empty, defaults will be applied. See specific providerParameters
+                        fields for details about their defaults."
+                      properties:
+                        aws:
+                          description: "aws provides configuration settings that are
+                            specific to AWS load balancers. \n If empty, defaults
+                            will be applied. See specific aws fields for details about
+                            their defaults."
+                          properties:
+                            classicLoadBalancer:
+                              description: classicLoadBalancerParameters holds configuration
+                                parameters for an AWS classic load balancer. Present
+                                only if type is Classic.
+                              type: object
+                            networkLoadBalancer:
+                              description: networkLoadBalancerParameters holds configuration
+                                parameters for an AWS network load balancer. Present
+                                only if type is NLB.
+                              type: object
+                            type:
+                              description: "type is the type of AWS load balancer
+                                to instantiate for an ingresscontroller. \n Valid
+                                values are: \n * \"Classic\": A Classic Load Balancer
+                                that makes routing decisions at either   the transport
+                                layer (TCP/SSL) or the application layer (HTTP/HTTPS).
+                                See   the following for additional details: \n     https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#clb
+                                \n * \"NLB\": A Network Load Balancer that makes routing
+                                decisions at the   transport layer (TCP/SSL). See
+                                the following for additional details: \n     https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#nlb"
+                              enum:
+                              - Classic
+                              - NLB
+                              type: string
+                          required:
+                          - type
+                          type: object
+                        type:
+                          description: type is the underlying infrastructure provider
+                            for the load balancer. Allowed values are "AWS", "Azure",
+                            "BareMetal", "GCP", "OpenStack", and "VSphere".
+                          enum:
+                          - AWS
+                          - Azure
+                          - BareMetal
+                          - GCP
+                          - OpenStack
+                          - VSphere
+                          type: string
+                      required:
+                      - type
+                      type: object
                     scope:
                       description: scope indicates the scope at which the load balancer
                         is exposed. Possible values are "External" and "Internal".
@@ -148,6 +202,30 @@ spec:
                   type: string
               required:
               - type
+              type: object
+            httpHeaders:
+              description: "httpHeaders defines policy for HTTP headers. \n If this
+                field is empty, the default values are used."
+              properties:
+                forwardedHeaderPolicy:
+                  description: "forwardedHeaderPolicy specifies when and how the IngressController
+                    sets the Forwarded, X-Forwarded-For, X-Forwarded-Host, X-Forwarded-Port,
+                    X-Forwarded-Proto, and X-Forwarded-Proto-Version HTTP headers.
+                    \ The value may be one of the following: \n * \"Append\", which
+                    specifies that the IngressController appends the   headers, preserving
+                    existing headers. \n * \"Replace\", which specifies that the IngressController
+                    sets the   headers, replacing any existing Forwarded or X-Forwarded-*
+                    headers. \n * \"IfNone\", which specifies that the IngressController
+                    sets the   headers if they are not already set. \n * \"Never\",
+                    which specifies that the IngressController never sets the   headers,
+                    preserving any existing headers. \n By default, the policy is
+                    \"Append\"."
+                  enum:
+                  - Append
+                  - Replace
+                  - IfNone
+                  - Never
+                  type: string
               type: object
             logging:
               description: logging defines parameters for what should be logged where.  If
@@ -634,6 +712,60 @@ spec:
                   description: loadBalancer holds parameters for the load balancer.
                     Present only if type is LoadBalancerService.
                   properties:
+                    providerParameters:
+                      description: "providerParameters holds desired load balancer
+                        information specific to the underlying infrastructure provider.
+                        \n If empty, defaults will be applied. See specific providerParameters
+                        fields for details about their defaults."
+                      properties:
+                        aws:
+                          description: "aws provides configuration settings that are
+                            specific to AWS load balancers. \n If empty, defaults
+                            will be applied. See specific aws fields for details about
+                            their defaults."
+                          properties:
+                            classicLoadBalancer:
+                              description: classicLoadBalancerParameters holds configuration
+                                parameters for an AWS classic load balancer. Present
+                                only if type is Classic.
+                              type: object
+                            networkLoadBalancer:
+                              description: networkLoadBalancerParameters holds configuration
+                                parameters for an AWS network load balancer. Present
+                                only if type is NLB.
+                              type: object
+                            type:
+                              description: "type is the type of AWS load balancer
+                                to instantiate for an ingresscontroller. \n Valid
+                                values are: \n * \"Classic\": A Classic Load Balancer
+                                that makes routing decisions at either   the transport
+                                layer (TCP/SSL) or the application layer (HTTP/HTTPS).
+                                See   the following for additional details: \n     https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#clb
+                                \n * \"NLB\": A Network Load Balancer that makes routing
+                                decisions at the   transport layer (TCP/SSL). See
+                                the following for additional details: \n     https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#nlb"
+                              enum:
+                              - Classic
+                              - NLB
+                              type: string
+                          required:
+                          - type
+                          type: object
+                        type:
+                          description: type is the underlying infrastructure provider
+                            for the load balancer. Allowed values are "AWS", "Azure",
+                            "BareMetal", "GCP", "OpenStack", and "VSphere".
+                          enum:
+                          - AWS
+                          - Azure
+                          - BareMetal
+                          - GCP
+                          - OpenStack
+                          - VSphere
+                          type: string
+                      required:
+                      - type
+                      type: object
                     scope:
                       description: scope indicates the scope at which the load balancer
                         is exposed. Possible values are "External" and "Internal".

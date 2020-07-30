@@ -42,7 +42,6 @@ import (
 	_ "github.com/openshift/origin/test/extended/images"
 	_ "github.com/openshift/origin/test/extended/images/trigger"
 	_ "github.com/openshift/origin/test/extended/jobs"
-	_ "github.com/openshift/origin/test/extended/localquota"
 	_ "github.com/openshift/origin/test/extended/machines"
 	_ "github.com/openshift/origin/test/extended/marketplace"
 	_ "github.com/openshift/origin/test/extended/networking"

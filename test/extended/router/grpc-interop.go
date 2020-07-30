@@ -17,6 +17,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 const (
@@ -55,7 +56,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			g.By(fmt.Sprintf("creating test fixture from a config file %q", configPath))
 			err := oc.Run("new-app").Args("-f", configPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			e2e.ExpectNoError(oc.KubeFramework().WaitForPodRunningSlow("grpc-interop"))
+			e2e.ExpectNoError(e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), "grpc-interop", oc.KubeFramework().Namespace.Name))
 
 			g.By("Discovering the set of supported test cases")
 			ns := oc.KubeFramework().Namespace.Name
