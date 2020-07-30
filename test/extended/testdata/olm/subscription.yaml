@@ -9,14 +9,15 @@ objects:
     name: "${NAME}"
     namespace: "${NAMESPACE}"
   spec:
-    channel: stable
     installPlanApproval: Automatic
-    name: cockroachdb
+    channel: "${CHANNEL}"
+    name: "${PACKAGE}"
     source: "${SOURCENAME}"
     sourceNamespace: "${SOURCENAMESPACE}"
-    startingCSV: cockroachdb.v2.1.11
 parameters:
 - name: NAME
 - name: NAMESPACE
 - name: SOURCENAME
 - name: SOURCENAMESPACE
+- name: PACKAGE
+- name: CHANNEL

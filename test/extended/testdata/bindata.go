@@ -418,8 +418,8 @@
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
 // test/extended/testdata/oauthserver/oauth-sa.yaml
-// test/extended/testdata/olm/cockroachdb-subscription.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
+// test/extended/testdata/olm/subscription.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
 // test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml
@@ -53922,45 +53922,6 @@ func testExtendedTestdataOauthserverOauthSaYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataOlmCockroachdbSubscriptionYaml = []byte(`apiVersion: v1
-kind: Template
-metadata:
-  name: subscription-template
-objects:
-- apiVersion: operators.coreos.com/v1alpha1
-  kind: Subscription
-  metadata:
-    name: "${NAME}"
-    namespace: "${NAMESPACE}"
-  spec:
-    channel: stable
-    installPlanApproval: Automatic
-    name: cockroachdb
-    source: "${SOURCENAME}"
-    sourceNamespace: "${SOURCENAMESPACE}"
-    startingCSV: cockroachdb.v2.1.11
-parameters:
-- name: NAME
-- name: NAMESPACE
-- name: SOURCENAME
-- name: SOURCENAMESPACE
-`)
-
-func testExtendedTestdataOlmCockroachdbSubscriptionYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataOlmCockroachdbSubscriptionYaml, nil
-}
-
-func testExtendedTestdataOlmCockroachdbSubscriptionYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataOlmCockroachdbSubscriptionYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/olm/cockroachdb-subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataOlmOperatorgroupYaml = []byte(`apiVersion: v1
 kind: Template
 metadata:
@@ -53971,10 +53932,6 @@ objects:
   metadata:
     name: "${NAME}"
     namespace: "${NAMESPACE}"
-  spec:
-    targetNamespaces:
-    - "${NAMESPACE}"
-
 parameters:
 - name: NAME
 - name: NAMESPACE
@@ -53992,6 +53949,46 @@ func testExtendedTestdataOlmOperatorgroupYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/olm/operatorgroup.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmSubscriptionYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    installPlanApproval: Automatic
+    channel: "${CHANNEL}"
+    name: "${PACKAGE}"
+    source: "${SOURCENAME}"
+    sourceNamespace: "${SOURCENAMESPACE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SOURCENAME
+- name: SOURCENAMESPACE
+- name: PACKAGE
+- name: CHANNEL
+`)
+
+func testExtendedTestdataOlmSubscriptionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmSubscriptionYaml, nil
+}
+
+func testExtendedTestdataOlmSubscriptionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmSubscriptionYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -59738,8 +59735,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                           testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml":                                                               testExtendedTestdataOauthserverOauthPodYaml,
 	"test/extended/testdata/oauthserver/oauth-sa.yaml":                                                                testExtendedTestdataOauthserverOauthSaYaml,
-	"test/extended/testdata/olm/cockroachdb-subscription.yaml":                                                        testExtendedTestdataOlmCockroachdbSubscriptionYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml":                                                                   testExtendedTestdataOlmOperatorgroupYaml,
+	"test/extended/testdata/olm/subscription.yaml":                                                                    testExtendedTestdataOlmSubscriptionYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml":                                              testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references":                                        testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
 	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml":                                           testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
@@ -60476,8 +60473,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"oauth-sa.yaml":      {testExtendedTestdataOauthserverOauthSaYaml, map[string]*bintree{}},
 				}},
 				"olm": {nil, map[string]*bintree{
-					"cockroachdb-subscription.yaml": {testExtendedTestdataOlmCockroachdbSubscriptionYaml, map[string]*bintree{}},
-					"operatorgroup.yaml":            {testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},
+					"operatorgroup.yaml": {testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},
+					"subscription.yaml":  {testExtendedTestdataOlmSubscriptionYaml, map[string]*bintree{}},
 				}},
 				"openshift-secret-to-jenkins-credential.yaml": {testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
 				"releases": {nil, map[string]*bintree{
