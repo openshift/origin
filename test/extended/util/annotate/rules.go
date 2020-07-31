@@ -113,6 +113,10 @@ var (
 			// Test passes but container it uses exits with non-zero.
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1861526
 			`ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present`,
+
+			// Perma-fail
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1862322
+			`an end user can use OLM can subscribe to the operator`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
