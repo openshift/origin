@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/onsi/ginkgo"
@@ -174,19 +175,24 @@ func InitDefaultEnvironmentVariables() {
 	}
 }
 
-// TODO: Use either explicit tags (k8s.io) or https://github.com/onsi/ginkgo/pull/228 to implement this.
-// isPackage determines wether the test is in a package.  Ideally would be implemented in ginkgo.
-func isPackage(pkg string) bool {
-	return strings.Contains(ginkgo.CurrentGinkgoTestDescription().FileName, pkg)
+// isGoModulePath returns true if the packagePath reported by reflection is within a
+// module and given module path. When go mod is in use, module and modulePath are not
+// contiguous as they were in older golang versions with vendoring, so naive contains
+// tests fail.
+//
+// historically: ".../vendor/k8s.io/kubernetes/test/e2e"
+// go.mod:       "k8s.io/kubernetes@0.18.4/test/e2e"
+//
+func isGoModulePath(packagePath, module, modulePath string) bool {
+	return regexp.MustCompile(fmt.Sprintf(`\b%s(@[^/]*|)/%s\b`, regexp.QuoteMeta(module), regexp.QuoteMeta(modulePath))).MatchString(packagePath)
 }
 
-// TODO: For both is*Test functions, use either explicit tags (k8s.io) or https://github.com/onsi/ginkgo/pull/228
 func isOriginTest() bool {
-	return isPackage("/origin/test/")
+	return isGoModulePath(ginkgo.CurrentGinkgoTestDescription().FileName, "github.com/openshift/origin", "test")
 }
 
 func isKubernetesE2ETest() bool {
-	return isPackage("/kubernetes/test/e2e/")
+	return isGoModulePath(ginkgo.CurrentGinkgoTestDescription().FileName, "k8s.io/kubernetes", "test/e2e")
 }
 
 func testNameContains(name string) bool {
@@ -194,7 +200,7 @@ func testNameContains(name string) bool {
 }
 
 func skipTestNamespaceCustomization() bool {
-	return (isPackage("/kubernetes/test/e2e/namespace.go") && (testNameContains("should always delete fast") || testNameContains("should delete fast enough")))
+	return testNameContains("should always delete fast") || testNameContains("should delete fast enough")
 }
 
 // createTestingNS ensures that kubernetes e2e tests have their service accounts in the privileged and anyuid SCCs
