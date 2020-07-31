@@ -2307,7 +2307,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status": "Report Upgradeable in OLM ClusterOperators status [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Disabled:Broken] [Suite:openshift]",
 
 	"[Top Level] [sig-operator][Feature:Marketplace] Marketplace diff name test [ocp-25672] create the samename opsrc&csc [Serial]": "[ocp-25672] create the samename opsrc&csc [Serial] [Suite:openshift/conformance/serial]",
 
