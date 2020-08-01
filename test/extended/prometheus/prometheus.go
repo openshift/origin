@@ -429,7 +429,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
 		})
 		g.It("should provide named network metrics", func() {
-			g.Skip("Disabling on master, https://bugzilla.redhat.com/show_bug.cgi?id=1860837")
 			oc.SetupProject()
 			ns := oc.Namespace()
 
