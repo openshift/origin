@@ -215,6 +215,18 @@ func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
 	}
 }
 
+// isGoModulePath returns true if the packagePath reported by reflection is within a
+// module and given module path. When go mod is in use, module and modulePath are not
+// contiguous as they were in older golang versions with vendoring, so naive contains
+// tests fail.
+//
+// historically: ".../vendor/k8s.io/kubernetes/test/e2e"
+// go.mod:       "k8s.io/kubernetes@0.18.4/test/e2e"
+//
+func isGoModulePath(packagePath, module, modulePath string) bool {
+	return regexp.MustCompile(fmt.Sprintf(`\b%s(@[^/]*|)/%s\b`, regexp.QuoteMeta(module), regexp.QuoteMeta(modulePath))).MatchString(packagePath)
+}
+
 // TODO: accept a default framework
 func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework {
 	nsFilter := regexp.MustCompile("[^[:word:]-]+") // match anything that's not a word character or hyphen
@@ -223,7 +235,7 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 		ns := nsFilter.ReplaceAllString(t.Name(), "-") // and replace with a single hyphen
 		ns = strings.Trim(ns, "-")
 		// identify tests that come from kube as strictly e2e tests so they get the correct semantics
-		if strings.Contains(reflect.ValueOf(t).Elem().Type().PkgPath(), "/kubernetes/test/e2e/") {
+		if isGoModulePath(reflect.ValueOf(t).Elem().Type().PkgPath(), "k8s.io/kubernetes", "test/e2e") {
 			ns = "e2e-k8s-" + ns
 		}
 		testFrameworks[t.Name()] = &framework.Framework{
