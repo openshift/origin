@@ -919,7 +919,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility  TestSelfSubjectAccessReviewsNonExistingNamespace should succeed": "should succeed [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization][Serial] authorization  TestAuthorizationResourceAccessReview should succeed": "should succeed [Skipped:ibmcloud] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization][Serial] authorization  TestAuthorizationResourceAccessReview should succeed": "should succeed [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestInvalidRoleRefs should succeed": "should succeed [Suite:openshift/conformance/parallel]",
 
