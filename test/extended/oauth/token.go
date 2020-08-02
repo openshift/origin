@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/pborman/uuid"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/openshift/client-go/user/clientset/versioned"
@@ -37,7 +39,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth Authenticator", func()
 		oc.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
 
 		g.By("creating a classic oauth access token")
-		token := "0123456789012345678900123456789001234567890123"
+		token := base64.RawURLEncoding.EncodeToString([]byte(uuid.New()))
 		classicTokenObject, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(ctx, &oauthv1.OAuthAccessToken{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: token,
@@ -73,7 +75,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth Authenticator", func()
 		oc.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
 
 		g.By("creating a classic oauth access token")
-		token := "0123456789012345678900123456789001234567890123"
+		token := base64.RawURLEncoding.EncodeToString([]byte(uuid.New()))
 		bs := sha256.Sum256([]byte(token))
 		hash := base64.RawURLEncoding.EncodeToString(bs[:])
 		classicTokenObject, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(ctx, &oauthv1.OAuthAccessToken{
