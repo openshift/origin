@@ -17,8 +17,8 @@ func main() {
 	commits, err := util.CommitsBetween(start, end)
 	if err != nil {
 		if err == util.ErrNotCommit {
-			_, _ = fmt.Fprintf(os.Stderr, "WARNING: one of the provided commits does not exist, not a true branch\n")
-			os.Exit(0)
+			_, _ = fmt.Fprintf(os.Stderr, "ERROR: one of the provided commits does not exist, not a true branch\n")
+			os.Exit(1)
 		}
 		_, _ = fmt.Fprintf(os.Stderr, "ERROR: couldn't find commits from %s..%s: %v\n", start, end, err)
 		os.Exit(1)
