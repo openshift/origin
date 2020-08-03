@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+set -euxo pipefail
+
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 function cleanup() {
