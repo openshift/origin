@@ -92,10 +92,14 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 		// a pod in a namespace that begins with kube-* or openshift-* must come from our release payload
 		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
+		ignoredNamespaces := sets.NewString("openshift-marketplace")
 		for i := range pods.Items {
 			pod := pods.Items[i]
 			for _, prefix := range namespacePrefixes.List() {
 				if !strings.HasPrefix(pod.Namespace, prefix) {
+					continue
+				}
+				if ignoredNamespaces.Has(pod.Namespace) {
 					continue
 				}
 				containersToInspect := []v1.Container{}
