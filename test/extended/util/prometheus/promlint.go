@@ -16,15 +16,23 @@ import (
 // Generally speaking, you need to fix the problem for a new metric rather than
 // add it into the list.
 var exceptionMetrics = sets.NewString(
-	// kubernetes
-	"kubernetes_build_info",
-
 	// library-go
 	"event_recorder_total_events_count",
+
+	// k8s.io/apiextensions-apiserver/pkg/controller/openapi
+	"apiextensions_openapi_v2_regeneration_count",
+
+	// k8s.io/kubernetes/pkg/controller/volume/persistentvolume/metrics
+	"pv_collector_bound_pv_count",
+	"pv_collector_bound_pvc_count",
+	"pv_collector_unbound_pv_count",
+	"pv_collector_unbound_pvc_count",
+	"volume_operation_total_errors",
 
 	// default/apiserver
 	"aggregator_openapi_v2_regeneration_count",
 	"apiserver_admission_step_admission_duration_seconds_summary",
+	"apiserver_admission_webhook_rejection_count",
 	"apiserver_current_inflight_requests",
 	"apiserver_flowcontrol_current_executing_requests",
 	"apiserver_flowcontrol_current_inqueue_requests",
@@ -54,9 +62,17 @@ var exceptionMetrics = sets.NewString(
 	// kube-system/crio
 	"container_runtime_crio_image_pulls_by_digest",
 	"container_runtime_crio_image_pulls_by_name",
+	"container_runtime_crio_image_pulls_by_name_skipped",
+	"container_runtime_crio_image_pulls_failures",
 	"container_runtime_crio_image_pulls_successes",
 	"container_runtime_crio_operations",
 	"container_runtime_crio_operations_errors",
+	"container_runtime_crio_operations_latency_microseconds",
+
+	// openshift-apiserver/check-endpoints
+	"openshift_apiserver_build_info",
+	"openshift_apiserver_endpoint_check_count",
+	"openshift_apiserver_endpoint_check_tcp_connect_latency_gauge",
 
 	// openshift-authentication/oauth-openshift
 	"openshift_auth_basic_password_count",
@@ -71,14 +87,21 @@ var exceptionMetrics = sets.NewString(
 	"openshift_config_operator_build_info",
 
 	// openshift-controller-manager/controller-manager
+	"openshift_apps_deploymentconfigs_active_rollouts_duration_seconds",
 	"openshift_apps_deploymentconfigs_complete_rollouts_total",
 	"openshift_apps_deploymentconfigs_strategy_total",
+	"openshift_build_total",
+	"openshift_imagestreamcontroller_error_count",
 	"openshift_imagestreamcontroller_success_count",
 
 	// openshift-etcd-operator/metrics
 	"openshift_etcd_operator_build_info",
 
 	// openshift-etcd/etcd
+	"etcd_debugging_lease_ttl_total",
+	"etcd_debugging_mvcc_db_compaction_pause_duration_milliseconds",
+	"etcd_debugging_mvcc_db_compaction_total_duration_milliseconds",
+	"etcd_debugging_mvcc_index_compaction_pause_duration_milliseconds",
 	"etcd_debugging_mvcc_keys_total",
 	"etcd_debugging_mvcc_pending_events_total",
 	"etcd_debugging_mvcc_slow_watcher_total",
@@ -128,6 +151,9 @@ var exceptionMetrics = sets.NewString(
 	"haproxy_server_http_average_response_latency_milliseconds",
 	"haproxy_server_http_responses_total",
 	"haproxy_server_response_errors_total",
+
+	// openshift-insights/metrics
+	"apiserver_storage_data_key_generation_latencies_microseconds",
 
 	// openshift-kube-apiserver-operator/metrics
 	"openshift_kube_apiserver_operator_build_info",
@@ -228,6 +254,9 @@ var exceptionMetrics = sets.NewString(
 	"node_netstat_Udp_OutDatagrams",
 	"node_netstat_Udp_RcvbufErrors",
 	"node_netstat_Udp_SndbufErrors",
+
+	// openshift-monitoring/openshift-state-metrics
+	"openshift_build_status_phase_total",
 
 	// openshift-operator-lifecycle-manager/catalog-operator-metrics
 	"catalog_source_count",
