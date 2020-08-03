@@ -24,9 +24,8 @@ var (
 
 			// BETA features in 1.19, enabled by default
 			// Their enablement is tracked via bz's targeted at 4.6.
-			`\[Feature:ExpandCSIVolumes\]`,         // https://bugzilla.redhat.com/show_bug.cgi?id=1861218
-			`\[Feature:ImmutableEphemeralVolume\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1820422
-			`\[Feature:SCTPConnectivity\]`,         // https://bugzilla.redhat.com/show_bug.cgi?id=1861606
+			`\[Feature:ExpandCSIVolumes\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1861218
+			`\[Feature:SCTPConnectivity\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1861606
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
