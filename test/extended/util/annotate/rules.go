@@ -243,11 +243,6 @@ var (
 			`\[sig-auth\] \[Feature:NodeAuthenticator\] The kubelet's main port 10250 should reject requests with no credentials`,
 			`\[sig-auth\] \[Feature:NodeAuthenticator\] The kubelet can delegate ServiceAccount tokens to the API server`,
 
-			// The cluster-network-operator creates the kube-proxy daemonset pods without mem/cpu requests,
-			// resulting in a qosClass of BestEffort
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825019 - kube-proxy deployment does not include any memory/cpu requests
-			`\[Feature:Platform\] Managed cluster should ensure control plane pods do not run in best-effort QoS`,
-
 			// Calico is allowing the request to timeout instead of returning 'REFUSED'
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825021 - ROKS: calico SDN results in a request timeout when accessing services with no endpoints
 			`\[sig-network\] Services should be rejected when no endpoints exist`,
