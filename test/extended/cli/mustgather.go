@@ -72,8 +72,8 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			// TODO: This got broken and we need to fix this. Disabled temporarily.
 			// {pluginOutputDir, "namespaces", "openshift-kube-apiserver", "core", "configmaps.yaml"},
 			// {pluginOutputDir, "namespaces", "openshift-kube-apiserver", "core", "secrets.yaml"},
-			{pluginOutputDir, "host_service_logs", "masters", "crio_service.log"},
-			{pluginOutputDir, "host_service_logs", "masters", "kubelet_service.log"},
+			{pluginOutputDir, "host_service_logs", "linux", "masters", "crio_service.log"},
+			{pluginOutputDir, "host_service_logs", "linux", "masters", "kubelet_service.log"},
 		}
 
 		// Skip the kube and openshift apiserver audit logs on IBM ROKS clusters
