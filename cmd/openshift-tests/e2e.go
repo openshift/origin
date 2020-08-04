@@ -157,19 +157,27 @@ var staticSuites = []*ginkgo.TestSuite{
 	{
 		Name: "openshift/csi",
 		Description: templates.LongDesc(`
-		Run tests for an CSI driver. Set the TEST_INSTALL_CSI_DRIVERS environment variable to the name of the driver to load.
-		For example, TEST_INSTALL_CSI_DRIVERS=aws-ebs will test the AWS EBS CSI driver. To change the location of the images,
-		specify IMAGE_FORMAT=myregistry.com/myrepository/${component}:4.5 where ${component} will be substituted with the
-		names of required CSI component images:
-
-			csi-external-attacher, csi-external-provisioner, csi-external-resizer,
-			csi-external-snapshotter, csi-node-driver-registrar, csi-livenessprobe
-
-		See https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/external/README.md for required format of the files.
+		Run CSI certification tests for an CSI driver. Set TEST_CSI_DRIVER_FILES to location of your CSI driver manifest.
+		See https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/external/README.md for the manifest format.
 		`),
 		Matches: func(name string) bool {
 			return strings.Contains(name, "External Storage [Driver:") && !strings.Contains(name, "[Disruptive]")
 		},
+	},
+	{
+		Name: "openshift/csi/ci",
+		Description: templates.LongDesc(`
+		Run tests for an CSI driver in CI. Same as openshift/csi, but tolerates some flakiness in a CI job.
+		`),
+		Matches: func(name string) bool {
+			return strings.Contains(name, "External Storage [Driver:") && !strings.Contains(name, "[Disruptive]")
+		},
+		// Allow certain number of tests to flake. A cluster (incl.
+		// kube-apiserver) can be still Progressing when the installer finishes
+		// and API servers can reject connections (timeouts, connection refused,
+		// connection reset).
+		// 6 is the largest amount found in recent CI jobs.
+		MaximumAllowedFlakes: 6,
 	},
 	{
 		Name: "openshift/network/stress",
