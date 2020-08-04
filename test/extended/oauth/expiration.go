@@ -111,7 +111,7 @@ func testTokenFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequest
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(user.Name).To(o.Equal("testuser"))
 	// Make sure the token exists with the overridden time
-	tokenObj, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Get(context.Background(), toAccessTokenName(token), metav1.GetOptions{})
+	tokenObj, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Get(context.Background(), toTokenName(token), metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(tokenObj.ExpiresIn).To(o.BeNumerically("==", expectedExpiresIn))
 }
@@ -151,7 +151,7 @@ func testCodeFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestT
 
 	// Make sure the code exists with the default time
 	oauthClientSet := oc.AdminOauthClient()
-	codeObj, err := oauthClientSet.OauthV1().OAuthAuthorizeTokens().Get(context.Background(), code, metav1.GetOptions{})
+	codeObj, err := oauthClientSet.OauthV1().OAuthAuthorizeTokens().Get(context.Background(), toTokenName(code), metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(codeObj.ExpiresIn).To(o.BeNumerically("==", 5*60))
 
@@ -173,12 +173,12 @@ func testCodeFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestT
 	o.Expect(user.Name).To(o.Equal("testuser"))
 
 	// Make sure the token exists with the overridden time
-	tokenObj, err := oauthClientSet.OauthV1().OAuthAccessTokens().Get(context.Background(), toAccessTokenName(token), metav1.GetOptions{})
+	tokenObj, err := oauthClientSet.OauthV1().OAuthAccessTokens().Get(context.Background(), toTokenName(token), metav1.GetOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(tokenObj.ExpiresIn).To(o.BeNumerically("==", expectedExpiresIn))
 }
 
-func toAccessTokenName(token string) string {
+func toTokenName(token string) string {
 	if strings.HasPrefix(token, "sha256:") {
 		withoutPrefix := strings.TrimPrefix(token, "sha256:")
 		h := sha256.Sum256([]byte(withoutPrefix))
