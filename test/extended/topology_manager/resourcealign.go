@@ -55,7 +55,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 		// we don't handle yet an uneven device amount on worker nodes. IOW, we expect the same amount of devices on each node
 	})
 
-	g.Context("with non-gu workload", func() {
+	g.Context("[Disabled:Broken] with non-gu workload", func() {
 		t.DescribeTable("should run with no regressions",
 			func(pps PodParamsList) {
 				if requestCpu, ok := enoughCoresInTheCluster(workerNodes, pps); !ok {
