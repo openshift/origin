@@ -1,0 +1,120 @@
+{
+	"kind": "List",
+	"apiVersion": "v1",
+	"metadata": {},
+	"items": [
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpcn",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpcn"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Custom",
+					"customStrategy": {
+						"from": {
+						        "kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
+								"value": "ruby:latest"
+							},
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"exposeDockerSocket": true
+					}
+				}
+			}
+		},
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpdn",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpdn"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Docker",
+					"dockerStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						]
+					}
+				}
+			}
+		},
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpsn",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpsn"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Source",
+					"sourceStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						]
+					}
+				}
+			}
+		}
+	]
+}

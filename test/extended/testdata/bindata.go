@@ -51,6 +51,9 @@
 // test/extended/testdata/aggregator/sample-apiserver-sa.yaml
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
 // test/extended/testdata/builds/application-template-custombuild.json
+// test/extended/testdata/builds/build-overrides/forcepull-false.json
+// test/extended/testdata/builds/build-overrides/forcepull-nil.json
+// test/extended/testdata/builds/build-overrides/forcepull-true.json
 // test/extended/testdata/builds/build-postcommit/docker.yaml
 // test/extended/testdata/builds/build-postcommit/imagestreams.yaml
 // test/extended/testdata/builds/build-postcommit/sti.yaml
@@ -18992,6 +18995,420 @@ func testExtendedTestdataBuildsApplicationTemplateCustombuildJson() (*asset, err
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/application-template-custombuild.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsBuildOverridesForcepullFalseJson = []byte(`{
+	"kind": "List",
+	"apiVersion": "v1",
+	"metadata": {},
+	"items": [
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpcf",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpcf"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Custom",
+					"customStrategy": {
+						"from": {
+						        "kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
+								"value": "ruby:latest"
+							},
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"exposeDockerSocket": true,
+						"forcePull": false
+					}
+				}
+			}
+		},
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpdf",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpdf"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Docker",
+					"dockerStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"forcePull": false
+					}
+				}
+			}
+		},
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpsf",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpsf"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Source",
+					"sourceStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"forcePull": false
+					}
+				}
+			}
+		}
+	]
+}`)
+
+func testExtendedTestdataBuildsBuildOverridesForcepullFalseJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildOverridesForcepullFalseJson, nil
+}
+
+func testExtendedTestdataBuildsBuildOverridesForcepullFalseJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildOverridesForcepullFalseJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-overrides/forcepull-false.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsBuildOverridesForcepullNilJson = []byte(`{
+	"kind": "List",
+	"apiVersion": "v1",
+	"metadata": {},
+	"items": [
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpcn",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpcn"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Custom",
+					"customStrategy": {
+						"from": {
+						        "kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
+								"value": "ruby:latest"
+							},
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"exposeDockerSocket": true
+					}
+				}
+			}
+		},
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpdn",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpdn"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Docker",
+					"dockerStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						]
+					}
+				}
+			}
+		},
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpsn",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpsn"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Source",
+					"sourceStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						]
+					}
+				}
+			}
+		}
+	]
+}`)
+
+func testExtendedTestdataBuildsBuildOverridesForcepullNilJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildOverridesForcepullNilJson, nil
+}
+
+func testExtendedTestdataBuildsBuildOverridesForcepullNilJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildOverridesForcepullNilJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-overrides/forcepull-nil.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsBuildOverridesForcepullTrueJson = []byte(`{
+	"kind": "List",
+	"apiVersion": "v1",
+	"metadata": {},
+	"items": [
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpct",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpct"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Custom",
+					"customStrategy": {
+						"from": {
+						        "kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
+								"value": "ruby:latest"
+							},
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"exposeDockerSocket": true,
+						"forcePull": true
+					}
+				}
+			}
+		},
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpdt",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpdt"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Docker",
+					"dockerStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"forcePull": true
+					}
+				}
+			}
+		},
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpst",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpst"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Source",
+					"sourceStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"forcePull": true
+					}
+				}
+			}
+		}
+	]
+}`)
+
+func testExtendedTestdataBuildsBuildOverridesForcepullTrueJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildOverridesForcepullTrueJson, nil
+}
+
+func testExtendedTestdataBuildsBuildOverridesForcepullTrueJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildOverridesForcepullTrueJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-overrides/forcepull-true.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -59368,6 +59785,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml":                                                      testExtendedTestdataAggregatorSampleApiserverSaYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml":                                                 testExtendedTestdataAggregatorSampleApiserverServiceYaml,
 	"test/extended/testdata/builds/application-template-custombuild.json":                                             testExtendedTestdataBuildsApplicationTemplateCustombuildJson,
+	"test/extended/testdata/builds/build-overrides/forcepull-false.json":                                              testExtendedTestdataBuildsBuildOverridesForcepullFalseJson,
+	"test/extended/testdata/builds/build-overrides/forcepull-nil.json":                                                testExtendedTestdataBuildsBuildOverridesForcepullNilJson,
+	"test/extended/testdata/builds/build-overrides/forcepull-true.json":                                               testExtendedTestdataBuildsBuildOverridesForcepullTrueJson,
 	"test/extended/testdata/builds/build-postcommit/docker.yaml":                                                      testExtendedTestdataBuildsBuildPostcommitDockerYaml,
 	"test/extended/testdata/builds/build-postcommit/imagestreams.yaml":                                                testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml,
 	"test/extended/testdata/builds/build-postcommit/sti.yaml":                                                         testExtendedTestdataBuildsBuildPostcommitStiYaml,
@@ -59910,6 +60330,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"builds": {nil, map[string]*bintree{
 					"application-template-custombuild.json": {testExtendedTestdataBuildsApplicationTemplateCustombuildJson, map[string]*bintree{}},
+					"build-overrides": {nil, map[string]*bintree{
+						"forcepull-false.json": {testExtendedTestdataBuildsBuildOverridesForcepullFalseJson, map[string]*bintree{}},
+						"forcepull-nil.json":   {testExtendedTestdataBuildsBuildOverridesForcepullNilJson, map[string]*bintree{}},
+						"forcepull-true.json":  {testExtendedTestdataBuildsBuildOverridesForcepullTrueJson, map[string]*bintree{}},
+					}},
 					"build-postcommit": {nil, map[string]*bintree{
 						"docker.yaml":       {testExtendedTestdataBuildsBuildPostcommitDockerYaml, map[string]*bintree{}},
 						"imagestreams.yaml": {testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml, map[string]*bintree{}},

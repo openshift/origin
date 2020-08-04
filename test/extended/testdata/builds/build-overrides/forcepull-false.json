@@ -1,0 +1,123 @@
+{
+	"kind": "List",
+	"apiVersion": "v1",
+	"metadata": {},
+	"items": [
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpcf",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpcf"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Custom",
+					"customStrategy": {
+						"from": {
+						        "kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
+								"value": "ruby:latest"
+							},
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"exposeDockerSocket": true,
+						"forcePull": false
+					}
+				}
+			}
+		},
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpdf",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpdf"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Docker",
+					"dockerStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"forcePull": false
+					}
+				}
+			}
+		},
+		{
+			"kind": "BuildConfig",
+			"apiVersion": "v1",
+			"metadata": {
+				"name": "ruby-sample-build-fpsf",
+				"creationTimestamp": null,
+				"labels": {
+					"name": "ruby-sample-build-fpsf"
+				}
+			},
+			"spec": {
+				"triggers": [],
+				"source": {
+					"type": "Git",
+					"git": {
+						"uri": "https://github.com/openshift/ruby-hello-world.git"
+					}
+				},
+				"strategy": {
+					"type": "Source",
+					"sourceStrategy": {
+						"from": {
+							"kind": "ImageStreamTag",
+						        "namespace": "openshift",
+							"name": "ruby:latest"
+						},
+						"env": [
+							{
+								"name": "BUILD_LOGLEVEL",
+								"value": "5"
+							}
+						],
+						"forcePull": false
+					}
+				}
+			}
+		}
+	]
+}
