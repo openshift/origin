@@ -33,7 +33,7 @@ func (t *kubeAvailableTest) Test(f *framework.Framework, done <-chan struct{}, u
 
 // NewOpenShiftAvailableTest tests that the OpenShift APIs remains available during and after a cluster upgrade.
 func NewOpenShiftAvailableTest() upgrades.Test {
-	return &kubeAvailableTest{availableTest{name: "openshift-api-available"}}
+	return &openShiftAvailableTest{availableTest{name: "openshift-api-available"}}
 }
 
 type openShiftAvailableTest struct {
