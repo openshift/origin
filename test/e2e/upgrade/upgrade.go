@@ -294,7 +294,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 	}
 
 	// wait until the cluster acknowledges the update
-	if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+	if err := wait.PollImmediate(5*time.Second, 3*time.Minute, func() (bool, error) {
 		cv, _, err := monitor.Check(updated.Generation, desired)
 		if err != nil || cv == nil {
 			return false, err
