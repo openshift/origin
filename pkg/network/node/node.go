@@ -70,8 +70,8 @@ type osdnPolicy interface {
 
 type OsdnNodeConfig struct {
 	PluginName      string
-	Hostname        string
-	SelfIP          string
+	NodeName        string
+	NodeIP          string
 	DNSIP           string
 	RuntimeEndpoint string
 	MTU             uint32
@@ -103,7 +103,7 @@ type OsdnNode struct {
 	localSubnetCIDR    string
 	localGatewayCIDR   string
 	localIP            string
-	hostName           string
+	nodeName           string
 	useConnTrack       bool
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
@@ -148,7 +148,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		// Not an OpenShift plugin
 		return nil, nil
 	}
-	glog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.Hostname, c.SelfIP, c.IPTablesSyncPeriod.String())
+	glog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.NodeName, c.NodeIP, c.IPTablesSyncPeriod.String())
 
 	if useConnTrack && c.ProxyMode != kubeproxyconfig.ProxyModeIPTables {
 		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
@@ -166,7 +166,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	oc := NewOVSController(ovsif, pluginId, useConnTrack, c.SelfIP)
+	oc := NewOVSController(ovsif, pluginId, useConnTrack, c.NodeIP)
 
 	masqBit := uint32(0)
 	if c.MasqueradeBit != nil {
@@ -185,8 +185,8 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		recorder:           c.Recorder,
 		oc:                 oc,
 		podManager:         newPodManager(c.KClient, policy, c.MTU, c.CNIBinDir, oc, c.EnableHostports, c.DNSIP),
-		localIP:            c.SelfIP,
-		hostName:           c.Hostname,
+		localIP:            c.NodeIP,
+		nodeName:           c.NodeName,
 		useConnTrack:       useConnTrack,
 		iptablesSyncPeriod: c.IPTablesSyncPeriod,
 		mtu:                c.MTU,
@@ -195,7 +195,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		egressDNS:          egressDNS,
 		kubeInformers:      c.KubeInformers,
 		networkInformers:   c.NetworkInformers,
-		egressIP:           newEgressIPWatcher(oc, c.SelfIP, c.MasqueradeBit),
+		egressIP:           newEgressIPWatcher(oc, c.NodeIP, c.MasqueradeBit),
 		cniDirPath:         c.CNIConfDir,
 
 		runtimeEndpoint: c.RuntimeEndpoint,
@@ -212,33 +212,33 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 
 // Set node IP if required
 func (c *OsdnNodeConfig) setNodeIP() error {
-	if len(c.Hostname) == 0 {
+	if len(c.NodeName) == 0 {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
 			return err
 		}
-		c.Hostname = strings.TrimSpace(string(output))
-		glog.Infof("Resolved hostname to %q", c.Hostname)
+		c.NodeName = strings.TrimSpace(string(output))
+		glog.Infof("Resolved hostname to %q", c.NodeName)
 	}
 
-	if len(c.SelfIP) == 0 {
+	if len(c.NodeIP) == 0 {
 		var err error
-		c.SelfIP, err = netutils.GetNodeIP(c.Hostname)
+		c.NodeIP, err = netutils.GetNodeIP(c.NodeName)
 		if err != nil {
-			glog.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.Hostname, err)
+			glog.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.NodeName, err)
 			var defaultIP net.IP
 			defaultIP, err = kubeutilnet.ChooseHostInterface()
 			if err != nil {
 				return err
 			}
-			c.SelfIP = defaultIP.String()
-			glog.Infof("Resolved IP address to %q", c.SelfIP)
+			c.NodeIP = defaultIP.String()
+			glog.Infof("Resolved IP address to %q", c.NodeIP)
 		}
 	}
 
-	if _, _, err := GetLinkDetails(c.SelfIP); err != nil {
+	if _, _, err := GetLinkDetails(c.NodeIP); err != nil {
 		if err == ErrorNetworkInterfaceNotFound {
-			err = fmt.Errorf("node IP %q is not a local/private address (hostname %q)", c.SelfIP, c.Hostname)
+			err = fmt.Errorf("node IP %q is not a local/private address (hostname %q)", c.NodeIP, c.NodeName)
 		}
 		utilruntime.HandleError(fmt.Errorf("Unable to find network interface for node IP; some features will not work! (%v)", err))
 	}
@@ -379,7 +379,7 @@ func (node *OsdnNode) Start() error {
 	glog.V(2).Infof("openshift-sdn network plugin registering startup")
 
 	// Make an event that openshift-sdn started
-	node.recorder.Eventf(&v1.ObjectReference{Kind: "Node", Name: node.hostName}, v1.EventTypeNormal, "Starting", "Starting openshift-sdn.")
+	node.recorder.Eventf(&v1.ObjectReference{Kind: "Node", Name: node.nodeName}, v1.EventTypeNormal, "Starting", "Starting openshift-sdn.")
 
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready
@@ -472,7 +472,7 @@ func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
 }
 
 func (node *OsdnNode) GetRunningPods(namespace string) ([]kapi.Pod, error) {
-	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
+	fieldSelector := fields.Set{"spec.nodeName": node.nodeName}.AsSelector()
 	opts := metav1.ListOptions{
 		LabelSelector: labels.Everything().String(),
 		FieldSelector: fieldSelector.String(),

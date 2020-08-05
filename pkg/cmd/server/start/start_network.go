@@ -164,6 +164,13 @@ func (o NetworkOptions) RunNetwork(stopCh <-chan struct{}) error {
 		validationResults = validation.ValidateNodeConfig(nodeConfig, nil)
 	}
 
+	if o.NodeArgs.NodeIP != "" {
+		nodeConfig.NodeIP = o.NodeArgs.NodeIP
+	}
+	if o.NodeArgs.NodeName != "" {
+		nodeConfig.NodeName = o.NodeArgs.NodeName
+	}
+
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
 			glog.Warningf("Warning: %v, node start will continue.", warning)

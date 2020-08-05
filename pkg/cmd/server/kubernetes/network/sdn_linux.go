@@ -54,8 +54,8 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 
 	node, err := sdnnode.New(&sdnnode.OsdnNodeConfig{
 		PluginName:         options.NetworkConfig.NetworkPluginName,
-		Hostname:           options.NodeName,
-		SelfIP:             options.NodeIP,
+		NodeName:           options.NodeName,
+		NodeIP:             options.NodeIP,
 		DNSIP:              options.DNSIP,
 		RuntimeEndpoint:    runtimeEndpoint,
 		CNIBinDir:          cniBinDir,

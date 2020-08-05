@@ -41,6 +41,8 @@ type NodeArgs struct {
 
 	// NodeName is the hostname to identify this node with the master.
 	NodeName string
+	// NodeIP is the ip address used as selfIP in the OsdnNodeConfig
+	NodeIP string
 
 	MasterCertDir string
 	ConfigDir     flag.StringFlag
@@ -68,6 +70,8 @@ func BindNodeNetworkArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
 	flags.StringVar(&args.RecursiveResolvConf, prefix+"recursive-resolv-conf", args.RecursiveResolvConf, "An optional upstream resolv.conf that will override the DNS config.")
 
 	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
+	flags.StringVar(&args.NodeIP, prefix+"node-ip", args.NodeIP, "The node IP address to be used by the SDN.")
+	flags.StringVar(&args.NodeName, prefix+"node-name", args.NodeName, "The hostname to be used by the SDN.")
 }
 
 // NewDefaultNetworkArgs creates NodeArgs with sub-objects created and default values set.
