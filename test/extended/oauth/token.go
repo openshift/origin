@@ -26,6 +26,8 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth Authenticator", func()
 	ctx := context.Background()
 
 	g.It(fmt.Sprintf("accepts classic non-prefixed access tokens"), func() {
+		g.Skip("skipping until https://github.com/openshift/kubernetes/pull/305 merged")
+
 		user, err := oc.AdminUserClient().UserV1().Users().Create(ctx, &userv1.User{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
@@ -62,6 +64,8 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth Authenticator", func()
 	})
 
 	g.It(fmt.Sprintf("accepts sha256 access tokens"), func() {
+		g.Skip("skipping until https://github.com/openshift/kubernetes/pull/305 merged")
+
 		user, err := oc.AdminUserClient().UserV1().Users().Create(ctx, &userv1.User{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
