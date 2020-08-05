@@ -306,6 +306,8 @@ func createPodsAndWait(client clientset.Interface, namespace string, phaseChecke
 			defer wg.Done()
 			defer g.GinkgoRecover()
 
+			e2e.Logf("creating pod: %#v", testPods[idx])
+
 			created, err := client.CoreV1().Pods(namespace).Create(context.Background(), testPods[idx], metav1.CreateOptions{})
 			e2e.ExpectNoError(err)
 
@@ -314,6 +316,8 @@ func createPodsAndWait(client clientset.Interface, namespace string, phaseChecke
 
 			updatedPods[idx], err = client.CoreV1().Pods(created.Namespace).Get(context.Background(), created.Name, metav1.GetOptions{})
 			e2e.ExpectNoError(err)
+
+			e2e.Logf("created pod: %#v", updatedPods[idx])
 		}(i)
 	}
 	wg.Wait()
