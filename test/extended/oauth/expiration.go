@@ -179,10 +179,10 @@ func testCodeFlow(oc *exutil.CLI, newRequestTokenOptions oauthserver.NewRequestT
 }
 
 func toTokenName(token string) string {
-	if strings.HasPrefix(token, "sha256:") {
-		withoutPrefix := strings.TrimPrefix(token, "sha256:")
+	if strings.HasPrefix(token, "sha256~") {
+		withoutPrefix := strings.TrimPrefix(token, "sha256~")
 		h := sha256.Sum256([]byte(withoutPrefix))
-		return "sha256:" + base64.RawURLEncoding.EncodeToString(h[0:])
+		return "sha256~" + base64.RawURLEncoding.EncodeToString(h[0:])
 	}
 	return token
 }
