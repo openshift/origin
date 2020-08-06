@@ -298,6 +298,7 @@ type podPhaseChecker func(corev1.PodPhase) bool
 func createPodsAndWait(client clientset.Interface, namespace string, phaseChecker podPhaseChecker, testPods ...*corev1.Pod) []*corev1.Pod {
 	num := len(testPods)
 	updatedPods := make([]*corev1.Pod, num, num)
+	errors := make([]error, num, num)
 	var wg sync.WaitGroup
 
 	for i := 0; i < num; i++ {
@@ -309,19 +310,28 @@ func createPodsAndWait(client clientset.Interface, namespace string, phaseChecke
 			e2e.Logf("creating pod: %#v", testPods[idx])
 
 			created, err := client.CoreV1().Pods(namespace).Create(context.Background(), testPods[idx], metav1.CreateOptions{})
-			e2e.ExpectNoError(err)
+			if err != nil {
+				errors[idx] = err
+				return
+			}
 
 			err = waitForPhase(client, created.Namespace, created.Name, phaseChecker, 5*time.Minute)
-			e2e.ExpectNoError(err)
+			if err != nil {
+				errors[idx] = err
+				return
+			}
 
 			updatedPods[idx], err = client.CoreV1().Pods(created.Namespace).Get(context.Background(), created.Name, metav1.GetOptions{})
-			e2e.ExpectNoError(err)
+			if err != nil {
+				errors[idx] = err
+				return
+			}
 
 			e2e.Logf("created pod: %#v", updatedPods[idx])
 		}(i)
 	}
 	wg.Wait()
-
+	expectNoErrorCreatingPods(client, testPods, errors)
 	return updatedPods
 }
 
@@ -346,7 +356,24 @@ func waitForPhase(c clientset.Interface, namespace, name string, phaseChecker po
 	})
 }
 
-// GetSriovNicIPs returns the list of ip addresses related to the given
+func expectNoErrorCreatingPods(client clientset.Interface, pods []*corev1.Pod, errors []error) {
+	// we do want the freshest state
+	roleWorkerLabel := getValueFromEnv(roleWorkerEnvVar, defaultRoleWorker, "worker role")
+	nodes, nErr := getNodeByRole(client, roleWorkerLabel)
+	e2e.ExpectNoError(nErr)
+
+	for idx, err := range errors {
+		if err != nil {
+			e2e.Logf("error creating pod %#v: %v", pods[idx], err)
+			for _, node := range nodes {
+				e2e.Logf("node %q allocatable CPU %v", node.Name, node.Status.Allocatable[corev1.ResourceCPU])
+			}
+			e2e.ExpectNoError(err)
+		}
+	}
+}
+
+// getSriovNicIPs returns the list of ip addresses related to the given
 // interface name for the given pod.
 func getSriovNicIPs(pod *corev1.Pod, ifcName string) ([]string, error) {
 	// Needed for parsing of podinfo
