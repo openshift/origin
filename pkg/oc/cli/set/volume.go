@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -667,7 +667,7 @@ func (o *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) 
 
 	for _, c := range containers {
 		for _, m := range c.VolumeMounts {
-			if path.Clean(m.MountPath) == path.Clean(opts.MountPath) && m.Name != o.Name {
+			if filepath.Clean(m.MountPath) == filepath.Clean(opts.MountPath) && m.Name != o.Name {
 				return fmt.Errorf("volume mount '%s' already exists for container '%s'", opts.MountPath, c.Name)
 			}
 		}
@@ -679,11 +679,11 @@ func (o *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) 
 		}
 		volumeMount := &kapi.VolumeMount{
 			Name:      o.Name,
-			MountPath: path.Clean(opts.MountPath),
+			MountPath: filepath.Clean(opts.MountPath),
 			ReadOnly:  opts.ReadOnly,
 		}
 		if len(opts.SubPath) > 0 {
-			volumeMount.SubPath = path.Clean(opts.SubPath)
+			volumeMount.SubPath = filepath.Clean(opts.SubPath)
 		}
 		c.VolumeMounts = append(c.VolumeMounts, *volumeMount)
 	}
@@ -704,7 +704,7 @@ func (o *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (
 			matchCount := 0
 			for _, c := range containers {
 				for _, m := range c.VolumeMounts {
-					if path.Clean(m.MountPath) == path.Clean(opts.MountPath) {
+					if filepath.Clean(m.MountPath) == filepath.Clean(opts.MountPath) {
 						name = m.Name
 						matchCount++
 						break
