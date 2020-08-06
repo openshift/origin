@@ -66,7 +66,6 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		mavenSlavePipelinePath        = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
 		//orchestrationPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "mapsapp-pipeline.yaml")
 		blueGreenPipelinePath                  = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
-		clientPluginPipelinePath               = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
 		envVarsPipelinePath                    = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
 		origPipelinePath                       = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "samplepipeline.yaml")
 		configMapPodTemplatePath               = exutil.FixturePath("testdata", "config-map-jenkins-slave-pods.yaml")
@@ -232,52 +231,6 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			g.By("Pipeline using jenkins-client-plugin")
-
-			g.By("should build and complete successfully", func() {
-				// instantiate the bc
-				g.By("create the jenkins pipeline strategy build config that leverages openshift client plugin")
-				err := oc.Run("create").Args("-f", clientPluginPipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// start the build - we run it twice because our sample pipeline exercises different paths of the client
-				// plugin based on whether certain resources already exist or not
-				for i := 0; i < 2; i++ {
-					g.By(fmt.Sprintf("starting the pipeline build and waiting for it to complete, pass: %d", i))
-					br, err := exutil.StartBuildAndWait(oc, "sample-pipeline-openshift-client-plugin")
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-openshift-client-plugin", oc, true)
-					if err != nil || !br.BuildSuccess {
-						exutil.DumpBuilds(oc)
-						exutil.DumpBuildLogs("ruby", oc)
-						exutil.DumpDeploymentLogs("mongodb", 1, oc)
-						exutil.DumpDeploymentLogs("jenkins-second-deployment", 1, oc)
-						exutil.DumpDeploymentLogs("jenkins-second-deployment", 2, oc)
-					}
-					br.AssertSuccess()
-
-					g.By("get build console logs and see if succeeded")
-					_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-					o.Expect(err).NotTo(o.HaveOccurred())
-				}
-
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "sample-pipeline-openshift-client-plugin").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("dc", "jenkins-second-deployment").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("bc", "ruby").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("is", "ruby").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("is", "ruby-25-centos7").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("secret", "mongodb").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-
 			g.By("should handle multi-namespace templates", func() {
 				g.By("create additional projects")
 				namespace := oc.Namespace()
