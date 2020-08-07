@@ -61,7 +61,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth Authenticator", func()
 		o.Expect(gotUser.Name).To(o.Equal(user.Name))
 
 		g.By("not-authenticating using a sha256 prefixed access token as bearer token")
-		_, err = whoamiWithToken("sha256:"+token, oc)
+		_, err = whoamiWithToken("sha256~"+token, oc)
 		o.Expect(errors.IsUnauthorized(err)).To(o.BeTrue())
 	})
 
@@ -84,7 +84,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth Authenticator", func()
 		hash := base64.RawURLEncoding.EncodeToString(bs[:])
 		classicTokenObject, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(ctx, &oauthv1.OAuthAccessToken{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "sha256:" + hash[0:],
+				Name: "sha256~" + hash[0:],
 			},
 			UserName:    user.Name,
 			UserUID:     string(user.UID),
@@ -96,12 +96,12 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth Authenticator", func()
 		oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), classicTokenObject)
 
 		g.By("authenticating using the sha256 prefixed access token as bearer token")
-		gotUser, err := whoamiWithToken("sha256:"+token, oc)
+		gotUser, err := whoamiWithToken("sha256~"+token, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(gotUser.Name).To(o.Equal(user.Name))
 
 		g.By("not-authenticating using a sha256 prefixed hash as bearer token")
-		_, err = whoamiWithToken("sha256:"+hash[0:], oc)
+		_, err = whoamiWithToken("sha256~"+hash[0:], oc)
 		o.Expect(errors.IsUnauthorized(err)).To(o.BeTrue())
 
 		g.By("not-authenticating using a non-prefixed token as bearer token")
