@@ -27,6 +27,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
+	"github.com/openshift/origin/test/extended/kubelet"
 	// "github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
@@ -48,6 +49,7 @@ func AllTests() []upgrades.Test {
 		&apps.JobUpgradeTest{},
 		&upgrades.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
+		&kubelet.ResourceVolumeSyncUpgradeTest{},
 	}
 }
 
