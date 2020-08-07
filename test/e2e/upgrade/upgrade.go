@@ -51,6 +51,8 @@ func AllTests() []upgrades.Test {
 		&upgrades.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
 		&networking.NetworkOutageUpgradeTest{},
+		&networking.HostNetworkLoadBalancerOutageUpgradeTest{},
+		&networking.PodNetworkLoadBalancerOutageUpgradeTest{},
 	}
 }
 

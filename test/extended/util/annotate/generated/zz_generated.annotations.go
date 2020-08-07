@@ -1821,6 +1821,14 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics": "should start and expose a secured proxy and verify build metrics [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-kube-apiserver][Late] load balancer access from kube-apiserver to kube-apiserver shouldn't report outage to external load balancer": "shouldn't report outage to external load balancer [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-kube-apiserver][Late] load balancer access from kube-apiserver to kube-apiserver shouldn't report outage to internal load balancer": "shouldn't report outage to internal load balancer [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-kube-apiserver][Late] load balancer access from openshift-apiserver to kube-apiserver shouldn't report outage to external load balancer": "shouldn't report outage to external load balancer [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-kube-apiserver][Late] load balancer access from openshift-apiserver to kube-apiserver shouldn't report outage to internal load balancer": "shouldn't report outage to internal load balancer [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": "should answer endpoint and wildcard queries for the cluster [Disabled:Broken] [Suite:openshift]",
 
 	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests": "should pass the gRPC interoperability tests [Suite:openshift/conformance/parallel/minimal]",
@@ -2256,6 +2264,10 @@ var annotations = map[string]string{
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router should set Forwarded headers appropriately": "should set Forwarded headers appropriately [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": "should support reencrypt to services backed by a serving certificate automatically [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network][Late] service network access from openshift-apiserver to kube-apiserver shouldn't report outage to kubernetes-apiserver-service": "shouldn't report outage to kubernetes-apiserver-service [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network][Late] service network access from openshift-apiserver to kube-apiserver shouldn't report outage to kubernetes-service": "shouldn't report outage to kubernetes-service [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][endpoints] admission TestEndpointAdmission": "TestEndpointAdmission [Suite:openshift/conformance/parallel]",
 

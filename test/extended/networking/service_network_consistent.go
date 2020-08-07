@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/openshift/client-go/operatorcontrolplane/clientset/versioned/typed/operatorcontrolplane/v1alpha1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -31,6 +31,101 @@ var _ = g.Describe("[sig-network][Late] service network access from openshift-ap
 	})
 })
 
+var _ = g.Describe("[sig-kube-apiserver][Late] load balancer access from kube-apiserver to kube-apiserver", func() {
+	defer g.GinkgoRecover()
+	var (
+		oc = exutil.NewCLIWithoutNamespace("loadbalancer-kube-apiserver")
+	)
+
+	g.It("shouldn't report outage to external load balancer", func() {
+		confirmNoHostNetworkExternalLoadBalancerOutage(oc.AdminConfig())
+	})
+
+	g.It("shouldn't report outage to internal load balancer", func() {
+		confirmNoHostNetworkInternalLoadBalancerOutage(oc.AdminConfig())
+	})
+})
+
+var _ = g.Describe("[sig-kube-apiserver][Late] load balancer access from openshift-apiserver to kube-apiserver", func() {
+	defer g.GinkgoRecover()
+	var (
+		oc = exutil.NewCLIWithoutNamespace("loadbalancer-kube-apiserver")
+	)
+
+	g.It("shouldn't report outage to external load balancer", func() {
+		confirmNoPodNetworkExternalLoadBalancerOutage(oc.AdminConfig())
+	})
+
+	g.It("shouldn't report outage to internal load balancer", func() {
+		confirmNoPodNetworkInternalLoadBalancerOutage(oc.AdminConfig())
+	})
+})
+
+// testRunCount is a map of test full text to the number of times it ran.  We use this to ensure we don't run tests
+// that must flake and not fail.  We make tests like this so that we can detect conditions without causing insta-fails
+// across the stack
+var (
+	testRunCountLock = sync.Mutex{}
+	testRunCount     = map[string]int{}
+)
+
+func shouldForceTestSuccess() bool {
+	testRunCountLock.Lock()
+	defer testRunCountLock.Unlock()
+
+	test := g.CurrentGinkgoTestDescription().FullTestText
+	curr := testRunCount[test]
+	framework.Logf("testRunCount[%q]==%d", test, curr)
+	testRunCount[test] = curr + 1
+	// if we have run before, then we should run again
+	if curr > 0 {
+		return true
+	}
+	return false
+}
+
+func confirmNoHostNetworkExternalLoadBalancerOutage(clientConfig *rest.Config) {
+	confirmNoLoadBalancerOutage("openshift-kube-apiserver", "load-balancer-api-external", "api.route from host network", clientConfig)
+}
+
+func confirmNoHostNetworkInternalLoadBalancerOutage(clientConfig *rest.Config) {
+	confirmNoLoadBalancerOutage("openshift-kube-apiserver", "load-balancer-api-internal", "api-int.route from host network", clientConfig)
+}
+
+func confirmNoPodNetworkExternalLoadBalancerOutage(clientConfig *rest.Config) {
+	confirmNoLoadBalancerOutage("openshift-apiserver", "load-balancer-api-external", "api.route from pod network", clientConfig)
+}
+
+func confirmNoPodNetworkInternalLoadBalancerOutage(clientConfig *rest.Config) {
+	confirmNoLoadBalancerOutage("openshift-apiserver", "load-balancer-api-internal", "api-int.route from pod network", clientConfig)
+}
+
+func confirmNoLoadBalancerOutage(namespace, targetName, description string, clientConfig *rest.Config) {
+	if shouldForceTestSuccess() {
+		return
+	}
+
+	ctx := context.TODO()
+	endpointCheckClient := v1alpha1.NewForConfigOrDie(clientConfig)
+	connectivityChecks, err := endpointCheckClient.PodNetworkConnectivityChecks(namespace).List(ctx, metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	failures := []string{}
+	for _, check := range connectivityChecks.Items {
+		if !strings.Contains(check.Name, targetName) {
+			continue
+		}
+		for _, serviceOutage := range check.Status.Outages {
+			failures = append(failures, fmt.Sprintf("%#v", serviceOutage))
+		}
+
+	}
+
+	if len(failures) > 0 {
+		g.Fail(fmt.Sprintf("%v was inaccessible:\n%v", description, strings.Join(failures, "\n")))
+	}
+}
+
 func confirmNoKubernetesDefaultServiceNetworkOutage(clientConfig *rest.Config) {
 	confirmNoServiceNetworkOutage("kubernetes-default-service", "KUBERNETES_SERVICE_HOST:KUBERNETES_SERVICE_PORT", clientConfig)
 }
@@ -40,6 +135,10 @@ func confirmNoKubernetesServiceMonitorServiceNetworkOutage(clientConfig *rest.Co
 }
 
 func confirmNoServiceNetworkOutage(targetName, description string, clientConfig *rest.Config) {
+	if shouldForceTestSuccess() {
+		return
+	}
+
 	ctx := context.TODO()
 	endpointCheckClient := v1alpha1.NewForConfigOrDie(clientConfig)
 	connectivityChecks, err := endpointCheckClient.PodNetworkConnectivityChecks("openshift-apiserver").List(ctx, metav1.ListOptions{})
@@ -91,7 +190,6 @@ func confirmNoServiceNetworkOutage(targetName, description string, clientConfig 
 
 // NetworkOutageUpgradeTest tests that we don't have an outage of the service network from the openshift-apiserver pod
 type NetworkOutageUpgradeTest struct {
-	daemonSet *appsv1.DaemonSet
 }
 
 // Name returns the tracking name of the test.
@@ -103,17 +201,66 @@ func (NetworkOutageUpgradeTest) Name() string {
 func (t *NetworkOutageUpgradeTest) Setup(f *framework.Framework) {
 }
 
-// Test waits until the upgrade has completed and then verifies that the DaemonSet
-// is still running
 func (t *NetworkOutageUpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	// wait to ensure API is still up after the test ends
 	<-done
 
 	confirmNoKubernetesDefaultServiceNetworkOutage(f.ClientConfig())
 	confirmNoKubernetesServiceMonitorServiceNetworkOutage(f.ClientConfig())
+
 }
 
 // Teardown cleans up any remaining resources.
 func (t *NetworkOutageUpgradeTest) Teardown(f *framework.Framework) {
+	// rely on the namespace deletion to clean up everything
+}
+
+type HostNetworkLoadBalancerOutageUpgradeTest struct {
+}
+
+// Name returns the tracking name of the test.
+func (HostNetworkLoadBalancerOutageUpgradeTest) Name() string {
+	return "[sig-network][Late] load balancer access from host-network to kube-apiserver"
+}
+
+// Setup creates a DaemonSet and verifies that it's running
+func (t *HostNetworkLoadBalancerOutageUpgradeTest) Setup(f *framework.Framework) {
+}
+
+func (t *HostNetworkLoadBalancerOutageUpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+	// wait to ensure API is still up after the test ends
+	<-done
+
+	confirmNoHostNetworkExternalLoadBalancerOutage(f.ClientConfig())
+	confirmNoHostNetworkInternalLoadBalancerOutage(f.ClientConfig())
+}
+
+// Teardown cleans up any remaining resources.
+func (t *HostNetworkLoadBalancerOutageUpgradeTest) Teardown(f *framework.Framework) {
+	// rely on the namespace deletion to clean up everything
+}
+
+type PodNetworkLoadBalancerOutageUpgradeTest struct {
+}
+
+// Name returns the tracking name of the test.
+func (PodNetworkLoadBalancerOutageUpgradeTest) Name() string {
+	return "[sig-network][Late] load balancer access from pod-network to kube-apiserver"
+}
+
+// Setup creates a DaemonSet and verifies that it's running
+func (t *PodNetworkLoadBalancerOutageUpgradeTest) Setup(f *framework.Framework) {
+}
+
+func (t *PodNetworkLoadBalancerOutageUpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+	// wait to ensure API is still up after the test ends
+	<-done
+
+	confirmNoPodNetworkExternalLoadBalancerOutage(f.ClientConfig())
+	confirmNoPodNetworkInternalLoadBalancerOutage(f.ClientConfig())
+}
+
+// Teardown cleans up any remaining resources.
+func (t *PodNetworkLoadBalancerOutageUpgradeTest) Teardown(f *framework.Framework) {
 	// rely on the namespace deletion to clean up everything
 }
