@@ -18,6 +18,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -116,7 +117,7 @@ func createRegistryCASecret(oc *exutil.CLI, proj *projectv1.Project) (*corev1.Se
 
 // createRegistryService creates a service pointing to deployed ephemeral image registry.
 func createRegistryService(oc *exutil.CLI, proj *projectv1.Project, selector map[string]string) error {
-	_, err := oc.AdminKubeClient().CoreV1().Services(proj.Name).Create(
+	if _, err := oc.AdminKubeClient().CoreV1().Services(proj.Name).Create(
 		context.Background(),
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
@@ -134,8 +135,18 @@ func createRegistryService(oc *exutil.CLI, proj *projectv1.Project, selector map
 			},
 		},
 		metav1.CreateOptions{},
-	)
-	return err
+	); err != nil {
+		return err
+	}
+
+	return wait.Poll(time.Second, time.Minute, func() (stop bool, err error) {
+		if _, err = oc.AdminKubeClient().CoreV1().Endpoints(proj.Name).Get(
+			context.Background(), "image-registry", metav1.GetOptions{},
+		); errors.IsNotFound(err) {
+			return false, nil
+		}
+		return true, err
+	})
 }
 
 // deployEphemeralImageRegistry deploys an ephemeral image registry instance using self signed
@@ -251,12 +262,7 @@ func deployEphemeralImageRegistry(oc *exutil.CLI, proj *projectv1.Project) error
 		return err
 	}
 
-	if err := createRegistryService(oc, proj, map[string]string{"app": "image-registry"}); err != nil {
-		return err
-	}
-
-	time.Sleep(10 * time.Second)
-	return nil
+	return createRegistryService(oc, proj, map[string]string{"app": "image-registry"})
 }
 
 // TestImportImageFromInsecureRegistry verifies api capability of importing images from insecure
