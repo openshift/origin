@@ -37,6 +37,7 @@ func AllTests() []upgrades.Test {
 	return []upgrades.Test{
 		controlplane.NewKubeAvailableTest(),
 		controlplane.NewOpenShiftAvailableTest(),
+		controlplane.NewOAuthAvailableTest(),
 		&alert.UpgradeTest{},
 		&frontends.AvailableTest{},
 		// Broken by 1.19 rebase, fix tracked by https://bugzilla.redhat.com/show_bug.cgi?id=1861944

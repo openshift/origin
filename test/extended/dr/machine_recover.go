@@ -63,6 +63,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 				&upgrades.ServiceUpgradeTest{},
 				controlplane.NewKubeAvailableTest(),
 				controlplane.NewOpenShiftAvailableTest(),
+				controlplane.NewOAuthAvailableTest(),
 				&frontends.AvailableTest{},
 			},
 			func() {

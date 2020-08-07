@@ -48,6 +48,24 @@ func (t *openShiftAvailableTest) Test(f *framework.Framework, done <-chan struct
 	t.availableTest.test(f, done, upgrade, monitor.StartOpenShiftAPIMonitoring)
 }
 
+// NewOauthAvailableTest tests that the OAuth APIs remains available during and after a cluster upgrade.
+func NewOAuthAvailableTest() upgrades.Test {
+	return &oauthAvailableTest{availableTest{name: "oauth-api-available"}}
+}
+
+// oauthAvailableTest tests that the OAuth APIs remains available during and after a cluster upgrade.
+type oauthAvailableTest struct {
+	availableTest
+}
+
+func (t oauthAvailableTest) Name() string { return t.availableTest.name }
+func (oauthAvailableTest) DisplayName() string {
+	return "[sig-api-machinery] OAuth APIs remain available"
+}
+func (t *oauthAvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+	t.availableTest.test(f, done, upgrade, monitor.StartOAuthAPIMonitoring)
+}
+
 type availableTest struct {
 	// name helps distinguish which API server in particular is unavailable.
 	name string
