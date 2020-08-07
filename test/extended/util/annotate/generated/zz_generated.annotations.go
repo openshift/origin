@@ -11,6 +11,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP": "test RequestHeaders IdP [Suite:openshift/conformance/serial]",
 
+	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster [Disabled:Broken] with non-gu workload should run with no regressions with single pod, single container requesting 1 core": "with single pod, single container requesting 1 core",
+
+	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster [Disabled:Broken] with non-gu workload should run with no regressions with single pod, single container requesting multiple cores": "with single pod, single container requesting multiple cores",
+
 	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload attached to SRIOV networks should let resource-aligned PODs have working SRIOV network interface": "should let resource-aligned PODs have working SRIOV network interface [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload saturating NUMA nodes should allow a pod requesting as many cores as a full NUMA node have": "should allow a pod requesting as many cores as a full NUMA node have [Suite:openshift/conformance/serial]",
@@ -32,10 +36,6 @@ var annotations = map[string]string{
 	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with single pod, single container requesting 1 core, 1 device": "with single pod, single container requesting 1 core, 1 device [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with single pod, single container requesting 4 cores, 1 device": "with single pod, single container requesting 4 cores, 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with non-gu workload should run with no regressions with single pod, single container requesting 1 core": "with single pod, single container requesting 1 core [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with non-gu workload should run with no regressions with single pod, single container requesting multiple cores": "with single pod, single container requesting multiple cores [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [k8s.io] Cluster size autoscaler scalability [Slow] CA ignores unschedulable pods while scheduling schedulable pods [Feature:ClusterAutoscalerScalability6]": "CA ignores unschedulable pods while scheduling schedulable pods [Feature:ClusterAutoscalerScalability6] [sig-cluster-lifecycle] [Suite:k8s]",
 
