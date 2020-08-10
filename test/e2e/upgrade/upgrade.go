@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,13 +30,14 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
 	"github.com/openshift/origin/test/e2e/upgrade/service"
+	"github.com/openshift/origin/test/extended/operators"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 )
 
-func AllTests() []upgrades.Test {
-	return []upgrades.Test{
+func allUpgradeTests(versions []string, versionTracker operators.VersionTracker) []upgrades.Test {
+	ret := []upgrades.Test{
 		controlplane.NewKubeAvailableTest(),
 		controlplane.NewOpenShiftAvailableTest(),
 		controlplane.NewOAuthAvailableTest(),
@@ -49,11 +52,16 @@ func AllTests() []upgrades.Test {
 		&upgrades.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
 	}
+	ret = append(ret, operators.NewClusterOperatorUpgradeTests(versions, versionTracker)...)
+
+	return ret
 }
+
+type TestFilterFunc func(testName string) bool
 
 var (
 	upgradeToImage             string
-	upgradeTests               = []upgrades.Test{}
+	upgradeTestFilterFn        TestFilterFunc = func(testName string) bool { return true }
 	upgradeAbortAt             int
 	upgradeDisruptRebootPolicy string
 )
@@ -62,10 +70,8 @@ var (
 // between (0,100].
 const upgradeAbortAtRandom = -1
 
-// SetTests controls the list of tests to run during an upgrade. See AllTests for the supported
-// suite.
-func SetTests(tests []upgrades.Test) {
-	upgradeTests = tests
+func SetUpgradeTestFilterFn(fn TestFilterFunc) {
+	upgradeTestFilterFn = fn
 }
 
 // SetToImage sets the image that will be upgraded to. This may be a comma delimited list
@@ -126,6 +132,15 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		upgCtx, err := getUpgradeContext(client, upgradeToImage)
 		framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", "", upgradeToImage)
 
+		// versionStrings is a slice of all the version we expect the operators to achieve.  We create tests for each of these.
+		versionStrings := []string{}
+		for _, version := range upgCtx.Versions {
+			versionStrings = append(versionStrings, version.Version.String())
+		}
+		versionTracker := operators.NewVersionTracker()
+		upgradeTests := filterUpgrade(allUpgradeTests(versionStrings, versionTracker), upgradeTestFilterFn)
+		// we have disruption tests watching to see when we achieve our final version and
+
 		disruption.Run(f, "Cluster upgrade", "upgrade",
 			disruption.TestData{
 				UpgradeType:    upgrades.ClusterUpgrade,
@@ -134,12 +149,22 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 			upgradeTests,
 			func() {
 				for i := 1; i < len(upgCtx.Versions); i++ {
-					framework.ExpectNoError(clusterUpgrade(f, client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
+					framework.ExpectNoError(clusterUpgrade(f, client, dynamicClient, config, upgCtx.Versions[i], i, versionTracker), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
 				}
 			},
 		)
 	})
 })
+
+func filterUpgrade(tests []upgrades.Test, match func(string) bool) []upgrades.Test {
+	var upgradeTests []upgrades.Test
+	for _, test := range tests {
+		if match(test.Name()) {
+			upgradeTests = append(upgradeTests, test)
+		}
+	}
+	return upgradeTests
+}
 
 func latestHistory(history []configv1.UpdateHistory) *configv1.UpdateHistory {
 	if len(history) > 0 {
@@ -235,7 +260,7 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 
 var errControlledAbort = fmt.Errorf("beginning abort")
 
-func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
+func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext, upgradeIndex int, upgradeVersionAccessor operators.VersionTracker) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
 
@@ -319,6 +344,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			}); err != nil {
 				return fmt.Errorf("timed out waiting for cluster to acknowledge upgrade: %v", err)
 			}
+
 			return nil
 		},
 	); err != nil {
@@ -346,6 +372,14 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 				}
 				if err != nil || cv == nil {
 					return false, err
+				}
+
+				// if we are performing an upgrade, then hopefully the CVO will eventually show us this desired version and we will set it once.
+				if len(upgradeVersionAccessor.GetTargetVersionFor(upgradeIndex)) == 0 && len(cv.Status.Desired.Version) > 0 {
+					e2elog.Logf("setting target version!: %v %q", upgradeIndex, cv.Status.Desired.Version)
+					upgradeVersionAccessor.SetTargetVersionFor(upgradeIndex, cv.Status.Desired.Version)
+				} else {
+					e2elog.Logf("still no desired version target version!: %v %q", upgradeIndex, cv.Status.Desired.Version)
 				}
 
 				if !aborted && monitor.ShouldUpgradeAbort(abortAt) {

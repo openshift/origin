@@ -9,14 +9,13 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/kubectl/pkg/util/templates"
-	"k8s.io/kubernetes/test/e2e/upgrades"
 
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/test/e2e/upgrade"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 )
 
-// upgradeSuites are all known upgade test suites this binary should run
+// upgradeSuites are all known upgrade test suites this binary should run
 var upgradeSuites = []*ginkgo.TestSuite{
 	{
 		Name: "all",
@@ -48,7 +47,7 @@ var upgradeSuites = []*ginkgo.TestSuite{
 	},
 }
 
-func upgradeInitArguments(opt map[string]string, filterFn func(name string) bool) error {
+func upgradeInitArguments(opt map[string]string, filterFn upgrade.TestFilterFunc) error {
 	for k, v := range opt {
 		switch k {
 		case "abort-at":
@@ -63,7 +62,8 @@ func upgradeInitArguments(opt map[string]string, filterFn func(name string) bool
 			return fmt.Errorf("unrecognized upgrade option: %s", k)
 		}
 	}
-	return filterUpgrade(upgrade.AllTests(), filterFn)
+	upgrade.SetUpgradeTestFilterFn(filterFn)
+	return nil
 }
 
 type UpgradeOptions struct {
@@ -125,17 +125,6 @@ func initUpgrade(value string) (*UpgradeOptions, error) {
 		}
 	}
 	return nil, fmt.Errorf("unrecognized upgrade info")
-}
-
-func filterUpgrade(tests []upgrades.Test, match func(string) bool) error {
-	var scope []upgrades.Test
-	for _, test := range tests {
-		if match(test.Name()) {
-			scope = append(scope, test)
-		}
-	}
-	upgrade.SetTests(scope)
-	return nil
 }
 
 func bindUpgradeOptions(opt *UpgradeOptions, flags *pflag.FlagSet) {
