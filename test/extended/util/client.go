@@ -17,9 +17,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
@@ -32,10 +29,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	netutil "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage/names"
 	memory "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
@@ -43,6 +43,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/flowcontrol"
+	kretry "k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
@@ -702,18 +703,54 @@ func (c *CLI) AddResourceToDelete(resource schema.GroupVersionResource, metadata
 }
 
 func (c *CLI) CreateUser(prefix string) *userv1.User {
-	user, err := c.AdminUserClient().UserV1().Users().Create(context.Background(), &userv1.User{
-		ObjectMeta: metav1.ObjectMeta{GenerateName: prefix + c.Namespace()},
-	}, metav1.CreateOptions{})
-	if err != nil {
-		FatalErr(err)
-	}
-	c.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
+	var (
+		user *userv1.User
+	)
+	withRetryOnTemporaryErr(context.TODO(), func() error {
+		var err error
+		user, err = c.AdminUserClient().UserV1().Users().Create(context.Background(), &userv1.User{
+			ObjectMeta: metav1.ObjectMeta{GenerateName: prefix + c.Namespace()},
+		}, metav1.CreateOptions{})
+		return err
+	})
 
+	c.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
 	return user
 }
 
+func withRetryOnTemporaryErr(ctx context.Context, fn func() error) {
+	retriableAPIErrors := func(err error) bool {
+		return apierrors.IsServiceUnavailable(err) || // in case API server is rolling out
+			apierrors.IsServerTimeout(err) ||
+			apierrors.IsUnexpectedServerError(err) ||
+			netutil.IsConnectionRefused(err) ||
+			netutil.IsConnectionReset(err) ||
+			netutil.IsNoRoutesError(err) ||
+			netutil.IsProbableEOF(err)
+	}
+	if err := kretry.OnError(kretry.DefaultRetry, retriableAPIErrors, func() error {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("context cancelled")
+		default:
+		}
+		return fn()
+	}); err != nil {
+		FatalErr(err)
+	}
+}
+
 func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
+	var config *rest.Config
+	withRetryOnTemporaryErr(context.TODO(), func() error {
+		var err error
+		config, err = c.getClientConfigForUserOrError(username)
+		return err
+	})
+	return config
+}
+
+func (c *CLI) getClientConfigForUserOrError(username string) (*rest.Config, error) {
 	ctx := context.Background()
 	userClient := c.AdminUserClient()
 
@@ -726,7 +763,7 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 			ObjectMeta: metav1.ObjectMeta{Name: username},
 		}, metav1.CreateOptions{})
 		if err != nil {
-			FatalErr(err)
+			return nil, err
 		}
 		c.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
 	}
@@ -738,7 +775,7 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 		GrantMethod: oauthv1.GrantHandlerAuto,
 	}, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		FatalErr(err)
+		return nil, err
 	}
 	if oauthClientObj != nil {
 		c.AddExplicitResourceToDelete(oauthv1.GroupVersion.WithResource("oauthclients"), "", oauthClientName)
@@ -759,14 +796,14 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 		RedirectURI: "https://localhost:8443/oauth/token/implicit",
 	}, metav1.CreateOptions{})
 	if err != nil {
-		FatalErr(err)
+		return nil, err
 	}
 	c.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), token)
 
 	userClientConfig := rest.AnonymousClientConfig(turnOffRateLimiting(rest.CopyConfig(c.AdminConfig())))
 	userClientConfig.BearerToken = token.Name
 
-	return userClientConfig
+	return userClientConfig, nil
 }
 
 // turnOffRateLimiting reduces the chance that a flaky test can be written while using this package
