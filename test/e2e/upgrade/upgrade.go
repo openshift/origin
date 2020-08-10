@@ -27,6 +27,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
+	"github.com/openshift/origin/test/extended/operators"
 	// "github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
@@ -34,7 +35,7 @@ import (
 )
 
 func AllTests() []upgrades.Test {
-	return []upgrades.Test{
+	ret := []upgrades.Test{
 		controlplane.NewKubeAvailableTest(),
 		controlplane.NewOpenShiftAvailableTest(),
 		controlplane.NewOAuthAvailableTest(),
@@ -50,6 +51,9 @@ func AllTests() []upgrades.Test {
 		&upgrades.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
 	}
+	ret = append(ret, operators.NewClusterOperatorUpgradeTests()...)
+
+	return ret
 }
 
 var (
