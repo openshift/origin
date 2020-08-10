@@ -100,9 +100,6 @@ var (
 
 			`Cluster should restore itself after quorum loss`, // https://bugzilla.redhat.com/show_bug.cgi?id=1837157
 
-			// Fix is in progress upstream and tracked via https://bugzilla.redhat.com/show_bug.cgi?id=1861215
-			`Secret should create a pod that reads a secret`,
-
 			// disabled until oc and origin are on k8s 1.19 - workloads team
 			`should return command exit codes`,
 

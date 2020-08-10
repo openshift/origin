@@ -221,7 +221,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [k8s.io] [Feature:Example] [k8s.io] Liveness liveness pods should be automatically restarted": "liveness pods should be automatically restarted [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [k8s.io] [Feature:Example] [k8s.io] Secret should create a pod that reads a secret": "should create a pod that reads a secret [Disabled:Broken] [sig-node] [Suite:k8s]",
+	"[Top Level] [k8s.io] [Feature:Example] [k8s.io] Secret should create a pod that reads a secret": "should create a pod that reads a secret [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [k8s.io] [Feature:TTLAfterFinished][NodeAlphaFeature:TTLAfterFinished] job should be deleted once it finishes after TTL seconds": "job should be deleted once it finishes after TTL seconds [Disabled:Alpha] [sig-node] [Suite:k8s]",
 
