@@ -100,9 +100,6 @@ var (
 
 			`Cluster should restore itself after quorum loss`, // https://bugzilla.redhat.com/show_bug.cgi?id=1837157
 
-			// disabled until oc and origin are on k8s 1.19 - workloads team
-			`should return command exit codes`,
-
 			// Disabled as per networking team. Follow-up tracked via https://bugzilla.redhat.com/show_bug.cgi?id=1861214
 			`EndpointSliceMirroring should mirror a custom Endpoints resource through create update and delete`,
 
