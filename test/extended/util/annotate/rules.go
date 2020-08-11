@@ -99,9 +99,6 @@ var (
 
 			`Cluster should restore itself after quorum loss`, // https://bugzilla.redhat.com/show_bug.cgi?id=1837157
 
-			// Disabled as per networking team. Follow-up tracked via https://bugzilla.redhat.com/show_bug.cgi?id=1861214
-			`EndpointSliceMirroring should mirror a custom Endpoints resource through create update and delete`,
-
 			// Perma-fail
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1862322
 			`an end user can use OLM can subscribe to the operator`,

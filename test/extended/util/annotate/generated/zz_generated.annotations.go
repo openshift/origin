@@ -1897,7 +1897,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] EndpointSlice should have Endpoints and EndpointSlices pointing to API Server": "should have Endpoints and EndpointSlices pointing to API Server [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] EndpointSliceMirroring should mirror a custom Endpoints resource through create update and delete": "should mirror a custom Endpoints resource through create update and delete [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-network] EndpointSliceMirroring should mirror a custom Endpoints resource through create update and delete": "should mirror a custom Endpoints resource through create update and delete [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Firewall rule [Slow] [Serial] should create valid firewall rules for LoadBalancer type service": "[Slow] [Serial] should create valid firewall rules for LoadBalancer type service [Suite:k8s]",
 
