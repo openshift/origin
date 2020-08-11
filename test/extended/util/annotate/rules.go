@@ -157,10 +157,6 @@ var (
 		},
 		"[Skipped:azure]": {
 			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.
-
-			// openshift-tests cannot access Azure API to create in-line or pre-provisioned volumes, https://bugzilla.redhat.com/show_bug.cgi?id=1723603
-			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume`,
-			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV`,
 		},
 		"[Skipped:ovirt]": {
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1838751
