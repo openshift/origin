@@ -217,8 +217,6 @@ var (
 			`\[sig-network\] Services should have session affinity work for service with type clusterIP`,
 			`\[sig-network\] Services should have session affinity timeout work for NodePort service`,
 			`\[sig-network\] Services should have session affinity timeout work for service with type clusterIP`,
-			// https://github.com/kubernetes/kubernetes/pull/93597: upstream is flaky
-			`\[sig-network\] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service`,
 		},
 		"[Skipped:ibmcloud]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)
