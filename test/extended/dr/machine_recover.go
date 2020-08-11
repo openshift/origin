@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 		replacedWorker := workers[rand.Intn(len(workers))]
 		expectSSH("true", replacedWorker)
 
-		disruption.Run("Machine Shutdown and Restore", "machine_failure",
+		disruption.Run(f, "Machine Shutdown and Restore", "machine_failure",
 			disruption.TestData{},
 			[]upgrades.Test{
 				&upgrades.ServiceUpgradeTest{},

@@ -1,6 +1,7 @@
 package disruption
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -30,6 +31,18 @@ type testWithDisplayName interface {
 	DisplayName() string
 }
 
+// additionalTest is a test summary type that allows disruption suites to report
+// extra JUnit outcomes for parts of a test.
+type additionalTest struct {
+	Name     string
+	Failure  string
+	Duration time.Duration
+}
+
+func (s additionalTest) PrintHumanReadable() string { return fmt.Sprintf("%s: %s", s.Name, s.Failure) }
+func (s additionalTest) SummaryKind() string        { return "AdditionalTest" }
+func (s additionalTest) PrintJSON() string          { data, _ := json.Marshal(s); return string(data) }
+
 // flakeSummary is a test summary type that allows upgrades to report violations
 // without failing the upgrade test.
 type flakeSummary string
@@ -54,13 +67,13 @@ type TestData struct {
 // Run executes the provided fn in a test context, ensuring that invariants are preserved while the
 // test is being executed. Description is used to populate the JUnit suite name, and testname is
 // used to define the overall test that will be run.
-func Run(description, testname string, adapter TestData, invariants []upgrades.Test, fn func()) {
+func Run(f *framework.Framework, description, testname string, adapter TestData, invariants []upgrades.Test, fn func()) {
 	testSuite := &junit.TestSuite{Name: description, Package: testname}
 	test := &junit.TestCase{Name: testname, Classname: testname}
 	testSuite.TestCases = append(testSuite.TestCases, test)
 	cm := chaosmonkey.New(func() {
 		start := time.Now()
-		defer finalizeTest(start, test, nil)
+		defer finalizeTest(start, test, testSuite, f)
 		defer g.GinkgoRecover()
 		fn()
 	})
@@ -90,10 +103,11 @@ func runChaosmonkey(
 			panic(fmt.Sprintf("can't find test framework for %q", t.Name()))
 		}
 		cma := chaosMonkeyAdapter{
-			TestData:   testData,
-			framework:  f,
-			test:       t,
-			testReport: testCase,
+			TestData:        testData,
+			framework:       f,
+			test:            t,
+			testReport:      testCase,
+			testSuiteReport: testSuite,
 		}
 		cm.Register(cma.Test)
 	}
@@ -139,9 +153,10 @@ func runChaosmonkey(
 type chaosMonkeyAdapter struct {
 	TestData
 
-	test       upgrades.Test
-	testReport *junit.TestCase
-	framework  *framework.Framework
+	test            upgrades.Test
+	testReport      *junit.TestCase
+	testSuiteReport *junit.TestSuite
+	framework       *framework.Framework
 }
 
 func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
@@ -152,7 +167,7 @@ func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
 			sem.Ready()
 		})
 	}
-	defer finalizeTest(start, cma.testReport, cma.framework)
+	defer finalizeTest(start, cma.testReport, cma.testSuiteReport, cma.framework)
 	defer ready()
 	if skippable, ok := cma.test.(upgrades.Skippable); ok && skippable.Skip(cma.UpgradeContext) {
 		g.By("skipping test " + cma.test.Name())
@@ -166,9 +181,28 @@ func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
 	cma.test.Test(cma.framework, sem.StopCh, cma.UpgradeType)
 }
 
-func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
+func finalizeTest(start time.Time, tc *junit.TestCase, ts *junit.TestSuite, f *framework.Framework) {
 	tc.Time = time.Since(start).Seconds()
 	r := recover()
+
+	// if the framework contains additional test results, add them to the parent suite
+	for _, summary := range f.TestSummaries {
+		if test, ok := summary.(additionalTest); ok {
+			testCase := &junit.TestCase{
+				Name: test.Name,
+				Time: test.Duration.Seconds(),
+			}
+			if len(test.Failure) > 0 {
+				testCase.Failures = append(testCase.Failures, &junit.Failure{
+					Message: test.Failure,
+					Value:   test.Failure,
+				})
+			}
+			ts.TestCases = append(ts.TestCases, testCase)
+			continue
+		}
+	}
+
 	if r == nil {
 		if f != nil {
 			for _, summary := range f.TestSummaries {
@@ -178,6 +212,7 @@ func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
 						Type:    "Flake",
 						Value:   summary.PrintHumanReadable(),
 					})
+					continue
 				}
 			}
 		}
@@ -271,4 +306,33 @@ func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Dur
 	} else if duration > 0 {
 		Flakef(f, "%s for at least %s of %s (%0.0f%%), this is currently sufficient to pass the test/job but not considered completely correct:\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
 	}
+}
+
+// RecordJUnit will capture the result of invoking fn as either a passing or failing JUnit test
+// that will be recorded alongside the current test with name.
+func RecordJUnit(f *framework.Framework, name string, fn func() error) error {
+	start := time.Now()
+	err := fn()
+	duration := time.Now().Sub(start)
+	var failure string
+	if err != nil {
+		failure = err.Error()
+	}
+	f.TestSummaries = append(f.TestSummaries, additionalTest{
+		Name:     name,
+		Duration: duration,
+		Failure:  failure,
+	})
+	return err
+}
+
+// RecordJUnitResult will output a junit result within a disruption test with the given name,
+// duration, and failure string. If the failure string is set, the test is considered to have
+// failed, otherwise the test is considered to have passed.
+func RecordJUnitResult(f *framework.Framework, name string, duration time.Duration, failure string) {
+	f.TestSummaries = append(f.TestSummaries, additionalTest{
+		Name:     name,
+		Duration: duration,
+		Failure:  failure,
+	})
 }
