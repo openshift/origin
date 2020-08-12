@@ -280,7 +280,7 @@ func waitForPodsTolerateClientTimeout(c corev1client.PodInterface, label labels.
 }
 
 func scaleEtcdQuorum(client kubernetes.Interface, replicas int) error {
-	etcdQGScale, err := client.AppsV1().Deployments("openshift-machine-config-operator").GetScale(context.Background(), "etcd-quorum-guard", metav1.GetOptions{})
+	etcdQGScale, err := client.AppsV1().Deployments("openshift-etcd").GetScale(context.Background(), "etcd-quorum-guard", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -289,12 +289,12 @@ func scaleEtcdQuorum(client kubernetes.Interface, replicas int) error {
 	}
 	framework.Logf("Scale etcd-quorum-guard to %d replicas", replicas)
 	etcdQGScale.Spec.Replicas = int32(replicas)
-	_, err = client.AppsV1().Deployments("openshift-machine-config-operator").UpdateScale(context.Background(), "etcd-quorum-guard", etcdQGScale, metav1.UpdateOptions{})
+	_, err = client.AppsV1().Deployments("openshift-etcd").UpdateScale(context.Background(), "etcd-quorum-guard", etcdQGScale, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
 
-	etcdQGScale, err = client.AppsV1().Deployments("openshift-machine-config-operator").GetScale(context.Background(), "etcd-quorum-guard", metav1.GetOptions{})
+	etcdQGScale, err = client.AppsV1().Deployments("openshift-etcd").GetScale(context.Background(), "etcd-quorum-guard", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
