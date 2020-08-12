@@ -1641,15 +1641,15 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			dcListWatch := &cache.ListWatch{
 				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 					options.FieldSelector = fields.OneTermEqualSelector("metadata.name", dc.Name).String()
-					return oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).List(context.Background(), options)
+					return oc.AppsClient().AppsV1().DeploymentConfigs(namespace).List(context.Background(), options)
 				},
 				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 					options.FieldSelector = fields.OneTermEqualSelector("metadata.name", dc.Name).String()
-					return oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Watch(context.Background(), options)
+					return oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Watch(context.Background(), options)
 				},
 			}
 			preconditionFunc := func(store cache.Store) (bool, error) {
-				_, exists, err := store.Get(&metav1.ObjectMeta{Namespace: dc.Namespace, Name: dc.Name})
+				_, exists, err := store.Get(&metav1.ObjectMeta{Namespace: namespace, Name: dc.Name})
 				if err != nil {
 					return true, err
 				}

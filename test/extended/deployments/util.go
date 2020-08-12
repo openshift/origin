@@ -405,26 +405,12 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 // rollout and then wait till the deployer pod finish. Then scrubs the deployer logs and
 // return it.
 func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duration) (string, error) {
-	watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{FieldSelector: fields.Everything().String()})
-	if err != nil {
-		return "", err
-	}
-	defer watcher.Stop()
-	var rc *corev1.ReplicationController
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	if _, err := watchtools.UntilWithoutRetry(ctx, watcher, func(e watch.Event) (bool, error) {
-		if e.Type == watch.Error {
-			return false, fmt.Errorf("error while waiting for replication controller: %v", e.Object)
-		}
-		if e.Type == watch.Added || e.Type == watch.Modified {
-			if newRC, ok := e.Object.(*corev1.ReplicationController); ok && newRC.Name == name {
-				rc = newRC
-				return true, nil
-			}
-		}
-		return false, nil
-	}); err != nil {
+	rc, err := waitForRCState(ctx, oc.KubeClient().CoreV1(), oc.Namespace(), name, func(newRC *corev1.ReplicationController) (bool, error) {
+		return newRC.Name == name, nil
+	})
+	if err != nil {
 		return "", err
 	}
 	podName := appsutil.DeployerPodNameForDeployment(rc.Name)
