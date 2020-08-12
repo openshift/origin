@@ -252,7 +252,10 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 
 	kubeClient := kubernetes.NewForConfigOrDie(config)
 
-	maximumDuration := 75 * time.Minute
+	// this is very long.  We should update the clusteroperator junit to give us a duration.
+	maximumDuration := 150 * time.Minute
+	// if upgrades take longer than this, then we will have a junit marker indicating failure.
+	durationToSoftFailure := 75 * time.Minute
 
 	framework.Logf("Starting upgrade to version=%s image=%s", version.Version.String(), version.NodeImage)
 
@@ -332,6 +335,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	framework.Logf("Cluster version operator acknowledged upgrade request")
 	aborted := false
 	var lastMessage string
+	upgradeStarted := time.Now()
 	if err := wait.PollImmediate(10*time.Second, maximumDuration, func() (bool, error) {
 		cv, msg, err := monitor.Check(updated.Generation, desired)
 		if msg != "" {
@@ -375,6 +379,15 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	}
 
 	framework.Logf("Completed upgrade to %s", versionString(desired))
+
+	// record whether the cluster was fast or slow upgrading.  Don't fail the test, we still want signal on the actual tests themselves.
+	upgradeEnded := time.Now()
+	upgradeDuration := upgradeEnded.Sub(upgradeStarted)
+	if upgradeDuration > durationToSoftFailure {
+		disruption.RecordJUnitResult(f, "cluster upgrade should be fast", upgradeDuration, fmt.Sprintf("Upgrade took too long: %v", upgradeDuration.Minutes()))
+	} else {
+		disruption.RecordJUnitResult(f, "cluster upgrade should be fast", upgradeDuration, "")
+	}
 
 	framework.Logf("Waiting on pools to be upgraded")
 	if err := wait.PollImmediate(10*time.Second, 30*time.Minute, func() (bool, error) {
