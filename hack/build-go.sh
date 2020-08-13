@@ -14,7 +14,7 @@ platform="$(os::build::host_platform)"
 
 build_targets=("$@")
 if [[ -z "$@" ]]; then
-    build_targets=(cmd/openshift-tests)
+    build_targets=(cmd/openshift-tests, cmd/csi_cert_storage_caps)
 fi
 
 OS_BUILD_PLATFORMS=("${OS_BUILD_PLATFORMS[@]:-${platform}}")
