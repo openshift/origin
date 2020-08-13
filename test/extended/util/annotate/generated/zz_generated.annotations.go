@@ -10891,6 +10891,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (xfs)][Slow] volumes should store data": "should store data [Suite:k8s]",
 
+	"[Top Level] [sig-storage] Managed cluster should have no crashlooping recycler pods over four minutes": "have no crashlooping recycler pods over four minutes [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-storage] Mounted flexvolume volume expand [Slow] [Feature:ExpandInUsePersistentVolumes] should be resizable when mounted": "should be resizable when mounted [Suite:k8s]",
 
 	"[Top Level] [sig-storage] Mounted volume expand Should verify mounted devices can be resized": "Should verify mounted devices can be resized [Suite:openshift/conformance/parallel] [Suite:k8s]",
