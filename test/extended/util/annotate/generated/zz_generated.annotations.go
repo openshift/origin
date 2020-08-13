@@ -2313,10 +2313,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Disabled:Broken] [Suite:openshift]",
 
-	"[Top Level] [sig-operator][Feature:Marketplace] Marketplace diff name test [ocp-25672] create the samename opsrc&csc [Serial]": "[ocp-25672] create the samename opsrc&csc [Serial] [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [sig-operator][Feature:Marketplace] Marketplace resources with labels provider displayName [ocp-21728] create opsrc with labels [Serial]": "[ocp-21728] create opsrc with labels [Serial] [Suite:openshift/conformance/serial]",
-
 	"[Top Level] [sig-scalability][Feature:Performance] Load cluster should populate the cluster [Slow][Serial]": "should populate the cluster [Slow][Serial] [Suite:openshift]",
 
 	"[Top Level] [sig-scalability][Feature:Performance][Serial][Slow] Load cluster concurrently with templates": "concurrently with templates [Suite:openshift]",
