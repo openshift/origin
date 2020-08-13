@@ -811,7 +811,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth] ServiceAccounts should run through the lifecycle of a ServiceAccount [Conformance]": "should run through the lifecycle of a ServiceAccount [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection]": "should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection]": "should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] ServiceAccounts should support InClusterConfig with token rotation [Slow] [Feature:TokenRequestProjection]": "should support InClusterConfig with token rotation [Slow] [Feature:TokenRequestProjection] [Suite:k8s]",
 
