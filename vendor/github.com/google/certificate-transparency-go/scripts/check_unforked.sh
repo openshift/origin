@@ -7,7 +7,7 @@ set -eu
 check_import() {
   local path="$1"
 
-  local result=$(grep -Hne '\("github.com/gogo/protobuf/proto"\)' "$path")
+  local result=$(grep -Hne '\("github.com/gogo/protobuf/proto"\|"golang.org/x/net/context"\)' "$path")
   if [[ ! -z "${result}" ]]; then
     echo "$result - import of forked library"
     return 1

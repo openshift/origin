@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package configpb holds a config protobuf for the CT personality.
 package configpb
 
 //go:generate protoc -I=. -I=$GOPATH/src --go_out=:. config.proto

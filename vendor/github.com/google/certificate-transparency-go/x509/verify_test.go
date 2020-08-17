@@ -19,16 +19,18 @@ import (
 var supportSHA2 = true
 
 type verifyTest struct {
-	leaf                 string
-	intermediates        []string
-	roots                []string
-	currentTime          int64
-	dnsName              string
-	systemSkip           bool
-	keyUsages            []ExtKeyUsage
-	testSystemRootsError bool
-	sha2                 bool
-	disableTimeChecks    bool
+	leaf                           string
+	intermediates                  []string
+	roots                          []string
+	currentTime                    int64
+	dnsName                        string
+	systemSkip                     bool
+	keyUsages                      []ExtKeyUsage
+	testSystemRootsError           bool
+	sha2                           bool
+	disableTimeChecks              bool
+	disableCriticalExtensionChecks bool
+	disableNameChecks              bool
 
 	errorCallback  func(*testing.T, int, error) bool
 	expectedChains [][]string
@@ -296,7 +298,18 @@ var verifyTests = []verifyTest{
 		currentTime: 1475787715,
 		systemSkip:  true,
 
-		errorCallback: expectSubjectIssuerMismatcthError,
+		errorCallback: expectSubjectIssuerMismatchError,
+	},
+	{
+		leaf:              issuerSubjectMatchLeaf,
+		roots:             []string{issuerSubjectMatchRoot},
+		currentTime:       1475787715,
+		systemSkip:        true,
+		disableNameChecks: true,
+
+		expectedChains: [][]string{
+			{"Leaf", "Root ca"},
+		},
 	},
 	{
 		// An X.509 v1 certificate should not be accepted as an
@@ -354,6 +367,40 @@ var verifyTests = []verifyTest{
 		systemSkip:    true,
 
 		errorCallback: expectUnhandledCriticalExtension,
+	},
+	{
+		leaf:                           criticalExtLeafWithExt,
+		dnsName:                        "example.com",
+		intermediates:                  []string{criticalExtIntermediate},
+		roots:                          []string{criticalExtRoot},
+		currentTime:                    1486684488,
+		systemSkip:                     true,
+		disableCriticalExtensionChecks: true,
+
+		expectedChains: [][]string{
+			{
+				"example.com",
+				"Intermediate",
+				"Root",
+			},
+		},
+	},
+	{
+		leaf:                           criticalExtLeaf,
+		dnsName:                        "example.com",
+		intermediates:                  []string{criticalExtIntermediateWithExt},
+		roots:                          []string{criticalExtRoot},
+		currentTime:                    1486684488,
+		systemSkip:                     true,
+		disableCriticalExtensionChecks: true,
+
+		expectedChains: [][]string{
+			{
+				"example.com",
+				"Intermediate with Critical Extension",
+				"Root",
+			},
+		},
 	},
 }
 
@@ -414,7 +461,7 @@ func expectHashError(t *testing.T, i int, err error) bool {
 	return true
 }
 
-func expectSubjectIssuerMismatcthError(t *testing.T, i int, err error) (ok bool) {
+func expectSubjectIssuerMismatchError(t *testing.T, i int, err error) (ok bool) {
 	if inval, ok := err.(CertificateInvalidError); !ok || inval.Reason != NameMismatch {
 		t.Errorf("#%d: error was not a NameMismatch: %s", i, err)
 		return false
@@ -467,11 +514,13 @@ func testVerify(t *testing.T, useSystemRoots bool) {
 		}
 
 		opts := VerifyOptions{
-			Intermediates:     NewCertPool(),
-			DNSName:           test.dnsName,
-			CurrentTime:       time.Unix(test.currentTime, 0),
-			KeyUsages:         test.keyUsages,
-			DisableTimeChecks: test.disableTimeChecks,
+			Intermediates:                  NewCertPool(),
+			DNSName:                        test.dnsName,
+			CurrentTime:                    time.Unix(test.currentTime, 0),
+			KeyUsages:                      test.keyUsages,
+			DisableTimeChecks:              test.disableTimeChecks,
+			DisableCriticalExtensionChecks: test.disableCriticalExtensionChecks,
+			DisableNameChecks:              test.disableNameChecks,
 		}
 
 		if !useSystemRoots {

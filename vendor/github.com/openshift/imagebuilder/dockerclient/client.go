@@ -825,8 +825,17 @@ func (e *ClientExecutor) archiveFromContainer(from string, src, dst string) (io.
 	ar, archiveRoot, err := archiveFromContainer(pr, src, dst, nil, check)
 	if err != nil {
 		pr.Close()
+		pw.Close()
 		return nil, nil, err
 	}
+	closer := newCloser(func() error {
+		err2 := pr.Close()
+		err3 := ar.Close()
+		if err3 != nil {
+			return err3
+		}
+		return err2
+	})
 	go func() {
 		glog.V(6).Infof("Download from container %s at path %s", containerID, archiveRoot)
 		err := e.Client.DownloadFromContainer(containerID, docker.DownloadFromContainerOptions{
@@ -835,7 +844,7 @@ func (e *ClientExecutor) archiveFromContainer(from string, src, dst string) (io.
 		})
 		pw.CloseWithError(err)
 	}()
-	return ar, pr, nil
+	return &readCloser{Reader: ar, Closer: closer}, pr, nil
 }
 
 // TODO: this does not support decompressing nested archives for ADD (when the source is a compressed file)

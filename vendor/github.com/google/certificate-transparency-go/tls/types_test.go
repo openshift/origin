@@ -14,7 +14,13 @@
 
 package tls
 
-import "testing"
+import (
+	"crypto"
+	"crypto/dsa"
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"testing"
+)
 
 func TestHashAlgorithmString(t *testing.T) {
 	var tests = []struct {
@@ -72,6 +78,23 @@ func TestDigitallySignedString(t *testing.T) {
 	for _, test := range tests {
 		if got := test.ds.String(); got != test.want {
 			t.Errorf("%v.String()=%q; want %q", test.ds, got, test.want)
+		}
+	}
+}
+
+func TestSignatureAlgorithm(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		key  crypto.PublicKey
+		want SignatureAlgorithm
+	}{
+		{name: "ECDSA", key: new(ecdsa.PublicKey), want: ECDSA},
+		{name: "RSA", key: new(rsa.PublicKey), want: RSA},
+		{name: "DSA", key: new(dsa.PublicKey), want: DSA},
+		{name: "Other", key: "foo", want: Anonymous},
+	} {
+		if got := SignatureAlgorithmFromPubKey(test.key); got != test.want {
+			t.Errorf("%v: SignatureAlgorithm() = %v, want %v", test.name, got, test.want)
 		}
 	}
 }

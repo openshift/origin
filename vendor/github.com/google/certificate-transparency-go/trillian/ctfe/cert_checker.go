@@ -58,11 +58,8 @@ func ValidateChain(rawChain [][]byte, validationOpts CertValidationOpts) ([]*x50
 
 	for i, certBytes := range rawChain {
 		cert, err := x509.ParseCertificate(certBytes)
-		if err != nil {
-			_, ok := err.(x509.NonFatalErrors)
-			if !ok {
-				return nil, err
-			}
+		if _, ok := err.(x509.NonFatalErrors); !ok && err != nil {
+			return nil, err
 		}
 
 		chain = append(chain, cert)
@@ -89,64 +86,42 @@ func ValidateChain(rawChain [][]byte, validationOpts CertValidationOpts) ([]*x50
 		return nil, errors.New("only certificates with CA bit set are accepted")
 	}
 
-	// We can now do the verification
+	// We can now do the verification.  Use fairly lax options for verification, as
+	// CT is intended to observe certificates rather than police them.
 	verifyOpts := x509.VerifyOptions{
 		Roots:             validationOpts.trustedRoots.CertPool(),
 		Intermediates:     intermediatePool.CertPool(),
 		DisableTimeChecks: !validationOpts.rejectExpired,
-		KeyUsages:         validationOpts.extKeyUsages,
+		// Precertificates have the poison extension; also the Go library code does not
+		// support the standard PolicyConstraints extension (which is required to be marked
+		// critical, RFC 5280 s4.2.1.11), so never check unhandled critical extensions.
+		DisableCriticalExtensionChecks: true,
+		// Pre-issued precertificates have the Certificate Transparency EKU; also some
+		// leaves have unknown EKUs that should not be bounced just because the intermediate
+		// does not also have them (cf. https://github.com/golang/go/issues/24590) so
+		// disable EKU checks.
+		DisableEKUChecks: true,
+		// Path length checks get confused by the presence of an additional
+		// pre-issuer intermediate, so disable them.
+		DisablePathLenChecks:        true,
+		DisableNameConstraintChecks: true,
+		DisableNameChecks:           false,
+		KeyUsages:                   validationOpts.extKeyUsages,
 	}
 
-	// We don't want failures from Verify due to unknown critical extensions in the leaf,
-	// so clear them out.
-	chain[0].UnhandledCriticalExtensions = nil
-
-	for i := 1; i < len(chain); i++ {
-		// The PolicyConstraints extension is required to be marked critical
-		// (RFC 5280 s4.2.1.11), but is not parsed by the Go x509 library.
-		// To allow validation of chains where an intermediate has this extension,
-		// remove it from the unknown critical extensions slice.
-		for j, extOID := range chain[i].UnhandledCriticalExtensions {
-			if extOID.Equal(x509.OIDExtensionPolicyConstraints) {
-				chain[i].UnhandledCriticalExtensions = append(chain[i].UnhandledCriticalExtensions[:j], chain[i].UnhandledCriticalExtensions[j+1:]...)
-				break
-			}
-		}
-	}
-
-	// If the first intermediate has the CertificateTransparency EKU, remove it
-	// so that it doesn't affect EKU validity calculations.  In particular, if
-	// the pre-issuer has just the CT EKU, then it should act as if it has an
-	// empty set of EKUs (and so allow any usage in the leaf).
-	var originalEKUs []x509.ExtKeyUsage
-	if len(chain) > 1 {
-		for i, eku := range chain[1].ExtKeyUsage {
-			if eku == x509.ExtKeyUsageCertificateTransparency {
-				originalEKUs = chain[1].ExtKeyUsage
-				chain[1].ExtKeyUsage = append(chain[1].ExtKeyUsage[:i], chain[1].ExtKeyUsage[i+1:]...)
-				break
-			}
-		}
-	}
-
-	chains, err := chain[0].Verify(verifyOpts)
+	verifiedChains, err := chain[0].Verify(verifyOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	// Restore any EKUs we have modified.
-	if originalEKUs != nil {
-		chain[1].ExtKeyUsage = originalEKUs
-	}
-
-	if len(chains) == 0 {
+	if len(verifiedChains) == 0 {
 		return nil, errors.New("no path to root found when trying to validate chains")
 	}
 
 	// Verify might have found multiple paths to roots. Now we check that we have a path that
 	// uses all the certs in the order they were submitted so as to comply with RFC 6962
 	// requirements detailed in Section 3.1.
-	for _, verifiedChain := range chains {
+	for _, verifiedChain := range verifiedChains {
 		if chainsEquivalent(chain, verifiedChain) {
 			return verifiedChain, nil
 		}

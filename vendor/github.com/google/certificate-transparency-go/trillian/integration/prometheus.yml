@@ -6,7 +6,7 @@ global:
 scrape_configs:
   - job_name: 'trillian'  # overwritten by labels in JSON file
     file_sd_configs:
-    - files: ['trillian.json']
+    - files: ['@ETCDISCOVERED@']
   - job_name: 'etcd'
     static_configs:
     - targets: ['localhost:2379']

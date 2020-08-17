@@ -340,7 +340,7 @@ import:
 - package: github.com/golang/protobuf
   version: b4deda0973fb4c70b50d226b1af49f3da59f5265
 - package: github.com/google/certificate-transparency-go
-  version: 1bec4527572c443752ad4f2830bef88be0533236
+  version: v1.0.20
 - package: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - package: github.com/googleapis/gnostic
