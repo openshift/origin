@@ -1624,6 +1624,49 @@ func TestExtendedValidateRoute(t *testing.T) {
 			},
 			expectedErrors: 0,
 		},
+		{
+			name: "bz1843856",
+			route: &routev1.Route{
+				Spec: routev1.RouteSpec{
+					TLS: &routev1.TLSConfig{
+						Termination: routev1.TLSTerminationEdge,
+						Certificate: testCertificate + "\n" + testPrivateKey,
+					},
+				},
+			},
+			expectRoute: &routev1.Route{
+				Spec: routev1.RouteSpec{
+					TLS: &routev1.TLSConfig{
+						Termination: routev1.TLSTerminationEdge,
+						Certificate: testCertificate + "\n",
+						Key:         testPrivateKey + "\n",
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Edge termination with private key in both cert and key fields",
+			route: &routev1.Route{
+				Spec: routev1.RouteSpec{
+					TLS: &routev1.TLSConfig{
+						Termination: routev1.TLSTerminationEdge,
+						Certificate: testCertificate + "\n" + testPrivateKey,
+						Key:         testExpiredCertificateKey,
+					},
+				},
+			},
+			expectRoute: &routev1.Route{
+				Spec: routev1.RouteSpec{
+					TLS: &routev1.TLSConfig{
+						Termination: routev1.TLSTerminationEdge,
+						Certificate: testCertificate + "\n",
+						Key:         testPrivateKey + "\n" + testExpiredCertificateKey + "\n",
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
 	}
 
 	for _, tc := range tests {

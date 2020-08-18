@@ -122,6 +122,35 @@ func sanitizePEM(data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// splitCertKey takes a slice of bytes containing sanitized PEM data and returns
+// two slices of bytes containing PEM data: one slice with the public
+// certificate block or blocks from the input PEM data and one slice with any
+// private key blocks.
+func splitCertKey(data []byte) ([]byte, []byte, error) {
+	var block *pem.Block
+	publicBuf := &bytes.Buffer{}
+	privateBuf := &bytes.Buffer{}
+	for len(data) > 0 {
+		block, data = pem.Decode(data)
+		if block == nil {
+			break
+		}
+		// Because data is sanitized PEM data, the following switch only
+		// needs cases for the block types that sanitizePEM produces.
+		switch block.Type {
+		case "PUBLIC KEY", "CERTIFICATE":
+			if err := pem.Encode(publicBuf, block); err != nil {
+				return nil, nil, err
+			}
+		case "EC PRIVATE KEY", "RSA PRIVATE KEY":
+			if err := pem.Encode(privateBuf, block); err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+	return publicBuf.Bytes(), privateBuf.Bytes(), nil
+}
+
 // ExtendedValidateRoute performs an extended validation on the route
 // including checking that the TLS config is valid. It also sanitizes
 // the contents of valid certificates by removing any data that
@@ -179,17 +208,6 @@ func ExtendedValidateRoute(route *routev1.Route) field.ErrorList {
 				tlsConfig.Certificate = string(data)
 			}
 		}
-
-		certKeyBytes := []byte{}
-		certKeyBytes = append(certKeyBytes, []byte(tlsConfig.Certificate)...)
-		if len(tlsConfig.Key) > 0 {
-			certKeyBytes = append(certKeyBytes, byte('\n'))
-			certKeyBytes = append(certKeyBytes, []byte(tlsConfig.Key)...)
-		}
-
-		if _, err := tls.X509KeyPair(certKeyBytes, certKeyBytes); err != nil {
-			result = append(result, field.Invalid(tlsFieldPath.Child("key"), "redacted key data", err.Error()))
-		}
 	}
 
 	if len(tlsConfig.Key) > 0 {
@@ -197,6 +215,25 @@ func ExtendedValidateRoute(route *routev1.Route) field.ErrorList {
 			result = append(result, field.Invalid(tlsFieldPath.Child("key"), "redacted key data", err.Error()))
 		} else {
 			tlsConfig.Key = string(data)
+		}
+	}
+
+	if len(tlsConfig.Certificate) > 0 {
+		if certBytes, keyBytes, err := splitCertKey([]byte(tlsConfig.Certificate)); err != nil {
+			result = append(result, field.Invalid(tlsFieldPath.Child("certificate"), "redacted key data", err.Error()))
+		} else {
+			// Use any private key that was found in either
+			// tlsConfig.Certificate or tlsConfig.Key.
+			keyBytes = append(keyBytes, []byte(tlsConfig.Key)...)
+			if len(keyBytes) == 0 {
+				result = append(result, field.Invalid(tlsFieldPath.Child("key"), "", "no key specified"))
+			} else {
+				if _, err := tls.X509KeyPair(certBytes, keyBytes); err != nil {
+					result = append(result, field.Invalid(tlsFieldPath.Child("key"), "redacted key data", err.Error()))
+				} else {
+					tlsConfig.Certificate, tlsConfig.Key = string(certBytes), string(keyBytes)
+				}
+			}
 		}
 	}
 
