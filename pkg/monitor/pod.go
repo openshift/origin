@@ -73,6 +73,14 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 	podChangeFns := []func(pod, oldPod *corev1.Pod) []Condition{
 		// check phase transitions
 		func(pod, oldPod *corev1.Pod) []Condition {
+			podErrorLevel := Error
+			isSystemPod := filterToSystemNamespaces(pod)
+			if !isSystemPod {
+				// we're interested in non-system pods, but we don't want to fail our monitor on them. Not all pods
+				// in an e2e run are even expected to run, so we basically always have these events.
+				podErrorLevel = Warning
+			}
+
 			new, old := pod.Status.Phase, oldPod.Status.Phase
 			if new == old || len(old) == 0 {
 				return nil
@@ -110,19 +118,19 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				switch pod.Status.Reason {
 				case "Evicted":
 					conditions = append(conditions, Condition{
-						Level:   Error,
+						Level:   podErrorLevel,
 						Locator: locatePod(pod),
 						Message: fmt.Sprintf("reason/Evicted %s", pod.Status.Message),
 					})
 				case "Preempting":
 					conditions = append(conditions, Condition{
-						Level:   Error,
+						Level:   podErrorLevel,
 						Locator: locatePod(pod),
 						Message: fmt.Sprintf("reason/Preempted %s", pod.Status.Message),
 					})
 				default:
 					conditions = append(conditions, Condition{
-						Level:   Error,
+						Level:   podErrorLevel,
 						Locator: locatePod(pod),
 						Message: fmt.Sprintf("reason/Failed (%s): %s", pod.Status.Reason, pod.Status.Message),
 					})
@@ -130,7 +138,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				for _, s := range pod.Status.InitContainerStatuses {
 					if t := s.State.Terminated; t != nil && t.ExitCode != 0 {
 						conditions = append(conditions, Condition{
-							Level:   Error,
+							Level:   podErrorLevel,
 							Locator: locatePodContainer(pod, s.Name),
 							Message: fmt.Sprintf("container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
 						})
@@ -139,7 +147,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				for _, s := range pod.Status.ContainerStatuses {
 					if t := s.State.Terminated; t != nil && t.ExitCode != 0 {
 						conditions = append(conditions, Condition{
-							Level:   Error,
+							Level:   podErrorLevel,
 							Locator: locatePodContainer(pod, s.Name),
 							Message: fmt.Sprintf("init container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
 						})
