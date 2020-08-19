@@ -19,6 +19,7 @@ package priorities
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"k8s.io/api/core/v1"
@@ -262,12 +263,56 @@ func TestInterPodAffinityPriority(t *testing.T) {
 		},
 	}
 
+	invalidAffinity := &v1.Affinity{
+		PodAffinity: &v1.PodAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+				{
+					Weight: 8,
+					PodAffinityTerm: v1.PodAffinityTerm{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "security",
+									Operator: metav1.LabelSelectorOpIn,
+									Values:   []string{"{{ .Release.Name }}"},
+								},
+							},
+						},
+						TopologyKey: "region",
+					},
+				},
+			},
+		},
+	}
+	invalidAntiAffinity := &v1.Affinity{
+		PodAntiAffinity: &v1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+				{
+					Weight: 5,
+					PodAffinityTerm: v1.PodAffinityTerm{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "security",
+									Operator: metav1.LabelSelectorOpIn,
+									Values:   []string{"{{ .Release.Name }}"},
+								},
+							},
+						},
+						TopologyKey: "az",
+					},
+				},
+			},
+		},
+	}
+
 	tests := []struct {
 		pod          *v1.Pod
 		pods         []*v1.Pod
 		nodes        []*v1.Node
 		expectedList schedulerapi.HostPriorityList
 		name         string
+		expectErr    string
 	}{
 		{
 			pod: &v1.Pod{Spec: v1.PodSpec{NodeName: ""}, ObjectMeta: metav1.ObjectMeta{Labels: podLabelSecurityS1}},
@@ -507,6 +552,20 @@ func TestInterPodAffinityPriority(t *testing.T) {
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: schedulerapi.MaxPriority}, {Host: "machine2", Score: 0}, {Host: "machine3", Score: schedulerapi.MaxPriority}, {Host: "machine4", Score: 0}},
 			name:         "Affinity and Anti Affinity and symmetry: considered only preferredDuringSchedulingIgnoredDuringExecution in both pod affinity & anti affinity & symmetry",
 		},
+		{
+			name: "invalid affinity fails with an error",
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: invalidAffinity}},
+			nodes: []*v1.Node{
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: labelRgChina}},
+			},
+		},
+		{
+			name: "invalid antiaffinity fails with an error",
+			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: invalidAntiAffinity}},
+			nodes: []*v1.Node{
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: labelRgChina}},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -519,10 +578,13 @@ func TestInterPodAffinityPriority(t *testing.T) {
 			}
 			list, err := interPodAffinity.CalculateInterPodAffinityPriority(test.pod, nodeNameToInfo, test.nodes)
 			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-			if !reflect.DeepEqual(test.expectedList, list) {
-				t.Errorf("expected \n\t%#v, \ngot \n\t%#v\n", test.expectedList, list)
+				if !strings.Contains(err.Error(), test.expectErr) {
+					t.Errorf("unexpected error: %v", err)
+				}
+			} else {
+				if !reflect.DeepEqual(test.expectedList, list) {
+					t.Errorf("expected \n\t%#v, \ngot \n\t%#v\n", test.expectedList, list)
+				}
 			}
 		})
 	}
