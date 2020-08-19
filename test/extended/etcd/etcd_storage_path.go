@@ -218,7 +218,7 @@ func (t *helperT) done() {
 // It will start failing when a new type is added to ensure that all future types are added to this test.
 // It will also fail when a type gets moved to a different location. Be very careful in this situation because
 // it essentially means that you will be break old clusters unless you create some migration path for the old data.
-func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, etcdClient3 etcdv3.KV) {
+func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, etcdClient3Fn func() (etcdv3.KV, error)) {
 	defer g.GinkgoRecover()
 
 	// make Errorf fail the test as expected but continue until the end so we can see all failures
@@ -434,9 +434,25 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 				}
 			}
 
-			output, err := getFromEtcd(etcdClient3, testData.ExpectedEtcdPath)
-			if err != nil {
-				t.Errorf("failed to get from etcd for %v: %#v", gvk, err)
+			// retry a few times in case the port-forward has to get re-established.
+			var output *metaObject
+			var lastErr error
+			for i := 0; i < 5; i++ {
+				etcdClient3, err := etcdClient3Fn()
+				if err != nil {
+					lastErr = err
+					continue
+				}
+				output, err = getFromEtcd(etcdClient3, testData.ExpectedEtcdPath)
+				if err != nil {
+					lastErr = err
+					continue
+				}
+				lastErr = nil
+				break
+			}
+			if lastErr != nil {
+				t.Errorf("failed to get from etcd for %v: %#v", gvk, lastErr)
 				return
 			}
 
