@@ -1,0 +1,5 @@
+diff --no-dereference -N -r current/vendor/k8s.io/legacy-cloud-providers/openstack/openstack_instances.go updated/vendor/k8s.io/legacy-cloud-providers/openstack/openstack_instances.go
+260c260
+< 		return "/" + md.UUID, nil
+---
+> 		return md.UUID, nil
