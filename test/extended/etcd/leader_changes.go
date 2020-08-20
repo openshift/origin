@@ -15,12 +15,12 @@ import (
 var _ = g.Describe("[sig-etcd] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("etcd-leader-change").AsAdmin()
-	g.It("leader changes are not excessive", func() {
+	g.It("[Late] leader changes are not excessive", func() {
 		prometheus, err := client.NewE2EPrometheusRouterClient(oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		g.By("Examining the rate of increase in the number of etcd leadership changes for last five minutes")
-		result, _, err := prometheus.Query(context.Background(), "increase((max by (job) (etcd_server_leader_changes_seen_total) or 0*absent(etcd_server_leader_changes_seen_total))[15m:1m])", time.Now())
+		result, _, err := prometheus.Query(context.Background(), "max by (job) (etcd_server_leader_changes_seen_total)", time.Now())
 		o.Expect(err).ToNot(o.HaveOccurred())
-		o.Expect(result.(model.Vector)[0].Value).To(o.BeNumerically("==", 0))
+		o.Expect(result.(model.Vector)[0].Value).To(o.BeNumerically("==", 2))
 	})
 })

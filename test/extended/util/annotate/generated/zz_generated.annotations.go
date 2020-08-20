@@ -521,7 +521,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:APIServer] authenticated browser should get a 200 from /": "authenticated browser should get a 200 from / [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-api-machinery][Feature:Audit] Basic audit should audit API calls": "should audit API calls [Disabled:SpecialConfig] [Suite:openshift]",
+	"[Top Level] [sig-api-machinery][Feature:Audit] Basic audit should audit API calls": "should audit API calls [Disabled:SpecialConfig]",
 
 	"[Top Level] [sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces": "should control resource limits across namespaces [Suite:openshift/conformance/parallel]",
 
@@ -703,7 +703,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs paused should disable actions on deployments": "should disable actions on deployments [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs reaper [Slow] should delete all failed deployer pods and hook pods": "should delete all failed deployer pods and hook pods [Suite:openshift]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs reaper [Slow] should delete all failed deployer pods and hook pods": "should delete all failed deployer pods and hook pods",
 
 	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs rolled back should rollback to an older deployment": "should rollback to an older deployment [Suite:openshift/conformance/parallel]",
 
@@ -769,13 +769,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] Managed cluster should have operators on the cluster version": "have operators on the cluster version [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive]": "when operator-owned objects are deleted [Disruptive] [Serial] [Suite:openshift]",
+	"[Top Level] [sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive]": "when operator-owned objects are deleted [Disruptive] [Serial]",
 
 	"[Top Level] [sig-arch] Managed cluster should should expose cluster services outside the cluster": "should expose cluster services outside the cluster [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][Early] Managed cluster should start all core operators": "start all core operators [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": "Cluster should remain functional during upgrade [Disruptive] [Serial] [Suite:openshift]",
+	"[Top Level] [sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": "Cluster should remain functional during upgrade [Disruptive] [Serial]",
 
 	"[Top Level] [sig-auth] Advanced Audit [DisabledForLargeClusters][Flaky] should audit API calls to create and delete custom resource definition.": "should audit API calls to create and delete custom resource definition. [Suite:k8s]",
 
@@ -837,7 +837,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:Authentication]  TestFrontProxy should succeed": "should succeed [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:BootstrapUser] The bootstrap user should successfully login with password decoded from kubeadmin secret [Disruptive]": "should successfully login with password decoded from kubeadmin secret [Disruptive] [Serial] [Suite:openshift]",
+	"[Top Level] [sig-auth][Feature:BootstrapUser] The bootstrap user should successfully login with password decoded from kubeadmin secret [Disruptive]": "should successfully login with password decoded from kubeadmin secret [Disruptive] [Serial]",
 
 	"[Top Level] [sig-auth][Feature:HTPasswdAuth] HTPasswd IDP should successfully configure htpasswd and be responsive": "should successfully configure htpasswd and be responsive [Suite:openshift/conformance/parallel]",
 
@@ -1109,179 +1109,179 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds] s2i build with a root user image should create a root build and pass with a privileged SCC": "should create a root build and pass with a privileged SCC [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply default proxy configuration to docker build pod through env vars": "Apply default proxy configuration to docker build pod through env vars [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply default proxy configuration to docker build pod through env vars": "Apply default proxy configuration to docker build pod through env vars",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply default proxy configuration to source build pod through env vars": "Apply default proxy configuration to source build pod through env vars [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply default proxy configuration to source build pod through env vars": "Apply default proxy configuration to source build pod through env vars",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply git proxy configuration to build pod": "Apply git proxy configuration to build pod [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply git proxy configuration to build pod": "Apply git proxy configuration to build pod",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply default image label configuration to build pod": "Apply default image label configuration to build pod [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply default image label configuration to build pod": "Apply default image label configuration to build pod",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply env configuration to build pod": "Apply env configuration to build pod [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply env configuration to build pod": "Apply env configuration to build pod",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply node selector configuration to build pod": "Apply node selector configuration to build pod [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply node selector configuration to build pod": "Apply node selector configuration to build pod",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply override image label configuration to build pod": "Apply override image label configuration to build pod [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply override image label configuration to build pod": "Apply override image label configuration to build pod",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply resource configuration to build pod": "Apply resource configuration to build pod [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply resource configuration to build pod": "Apply resource configuration to build pod",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply toleration override configuration to build pod": "Apply toleration override configuration to build pod [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply toleration override configuration to build pod": "Apply toleration override configuration to build pod",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should allow registries to be blacklisted": "should allow registries to be blacklisted [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should allow registries to be blacklisted": "should allow registries to be blacklisted",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should allow registries to be whitelisted": "should allow registries to be whitelisted [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should allow registries to be whitelisted": "should allow registries to be whitelisted",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should default registry search to docker.io for image pulls": "should default registry search to docker.io for image pulls [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should default registry search to docker.io for image pulls": "should default registry search to docker.io for image pulls",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] Capabilities should be dropped for s2i builders  s2i build with a rootable builder should not be able to switch to root with an assemble script": "should not be able to switch to root with an assemble script [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] Capabilities should be dropped for s2i builders  s2i build with a rootable builder should not be able to switch to root with an assemble script": "should not be able to switch to root with an assemble script",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should be able to start a build from Dockerfile with FROM reference to scratch": "should be able to start a build from Dockerfile with FROM reference to scratch [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should be able to start a build from Dockerfile with FROM reference to scratch": "should be able to start a build from Dockerfile with FROM reference to scratch",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should create a image via new-build and infer the origin tag": "should create a image via new-build and infer the origin tag [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should create a image via new-build and infer the origin tag": "should create a image via new-build and infer the origin tag",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should create a image via new-build": "should create a image via new-build [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should create a image via new-build": "should create a image via new-build",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build testing build image with dockerfile contains a file path uses a variable in its name": "testing build image with dockerfile contains a file path uses a variable in its name [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build testing build image with dockerfile contains a file path uses a variable in its name": "testing build image with dockerfile contains a file path uses a variable in its name",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build testing build image with invalid dockerfile content": "testing build image with invalid dockerfile content [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build testing build image with invalid dockerfile content": "testing build image with invalid dockerfile content",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  buildconfig with input source image and docker strategy should complete successfully and contain the expected file": "should complete successfully and contain the expected file [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  buildconfig with input source image and docker strategy should complete successfully and contain the expected file": "should complete successfully and contain the expected file",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  buildconfig with input source image and s2i strategy should complete successfully and contain the expected file": "should complete successfully and contain the expected file [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  buildconfig with input source image and s2i strategy should complete successfully and contain the expected file": "should complete successfully and contain the expected file",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and custom strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and custom strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and docker strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and docker strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and s2i strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and s2i strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildCompletePodDeleteTest should succeed": "should succeed [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildCompletePodDeleteTest should succeed": "should succeed",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildDeleteTest should succeed": "should succeed [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildDeleteTest should succeed": "should succeed",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildRunningPodDeleteTest should succeed": "should succeed [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildRunningPodDeleteTest should succeed": "should succeed",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should have deadlines  oc start-build docker-build --wait Docker: should start a build and wait for the build failed and build pod being killed by kubelet": "Docker: should start a build and wait for the build failed and build pod being killed by kubelet [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should have deadlines  oc start-build docker-build --wait Docker: should start a build and wait for the build failed and build pod being killed by kubelet": "Docker: should start a build and wait for the build failed and build pod being killed by kubelet",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should have deadlines  oc start-build source-build --wait Source: should start a build and wait for the build failed and build pod being killed by kubelet": "Source: should start a build and wait for the build failed and build pod being killed by kubelet [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should have deadlines  oc start-build source-build --wait Source: should start a build and wait for the build failed and build pod being killed by kubelet": "Source: should start a build and wait for the build failed and build pod being killed by kubelet",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy and a no_proxy override should start a docker build and wait for the build to succeed": "should start a docker build and wait for the build to succeed [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy and a no_proxy override should start a docker build and wait for the build to succeed": "should start a docker build and wait for the build to succeed",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy and a no_proxy override should start an s2i build and wait for the build to succeed": "should start an s2i build and wait for the build to succeed [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy and a no_proxy override should start an s2i build and wait for the build to succeed": "should start an s2i build and wait for the build to succeed",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy should start a build and wait for the build to fail": "should start a build and wait for the build to fail [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy should start a build and wait for the build to fail": "should start a build and wait for the build to fail",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds with a context directory  docker context directory build should docker build an application using a context directory": "should docker build an application using a context directory [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds with a context directory  docker context directory build should docker build an application using a context directory": "should docker build an application using a context directory",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds with a context directory  s2i context directory build should s2i build an application using a context directory": "should s2i build an application using a context directory [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds with a context directory  s2i context directory build should s2i build an application using a context directory": "should s2i build an application using a context directory",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] can use build secrets  build with secrets and configMaps should contain secrets during the docker strategy build": "should contain secrets during the docker strategy build [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use build secrets  build with secrets and configMaps should contain secrets during the docker strategy build": "should contain secrets during the docker strategy build",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] can use build secrets  build with secrets and configMaps should contain secrets during the source strategy build": "should contain secrets during the source strategy build [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use build secrets  build with secrets and configMaps should contain secrets during the source strategy build": "should contain secrets during the source strategy build",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  Build using a username and password should create a new build using the internal gitserver": "should create a new build using the internal gitserver [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  Build using a username and password should create a new build using the internal gitserver": "should create a new build using the internal gitserver",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  Docker build started with log level >5 should save the image digest when finished": "should save the image digest when finished [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  Docker build started with log level >5 should save the image digest when finished": "should save the image digest when finished",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  Docker build started with normal log level should save the image digest when finished": "should save the image digest when finished [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  Docker build started with normal log level should save the image digest when finished": "should save the image digest when finished",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  S2I build started with log level >5 should save the image digest when finished": "should save the image digest when finished [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  S2I build started with log level >5 should save the image digest when finished": "should save the image digest when finished",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  S2I build started with normal log level should save the image digest when finished": "should save the image digest when finished [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  S2I build started with normal log level should save the image digest when finished": "should save the image digest when finished",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] incremental s2i build  Building from a template should create a build from \"incremental-auth-build.json\" template and run it": "should create a build from \"incremental-auth-build.json\" template and run it [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] incremental s2i build  Building from a template should create a build from \"incremental-auth-build.json\" template and run it": "should create a build from \"incremental-auth-build.json\" template and run it",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] s2i build with environment file in sources  Building from a template should create a image from \"test-env-build.json\" template and run it in a pod": "should create a image from \"test-env-build.json\" template and run it in a pod [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] s2i build with environment file in sources  Building from a template should create a image from \"test-env-build.json\" template and run it in a pod": "should create a image from \"test-env-build.json\" template and run it in a pod",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should accept build args that are specified in the Dockerfile": "Should accept build args that are specified in the Dockerfile [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should accept build args that are specified in the Dockerfile": "Should accept build args that are specified in the Dockerfile",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should complete with a warning on non-existent build-arg": "Should complete with a warning on non-existent build-arg [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should complete with a warning on non-existent build-arg": "Should complete with a warning on non-existent build-arg",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should copy build args from BuildConfig to Build": "Should copy build args from BuildConfig to Build [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should copy build args from BuildConfig to Build": "Should copy build args from BuildConfig to Build",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Trigger builds with branch refs matching directories on master branch Should checkout the config branch, not config directory": "Should checkout the config branch, not config directory [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Trigger builds with branch refs matching directories on master branch Should checkout the config branch, not config directory": "Should checkout the config branch, not config directory",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds shoud accept --from-archive with https URL as an input": "shoud accept --from-archive with https URL as an input [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds shoud accept --from-archive with https URL as an input": "shoud accept --from-archive with https URL as an input",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds shoud accept --from-file with https URL as an input": "shoud accept --from-file with https URL as an input [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds shoud accept --from-file with https URL as an input": "shoud accept --from-file with https URL as an input",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-dir as input": "should accept --from-dir as input [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-dir as input": "should accept --from-dir as input",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-file as input": "should accept --from-file as input [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-file as input": "should accept --from-file as input",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-repo as input": "should accept --from-repo as input [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-repo as input": "should accept --from-repo as input",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-repo with --commit as input": "should accept --from-repo with --commit as input [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-repo with --commit as input": "should accept --from-repo with --commit as input",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should reject binary build requests without a --from-xxxx value": "should reject binary build requests without a --from-xxxx value [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should reject binary build requests without a --from-xxxx value": "should reject binary build requests without a --from-xxxx value",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context cancel a binary build that doesn't start running in 5 minutes should start a build and wait for the build to be cancelled": "should start a build and wait for the build to be cancelled [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context cancel a binary build that doesn't start running in 5 minutes should start a build and wait for the build to be cancelled": "should start a build and wait for the build to be cancelled",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context cancel a build started by oc start-build --wait should start a build and wait for the build to cancel": "should start a build and wait for the build to cancel [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context cancel a build started by oc start-build --wait should start a build and wait for the build to cancel": "should start a build and wait for the build to cancel",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build --wait should start a build and wait for the build to complete": "should start a build and wait for the build to complete [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build --wait should start a build and wait for the build to complete": "should start a build and wait for the build to complete",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build --wait should start a build and wait for the build to fail": "should start a build and wait for the build to fail [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build --wait should start a build and wait for the build to fail": "should start a build and wait for the build to fail",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build with pr ref should start a build from a PR ref, wait for the build to complete, and confirm the right level was used": "should start a build from a PR ref, wait for the build to complete, and confirm the right level was used [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build with pr ref should start a build from a PR ref, wait for the build to complete, and confirm the right level was used": "should start a build from a PR ref, wait for the build to complete, and confirm the right level was used",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel": "BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel": "BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment BUILD_LOGLEVEL in buildconfig should create verbose output": "BUILD_LOGLEVEL in buildconfig should create verbose output [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment BUILD_LOGLEVEL in buildconfig should create verbose output": "BUILD_LOGLEVEL in buildconfig should create verbose output",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment should accept environment variables": "should accept environment variables [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment should accept environment variables": "should accept environment variables",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context s2i build maintaining symlinks should s2i build image and maintain symlinks": "should s2i build image and maintain symlinks [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context s2i build maintaining symlinks should s2i build image and maintain symlinks": "should s2i build image and maintain symlinks",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context start a build via a webhook should be able to start builds via the webhook with valid secrets and fail with invalid secrets": "should be able to start builds via the webhook with valid secrets and fail with invalid secrets [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context start a build via a webhook should be able to start builds via the webhook with valid secrets and fail with invalid secrets": "should be able to start builds via the webhook with valid secrets and fail with invalid secrets",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] testing build configuration hooks  testing postCommit hook should run docker postCommit hooks": "should run docker postCommit hooks [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] testing build configuration hooks  testing postCommit hook should run docker postCommit hooks": "should run docker postCommit hooks",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] testing build configuration hooks  testing postCommit hook should run s2i postCommit hooks": "should run s2i postCommit hooks [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] testing build configuration hooks  testing postCommit hook should run s2i postCommit hooks": "should run s2i postCommit hooks",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status Docker fetch image content failure should contain the Docker build fetch image content reason and message": "should contain the Docker build fetch image content reason and message [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status Docker fetch image content failure should contain the Docker build fetch image content reason and message": "should contain the Docker build fetch image content reason and message",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status Docker fetch source failure should contain the Docker build fetch source failure reason and message": "should contain the Docker build fetch source failure reason and message [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status Docker fetch source failure should contain the Docker build fetch source failure reason and message": "should contain the Docker build fetch source failure reason and message",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status OutOfMemoryKilled should contain OutOfMemoryKilled failure reason and message": "should contain OutOfMemoryKilled failure reason and message [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status OutOfMemoryKilled should contain OutOfMemoryKilled failure reason and message": "should contain OutOfMemoryKilled failure reason and message",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status S2I bad context dir failure should contain the S2I bad context dir failure reason and message": "should contain the S2I bad context dir failure reason and message [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status S2I bad context dir failure should contain the S2I bad context dir failure reason and message": "should contain the S2I bad context dir failure reason and message",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status S2I fetch source failure should contain the S2I fetch source failure reason and message": "should contain the S2I fetch source failure reason and message [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status S2I fetch source failure should contain the S2I fetch source failure reason and message": "should contain the S2I fetch source failure reason and message",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status failed assemble container should contain the failure reason related to an assemble script failing in s2i": "should contain the failure reason related to an assemble script failing in s2i [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status failed assemble container should contain the failure reason related to an assemble script failing in s2i": "should contain the failure reason related to an assemble script failing in s2i",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status failed https proxy invalid url should contain the generic failure reason and message": "should contain the generic failure reason and message [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status failed https proxy invalid url should contain the generic failure reason and message": "should contain the generic failure reason and message",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status fetch builder image failure should contain the fetch builder image failure reason and message": "should contain the fetch builder image failure reason and message [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status fetch builder image failure should contain the fetch builder image failure reason and message": "should contain the fetch builder image failure reason and message",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status postcommit hook failure should contain the post commit hook failure reason and message": "should contain the post commit hook failure reason and message [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status postcommit hook failure should contain the post commit hook failure reason and message": "should contain the post commit hook failure reason and message",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status push image to registry failure should contain the image push to registry failure reason and message": "should contain the image push to registry failure reason and message [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status push image to registry failure should contain the image push to registry failure reason and message": "should contain the image push to registry failure reason and message",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Parallel build run policy runs the builds in parallel": "runs the builds in parallel [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Parallel build run policy runs the builds in parallel": "runs the builds in parallel",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling cancellation starts the next build immediately after one is canceled": "starts the next build immediately after one is canceled [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling cancellation starts the next build immediately after one is canceled": "starts the next build immediately after one is canceled",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling deletion starts the next build immediately after running one is deleted": "starts the next build immediately after running one is deleted [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling deletion starts the next build immediately after running one is deleted": "starts the next build immediately after running one is deleted",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling failure starts the next build immediately after one fails": "starts the next build immediately after one fails [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling failure starts the next build immediately after one fails": "starts the next build immediately after one fails",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy runs the builds in serial order": "runs the builds in serial order [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy runs the builds in serial order": "runs the builds in serial order",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with SerialLatestOnly build run policy runs the builds in serial order but cancel previous builds": "runs the builds in serial order but cancel previous builds [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with SerialLatestOnly build run policy runs the builds in serial order but cancel previous builds": "runs the builds in serial order but cancel previous builds",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context binary builds should be able to run a build that is implicitly pulling from the internal registry": "should be able to run a build that is implicitly pulling from the internal registry [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context binary builds should be able to run a build that is implicitly pulling from the internal registry": "should be able to run a build that is implicitly pulling from the internal registry",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context pulling from an external authenticated registry should be able to use a pull secret in a build": "should be able to use a pull secret in a build [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context pulling from an external authenticated registry should be able to use a pull secret in a build": "should be able to use a pull secret in a build",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context pulling from an external authenticated registry should be able to use a pull secret linked to the builder service account": "should be able to use a pull secret linked to the builder service account [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context pulling from an external authenticated registry should be able to use a pull secret linked to the builder service account": "should be able to use a pull secret linked to the builder service account",
 
 	"[Top Level] [sig-builds][Feature:Builds][pullsecret] docker build using a pull secret  Building from a template should create a docker build that pulls using a secret run it": "should create a docker build that pulls using a secret run it [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build Sync plugin tests using the ephemeral template": "using the ephemeral template [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build Sync plugin tests using the ephemeral template": "using the ephemeral template",
 
-	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build jenkins-client-plugin tests using the ephemeral template": "using the ephemeral template [Suite:openshift]",
+	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build jenkins-client-plugin tests using the ephemeral template": "using the ephemeral template",
 
 	"[Top Level] [sig-builds][Feature:Builds][timing] capture build stages and durations  should record build stages and durations for docker": "should record build stages and durations for docker [Suite:openshift/conformance/parallel]",
 
@@ -1433,199 +1433,199 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc rsh rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/admin.sh": "test/cmd/admin.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/admin.sh": "test/cmd/admin.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/annotations.sh": "test/cmd/annotations.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/annotations.sh": "test/cmd/annotations.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/apiresources.sh": "test/cmd/apiresources.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/apiresources.sh": "test/cmd/apiresources.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh": "test/cmd/authentication.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh": "test/cmd/authentication.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/basicresources.sh": "test/cmd/basicresources.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/basicresources.sh": "test/cmd/basicresources.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh": "test/cmd/builds.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh": "test/cmd/builds.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/completions.sh": "test/cmd/completions.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/completions.sh": "test/cmd/completions.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh": "test/cmd/config.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh": "test/cmd/config.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/convert.sh": "test/cmd/convert.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/convert.sh": "test/cmd/convert.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/create.sh": "test/cmd/create.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/create.sh": "test/cmd/create.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/debug.sh": "test/cmd/debug.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/debug.sh": "test/cmd/debug.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/deployments.sh": "test/cmd/deployments.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/deployments.sh": "test/cmd/deployments.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/describer.sh": "test/cmd/describer.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/describer.sh": "test/cmd/describer.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/edit.sh": "test/cmd/edit.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/edit.sh": "test/cmd/edit.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/env.sh": "test/cmd/env.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/env.sh": "test/cmd/env.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/framework-test.sh": "test/cmd/framework-test.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/framework-test.sh": "test/cmd/framework-test.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/get.sh": "test/cmd/get.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/get.sh": "test/cmd/get.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/help.sh": "test/cmd/help.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/help.sh": "test/cmd/help.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/idle.sh": "test/cmd/idle.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/idle.sh": "test/cmd/idle.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/image-lookup.sh": "test/cmd/image-lookup.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/image-lookup.sh": "test/cmd/image-lookup.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/images.sh": "test/cmd/images.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/images.sh": "test/cmd/images.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/observe.sh": "test/cmd/observe.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/observe.sh": "test/cmd/observe.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/policy-storage-admin.sh": "test/cmd/policy-storage-admin.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/policy-storage-admin.sh": "test/cmd/policy-storage-admin.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/printer.sh": "test/cmd/printer.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/printer.sh": "test/cmd/printer.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/projects.sh": "test/cmd/projects.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/projects.sh": "test/cmd/projects.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh": "test/cmd/quota.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh": "test/cmd/quota.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/routes.sh": "test/cmd/routes.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/routes.sh": "test/cmd/routes.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/rsync.sh": "test/cmd/rsync.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/rsync.sh": "test/cmd/rsync.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/run.sh": "test/cmd/run.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/run.sh": "test/cmd/run.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/secrets.sh": "test/cmd/secrets.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/secrets.sh": "test/cmd/secrets.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/services.sh": "test/cmd/services.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/services.sh": "test/cmd/services.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-data.sh": "test/cmd/set-data.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-data.sh": "test/cmd/set-data.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-image.sh": "test/cmd/set-image.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-image.sh": "test/cmd/set-image.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-liveness-probe.sh": "test/cmd/set-liveness-probe.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-liveness-probe.sh": "test/cmd/set-liveness-probe.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildhook.sh": "test/cmd/setbuildhook.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildhook.sh": "test/cmd/setbuildhook.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildsecret.sh": "test/cmd/setbuildsecret.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildsecret.sh": "test/cmd/setbuildsecret.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/status.sh": "test/cmd/status.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/status.sh": "test/cmd/status.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/templates.sh": "test/cmd/templates.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/templates.sh": "test/cmd/templates.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/timeout.sh": "test/cmd/timeout.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/timeout.sh": "test/cmd/timeout.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/triggers.sh": "test/cmd/triggers.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/triggers.sh": "test/cmd/triggers.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/volumes.sh": "test/cmd/volumes.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/volumes.sh": "test/cmd/volumes.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/whoami.sh": "test/cmd/whoami.sh [Suite:openshift]",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/whoami.sh": "test/cmd/whoami.sh",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the rsync strategy": "should copy files with the rsync strategy [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the rsync strategy": "should copy files with the rsync strategy",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the rsync-daemon strategy": "should copy files with the rsync-daemon strategy [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the rsync-daemon strategy": "should copy files with the rsync-daemon strategy",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the tar strategy": "should copy files with the tar strategy [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the tar strategy": "should copy files with the tar strategy",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor multiple --exclude flags": "should honor multiple --exclude flags [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor multiple --exclude flags": "should honor multiple --exclude flags",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor multiple --include flags": "should honor multiple --include flags [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor multiple --include flags": "should honor multiple --include flags",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --exclude flag": "should honor the --exclude flag [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --exclude flag": "should honor the --exclude flag",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --include flag": "should honor the --include flag [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --include flag": "should honor the --include flag",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --no-perms flag": "should honor the --no-perms flag [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --no-perms flag": "should honor the --no-perms flag",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --progress flag": "should honor the --progress flag [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --progress flag": "should honor the --progress flag",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods using a watch should watch for changes and rsync them": "should watch for changes and rsync them [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods using a watch should watch for changes and rsync them": "should watch for changes and rsync them",
 
-	"[Top Level] [sig-cli][Slow] oc debug should print the container image-based container entrypoint/command": "should print the container image-based container entrypoint/command [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] oc debug should print the container image-based container entrypoint/command": "should print the container image-based container entrypoint/command",
 
-	"[Top Level] [sig-cli][Slow] oc debug should print the imagestream-based container entrypoint/command": "should print the imagestream-based container entrypoint/command [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] oc debug should print the imagestream-based container entrypoint/command": "should print the imagestream-based container entrypoint/command",
 
-	"[Top Level] [sig-cli][Slow] oc debug should print the overridden container image-based container entrypoint/command": "should print the overridden container image-based container entrypoint/command [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] oc debug should print the overridden container image-based container entrypoint/command": "should print the overridden container image-based container entrypoint/command",
 
-	"[Top Level] [sig-cli][Slow] oc debug should print the overridden imagestream-based container entrypoint/command": "should print the overridden imagestream-based container entrypoint/command [Suite:openshift]",
+	"[Top Level] [sig-cli][Slow] oc debug should print the overridden imagestream-based container entrypoint/command": "should print the overridden imagestream-based container entrypoint/command",
 
 	"[Top Level] [sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved": "CSRs from machines that are not recognized by the cloud provider are not approved [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint": "Pods cannot access the /config/master API endpoint [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Serial] [Suite:openshift]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Serial]",
 
 	"[Top Level] [sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources": "have machine resources [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should recover from deleted worker machines": "recover from deleted worker machines [Serial] [Suite:openshift]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should recover from deleted worker machines": "recover from deleted worker machines [Serial]",
 
 	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should have same number of Machines and Nodes": "have same number of Machines and Nodes [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously": "grow and decrease when scaling different machineSets simultaneously [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/nodejs-10-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/nodejs-10-rhel7\" should print the usage [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/nodejs-10-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/nodejs-10-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/nodejs-12-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/nodejs-12-rhel7\" should print the usage [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/nodejs-12-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/nodejs-12-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/perl-526-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/perl-526-rhel7\" should print the usage [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/perl-526-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/perl-526-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/php-72-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/php-72-rhel7\" should print the usage [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/php-72-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/php-72-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/php-73-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/php-73-rhel7\" should print the usage [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/php-73-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/php-73-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/python-27-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/python-27-rhel7\" should print the usage [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/python-27-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/python-27-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/python-36-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/python-36-rhel7\" should print the usage [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/python-36-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/python-36-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/ruby-24-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/ruby-24-rhel7\" should print the usage [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/ruby-24-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/ruby-24-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/ruby-25-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/ruby-25-rhel7\" should print the usage [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/ruby-25-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/ruby-25-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/ruby-26-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/ruby-26-rhel7\" should print the usage [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/ruby-26-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/ruby-26-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/nodejs-10-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/nodejs-10-rhel7\" should be SCL enabled [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/nodejs-10-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/nodejs-10-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/nodejs-12-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/nodejs-12-rhel7\" should be SCL enabled [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/nodejs-12-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/nodejs-12-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/perl-526-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/perl-526-rhel7\" should be SCL enabled [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/perl-526-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/perl-526-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/php-72-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/php-72-rhel7\" should be SCL enabled [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/php-72-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/php-72-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/php-73-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/php-73-rhel7\" should be SCL enabled [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/php-73-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/php-73-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/python-27-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/python-27-rhel7\" should be SCL enabled [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/python-27-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/python-27-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/python-36-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/python-36-rhel7\" should be SCL enabled [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/python-36-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/python-36-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-24-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-24-rhel7\" should be SCL enabled [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-24-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-24-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-25-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-25-rhel7\" should be SCL enabled [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-25-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-25-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-26-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-26-rhel7\" should be SCL enabled [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-26-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-26-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-ex db repo  Building nodejs-mongodb app from new-app should build a nodejs-mongodb image and run it in a pod": "should build a nodejs-mongodb image and run it in a pod [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-ex db repo  Building nodejs-mongodb app from new-app should build a nodejs-mongodb image and run it in a pod": "should build a nodejs-mongodb image and run it in a pod",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo  Building cakephp-mysql app from new-app should build a cakephp-mysql image and run it in a pod": "should build a cakephp-mysql image and run it in a pod [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo  Building cakephp-mysql app from new-app should build a cakephp-mysql image and run it in a pod": "should build a cakephp-mysql image and run it in a pod",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][python] test python images with django-ex db repo  Building django-psql app from new-app should build a django-psql image and run it in a pod": "should build a django-psql image and run it in a pod [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][python] test python images with django-ex db repo  Building django-psql app from new-app should build a django-psql image and run it in a pod": "should build a django-psql image and run it in a pod",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][ruby] test ruby images with rails-ex db repo  Building rails-postgresql app from new-app should build a rails-postgresql image and run it in a pod": "should build a rails-postgresql image and run it in a pod [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][ruby] test ruby images with rails-ex db repo  Building rails-postgresql app from new-app should build a rails-postgresql image and run it in a pod": "should build a rails-postgresql image and run it in a pod",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][mariadb][Slow] openshift mariadb image  Creating from a template should instantiate the template": "should instantiate the template [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][mariadb][Slow] openshift mariadb image  Creating from a template should instantiate the template": "should instantiate the template",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][mongodb] openshift mongodb image  creating from a template should instantiate the template": "should instantiate the template [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift mysql image  Creating from a template should instantiate the template": "should instantiate the template [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift mysql image  Creating from a template should instantiate the template": "should instantiate the template",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image  hot deploy test should work": "should work [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image  hot deploy test should work": "should work",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy for openshift php image  CakePHP example should work with hot deploy": "should work with hot deploy [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy for openshift php image  CakePHP example should work with hot deploy": "should work with hot deploy",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy for openshift python image  Django example should work with hot deploy": "should work with hot deploy [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy for openshift python image  Django example should work with hot deploy": "should work with hot deploy",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy for openshift ruby image  Rails example should work with hot deploy": "should work with hot deploy [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy for openshift ruby image  Rails example should work with hot deploy": "should work with hot deploy",
 
-	"[Top Level] [sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift pipeline build Sync plugin tests using the ephemeral template": "using the ephemeral template [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift pipeline build Sync plugin tests using the ephemeral template": "using the ephemeral template",
 
-	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build Sync plugin tests using the ephemeral template": "using the ephemeral template [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build Sync plugin tests using the ephemeral template": "using the ephemeral template",
 
-	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build Sync plugin tests using the persistent template": "using the persistent template [Suite:openshift]",
+	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build Sync plugin tests using the persistent template": "using the persistent template",
 
 	"[Top Level] [sig-devex][Feature:OpenShiftControllerManager] TestAutomaticCreationOfPullSecrets": "TestAutomaticCreationOfPullSecrets [Suite:openshift/conformance/parallel]",
 
@@ -1659,11 +1659,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker security test  should pass security tests": "should pass security tests [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-etcd] etcd leader changes are not excessive": "leader changes are not excessive [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-etcd] etcd [Late] leader changes are not excessive": "[Late] leader changes are not excessive [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Disabled:Broken] [Serial] [Suite:openshift]",
+	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Disabled:Broken] [Serial]",
 
-	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [dr-etcd-snapshot] Cluster should restore itself from etcd snapshot": "[dr-etcd-snapshot] Cluster should restore itself from etcd snapshot [Serial] [Suite:openshift]",
+	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [dr-etcd-snapshot] Cluster should restore itself from etcd snapshot": "[dr-etcd-snapshot] Cluster should restore itself from etcd snapshot [Serial]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them": "should create images by appending them [Suite:openshift/conformance/parallel]",
 
@@ -1681,33 +1681,33 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should update standard Kube object image fields when local names are on": "should update standard Kube object image fields when local names are on [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageMirror][Slow] Image mirror mirror image from integrated registry into few external registries": "mirror image from integrated registry into few external registries [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImageMirror][Slow] Image mirror mirror image from integrated registry into few external registries": "mirror image from integrated registry into few external registries",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageMirror][Slow] Image mirror mirror image from integrated registry to external registry": "mirror image from integrated registry to external registry [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImageMirror][Slow] Image mirror mirror image from integrated registry to external registry": "mirror image from integrated registry to external registry",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune should delete orphaned blobs": "should delete orphaned blobs [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune should delete orphaned blobs": "should delete orphaned blobs",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune should show orphaned blob deletions in dry-run mode": "should show orphaned blob deletions in dry-run mode [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune should show orphaned blob deletions in dry-run mode": "should show orphaned blob deletions in dry-run mode",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune of schema 1 should prune old image": "should prune old image [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune of schema 1 should prune old image": "should prune old image",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune of schema 2 should prune old image with config": "should prune old image with config [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune of schema 2 should prune old image with config": "should prune old image with config",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with --all=false flag should prune only internally managed images": "should prune only internally managed images [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with --all=false flag should prune only internally managed images": "should prune only internally managed images",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with --prune-registry==false should prune old image but skip registry": "should prune old image but skip registry [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with --prune-registry==false should prune old image but skip registry": "should prune old image but skip registry",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with default --all flag should prune both internally managed and external images": "should prune both internally managed and external images [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with default --all flag should prune both internally managed and external images": "should prune both internally managed and external images",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageQuota] Image resource quota should deny a push of built image exceeding openshift.io/imagestreams quota": "should deny a push of built image exceeding openshift.io/imagestreams quota [Disabled:SpecialConfig] [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImageQuota] Image resource quota should deny a push of built image exceeding openshift.io/imagestreams quota": "should deny a push of built image exceeding openshift.io/imagestreams quota [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a container image reference exceeding limit on openshift.io/image-tags resource": "should deny a container image reference exceeding limit on openshift.io/image-tags resource [Disabled:SpecialConfig] [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a container image reference exceeding limit on openshift.io/image-tags resource": "should deny a container image reference exceeding limit on openshift.io/image-tags resource [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a push of built image exceeding limit on openshift.io/images resource": "should deny a push of built image exceeding limit on openshift.io/images resource [Disabled:SpecialConfig] [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a push of built image exceeding limit on openshift.io/images resource": "should deny a push of built image exceeding limit on openshift.io/images resource [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a push of built image exceeding openshift.io/Image limit": "should deny a push of built image exceeding openshift.io/Image limit [Disabled:SpecialConfig] [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a push of built image exceeding openshift.io/Image limit": "should deny a push of built image exceeding openshift.io/Image limit [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny an import of a repository exceeding limit on openshift.io/image-tags resource": "should deny an import of a repository exceeding limit on openshift.io/image-tags resource [Disabled:SpecialConfig] [Suite:openshift]",
+	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny an import of a repository exceeding limit on openshift.io/image-tags resource": "should deny an import of a repository exceeding limit on openshift.io/image-tags resource [Disabled:SpecialConfig]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Annotation trigger reconciles after the image is overwritten": "reconciles after the image is overwritten [Suite:openshift/conformance/parallel]",
 
@@ -1815,7 +1815,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics": "should start and expose a secured proxy and verify build metrics [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": "should answer endpoint and wildcard queries for the cluster [Disabled:Broken] [Suite:openshift]",
+	"[Top Level] [sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": "should answer endpoint and wildcard queries for the cluster [Disabled:Broken]",
 
 	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests": "should pass the gRPC interoperability tests [Suite:openshift/conformance/parallel/minimal]",
 
@@ -1823,19 +1823,19 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the http2 tests": "should pass the http2 tests [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling idling [Local] with a single service and DeploymentConfig should idle the service and DeploymentConfig properly": "should idle the service and DeploymentConfig properly [Disabled:Broken] [Suite:openshift]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling idling [Local] with a single service and DeploymentConfig should idle the service and DeploymentConfig properly": "should idle the service and DeploymentConfig properly [Disabled:Broken]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling idling [Local] with a single service and ReplicationController should idle the service and ReplicationController properly": "should idle the service and ReplicationController properly [Suite:openshift]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling idling [Local] with a single service and ReplicationController should idle the service and ReplicationController properly": "should idle the service and ReplicationController properly",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling unidling should handle many TCP connections by dropping those under a certain bound [Local]": "should handle many TCP connections by dropping those under a certain bound [Local] [Suite:openshift]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling unidling should handle many TCP connections by dropping those under a certain bound [Local]": "should handle many TCP connections by dropping those under a certain bound [Local]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling unidling should handle many UDP senders (by continuing to drop all packets on the floor) [Local]": "should handle many UDP senders (by continuing to drop all packets on the floor) [Local] [Suite:openshift]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling unidling should handle many UDP senders (by continuing to drop all packets on the floor) [Local]": "should handle many UDP senders (by continuing to drop all packets on the floor) [Local]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling unidling should work with TCP (when fully idled) [Local]": "should work with TCP (when fully idled) [Local] [Suite:openshift]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling unidling should work with TCP (when fully idled) [Local]": "should work with TCP (when fully idled) [Local]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling unidling should work with TCP (while idling) [Local]": "should work with TCP (while idling) [Local] [Suite:openshift]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling unidling should work with TCP (while idling) [Local]": "should work with TCP (while idling) [Local]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling unidling should work with UDP [Local]": "should work with UDP [Local] [Suite:openshift]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling unidling should work with UDP [Local]": "should work with UDP [Local]",
 
 	"[Top Level] [sig-network] ClusterDns [Feature:Example] should create pod that uses dns": "should create pod that uses dns [Disabled:Broken] [Suite:k8s]",
 
@@ -2291,7 +2291,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] RuntimeClass should run a Pod requesting a RuntimeClass with scheduling [NodeFeature:RuntimeHandler] [Disruptive] ": "should run a Pod requesting a RuntimeClass with scheduling [NodeFeature:RuntimeHandler] [Disruptive]  [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [Local]": "should propagate requested groups to the container [Local] [Suite:openshift]",
+	"[Top Level] [sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [Local]": "should propagate requested groups to the container [Local]",
 
 	"[Top Level] [sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL": "Implement packages API server and list packagemanifest info with namespace not NULL [Suite:openshift/conformance/parallel]",
 
@@ -2313,15 +2313,15 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status": "Report Upgradeable in OLM ClusterOperators status [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Disabled:Broken] [Suite:openshift]",
+	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Disabled:Broken]",
 
-	"[Top Level] [sig-scalability][Feature:Performance] Load cluster should populate the cluster [Slow][Serial]": "should populate the cluster [Slow][Serial] [Suite:openshift]",
+	"[Top Level] [sig-scalability][Feature:Performance] Load cluster should populate the cluster [Slow][Serial]": "should populate the cluster [Slow][Serial]",
 
-	"[Top Level] [sig-scalability][Feature:Performance][Serial][Slow] Load cluster concurrently with templates": "concurrently with templates [Suite:openshift]",
+	"[Top Level] [sig-scalability][Feature:Performance][Serial][Slow] Load cluster concurrently with templates": "concurrently with templates",
 
-	"[Top Level] [sig-scalability][Feature:Performance][Serial][Slow] Mirror cluster it should read the cluster apps": "it should read the cluster apps [Suite:openshift]",
+	"[Top Level] [sig-scalability][Feature:Performance][Serial][Slow] Mirror cluster it should read the cluster apps": "it should read the cluster apps",
 
-	"[Top Level] [sig-scalability][Feature:Performance][Serial][Slow] Mirror cluster it should read the node info": "it should read the node info [Suite:openshift]",
+	"[Top Level] [sig-scalability][Feature:Performance][Serial][Slow] Mirror cluster it should read the node info": "it should read the node info",
 
 	"[Top Level] [sig-scheduling] GPUDevicePluginAcrossRecreate [Feature:Recreate] run Nvidia GPU Device Plugin tests with a recreation": "run Nvidia GPU Device Plugin tests with a recreation [Disabled:SpecialConfig] [Suite:k8s]",
 
