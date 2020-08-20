@@ -12,16 +12,17 @@ import (
 	"k8s.io/client-go/dynamic"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	g.It("have same number of Machines and Nodes", func() {
-		if e2e.TestContext.Provider == ibmcloud.ProviderName {
-			e2eskipper.Skipf("IBM Cloud clusters do not contain machineset resources")
+		if e2e.TestContext.Provider != "aws" &&
+			e2e.TestContext.Provider != "gce" &&
+			e2e.TestContext.Provider != "openstack" &&
+			e2e.TestContext.Provider != "azure" {
+			e2eskipper.Skipf("clusters on platform '%s' do not contain machineset resources", e2e.TestContext.Provider)
 		}
 
 		cfg, err := e2e.LoadConfig()
