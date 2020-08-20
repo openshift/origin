@@ -2,6 +2,7 @@ package operators
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -172,14 +173,30 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Eventually(func() string {
-			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "operatorgroup", "test-operator", "-o=jsonpath={.status.namespaces}").Output()
+		o.Eventually(func() []string {
+			// Using json output instead of jsonpath - oc/jsonpath bug seems to improperly decode `[""]` as `[]`
+			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "operatorgroup", "test-operator", "-o=json").Output()
 			if err != nil {
 				e2e.Logf("Failed to get valid operatorgroup, error:%v", err)
-				return ""
+				return []string{""}
 			}
-			return output
-		}, 5*time.Minute, time.Second).Should(o.Equal("[\"\"]"))
+			type ogStatus struct {
+				Namespaces []string `json:"namespaces"`
+			}
+			type og struct {
+				Status ogStatus `json:"status"`
+			}
+			parsed := og{
+				Status: ogStatus{
+					Namespaces: []string{},
+				},
+			}
+			if err := json.Unmarshal([]byte(output), &parsed); err != nil {
+				e2e.Logf("Failed to parse operatorgroup, error:%v", err)
+				return []string{""}
+			}
+			return parsed.Status.Namespaces
+		}, 5*time.Minute, time.Second).Should(o.Equal([]string{""}))
 
 		for _, v := range files {
 			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=redhat-operators", "SOURCENAMESPACE=openshift-marketplace", "PACKAGE=amq-streams", "CHANNEL=stable").OutputToFile("config.json")
