@@ -23,17 +23,11 @@ echo "Updating vendoring for ${UPSTREAM_REPO}"
 go mod edit -replace "${UPSTREAM_REPO}=${REPO_REPLACEMENT}@${SHA}"
 go mod tidy
 
-VERSION="$(grep 'k8s.io/kubernetes =>' go.mod | awk '{print $4}')"
-echo "Using version ${VERSION}"
-
 echo "Updating vendoring for the staging repos of ${UPSTREAM_REPO}"
 TARGET_DEPS="$( grep 'staging/src/k8s.io' go.mod | awk '{print $1}' )"
 for TARGET_DEP in ${TARGET_DEPS}; do
-  # The version discovered for k8s.io/kubernetes will be the same for
-  # all the staging repos.  Using sed to apply that version to the
-  # staging repos is much faster than running `go mod edit -replace &&
-  # go mod tidy` for each repo.
-  sed -i -e 's+\(\s'"${TARGET_DEP}"' => \).*+\1'"${REPO_REPLACEMENT}/staging/src/${TARGET_DEP} ${VERSION}"'+' go.mod
+  go mod edit -replace "${TARGET_DEP}=${REPO_REPLACEMENT}/staging/src/${TARGET_DEP}@${SHA}"
+  go mod tidy
 done
 
 go mod tidy
