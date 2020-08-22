@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/test/extended/util/cloud"
 
 	"github.com/onsi/ginkgo/config"
 )
@@ -183,6 +184,13 @@ func (opt *Options) Run(args []string) error {
 	}
 	if timeout == 0 {
 		timeout = 15 * time.Minute
+	}
+
+	// Temporarily extend the test timeout for azure to account for the
+	// delay imposed by azure storage provisioning.
+	clusterConfig := cloud.LoadClusterConfigurationFromJSON(opt.Provider)
+	if clusterConfig.ProviderName == "azure" {
+		timeout = timeout + 15*time.Minute
 	}
 
 	ctx, cancelFn := context.WithCancel(context.Background())

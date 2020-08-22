@@ -32,6 +32,15 @@ type ClusterConfiguration struct {
 	NetworkPluginIDs []string
 }
 
+func LoadClusterConfigurationFromJSON(serializedConfig string) *ClusterConfiguration {
+	config := &ClusterConfiguration{}
+	err := json.Unmarshal([]byte(serializedConfig), config)
+	if err != nil {
+		panic(err)
+	}
+	return config
+}
+
 func (c *ClusterConfiguration) ToJSONString() string {
 	out, err := json.Marshal(c)
 	if err != nil {
