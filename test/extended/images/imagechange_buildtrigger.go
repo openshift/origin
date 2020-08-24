@@ -280,7 +280,7 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 		event := <-buildWatch.ResultChan()
 		o.Expect(event.Type).To(o.Equal(watchapi.Added))
 
-		newBuild := event.Object.(*buildv1.Build)
+		newBuild, ok := event.Object.(*buildv1.Build)
 		build1Name := newBuild.Name
 		strategy := newBuild.Spec.Strategy
 		expectedFromName := registryHostname + "/openshift/test-image-trigger:" + tag
@@ -334,7 +334,10 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 		// we just triggered
 		g.By("waiting for a new build to be added")
 		for {
-			event = <-buildWatch.ResultChan()
+			event, ok = <-buildWatch.ResultChan()
+			if !ok {
+				continue
+			}
 			newBuild = event.Object.(*buildv1.Build)
 			if newBuild.Name != build1Name {
 				break
@@ -361,7 +364,11 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 		g.By("waiting for a new build to be updated")
 		for {
 			event = <-buildWatch.ResultChan()
-			newBuild = event.Object.(*buildv1.Build)
+			var ok bool
+			newBuild, ok = event.Object.(*buildv1.Build)
+			if !ok {
+				continue
+			}
 			if newBuild.Name != build1Name {
 				break
 			}

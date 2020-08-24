@@ -272,7 +272,10 @@ Loop:
 		case <-time.After(10 * time.Second):
 			t.Fatalf("timed out waiting for build event")
 		case event := <-watch.ResultChan():
-			actual := event.Object.(*buildv1.Build)
+			actual, ok := event.Object.(*buildv1.Build)
+			if !ok {
+				continue
+			}
 			t.Logf("Saw build object %#v", actual)
 			if actual.Status.Phase != buildv1.BuildPhasePending {
 				continue
@@ -317,7 +320,10 @@ func TestWebhookGitHubPing(t g.GinkgoTInterface, oc *exutil.CLI) {
 		case <-timer.C:
 			// nothing should happen
 		case event := <-watch.ResultChan():
-			build := event.Object.(*buildv1.Build)
+			build, ok := event.Object.(*buildv1.Build)
+			if !ok {
+				continue
+			}
 			t.Fatalf("Unexpected build created: %#v", build)
 		}
 	}

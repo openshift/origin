@@ -7,11 +7,12 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/util/retry"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/util/retry"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -19,6 +20,7 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -153,7 +155,10 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			for {
 				select {
 				case event := <-imageWatch.ResultChan():
-					stream := event.Object.(*imagev1.ImageStream)
+					stream, ok := event.Object.(*imagev1.ImageStream)
+					if !ok {
+						continue
+					}
 					if _, ok := imageutil.StatusHasTag(stream, imagev1.DefaultImageTag); ok {
 						t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
 						break statusLoop
@@ -176,7 +181,10 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			select {
 			case event := <-configWatch.ResultChan():
 				if event.Type == watchapi.Modified {
-					newConfig = event.Object.(*appsv1.DeploymentConfig)
+					newConfig, ok = event.Object.(*appsv1.DeploymentConfig)
+					if !ok {
+						continue
+					}
 					// Multiple updates to the config can be expected (e.g. status
 					// updates), so wait for a significant update (e.g. version).
 					if newConfig.Status.LatestVersion > 0 {
@@ -256,7 +264,10 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 						}
 						t.Fatalf("unexpected object from watcher: %#v", event.Object)
 					default:
-						stream := event.Object.(*imagev1.ImageStream)
+						stream, ok := event.Object.(*imagev1.ImageStream)
+						if !ok {
+							continue
+						}
 						tagEventList, ok := imageutil.StatusHasTag(stream, imagev1.DefaultImageTag)
 						if ok && len(tagEventList.Items) > 0 && tagEventList.Items[0].DockerImageReference == mapping.Image.DockerImageReference {
 							t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
@@ -305,7 +316,11 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 					continue
 				}
 
-				newConfig = event.Object.(*appsv1.DeploymentConfig)
+				var ok bool
+				newConfig, ok = event.Object.(*appsv1.DeploymentConfig)
+				if !ok {
+					continue
+				}
 
 				if newConfig.Status.LatestVersion > 0 {
 					t.Fatalf("unexpected latestVersion update - the config has no config change trigger")
@@ -333,7 +348,11 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 					continue
 				}
 
-				newConfig = event.Object.(*appsv1.DeploymentConfig)
+				var ok bool
+				newConfig, ok = event.Object.(*appsv1.DeploymentConfig)
+				if !ok {
+					continue
+				}
 
 				if newConfig.Status.LatestVersion > 0 {
 					t.Fatalf("unexpected latestVersion update - the config has no config change trigger")
@@ -447,6 +466,10 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			for {
 				select {
 				case event := <-imageWatch.ResultChan():
+					if status, ok := event.Object.(*metav1.Status); ok {
+						t.Logf("received status %+v instead of imagestream", status)
+						continue
+					}
 					stream := event.Object.(*imagev1.ImageStream)
 					if stream.Name != name {
 						continue
@@ -476,7 +499,10 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 					continue
 				}
 
-				newConfig := event.Object.(*appsv1.DeploymentConfig)
+				newConfig, ok := event.Object.(*appsv1.DeploymentConfig)
+				if !ok {
+					continue
+				}
 				if newConfig.Status.LatestVersion > 0 {
 					t.Fatalf("unexpected latestVersion update: %#v", newConfig)
 				}
@@ -504,7 +530,10 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 					continue
 				}
 
-				newConfig := event.Object.(*appsv1.DeploymentConfig)
+				newConfig, ok := event.Object.(*appsv1.DeploymentConfig)
+				if !ok {
+					continue
+				}
 				switch {
 				case newConfig.Status.LatestVersion == 0:
 					t.Logf("Wating for latestVersion to update to 1")

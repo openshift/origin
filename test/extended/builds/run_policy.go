@@ -79,7 +79,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				// Wait for it to become running
 				for {
 					event := <-buildWatch.ResultChan()
-					build := event.Object.(*buildv1.Build)
+					build, ok := event.Object.(*buildv1.Build)
+					if !ok {
+						continue
+					}
 					o.Expect(IsBuildComplete(build)).Should(o.BeFalse())
 					if build.Name == startedBuilds[0] && build.Status.Phase == buildv1.BuildPhaseRunning {
 						break
@@ -97,7 +100,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 
 				for {
 					event := <-buildWatch.ResultChan()
-					build := event.Object.(*buildv1.Build)
+					build, ok := event.Object.(*buildv1.Build)
+					if !ok {
+						continue
+					}
 					if build.Name == startedBuilds[0] {
 						if IsBuildComplete(build) {
 							break
@@ -160,7 +166,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				sawCompletion := false
 				for {
 					event := <-buildWatch.ResultChan()
-					build := event.Object.(*buildv1.Build)
+					build, ok := event.Object.(*buildv1.Build)
+					if !ok {
+						continue
+					}
 					var lastCompletion time.Time
 					if build.Status.Phase == buildv1.BuildPhaseComplete {
 						o.Expect(hasConditionState(build, buildv1.BuildPhaseComplete, true)).Should(o.BeTrue())
@@ -232,7 +241,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				var cancelTime, cancelTime2 time.Time
 				for {
 					event := <-buildWatch.ResultChan()
-					build := event.Object.(*buildv1.Build)
+					build, ok := event.Object.(*buildv1.Build)
+					if !ok {
+						continue
+					}
 					if build.Status.Phase == buildv1.BuildPhasePending || build.Status.Phase == buildv1.BuildPhaseRunning {
 						if build.Status.Phase == buildv1.BuildPhaseRunning {
 							o.Expect(hasConditionState(build, buildv1.BuildPhaseRunning, true)).Should(o.BeTrue())
@@ -284,7 +296,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				for done == false {
 					select {
 					case event := <-buildWatch.ResultChan():
-						build := event.Object.(*buildv1.Build)
+						build, ok := event.Object.(*buildv1.Build)
+						if !ok {
+							continue
+						}
+
 						if build.Status.Phase == buildv1.BuildPhasePending {
 							o.Expect(hasConditionState(build, buildv1.BuildPhasePending, true)).Should(o.BeTrue())
 							if build.Name == "sample-serial-build-fail-2" {
@@ -364,7 +380,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				for !done {
 					select {
 					case event := <-buildWatch.ResultChan():
-						build := event.Object.(*buildv1.Build)
+						build, ok := event.Object.(*buildv1.Build)
+						if !ok {
+							continue
+						}
 						if build.Status.Phase == buildv1.BuildPhasePending || build.Status.Phase == buildv1.BuildPhaseRunning {
 							if build.Status.Phase == buildv1.BuildPhaseRunning {
 								o.Expect(hasConditionState(build, buildv1.BuildPhaseRunning, true)).Should(o.BeTrue())
@@ -424,7 +443,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				// Wait for the first build to become running
 				for {
 					event := <-buildWatch.ResultChan()
-					build := event.Object.(*buildv1.Build)
+					build, ok := event.Object.(*buildv1.Build)
+					if !ok {
+						continue
+					}
+
 					if build.Name == startedBuilds[0] {
 						if build.Status.Phase == buildv1.BuildPhaseRunning {
 							buildVerified[build.Name] = true
@@ -447,7 +470,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 				// will be the last build created.
 				for {
 					event := <-buildWatch.ResultChan()
-					build := event.Object.(*buildv1.Build)
+					build, ok := event.Object.(*buildv1.Build)
+					if !ok {
+						continue
+					}
 					e2e.Logf("got event for build %s with phase %s", build.Name, build.Status.Phase)
 					// The second build should be cancelled
 					if build.Status.Phase == buildv1.BuildPhaseCancelled {

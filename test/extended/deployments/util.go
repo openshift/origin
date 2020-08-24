@@ -754,7 +754,10 @@ func (d *deployerPodInvariantChecker) doChecking() {
 			if t != watch.Added && t != watch.Modified && t != watch.Deleted {
 				o.Expect(fmt.Errorf("unexpected event: %#v", event)).NotTo(o.HaveOccurred())
 			}
-			pod := event.Object.(*corev1.Pod)
+			pod, ok := event.Object.(*corev1.Pod)
+			if !ok {
+				continue
+			}
 			if !strings.HasSuffix(pod.Name, "-deploy") {
 				continue
 			}

@@ -228,7 +228,10 @@ func waitForDelete(projectName string, w watch.Interface) {
 		for {
 			select {
 			case event := <-w.ResultChan():
-				project := event.Object.(*projectv1.Project)
+				project, ok := event.Object.(*projectv1.Project)
+				if !ok {
+					continue
+				}
 				framework.Logf("got %#v %#v", event, project)
 				if event.Type == watch.Deleted && project.Name == projectName {
 					return
@@ -246,7 +249,10 @@ func waitForAdd(projectName string, w watch.Interface) {
 		for {
 			select {
 			case event := <-w.ResultChan():
-				project := event.Object.(*projectv1.Project)
+				project, ok := event.Object.(*projectv1.Project)
+				if !ok {
+					continue
+				}
 				framework.Logf("got %#v %#v", event, project)
 				if event.Type == watch.Added && project.Name == projectName {
 					return
@@ -265,7 +271,10 @@ func waitForOnlyAdd(projectName string, w watch.Interface) {
 		for {
 			select {
 			case event := <-w.ResultChan():
-				project := event.Object.(*projectv1.Project)
+				project, ok := event.Object.(*projectv1.Project)
+				if !ok {
+					continue
+				}
 				framework.Logf("got %#v %#v", event, project)
 				if project.Name == projectName {
 					// the first event we see for the expected project must be an ADD
