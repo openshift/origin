@@ -1,9 +1,9 @@
-hash: d004dcd53ee646e09860999cdaae10b0f037201ab6e80290c85c0bc175625da6
-updated: 2020-08-17T10:32:59.825590842-04:00
+hash: afd89d6436d89204ce0a4a696da98d1726ff86a0ae4cf7944af11c982c066123
+updated: 2020-08-25T11:20:34.134319972-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
-  version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
-  vcs: hg
+  version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
+  repo: https://github.com/munnerz/goautoneg.git
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
   subpackages:
@@ -1863,7 +1863,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: f26bc662f4f93eb2d1437081623c7fbc1d3d850d
+  version: 55a241852c330d4a485eac73155c9259dbbc3d84
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
