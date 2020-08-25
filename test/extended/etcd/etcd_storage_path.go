@@ -8,6 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/kubernetes/test/e2e/framework"
+
+	o "github.com/onsi/gomega"
+
 	g "github.com/onsi/ginkgo"
 	"golang.org/x/net/context"
 
@@ -221,12 +225,6 @@ func (t *helperT) done() {
 func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, etcdClient3Fn func() (etcdv3.KV, error)) {
 	defer g.GinkgoRecover()
 
-	// make Errorf fail the test as expected but continue until the end so we can see all failures
-	// we lose line numbers but that does not really matter for this test
-	ht := &helperT{GinkgoTInterface: t}
-	defer ht.done()
-	t = ht
-
 	var tt *testing.T // will cause nil panics that make it easy enough to find where things went wrong
 
 	kubeConfig = restclient.CopyConfig(kubeConfig)
@@ -246,39 +244,34 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		for _, crd := range etcddataCRDs {
 			errs = append(errs, deleteCRD(ctx, crd.Name, delOptions))
 		}
-		if err := errors.NewAggregate(errs); err != nil {
-			t.Fatal(err)
-		}
+		err := errors.NewAggregate(errs)
+		o.Expect(err).NotTo(o.HaveOccurred())
 	}()
 
-	crds := getCRDs(t, crdClient)
+	crds := getCRDs(crdClient)
 
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
 	mapper.Reset()
 
 	client := &allClient{dynamicClient: dynamic.NewForConfigOrDie(kubeConfig)}
 
-	if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}, metav1.CreateOptions{}); err != nil {
-		t.Fatalf("error creating test namespace: %#v", err)
-	}
+	_, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}, metav1.CreateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
 	defer func() {
-		if err := kubeClient.CoreV1().Namespaces().Delete(context.Background(), testNamespace, metav1.DeleteOptions{}); err != nil {
-			t.Fatalf("error deleting test namespace: %#v", err)
-		}
+		kubeClient.CoreV1().Namespaces().Delete(context.Background(), testNamespace, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 	}()
 
-	if err := exutil.WaitForServiceAccount(kubeClient.CoreV1().ServiceAccounts(testNamespace), "default"); err != nil {
-		t.Fatalf("error waiting for the default service account: %v", err)
-	}
+	err = exutil.WaitForServiceAccount(kubeClient.CoreV1().ServiceAccounts(testNamespace), "default")
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	version, err := kubeClient.Discovery().ServerVersion()
-	if err != nil {
-		t.Fatal(err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	etcdStorageData := etcddata.GetEtcdStorageData()
 
-	removeStorageData(t, etcdStorageData,
+	removeStorageData(etcdStorageData,
 		// these alphas resources are not enabled in a real cluster but worked fine in the integration test
 		gvr("batch", "v2alpha1", "cronjobs"),
 		gvr("node.k8s.io", "v1alpha1", "runtimeclasses"),
@@ -303,7 +296,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 			// TODO: fill when 1.20 rebase has started
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
-				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
+				o.Expect(fmt.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)).NotTo(o.HaveOccurred())
 			}
 			etcdStorageData[k] = a
 		}
@@ -313,11 +306,11 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		// TODO: fill when 1.20 rebase has started
 
 		// Removed etcd data.
-		removeStorageData(t, etcdStorageData) // TODO: fill when 1.20 rebase has started
+		removeStorageData(etcdStorageData) // TODO: fill when 1.20 rebase has started
 
 	} else {
 		// Remove 1.19 only alpha versions
-		removeStorageData(t, etcdStorageData) // these alphas resources are not enabled in a real cluster but worked fine in the integration test
+		removeStorageData(etcdStorageData) // these alphas resources are not enabled in a real cluster but worked fine in the integration test
 		//
 		// TODO: fill when 1.20 rebase has started
 
@@ -325,7 +318,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 	// flowcontrol may or may not be on.  This allows us to ratchet in turning it on.
 	if flowControlResources, err := kubeClient.Discovery().ServerResourcesForGroupVersion("flowcontrol.apiserver.k8s.io/v1alpha1"); err != nil || len(flowControlResources.APIResources) == 0 {
-		removeStorageData(t, etcdStorageData,
+		removeStorageData(etcdStorageData,
 			gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
 			gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
 		)
@@ -337,7 +330,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		path := data.ExpectedEtcdPath
 
 		if !strings.HasPrefix(path, "/registry/") {
-			t.Fatalf("%s does not have expected Kube prefix, data=%#v", gvr.String(), data)
+			o.Expect(fmt.Errorf("%s does not have expected Kube prefix, data=%#v", gvr.String(), data)).NotTo(o.HaveOccurred())
 		}
 
 		data.ExpectedEtcdPath = "kubernetes.io/" + path[10:]
@@ -347,7 +340,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	// add openshift specific data
 	for gvr, data := range openshiftEtcdStorageData {
 		if _, ok := etcdStorageData[gvr]; ok {
-			t.Errorf("%s exists in both Kube and OpenShift ETCD data, data=%#v", gvr.String(), data)
+			o.Expect(fmt.Errorf("%s exists in both Kube and OpenShift ETCD data, data=%#v", gvr.String(), data)).NotTo(o.HaveOccurred())
 		}
 
 		if len(gvr.Group) != 0 {
@@ -355,7 +348,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 			// these should be moved to the upstream test
 			if !isOpenShiftResource {
-				t.Errorf("%s should be added in the upstream test, data=%#v", gvr.String(), data)
+				o.Expect(fmt.Errorf("%s should be added in the upstream test, data=%#v", gvr.String(), data)).NotTo(o.HaveOccurred())
 			}
 		}
 
@@ -368,9 +361,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	cohabitatingResources := map[string]map[schema.GroupVersionKind]empty{}
 
 	serverResources, err := kubeClient.Discovery().ServerResources()
-	if err != nil {
-		t.Fatal(err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	for _, resourceToPersist := range etcddata.GetResources(tt, serverResources) {
 		mapping := resourceToPersist.Mapping
@@ -389,16 +380,16 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		if !hasTest {
 			if _, isCRD := crds[gvResource]; isCRD {
 				// TODO this is likely unsafe once CRDs support moving versions
-				t.Logf("skipping CRD %v as it has no test data", gvk)
+				framework.Logf("skipping CRD %v as it has no test data", gvk)
 				delete(etcdSeen, gvResource)
 				continue
 			}
-			t.Errorf("no test data for %v.  Please add a test for your new type to etcdStorageData.", gvk)
+			o.Expect(fmt.Errorf("no test data for %v.  Please add a test for your new type to etcdStorageData.", gvk)).NotTo(o.HaveOccurred())
 			continue
 		}
 
 		if len(testData.ExpectedEtcdPath) == 0 {
-			t.Errorf("empty test data for %v", gvk)
+			o.Expect(fmt.Errorf("empty test data for %v", gvk)).NotTo(o.HaveOccurred())
 			continue
 		}
 
@@ -407,7 +398,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		var input *metaObject
 		if shouldCreate {
 			if input, err = jsonToMetaObject(testData.Stub); err != nil || input.isEmpty() {
-				t.Errorf("invalid test data for %v: %v", gvk, err)
+				o.Expect(fmt.Errorf("invalid test data for %v: %v", gvk, err)).NotTo(o.HaveOccurred())
 				continue
 			}
 		}
@@ -415,21 +406,21 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		func() { // forces defer to run per iteration of the for loop
 			all := &[]cleanupData{}
 			defer func() {
-				if !t.Failed() { // do not cleanup if test has already failed since we may need things in the etcd dump
+				if !g.CurrentGinkgoTestDescription().Failed { // do not cleanup if test has already failed since we may need things in the etcd dump
 					if err := client.cleanup(all); err != nil {
-						t.Errorf("failed to clean up etcd: %#v", err)
+						o.Expect(fmt.Errorf("failed to clean up etcd: %#v", err)).NotTo(o.HaveOccurred())
 					}
 				}
 			}()
 
 			if err := client.createPrerequisites(mapper, testNamespace, testData.Prerequisites, all); err != nil {
-				t.Errorf("failed to create prerequisites for %v: %#v", gvk, err)
+				o.Expect(fmt.Errorf("failed to create prerequisites for %v: %#v", gvk, err)).NotTo(o.HaveOccurred())
 				return
 			}
 
 			if shouldCreate { // do not try to create items with no stub
 				if err := client.create(testData.Stub, testNamespace, mapping, all); err != nil {
-					t.Errorf("failed to create stub for %v: %#v", gvk, err)
+					o.Expect(fmt.Errorf("failed to create stub for %v: %#v", gvk, err)).NotTo(o.HaveOccurred())
 					return
 				}
 			}
@@ -452,7 +443,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 				break
 			}
 			if lastErr != nil {
-				t.Errorf("failed to get from etcd for %v: %#v", gvk, lastErr)
+				o.Expect(fmt.Errorf("failed to get from etcd for %v: %#v", gvk, lastErr)).NotTo(o.HaveOccurred())
 				return
 			}
 
@@ -463,11 +454,11 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 			actualGVK := output.getGVK()
 			if actualGVK != expectedGVK {
-				t.Errorf("GVK for %v does not match, expected %s got %s", gvk, expectedGVK, actualGVK)
+				o.Expect(fmt.Errorf("GVK for %v does not match, expected %s got %s", gvk, expectedGVK, actualGVK)).NotTo(o.HaveOccurred())
 			}
 
 			if !kapihelper.Semantic.DeepDerivative(input, output) {
-				t.Errorf("Test stub for %v does not match: %s", gvk, diff.ObjectGoPrintDiff(input, output))
+				o.Expect(fmt.Errorf("Test stub for %v does not match: %s", gvk, diff.ObjectGoPrintDiff(input, output))).NotTo(o.HaveOccurred())
 			}
 
 			addGVKToEtcdBucket(cohabitatingResources, actualGVK, getEtcdBucket(testData.ExpectedEtcdPath))
@@ -476,11 +467,11 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	}
 
 	if inEtcdData, inEtcdSeen := diffMaps(etcdStorageData, etcdSeen); len(inEtcdData) != 0 || len(inEtcdSeen) != 0 {
-		t.Errorf("etcd data does not match the types we saw:\nin etcd data but not seen:\n%s\nseen but not in etcd data:\n%s", inEtcdData, inEtcdSeen)
+		o.Expect(fmt.Errorf("etcd data does not match the types we saw:\nin etcd data but not seen:\n%s\nseen but not in etcd data:\n%s", inEtcdData, inEtcdSeen)).NotTo(o.HaveOccurred())
 	}
 
 	if inKindData, inKindSeen := diffMaps(kindWhiteList, kindSeen); len(inKindData) != 0 || len(inKindSeen) != 0 {
-		t.Errorf("kind whitelist data does not match the types we saw:\nin kind whitelist but not seen:\n%s\nseen but not in kind whitelist:\n%s", inKindData, inKindSeen)
+		o.Expect(fmt.Errorf("kind whitelist data does not match the types we saw:\nin kind whitelist but not seen:\n%s\nseen but not in kind whitelist:\n%s", inKindData, inKindSeen)).NotTo(o.HaveOccurred())
 	}
 
 	for bucket, gvks := range cohabitatingResources {
@@ -489,7 +480,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 			for key := range gvks {
 				gvkStrings = append(gvkStrings, keyStringer(key))
 			}
-			t.Errorf("cohabitating resources in etcd bucket %s have inconsistent GVKs\nyou may need to use DefaultStorageFactory.AddCohabitatingResources to sync the GVK of these resources:\n%s", bucket, gvkStrings)
+			o.Expect(fmt.Errorf("cohabitating resources in etcd bucket %s have inconsistent GVKs\nyou may need to use DefaultStorageFactory.AddCohabitatingResources to sync the GVK of these resources:\n%s", bucket, gvkStrings)).NotTo(o.HaveOccurred())
 		}
 	}
 
@@ -499,16 +490,15 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 			for _, key := range gvrs {
 				gvrStrings = append(gvrStrings, keyStringer(key))
 			}
-			t.Errorf("invalid test data, please ensure all expectedEtcdPath are unique, path %s has duplicate GVRs:\n%s", path, gvrStrings)
+			o.Expect(fmt.Errorf("invalid test data, please ensure all expectedEtcdPath are unique, path %s has duplicate GVRs:\n%s", path, gvrStrings)).NotTo(o.HaveOccurred())
+
 		}
 	}
 }
 
-func getCRDs(t g.GinkgoTInterface, crdClient *apiextensionsclientset.Clientset) map[schema.GroupVersionResource]empty {
+func getCRDs(crdClient *apiextensionsclientset.Clientset) map[schema.GroupVersionResource]empty {
 	crdList, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	crds := map[schema.GroupVersionResource]empty{}
 	for _, crd := range crdList.Items {
@@ -530,10 +520,10 @@ func getCRDs(t g.GinkgoTInterface, crdClient *apiextensionsclientset.Clientset) 
 	return crds
 }
 
-func removeStorageData(t g.GinkgoTInterface, etcdStorageData map[schema.GroupVersionResource]etcddata.StorageData, gvrs ...schema.GroupVersionResource) {
+func removeStorageData(etcdStorageData map[schema.GroupVersionResource]etcddata.StorageData, gvrs ...schema.GroupVersionResource) {
 	for _, gvResource := range gvrs {
 		if _, hasGVR := etcdStorageData[gvResource]; !hasGVR {
-			t.Fatalf("attempt to remove unknown resource %s", gvResource)
+			o.Expect(fmt.Errorf("attempt to remove unknown resource %s", gvResource)).NotTo(o.HaveOccurred())
 		}
 		delete(etcdStorageData, gvResource)
 	}
