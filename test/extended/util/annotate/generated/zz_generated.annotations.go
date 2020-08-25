@@ -1071,12 +1071,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds] custom build with buildah  being created from new-build should complete build with custom builder image": "should complete build with custom builder image [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-builds][Feature:Builds] forcePull should affect pulling builder images  ForcePull test case execution custom": "ForcePull test case execution custom [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-builds][Feature:Builds] forcePull should affect pulling builder images  ForcePull test case execution docker": "ForcePull test case execution docker [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-builds][Feature:Builds] forcePull should affect pulling builder images  ForcePull test case execution s2i": "ForcePull test case execution s2i [Suite:openshift/conformance/parallel]",
-
 	"[Top Level] [sig-builds][Feature:Builds] imagechangetriggers  imagechangetriggers should trigger builds of all types": "imagechangetriggers should trigger builds of all types [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should fail with a --name longer than 58 characters": "should fail with a --name longer than 58 characters [Suite:openshift/conformance/parallel]",
