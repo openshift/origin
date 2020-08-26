@@ -76,15 +76,6 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			{pluginOutputDir, "host_service_logs", "masters", "kubelet_service.log"},
 		}
 
-		// Skip the kube and openshift apiserver audit logs on IBM ROKS clusters
-		// since those components live outside of the cluster.
-		if e2e.TestContext.Provider != ibmcloud.ProviderName {
-			expectedFiles = append(expectedFiles,
-				[]string{pluginOutputDir, "audit_logs", "kube-apiserver.audit_logs_listing"},
-				[]string{pluginOutputDir, "audit_logs", "openshift-apiserver.audit_logs_listing"},
-			)
-		}
-
 		for _, expectedDirectory := range expectedDirectories {
 			o.Expect(path.Join(expectedDirectory...)).To(o.BeADirectory())
 		}
