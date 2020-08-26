@@ -473,7 +473,8 @@ func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
 	return err
 }
 
-func (node *OsdnNode) GetRunningPods(namespace string) ([]kapi.Pod, error) {
+// GetRunningPods returns a mapping of all running pods, as: namespace/name -> kapi.Pod
+func (node *OsdnNode) GetRunningPods(namespace string) (map[string]kapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
 	opts := metav1.ListOptions{
 		LabelSelector: labels.Everything().String(),
@@ -485,10 +486,10 @@ func (node *OsdnNode) GetRunningPods(namespace string) ([]kapi.Pod, error) {
 	}
 
 	// Filter running pods
-	pods := make([]kapi.Pod, 0, len(podList.Items))
+	pods := make(map[string]kapi.Pod)
 	for _, pod := range podList.Items {
 		if pod.Status.Phase == kapi.PodRunning {
-			pods = append(pods, pod)
+			pods[getPodKey(pod.Namespace, pod.Name)] = pod
 		}
 	}
 	return pods, nil
