@@ -102,10 +102,6 @@ var (
 			// Disabled as per networking team. Follow-up tracked via https://bugzilla.redhat.com/show_bug.cgi?id=1861214
 			`EndpointSliceMirroring should mirror a custom Endpoints resource through create update and delete`,
 
-			// Test passes but container it uses exits with non-zero.
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1861526
-			`ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present`,
-
 			// Perma-fail
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1862322
 			`an end user can use OLM can subscribe to the operator`,
