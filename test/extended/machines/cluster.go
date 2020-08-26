@@ -18,19 +18,23 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed clu
 	defer g.GinkgoRecover()
 
 	g.It("have same number of Machines and Nodes", func() {
-		if e2e.TestContext.Provider != "aws" &&
-			e2e.TestContext.Provider != "gce" &&
-			e2e.TestContext.Provider != "openstack" &&
-			e2e.TestContext.Provider != "azure" {
-			e2eskipper.Skipf("clusters on platform '%s' do not contain machineset resources", e2e.TestContext.Provider)
-		}
-
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c, err := e2e.LoadClientset()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dc, err := dynamic.NewForConfig(cfg)
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("getting MachineSet list")
+		machineSetClient := dc.Resource(schema.GroupVersionResource{Group: "machine.openshift.io", Resource: "machinesets", Version: "v1beta1"})
+		msList, err := machineSetClient.List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		machineSetList := objx.Map(msList.UnstructuredContent())
+		machineSetItems := objects(machineSetList.Get("items"))
+
+		if len(machineSetItems) == 0 {
+			e2eskipper.Skipf("cluster does not have machineset resources")
+		}
 
 		g.By("getting Node list")
 		nodeList, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
