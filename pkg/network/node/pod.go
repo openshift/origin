@@ -171,15 +171,7 @@ func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) 
 }
 
 // Start the CNI server and start processing requests from it
-func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork, serviceNetworkCIDR string, clearHostPorts bool) error {
-	if m.enableHostports {
-		iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIpv4)
-		m.hostportSyncer = kubehostport.NewHostportSyncer(iptInterface)
-		if clearHostPorts {
-			_ = m.hostportSyncer.SyncHostports(Tun0, nil)
-		}
-	}
-
+func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork, serviceNetworkCIDR string) error {
 	var err error
 	if m.ipamConfig, err = getIPAMConfig(clusterNetworks, localSubnetCIDR); err != nil {
 		return err
@@ -191,9 +183,16 @@ func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetwork
 	return m.cniServer.Start(m.handleCNIRequest)
 }
 
-func (m *podManager) InitRunningPods(existingSandboxPods map[string]*kruntimeapi.PodSandbox, existingOFPodNetworks map[string]podNetworkInfo, cRunningPods map[string]kapi.Pod) error {
+func (m *podManager) InitRunningPods(existingSandboxPods map[string]*kruntimeapi.PodSandbox, existingOFPodNetworks map[string]podNetworkInfo, cRunningPods map[string]kapi.Pod, clearHostPorts bool) error {
 	m.runningPodsLock.Lock()
 	defer m.runningPodsLock.Unlock()
+	if m.enableHostports {
+		iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIpv4)
+		m.hostportSyncer = kubehostport.NewHostportSyncer(iptInterface)
+		if clearHostPorts {
+			_ = m.hostportSyncer.SyncHostports(Tun0, nil)
+		}
+	}
 	for _, sandbox := range existingSandboxPods {
 		cKey := getPodKey(sandbox.Metadata.Namespace, sandbox.Metadata.Name)
 		cPod, exists := cRunningPods[cKey]
@@ -218,6 +217,11 @@ func (m *podManager) InitRunningPods(existingSandboxPods map[string]*kruntimeapi
 			continue
 		}
 		m.runningPods[cKey] = &runningPod{podPortMapping: podPortMapping, vnid: vnid, ofport: podNetworkInfo.ofport}
+		if mappings := m.shouldSyncHostports(podPortMapping); mappings != nil {
+			if err := m.hostportSyncer.OpenPodHostportsAndSync(podPortMapping, Tun0, mappings); err != nil {
+				glog.Errorf("Could not initialize hostport syncer for pod: %s, err: %v", cKey, err)
+			}
+		}
 	}
 	glog.V(5).Infof("Finished initializing podManager with running pods at start-up")
 	return nil

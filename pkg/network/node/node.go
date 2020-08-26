@@ -347,14 +347,13 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	if err = node.podManager.InitRunningPods(existingSandboxPods, existingOFPodNetworks, runningPods); err != nil {
+	if err = node.podManager.InitRunningPods(existingSandboxPods, existingOFPodNetworks, runningPods, networkChanged); err != nil {
 		return err
 	}
 
 	glog.V(2).Infof("Starting openshift-sdn pod manager")
 	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR,
-		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String(),
-		networkChanged); err != nil {
+		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String()); err != nil {
 		return err
 	}
 
