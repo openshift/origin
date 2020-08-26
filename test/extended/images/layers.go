@@ -183,22 +183,20 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 		ns = append(ns)
 
 		g.By("waiting for the build to finish")
-		var lastBuild *buildv1.Build
-		err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-			build, err := buildClient.Builds(oc.Namespace()).Get(ctx, "output", metav1.GetOptions{})
-			if err != nil {
-				return false, err
-			}
-			o.Expect(build.Status.Phase).NotTo(o.Or(o.Equal(buildv1.BuildPhaseFailed), o.Equal(buildv1.BuildPhaseError), o.Equal(buildv1.BuildPhaseCancelled)))
-			lastBuild = build
-			return build.Status.Phase == buildv1.BuildPhaseComplete, nil
-		})
+		err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "output", nil, nil, nil)
+		if err != nil {
+			exutil.DumpBuildLogs("output", oc)
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		build, err := buildClient.Builds(oc.Namespace()).Get(ctx, "output", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseComplete))
 
 		g.By("checking the layers for the built image")
 		layers, err = client.ImageStreams(oc.Namespace()).Layers(ctx, "output", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		to := lastBuild.Status.Output.To
+		to := build.Status.Output.To
 		o.Expect(to).NotTo(o.BeNil())
 		o.Expect(layers.Images).To(o.HaveKey(to.ImageDigest))
 		builtImageLayers := layers.Images[to.ImageDigest]
