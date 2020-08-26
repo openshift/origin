@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -27,7 +28,6 @@ import (
 	"github.com/google/certificate-transparency-go/trillian/util"
 	"github.com/google/certificate-transparency-go/x509"
 	"github.com/google/trillian"
-	"github.com/google/trillian/crypto"
 	"github.com/google/trillian/crypto/keys"
 	"github.com/google/trillian/monitoring"
 )
@@ -51,6 +51,20 @@ func LogConfigFromFile(filename string) ([]*configpb.LogConfig, error) {
 	return cfg.Config, nil
 }
 
+// ToMultiLogConfig creates a multi backend config proto from the data
+// loaded from a single-backend configuration file. All the log configs
+// reference a default backend spec as provided.
+func ToMultiLogConfig(cfg []*configpb.LogConfig, beSpec string) *configpb.LogMultiConfig {
+	defaultBackend := &configpb.LogBackend{Name: "default", BackendSpec: beSpec}
+	for _, c := range cfg {
+		c.LogBackendName = defaultBackend.Name
+	}
+	return &configpb.LogMultiConfig{
+		LogConfigs: &configpb.LogConfigSet{Config: cfg},
+		Backends:   &configpb.LogBackendSet{Backend: []*configpb.LogBackend{defaultBackend}},
+	}
+}
+
 // MultiLogConfigFromFile creates a LogMultiConfig proto from the given
 // filename, which should contain text-protobuf encoded configuration data.
 // Does not do full validation of the config but checks that it is non empty.
@@ -69,113 +83,6 @@ func MultiLogConfigFromFile(filename string) (*configpb.LogMultiConfig, error) {
 		return nil, errors.New("config is missing backends and/or log configs")
 	}
 	return &cfg, nil
-}
-
-var stringToKeyUsage = map[string]x509.ExtKeyUsage{
-	"Any":                        x509.ExtKeyUsageAny,
-	"ServerAuth":                 x509.ExtKeyUsageServerAuth,
-	"ClientAuth":                 x509.ExtKeyUsageClientAuth,
-	"CodeSigning":                x509.ExtKeyUsageCodeSigning,
-	"EmailProtection":            x509.ExtKeyUsageEmailProtection,
-	"IPSECEndSystem":             x509.ExtKeyUsageIPSECEndSystem,
-	"IPSECTunnel":                x509.ExtKeyUsageIPSECTunnel,
-	"IPSECUser":                  x509.ExtKeyUsageIPSECUser,
-	"TimeStamping":               x509.ExtKeyUsageTimeStamping,
-	"OCSPSigning":                x509.ExtKeyUsageOCSPSigning,
-	"MicrosoftServerGatedCrypto": x509.ExtKeyUsageMicrosoftServerGatedCrypto,
-	"NetscapeServerGatedCrypto":  x509.ExtKeyUsageNetscapeServerGatedCrypto,
-}
-
-// InstanceOptions describes the options for a log instance.
-type InstanceOptions struct {
-	Deadline      time.Duration
-	MetricFactory monitoring.MetricFactory
-	// ErrorMapper converts an error from an RPC request to an HTTP status, plus
-	// a boolean to indicate whether the conversion succeeded.
-	ErrorMapper func(error) (int, bool)
-	RequestLog  RequestLog
-}
-
-// SetUpInstance sets up a log instance that uses the specified client to communicate
-// with the Trillian RPC back end.
-func SetUpInstance(ctx context.Context, client trillian.TrillianLogClient, cfg *configpb.LogConfig, opts InstanceOptions) (*PathHandlers, error) {
-	// Check config validity.
-	if len(cfg.RootsPemFile) == 0 {
-		return nil, errors.New("need to specify RootsPemFile")
-	}
-	if cfg.PrivateKey == nil {
-		return nil, errors.New("need to specify PrivateKey")
-	}
-
-	// Load the trusted roots
-	roots := NewPEMCertPool()
-	for _, pemFile := range cfg.RootsPemFile {
-		if err := roots.AppendCertsFromPEMFile(pemFile); err != nil {
-			return nil, fmt.Errorf("failed to read trusted roots: %v", err)
-		}
-	}
-
-	// Load the private key for this log.
-	var keyProto ptypes.DynamicAny
-	if err := ptypes.UnmarshalAny(cfg.PrivateKey, &keyProto); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal cfg.PrivateKey: %v", err)
-	}
-
-	key, err := keys.NewSigner(ctx, keyProto.Message)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load private key: %v", err)
-	}
-	signer := crypto.NewSHA256Signer(key)
-
-	var keyUsages []x509.ExtKeyUsage
-	if len(cfg.ExtKeyUsages) > 0 {
-		for _, kuStr := range cfg.ExtKeyUsages {
-			if ku, present := stringToKeyUsage[kuStr]; present {
-				keyUsages = append(keyUsages, ku)
-			} else {
-				return nil, fmt.Errorf("unknown extended key usage: %s", kuStr)
-			}
-		}
-	} else {
-		keyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageAny}
-	}
-
-	var naStart, naLimit *time.Time
-
-	if cfg.NotAfterStart != nil {
-		t, err := ptypes.Timestamp(cfg.NotAfterStart)
-		if err != nil {
-			return nil, fmt.Errorf("invalid not_after_start: %v", err)
-		}
-		naStart = &t
-	}
-	if cfg.NotAfterLimit != nil {
-		t, err := ptypes.Timestamp(cfg.NotAfterLimit)
-		if err != nil {
-			return nil, fmt.Errorf("invalid not_after_limit: %v", err)
-		}
-		naLimit = &t
-	}
-
-	validationOpts := CertValidationOpts{
-		trustedRoots:  roots,
-		rejectExpired: cfg.RejectExpired,
-		notAfterStart: naStart,
-		notAfterLimit: naLimit,
-		acceptOnlyCA:  cfg.AcceptOnlyCa,
-		extKeyUsages:  keyUsages,
-	}
-	// Create and register the handlers using the RPC client we just set up.
-	logCtx := NewLogContext(cfg.LogId,
-		cfg.Prefix,
-		validationOpts,
-		client,
-		signer,
-		opts,
-		new(util.SystemTimeSource))
-
-	handlers := logCtx.Handlers(cfg.Prefix)
-	return &handlers, nil
 }
 
 // ValidateLogMultiConfig checks that a config is valid for use with multiple
@@ -258,16 +165,114 @@ func ValidateLogMultiConfig(cfg *configpb.LogMultiConfig) (map[string]*configpb.
 	return backendMap, nil
 }
 
-// ToMultiLogConfig creates a multi backend config proto from the data
-// loaded from a single-backend configuration file. All the log configs
-// reference a default backend spec as provided.
-func ToMultiLogConfig(cfg []*configpb.LogConfig, beSpec string) *configpb.LogMultiConfig {
-	defaultBackend := &configpb.LogBackend{Name: "default", BackendSpec: beSpec}
-	for _, c := range cfg {
-		c.LogBackendName = defaultBackend.Name
+var stringToKeyUsage = map[string]x509.ExtKeyUsage{
+	"Any":                        x509.ExtKeyUsageAny,
+	"ServerAuth":                 x509.ExtKeyUsageServerAuth,
+	"ClientAuth":                 x509.ExtKeyUsageClientAuth,
+	"CodeSigning":                x509.ExtKeyUsageCodeSigning,
+	"EmailProtection":            x509.ExtKeyUsageEmailProtection,
+	"IPSECEndSystem":             x509.ExtKeyUsageIPSECEndSystem,
+	"IPSECTunnel":                x509.ExtKeyUsageIPSECTunnel,
+	"IPSECUser":                  x509.ExtKeyUsageIPSECUser,
+	"TimeStamping":               x509.ExtKeyUsageTimeStamping,
+	"OCSPSigning":                x509.ExtKeyUsageOCSPSigning,
+	"MicrosoftServerGatedCrypto": x509.ExtKeyUsageMicrosoftServerGatedCrypto,
+	"NetscapeServerGatedCrypto":  x509.ExtKeyUsageNetscapeServerGatedCrypto,
+}
+
+// InstanceOptions describes the options for a log instance.
+type InstanceOptions struct {
+	Deadline      time.Duration
+	MetricFactory monitoring.MetricFactory
+	// ErrorMapper converts an error from an RPC request to an HTTP status, plus
+	// a boolean to indicate whether the conversion succeeded.
+	ErrorMapper func(error) (int, bool)
+	RequestLog  RequestLog
+	// RemoteUser returns a string representing the originating host for the
+	// given request. This string will be used as a User quota key.
+	// If unset, no quota will be requested for remote users.
+	RemoteQuotaUser func(*http.Request) string
+
+	// CertificateQuotaUser returns a string represeing the passed in
+	// intermediate certificate. This string will be user as a User quota key for
+	// the cert.  Quota will be requested for each intermediate in an
+	// add-[pre]-chain request so as to allow individual issers to be rate
+	// limited.  If unset, no quota will be requested for intermediate
+	// certificates.
+	CertificateQuotaUser func(*x509.Certificate) string
+}
+
+// SetUpInstance sets up a log instance that uses the specified client to communicate
+// with the Trillian RPC back end.
+func SetUpInstance(ctx context.Context, client trillian.TrillianLogClient, cfg *configpb.LogConfig, opts InstanceOptions) (*PathHandlers, error) {
+	// Check config validity.
+	if len(cfg.RootsPemFile) == 0 {
+		return nil, errors.New("need to specify RootsPemFile")
 	}
-	return &configpb.LogMultiConfig{
-		LogConfigs: &configpb.LogConfigSet{Config: cfg},
-		Backends:   &configpb.LogBackendSet{Backend: []*configpb.LogBackend{defaultBackend}},
+	if cfg.PrivateKey == nil {
+		return nil, errors.New("need to specify PrivateKey")
 	}
+
+	// Load the trusted roots
+	roots := NewPEMCertPool()
+	for _, pemFile := range cfg.RootsPemFile {
+		if err := roots.AppendCertsFromPEMFile(pemFile); err != nil {
+			return nil, fmt.Errorf("failed to read trusted roots: %v", err)
+		}
+	}
+
+	// Load the private key for this log.
+	var keyProto ptypes.DynamicAny
+	if err := ptypes.UnmarshalAny(cfg.PrivateKey, &keyProto); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal cfg.PrivateKey: %v", err)
+	}
+
+	key, err := keys.NewSigner(ctx, keyProto.Message)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load private key: %v", err)
+	}
+
+	var keyUsages []x509.ExtKeyUsage
+	if len(cfg.ExtKeyUsages) > 0 {
+		for _, kuStr := range cfg.ExtKeyUsages {
+			if ku, present := stringToKeyUsage[kuStr]; present {
+				keyUsages = append(keyUsages, ku)
+			} else {
+				return nil, fmt.Errorf("unknown extended key usage: %s", kuStr)
+			}
+		}
+	} else {
+		keyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageAny}
+	}
+
+	var naStart, naLimit *time.Time
+
+	if cfg.NotAfterStart != nil {
+		t, err := ptypes.Timestamp(cfg.NotAfterStart)
+		if err != nil {
+			return nil, fmt.Errorf("invalid not_after_start: %v", err)
+		}
+		naStart = &t
+	}
+	if cfg.NotAfterLimit != nil {
+		t, err := ptypes.Timestamp(cfg.NotAfterLimit)
+		if err != nil {
+			return nil, fmt.Errorf("invalid not_after_limit: %v", err)
+		}
+		naLimit = &t
+	}
+
+	validationOpts := CertValidationOpts{
+		trustedRoots:  roots,
+		rejectExpired: cfg.RejectExpired,
+		notAfterStart: naStart,
+		notAfterLimit: naLimit,
+		acceptOnlyCA:  cfg.AcceptOnlyCa,
+		extKeyUsages:  keyUsages,
+	}
+	// Create and register the handlers using the RPC client we just set up.
+	logInfo := newLogInfo(cfg.LogId, cfg.Prefix, validationOpts, client, key, opts, new(util.SystemTimeSource))
+
+	handlers := logInfo.Handlers(cfg.Prefix)
+	return &handlers, nil
 }

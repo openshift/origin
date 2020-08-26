@@ -15,15 +15,12 @@
 package ctfe
 
 import (
+	"crypto"
 	"testing"
 	"time"
 
-	ct "github.com/google/certificate-transparency-go"
-	"github.com/google/certificate-transparency-go/tls"
 	"github.com/google/certificate-transparency-go/trillian/testdata"
-	"github.com/google/trillian/crypto"
 	"github.com/google/trillian/crypto/keys/pem"
-	"github.com/kylelemons/godebug/pretty"
 )
 
 var (
@@ -49,61 +46,13 @@ func TestGetCTLogID(t *testing.T) {
 	}
 }
 
-func TestSerializeLogEntry(t *testing.T) {
-	ts := ct.TimestampedEntry{
-		Timestamp:  12345,
-		EntryType:  ct.X509LogEntryType,
-		X509Entry:  &ct.ASN1Cert{Data: []byte{0x10, 0x11, 0x12, 0x13, 0x20, 0x21, 0x22, 0x23}},
-		Extensions: ct.CTExtensions{}}
-	leaf := ct.MerkleTreeLeaf{LeafType: ct.TimestampedEntryLeafType, Version: ct.V1, TimestampedEntry: &ts}
-
-	for chainLength := 1; chainLength < 10; chainLength++ {
-		chain := createCertChain(chainLength)
-
-		logEntry := LogEntry{Leaf: leaf, Chain: chain}
-		entryData, err := tls.Marshal(logEntry)
-		if err != nil {
-			t.Fatalf("failed to serialize log entry: %v", err)
-		}
-
-		var logEntry2 LogEntry
-		rest, err := tls.Unmarshal(entryData, &logEntry2)
-		if err != nil {
-			t.Fatalf("failed to deserialize log entry: %v", err)
-		} else if len(rest) > 0 {
-			t.Error("trailing data after serialized log entry")
-		}
-
-		if diff := pretty.Compare(logEntry, logEntry2); diff != "" {
-			t.Fatalf("log entry mismatch after serialization roundtrip, diff:\n%v", diff)
-		}
-	}
-}
-
 // Creates a fake signer for use in interaction tests.
 // It will always return fakeSig when asked to sign something.
-func setupSigner(fakeSig []byte) (*crypto.Signer, error) {
+func setupSigner(fakeSig []byte) (crypto.Signer, error) {
 	key, err := pem.UnmarshalPublicKey(testdata.DemoPublicKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return crypto.NewSHA256Signer(testdata.NewSignerWithFixedSig(key, fakeSig)), nil
-}
-
-// Creates a dummy cert chain
-func createCertChain(numCerts int) []ct.ASN1Cert {
-	chain := make([]ct.ASN1Cert, 0, numCerts)
-
-	for c := 0; c < numCerts; c++ {
-		certBytes := make([]byte, c+2)
-
-		for i := 0; i < c+2; i++ {
-			certBytes[i] = byte(c)
-		}
-
-		chain = append(chain, ct.ASN1Cert{Data: certBytes})
-	}
-
-	return chain
+	return testdata.NewSignerWithFixedSig(key, fakeSig), nil
 }

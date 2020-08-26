@@ -205,17 +205,30 @@ func archiveFromFile(file string, src, dst string, excludes []string, check Dire
 	}
 
 	r, err := transformArchive(f, true, mapper.Filter)
-	return r, f, err
+	cc := newCloser(func() error {
+		err := f.Close()
+		if !mapper.foundItems {
+			return makeNotExistError(src)
+		}
+		return err
+	})
+	return r, cc, err
 }
 
-func archiveFromContainer(in io.Reader, src, dst string, excludes []string, check DirectoryCheck) (io.Reader, string, error) {
+func archiveFromContainer(in io.Reader, src, dst string, excludes []string, check DirectoryCheck) (io.ReadCloser, string, error) {
 	mapper, archiveRoot, err := newArchiveMapper(src, dst, excludes, false, check)
 	if err != nil {
 		return nil, "", err
 	}
 
 	r, err := transformArchive(in, false, mapper.Filter)
-	return r, archiveRoot, err
+	rc := readCloser{Reader: r, Closer: newCloser(func() error {
+		if !mapper.foundItems {
+			return makeNotExistError(src)
+		}
+		return nil
+	})}
+	return rc, archiveRoot, err
 }
 
 func transformArchive(r io.Reader, compressed bool, fn TransformFileFunc) (io.Reader, error) {
@@ -317,6 +330,7 @@ type archiveMapper struct {
 	rename      func(name string, isDir bool) (string, bool)
 	prefix      string
 	resetOwners bool
+	foundItems  bool
 }
 
 func newArchiveMapper(src, dst string, excludes []string, resetOwners bool, check DirectoryCheck) (*archiveMapper, string, error) {
@@ -396,6 +410,9 @@ func (m *archiveMapper) Filter(h *tar.Header, r io.Reader) ([]byte, bool, bool, 
 	if ok, _ := m.exclude.Matches(h.Name); ok {
 		return nil, false, true, nil
 	}
+
+	m.foundItems = true
+
 	h.Name = newName
 	// include all files
 	return nil, false, false, nil
@@ -499,4 +516,21 @@ func logArchiveOutput(r io.Reader, prefix string) {
 			io.Copy(ioutil.Discard, pr)
 		}
 	}()
+}
+
+type closer struct {
+	closefn func() error
+}
+
+func newCloser(closeFunction func() error) *closer {
+	return &closer{closefn: closeFunction}
+}
+
+func (r *closer) Close() error {
+	return r.closefn()
+}
+
+type readCloser struct {
+	io.Reader
+	io.Closer
 }

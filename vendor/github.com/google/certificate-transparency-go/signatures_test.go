@@ -471,7 +471,7 @@ func TestNewSignatureVerifierFailsWithBadKeyParametersForRSA(t *testing.T) {
 }
 
 func TestWillAllowNonCompliantECKeyWithOverride(t *testing.T) {
-	*allowVerificationWithNonCompliantKeys = true
+	AllowVerificationWithNonCompliantKeys = true
 	k, err := ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	if err != nil {
 		t.Fatalf("Failed to generate EC key on P224: %v", err)
@@ -482,7 +482,7 @@ func TestWillAllowNonCompliantECKeyWithOverride(t *testing.T) {
 }
 
 func TestWillAllowNonCompliantRSAKeyWithOverride(t *testing.T) {
-	*allowVerificationWithNonCompliantKeys = true
+	AllowVerificationWithNonCompliantKeys = true
 	k, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		t.Fatalf("Failed to generate 1024 bit RSA key: %v", err)

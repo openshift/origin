@@ -31,6 +31,7 @@ import (
 
 	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/asn1"
+	"github.com/google/certificate-transparency-go/gossip/minimal/x509ext"
 	"github.com/google/certificate-transparency-go/tls"
 	"github.com/google/certificate-transparency-go/x509"
 	"github.com/google/certificate-transparency-go/x509/pkix"
@@ -426,6 +427,7 @@ func CertificateToString(cert *x509.Certificate) string {
 	showAuthInfoAccess(&result, cert)
 	showCTPoison(&result, cert)
 	showCTSCT(&result, cert)
+	showCTLogSTHInfo(&result, cert)
 
 	showUnhandledExtensions(&result, cert)
 	showSignature(&result, cert)
@@ -621,6 +623,30 @@ func showCTSCT(result *bytes.Buffer, cert *x509.Certificate) {
 	}
 }
 
+func showCTLogSTHInfo(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509ext.OIDExtensionCTSTH, cert.Extensions)
+	if count > 0 {
+		result.WriteString(fmt.Sprintf("            Certificate Transparency STH:"))
+		showCritical(result, critical)
+		sthInfo, err := x509ext.LogSTHInfoFromCert(cert)
+		if err != nil {
+			result.WriteString(fmt.Sprintf("              Failed to decode STH:\n"))
+			return
+		}
+		result.WriteString(fmt.Sprintf("              LogURL: %s\n", string(sthInfo.LogURL)))
+		result.WriteString(fmt.Sprintf("              Version: %d\n", sthInfo.Version))
+		result.WriteString(fmt.Sprintf("              TreeSize: %d\n", sthInfo.TreeSize))
+		result.WriteString(fmt.Sprintf("              Timestamp: %d\n", sthInfo.Timestamp))
+		result.WriteString(fmt.Sprintf("              RootHash:\n"))
+		appendHexData(result, sthInfo.SHA256RootHash[:], 16, "                    ")
+		result.WriteString("\n")
+		result.WriteString(fmt.Sprintf("              TreeHeadSignature: %s\n", sthInfo.TreeHeadSignature.Algorithm))
+		result.WriteString(fmt.Sprintf("              TreeHeadSignature:\n"))
+		appendHexData(result, sthInfo.TreeHeadSignature.Signature, 16, "                    ")
+		result.WriteString("\n")
+	}
+}
+
 func showUnhandledExtensions(result *bytes.Buffer, cert *x509.Certificate) {
 	for _, ext := range cert.Extensions {
 		// Skip extensions that are already cracked out
@@ -653,18 +679,95 @@ func oidAlreadyPrinted(oid asn1.ObjectIdentifier) bool {
 		oid.Equal(x509.OIDExtensionCRLDistributionPoints) ||
 		oid.Equal(x509.OIDExtensionAuthorityInfoAccess) ||
 		oid.Equal(x509.OIDExtensionCTPoison) ||
-		oid.Equal(x509.OIDExtensionCTSCT) {
+		oid.Equal(x509.OIDExtensionCTSCT) ||
+		oid.Equal(x509ext.OIDExtensionCTSTH) {
 		return true
 	}
 	return false
 }
 
-// CertificateFromPEM takes a string representing a certificate in PEM format
-// and returns the corresponding x509.Certificate object.
-func CertificateFromPEM(pemBytes string) (*x509.Certificate, error) {
-	block, _ := pem.Decode([]byte(pemBytes))
+// CertificateFromPEM takes a certificate in PEM format and returns the
+// corresponding x509.Certificate object.
+func CertificateFromPEM(pemBytes []byte) (*x509.Certificate, error) {
+	block, rest := pem.Decode(pemBytes)
+	if len(rest) != 0 {
+		return nil, errors.New("trailing data found after PEM block")
+	}
 	if block == nil {
-		return nil, errors.New("failed to decode PEM")
+		return nil, errors.New("PEM block is nil")
+	}
+	if block.Type != "CERTIFICATE" {
+		return nil, errors.New("PEM block is not a CERTIFICATE")
 	}
 	return x509.ParseCertificate(block.Bytes)
+}
+
+// CertificatesFromPEM parses one or more certificates from the given PEM data.
+// The PEM certificates must be concatenated.  This function can be used for
+// parsing PEM-formatted certificate chains, but does not verify that the
+// resulting chain is a valid certificate chain.
+func CertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) {
+	var chain []*x509.Certificate
+	for {
+		var block *pem.Block
+		block, pemBytes = pem.Decode(pemBytes)
+		if block == nil {
+			return chain, nil
+		}
+		if block.Type != "CERTIFICATE" {
+			return nil, fmt.Errorf("PEM block is not a CERTIFICATE")
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, errors.New("failed to parse certificate")
+		}
+		chain = append(chain, cert)
+	}
+}
+
+// ParseSCTsFromSCTList parses each of the SCTs contained within an SCT list.
+func ParseSCTsFromSCTList(sctList *x509.SignedCertificateTimestampList) ([]*ct.SignedCertificateTimestamp, error) {
+	var scts []*ct.SignedCertificateTimestamp
+	for i, data := range sctList.SCTList {
+		sct, err := ExtractSCT(&data)
+		if err != nil {
+			return nil, fmt.Errorf("error extracting SCT number %d: %s", i, err)
+		}
+		scts = append(scts, sct)
+	}
+	return scts, nil
+}
+
+// ExtractSCT deserializes an SCT from a TLS-encoded SCT.
+func ExtractSCT(sctData *x509.SerializedSCT) (*ct.SignedCertificateTimestamp, error) {
+	if sctData == nil {
+		return nil, errors.New("SCT is nil")
+	}
+	var sct ct.SignedCertificateTimestamp
+	if rest, err := tls.Unmarshal(sctData.Val, &sct); err != nil {
+		return nil, fmt.Errorf("error parsing SCT: %s", err)
+	} else if len(rest) > 0 {
+		return nil, fmt.Errorf("extra data (%d bytes) after serialized SCT", len(rest))
+	}
+	return &sct, nil
+}
+
+var pemCertificatePrefix = []byte("-----BEGIN CERTIFICATE")
+
+// ParseSCTsFromCertificate parses any SCTs that are embedded in the
+// certificate provided.  The certificate bytes provided can be either DER or
+// PEM, provided the PEM data starts with the PEM block marker (i.e. has no
+// leading text).
+func ParseSCTsFromCertificate(certBytes []byte) ([]*ct.SignedCertificateTimestamp, error) {
+	var cert *x509.Certificate
+	var err error
+	if bytes.HasPrefix(certBytes, pemCertificatePrefix) {
+		cert, err = CertificateFromPEM(certBytes)
+	} else {
+		cert, err = x509.ParseCertificate(certBytes)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate: %s", err)
+	}
+	return ParseSCTsFromSCTList(&cert.SCTList)
 }

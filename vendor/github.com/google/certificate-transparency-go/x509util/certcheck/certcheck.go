@@ -16,6 +16,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -73,6 +74,7 @@ func main() {
 			errcount++
 			continue
 		}
+		var chain []*x509.Certificate
 		for _, data := range dataList {
 			certs, err := x509.ParseCertificates(data)
 			if err != nil {
@@ -88,19 +90,38 @@ func main() {
 					// so clear them out.
 					cert.UnhandledCriticalExtensions = nil
 				}
-				if *validate {
-					_, err := cert.Verify(opts)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "%s: Verification error: %v\n", filename, err)
-						errcount++
-					}
-				}
 				if *revokecheck {
 					if err := checkRevocation(cert); err != nil {
 						fmt.Fprintf(os.Stderr, "%s: certificate is revoked: %v\n", filename, err)
 						errcount++
 					}
 				}
+				chain = append(chain, cert)
+			}
+		}
+		if *validate && len(chain) > 0 {
+			if *root == "" && *intermediate == "" {
+				// No explicit CA certs provided, so treat the file as a chain.
+				count := len(chain)
+				if len(chain) > 1 {
+					last := chain[len(chain)-1]
+					if bytes.Equal(last.RawSubject, last.RawIssuer) {
+						if *verbose {
+							fmt.Print("Treating final cert in chain as a root\n")
+						}
+						opts.Roots.AddCert(last)
+						count--
+					}
+				}
+				for i := 1; i < count; i++ {
+					opts.Intermediates.AddCert(chain[i])
+				}
+			}
+
+			_, err := chain[0].Verify(opts)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%s: Verification error: %v\n", filename, err)
+				errcount++
 			}
 		}
 	}
