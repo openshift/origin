@@ -11,23 +11,21 @@ import (
 
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"k8s.io/client-go/kubernetes"
+
+	"k8s.io/client-go/transport"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/transport"
 
 	routev1 "github.com/openshift/api/route/v1"
-
-	"github.com/openshift/origin/test/extended/util"
+	routev1client "github.com/openshift/client-go/route/clientset/versioned"
 )
 
 // NewE2EPrometheusRouterClient returns a Prometheus HTTP API client configured to
 // use the Prometheus route host, a bearer token, and no certificate verification.
-func NewE2EPrometheusRouterClient(oc *util.CLI) (prometheusv1.API, error) {
-	kubeClient := oc.AdminKubeClient()
-	routeClient := oc.AdminRouteClient()
-
+func NewE2EPrometheusRouterClient(kubeClient kubernetes.Interface, routeClient routev1client.Interface) (prometheusv1.API, error) {
 	// wait for prometheus service to exist
 	err := wait.PollImmediate(time.Minute, time.Second, func() (bool, error) {
 		_, err := kubeClient.CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})

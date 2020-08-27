@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	e2epromclient "github.com/openshift/origin/test/extended/prometheus/client"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +22,7 @@ import (
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	clientimagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	clientoauthv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 )
 
 // Start begins monitoring the cluster referenced by the default kube configuration until
@@ -40,6 +42,14 @@ func Start(ctx context.Context) (*Monitor, error) {
 	if err != nil {
 		return nil, err
 	}
+	routeClient, err := routeclientset.NewForConfig(clusterConfig)
+	if err != nil {
+		return nil, err
+	}
+	prometheusClient, err := e2epromclient.NewE2EPrometheusRouterClient(client, routeClient)
+	if err != nil {
+		return nil, err
+	}
 
 	if err := StartKubeAPIMonitoring(ctx, m, clusterConfig, 5*time.Second); err != nil {
 		return nil, err
@@ -54,6 +64,7 @@ func Start(ctx context.Context) (*Monitor, error) {
 	startNodeMonitoring(ctx, m, client)
 	startEventMonitoring(ctx, m, client)
 	startClusterOperatorMonitoring(ctx, m, configClient)
+	startEtcdMonitoring(ctx, m, prometheusClient)
 
 	m.StartSampling(ctx)
 	return m, nil
