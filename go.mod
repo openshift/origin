@@ -17,8 +17,6 @@ require (
 	github.com/go-ozzo/ozzo-validation v0.0.0-00010101000000-000000000000 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.4.0
-	github.com/google/go-github v17.0.0+incompatible
-	github.com/google/go-querystring v0.0.0-00010101000000-000000000000 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/context v0.0.0-00010101000000-000000000000 // indirect
 	github.com/heketi/tests v0.0.0-00010101000000-000000000000 // indirect
