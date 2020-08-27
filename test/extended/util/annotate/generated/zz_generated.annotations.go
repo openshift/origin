@@ -2297,8 +2297,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL": "Implement packages API server and list packagemanifest info with namespace not NULL [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] OLM should [Serial] olm version should contain the source commit id": "[Serial] olm version should contain the source commit id [Suite:openshift/conformance/serial]",
-
 	"[Top Level] [sig-operator] OLM should be installed with catalogsources at version v1alpha1": "be installed with catalogsources at version v1alpha1 [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-operator] OLM should be installed with clusterserviceversions at version v1alpha1": "be installed with clusterserviceversions at version v1alpha1 [Suite:openshift/conformance/parallel]",

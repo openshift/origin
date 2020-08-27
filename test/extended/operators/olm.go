@@ -1,16 +1,13 @@
 package operators
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/github"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-
 	exutil "github.com/openshift/origin/test/extended/util"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -109,44 +106,6 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 		}
 	})
 
-	// OCP-20981, [BZ 1626434]The olm/catalog binary should output the exact version info
-	// author: jiazha@redhat.com
-	g.It("[Serial] olm version should contain the source commit id", func() {
-		sameCommit := ""
-		subPods := []string{"catalog-operator", "olm-operator", "packageserver"}
-
-		for _, v := range subPods {
-			podName, err := oc.AsAdmin().Run("get").Args("-n", "openshift-operator-lifecycle-manager", "pods", "-l", fmt.Sprintf("app=%s", v), "-o=jsonpath={.items[0].metadata.name}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			e2e.Logf("get pod name:%s", podName)
-
-			g.By(fmt.Sprintf("get olm version from the %s pod", v))
-			oc.SetNamespace("openshift-operator-lifecycle-manager")
-			commands := []string{"exec", podName, "--", "olm", "--version"}
-			olmVersion, err := oc.AsAdmin().Run(commands...).Args().Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			idSlice := strings.Split(olmVersion, ":")
-			gitCommitID := strings.TrimSpace(idSlice[len(idSlice)-1])
-			e2e.Logf("olm source git commit ID:%s", gitCommitID)
-			if len(gitCommitID) != 40 {
-				e2e.Failf(fmt.Sprintf("the length of the git commit id is %d, != 40", len(gitCommitID)))
-			}
-
-			if sameCommit == "" {
-				sameCommit = gitCommitID
-				g.By("checking this commitID in the operator-lifecycle-manager repo")
-				client := github.NewClient(nil)
-				_, _, err := client.Git.GetCommit(context.Background(), "operator-framework", "operator-lifecycle-manager", gitCommitID)
-				if err != nil {
-					e2e.Failf("Git.GetCommit returned error: %v", err)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-			} else if gitCommitID != sameCommit {
-				e2e.Failf("These commitIDs inconformity!!!")
-			}
-		}
-	})
 })
 
 // This context will cover test case: OCP-23440, author: jiazha@redhat.com
