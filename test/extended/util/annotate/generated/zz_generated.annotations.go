@@ -9,6 +9,14 @@ import (
 var annotations = map[string]string{
 	"[Top Level] Recreate [Feature:Recreate] recreate nodes and ensure they function upon restart": "recreate nodes and ensure they function upon restart [Disabled:Broken] [sig-cluster-lifecycle] [Suite:k8s]",
 
+	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work": "\"lb-ext.kubeconfig\" should be present on all masters and work [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-int.kubeconfig\" should be present on all masters and work": "\"lb-int.kubeconfig\" should be present on all masters and work [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work": "\"localhost-recovery.kubeconfig\" should be present on all masters and work [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work": "\"localhost.kubeconfig\" should be present on all masters and work [Suite:openshift/conformance/parallel/minimal]",
+
 	"[Top Level] [Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP": "test RequestHeaders IdP [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster [Disabled:Broken] with non-gu workload should run with no regressions with single pod, single container requesting 1 core": "with single pod, single container requesting 1 core",
