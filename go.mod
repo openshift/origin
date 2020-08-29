@@ -439,7 +439,7 @@ replace (
 	k8s.io/kubectl => k8s.io/kubectl v0.19.0-rc.2
 	k8s.io/kubelet => k8s.io/kubelet v0.19.0-rc.2
 	k8s.io/kubernetes => github.com/openshift/kubernetes v1.20.0-alpha.0.0.20200803060402-d32435439579
-	k8s.io/legacy-cloud-providers => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20200803060402-d32435439579
+	k8s.io/legacy-cloud-providers => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20200826132615-f71a7ab366cf
 	k8s.io/metrics => k8s.io/metrics v0.19.0-rc.2
 	k8s.io/repo-infra => k8s.io/repo-infra v0.0.1-alpha.1
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.0-rc.2
