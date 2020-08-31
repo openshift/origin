@@ -7,7 +7,9 @@ RUN make; \
 
 FROM registry.svc.ci.openshift.org/ocp/4.2:cli
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
-RUN yum install --setopt=tsflags=nodocs -y git gzip util-linux && yum clean all && rm -rf /var/cache/yum/* && \
+# TODO workloads: temporarily adding diffutils, since e2e-cmd relies on diff,
+# once we re-write e2e-cmd to normal e2e it can be dropped from here
+RUN yum install --setopt=tsflags=nodocs -y git gzip util-linux diffutils && yum clean all && rm -rf /var/cache/yum/* && \
     git config --system user.name test && \
     git config --system user.email test@test.com && \
     chmod g+w /etc/passwd
