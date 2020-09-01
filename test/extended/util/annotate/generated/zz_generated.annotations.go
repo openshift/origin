@@ -1659,7 +1659,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-etcd] etcd leader changes are not excessive": "leader changes are not excessive [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Disabled:Broken] [Serial] [Suite:openshift]",
+	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Serial] [Suite:openshift]",
 
 	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [dr-etcd-snapshot] Cluster should restore itself from etcd snapshot": "[dr-etcd-snapshot] Cluster should restore itself from etcd snapshot [Serial] [Suite:openshift]",
 
