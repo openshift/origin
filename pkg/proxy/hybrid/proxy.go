@@ -53,6 +53,10 @@ type HybridProxier struct {
 
 	// A gate that prevents iptables from being exhausted by proxy calls.
 	syncRunner *async.BoundedFrequencyRunner
+
+	// This map is used in unidling proxy mode to ensure the service is correctly deleted
+	// if it's deletion occurs after the deletion of the endpoint.
+	pendingDeletion map[types.NamespacedName]bool
 }
 
 func NewHybridProxier(
@@ -71,6 +75,7 @@ func NewHybridProxier(
 
 		usingUserspace:      make(map[types.NamespacedName]bool),
 		switchedToUserspace: make(map[types.NamespacedName]bool),
+		pendingDeletion:     make(map[types.NamespacedName]bool),
 	}
 
 	p.syncRunner = async.NewBoundedFrequencyRunner("sync-runner", p.syncProxyRules, minSyncPeriod, syncPeriod, 4)
@@ -124,6 +129,21 @@ func (p *HybridProxier) OnServiceUpdate(oldService, service *api.Service) {
 	}
 }
 
+// cleanupState handles the deletion of endpoints and service in any order.
+// svcName should be the NamespacedName of a service (or endpoint).
+func (p *HybridProxier) cleanupState(svcName types.NamespacedName) {
+	_, isPendingDeletion := p.pendingDeletion[svcName]
+	if isPendingDeletion {
+		glog.V(6).Infof("hybrid proxy: removing %s/%s entry from pendingDeletion", svcName.Namespace, svcName.Name)
+		delete(p.pendingDeletion, svcName)
+		delete(p.usingUserspace, svcName)
+		delete(p.switchedToUserspace, svcName)
+	} else {
+		glog.V(6).Infof("hybrid proxy: adding %s/%s entry to pendingDeletion", svcName.Namespace, svcName.Name)
+		p.pendingDeletion[svcName] = true
+	}
+}
+
 func (p *HybridProxier) OnServiceDelete(service *api.Service) {
 	svcName := types.NamespacedName{
 		Namespace: service.Namespace,
@@ -145,7 +165,7 @@ func (p *HybridProxier) OnServiceDelete(service *api.Service) {
 		p.mainProxy.OnServiceDelete(service)
 	}
 
-	delete(p.switchedToUserspace, svcName)
+	p.cleanupState(svcName)
 }
 
 func (p *HybridProxier) OnServiceSynced() {
@@ -307,7 +327,7 @@ func (p *HybridProxier) OnEndpointsDelete(endpoints *api.Endpoints) {
 		p.mainProxy.OnEndpointsDelete(endpoints)
 	}
 
-	delete(p.usingUserspace, svcName)
+	p.cleanupState(svcName)
 }
 
 func (p *HybridProxier) OnEndpointsSynced() {
