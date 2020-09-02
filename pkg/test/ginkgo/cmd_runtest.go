@@ -10,6 +10,8 @@ import (
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/ginkgo/types"
+
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
 )
 
 type ExitError struct {
@@ -70,6 +72,10 @@ func (opt *TestOptions) Run(args []string) error {
 	case summary == nil:
 		return fmt.Errorf("test suite set up failed, see logs")
 	case summary.Passed():
+		if s, ok := result.LastFlake(); ok {
+			fmt.Fprintf(opt.ErrOut, "flake: %s\n", s)
+			return ExitError{Code: 4}
+		}
 	case summary.Skipped():
 		if len(summary.Failure.Message) > 0 {
 			fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
