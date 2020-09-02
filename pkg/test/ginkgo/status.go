@@ -71,6 +71,10 @@ func (s *testStatus) OutputCommand(ctx context.Context, test *testCase) {
 func (s *testStatus) Run(ctx context.Context, test *testCase) {
 	defer func() {
 		switch {
+		case test.flake:
+			s.out.Write(test.out)
+			fmt.Fprintln(s.out)
+			fmt.Fprintf(s.out, "flaked: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
 		case test.success:
 			if s.includeSuccessfulOutput {
 				s.out.Write(test.out)
@@ -135,6 +139,10 @@ func (s *testStatus) Run(ctx context.Context, test *testCase) {
 		case 3:
 			// skipped
 			test.skipped = true
+		case 4:
+			// flaky, do not retry
+			test.success = true
+			test.flake = true
 		default:
 			test.failed = true
 		}
