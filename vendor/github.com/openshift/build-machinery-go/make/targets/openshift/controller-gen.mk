@@ -1,6 +1,6 @@
 self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
 
-CONTROLLER_GEN_VERSION ?=v0.2.1-37-ga3cca5d
+CONTROLLER_GEN_VERSION ?=v0.2.5
 CONTROLLER_GEN ?=$(PERMANENT_TMP_GOPATH)/bin/controller-gen
 controller_gen_dir :=$(dir $(CONTROLLER_GEN))
 

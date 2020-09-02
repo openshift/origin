@@ -76,6 +76,10 @@ type ImagePrunerSpec struct {
 	// Defaults to 3 if not set.
 	// +optional
 	FailedJobsHistoryLimit *int32 `json:"failedJobsHistoryLimit,omitempty"`
+	// ignoreInvalidImageReferences indicates whether the pruner can ignore
+	// errors while parsing image references.
+	// +optional
+	IgnoreInvalidImageReferences bool `json:"ignoreInvalidImageReferences,omitempty"`
 }
 
 // ImagePrunerStatus reports image pruner operational status.

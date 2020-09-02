@@ -6,6 +6,10 @@ type AuthenticationExpansion interface{}
 
 type CSISnapshotControllerExpansion interface{}
 
+type CloudCredentialExpansion interface{}
+
+type ClusterCSIDriverExpansion interface{}
+
 type ConfigExpansion interface{}
 
 type ConsoleExpansion interface{}

@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   name: consoleyamlsamples.console.openshift.io
   annotations:
+    include.release.openshift.io/self-managed-high-availability: "true"
     displayName: ConsoleYAMLSample
     description: Extension for configuring openshift web console YAML samples.
 spec:

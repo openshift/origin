@@ -10,10 +10,13 @@ import (
 )
 
 // ConsoleLister helps list Consoles.
+// All objects returned here must be treated as read-only.
 type ConsoleLister interface {
 	// List lists all Consoles in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Console, err error)
 	// Get retrieves the Console from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.Console, error)
 	ConsoleListerExpansion
 }

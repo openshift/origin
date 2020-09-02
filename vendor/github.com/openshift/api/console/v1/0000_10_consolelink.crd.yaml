@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   name: consolelinks.console.openshift.io
   annotations:
+    include.release.openshift.io/self-managed-high-availability: "true"
     displayName: ConsoleLinks
     description: Extension for customizing OpenShift web console links
 spec:
