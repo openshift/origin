@@ -225,7 +225,7 @@ backend be_sni
 
 frontend fe_sni
   # terminate ssl on edge
-  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl 
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl
     {{- if isTrue (env "ROUTER_STRICT_SNI") }} strict-sni {{ end }}
     {{- ""}} crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}}
     {{- ""}} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
@@ -432,9 +432,9 @@ backend {{genBackendNamePrefix $cfg.TLSTermination}}:{{$cfgIdx}}
   http-request set-header X-Forwarded-Proto-Version h2 if { ssl_fc_alpn -i h2 }
   {{- if matchPattern "(v4)?v6" $router_ip_v4_v6_mode }}
   # See the quoting rules in https://tools.ietf.org/html/rfc7239 for IPv6 addresses (v4 addresses get translated to v6 when in hybrid mode)
-  http-request add-header Forwarded for=\"[%[src]]\";host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)];proto-version=%[req.hdr(X-Forwarded-Proto-Version)]
+  http-request add-header Forwarded for=\"[%[src]]\";host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
   {{- else }}
-  http-request add-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)];proto-version=%[req.hdr(X-Forwarded-Proto-Version)]
+  http-request add-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
   {{- end }}
 
   {{- if not (isTrue (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
