@@ -30,7 +30,14 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial] ImageStream API", func() {
+// This test is currently disruptive because it doesn't wait for the cluster state to return to a set of stable
+// operators (everything available, not progressing, not degraded) and the machine config operator to have finished
+// rolling the change to every node.
+// This causes instability in the tests that follow it that expect a stable clusters.  Examples include scheduling tests
+// that require all workers schedulable with functional networking and storage tests which require long running connections
+// on both apiservers and kubelets to exec into them.
+// After meeting the standard for stability, this test is likely to be [Slow]
+var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Disruptive] ImageStream API", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("imagestream-api")
 
