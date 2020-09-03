@@ -10,10 +10,13 @@ import (
 )
 
 // InfrastructureLister helps list Infrastructures.
+// All objects returned here must be treated as read-only.
 type InfrastructureLister interface {
 	// List lists all Infrastructures in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Infrastructure, err error)
 	// Get retrieves the Infrastructure from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.Infrastructure, error)
 	InfrastructureListerExpansion
 }

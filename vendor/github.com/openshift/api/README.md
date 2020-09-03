@@ -67,3 +67,14 @@ After this, calling `make update-codegen-crds` should generate a new structural 
   2. `// +kubebuilder:validation:Optional`, this tells the operator that fields should be optional unless explicitly marked with `// +kubebuilder:validation:Required`
   
 For more information on the API markers to add to your Go types, see the [Kubebuilder book](https://book.kubebuilder.io/reference/markers.html)
+
+### Post-schema-generation Patches
+
+Schema generation features might be limited or fall behind what CRD schemas supports in the latest Kubernetes version.
+To work around this, there are two patch mechanisms implemented by the `add-crd-gen` target. Basic idea is that you 
+place a patch file next to the CRD yaml manifest with either `yaml-merge-patch` or `yaml-patch` as extension, 
+but with the same base name. The `update-codegen-crds` Makefile target will apply these **after** calling 
+kubebuilder's controller-gen:
+
+- `yaml-merge-patch`: these are applied via `yq m -x <yaml-file> <patch-file>` compare https://mikefarah.gitbook.io/yq/commands/merge#overwrite-values.
+- `yaml-patch`: these are applied via `yaml-patch -o <patch-file> < <yaml-file>` using https://github.com/krishicks/yaml-patch.
