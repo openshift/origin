@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -128,7 +129,11 @@ func newRunCommand() *cobra.Command {
 					return err
 				}
 				opt.MatchFn = matchFn
-				return opt.Run(args)
+				err = opt.Run(args)
+				if !opt.DryRun && len(args) > 0 && strings.HasPrefix(args[0], "openshift/csi") {
+					printStorageCapabilities(opt.Out)
+				}
+				return err
 			})
 		},
 	}
