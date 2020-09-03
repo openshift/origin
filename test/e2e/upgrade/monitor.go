@@ -62,7 +62,10 @@ func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update)
 
 func (m *versionMonitor) Reached(cv *configv1.ClusterVersion, desired configv1.Update) (bool, error) {
 	// if the operator hasn't observed our request
-	if !equivalentUpdates(cv.Status.Desired, desired) {
+	if !equivalentUpdates(configv1.Update{
+		Version: cv.Status.Desired.Version,
+		Image: cv.Status.Desired.Image,
+	}, desired) {
 		return false, nil
 	}
 	// is the latest history item equal to our desired and completed
