@@ -55,6 +55,7 @@ func crashloopingContainerCheck(podFilters ...podFilter) {
 	restartingContainers := make(map[containerName]int)
 	podsWithProblems := make(map[string]*corev1.Pod)
 	var lastPending map[string]*corev1.Pod
+	testStartTime := time.Now()
 	wait.PollImmediate(5*time.Second, 4*time.Minute, func() (bool, error) {
 		allPods, err := c.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -86,7 +87,7 @@ func crashloopingContainerCheck(podFilters ...podFilter) {
 					}
 				}
 				if !hasInitContainerRunning {
-					pending[fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)] = pod
+					pending[string(pod.UID)] = pod
 				}
 			}
 		}
@@ -118,7 +119,7 @@ func crashloopingContainerCheck(podFilters ...podFilter) {
 	var msg []string
 	ns := make(map[string]struct{})
 	for _, pod := range podsWithProblems {
-		delete(lastPending, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+		delete(lastPending, string(pod.UID))
 		if strings.HasPrefix(pod.Name, "samename-") {
 			continue
 		}
@@ -136,10 +137,18 @@ func crashloopingContainerCheck(podFilters ...podFilter) {
 			e2e.Logf("Pod status %s/%s ignored for being pending", pod.Namespace, pod.Name)
 			continue
 		}
+		if pod.Status.StartTime.After(testStartTime) {
+			// At this point lastPending has a list of pods that were pending a few seconds ago, but those pods
+			// could have been created a few seconds before that.  What we really want is to know which pods are
+			// pending for longer than a predetermined threshold of time.  This test implies that the intent is
+			// "find pods which have been pending more than four minutes.
+			continue
+		}
 		if _, ok := ns[pod.Namespace]; !ok {
 			e2e.DumpAllNamespaceInfo(c, pod.Namespace)
 			ns[pod.Namespace] = struct{}{}
 		}
+
 		status, _ := json.MarshalIndent(pod.Status, "", "  ")
 		e2e.Logf("Pod status %s/%s:\n%s", pod.Namespace, pod.Name, string(status))
 		if len(pod.Status.Message) == 0 {
