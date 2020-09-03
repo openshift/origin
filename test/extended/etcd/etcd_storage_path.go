@@ -19,6 +19,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
+	"k8s.io/kubernetes/test/e2e/framework"
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -373,6 +374,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	}
 
 	for _, resourceToPersist := range etcddata.GetResources(tt, serverResources) {
+		g.By(fmt.Sprintf("testing %v", resourceToPersist.Mapping.Resource))
 		mapping := resourceToPersist.Mapping
 		gvResource := mapping.Resource
 		gvk := mapping.GroupVersionKind
@@ -445,6 +447,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 				}
 				output, err = getFromEtcd(etcdClient3, testData.ExpectedEtcdPath)
 				if err != nil {
+					framework.Logf(err.Error())
 					lastErr = err
 					continue
 				}

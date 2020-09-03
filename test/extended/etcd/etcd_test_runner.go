@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
@@ -47,20 +48,25 @@ type etcdPortForwardClient struct {
 
 func (e *etcdPortForwardClient) getEtcdClient() (etcdv3.KV, error) {
 	if e.etcdClient == nil {
+		framework.Logf("no etcd client yet")
 		return e.newEtcdClient()
 	}
 
 	// if the client isn't good
 	_, err := e.etcdClient.MemberList(context.TODO())
 	if err != nil {
+		framework.Logf("etcd client didn't work: %v", err)
 		e.closeAll()
 		return e.newEtcdClient()
 	}
 
+	framework.Logf("using old etcd client")
 	return e.etcdClient, nil
 }
 
 func (e *etcdPortForwardClient) newEtcdClient() (etcdv3.KV, error) {
+	framework.Logf("creating new etcd client")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	e.currCancel = cancel
 	e.currCmd = exec.CommandContext(ctx, "oc", "port-forward", "service/etcd", ":2379", "-n", "openshift-etcd")
@@ -79,6 +85,7 @@ func (e *etcdPortForwardClient) newEtcdClient() (etcdv3.KV, error) {
 	port := strings.TrimSuffix(strings.TrimPrefix(output, "Forwarding from 127.0.0.1:"), " -> 2379")
 	_, err = strconv.Atoi(port)
 	o.Expect(err).NotTo(o.HaveOccurred(), "port forward output not in expected format: %s", output)
+	framework.Logf("port-forward port is %v", port)
 
 	etcdConfigMap, err := e.kubeClient.CoreV1().ConfigMaps("openshift-config").Get(context.Background(), "etcd-ca-bundle", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
