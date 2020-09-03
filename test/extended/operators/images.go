@@ -89,64 +89,55 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 		invalidPodContainerImages := sets.NewString()
 		invalidPodContainerImagePullPolicy := sets.NewString()
 		invalidPodContainerDownstreamImages := sets.NewString()
-		// a pod in a namespace that begins with kube-* or openshift-* must come from our release payload
-		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
-		namespacePrefixes := sets.NewString("kube-", "openshift-")
-		ignoredNamespaces := sets.NewString("openshift-marketplace")
 		for i := range pods.Items {
 			pod := pods.Items[i]
-			for _, prefix := range namespacePrefixes.List() {
-				if !strings.HasPrefix(pod.Namespace, prefix) {
+			if ignoredNamespace(pod.Namespace) {
+				continue
+			}
+			containersToInspect := []v1.Container{}
+			for j := range pod.Spec.InitContainers {
+				if skipPodContainersNames.Has(pod.Spec.InitContainers[j].Name) {
 					continue
 				}
-				if ignoredNamespaces.Has(pod.Namespace) {
+				containersToInspect = append(containersToInspect, pod.Spec.InitContainers[j])
+			}
+			for j := range pod.Spec.Containers {
+				if skipPodContainersNames.Has(pod.Spec.Containers[j].Name) {
 					continue
 				}
-				containersToInspect := []v1.Container{}
-				for j := range pod.Spec.InitContainers {
-					if skipPodContainersNames.Has(pod.Spec.InitContainers[j].Name) {
-						continue
-					}
-					containersToInspect = append(containersToInspect, pod.Spec.InitContainers[j])
+				containersToInspect = append(containersToInspect, pod.Spec.Containers[j])
+			}
+			for j := range containersToInspect {
+				container := containersToInspect[j]
+				if !validImages.Has(container.Image) {
+					invalidPodContainerImages.Insert(fmt.Sprintf("%s/%s/%s image=%s", pod.Namespace, pod.Name, container.Name, container.Image))
 				}
-				for j := range pod.Spec.Containers {
-					if skipPodContainersNames.Has(pod.Spec.Containers[j].Name) {
-						continue
-					}
-					containersToInspect = append(containersToInspect, pod.Spec.Containers[j])
-				}
-				for j := range containersToInspect {
-					container := containersToInspect[j]
-					if !validImages.Has(container.Image) {
-						invalidPodContainerImages.Insert(fmt.Sprintf("%s/%s/%s image=%s", pod.Namespace, pod.Name, container.Name, container.Image))
-					}
 
-					if container.ImagePullPolicy != v1.PullIfNotPresent {
-						invalidPodContainerImagePullPolicy.Insert(fmt.Sprintf("%s/%s/%s imagePullPolicy=%s", pod.Namespace, pod.Name, container.Name, container.ImagePullPolicy))
-					}
+				if container.ImagePullPolicy != v1.PullIfNotPresent {
+					invalidPodContainerImagePullPolicy.Insert(fmt.Sprintf("%s/%s/%s imagePullPolicy=%s", pod.Namespace, pod.Name, container.Name, container.ImagePullPolicy))
 				}
-				// check if the container's image from the downstream.
-				for j := range pod.Spec.Containers {
-					containerName := pod.Spec.Containers[j].Name
-					commands := []string{
-						"exec",
-						pod.Name,
-						"-c",
-						containerName,
-						"--",
-						"cat",
-						"/etc/redhat-release",
-					}
-					oc.SetNamespace(pod.Namespace)
-					result, err := oc.AsAdmin().Run(commands...).Args().Output()
-					if err != nil {
-						e2e.Logf("unable to run command:%v with error: %v", commands, err)
-						continue
-					}
-					e2e.Logf("Image release info: %s", result)
-					if !strings.Contains(result, "Red Hat Enterprise Linux") {
-						invalidPodContainerDownstreamImages.Insert(fmt.Sprintf("%s/%s invalid downstream image!", pod.Name, containerName))
-					}
+			}
+			// check if the container's image from the downstream.
+			for j := range pod.Spec.Containers {
+				containerName := pod.Spec.Containers[j].Name
+				commands := []string{
+					"exec",
+					pod.Name,
+					"-c",
+					containerName,
+					"--",
+					"cat",
+					"/etc/redhat-release",
+				}
+				oc.SetNamespace(pod.Namespace)
+				result, err := oc.AsAdmin().Run(commands...).Args().Output()
+				if err != nil {
+					e2e.Logf("unable to run command:%v with error: %v", commands, err)
+					continue
+				}
+				e2e.Logf("Image release info: %s", result)
+				if !strings.Contains(result, "Red Hat Enterprise Linux") {
+					invalidPodContainerDownstreamImages.Insert(fmt.Sprintf("%s/%s invalid downstream image!", pod.Name, containerName))
 				}
 			}
 		}
@@ -165,3 +156,23 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 		}
 	})
 })
+
+// ignoredNamespace() returns true if the namespace is to be ignored by the test
+func ignoredNamespace(namespace string) bool {
+	// a pod in a namespace that begins with kube-* or openshift-* must come from our release payload
+	// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
+	namespacePrefixes := sets.NewString("kube-", "openshift-")
+	ignoredNamespacePrefixes := sets.NewString("openshift-marketplace", "openshift-must-gather-")
+	for _, prefix := range namespacePrefixes.List() {
+		if !strings.HasPrefix(namespace, prefix) {
+			return true
+		}
+	}
+	for _, prefix := range ignoredNamespacePrefixes.List() {
+		if strings.HasPrefix(namespace, prefix) {
+			return true
+		}
+	}
+	return false
+
+}
