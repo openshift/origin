@@ -10,10 +10,13 @@ import (
 )
 
 // ProxyLister helps list Proxies.
+// All objects returned here must be treated as read-only.
 type ProxyLister interface {
 	// List lists all Proxies in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Proxy, err error)
 	// Get retrieves the Proxy from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.Proxy, error)
 	ProxyListerExpansion
 }

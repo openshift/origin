@@ -197,6 +197,8 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 		resyncSchedules:    cronSchedules,
 		cachesToSync:       append([]cache.InformerSynced{}, f.cachesToSync...),
 		syncContext:        ctx,
+		postStartHooks:     f.postStartHooks,
+		cacheSyncTimeout:   defaultCacheSyncTimeout,
 	}
 
 	for i := range f.informerQueueKeys {

@@ -10,10 +10,13 @@ import (
 )
 
 // DNSLister helps list DNSes.
+// All objects returned here must be treated as read-only.
 type DNSLister interface {
 	// List lists all DNSes in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.DNS, err error)
 	// Get retrieves the DNS from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.DNS, error)
 	DNSListerExpansion
 }

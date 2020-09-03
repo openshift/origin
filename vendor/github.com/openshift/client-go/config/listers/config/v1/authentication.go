@@ -10,10 +10,13 @@ import (
 )
 
 // AuthenticationLister helps list Authentications.
+// All objects returned here must be treated as read-only.
 type AuthenticationLister interface {
 	// List lists all Authentications in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Authentication, err error)
 	// Get retrieves the Authentication from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.Authentication, error)
 	AuthenticationListerExpansion
 }

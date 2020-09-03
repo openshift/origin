@@ -10,10 +10,13 @@ import (
 )
 
 // OperatorHubLister helps list OperatorHubs.
+// All objects returned here must be treated as read-only.
 type OperatorHubLister interface {
 	// List lists all OperatorHubs in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.OperatorHub, err error)
 	// Get retrieves the OperatorHub from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.OperatorHub, error)
 	OperatorHubListerExpansion
 }

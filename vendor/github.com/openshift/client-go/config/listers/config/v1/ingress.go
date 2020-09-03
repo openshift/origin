@@ -10,10 +10,13 @@ import (
 )
 
 // IngressLister helps list Ingresses.
+// All objects returned here must be treated as read-only.
 type IngressLister interface {
 	// List lists all Ingresses in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Ingress, err error)
 	// Get retrieves the Ingress from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.Ingress, error)
 	IngressListerExpansion
 }
