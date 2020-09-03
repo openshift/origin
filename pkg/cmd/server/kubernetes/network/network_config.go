@@ -17,6 +17,8 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeproxy "k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
+	"k8s.io/kubernetes/pkg/util/iptables"
+	kexec "k8s.io/utils/exec"
 
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
@@ -50,16 +52,20 @@ type NetworkConfig struct {
 	SDNNode NodeInterface
 	// SDNProxy is an optional service endpoints filterer
 	SDNProxy ProxyInterface
+
+	IPTables iptables.Interface
 }
 
 type ProxyInterface interface {
 	kubeproxy.ProxyProvider
 
 	Start(kubeproxy.ProxyProvider) error
+	ReloadIPTables() error
 }
 
 type NodeInterface interface {
 	Start() error
+	ReloadIPTables() error
 }
 
 // configureKubeConfigForClientCertRotation attempts to watch for client certificate rotation on the kubelet's cert
@@ -120,7 +126,8 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
 		config.NetworkInformers = networkinformers.NewSharedInformerFactory(networkClient, network.DefaultInformerResyncPeriod)
 
-		config.SDNNode, config.SDNProxy, err = NewSDNInterfaces(options, networkClient, kubeClient, internalKubeClient, internalKubeInformers, config.NetworkInformers, proxyConfig)
+		config.IPTables = iptables.New(kexec.New(), iptables.ProtocolIpv4)
+		config.SDNNode, config.SDNProxy, err = NewSDNInterfaces(options, networkClient, kubeClient, internalKubeClient, internalKubeInformers, config.NetworkInformers, proxyConfig, config.IPTables)
 		if err != nil {
 			return nil, fmt.Errorf("SDN initialization failed: %v", err)
 		}
@@ -177,4 +184,13 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 	}
 
 	return config, nil
+}
+
+func (networkConfig *NetworkConfig) ReloadIPTables() {
+	if err := networkConfig.SDNNode.ReloadIPTables(); err != nil {
+		utilruntime.HandleError(fmt.Errorf("Reloading openshift node iptables rules failed: %v", err))
+	}
+	if err := networkConfig.SDNProxy.ReloadIPTables(); err != nil {
+		utilruntime.HandleError(fmt.Errorf("Reloading openshift proxy iptables rules failed: %v", err))
+	}
 }

@@ -48,20 +48,10 @@ import (
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
-	utilversion "k8s.io/kubernetes/pkg/util/version"
 	utilexec "k8s.io/utils/exec"
 )
 
 const (
-	// iptablesMinVersion is the minimum version of iptables for which we will use the Proxier
-	// from this package instead of the userspace Proxier.  While most of the
-	// features we need were available earlier, the '-C' flag was added more
-	// recently.  We use that indirectly in Ensure* functions, and if we don't
-	// have it, we have to be extra careful about the exact args we feed in being
-	// the same as the args we read back (iptables itself normalizes some args).
-	// This is the "new" Proxier, so we require "new" versions of tools.
-	iptablesMinVersion = utiliptables.MinCheckVersion
-
 	// the services chain
 	kubeServicesChain utiliptables.Chain = "KUBE-SERVICES"
 
@@ -84,12 +74,6 @@ const (
 	kubeForwardChain utiliptables.Chain = "KUBE-FORWARD"
 )
 
-// IPTablesVersioner can query the current iptables version.
-type IPTablesVersioner interface {
-	// returns "X.Y.Z"
-	GetVersion() (string, error)
-}
-
 // KernelCompatTester tests whether the required kernel capabilities are
 // present to run the iptables proxier.
 type KernelCompatTester interface {
@@ -97,27 +81,7 @@ type KernelCompatTester interface {
 }
 
 // CanUseIPTablesProxier returns true if we should use the iptables Proxier
-// instead of the "classic" userspace Proxier.  This is determined by checking
-// the iptables version and for the existence of kernel features. It may return
-// an error if it fails to get the iptables version without error, in which
-// case it will also return false.
-func CanUseIPTablesProxier(iptver IPTablesVersioner, kcompat KernelCompatTester) (bool, error) {
-	minVersion, err := utilversion.ParseGeneric(iptablesMinVersion)
-	if err != nil {
-		return false, err
-	}
-	versionString, err := iptver.GetVersion()
-	if err != nil {
-		return false, err
-	}
-	version, err := utilversion.ParseGeneric(versionString)
-	if err != nil {
-		return false, err
-	}
-	if version.LessThan(minVersion) {
-		return false, nil
-	}
-
+func CanUseIPTablesProxier(kcompat KernelCompatTester) (bool, error) {
 	// Check that the kernel supports what we need.
 	if err := kcompat.IsCompatible(); err != nil {
 		return false, err
@@ -128,9 +92,6 @@ func CanUseIPTablesProxier(iptver IPTablesVersioner, kcompat KernelCompatTester)
 type LinuxKernelCompatTester struct{}
 
 func (lkct LinuxKernelCompatTester) IsCompatible() error {
-	// Check for the required sysctls.  We don't care about the value, just
-	// that it exists.  If this Proxier is chosen, we'll initialize it as we
-	// need.
 	_, err := utilsysctl.New().GetSysctl(sysctlRouteLocalnet)
 	return err
 }
@@ -221,6 +182,7 @@ type Proxier struct {
 	endpointsSynced bool
 	servicesSynced  bool
 	initialized     int32
+	changesPending  bool
 	syncRunner      *async.BoundedFrequencyRunner // governs calls to syncProxyRules
 
 	// These are effectively const and do not need the mutex to be held.
@@ -344,7 +306,13 @@ func NewProxier(ipt utiliptables.Interface,
 	}
 	burstSyncs := 2
 	glog.V(3).Infof("minSyncPeriod: %v, syncPeriod: %v, burstSyncs: %d", minSyncPeriod, syncPeriod, burstSyncs)
-	proxier.syncRunner = async.NewBoundedFrequencyRunner("sync-runner", proxier.syncProxyRules, minSyncPeriod, syncPeriod, burstSyncs)
+	// We pass syncPeriod to ipt.Monitor, which will call us only if it needs to.
+	// We need to pass *some* maxInterval to NewBoundedFrequencyRunner anyway though.
+	// time.Hour is arbitrary.
+	proxier.syncRunner = async.NewBoundedFrequencyRunner("sync-runner", proxier.maybeSyncProxyRules, minSyncPeriod, syncPeriod, burstSyncs)
+	go ipt.Monitor(utiliptables.Chain("KUBE-PROXY-CANARY"),
+		[]utiliptables.Table{utiliptables.TableMangle, utiliptables.TableNAT, utiliptables.TableFilter},
+		proxier.forceSyncProxyRules, syncPeriod, wait.NeverStop)
 	return proxier, nil
 }
 
@@ -477,6 +445,7 @@ func (proxier *Proxier) probability(n int) string {
 
 // Sync is called to synchronize the proxier state to iptables as soon as possible.
 func (proxier *Proxier) Sync() {
+	proxier.changesPending = true
 	proxier.syncRunner.Run()
 }
 
@@ -507,6 +476,7 @@ func (proxier *Proxier) OnServiceAdd(service *api.Service) {
 
 func (proxier *Proxier) OnServiceUpdate(oldService, service *api.Service) {
 	if proxier.serviceChanges.Update(oldService, service) && proxier.isInitialized() {
+		proxier.changesPending = true
 		proxier.syncRunner.Run()
 	}
 }
@@ -523,7 +493,7 @@ func (proxier *Proxier) OnServiceSynced() {
 	proxier.mu.Unlock()
 
 	// Sync unconditionally - this is called once per lifetime.
-	proxier.syncProxyRules()
+	proxier.forceSyncProxyRules()
 }
 
 func (proxier *Proxier) OnEndpointsAdd(endpoints *api.Endpoints) {
@@ -532,6 +502,7 @@ func (proxier *Proxier) OnEndpointsAdd(endpoints *api.Endpoints) {
 
 func (proxier *Proxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints) {
 	if proxier.endpointsChanges.Update(oldEndpoints, endpoints) && proxier.isInitialized() {
+		proxier.changesPending = true
 		proxier.syncRunner.Run()
 	}
 }
@@ -547,7 +518,7 @@ func (proxier *Proxier) OnEndpointsSynced() {
 	proxier.mu.Unlock()
 
 	// Sync unconditionally - this is called once per lifetime.
-	proxier.syncProxyRules()
+	proxier.forceSyncProxyRules()
 }
 
 // portProtoHash takes the ServicePortName and protocol for a service
@@ -618,10 +589,18 @@ func (proxier *Proxier) deleteEndpointConnections(connectionMap []proxy.ServiceE
 	}
 }
 
+func (proxier *Proxier) maybeSyncProxyRules() {
+	proxier.syncProxyRules(false)
+}
+
+func (proxier *Proxier) forceSyncProxyRules() {
+	proxier.syncProxyRules(true)
+}
+
 // This is where all of the iptables-save/restore calls happen.
 // The only other iptables rules are those that are setup in iptablesInit()
 // This assumes proxier.mu is NOT held
-func (proxier *Proxier) syncProxyRules() {
+func (proxier *Proxier) syncProxyRules(force bool) {
 	proxier.mu.Lock()
 	defer proxier.mu.Unlock()
 
@@ -633,6 +612,14 @@ func (proxier *Proxier) syncProxyRules() {
 	// don't sync rules till we've received services and endpoints
 	if !proxier.endpointsSynced || !proxier.servicesSynced {
 		glog.V(2).Info("Not syncing iptables until Services and Endpoints have been received from master")
+		return
+	}
+
+	if !force && !proxier.changesPending {
+		// Nothing to do; just update healthz timestamp.
+		if proxier.healthzServer != nil {
+			proxier.healthzServer.UpdateTimestamp()
+		}
 		return
 	}
 
@@ -1324,6 +1311,7 @@ func (proxier *Proxier) syncProxyRules() {
 		utilproxy.RevertPorts(replacementPortsMap, proxier.portsMap)
 		return
 	}
+	proxier.changesPending = false
 
 	// Close old local ports and save new ones.
 	for k, v := range proxier.portsMap {

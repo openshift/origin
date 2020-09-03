@@ -111,6 +111,11 @@ func (proxy *OsdnProxy) Start(proxier kubeproxy.ProxyProvider) error {
 	return nil
 }
 
+func (proxy *OsdnProxy) ReloadIPTables() error {
+	proxy.Sync()
+	return nil
+}
+
 func (proxy *OsdnProxy) updateEgressNetworkPolicyLocked(policy networkapi.EgressNetworkPolicy) {
 	proxy.lock.Lock()
 	defer proxy.lock.Unlock()

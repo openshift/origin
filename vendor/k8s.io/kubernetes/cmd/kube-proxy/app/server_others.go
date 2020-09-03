@@ -39,7 +39,6 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/metrics"
 	"k8s.io/kubernetes/pkg/proxy/userspace"
 	"k8s.io/kubernetes/pkg/util/configz"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	utilipset "k8s.io/kubernetes/pkg/util/ipset"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilipvs "k8s.io/kubernetes/pkg/util/ipvs"
@@ -82,13 +81,11 @@ func newProxyServer(
 	var ipvsInterface utilipvs.Interface
 	var kernelHandler ipvs.KernelHandler
 	var ipsetInterface utilipset.Interface
-	var dbus utildbus.Interface
 
 	// Create a iptables utils.
 	execer := exec.New()
 
-	dbus = utildbus.New()
-	iptInterface = utiliptables.New(execer, dbus, protocol)
+	iptInterface = utiliptables.New(execer, protocol)
 	kernelHandler = ipvs.NewLinuxKernelHandler()
 	ipsetInterface = utilipset.New(execer)
 	if canUse, _ := ipvs.CanUseIPVSProxier(kernelHandler, ipsetInterface); canUse {
@@ -132,7 +129,7 @@ func newProxyServer(
 
 	var proxier proxy.ProxyProvider
 
-	proxyMode := getProxyMode(string(config.Mode), iptInterface, kernelHandler, ipsetInterface, iptables.LinuxKernelCompatTester{})
+	proxyMode := getProxyMode(string(config.Mode), kernelHandler, ipsetInterface, iptables.LinuxKernelCompatTester{})
 	if proxyMode == proxyModeIPTables {
 		glog.V(0).Info("Using iptables Proxier.")
 		nodeIP := net.ParseIP(config.BindAddress)
@@ -232,8 +229,6 @@ func newProxyServer(
 		ipvs.CleanupLeftovers(ipvsInterface, iptInterface, ipsetInterface, cleanupIPVS)
 	}
 
-	iptInterface.AddReloadFunc(proxier.Sync)
-
 	return &ProxyServer{
 		Client:                 client,
 		EventClient:            eventClient,
@@ -257,20 +252,20 @@ func newProxyServer(
 	}, nil
 }
 
-func getProxyMode(proxyMode string, iptver iptables.IPTablesVersioner, khandle ipvs.KernelHandler, ipsetver ipvs.IPSetVersioner, kcompat iptables.KernelCompatTester) string {
+func getProxyMode(proxyMode string, khandle ipvs.KernelHandler, ipsetver ipvs.IPSetVersioner, kcompat iptables.KernelCompatTester) string {
 	switch proxyMode {
 	case proxyModeUserspace:
 		return proxyModeUserspace
 	case proxyModeIPTables:
-		return tryIPTablesProxy(iptver, kcompat)
+		return tryIPTablesProxy(kcompat)
 	case proxyModeIPVS:
-		return tryIPVSProxy(iptver, khandle, ipsetver, kcompat)
+		return tryIPVSProxy(khandle, ipsetver, kcompat)
 	}
 	glog.Warningf("Flag proxy-mode=%q unknown, assuming iptables proxy", proxyMode)
-	return tryIPTablesProxy(iptver, kcompat)
+	return tryIPTablesProxy(kcompat)
 }
 
-func tryIPVSProxy(iptver iptables.IPTablesVersioner, khandle ipvs.KernelHandler, ipsetver ipvs.IPSetVersioner, kcompat iptables.KernelCompatTester) string {
+func tryIPVSProxy(khandle ipvs.KernelHandler, ipsetver ipvs.IPSetVersioner, kcompat iptables.KernelCompatTester) string {
 	// guaranteed false on error, error only necessary for debugging
 	// IPVS Proxier relies on ip_vs_* kernel modules and ipset
 	useIPVSProxy, err := ipvs.CanUseIPVSProxier(khandle, ipsetver)
@@ -284,12 +279,12 @@ func tryIPVSProxy(iptver iptables.IPTablesVersioner, khandle ipvs.KernelHandler,
 
 	// Try to fallback to iptables before falling back to userspace
 	glog.V(1).Infof("Can't use ipvs proxier, trying iptables proxier")
-	return tryIPTablesProxy(iptver, kcompat)
+	return tryIPTablesProxy(kcompat)
 }
 
-func tryIPTablesProxy(iptver iptables.IPTablesVersioner, kcompat iptables.KernelCompatTester) string {
+func tryIPTablesProxy(kcompat iptables.KernelCompatTester) string {
 	// guaranteed false on error, error only necessary for debugging
-	useIPTablesProxy, err := iptables.CanUseIPTablesProxier(iptver, kcompat)
+	useIPTablesProxy, err := iptables.CanUseIPTablesProxier(kcompat)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("can't determine whether to use iptables proxy, using userspace proxier: %v", err))
 		return proxyModeUserspace

@@ -25,10 +25,9 @@ import (
 	"sync"
 	"time"
 
-	godbus "github.com/godbus/dbus"
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/sets"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	utilversion "k8s.io/kubernetes/pkg/util/version"
 	utilexec "k8s.io/utils/exec"
 )
@@ -42,8 +41,6 @@ const (
 
 // An injectable interface for running iptables commands.  Implementations must be goroutine-safe.
 type Interface interface {
-	// GetVersion returns the "X.Y.Z" version string for iptables.
-	GetVersion() (string, error)
 	// EnsureChain checks if the specified chain exists and, if not, creates it.  If the chain existed, return true.
 	EnsureChain(table Table, chain Chain) (bool, error)
 	// FlushChain clears the specified chain.  If the chain did not exist, return error.
@@ -66,10 +63,17 @@ type Interface interface {
 	Restore(table Table, data []byte, flush FlushFlag, counters RestoreCountersFlag) error
 	// RestoreAll is the same as Restore except that no table is specified.
 	RestoreAll(data []byte, flush FlushFlag, counters RestoreCountersFlag) error
-	// AddReloadFunc adds a function to call on iptables reload
-	AddReloadFunc(reloadFunc func())
-	// Destroy cleans up resources used by the Interface
-	Destroy()
+	// Monitor detects when the given iptables tables have been flushed by an external
+	// tool (e.g. a firewall reload) by creating canary chains and polling to see if
+	// they have been deleted. (Specifically, it polls tables[0] every interval until
+	// the canary has been deleted from there, then waits a short additional time for
+	// the canaries to be deleted from the remaining tables as well. You can optimize
+	// the polling by listing a relatively empty table in tables[0]). When a flush is
+	// detected, this calls the reloadFunc so the caller can reload their own iptables
+	// rules. If it is unable to create the canary chains (either initially or after
+	// a reload) it will log an error and stop monitoring.
+	// (This function should be called from a goroutine.)
+	Monitor(canary Chain, tables []Table, reloadFunc func(), interval time.Duration, stopCh <-chan struct{})
 }
 
 type Protocol byte
@@ -120,11 +124,13 @@ const NoFlushTables FlushFlag = false
 
 // Versions of iptables less than this do not support the -C / --check flag
 // (test whether a rule exists).
-const MinCheckVersion = "1.4.11"
+var MinCheckVersion = utilversion.MustParseGeneric("1.4.11")
 
 // Minimum iptables versions supporting the -w and -w<seconds> flags
-const WaitMinVersion = "1.4.20"
-const WaitSecondsMinVersion = "1.4.22"
+var WaitMinVersion = utilversion.MustParseGeneric("1.4.20")
+var WaitSecondsMinVersion = utilversion.MustParseGeneric("1.4.22")
+var WaitRestoreMinVersion = utilversion.MustParseGeneric("1.6.2")
+
 const WaitString = "-w"
 const WaitSecondsValue = "5"
 
@@ -134,24 +140,20 @@ const LockfilePath16x = "/run/xtables.lock"
 type runner struct {
 	mu              sync.Mutex
 	exec            utilexec.Interface
-	dbus            utildbus.Interface
 	protocol        Protocol
 	hasCheck        bool
 	waitFlag        []string
 	restoreWaitFlag []string
 	lockfilePath    string
-
-	reloadFuncs []func()
-	signal      chan *godbus.Signal
 }
 
 // newInternal returns a new Interface which will exec iptables, and allows the
 // caller to change the iptables-restore lockfile path
-func newInternal(exec utilexec.Interface, dbus utildbus.Interface, protocol Protocol, lockfilePath string) Interface {
-	vstring, err := getIPTablesVersionString(exec, protocol)
+func newInternal(exec utilexec.Interface, protocol Protocol, lockfilePath string) Interface {
+	version, err := getIPTablesVersion(exec, protocol)
 	if err != nil {
 		glog.Warningf("Error checking iptables version, assuming version at least %s: %v", MinCheckVersion, err)
-		vstring = MinCheckVersion
+		version = MinCheckVersion
 	}
 
 	if lockfilePath == "" {
@@ -160,62 +162,18 @@ func newInternal(exec utilexec.Interface, dbus utildbus.Interface, protocol Prot
 
 	runner := &runner{
 		exec:            exec,
-		dbus:            dbus,
 		protocol:        protocol,
-		hasCheck:        getIPTablesHasCheckCommand(vstring),
-		waitFlag:        getIPTablesWaitFlag(vstring),
-		restoreWaitFlag: getIPTablesRestoreWaitFlag(exec, protocol),
+		hasCheck:        version.AtLeast(MinCheckVersion),
+		waitFlag:        getIPTablesWaitFlag(version),
+		restoreWaitFlag: getIPTablesRestoreWaitFlag(version, exec, protocol),
 		lockfilePath:    lockfilePath,
 	}
-	// TODO this needs to be moved to a separate Start() or Run() function so that New() has zero side
-	// effects.
-	runner.connectToFirewallD()
 	return runner
 }
 
 // New returns a new Interface which will exec iptables.
-func New(exec utilexec.Interface, dbus utildbus.Interface, protocol Protocol) Interface {
-	return newInternal(exec, dbus, protocol, "")
-}
-
-// Destroy is part of Interface.
-func (runner *runner) Destroy() {
-	if runner.signal != nil {
-		runner.signal <- nil
-	}
-}
-
-const (
-	firewalldName      = "org.fedoraproject.FirewallD1"
-	firewalldPath      = "/org/fedoraproject/FirewallD1"
-	firewalldInterface = "org.fedoraproject.FirewallD1"
-)
-
-// Connects to D-Bus and listens for FirewallD start/restart. (On non-FirewallD-using
-// systems, this is effectively a no-op; we listen for the signals, but they will never be
-// emitted, so reload() will never be called.)
-func (runner *runner) connectToFirewallD() {
-	bus, err := runner.dbus.SystemBus()
-	if err != nil {
-		glog.V(1).Infof("Could not connect to D-Bus system bus: %s", err)
-		return
-	}
-
-	rule := fmt.Sprintf("type='signal',sender='%s',path='%s',interface='%s',member='Reloaded'", firewalldName, firewalldPath, firewalldInterface)
-	bus.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, rule)
-
-	rule = fmt.Sprintf("type='signal',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus',sender='org.freedesktop.DBus',arg0='%s'", firewalldName)
-	bus.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, rule)
-
-	runner.signal = make(chan *godbus.Signal, 10)
-	bus.Signal(runner.signal)
-
-	go runner.dbusSignalHandler(bus)
-}
-
-// GetVersion returns the version string.
-func (runner *runner) GetVersion() (string, error) {
-	return getIPTablesVersionString(runner.exec, runner.protocol)
+func New(exec utilexec.Interface, protocol Protocol) Interface {
+	return newInternal(exec, protocol, "")
 }
 
 // EnsureChain is part of Interface.
@@ -517,12 +475,84 @@ func (runner *runner) checkRuleUsingCheck(args []string) (bool, error) {
 	return false, fmt.Errorf("error checking rule: %v: %s", err, out)
 }
 
+const (
+	// Max time we wait for an iptables flush to complete after we notice it has started
+	iptablesFlushTimeout = 5 * time.Second
+	// How often we poll while waiting for an iptables flush to complete
+	iptablesFlushPollTime = 100 * time.Millisecond
+)
+
+// Monitor is part of Interface
+func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), interval time.Duration, stopCh <-chan struct{}) {
+	for {
+		_ = utilwait.PollImmediateUntil(interval, func() (bool, error) {
+			for _, table := range tables {
+				if _, err := runner.EnsureChain(table, canary); err != nil {
+					glog.Warningf("Could not set up iptables canary %s/%s: %v", string(table), string(canary), err)
+					return false, nil
+				}
+			}
+			return true, nil
+		}, stopCh)
+
+		// Poll until stopCh is closed or iptables is flushed
+		err := utilwait.PollUntil(interval, func() (bool, error) {
+			if exists, err := runner.chainExists(tables[0], canary); exists {
+				return false, nil
+			} else if isResourceError(err) {
+				glog.Warningf("Could not check for iptables canary %s/%s: %v", string(tables[0]), string(canary), err)
+				return false, nil
+			}
+			glog.V(2).Infof("iptables canary %s/%s deleted", string(tables[0]), string(canary))
+
+			// Wait for the other canaries to be deleted too before returning
+			// so we don't start reloading too soon.
+			err := utilwait.PollImmediate(iptablesFlushPollTime, iptablesFlushTimeout, func() (bool, error) {
+				for i := 1; i < len(tables); i++ {
+					if exists, err := runner.chainExists(tables[i], canary); exists || isResourceError(err) {
+						return false, nil
+					}
+				}
+				return true, nil
+			})
+			if err != nil {
+				glog.Warning("Inconsistent iptables state detected.")
+			}
+			return true, nil
+		}, stopCh)
+
+		if err != nil {
+			// stopCh was closed
+			for _, table := range tables {
+				_ = runner.DeleteChain(table, canary)
+			}
+			return
+		}
+
+		glog.V(2).Infof("Reloading after iptables flush")
+		reloadFunc()
+	}
+}
+
+// chainExists is used internally by Monitor; none of the public Interface methods can be
+// used to distinguish "chain exists" from "chain does not exist" with no side effects
+func (runner *runner) chainExists(table Table, chain Chain) (bool, error) {
+	fullArgs := makeFullArgs(table, chain)
+
+	runner.mu.Lock()
+	defer runner.mu.Unlock()
+
+	_, err := runner.run(opListChain, fullArgs)
+	return err == nil, err
+}
+
 type operation string
 
 const (
 	opCreateChain operation = "-N"
 	opFlushChain  operation = "-F"
 	opDeleteChain operation = "-X"
+	opListChain   operation = "-L"
 	opAppendRule  operation = "-A"
 	opCheckRule   operation = "-C"
 	opDeleteRule  operation = "-D"
@@ -532,72 +562,46 @@ func makeFullArgs(table Table, chain Chain, args ...string) []string {
 	return append([]string{string(chain), "-t", string(table)}, args...)
 }
 
-// Checks if iptables has the "-C" flag
-func getIPTablesHasCheckCommand(vstring string) bool {
-	minVersion, err := utilversion.ParseGeneric(MinCheckVersion)
-	if err != nil {
-		glog.Errorf("MinCheckVersion (%s) is not a valid version string: %v", MinCheckVersion, err)
-		return true
-	}
-	version, err := utilversion.ParseGeneric(vstring)
-	if err != nil {
-		glog.Errorf("vstring (%s) is not a valid version string: %v", vstring, err)
-		return true
-	}
-	return version.AtLeast(minVersion)
-}
-
-// Checks if iptables version has a "wait" flag
-func getIPTablesWaitFlag(vstring string) []string {
-	version, err := utilversion.ParseGeneric(vstring)
-	if err != nil {
-		glog.Errorf("vstring (%s) is not a valid version string: %v", vstring, err)
-		return nil
-	}
-
-	minVersion, err := utilversion.ParseGeneric(WaitMinVersion)
-	if err != nil {
-		glog.Errorf("WaitMinVersion (%s) is not a valid version string: %v", WaitMinVersion, err)
-		return nil
-	}
-	if version.LessThan(minVersion) {
-		return nil
-	}
-
-	minVersion, err = utilversion.ParseGeneric(WaitSecondsMinVersion)
-	if err != nil {
-		glog.Errorf("WaitSecondsMinVersion (%s) is not a valid version string: %v", WaitSecondsMinVersion, err)
-		return nil
-	}
-	if version.LessThan(minVersion) {
-		return []string{WaitString}
-	} else {
-		return []string{WaitString, WaitSecondsValue}
-	}
-}
-
-// getIPTablesVersionString runs "iptables --version" to get the version string
-// in the form "X.X.X"
-func getIPTablesVersionString(exec utilexec.Interface, protocol Protocol) (string, error) {
+// getIPTablesVersion runs "iptables --version" and parses the returned version
+func getIPTablesVersion(exec utilexec.Interface, protocol Protocol) (*utilversion.Version, error) {
 	// this doesn't access mutable state so we don't need to use the interface / runner
 	iptablesCmd := iptablesCommand(protocol)
 	bytes, err := exec.Command(iptablesCmd, "--version").CombinedOutput()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	versionMatcher := regexp.MustCompile("v([0-9]+(\\.[0-9]+)+)")
 	match := versionMatcher.FindStringSubmatch(string(bytes))
 	if match == nil {
-		return "", fmt.Errorf("no iptables version found in string: %s", bytes)
+		return nil, fmt.Errorf("no iptables version found in string: %s", bytes)
 	}
-	return match[1], nil
+	version, err := utilversion.ParseGeneric(match[1])
+	if err != nil {
+		return nil, fmt.Errorf("iptables version %q is not a valid version string: %v", match[1], err)
+	}
+	return version, nil
+}
+
+// Checks if iptables version has a "wait" flag
+func getIPTablesWaitFlag(version *utilversion.Version) []string {
+	switch {
+	case version.AtLeast(WaitSecondsMinVersion):
+		return []string{WaitString, WaitSecondsValue}
+	case version.AtLeast(WaitMinVersion):
+		return []string{WaitString}
+	default:
+		return nil
+	}
 }
 
 // Checks if iptables-restore has a "wait" flag
-// --wait support landed in v1.6.1+ right before --version support, so
-// any version of iptables-restore that supports --version will also
-// support --wait
-func getIPTablesRestoreWaitFlag(exec utilexec.Interface, protocol Protocol) []string {
+func getIPTablesRestoreWaitFlag(version *utilversion.Version, exec utilexec.Interface, protocol Protocol) []string {
+	if version.AtLeast(WaitRestoreMinVersion) {
+		return []string{WaitString, WaitSecondsValue}
+	}
+
+	// Older versions may have backported features; if iptables-restore supports
+	// --version, assume it also supports --wait
 	vstring, err := getIPTablesRestoreVersionString(exec, protocol)
 	if err != nil || vstring == "" {
 		glog.V(3).Infof("couldn't get iptables-restore version; assuming it doesn't support --wait")
@@ -607,8 +611,7 @@ func getIPTablesRestoreWaitFlag(exec utilexec.Interface, protocol Protocol) []st
 		glog.V(3).Infof("couldn't parse iptables-restore version; assuming it doesn't support --wait")
 		return nil
 	}
-
-	return []string{WaitString, WaitSecondsValue}
+	return []string{WaitString}
 }
 
 // getIPTablesRestoreVersionString runs "iptables-restore --version" to get the version string
@@ -634,53 +637,6 @@ func getIPTablesRestoreVersionString(exec utilexec.Interface, protocol Protocol)
 	return match[1], nil
 }
 
-// goroutine to listen for D-Bus signals
-func (runner *runner) dbusSignalHandler(bus utildbus.Connection) {
-	firewalld := bus.Object(firewalldName, firewalldPath)
-
-	for s := range runner.signal {
-		if s == nil {
-			// Unregister
-			bus.Signal(runner.signal)
-			return
-		}
-
-		switch s.Name {
-		case "org.freedesktop.DBus.NameOwnerChanged":
-			name := s.Body[0].(string)
-			new_owner := s.Body[2].(string)
-
-			if name != firewalldName || len(new_owner) == 0 {
-				continue
-			}
-
-			// FirewallD startup (specifically the part where it deletes
-			// all existing iptables rules) may not yet be complete when
-			// we get this signal, so make a dummy request to it to
-			// synchronize.
-			firewalld.Call(firewalldInterface+".getDefaultZone", 0)
-
-			runner.reload()
-		case firewalldInterface + ".Reloaded":
-			runner.reload()
-		}
-	}
-}
-
-// AddReloadFunc is part of Interface
-func (runner *runner) AddReloadFunc(reloadFunc func()) {
-	runner.reloadFuncs = append(runner.reloadFuncs, reloadFunc)
-}
-
-// runs all reload funcs to re-sync iptables rules
-func (runner *runner) reload() {
-	glog.V(1).Infof("reloading iptables rules")
-
-	for _, f := range runner.reloadFuncs {
-		f()
-	}
-}
-
 // IsNotFoundError returns true if the error indicates "not found".  It parses
 // the error string looking for known values, which is imperfect but works in
 // practice.
@@ -693,4 +649,17 @@ func IsNotFoundError(err error) bool {
 		return true
 	}
 	return false
+}
+
+const iptablesStatusResourceProblem = 4
+
+// isResourceError returns true if the error indicates that iptables ran into a "resource
+// problem" and was unable to attempt the request. In particular, this will be true if it
+// times out trying to get the iptables lock.
+func isResourceError(err error) bool {
+	if ee, isExitError := err.(utilexec.ExitError); isExitError {
+		return ee.ExitStatus() == iptablesStatusResourceProblem
+	} else {
+		return false
+	}
 }

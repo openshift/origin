@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"time"
 
 	"k8s.io/kubernetes/pkg/util/iptables"
 )
@@ -45,10 +46,6 @@ type FakeIPTables struct {
 
 func NewFake() *FakeIPTables {
 	return &FakeIPTables{}
-}
-
-func (*FakeIPTables) GetVersion() (string, error) {
-	return "0.0.0", nil
 }
 
 func (*FakeIPTables) EnsureChain(table iptables.Table, chain iptables.Chain) (bool, error) {
@@ -94,9 +91,9 @@ func (f *FakeIPTables) RestoreAll(data []byte, flush iptables.FlushFlag, counter
 	f.Lines = data
 	return nil
 }
-func (*FakeIPTables) AddReloadFunc(reloadFunc func()) {}
 
-func (*FakeIPTables) Destroy() {}
+func (f *FakeIPTables) Monitor(canary iptables.Chain, tables []iptables.Table, reloadFunc func(), interval time.Duration, stopCh <-chan struct{}) {
+}
 
 func getToken(line, separator string) string {
 	tokens := strings.Split(line, separator)
