@@ -1557,6 +1557,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously": "grow and decrease when scaling different machineSets simultaneously [Suite:openshift/conformance/serial]",
 
+	"[Top Level] [sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations": "run sample related validations [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/nodejs-10-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/nodejs-10-rhel7\" should print the usage [Suite:openshift]",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/nodejs-12-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/nodejs-12-rhel7\" should print the usage [Suite:openshift]",
