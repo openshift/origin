@@ -221,7 +221,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [k8s.io] [Feature:Example] [k8s.io] Liveness liveness pods should be automatically restarted": "liveness pods should be automatically restarted [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [k8s.io] [Feature:Example] [k8s.io] Secret should create a pod that reads a secret": "should create a pod that reads a secret [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [k8s.io] [Feature:Example] [k8s.io] Secret should create a pod that reads a secret": "should create a pod that reads a secret [Disabled:Broken] [sig-node] [Suite:k8s]",
 
 	"[Top Level] [k8s.io] [Feature:TTLAfterFinished][NodeAlphaFeature:TTLAfterFinished] job should be deleted once it finishes after TTL seconds": "job should be deleted once it finishes after TTL seconds [Disabled:Alpha] [sig-node] [Suite:k8s]",
 
@@ -815,7 +815,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth] ServiceAccounts should run through the lifecycle of a ServiceAccount [Conformance]": "should run through the lifecycle of a ServiceAccount [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection]": "should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection]": "should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection] [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] ServiceAccounts should support InClusterConfig with token rotation [Slow] [Feature:TokenRequestProjection]": "should support InClusterConfig with token rotation [Slow] [Feature:TokenRequestProjection] [Suite:k8s]",
 
@@ -1383,7 +1383,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should handle in-cluster config": "should handle in-cluster config [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes": "should return command exit codes [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes": "should return command exit codes [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through an HTTP proxy": "should support exec through an HTTP proxy [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1961,7 +1961,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Network should set TCP CLOSE_WAIT timeout [Privileged]": "should set TCP CLOSE_WAIT timeout [Privileged] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow egress access on one named port [Feature:NetworkPolicy]": "should allow egress access on one named port [Feature:NetworkPolicy] [Disabled:Unimplemented] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow egress access on one named port [Feature:NetworkPolicy]": "should allow egress access on one named port [Feature:NetworkPolicy] [Disabled:Unimplemented] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow egress access to server in CIDR block [Feature:NetworkPolicy]": "should allow egress access to server in CIDR block [Feature:NetworkPolicy] [Disabled:Unimplemented] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 

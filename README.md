@@ -37,6 +37,35 @@ will switch to vendoring origin-specific branches (e.g
 carries that need to be considered in the context of
 `openshift/kubernetes` rebases.
 
+### Test annotation rules
+
+Test annotation rules are used to label e2e tests so that they can be
+filtered or skipped. For example, rules can be defined that match kube
+e2e tests that are known to be incompatible with openshift and label
+those tests to be skipped.
+
+Maintenance of test annotation rules is split between the
+`openshift/kubernetes` and `origin` repos to ensure that PRs proposed
+to `openshift/kubernetes` can be validated against the set of kube e2e
+tests known to be compatible with openshift.
+
+Test annotation rules for kubernetes e2e tests are maintained in:
+
+https://github.com/openshift/kubernetes/blob/master/openshift-hack/e2e/annotate/rules.go
+
+Test annotation rules for openshift e2e tests are maintained in:
+
+https://github.com/openshift/origin/blob/master/test/extended/util/annotate/rules.go
+
+Origin vendors the kube rules and applies both the kube and openshift
+rules to the set of tests included in the `openshift-tests` binary.
+
+In order to update test annotation rules for kube e2e tests, it will
+be necessary to:
+
+ - Update `rules.go` in `openshift/kubernetes`
+ - Bump the version of `openshift/kubernetes` vendored in origin
+
 ### Vendoring from `openshift/kubernetes`
 
 These origin branches vendor `k8s.io/kubernetes` and some of its

@@ -31,11 +31,11 @@ require (
 	github.com/lestrrat/go-jsschema v0.0.0-20181205002244-5c81c58ffcc3
 	github.com/lpabon/godbc v0.0.0-00010101000000-000000000000 // indirect
 	github.com/mohae/deepcopy v0.0.0-00010101000000-000000000000 // indirect
-	github.com/onsi/ginkgo v1.11.0
+	github.com/onsi/ginkgo v4.5.0-origin.1+incompatible
 	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/openshift/api v0.0.0-20200722204502-c33fd0aa6ffa
-	github.com/openshift/apiserver-library-go v0.0.0-20200722231130-01c5eee5e10b
+	github.com/openshift/apiserver-library-go v0.0.0-20200723181026-dd21ec96ba0a
 	github.com/openshift/build-machinery-go v0.0.0-20200713135615-1f43d26dccc7
 	github.com/openshift/client-go v0.0.0-20200722173614-5a1b0aaeff15
 	github.com/openshift/library-go v0.0.0-20200722204747-e3f2c82ff290
@@ -420,10 +420,10 @@ replace (
 	k8s.io/api => k8s.io/api v0.19.0-rc.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.0-rc.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.19.0-rc.2
-	k8s.io/apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20200803060402-d32435439579
+	k8s.io/apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20200826132615-f71a7ab366cf
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.19.0-rc.2
-	k8s.io/client-go => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20200803060402-d32435439579
-	k8s.io/cloud-provider => github.com/openshift/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20200803060402-d32435439579
+	k8s.io/client-go => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20200826132615-f71a7ab366cf
+	k8s.io/cloud-provider => github.com/openshift/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20200826132615-f71a7ab366cf
 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.19.0-rc.2
 	k8s.io/code-generator => k8s.io/code-generator v0.19.0-rc.2
 	k8s.io/component-base => k8s.io/component-base v0.19.0-rc.2
@@ -432,13 +432,13 @@ replace (
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20200114144118-36b2048a9120
 	k8s.io/heapster => k8s.io/heapster v1.2.0-beta.1
 	k8s.io/klog => k8s.io/klog v1.0.0
-	k8s.io/kube-aggregator => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20200803060402-d32435439579
+	k8s.io/kube-aggregator => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20200826132615-f71a7ab366cf
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.19.0-rc.2
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.19.0-rc.2
 	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.19.0-rc.2
 	k8s.io/kubectl => k8s.io/kubectl v0.19.0-rc.2
 	k8s.io/kubelet => k8s.io/kubelet v0.19.0-rc.2
-	k8s.io/kubernetes => github.com/openshift/kubernetes v1.20.0-alpha.0.0.20200803060402-d32435439579
+	k8s.io/kubernetes => github.com/openshift/kubernetes v1.20.0-alpha.0.0.20200826132615-f71a7ab366cf
 	k8s.io/legacy-cloud-providers => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20200826132615-f71a7ab366cf
 	k8s.io/metrics => k8s.io/metrics v0.19.0-rc.2
 	k8s.io/repo-infra => k8s.io/repo-infra v0.0.1-alpha.1
