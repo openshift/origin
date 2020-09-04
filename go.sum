@@ -446,8 +446,8 @@ github.com/openshift/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-2020082
 github.com/openshift/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20200826132615-f71a7ab366cf/go.mod h1:vx/reZx/iefWuS3A7hRi4cwoptpCkVhqqITKpUsIkWs=
 github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20200826132615-f71a7ab366cf h1:A30pBAUeL4ogH6sAamr346lPGvNybGo/2YO/POhHPc4=
 github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20200826132615-f71a7ab366cf/go.mod h1:MUq2YTU8mwp7qYhM8Gu95ZSBOIp2+OyDSY7dOeHgCTA=
-github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20200826132615-f71a7ab366cf h1:6WYK5JAFYXehPZbVkkkSqeibs7clN3mRHZmiXG+K79w=
-github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20200826132615-f71a7ab366cf/go.mod h1:kUaainILK6Zy9oE3FRx+pp7y5+eTb73H3Z4oEmzaxQ8=
+github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20200803060402-d32435439579 h1:8Nq+512XQ4TMOFZP2PVfj0OsWVPNq1F9lRPebSNWGeU=
+github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20200803060402-d32435439579/go.mod h1:V29rgRnfGKqV/Igb/rcTI+h7Xt22XoO914odfbs03ik=
 github.com/openshift/library-go v0.0.0-20200722204747-e3f2c82ff290 h1:x2MMkmR0gr+3UazejQcIafWCXh8d0W+6EWTtWLyGBnQ=
 github.com/openshift/library-go v0.0.0-20200722204747-e3f2c82ff290/go.mod h1:/gVyoY2dl35bcCCgs+36UmGt6n/kn3f64hfDduujQ1c=
 github.com/openshift/onsi-ginkgo v4.5.0-origin.1+incompatible h1:GtzyDU5vBFU40hz4GWd1qU5FJByNljWdgkM2LtdelGk=

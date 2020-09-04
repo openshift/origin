@@ -259,16 +259,6 @@ func (nm *NodeManager) GetNode(nodeName k8stypes.NodeName) (v1.Node, error) {
 	return *node, nil
 }
 
-func (nm *NodeManager) getNodes() map[string]*v1.Node {
-	nm.registeredNodesLock.RLock()
-	defer nm.registeredNodesLock.RUnlock()
-	registeredNodes := make(map[string]*v1.Node, len(nm.registeredNodes))
-	for nodeName, node := range nm.registeredNodes {
-		registeredNodes[nodeName] = node
-	}
-	return registeredNodes
-}
-
 func (nm *NodeManager) addNode(node *v1.Node) {
 	nm.registeredNodesLock.Lock()
 	nm.registeredNodes[node.ObjectMeta.Name] = node
@@ -298,9 +288,11 @@ func (nm *NodeManager) GetNodeInfo(nodeName k8stypes.NodeName) (NodeInfo, error)
 //
 // This method is a getter but it can cause side-effect of updating NodeInfo objects.
 func (nm *NodeManager) GetNodeDetails() ([]NodeDetails, error) {
+	nm.registeredNodesLock.Lock()
+	defer nm.registeredNodesLock.Unlock()
 	var nodeDetails []NodeDetails
 
-	for nodeName, nodeObj := range nm.getNodes() {
+	for nodeName, nodeObj := range nm.registeredNodes {
 		nodeInfo, err := nm.GetNodeInfoWithNodeObject(nodeObj)
 		if err != nil {
 			return nil, err
@@ -312,7 +304,10 @@ func (nm *NodeManager) GetNodeDetails() ([]NodeDetails, error) {
 }
 
 func (nm *NodeManager) refreshNodes() (errList []error) {
-	for nodeName := range nm.getNodes() {
+	nm.registeredNodesLock.Lock()
+	defer nm.registeredNodesLock.Unlock()
+
+	for nodeName := range nm.registeredNodes {
 		nodeInfo, err := nm.getRefreshedNodeInfo(convertToK8sType(nodeName))
 		if err != nil {
 			errList = append(errList, err)
