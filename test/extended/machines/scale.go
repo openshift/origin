@@ -6,24 +6,20 @@ import (
 	"strconv"
 	"time"
 
-	"k8s.io/client-go/kubernetes"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/restmapper"
-	"k8s.io/client-go/scale"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	"github.com/stretchr/objx"
-
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/scale"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 const (
@@ -223,7 +219,44 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By(fmt.Sprintf("got %v nodes, expecting %v", len(nodeList.Items), initialNumberOfWorkers))
-			return len(nodeList.Items) == initialNumberOfWorkers
+			if len(nodeList.Items) != initialNumberOfWorkers {
+				return false
+			}
+
+			g.By(fmt.Sprintf("ensure worker taints and conditions are consistent"))
+			for _, node := range nodeList.Items {
+				if _, ok := node.Labels["node-role.kubernetes.io/worker"]; !ok {
+					continue
+				}
+				if len(node.Spec.Taints) > 0 {
+					e2e.Logf("node/%s had unexpected taints: %#v", node.Name, node.Spec.Taints)
+					return false
+				}
+				for _, condition := range node.Status.Conditions {
+					switch condition.Type {
+					case corev1.NodeReady:
+						if condition.Status != corev1.ConditionTrue {
+							e2e.Logf("node/%s had unexpected condition %q == %v: %#v", node.Name, condition.Reason, condition.Status)
+							return false
+						}
+					case corev1.NodeMemoryPressure,
+						corev1.NodeDiskPressure,
+						corev1.NodePIDPressure,
+						corev1.NodeNetworkUnavailable:
+						if condition.Status != corev1.ConditionFalse {
+							e2e.Logf("node/%s had unexpected condition %q == %v: %#v", node.Name, condition.Reason, condition.Status)
+							return false
+						}
+
+					default:
+						e2e.Logf("node/%s had unhandled condition %q == %v: %#v", node.Name, condition.Reason, condition.Status)
+
+					}
+				}
+				e2e.Logf("node/%s taints and conditions seem ok")
+			}
+
+			return true
 			// Azure actuator takes something over 3 minutes to delete a machine.
 			// The worst observable case to delete a machine was 5m15s however.
 			// Also, there are two instances to be deleted.
