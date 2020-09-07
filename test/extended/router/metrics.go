@@ -223,7 +223,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			// greater than zero over two successive
 			// scrapes once the first scrape shows an
 			// increase in total connections.
-			err = wait.PollImmediate(2*time.Second, 5*time.Minute, func() (bool, error) {
+			err = wait.PollImmediate(1*time.Millisecond, 5*time.Minute, func() (bool, error) {
 				refreshMetrics := func() (map[string]*dto.MetricFamily, error) {
 					startTime := time.Now()
 					results, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), bearerToken)
