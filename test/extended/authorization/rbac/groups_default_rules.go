@@ -120,6 +120,10 @@ var (
 			// The console team is working on eliminating this exception in the near future
 			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications", "consoleyamlsamples").RuleOrDie(),
 
+			// HelmChartRepository instances keep Helm chart repository configuration
+			// By default users are able to browse charts from all configured repositories through console UI
+			rbacv1helpers.NewRule("get", "list").Groups("helm.openshift.io").Resources("helmchartrepositories").RuleOrDie(),
+
 			// TODO: remove when openshift-apiserver has removed these
 			rbacv1helpers.NewRule("get").URLs(
 				"/healthz/",
