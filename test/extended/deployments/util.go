@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
@@ -456,60 +457,71 @@ func rCConditionFromMeta(condition func(metav1.Object) (bool, error)) func(rc *c
 	}
 }
 
-func waitForPodModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(pod *corev1.Pod) (bool, error)) (*corev1.Pod, error) {
-	watcher, err := oc.KubeClient().CoreV1().Pods(namespace).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
-	if err != nil {
-		return nil, err
+func waitForRCChange(ctx context.Context, client corev1client.CoreV1Interface, namespace string, name string, resourceVersion string, condition func(rc *corev1.ReplicationController) (bool, error)) (*corev1.ReplicationController, error) {
+	if len(resourceVersion) == 0 {
+		return nil, fmt.Errorf("watch requires initial resource version")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	event, err := watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
-		if event.Type != watch.Modified && (resourceVersion == "" && event.Type != watch.Added) {
-			return true, fmt.Errorf("different kind of event appeared while waiting for Pod modification: event: %#v", event)
+	w := &cache.ListWatch{
+		WatchFunc: func(options metav1.ListOptions) (i watch.Interface, e error) {
+			options.FieldSelector = fields.OneTermEqualSelector("metadata.name", name).String()
+			return client.ReplicationControllers(namespace).Watch(ctx, options)
+		},
+	}
+	event, err := watchtools.Until(ctx, resourceVersion, w, func(event watch.Event) (bool, error) {
+		switch event.Type {
+		case watch.Added, watch.Modified:
+			return condition(event.Object.(*corev1.ReplicationController))
+		default:
+			return true, fmt.Errorf("unexpected event: %#v", event)
 		}
-		return condition(event.Object.(*corev1.Pod))
 	})
 	if err != nil {
 		return nil, err
-	}
-	return event.Object.(*corev1.Pod), nil
-}
-
-func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *corev1.ReplicationController) (bool, error)) (*corev1.ReplicationController, error) {
-	watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	event, err := watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
-		if event.Type != watch.Modified && (resourceVersion == "" && event.Type != watch.Added) {
-			return true, fmt.Errorf("different kind of event appeared while waiting for RC modification: event: %#v", event)
-		}
-		return condition(event.Object.(*corev1.ReplicationController))
-	})
-	if err != nil {
-		return nil, err
-	}
-	if event.Type != watch.Modified {
-		return nil, fmt.Errorf("waiting for RC modification failed: event: %v", event)
 	}
 	return event.Object.(*corev1.ReplicationController), nil
 }
 
-func waitForDCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *appsv1.DeploymentConfig) (bool, error)) (*appsv1.DeploymentConfig, error) {
-	watcher, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
+func waitForRCState(ctx context.Context, client corev1client.CoreV1Interface, namespace string, name string, condition func(rc *corev1.ReplicationController) (bool, error)) (*corev1.ReplicationController, error) {
+	fieldSelector := fields.OneTermEqualSelector("metadata.name", name).String()
+	lw := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			options.FieldSelector = fieldSelector
+			return client.ReplicationControllers(namespace).List(ctx, options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (i watch.Interface, e error) {
+			options.FieldSelector = fieldSelector
+			return client.ReplicationControllers(namespace).Watch(ctx, options)
+		},
+	}
+	event, err := watchtools.UntilWithSync(ctx, lw, &corev1.ReplicationController{}, nil, func(event watch.Event) (bool, error) {
+		switch event.Type {
+		case watch.Added, watch.Modified:
+			return condition(event.Object.(*corev1.ReplicationController))
+		default:
+			return true, fmt.Errorf("unexpected event: %#v", event)
+		}
+	})
 	if err != nil {
 		return nil, err
 	}
+	return event.Object.(*corev1.ReplicationController), nil
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	event, err := watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
-		if event.Type != watch.Modified && (resourceVersion == "" && event.Type != watch.Added) {
-			return true, fmt.Errorf("different kind of event appeared while waiting for DC modification: event: %#v", event)
+func waitForDCModification(ctx context.Context, client appstypedclient.AppsV1Interface, namespace string, name string, resourceVersion string, condition func(dc *appsv1.DeploymentConfig) (bool, error)) (*appsv1.DeploymentConfig, error) {
+	if len(resourceVersion) == 0 {
+		return nil, fmt.Errorf("watch requires initial resource version")
+	}
+
+	w := &cache.ListWatch{
+		WatchFunc: func(options metav1.ListOptions) (i watch.Interface, e error) {
+			options.FieldSelector = fields.OneTermEqualSelector("metadata.name", name).String()
+			return client.DeploymentConfigs(namespace).Watch(ctx, options)
+		},
+	}
+	event, err := watchtools.Until(ctx, resourceVersion, w, func(event watch.Event) (bool, error) {
+		if event.Type != watch.Modified {
+			return true, fmt.Errorf("different kind of event appeared while waiting for modification event: %#v", event)
 		}
 		return condition(event.Object.(*appsv1.DeploymentConfig))
 	})
