@@ -1045,7 +1045,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying that all pods are ready")
-			ctx1, ctx1Cancel := context.WithTimeout(context.Background(), deploymentChangeTimeout)
+			ctx1, ctx1Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
 			defer ctx1Cancel()
 			rc1, err := waitForRCState(ctx1, oc.KubeClient().CoreV1(), namespace, rcName(1), func(rc *corev1.ReplicationController) (bool, error) {
 				return rc.Status.ReadyReplicas == dc.Spec.Replicas, nil
@@ -1689,7 +1689,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(context.Background(), dcName, types.StrategicMergePatchType, []byte(fmt.Sprintf(`{"spec": {"replicas": %d}}`, newScale)), metav1.PatchOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			ctx3, cancel3 := context.WithTimeout(context.TODO(), deploymentChangeTimeout)
+			ctx3, cancel3 := context.WithTimeout(context.TODO(), deploymentRunTimeout)
 			defer cancel3()
 			event, err = watchtools.UntilWithSync(ctx3, dcListWatch, &appsv1.DeploymentConfig{}, preconditionFunc, func(e watch.Event) (bool, error) {
 				switch e.Type {
