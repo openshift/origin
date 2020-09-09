@@ -328,7 +328,7 @@ func triggerReboot(kubeClient kubernetes.Interface, target string, attempt int, 
 						RunAsUser:  &zero,
 						Privileged: &isTrue,
 					},
-					Image: "centos:7",
+					Image: "ubi8/ubi",
 					Command: []string{
 						"/bin/bash",
 						"-c",
