@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	"go.etcd.io/etcd/clientv3"
 	etcdv3 "go.etcd.io/etcd/clientv3"
+	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -105,6 +106,10 @@ func (e *etcdPortForwardClient) newEtcdClient() (etcdv3.KV, error) {
 		Endpoints:   []string{"https://127.0.0.1:" + port},
 		DialTimeout: 5 * time.Second,
 		TLS:         tlsConfig,
+		DialOptions: []grpc.DialOption{
+			grpc.WithBlock(), // block until the underlying connection is up
+			grpc.WithDefaultCallOptions(grpc.WaitForReady(false)), // trying to avoid cases where the same connection keeps retrying: https://godoc.org/google.golang.org/grpc#WaitForReady
+		},
 	})
 	if err != nil {
 		return nil, err
