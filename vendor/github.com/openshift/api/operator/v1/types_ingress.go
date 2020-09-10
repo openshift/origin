@@ -162,6 +162,13 @@ type IngressControllerSpec struct {
 	//
 	// +optional
 	Logging *IngressControllerLogging `json:"logging,omitempty"`
+
+	// httpHeaders defines policy for HTTP headers.
+	//
+	// If this field is empty, the default values are used.
+	//
+	// +optional
+	HTTPHeaders *IngressControllerHTTPHeaders `json:"httpHeaders,omitempty"`
 }
 
 // NodePlacement describes node scheduling configuration for an ingress
@@ -233,6 +240,101 @@ type LoadBalancerStrategy struct {
 	// +kubebuilder:validation:Required
 	// +required
 	Scope LoadBalancerScope `json:"scope"`
+
+	// providerParameters holds desired load balancer information specific to
+	// the underlying infrastructure provider.
+	//
+	// If empty, defaults will be applied. See specific providerParameters
+	// fields for details about their defaults.
+	//
+	// +optional
+	ProviderParameters *ProviderLoadBalancerParameters `json:"providerParameters,omitempty"`
+}
+
+// ProviderLoadBalancerParameters holds desired load balancer information
+// specific to the underlying infrastructure provider.
+// +union
+type ProviderLoadBalancerParameters struct {
+	// type is the underlying infrastructure provider for the load balancer.
+	// Allowed values are "AWS", "Azure", "BareMetal", "GCP", "OpenStack",
+	// and "VSphere".
+	//
+	// +unionDiscriminator
+	// +kubebuilder:validation:Required
+	// +required
+	Type LoadBalancerProviderType `json:"type"`
+
+	// aws provides configuration settings that are specific to AWS
+	// load balancers.
+	//
+	// If empty, defaults will be applied. See specific aws fields for
+	// details about their defaults.
+	//
+	// +optional
+	AWS *AWSLoadBalancerParameters `json:"aws,omitempty"`
+}
+
+// LoadBalancerProviderType is the underlying infrastructure provider for the
+// load balancer. Allowed values are "AWS", "Azure", "BareMetal", "GCP",
+// "OpenStack", and "VSphere".
+//
+// +kubebuilder:validation:Enum=AWS;Azure;BareMetal;GCP;OpenStack;VSphere
+type LoadBalancerProviderType string
+
+// AWSLoadBalancerParameters provides configuration settings that are
+// specific to AWS load balancers.
+// +union
+type AWSLoadBalancerParameters struct {
+	// type is the type of AWS load balancer to instantiate for an ingresscontroller.
+	//
+	// Valid values are:
+	//
+	// * "Classic": A Classic Load Balancer that makes routing decisions at either
+	//   the transport layer (TCP/SSL) or the application layer (HTTP/HTTPS). See
+	//   the following for additional details:
+	//
+	//     https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#clb
+	//
+	// * "NLB": A Network Load Balancer that makes routing decisions at the
+	//   transport layer (TCP/SSL). See the following for additional details:
+	//
+	//     https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#nlb
+	//
+	// +unionDiscriminator
+	// +kubebuilder:validation:Required
+	// +required
+	Type AWSLoadBalancerType `json:"type"`
+
+	// classicLoadBalancerParameters holds configuration parameters for an AWS
+	// classic load balancer. Present only if type is Classic.
+	//
+	// +optional
+	ClassicLoadBalancerParameters *AWSClassicLoadBalancerParameters `json:"classicLoadBalancer,omitempty"`
+
+	// networkLoadBalancerParameters holds configuration parameters for an AWS
+	// network load balancer. Present only if type is NLB.
+	//
+	// +optional
+	NetworkLoadBalancerParameters *AWSNetworkLoadBalancerParameters `json:"networkLoadBalancer,omitempty"`
+}
+
+// AWSLoadBalancerType is the type of AWS load balancer to instantiate.
+// +kubebuilder:validation:Enum=Classic;NLB
+type AWSLoadBalancerType string
+
+const (
+	AWSClassicLoadBalancer AWSLoadBalancerType = "Classic"
+	AWSNetworkLoadBalancer AWSLoadBalancerType = "NLB"
+)
+
+// AWSClassicLoadBalancerParameters holds configuration parameters for an
+// AWS Classic load balancer.
+type AWSClassicLoadBalancerParameters struct {
+}
+
+// AWSNetworkLoadBalancerParameters holds configuration parameters for an
+// AWS Network load balancer.
+type AWSNetworkLoadBalancerParameters struct {
 }
 
 // HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing
@@ -511,6 +613,49 @@ type IngressControllerLogging struct {
 	//
 	// +optional
 	Access *AccessLogging `json:"access,omitempty"`
+}
+
+// IngressControllerHTTPHeaderPolicy is a policy for setting HTTP headers.
+//
+// +kubebuilder:validation:Enum=Append;Replace;IfNone;Never
+type IngressControllerHTTPHeaderPolicy string
+
+const (
+	// AppendHTTPHeaderPolicy appends the header, preserving any existing header.
+	AppendHTTPHeaderPolicy IngressControllerHTTPHeaderPolicy = "Append"
+	// ReplaceHTTPHeaderPolicy sets the header, removing any existing header.
+	ReplaceHTTPHeaderPolicy IngressControllerHTTPHeaderPolicy = "Replace"
+	// IfNoneHTTPHeaderPolicy sets the header if it is not already set.
+	IfNoneHTTPHeaderPolicy IngressControllerHTTPHeaderPolicy = "IfNone"
+	// NeverHTTPHeaderPolicy never sets the header, preserving any existing
+	// header.
+	NeverHTTPHeaderPolicy IngressControllerHTTPHeaderPolicy = "Never"
+)
+
+// IngressControllerHTTPHeaders specifies how the IngressController handles
+// certain HTTP headers.
+type IngressControllerHTTPHeaders struct {
+	// forwardedHeaderPolicy specifies when and how the IngressController
+	// sets the Forwarded, X-Forwarded-For, X-Forwarded-Host,
+	// X-Forwarded-Port, X-Forwarded-Proto, and X-Forwarded-Proto-Version
+	// HTTP headers.  The value may be one of the following:
+	//
+	// * "Append", which specifies that the IngressController appends the
+	//   headers, preserving existing headers.
+	//
+	// * "Replace", which specifies that the IngressController sets the
+	//   headers, replacing any existing Forwarded or X-Forwarded-* headers.
+	//
+	// * "IfNone", which specifies that the IngressController sets the
+	//   headers if they are not already set.
+	//
+	// * "Never", which specifies that the IngressController never sets the
+	//   headers, preserving any existing headers.
+	//
+	// By default, the policy is "Append".
+	//
+	// +optional
+	ForwardedHeaderPolicy IngressControllerHTTPHeaderPolicy `json:"forwardedHeaderPolicy,omitempty"`
 }
 
 var (

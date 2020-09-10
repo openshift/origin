@@ -12,6 +12,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -22,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -824,13 +824,14 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(context.Background(), dcName, types.StrategicMergePatchType, []byte(`{"spec": {"paused": true}}`), metav1.PatchOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			_, err = waitForDCModification(oc, dc.Namespace, dcName, deploymentChangeTimeout,
-				dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
-					if config.Status.ObservedGeneration >= dc.Generation {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx, cancel := context.WithTimeout(context.Background(), deploymentChangeTimeout)
+			defer cancel()
+			_, err = waitForDCModification(ctx, oc.AppsClient().AppsV1(), dc.Namespace, dcName, dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
+				if config.Status.ObservedGeneration >= dc.Generation {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to wait on generation >= %d to be observed by DC %s/%s", dc.Generation, dc.Namespace, dcName))
 		})
 	})
@@ -1001,13 +1002,9 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 					return false, nil
 				}
 
-				externalDeploymentConfig := &appsv1.DeploymentConfig{}
-				if err := legacyscheme.Scheme.Convert(deploymentConfig, externalDeploymentConfig, nil); err != nil {
-					return false, err
-				}
 				// we need to filter out any deployments that we don't care about,
 				// namely the active deployment and any newer deployments
-				oldDeployments := appsutil.DeploymentsForCleanup(externalDeploymentConfig, deployments)
+				oldDeployments := appsutil.DeploymentsForCleanup(deploymentConfig, deployments)
 
 				// we should not have more deployments than acceptable
 				if len(oldDeployments) != revisionHistoryLimit {
@@ -1037,35 +1034,22 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		g.It("should not transition the deployment to Complete before satisfied", func() {
 			dc := ReadFixtureOrFail(minReadySecondsFixture).(*appsv1.DeploymentConfig)
 			o.Expect(dc.Name).To(o.Equal(dcName))
+			o.Expect(dc.Spec.Triggers).To(o.BeNil())
 
 			rcName := func(i int) string { return fmt.Sprintf("%s-%d", dc.Name, i) }
 			namespace := oc.Namespace()
-			watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: rcName(1), ResourceVersion: ""}))
-			o.Expect(err).NotTo(o.HaveOccurred())
 
-			o.Expect(dc.Spec.Triggers).To(o.BeNil())
 			// This is the last place we can safely say that the time was taken before replicas became ready
 			startTime := time.Now()
-			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(context.Background(), dc, metav1.CreateOptions{})
+			dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(context.Background(), dc, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("verifying the deployment is created")
-			ctx, cancel := context.WithTimeout(context.Background(), deploymentChangeTimeout)
-			defer cancel()
-			rcEvent, err := watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
-				if event.Type == watch.Added {
-					return true, nil
-				}
-				return false, fmt.Errorf("different kind of event appeared while waiting for Added event: %#v", event)
-			})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			rc1 := rcEvent.Object.(*corev1.ReplicationController)
 
 			g.By("verifying that all pods are ready")
-			rc1, err = waitForRCModification(oc, namespace, rc1.Name, deploymentRunTimeout,
-				rc1.GetResourceVersion(), func(rc *corev1.ReplicationController) (bool, error) {
-					return rc.Status.ReadyReplicas == dc.Spec.Replicas, nil
-				})
+			ctx1, ctx1Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx1Cancel()
+			rc1, err := waitForRCState(ctx1, oc.KubeClient().CoreV1(), namespace, rcName(1), func(rc *corev1.ReplicationController) (bool, error) {
+				return rc.Status.ReadyReplicas == dc.Spec.Replicas, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(rc1.Status.AvailableReplicas).To(o.BeNumerically("<", rc1.Status.ReadyReplicas))
 			// We need to log here to have a timestamp to compare with master logs if something goes wrong
@@ -1077,19 +1061,19 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			}
 
 			g.By("waiting for the deployment to finish")
-			rc1, err = waitForRCModification(oc, namespace, rc1.Name,
-				deploymentRunTimeout+time.Duration(dc.Spec.MinReadySeconds)*time.Second,
-				rc1.GetResourceVersion(), func(rc *corev1.ReplicationController) (bool, error) {
-					if rc.Status.AvailableReplicas == dc.Spec.Replicas {
-						return true, nil
-					}
+			ctx2, ctx2Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout+time.Duration(dc.Spec.MinReadySeconds)*time.Second)
+			defer ctx2Cancel()
+			rc1, err = waitForRCChange(ctx2, oc.KubeClient().CoreV1(), namespace, rc1.Name, rc1.GetResourceVersion(), func(rc *corev1.ReplicationController) (bool, error) {
+				if rc.Status.AvailableReplicas == dc.Spec.Replicas {
+					return true, nil
+				}
 
-					if appsutil.DeploymentStatusFor(rc) == appsv1.DeploymentStatusComplete {
-						e2e.Logf("Failed RC: %#v", rc)
-						return false, errors.New("deployment shouldn't be completed before ReadyReplicas become AvailableReplicas")
-					}
-					return false, nil
-				})
+				if appsutil.DeploymentStatusFor(rc) == appsv1.DeploymentStatusComplete {
+					e2e.Logf("Failed RC: %#v", rc)
+					return false, errors.New("deployment shouldn't be completed before ReadyReplicas become AvailableReplicas")
+				}
+				return false, nil
+			})
 			// We need to log here to have a timestamp to compare with master logs if something goes wrong
 			e2e.Logf("Finished waiting for deployment.")
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -1099,11 +1083,12 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			// Deployment status can't be updated yet but should be right after
 			o.Expect(appsutil.DeploymentStatusFor(rc1)).To(o.Equal(appsv1.DeploymentStatusRunning))
 			// It should finish right after
-			rc1, err = waitForRCModification(oc, namespace, rc1.Name, deploymentRunTimeout,
-				rc1.GetResourceVersion(), func(rc *corev1.ReplicationController) (bool, error) {
-					e2e.Logf("Deployment status for RC: %#v", appsutil.DeploymentStatusFor(rc))
-					return appsutil.DeploymentStatusFor(rc) == appsv1.DeploymentStatusComplete, nil
-				})
+			ctx3, ctx3Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx3Cancel()
+			rc1, err = waitForRCChange(ctx3, oc.KubeClient().CoreV1(), namespace, rc1.Name, rc1.GetResourceVersion(), func(rc *corev1.ReplicationController) (bool, error) {
+				e2e.Logf("Deployment status for RC: %#v", appsutil.DeploymentStatusFor(rc))
+				return appsutil.DeploymentStatusFor(rc) == appsv1.DeploymentStatusComplete, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// We might check that minReadySecond passed between pods becoming ready
@@ -1197,16 +1182,18 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 				rc1, err = oc.KubeClient().CoreV1().ReplicationControllers(namespace).Patch(context.Background(), rcName(1), types.StrategicMergePatchType, patch, metav1.PatchOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				rc1, err = waitForRCModification(oc, namespace, rcName(1), deploymentChangeTimeout,
-					rc1.GetResourceVersion(), rCConditionFromMeta(controllerRefChangeCondition(metav1.GetControllerOf(rc1))))
+				ctx1, ctx1Cancel := context.WithTimeout(context.Background(), deploymentChangeTimeout)
+				defer ctx1Cancel()
+				rc1, err = waitForRCChange(ctx1, oc.KubeClient().CoreV1(), namespace, rcName(1), rc1.GetResourceVersion(), rCConditionFromMeta(controllerRefChangeCondition(metav1.GetControllerOf(rc1))))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				controllerRef := metav1.GetControllerOf(rc1)
 				o.Expect(controllerRef).To(o.BeNil())
 
-				dc, err = waitForDCModification(oc, namespace, dcName, deploymentChangeTimeout,
-					dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
-						return config.Status.AvailableReplicas == 0, nil
-					})
+				ctx2, ctx2Cancel := context.WithTimeout(context.Background(), deploymentChangeTimeout)
+				defer ctx2Cancel()
+				dc, err = waitForDCModification(ctx2, oc.AppsClient().AppsV1(), namespace, dcName, dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
+					return config.Status.AvailableReplicas == 0, nil
+				})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(dc.Status.AvailableReplicas).To(o.BeZero())
 				o.Expect(dc.Status.UnavailableReplicas).To(o.BeZero())
@@ -1217,16 +1204,18 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 				rc1, err = oc.KubeClient().CoreV1().ReplicationControllers(namespace).Patch(context.Background(), rcName(1), types.StrategicMergePatchType, patch, metav1.PatchOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				rc1, err = waitForRCModification(oc, namespace, rcName(1), deploymentChangeTimeout,
-					rc1.GetResourceVersion(), rCConditionFromMeta(controllerRefChangeCondition(metav1.GetControllerOf(rc1))))
+				ctx1, ctx1Cancel := context.WithTimeout(context.Background(), deploymentChangeTimeout)
+				defer ctx1Cancel()
+				rc1, err = waitForRCChange(ctx1, oc.KubeClient().CoreV1(), namespace, rcName(1), rc1.GetResourceVersion(), rCConditionFromMeta(controllerRefChangeCondition(metav1.GetControllerOf(rc1))))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				validRef := HasValidDCControllerRef(dc, rc1)
 				o.Expect(validRef).To(o.BeTrue())
 
-				dc, err = waitForDCModification(oc, namespace, dcName, deploymentChangeTimeout,
-					dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
-						return config.Status.AvailableReplicas == dc.Spec.Replicas, nil
-					})
+				ctx2, ctx2Cancel := context.WithTimeout(context.Background(), deploymentChangeTimeout)
+				defer ctx2Cancel()
+				dc, err = waitForDCModification(ctx2, oc.AppsClient().AppsV1(), namespace, dcName, dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
+					return config.Status.AvailableReplicas == dc.Spec.Replicas, nil
+				})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(dc.Status.AvailableReplicas).To(o.Equal(dc.Spec.Replicas))
 				o.Expect(dc.Status.UnavailableReplicas).To(o.BeZero())
@@ -1279,26 +1268,27 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for RC to be created")
-			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,
-				dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
-					cond := appsutil.GetDeploymentCondition(config.Status, appsv1.DeploymentProgressing)
-					if cond != nil && cond.Reason == appsutil.NewReplicationControllerReason {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx1, ctx1Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx1Cancel()
+			dc, err = waitForDCModification(ctx1, oc.AppsClient().AppsV1(), namespace, dcName, dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
+				cond := appsutil.GetDeploymentCondition(config.Status, appsv1.DeploymentProgressing)
+				if cond != nil && cond.Reason == appsutil.NewReplicationControllerReason {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(1))
 
 			g.By("waiting for deployer pod to be running")
-			rc, err := waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion),
-				deploymentRunTimeout,
-				"", func(currentRC *corev1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx2, ctx2Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx2Cancel()
+			rc, err := waitForRCState(ctx2, oc.KubeClient().CoreV1(), namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion), func(currentRC *corev1.ReplicationController) (bool, error) {
+				if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
+					return true, nil
+				}
+				return false, nil
+			})
 
 			g.By("canceling the deployment")
 			rc, err = oc.KubeClient().CoreV1().ReplicationControllers(namespace).Patch(context.Background(),
@@ -1315,7 +1305,9 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(dc.Namespace).Patch(context.Background(), dc.Name, types.StrategicMergePatchType,
 				[]byte(`{"spec":{"template":{"metadata":{"annotations":{"foo": "bar"}}}}}`), metav1.PatchOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,
+			ctx3, ctx3Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx3Cancel()
+			dc, err = waitForDCModification(ctx3, oc.AppsClient().AppsV1(), namespace, dcName,
 				dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
 					if config.Status.LatestVersion == 2 {
 						return true, nil
@@ -1325,13 +1317,14 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Wait for deployment pod to be running
-			rc, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion), deploymentRunTimeout,
-				"", func(currentRC *corev1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx4, ctx4Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx4Cancel()
+			rc, err = waitForRCState(ctx4, oc.KubeClient().CoreV1(), namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion), func(currentRC *corev1.ReplicationController) (bool, error) {
+				if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -1349,50 +1342,52 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for RC to be created")
-			dc, err = waitForDCModification(oc, namespace, dc.Name, deploymentRunTimeout,
-				dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
-					cond := appsutil.GetDeploymentCondition(config.Status, appsv1.DeploymentProgressing)
-					if cond != nil && cond.Reason == appsutil.NewReplicationControllerReason {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx1, ctx1Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx1Cancel()
+			dc, err = waitForDCModification(ctx1, oc.AppsClient().AppsV1(), namespace, dc.Name, dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
+				cond := appsutil.GetDeploymentCondition(config.Status, appsv1.DeploymentProgressing)
+				if cond != nil && cond.Reason == appsutil.NewReplicationControllerReason {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(1))
 
 			g.By("waiting for deployer pod to be running")
-			_, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion),
-				deploymentRunTimeout,
-				"", func(currentRC *corev1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx2, ctx2Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx2Cancel()
+			_, err = waitForRCState(ctx2, oc.KubeClient().CoreV1(), namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion), func(currentRC *corev1.ReplicationController) (bool, error) {
+				if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
+					return true, nil
+				}
+				return false, nil
+			})
 
 			g.By("redeploying immediately by config change")
 			o.Expect(dc.Spec.Template.Annotations["foo"]).NotTo(o.Equal("bar"))
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(dc.Namespace).Patch(context.Background(), dc.Name, types.StrategicMergePatchType,
 				[]byte(`{"spec":{"template":{"metadata":{"annotations":{"foo": "bar"}}}}}`), metav1.PatchOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,
-				dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
-					if config.Status.LatestVersion == 2 {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx3, ctx3Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx3Cancel()
+			dc, err = waitForDCModification(ctx3, oc.AppsClient().AppsV1(), namespace, dcName, dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
+				if config.Status.LatestVersion == 2 {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Wait for deployment pod to be running
-			_, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion),
-				deploymentRunTimeout,
-				"", func(currentRC *corev1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx4, ctx4Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx4Cancel()
+			_, err = waitForRCState(ctx4, oc.KubeClient().CoreV1(), namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion), func(currentRC *corev1.ReplicationController) (bool, error) {
+				if appsutil.DeploymentStatusFor(currentRC) == appsv1.DeploymentStatusRunning {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -1414,24 +1409,39 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for RC to be created")
-			dc, err = waitForDCModification(oc, namespace, dc.Name, deploymentRunTimeout,
-				dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
-					cond := appsutil.GetDeploymentCondition(config.Status, appsv1.DeploymentProgressing)
-					if cond != nil && cond.Reason == appsutil.NewReplicationControllerReason {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx1, ctx1Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx1Cancel()
+			dc, err = waitForDCModification(ctx1, oc.AppsClient().AppsV1(), dc.Namespace, dc.Name, dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
+				cond := appsutil.GetDeploymentCondition(config.Status, appsv1.DeploymentProgressing)
+				if cond != nil && cond.Reason == appsutil.NewReplicationControllerReason {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(1))
 
 			rcName := appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion)
 
 			g.By("waiting for deployer to be completed")
-			_, err = waitForPodModification(oc, namespace,
-				appsutil.DeployerPodNameForDeployment(rcName),
-				deploymentRunTimeout, "",
-				func(pod *corev1.Pod) (bool, error) {
+			podName := appsutil.DeployerPodNameForDeployment(rcName)
+			ctx, cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer cancel()
+			fieldSelector := fields.OneTermEqualSelector("metadata.name", podName).String()
+			lw := &cache.ListWatch{
+				ListFunc: func(options metav1.ListOptions) (object runtime.Object, e error) {
+					options.FieldSelector = fieldSelector
+					return oc.KubeClient().CoreV1().Pods(namespace).List(ctx, options)
+				},
+				WatchFunc: func(options metav1.ListOptions) (i watch.Interface, e error) {
+					options.FieldSelector = fieldSelector
+					return oc.KubeClient().CoreV1().Pods(namespace).Watch(ctx, options)
+				},
+			}
+			_, err = watchtools.UntilWithSync(ctx, lw, &corev1.Pod{}, nil, func(e watch.Event) (bool, error) {
+				switch e.Type {
+				case watch.Added, watch.Modified:
+					pod := e.Object.(*corev1.Pod)
 					switch pod.Status.Phase {
 					case corev1.PodSucceeded:
 						return true, nil
@@ -1440,7 +1450,10 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 					default:
 						return false, nil
 					}
-				})
+				default:
+					return true, fmt.Errorf("unexpected event %#v", e)
+				}
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("canceling the deployment")
@@ -1459,28 +1472,29 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(dc.Namespace).Patch(context.Background(), dc.Name, types.StrategicMergePatchType,
 				[]byte(`{"spec":{"template":{"metadata":{"annotations":{"foo": "bar"}}}}}`), metav1.PatchOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,
-				dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
-					if config.Status.LatestVersion == 2 {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx2, ctx2Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx2Cancel()
+			dc, err = waitForDCModification(ctx2, oc.AppsClient().AppsV1(), namespace, dcName, dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
+				if config.Status.LatestVersion == 2 {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Wait for deployment pod to be running
-			_, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion),
-				deploymentRunTimeout,
-				rc.ResourceVersion, func(currentRC *corev1.ReplicationController) (bool, error) {
-					switch appsutil.DeploymentStatusFor(currentRC) {
-					case appsv1.DeploymentStatusRunning, appsv1.DeploymentStatusComplete:
-						return true, nil
-					case appsv1.DeploymentStatusFailed:
-						return true, fmt.Errorf("deployment '%s/%s' has failed", currentRC.Namespace, currentRC.Name)
-					default:
-						return false, nil
-					}
-				})
+			ctx3, ctx3Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx3Cancel()
+			_, err = waitForRCChange(ctx3, oc.KubeClient().CoreV1(), namespace, appsutil.LatestDeploymentNameForConfigAndVersion(dc.Name, dc.Status.LatestVersion), rc.ResourceVersion, func(currentRC *corev1.ReplicationController) (bool, error) {
+				switch appsutil.DeploymentStatusFor(currentRC) {
+				case appsv1.DeploymentStatusRunning, appsv1.DeploymentStatusComplete:
+					return true, nil
+				case appsv1.DeploymentStatusFailed:
+					return true, fmt.Errorf("deployment '%s/%s' has failed", currentRC.Namespace, currentRC.Name)
+				default:
+					return false, nil
+				}
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
@@ -1512,17 +1526,18 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for deployment #1 to complete")
-			_, err = waitForRCModification(oc, namespace, rcName(1), deploymentRunTimeout,
-				rcList.ResourceVersion, func(currentRC *corev1.ReplicationController) (bool, error) {
-					switch appsutil.DeploymentStatusFor(currentRC) {
-					case appsv1.DeploymentStatusComplete:
-						return true, nil
-					case appsv1.DeploymentStatusFailed:
-						return true, fmt.Errorf("deployment #1 failed")
-					default:
-						return false, nil
-					}
-				})
+			ctx1, ctx1Cancel := context.WithTimeout(context.Background(), deploymentRunTimeout)
+			defer ctx1Cancel()
+			_, err = waitForRCChange(ctx1, oc.KubeClient().CoreV1(), namespace, rcName(1), rcList.ResourceVersion, func(currentRC *corev1.ReplicationController) (bool, error) {
+				switch appsutil.DeploymentStatusFor(currentRC) {
+				case appsv1.DeploymentStatusComplete:
+					return true, nil
+				case appsv1.DeploymentStatusFailed:
+					return true, fmt.Errorf("deployment #1 failed")
+				default:
+					return false, nil
+				}
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("setting DC image repeatedly to empty string to fight with image trigger")
@@ -1534,22 +1549,24 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 
 			g.By("waiting to see if it won't deploy RC with invalid revision or the same one multiple times")
 			// Wait for image trigger to inject image
-			dc, err = waitForDCModification(oc, namespace, dc.Name, deploymentChangeTimeout,
-				dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
-					if config.Spec.Template.Spec.Containers[0].Image != "" {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx2, ctx2Cancel := context.WithTimeout(context.Background(), deploymentChangeTimeout)
+			defer ctx2Cancel()
+			dc, err = waitForDCModification(ctx2, oc.AppsClient().AppsV1(), namespace, dc.Name, dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
+				if config.Spec.Template.Spec.Containers[0].Image != "" {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			dcTmp, err := waitForDCModification(oc, namespace, dc.Name, deploymentChangeTimeout,
-				dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
-					if config.Status.ObservedGeneration >= dc.Generation {
-						return true, nil
-					}
-					return false, nil
-				})
+			ctx3, ctx3Cancel := context.WithTimeout(context.Background(), deploymentChangeTimeout)
+			defer ctx3Cancel()
+			dcTmp, err := waitForDCModification(ctx3, oc.AppsClient().AppsV1(), namespace, dc.Name, dc.GetResourceVersion(), func(config *appsv1.DeploymentConfig) (bool, error) {
+				if config.Status.ObservedGeneration >= dc.Generation {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to wait on generation >= %d to be observed by DC %s/%s", dc.Generation, dc.Namespace, dc.Name))
 			dc = dcTmp
 
@@ -1605,22 +1622,12 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Wait for deletion
-			w, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Watch(context.Background(), metav1.SingleObject(dc.ObjectMeta))
-			o.Expect(err).NotTo(o.HaveOccurred())
-			ctx1, cancel1 := context.WithTimeout(context.TODO(), deploymentChangeTimeout)
-			defer cancel1()
-			_, err = watchtools.UntilWithoutRetry(ctx1, w, func(e watch.Event) (bool, error) {
-				switch e.Type {
-				case watch.Added, watch.Modified:
-					e2e.Logf("delete: LatestVersion: %d", e.Object.(*appsv1.DeploymentConfig).Status.LatestVersion)
-					return false, nil
-				case watch.Deleted:
+			err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+				_, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Get(context.Background(), dc.Name, metav1.GetOptions{})
+				if apierrors.IsNotFound(err) {
 					return true, nil
-				case watch.Error:
-					return true, kerrors.FromObject(e.Object)
-				default:
-					return true, fmt.Errorf("unexpected event %#v", e)
 				}
+				return false, err
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -1682,7 +1689,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(context.Background(), dcName, types.StrategicMergePatchType, []byte(fmt.Sprintf(`{"spec": {"replicas": %d}}`, newScale)), metav1.PatchOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			ctx3, cancel3 := context.WithTimeout(context.TODO(), deploymentChangeTimeout)
+			ctx3, cancel3 := context.WithTimeout(context.TODO(), deploymentRunTimeout)
 			defer cancel3()
 			event, err = watchtools.UntilWithSync(ctx3, dcListWatch, &appsv1.DeploymentConfig{}, preconditionFunc, func(e watch.Event) (bool, error) {
 				switch e.Type {

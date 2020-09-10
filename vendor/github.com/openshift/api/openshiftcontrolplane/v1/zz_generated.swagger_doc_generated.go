@@ -38,7 +38,7 @@ func (BuildDefaultsConfig) SwaggerDoc() map[string]string {
 
 var map_BuildOverridesConfig = map[string]string{
 	"":             "BuildOverridesConfig controls override settings for builds",
-	"forcePull":    "forcePull indicates whether the build strategy should always be set to ForcePull=true",
+	"forcePull":    "forcePull overrides, if set, the equivalent value in the builds, i.e. false disables force pull for all builds, true enables force pull for all builds, independently of what each build specifies itself",
 	"imageLabels":  "imageLabels is a list of labels that are applied to the resulting image. If user provided a label in their Build/BuildConfig with the same name as one in this list, the user's label will be overwritten.",
 	"nodeSelector": "nodeSelector is a selector which must be true for the build pod to fit on a node",
 	"annotations":  "annotations are annotations that will be added to the build pod",

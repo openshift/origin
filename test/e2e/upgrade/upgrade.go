@@ -35,8 +35,9 @@ import (
 
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
-		&controlplane.KubeAvailableTest{},
-		&controlplane.OpenShiftAvailableTest{},
+		controlplane.NewKubeAvailableTest(),
+		controlplane.NewOpenShiftAvailableTest(),
+		controlplane.NewOAuthAvailableTest(),
 		&alert.UpgradeTest{},
 		&frontends.AvailableTest{},
 		&service.UpgradeTest{},
@@ -125,9 +126,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		upgCtx, err := getUpgradeContext(client, upgradeToImage)
 		framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", "", upgradeToImage)
 
-		disruption.Run(
-			"Cluster upgrade",
-			"upgrade",
+		disruption.Run(f, "Cluster upgrade", "upgrade",
 			disruption.TestData{
 				UpgradeType:    upgrades.ClusterUpgrade,
 				UpgradeContext: *upgCtx,
@@ -135,7 +134,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 			upgradeTests,
 			func() {
 				for i := 1; i < len(upgCtx.Versions); i++ {
-					framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
+					framework.ExpectNoError(clusterUpgrade(f, client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
 				}
 			},
 		)
@@ -236,7 +235,7 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 
 var errControlledAbort = fmt.Errorf("beginning abort")
 
-func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
+func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
 
@@ -251,7 +250,10 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 
 	kubeClient := kubernetes.NewForConfigOrDie(config)
 
-	maximumDuration := 75 * time.Minute
+	// this is very long.  We should update the clusteroperator junit to give us a duration.
+	maximumDuration := 150 * time.Minute
+	// if upgrades take longer than this, then we will have a junit marker indicating failure.
+	durationToSoftFailure := 75 * time.Minute
 
 	framework.Logf("Starting upgrade to version=%s image=%s", version.Version.String(), version.NodeImage)
 
@@ -269,40 +271,58 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded", upgradeAbortAt)
 	}
 
-	// trigger the update
-	cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	oldImage := cv.Status.Desired.Image
-	oldVersion := cv.Status.Desired.Version
-	desired := configv1.Update{
-		Version: version.Version.String(),
-		Image:   version.NodeImage,
-		Force:   true,
-	}
-	cv.Spec.DesiredUpdate = &desired
-	updated, err := c.ConfigV1().ClusterVersions().Update(context.Background(), cv, metav1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
+	var (
+		desired  configv1.Update
+		original *configv1.ClusterVersion
+		updated  *configv1.ClusterVersion
+	)
 
 	monitor := versionMonitor{
-		client:     c,
-		oldVersion: oldVersion,
+		client: c,
 	}
+	defer monitor.Describe(f)
 
-	// wait until the cluster acknowledges the update
-	if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
-		cv, _, err := monitor.Check(updated.Generation, desired)
-		if err != nil || cv == nil {
-			return false, err
-		}
-		return cv.Status.ObservedGeneration >= updated.Generation, nil
+	// trigger the update and record verification as an independent step
+	if err := disruption.RecordJUnit(
+		f,
+		"[sig-cluster-lifecycle] Cluster version operator acknowledges upgrade",
+		func() error {
+			cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
 
-	}); err != nil {
-		monitor.Output()
-		return fmt.Errorf("Cluster did not acknowledge request to upgrade in a reasonable time: %v", err)
+			original = cv
+			cv = cv.DeepCopy()
+			desired = configv1.Update{
+				Version: version.Version.String(),
+				Image:   version.NodeImage,
+				Force:   true,
+			}
+			monitor.oldVersion = original.Status.Desired.Version
+
+			cv.Spec.DesiredUpdate = &desired
+			cv, err = c.ConfigV1().ClusterVersions().Update(context.Background(), cv, metav1.UpdateOptions{})
+			if err != nil {
+				return err
+			}
+			updated = cv
+
+			// wait until the cluster acknowledges the update
+			if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+				cv, _, err := monitor.Check(updated.Generation, desired)
+				if err != nil || cv == nil {
+					return false, err
+				}
+				return cv.Status.ObservedGeneration >= updated.Generation, nil
+
+			}); err != nil {
+				return fmt.Errorf("timed out waiting for cluster to acknowledge upgrade: %v", err)
+			}
+			return nil
+		},
+	); err != nil {
+		return err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -310,80 +330,109 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 	go monitor.Disrupt(ctx, kubeClient, upgradeDisruptRebootPolicy)
 
 	// observe the upgrade, taking action as necessary
-	framework.Logf("Cluster version operator acknowledged upgrade request")
-	aborted := false
-	var lastMessage string
-	if err := wait.PollImmediate(10*time.Second, maximumDuration, func() (bool, error) {
-		cv, msg, err := monitor.Check(updated.Generation, desired)
-		if msg != "" {
-			lastMessage = msg
-		}
-		if err != nil || cv == nil {
-			return false, err
-		}
+	if err := disruption.RecordJUnit(
+		f,
+		"[sig-cluster-lifecycle] Cluster completes upgrade",
+		func() error {
+			framework.Logf("Cluster version operator acknowledged upgrade request")
+			aborted := false
+			var lastMessage string
+			upgradeStarted := time.Now()
 
-		if !aborted && monitor.ShouldUpgradeAbort(abortAt) {
-			framework.Logf("Instructing the cluster to return to %s / %s", oldVersion, oldImage)
-			desired = configv1.Update{
-				Image: oldImage,
-				Force: true,
-			}
-			if err := retry.RetryOnConflict(wait.Backoff{Steps: 10, Duration: time.Second}, func() error {
-				cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
-				if err != nil {
-					return err
+			if err := wait.PollImmediate(10*time.Second, maximumDuration, func() (bool, error) {
+				cv, msg, err := monitor.Check(updated.Generation, desired)
+				if msg != "" {
+					lastMessage = msg
 				}
-				cv.Spec.DesiredUpdate = &desired
-				cv, err = c.ConfigV1().ClusterVersions().Update(context.Background(), cv, metav1.UpdateOptions{})
-				if err == nil {
-					updated = cv
+				if err != nil || cv == nil {
+					return false, err
 				}
-				return err
+
+				if !aborted && monitor.ShouldUpgradeAbort(abortAt) {
+					framework.Logf("Instructing the cluster to return to %s / %s", original.Status.Desired.Version, original.Status.Desired.Image)
+					desired = configv1.Update{
+						Image: original.Status.Desired.Image,
+						Force: true,
+					}
+					if err := retry.RetryOnConflict(wait.Backoff{Steps: 10, Duration: time.Second}, func() error {
+						cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+						if err != nil {
+							return err
+						}
+						cv.Spec.DesiredUpdate = &desired
+						cv, err = c.ConfigV1().ClusterVersions().Update(context.Background(), cv, metav1.UpdateOptions{})
+						if err == nil {
+							updated = cv
+						}
+						return err
+					}); err != nil {
+						return false, err
+					}
+					aborted = true
+					return false, nil
+				}
+
+				return monitor.Reached(cv, desired)
+
 			}); err != nil {
-				return false, err
+				if lastMessage != "" {
+					return fmt.Errorf("Cluster did not complete upgrade: %v: %s", err, lastMessage)
+				}
+				return fmt.Errorf("Cluster did not complete upgrade: %v", err)
 			}
-			aborted = true
-			return false, nil
-		}
 
-		return monitor.Reached(cv, desired)
+			framework.Logf("Completed upgrade to %s", versionString(desired))
 
-	}); err != nil {
-		monitor.Output()
-		if lastMessage != "" {
-			return fmt.Errorf("Cluster did not complete upgrade: %v: %s", err, lastMessage)
-		}
-		return fmt.Errorf("Cluster did not complete upgrade: %v", err)
+			// record whether the cluster was fast or slow upgrading.  Don't fail the test, we still want signal on the actual tests themselves.
+			upgradeEnded := time.Now()
+			upgradeDuration := upgradeEnded.Sub(upgradeStarted)
+			if upgradeDuration > durationToSoftFailure {
+				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should be fast", upgradeDuration, fmt.Sprintf("Upgrade took too long: %v", upgradeDuration.Minutes()))
+			} else {
+				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should be fast", upgradeDuration, "")
+			}
+
+			return nil
+		},
+	); err != nil {
+		return err
 	}
 
-	framework.Logf("Completed upgrade to %s", versionString(desired))
-
-	framework.Logf("Waiting on pools to be upgraded")
-	if err := wait.PollImmediate(10*time.Second, 30*time.Minute, func() (bool, error) {
-		mcps := dc.Resource(schema.GroupVersionResource{
-			Group:    "machineconfiguration.openshift.io",
-			Version:  "v1",
-			Resource: "machineconfigpools",
-		})
-		pools, err := mcps.List(context.Background(), metav1.ListOptions{})
-		if err != nil {
-			framework.Logf("error getting pools %v", err)
-			return false, nil
-		}
-		allUpdated := true
-		for _, p := range pools.Items {
-			updated, err := IsPoolUpdated(mcps, p.GetName())
-			if err != nil {
-				framework.Logf("error checking pool %s: %v", p.GetName(), err)
-				return false, nil
+	if err := disruption.RecordJUnit(
+		f,
+		"[sig-mco] Machine config pools complete upgrade",
+		func() error {
+			framework.Logf("Waiting on pools to be upgraded")
+			if err := wait.PollImmediate(10*time.Second, 30*time.Minute, func() (bool, error) {
+				mcps := dc.Resource(schema.GroupVersionResource{
+					Group:    "machineconfiguration.openshift.io",
+					Version:  "v1",
+					Resource: "machineconfigpools",
+				})
+				pools, err := mcps.List(context.Background(), metav1.ListOptions{})
+				if err != nil {
+					framework.Logf("error getting pools %v", err)
+					return false, nil
+				}
+				allUpdated := true
+				for _, p := range pools.Items {
+					updated, err := IsPoolUpdated(mcps, p.GetName())
+					if err != nil {
+						framework.Logf("error checking pool %s: %v", p.GetName(), err)
+						return false, nil
+					}
+					allUpdated = allUpdated && updated
+				}
+				return allUpdated, nil
+			}); err != nil {
+				return fmt.Errorf("Pools did not complete upgrade: %v", err)
 			}
-			allUpdated = allUpdated && updated
-		}
-		return allUpdated, nil
-	}); err != nil {
-		return fmt.Errorf("Pools did not complete upgrade: %v", err)
+			framework.Logf("All pools completed upgrade")
+			return nil
+		},
+	); err != nil {
+		return err
 	}
-	framework.Logf("All pools completed upgrade")
 
 	return nil
 }

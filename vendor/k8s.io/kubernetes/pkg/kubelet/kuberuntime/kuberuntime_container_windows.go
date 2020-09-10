@@ -19,9 +19,7 @@ limitations under the License.
 package kuberuntime
 
 import (
-	"fmt"
-
-	"github.com/docker/docker/pkg/sysinfo"
+	"runtime"
 
 	"k8s.io/api/core/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -31,7 +29,7 @@ import (
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/securitycontext"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // applyPlatformSpecificContainerConfig applies platform specific configurations to runtimeapi.ContainerConfig.
@@ -85,7 +83,7 @@ func (m *kubeGenericRuntimeManager) generateWindowsContainerConfig(container *v1
 		//   https://github.com/opencontainers/runtime-spec/blob/ad53dcdc39f1f7f7472b10aa0a45648fe4865496/config-windows.md#cpu
 		//   If both CpuWeight and CpuMaximum are set - ContainerD catches this invalid case and returns an error instead.
 
-		cpuMaximum := 10000 * cpuLimit.MilliValue() / int64(sysinfo.NumCPU()) / 1000
+		cpuMaximum := 10000 * cpuLimit.MilliValue() / int64(runtime.NumCPU()) / 1000
 
 		// TODO: This should be reviewed or removed once Hyper-V support is implemented with CRI-ContainerD
 		//       in a future release. cpuCount may or may not be required if cpuMaximum is set.
@@ -126,9 +124,31 @@ func (m *kubeGenericRuntimeManager) generateWindowsContainerConfig(container *v1
 
 	// setup security context
 	effectiveSc := securitycontext.DetermineEffectiveSecurityContext(pod, container)
+
+	// Strip down all the unnecessary options on the Windows
+	if effectiveSc.SELinuxOptions != nil {
+		effectiveSc.SELinuxOptions = nil
+	}
+
+	if effectiveSc.AllowPrivilegeEscalation != nil {
+		effectiveSc.AllowPrivilegeEscalation = nil
+	}
+
+	if effectiveSc.Capabilities != nil {
+		effectiveSc.Capabilities = nil
+	}
+
+	if effectiveSc.Privileged != nil {
+		effectiveSc.Privileged = nil
+	}
+
+	if effectiveSc.ProcMount != nil {
+		effectiveSc.ProcMount = nil
+	}
+
 	// RunAsUser only supports int64 from Kubernetes API, but Windows containers only support username.
 	if effectiveSc.RunAsUser != nil {
-		return nil, fmt.Errorf("run as uid (%d) is not supported on Windows", *effectiveSc.RunAsUser)
+		effectiveSc.RunAsUser = nil
 	}
 	if username != "" {
 		wc.SecurityContext.RunAsUsername = username

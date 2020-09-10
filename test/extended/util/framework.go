@@ -2,8 +2,10 @@ package util
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -36,7 +38,7 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	quotav1 "k8s.io/kubernetes/pkg/quota/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/framework/pod"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/framework/statefulset"
 	"k8s.io/kubernetes/test/utils/image"
 
@@ -222,6 +224,11 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 	return registryHostname, nil
 }
 
+func processScanError(log string) error {
+	e2e.Logf(log)
+	return fmt.Errorf(log)
+}
+
 // WaitForOpenShiftNamespaceImageStreams waits for the standard set of imagestreams to be imported
 func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	ctx := context.Background()
@@ -232,19 +239,17 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 		return err
 	}
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "mysql", "postgresql", "mongodb", "jenkins"}
-	scan := func() bool {
+	scan := func() error {
 		// check the samples operator to see about imagestream import status
 		samplesOperatorConfig, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "openshift-samples", metav1.GetOptions{})
 		if err != nil {
-			e2e.Logf("Samples Operator ClusterOperator Error: %#v", err)
-			return false
+			return processScanError(fmt.Sprintf("Samples Operator ClusterOperator Error: %#v", err))
 		}
 		for _, condition := range samplesOperatorConfig.Status.Conditions {
 			switch {
 			case condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue:
 				// if degraded, bail ... unexpected results can ensue
-				e2e.Logf("SamplesOperator degraded!!!")
-				return false
+				return processScanError("SamplesOperator degraded!!!")
 			case condition.Type == configv1.OperatorProgressing:
 				// if the imagestreams for one of our langs above failed, we abort,
 				// but if it is for say only EAP streams, we allow
@@ -255,8 +260,7 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 							e2e.Logf("SamplesOperator detected error during imagestream import: %s with details %s", condition.Reason, condition.Message)
 							stream, err := oc.AsAdmin().ImageClient().ImageV1().ImageStreams("openshift").Get(ctx, lang, metav1.GetOptions{})
 							if err != nil {
-								e2e.Logf("after seeing FailedImageImports for %s retrieval failed with %s", lang, err.Error())
-								return false
+								return processScanError(fmt.Sprintf("after seeing FailedImageImports for %s retrieval failed with %s", lang, err.Error()))
 							}
 							isi := &imagev1.ImageStreamImport{}
 							isi.Name = lang
@@ -276,21 +280,18 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 							}
 							_, err = oc.AsAdmin().ImageClient().ImageV1().ImageStreamImports("openshift").Create(ctx, isi, metav1.CreateOptions{})
 							if err != nil {
-								e2e.Logf("after seeing FailedImageImports for %s the manual image import failed with %s", lang, err.Error())
+								return processScanError(fmt.Sprintf("after seeing FailedImageImports for %s the manual image import failed with %s", lang, err.Error()))
 							}
-							e2e.Logf("after seeing FailedImageImports for %s a manual image-import was submitted", lang)
-							return false
+							return processScanError(fmt.Sprintf("after seeing FailedImageImports for %s a manual image-import was submitted", lang))
 						}
 					}
 				}
 				if condition.Status == configv1.ConditionTrue {
 					// updates still in progress ... not "ready"
-					e2e.Logf("SamplesOperator still in progress")
-					return false
+					return processScanError(fmt.Sprintf("SamplesOperator still in progress"))
 				}
 			case condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse:
-				e2e.Logf("SamplesOperator not available")
-				return false
+				return processScanError(fmt.Sprintf("SamplesOperator not available"))
 			default:
 				e2e.Logf("SamplesOperator at steady state")
 			}
@@ -299,22 +300,19 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 			e2e.Logf("Checking language %v \n", lang)
 			is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(ctx, lang, metav1.GetOptions{})
 			if err != nil {
-				e2e.Logf("ImageStream Error: %#v \n", err)
-				return false
+				return processScanError(fmt.Sprintf("ImageStream Error: %#v \n", err))
 			}
 			if !strings.HasPrefix(is.Status.DockerImageRepository, registryHostname) {
-				e2e.Logf("ImageStream repository %s does not match expected host %s \n", is.Status.DockerImageRepository, registryHostname)
-				return false
+				return processScanError(fmt.Sprintf("ImageStream repository %s does not match expected host %s \n", is.Status.DockerImageRepository, registryHostname))
 			}
 			for _, tag := range is.Spec.Tags {
 				e2e.Logf("Checking tag %v \n", tag)
 				if _, found := imageutil.StatusHasTag(is, tag.Name); !found {
-					e2e.Logf("Tag Error: %#v \n", tag)
-					return false
+					return processScanError(fmt.Sprintf("Tag Error: %#v \n", tag))
 				}
 			}
 		}
-		return true
+		return nil
 	}
 
 	// with the move to ocp/rhel as the default for the samples in 4.0, there are alot more imagestreams;
@@ -326,18 +324,32 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	// we've also determined that e2e-aws-image-ecosystem can be started before all the operators have completed; while
 	// that is getting sorted out, the longer time will help there as well
 	e2e.Logf("Scanning openshift ImageStreams \n")
-	success := false
-	wait.Poll(10*time.Second, 150*time.Second, func() (bool, error) {
-		success = scan()
-		return success, nil
+	var scanErr error
+	pollErr := wait.Poll(10*time.Second, 150*time.Second, func() (bool, error) {
+		scanErr = scan()
+		if scanErr != nil {
+			return false, nil
+		}
+		return true, nil
 	})
-	if success {
+	if pollErr == nil {
 		e2e.Logf("Success! \n")
 		return nil
 	}
 	DumpImageStreams(oc)
 	DumpSampleOperator(oc)
-	return fmt.Errorf("Failed to import expected imagestreams")
+	errorString := ""
+	if strings.Contains(scanErr.Error(), "FailedImageImports") {
+		strbuf := bytes.Buffer{}
+		strbuf.WriteString(fmt.Sprintf("Issues exist pulling images from registry.redhat.io: %s\n", scanErr.Error()))
+		strbuf.WriteString(" - check status at https://status.redhat.com (catalog.redhat.com) for reported outages\n")
+		strbuf.WriteString(" - if no outages reported there, email Terms-Based-Registry-Team@redhat.com with a report of the error\n")
+		strbuf.WriteString("   and prepare to work with the test platform team to get the current set of tokens for CI\n")
+		errorString = strbuf.String()
+	} else {
+		errorString = fmt.Sprintf("Failed to import expected imagestreams, latest error status: %s", scanErr.Error())
+	}
+	return fmt.Errorf(errorString)
 }
 
 //DumpImageStreams will dump both the openshift namespace and local namespace imagestreams
@@ -1498,7 +1510,7 @@ func LaunchWebserverPod(f *e2e.Framework, podName, nodeName string) (ip string) 
 	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
 	_, err := podClient.Create(context.Background(), pod, metav1.CreateOptions{})
 	e2e.ExpectNoError(err)
-	e2e.ExpectNoError(f.WaitForPodRunning(podName))
+	e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, podName, f.Namespace.Name))
 	createdPod, err := podClient.Get(context.Background(), podName, metav1.GetOptions{})
 	e2e.ExpectNoError(err)
 	ip = net.JoinHostPort(createdPod.Status.PodIP, strconv.Itoa(port))
@@ -1543,7 +1555,7 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 // TODO: expose upstream
 func CreateExecPodOrFail(client corev1client.CoreV1Interface, ns, name string) string {
 	e2e.Logf("Creating new exec pod")
-	execPod := pod.NewExecPodSpec(ns, name, false)
+	execPod := e2epod.NewExecPodSpec(ns, name, false)
 	created, err := client.Pods(ns).Create(context.Background(), execPod, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = wait.PollImmediate(e2e.Poll, 5*time.Minute, func() (bool, error) {
@@ -1647,9 +1659,9 @@ func RunOneShotCommandPod(
 			return false, nil
 		}
 
-		if podHasErrored(cmdPod) {
+		if err := podHasErrored(cmdPod); err != nil {
 			e2e.Logf("pod %q errored trying to run the command: %v", pod.Name, err)
-			return false, nil
+			return false, err
 		}
 		return podHasCompleted(cmdPod), nil
 	})
@@ -1682,10 +1694,13 @@ func podHasCompleted(pod *corev1.Pod) bool {
 		pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Completed"
 }
 
-func podHasErrored(pod *corev1.Pod) bool {
-	return len(pod.Status.ContainerStatuses) > 0 &&
+func podHasErrored(pod *corev1.Pod) error {
+	if len(pod.Status.ContainerStatuses) > 0 &&
 		pod.Status.ContainerStatuses[0].State.Terminated != nil &&
-		pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Error"
+		pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Error" {
+		return errors.New(pod.Status.ContainerStatuses[0].State.Terminated.Message)
+	}
+	return nil
 }
 
 func getPodLogs(oc *CLI, pod *corev1.Pod) (string, error) {
@@ -1711,13 +1726,14 @@ func newCommandPod(name, image, command string, args []string, volumeMounts []co
 			RestartPolicy: corev1.RestartPolicyOnFailure,
 			Containers: []corev1.Container{
 				{
-					Name:            name,
-					Image:           image,
-					Command:         []string{command},
-					Args:            args,
-					VolumeMounts:    volumeMounts,
-					ImagePullPolicy: "Always",
-					Env:             env,
+					Name:                     name,
+					Image:                    image,
+					Command:                  []string{command},
+					Args:                     args,
+					VolumeMounts:             volumeMounts,
+					ImagePullPolicy:          "Always",
+					Env:                      env,
+					TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 				},
 			},
 		},

@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
 	corev1 "k8s.io/api/core/v1"

@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/client-go/transport"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/library-go/pkg/image/reference"

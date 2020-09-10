@@ -34,7 +34,7 @@ type UpgradeTest struct {
 
 func (UpgradeTest) Name() string { return "k8s-service-lb-available" }
 func (UpgradeTest) DisplayName() string {
-	return "Application behind service load balancer with PDB is not disrupted"
+	return "[sig-network-edge] Application behind service load balancer with PDB is not disrupted"
 }
 
 func shouldTestPDBs() bool { return true }
@@ -50,6 +50,7 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	ginkgo.By("creating a TCP service " + serviceName + " with type=LoadBalancer in namespace " + ns.Name)
 	tcpService, err := jig.CreateTCPService(func(s *v1.Service) {
 		s.Spec.Type = v1.ServiceTypeLoadBalancer
+		s.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeLocal
 		if s.Annotations == nil {
 			s.Annotations = make(map[string]string)
 		}
@@ -111,7 +112,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1beta1().Events("")})
+	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1()})
 	r := newBroadcaster.NewRecorder(scheme.Scheme, "openshift.io/upgrade-test-service")
 	newBroadcaster.StartRecordingToSink(stopCh)
 

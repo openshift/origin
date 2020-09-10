@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/component-base/metrics"
 	"k8s.io/component-base/metrics/legacyregistry"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // NewKubeRecorder returns new event recorder with tweaked correlator options.

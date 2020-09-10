@@ -119,6 +119,11 @@ func (in *BuildDefaultsConfig) DeepCopyObject() runtime.Object {
 func (in *BuildOverridesConfig) DeepCopyInto(out *BuildOverridesConfig) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	if in.ForcePull != nil {
+		in, out := &in.ForcePull, &out.ForcePull
+		*out = new(bool)
+		**out = **in
+	}
 	if in.ImageLabels != nil {
 		in, out := &in.ImageLabels, &out.ImageLabels
 		*out = make([]buildv1.ImageLabel, len(*in))

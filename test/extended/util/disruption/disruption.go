@@ -1,6 +1,7 @@
 package disruption
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -30,6 +31,18 @@ type testWithDisplayName interface {
 	DisplayName() string
 }
 
+// additionalTest is a test summary type that allows disruption suites to report
+// extra JUnit outcomes for parts of a test.
+type additionalTest struct {
+	Name     string
+	Failure  string
+	Duration time.Duration
+}
+
+func (s additionalTest) PrintHumanReadable() string { return fmt.Sprintf("%s: %s", s.Name, s.Failure) }
+func (s additionalTest) SummaryKind() string        { return "AdditionalTest" }
+func (s additionalTest) PrintJSON() string          { data, _ := json.Marshal(s); return string(data) }
+
 // flakeSummary is a test summary type that allows upgrades to report violations
 // without failing the upgrade test.
 type flakeSummary string
@@ -37,12 +50,6 @@ type flakeSummary string
 func (s flakeSummary) PrintHumanReadable() string { return string(s) }
 func (s flakeSummary) SummaryKind() string        { return "Flake" }
 func (s flakeSummary) PrintJSON() string          { return `{"type":"Flake"}` }
-
-// Flakef records a flake on the current framework.
-func Flakef(f *framework.Framework, format string, options ...interface{}) {
-	framework.Logf(format, options...)
-	f.TestSummaries = append(f.TestSummaries, flakeSummary(fmt.Sprintf(format, options...)))
-}
 
 // TestData is passed to the invariant tests executed during the upgrade. The default UpgradeType
 // is MasterUpgrade.
@@ -54,13 +61,13 @@ type TestData struct {
 // Run executes the provided fn in a test context, ensuring that invariants are preserved while the
 // test is being executed. Description is used to populate the JUnit suite name, and testname is
 // used to define the overall test that will be run.
-func Run(description, testname string, adapter TestData, invariants []upgrades.Test, fn func()) {
+func Run(f *framework.Framework, description, testname string, adapter TestData, invariants []upgrades.Test, fn func()) {
 	testSuite := &junit.TestSuite{Name: description, Package: testname}
 	test := &junit.TestCase{Name: testname, Classname: testname}
 	testSuite.TestCases = append(testSuite.TestCases, test)
 	cm := chaosmonkey.New(func() {
 		start := time.Now()
-		defer finalizeTest(start, test, nil)
+		defer finalizeTest(start, test, testSuite, f)
 		defer g.GinkgoRecover()
 		fn()
 	})
@@ -90,10 +97,11 @@ func runChaosmonkey(
 			panic(fmt.Sprintf("can't find test framework for %q", t.Name()))
 		}
 		cma := chaosMonkeyAdapter{
-			TestData:   testData,
-			framework:  f,
-			test:       t,
-			testReport: testCase,
+			TestData:        testData,
+			framework:       f,
+			test:            t,
+			testReport:      testCase,
+			testSuiteReport: testSuite,
 		}
 		cm.Register(cma.Test)
 	}
@@ -102,6 +110,27 @@ func runChaosmonkey(
 	defer func() {
 		testSuite.Update()
 		testSuite.Time = time.Since(start).Seconds()
+
+		// if the test fails and all failures are described as "Flake", create a second
+		// test case that is listed as success so the test is properly marked as flaky
+		for _, testCase := range testSuite.TestCases {
+			allFlakes := len(testCase.Failures) > 0 && len(testCase.Errors) == 0 && len(testCase.Skipped) == 0
+			for _, failure := range testCase.Failures {
+				if failure.Type == "Flake" {
+					failure.Type = "Failure"
+				} else {
+					allFlakes = false
+				}
+			}
+			if allFlakes {
+				testSuite.TestCases = append(testSuite.TestCases, &junit.TestCase{
+					Name:      testCase.Name,
+					Classname: testCase.Classname,
+					Time:      testCase.Time,
+				})
+			}
+		}
+
 		if framework.TestContext.ReportDir != "" {
 			fname := filepath.Join(framework.TestContext.ReportDir, fmt.Sprintf("junit_%s_%d.xml", testSuite.Package, time.Now().Unix()))
 			f, err := os.Create(fname)
@@ -118,9 +147,10 @@ func runChaosmonkey(
 type chaosMonkeyAdapter struct {
 	TestData
 
-	test       upgrades.Test
-	testReport *junit.TestCase
-	framework  *framework.Framework
+	test            upgrades.Test
+	testReport      *junit.TestCase
+	testSuiteReport *junit.TestSuite
+	framework       *framework.Framework
 }
 
 func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
@@ -131,7 +161,7 @@ func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
 			sem.Ready()
 		})
 	}
-	defer finalizeTest(start, cma.testReport, cma.framework)
+	defer finalizeTest(start, cma.testReport, cma.testSuiteReport, cma.framework)
 	defer ready()
 	if skippable, ok := cma.test.(upgrades.Skippable); ok && skippable.Skip(cma.UpgradeContext) {
 		g.By("skipping test " + cma.test.Name())
@@ -145,19 +175,36 @@ func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
 	cma.test.Test(cma.framework, sem.StopCh, cma.UpgradeType)
 }
 
-func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
+func finalizeTest(start time.Time, tc *junit.TestCase, ts *junit.TestSuite, f *framework.Framework) {
 	tc.Time = time.Since(start).Seconds()
 	r := recover()
+
+	// if the framework contains additional test results, add them to the parent suite
+	for _, summary := range f.TestSummaries {
+		if test, ok := summary.(additionalTest); ok {
+			testCase := &junit.TestCase{
+				Name: test.Name,
+				Time: test.Duration.Seconds(),
+			}
+			if len(test.Failure) > 0 {
+				testCase.Failures = append(testCase.Failures, &junit.Failure{
+					Message: test.Failure,
+					Value:   test.Failure,
+				})
+			}
+			ts.TestCases = append(ts.TestCases, testCase)
+			continue
+		}
+	}
+
 	if r == nil {
 		if f != nil {
-			for _, summary := range f.TestSummaries {
-				if summary.SummaryKind() == "Flake" {
-					tc.Failures = append(tc.Failures, &junit.Failure{
-						Message: summary.PrintHumanReadable(),
-						Type:    "Failure",
-						Value:   summary.PrintHumanReadable(),
-					})
-				}
+			if message, ok := hasFrameworkFlake(f); ok {
+				tc.Failures = append(tc.Failures, &junit.Failure{
+					Type:    "Flake",
+					Message: message,
+					Value:   message,
+				})
 			}
 		}
 		return
@@ -194,6 +241,18 @@ func finalizeTest(start time.Time, tc *junit.TestCase, f *framework.Framework) {
 	}
 }
 
+// isGoModulePath returns true if the packagePath reported by reflection is within a
+// module and given module path. When go mod is in use, module and modulePath are not
+// contiguous as they were in older golang versions with vendoring, so naive contains
+// tests fail.
+//
+// historically: ".../vendor/k8s.io/kubernetes/test/e2e"
+// go.mod:       "k8s.io/kubernetes@0.18.4/test/e2e"
+//
+func isGoModulePath(packagePath, module, modulePath string) bool {
+	return regexp.MustCompile(fmt.Sprintf(`\b%s(@[^/]*|)/%s\b`, regexp.QuoteMeta(module), regexp.QuoteMeta(modulePath))).MatchString(packagePath)
+}
+
 // TODO: accept a default framework
 func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework {
 	nsFilter := regexp.MustCompile("[^[:word:]-]+") // match anything that's not a word character or hyphen
@@ -202,7 +261,7 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 		ns := nsFilter.ReplaceAllString(t.Name(), "-") // and replace with a single hyphen
 		ns = strings.Trim(ns, "-")
 		// identify tests that come from kube as strictly e2e tests so they get the correct semantics
-		if strings.Contains(reflect.ValueOf(t).Elem().Type().PkgPath(), "/kubernetes/test/e2e/") {
+		if isGoModulePath(reflect.ValueOf(t).Elem().Type().PkgPath(), "k8s.io/kubernetes", "test/e2e") {
 			ns = "e2e-k8s-" + ns
 		}
 		testFrameworks[t.Name()] = &framework.Framework{
@@ -236,6 +295,58 @@ func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Dur
 	if percent := float64(duration) / float64(total); percent > tolerate {
 		framework.Failf("%s for at least %s of %s (%0.0f%%):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
 	} else if duration > 0 {
-		Flakef(f, "%s for at least %s of %s (%0.0f%%), this is currently sufficient to pass the test/job but not considered completely correct:\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
+		FrameworkFlakef(f, "%s for at least %s of %s (%0.0f%%), this is currently sufficient to pass the test/job but not considered completely correct:\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
 	}
+}
+
+// FrameworkFlakef records a flake on the current framework.
+func FrameworkFlakef(f *framework.Framework, format string, options ...interface{}) {
+	framework.Logf(format, options...)
+	f.TestSummaries = append(f.TestSummaries, flakeSummary(fmt.Sprintf(format, options...)))
+}
+
+// hasFrameworkFlake returns true if the framework recorded a flake message generated by
+// Flakef during the test run.
+func hasFrameworkFlake(f *framework.Framework) (string, bool) {
+	for _, summary := range f.TestSummaries {
+		s, ok := summary.(flakeSummary)
+		if !ok {
+			continue
+		}
+		return string(s), true
+	}
+	return "", false
+}
+
+// RecordJUnit will capture the result of invoking fn as either a passing or failing JUnit test
+// that will be recorded alongside the current test with name. These methods only work in the
+// context of a disruption test suite today and will not be reported as JUnit failures when
+// used within normal ginkgo suties.
+func RecordJUnit(f *framework.Framework, name string, fn func() error) error {
+	start := time.Now()
+	err := fn()
+	duration := time.Now().Sub(start)
+	var failure string
+	if err != nil {
+		failure = err.Error()
+	}
+	f.TestSummaries = append(f.TestSummaries, additionalTest{
+		Name:     name,
+		Duration: duration,
+		Failure:  failure,
+	})
+	return err
+}
+
+// RecordJUnitResult will output a junit result within a disruption test with the given name,
+// duration, and failure string. If the failure string is set, the test is considered to have
+// failed, otherwise the test is considered to have passed. These methods only work in the
+// context of a disruption test suite today and will not be reported as JUnit failures when
+// used within normal ginkgo suties.
+func RecordJUnitResult(f *framework.Framework, name string, duration time.Duration, failure string) {
+	f.TestSummaries = append(f.TestSummaries, additionalTest{
+		Name:     name,
+		Duration: duration,
+		Failure:  failure,
+	})
 }

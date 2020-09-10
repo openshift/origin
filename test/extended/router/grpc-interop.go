@@ -17,16 +17,17 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 const (
 	// gRPCInteropTestTimeout is the timeout value for the
 	// internal tests.
-	gRPCInteropTestTimeout = 2 * time.Minute
+	gRPCInteropTestTimeout = 5 * time.Minute
 
 	// gRPCInteropTestCaseIterations is the number of times each gRPC
 	// interop test case should be invoked.
-	gRPCInteropTestCaseIterations = 5
+	gRPCInteropTestCaseIterations = 2
 )
 
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router]", func() {
@@ -51,10 +52,11 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should pass the gRPC interoperability tests", func() {
+			g.Skip("disabled for https://bugzilla.redhat.com/show_bug.cgi?id=1853711")
 			g.By(fmt.Sprintf("creating test fixture from a config file %q", configPath))
 			err := oc.Run("new-app").Args("-f", configPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			e2e.ExpectNoError(oc.KubeFramework().WaitForPodRunning("grpc-interop"))
+			e2e.ExpectNoError(e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), "grpc-interop", oc.KubeFramework().Namespace.Name))
 
 			g.By("Discovering the set of supported test cases")
 			ns := oc.KubeFramework().Namespace.Name

@@ -28,10 +28,7 @@ readonly OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
 readonly OS_OUTPUT_PKGDIR="${OS_OUTPUT}/pkgdir"
 
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
-  vendor/k8s.io/kubernetes/cmd/kube-apiserver
-  vendor/k8s.io/kubernetes/cmd/kube-controller-manager
-  vendor/k8s.io/kubernetes/cmd/kube-scheduler
-  vendor/k8s.io/kubernetes/cmd/kubelet
+  ""
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
   ""

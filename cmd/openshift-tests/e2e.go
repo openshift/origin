@@ -50,7 +50,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		The disruptive test suite.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Disruptive]") && strings.Contains(name, "[Feature:EtcdRecovery]")
+			return strings.Contains(name, "[Feature:EtcdRecovery]") || strings.Contains(name, "[Feature:NodeRecovery]")
 		},
 		TestTimeout: 60 * time.Minute,
 	},
@@ -120,6 +120,16 @@ var staticSuites = []*ginkgo.TestSuite{
 		TestTimeout: 20 * time.Minute,
 	},
 	{
+		Name: "openshift/jenkins-e2e-rhel-only",
+		Description: templates.LongDesc(`
+		Tests that exercise the OpenShift / Jenkins integrations provided by the OpenShift Jenkins image/plugins and the Pipeline Build Strategy.
+		`),
+		Matches: func(name string) bool {
+			return strings.Contains(name, "[Feature:JenkinsRHELImagesOnly]")
+		},
+		Parallelism: 4,
+		TestTimeout: 20 * time.Minute,
+	}, {
 		Name: "openshift/scalability",
 		Description: templates.LongDesc(`
 		Tests that verify the scalability characteristics of the cluster. Currently this is focused on core performance behaviors and preventing regressions.

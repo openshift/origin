@@ -92,10 +92,14 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 		// a pod in a namespace that begins with kube-* or openshift-* must come from our release payload
 		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
+		ignoredNamespaces := sets.NewString("openshift-marketplace")
 		for i := range pods.Items {
 			pod := pods.Items[i]
 			for _, prefix := range namespacePrefixes.List() {
 				if !strings.HasPrefix(pod.Namespace, prefix) {
+					continue
+				}
+				if ignoredNamespaces.Has(pod.Namespace) {
 					continue
 				}
 				containersToInspect := []v1.Container{}
@@ -139,8 +143,8 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 						e2e.Logf("unable to run command:%v with error: %v", commands, err)
 						continue
 					}
-					e2e.Logf("Image relase info:%s", result)
-					if !strings.Contains(result, "Red Hat Enterprise Linux Server") {
+					e2e.Logf("Image release info: %s", result)
+					if !strings.Contains(result, "Red Hat Enterprise Linux") {
 						invalidPodContainerDownstreamImages.Insert(fmt.Sprintf("%s/%s invalid downstream image!", pod.Name, containerName))
 					}
 				}

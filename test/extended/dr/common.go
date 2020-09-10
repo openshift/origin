@@ -65,25 +65,18 @@ func masterNodes(oc *exutil.CLI) []*corev1.Node {
 	return nodes
 }
 
-func constructEtcdConnectionString(masters []string) string {
-	//TODO vrutkovs: replace this nonsense with `etcdctl member list -w json ...`
-	etcdConnectionString := ""
-	for _, master := range masters {
-		result, err := e2essh.SSH("cat /run/etcd/environment", master+":22", e2e.TestContext.Provider)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		var entry string
-		for _, entry = range strings.Split(result.Stdout, "\n") {
-			if strings.HasPrefix(entry, "ETCD_DNS_NAME=") {
-				break
-			}
+func clusterNodes(oc *exutil.CLI) (masters, workers []*corev1.Node) {
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	for i := range nodes.Items {
+		node := &nodes.Items[i]
+		if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+			masters = append(masters, node)
+		} else {
+			workers = append(workers, node)
 		}
-		entries := strings.Split(entry, "=")
-		o.Expect(entries).To(o.HaveLen(2))
-		etcdDNSName := entries[1]
-		o.Expect(etcdDNSName).NotTo(o.BeEmpty())
-		etcdConnectionString = fmt.Sprintf("%setcd-member-%s=https://%s:2380,", etcdConnectionString, master, etcdDNSName)
 	}
-	return etcdConnectionString[:len(etcdConnectionString)-1]
+	return
 }
 
 func waitForMastersToUpdate(oc *exutil.CLI, mcps dynamic.NamespaceableResourceInterface) {

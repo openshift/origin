@@ -186,8 +186,8 @@ os::cmd::expect_success 'oc cancel-build build/ruby-sample-build-1'
 os::cmd::expect_success "oc start-build bc/ruby-sample-build"
 os::cmd::expect_success "oc start-build bc/ruby-sample-build"
 lastbuild="$(basename $(oc start-build -o=name bc/ruby-sample-build))"
-os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build', "build.build.openshift.io/${lastbuild} cancelled"
-os::cmd::expect_success_and_text "oc get build ${lastbuild} -o template --template '{{.status.phase}}'", 'Cancelled'
+os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build' "build.build.openshift.io/${lastbuild} cancelled"
+os::cmd::expect_success_and_text "oc get build ${lastbuild} -o template --template '{{.status.phase}}'" 'Cancelled'
 builds=$(oc get builds -o template --template '{{range .items}}{{ .status.phase }} {{end}}')
 for state in $builds; do
   os::cmd::expect_success "[ \"${state}\" == \"Cancelled\" ]"

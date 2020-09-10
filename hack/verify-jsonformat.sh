@@ -14,9 +14,13 @@
 #
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-json_files=$(find {api,examples,docs,images,plugins,test} -name "*.json")
+json_files=$(find {examples,docs,images,test} -name "*.json")
 tmp_dir=$(mktemp -d)
 found=0
+excluded_files=(
+  "test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json"
+  "test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid.json"
+)
 
 set +e
 
@@ -24,6 +28,9 @@ format="${1:-""}"
 fix="${2:-""}"
 
 for f in $json_files; do
+  if [[ " ${excluded_files[@]} " =~ " ${f} " ]]; then
+    continue
+  fi
   tmp_file="${tmp_dir}$(basename $f)"
   go run ./hack/jsonformat/main.go ${f} > ${tmp_file}
   result=$?

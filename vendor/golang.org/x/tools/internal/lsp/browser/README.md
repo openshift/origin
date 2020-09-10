@@ -1,1 +1,0 @@
-This package is a copy of cmd/internal/browser from the go distribution

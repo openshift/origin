@@ -7,7 +7,7 @@ import (
 	"io"
 	"strconv"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
@@ -98,8 +98,8 @@ func (a *runOnceDuration) Admit(ctx context.Context, attributes admission.Attrib
 		return admission.NewForbidden(attributes, err)
 	}
 
-	if !appliedProjectLimit && a.config.ActiveDeadlineSecondsLimit != nil {
-		pod.Spec.ActiveDeadlineSeconds = int64MinP(a.config.ActiveDeadlineSecondsLimit, pod.Spec.ActiveDeadlineSeconds)
+	if !appliedProjectLimit && a.config.ActiveDeadlineSecondsOverride != nil {
+		pod.Spec.ActiveDeadlineSeconds = int64MinP(a.config.ActiveDeadlineSecondsOverride, pod.Spec.ActiveDeadlineSeconds)
 	}
 	return nil
 }

@@ -1,9 +1,0 @@
-{
-  "type": "object",
-  "properties": {
-    "payload": {
-      "type": "array",
-      "uniqueItems": true
-    }
-  }
-}

@@ -14,10 +14,7 @@ platform="$(os::build::host_platform)"
 
 build_targets=("$@")
 if [[ -z "$@" ]]; then
-    build_targets=(vendor/k8s.io/kubernetes/cmd/kube-apiserver
-    vendor/k8s.io/kubernetes/cmd/kube-controller-manager
-    vendor/k8s.io/kubernetes/cmd/kube-scheduler
-    vendor/k8s.io/kubernetes/cmd/kubelet)
+    build_targets=(cmd/openshift-tests)
 fi
 
 OS_BUILD_PLATFORMS=("${OS_BUILD_PLATFORMS[@]:-${platform}}")

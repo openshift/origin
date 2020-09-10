@@ -7,6 +7,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
@@ -248,16 +249,24 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			for {
 				select {
 				case event := <-imageWatch.ResultChan():
-					stream := event.Object.(*imagev1.ImageStream)
-					tagEventList, ok := imageutil.StatusHasTag(stream, imagev1.DefaultImageTag)
-					if ok && len(tagEventList.Items) > 0 && tagEventList.Items[0].DockerImageReference == mapping.Image.DockerImageReference {
-						t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
-						return
+					switch event.Type {
+					case watchapi.Error:
+						if status, ok := event.Object.(*metav1.Status); ok {
+							t.Fatalf("unexpected error from watcher: %v", errors.FromObject(status))
+						}
+						t.Fatalf("unexpected object from watcher: %#v", event.Object)
+					default:
+						stream := event.Object.(*imagev1.ImageStream)
+						tagEventList, ok := imageutil.StatusHasTag(stream, imagev1.DefaultImageTag)
+						if ok && len(tagEventList.Items) > 0 && tagEventList.Items[0].DockerImageReference == mapping.Image.DockerImageReference {
+							t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
+							return
+						}
+						if len(tagEventList.Items) > 0 {
+							t.Logf("want: %s, got: %s", mapping.Image.DockerImageReference, tagEventList.Items[0].DockerImageReference)
+						}
+						t.Logf("Still waiting for latest tag status update on imagestream %q with tags: %#v", stream.Name, tagEventList)
 					}
-					if len(tagEventList.Items) > 0 {
-						t.Logf("want: %s, got: %s", mapping.Image.DockerImageReference, tagEventList.Items[0].DockerImageReference)
-					}
-					t.Logf("Still waiting for latest tag status update on imagestream %q with tags: %#v", stream.Name, tagEventList)
 				case <-timeout:
 					t.Fatalf("timed out waiting for image stream %q to be updated", imageStream.Name)
 				}

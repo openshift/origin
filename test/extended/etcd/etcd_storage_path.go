@@ -13,6 +13,16 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	discocache "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
+	kclientset "k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
+	"k8s.io/kubernetes/test/e2e/framework"
+	etcddata "k8s.io/kubernetes/test/integration/etcd"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -21,13 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	discocache "k8s.io/client-go/discovery/cached"
-	"k8s.io/client-go/dynamic"
-	kclientset "k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
 	etcdv3 "go.etcd.io/etcd/clientv3"
 )
@@ -216,7 +219,7 @@ func (t *helperT) done() {
 // It will start failing when a new type is added to ensure that all future types are added to this test.
 // It will also fail when a type gets moved to a different location. Be very careful in this situation because
 // it essentially means that you will be break old clusters unless you create some migration path for the old data.
-func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, etcdClient3 etcdv3.KV) {
+func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, etcdClient3Fn func() (etcdv3.KV, error)) {
 	defer g.GinkgoRecover()
 
 	// make Errorf fail the test as expected but continue until the end so we can see all failures
@@ -234,16 +237,17 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	crdClient := apiextensionsclientset.NewForConfigOrDie(kubeConfig)
 
 	// create CRDs so we can make sure that custom resources do not get lost
-	etcddata.CreateTestCRDs(tt, crdClient, false, etcddata.GetCustomResourceDefinitionData()...)
+	etcddataCRDs := etcddata.GetCustomResourceDefinitionData()
+	etcddata.CreateTestCRDs(tt, crdClient, false, etcddataCRDs...)
 	defer func() {
 		deleteCRD := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete
 		ctx := context.Background()
 		delOptions := metav1.DeleteOptions{}
-		if err := errors.NewAggregate([]error{
-			deleteCRD(ctx, "foos.cr.bar.com", delOptions),
-			deleteCRD(ctx, "pandas.awesome.bears.com", delOptions),
-			deleteCRD(ctx, "pants.custom.fancy.com", delOptions),
-		}); err != nil {
+		var errs []error
+		for _, crd := range etcddataCRDs {
+			errs = append(errs, deleteCRD(ctx, crd.Name, delOptions))
+		}
+		if err := errors.NewAggregate(errs); err != nil {
 			t.Fatal(err)
 		}
 	}()
@@ -264,11 +268,19 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		}
 	}()
 
+	if err := exutil.WaitForServiceAccount(kubeClient.CoreV1().ServiceAccounts(testNamespace), "default"); err != nil {
+		t.Fatalf("error waiting for the default service account: %v", err)
+	}
+
+	version, err := kubeClient.Discovery().ServerVersion()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	etcdStorageData := etcddata.GetEtcdStorageData()
 
 	removeStorageData(t, etcdStorageData,
 		// these alphas resources are not enabled in a real cluster but worked fine in the integration test
-		gvr("auditregistration.k8s.io", "v1alpha1", "auditsinks"),
 		gvr("batch", "v2alpha1", "cronjobs"),
 		gvr("node.k8s.io", "v1alpha1", "runtimeclasses"),
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterrolebindings"),
@@ -279,6 +291,38 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("settings.k8s.io", "v1alpha1", "podpresets"),
 		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
 	)
+
+	// Apply output of git diff origin/release-1.19 origin/release-1.20 test/integration/etcd/data.go. This is needed
+	// to apply the right data depending on the kube version of the running server. Replace this with the next current
+	// and rebase version next time. Don't pile them up.
+	if strings.HasPrefix(version.Minor, "20") {
+		namespace := "etcdstoragepathtestnamespace"
+		_ = namespace
+
+		// Added etcd data.
+		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
+			// TODO: fill when 1.20 rebase has started
+		} {
+			if _, preexisting := etcdStorageData[k]; preexisting {
+				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
+			}
+			etcdStorageData[k] = a
+		}
+
+		// Modified etcd data.
+		//
+		// TODO: fill when 1.20 rebase has started
+
+		// Removed etcd data.
+		removeStorageData(t, etcdStorageData) // TODO: fill when 1.20 rebase has started
+
+	} else {
+		// Remove 1.19 only alpha versions
+		removeStorageData(t, etcdStorageData) // these alphas resources are not enabled in a real cluster but worked fine in the integration test
+		//
+		// TODO: fill when 1.20 rebase has started
+
+	}
 
 	// flowcontrol may or may not be on.  This allows us to ratchet in turning it on.
 	if flowControlResources, err := kubeClient.Discovery().ServerResourcesForGroupVersion("flowcontrol.apiserver.k8s.io/v1alpha1"); err != nil || len(flowControlResources.APIResources) == 0 {
@@ -330,6 +374,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	}
 
 	for _, resourceToPersist := range etcddata.GetResources(tt, serverResources) {
+		g.By(fmt.Sprintf("testing %v", resourceToPersist.Mapping.Resource))
 		mapping := resourceToPersist.Mapping
 		gvResource := mapping.Resource
 		gvk := mapping.GroupVersionKind
@@ -391,9 +436,26 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 				}
 			}
 
-			output, err := getFromEtcd(etcdClient3, testData.ExpectedEtcdPath)
-			if err != nil {
-				t.Errorf("failed to get from etcd for %v: %#v", gvk, err)
+			// retry a few times in case the port-forward has to get re-established.
+			var output *metaObject
+			var lastErr error
+			for i := 0; i < 5; i++ {
+				etcdClient3, err := etcdClient3Fn()
+				if err != nil {
+					lastErr = err
+					continue
+				}
+				output, err = getFromEtcd(etcdClient3, testData.ExpectedEtcdPath)
+				if err != nil {
+					framework.Logf(err.Error())
+					lastErr = err
+					continue
+				}
+				lastErr = nil
+				break
+			}
+			if lastErr != nil {
+				t.Errorf("failed to get from etcd for %v: %#v", gvk, lastErr)
 				return
 			}
 

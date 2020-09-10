@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	apiregistrationv1client "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
 
@@ -40,7 +40,7 @@ func ApplyAPIService(client apiregistrationv1client.APIServicesGetter, recorder 
 
 	existingCopy.Spec = required.Spec
 
-	if klog.V(4) {
+	if klog.V(4).Enabled() {
 		klog.Infof("APIService %q changes: %s", existing.Name, JSONPatchNoError(existing, existingCopy))
 	}
 	actual, err := client.APIServices().Update(context.TODO(), existingCopy, metav1.UpdateOptions{})

@@ -14,12 +14,26 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/client/conditions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-func getPodNameForTest(image string, t tc) string {
-	return fmt.Sprintf("%s-%s-centos7", image, t.Version)
+func isNonAMD(oc *exutil.CLI) bool {
+	nonAMD := false
+	allWorkerNodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+		LabelSelector: "node-role.kubernetes.io/worker",
+	})
+	if err != nil {
+		e2e.Logf("problem getting nodes for arch check: %s", err)
+	}
+	for _, node := range allWorkerNodes.Items {
+		if node.Status.NodeInfo.Architecture != "amd64" {
+			nonAMD = true
+			break
+		}
+	}
+	return nonAMD
 }
 
 // defineTest will create the gingko test.  This ensures the test
@@ -27,9 +41,15 @@ func getPodNameForTest(image string, t tc) string {
 // since the test may not run immediately and may run in parallel with other
 // tests, so sharing a variable reference is problematic.  (Sharing the oc client
 // is ok for these tests).
-func defineTest(image string, t tc, oc *exutil.CLI) {
+func defineTest(name string, t tc, oc *exutil.CLI) {
 	g.Describe("returning s2i usage when running the image", func() {
 		g.It(fmt.Sprintf("%q should print the usage", t.DockerImageReference), func() {
+			e2e.Logf("checking %s/%s for architecture compatibility", name, t.Version)
+			if isNonAMD(oc) && !t.NonAMD {
+				e2e.Logf("skipping %s/%s because non-amd64 architecture", name, t.Version)
+				return
+			}
+			e2e.Logf("%s/%s passed architecture compatibility", name, t.Version)
 			g.By(fmt.Sprintf("creating a sample pod for %q", t.DockerImageReference))
 			pod := exutil.GetPodForContainer(kapiv1.Container{
 				Name:  "test",
@@ -39,7 +59,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the pod to be running")
-			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
+			err = e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), pod.Name, oc.Namespace())
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 				if e != nil {
@@ -67,6 +87,12 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 	})
 	g.Describe("using the SCL in s2i images", func() {
 		g.It(fmt.Sprintf("%q should be SCL enabled", t.DockerImageReference), func() {
+			e2e.Logf("checking %s/%s for architecture compatibility", name, t.Version)
+			if isNonAMD(oc) && !t.NonAMD {
+				e2e.Logf("skipping %s/%s because non-amd64 architecture", name, t.Version)
+				return
+			}
+			e2e.Logf("%s/%s passed architecture compatibility", name, t.Version)
 			g.By(fmt.Sprintf("creating a sample pod for %q with /bin/bash -c command", t.DockerImageReference))
 			pod := exutil.GetPodForContainer(kapiv1.Container{
 				Image:   t.DockerImageReference,
@@ -77,7 +103,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
+			err = e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), pod.Name, oc.Namespace())
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 				if e != nil {
@@ -110,7 +136,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			_, err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
+			err = e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), pod.Name, oc.Namespace())
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("calling the binary using 'oc exec /bin/bash -c'")
@@ -142,9 +168,9 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift images s
 			}
 		})
 
-		for image, tcs := range GetTestCaseForImages() {
+		for name, tcs := range GetTestCaseForImages() {
 			for _, t := range tcs {
-				defineTest(image, t, oc)
+				defineTest(name, t, oc)
 			}
 		}
 	})

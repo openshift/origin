@@ -329,6 +329,33 @@ func (EtcdList) SwaggerDoc() map[string]string {
 	return map_EtcdList
 }
 
+var map_AWSClassicLoadBalancerParameters = map[string]string{
+	"": "AWSClassicLoadBalancerParameters holds configuration parameters for an AWS Classic load balancer.",
+}
+
+func (AWSClassicLoadBalancerParameters) SwaggerDoc() map[string]string {
+	return map_AWSClassicLoadBalancerParameters
+}
+
+var map_AWSLoadBalancerParameters = map[string]string{
+	"":                    "AWSLoadBalancerParameters provides configuration settings that are specific to AWS load balancers.",
+	"type":                "type is the type of AWS load balancer to instantiate for an ingresscontroller.\n\nValid values are:\n\n* \"Classic\": A Classic Load Balancer that makes routing decisions at either\n  the transport layer (TCP/SSL) or the application layer (HTTP/HTTPS). See\n  the following for additional details:\n\n    https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#clb\n\n* \"NLB\": A Network Load Balancer that makes routing decisions at the\n  transport layer (TCP/SSL). See the following for additional details:\n\n    https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#nlb",
+	"classicLoadBalancer": "classicLoadBalancerParameters holds configuration parameters for an AWS classic load balancer. Present only if type is Classic.",
+	"networkLoadBalancer": "networkLoadBalancerParameters holds configuration parameters for an AWS network load balancer. Present only if type is NLB.",
+}
+
+func (AWSLoadBalancerParameters) SwaggerDoc() map[string]string {
+	return map_AWSLoadBalancerParameters
+}
+
+var map_AWSNetworkLoadBalancerParameters = map[string]string{
+	"": "AWSNetworkLoadBalancerParameters holds configuration parameters for an AWS Network load balancer.",
+}
+
+func (AWSNetworkLoadBalancerParameters) SwaggerDoc() map[string]string {
+	return map_AWSNetworkLoadBalancerParameters
+}
+
 var map_AccessLogging = map[string]string{
 	"":              "AccessLogging describes how client requests should be logged.",
 	"destination":   "destination is where access logs go.",
@@ -378,6 +405,15 @@ func (IngressController) SwaggerDoc() map[string]string {
 	return map_IngressController
 }
 
+var map_IngressControllerHTTPHeaders = map[string]string{
+	"":                      "IngressControllerHTTPHeaders specifies how the IngressController handles certain HTTP headers.",
+	"forwardedHeaderPolicy": "forwardedHeaderPolicy specifies when and how the IngressController sets the Forwarded, X-Forwarded-For, X-Forwarded-Host, X-Forwarded-Port, X-Forwarded-Proto, and X-Forwarded-Proto-Version HTTP headers.  The value may be one of the following:\n\n* \"Append\", which specifies that the IngressController appends the\n  headers, preserving existing headers.\n\n* \"Replace\", which specifies that the IngressController sets the\n  headers, replacing any existing Forwarded or X-Forwarded-* headers.\n\n* \"IfNone\", which specifies that the IngressController sets the\n  headers if they are not already set.\n\n* \"Never\", which specifies that the IngressController never sets the\n  headers, preserving any existing headers.\n\nBy default, the policy is \"Append\".",
+}
+
+func (IngressControllerHTTPHeaders) SwaggerDoc() map[string]string {
+	return map_IngressControllerHTTPHeaders
+}
+
 var map_IngressControllerList = map[string]string{
 	"": "IngressControllerList contains a list of IngressControllers.",
 }
@@ -407,6 +443,7 @@ var map_IngressControllerSpec = map[string]string{
 	"tlsSecurityProfile":         "tlsSecurityProfile specifies settings for TLS connections for ingresscontrollers.\n\nIf unset, the default is based on the apiservers.config.openshift.io/cluster resource.\n\nNote that when using the Old, Intermediate, and Modern profile types, the effective profile configuration is subject to change between releases. For example, given a specification to use the Intermediate profile deployed on release X.Y.Z, an upgrade to release X.Y.Z+1 may cause a new profile configuration to be applied to the ingress controller, resulting in a rollout.\n\nNote that the minimum TLS version for ingress controllers is 1.1, and the maximum TLS version is 1.2.  An implication of this restriction is that the Modern TLS profile type cannot be used because it requires TLS 1.3.",
 	"routeAdmission":             "routeAdmission defines a policy for handling new route claims (for example, to allow or deny claims across namespaces).\n\nIf empty, defaults will be applied. See specific routeAdmission fields for details about their defaults.",
 	"logging":                    "logging defines parameters for what should be logged where.  If this field is empty, operational logs are enabled but access logs are disabled.",
+	"httpHeaders":                "httpHeaders defines policy for HTTP headers.\n\nIf this field is empty, the default values are used.",
 }
 
 func (IngressControllerSpec) SwaggerDoc() map[string]string {
@@ -429,8 +466,9 @@ func (IngressControllerStatus) SwaggerDoc() map[string]string {
 }
 
 var map_LoadBalancerStrategy = map[string]string{
-	"":      "LoadBalancerStrategy holds parameters for a load balancer.",
-	"scope": "scope indicates the scope at which the load balancer is exposed. Possible values are \"External\" and \"Internal\".",
+	"":                   "LoadBalancerStrategy holds parameters for a load balancer.",
+	"scope":              "scope indicates the scope at which the load balancer is exposed. Possible values are \"External\" and \"Internal\".",
+	"providerParameters": "providerParameters holds desired load balancer information specific to the underlying infrastructure provider.\n\nIf empty, defaults will be applied. See specific providerParameters fields for details about their defaults.",
 }
 
 func (LoadBalancerStrategy) SwaggerDoc() map[string]string {
@@ -472,6 +510,16 @@ var map_PrivateStrategy = map[string]string{
 
 func (PrivateStrategy) SwaggerDoc() map[string]string {
 	return map_PrivateStrategy
+}
+
+var map_ProviderLoadBalancerParameters = map[string]string{
+	"":     "ProviderLoadBalancerParameters holds desired load balancer information specific to the underlying infrastructure provider.",
+	"type": "type is the underlying infrastructure provider for the load balancer. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"OpenStack\", and \"VSphere\".",
+	"aws":  "aws provides configuration settings that are specific to AWS load balancers.\n\nIf empty, defaults will be applied. See specific aws fields for details about their defaults.",
+}
+
+func (ProviderLoadBalancerParameters) SwaggerDoc() map[string]string {
+	return map_ProviderLoadBalancerParameters
 }
 
 var map_RouteAdmissionPolicy = map[string]string{
@@ -584,7 +632,8 @@ func (DefaultNetworkDefinition) SwaggerDoc() map[string]string {
 }
 
 var map_HybridOverlayConfig = map[string]string{
-	"hybridClusterNetwork": "HybridClusterNetwork defines a network space given to nodes on an additional overlay network.",
+	"hybridClusterNetwork":   "HybridClusterNetwork defines a network space given to nodes on an additional overlay network.",
+	"hybridOverlayVXLANPort": "HybridOverlayVXLANPort defines the VXLAN port number to be used by the additional overlay network. Default is 4789",
 }
 
 func (HybridOverlayConfig) SwaggerDoc() map[string]string {
@@ -859,6 +908,40 @@ var map_ServiceCatalogControllerManagerList = map[string]string{
 
 func (ServiceCatalogControllerManagerList) SwaggerDoc() map[string]string {
 	return map_ServiceCatalogControllerManagerList
+}
+
+var map_Storage = map[string]string{
+	"":       "Storage provides a means to configure an operator to manage the cluster storage operator. `cluster` is the canonical name.",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
+}
+
+func (Storage) SwaggerDoc() map[string]string {
+	return map_Storage
+}
+
+var map_StorageList = map[string]string{
+	"": "StorageList contains a list of Storages.",
+}
+
+func (StorageList) SwaggerDoc() map[string]string {
+	return map_StorageList
+}
+
+var map_StorageSpec = map[string]string{
+	"": "StorageSpec is the specification of the desired behavior of the cluster storage operator.",
+}
+
+func (StorageSpec) SwaggerDoc() map[string]string {
+	return map_StorageSpec
+}
+
+var map_StorageStatus = map[string]string{
+	"": "StorageStatus defines the observed status of the cluster storage operator.",
+}
+
+func (StorageStatus) SwaggerDoc() map[string]string {
+	return map_StorageStatus
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

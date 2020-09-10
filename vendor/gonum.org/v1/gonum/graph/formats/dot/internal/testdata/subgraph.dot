@@ -1,5 +1,0 @@
-digraph {
-	{A}
-	subgraph {B}
-	subgraph S {C}
-}

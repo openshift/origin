@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	appsapi "k8s.io/kubernetes/pkg/apis/apps"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	oapps "github.com/openshift/api/apps"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
@@ -34,6 +35,7 @@ import (
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
@@ -255,6 +257,12 @@ func (test resourceAccessReviewTest) run() {
 				if strings.HasPrefix(curr, "system:serviceaccount:openshift-") {
 					continue
 				}
+				// ibmcloud openshift has an IAM user that needs to be ignored
+				if e2e.TestContext.Provider == ibmcloud.ProviderName {
+					if strings.HasPrefix(curr, "IAM#") {
+						continue
+					}
+				}
 				actualUsersToCheck.Insert(curr)
 			}
 
@@ -334,6 +342,12 @@ func (test localResourceAccessReviewTest) run() {
 			for _, curr := range actualResponse.UsersSlice {
 				if strings.HasPrefix(curr, "system:serviceaccount:openshift-") {
 					continue
+				}
+				// ibmcloud openshift has an IAM user that needs to be ignored
+				if e2e.TestContext.Provider == ibmcloud.ProviderName {
+					if strings.HasPrefix(curr, "IAM#") {
+						continue
+					}
 				}
 				// skip the ci provisioner to pass gcp: ci-provisioner@openshift-gce-devel-ci.iam.gserviceaccount.com
 				if strings.HasPrefix(curr, "ci-provisioner@") {

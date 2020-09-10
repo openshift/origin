@@ -139,11 +139,17 @@ func (m *Monitor) Events(from, to time.Time) EventIntervals {
 		if i > 0 && events[i-1].At.After(events[i].At) {
 			fmt.Printf("ERROR: event %d out of order\n  %#v\n  %#v\n", i, events[i-1], events[i])
 		}
-		at := events[i].At
+
+		to := events[i].At
+		from := events[i].InitiatedAt
+		if from.IsZero() {
+			from = to
+		}
+
 		condition := &events[i].Condition
 		intervals = append(intervals, &EventInterval{
-			From:      at,
-			To:        at,
+			From:      from,
+			To:        to,
 			Condition: condition,
 		})
 	}

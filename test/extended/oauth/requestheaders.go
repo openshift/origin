@@ -479,7 +479,11 @@ func getTokenFromResponse(resp *http.Response) string {
 	locationTokenRegexp := regexp.MustCompile("access_token=([^&]*)")
 
 	if matches := locationTokenRegexp.FindStringSubmatch(locationHeader); len(matches) > 1 {
-		return matches[1]
+		token, err := url.QueryUnescape(matches[1])
+		if err != nil {
+			return "<query-unescape-failed-in-getTokenFromResponse>"
+		}
+		return token
 	}
 
 	return ""

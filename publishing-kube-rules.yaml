@@ -7,6 +7,7 @@ recursive-delete-patterns:
 - BUILD.bazel
 - "*/BUILD.bazel"
 rules:
+
 # origin-4.5-kubernetes-1.18.3
 - destination: kubernetes-api
   branches:

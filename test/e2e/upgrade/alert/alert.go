@@ -34,7 +34,7 @@ type UpgradeTest struct {
 
 func (UpgradeTest) Name() string { return "check-for-critical-alerts" }
 func (UpgradeTest) DisplayName() string {
-	return "Check if critical alerts are firing after upgrade success"
+	return "[sig-arch] Check if critical alerts are firing after upgrade success"
 }
 
 // Setup creates parameters to query Prometheus
@@ -94,7 +94,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 
 	helper.RunQueries(tests, t.oc, ns, execPod.Name, t.url, t.bearerToken)
 
-	framework.Logf("No crtical alerts firing post-upgrade")
+	framework.Logf("No critical alerts firing post-upgrade")
 }
 
 // Teardown cleans up any remaining resources.

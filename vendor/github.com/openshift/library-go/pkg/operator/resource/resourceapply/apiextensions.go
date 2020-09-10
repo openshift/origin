@@ -11,7 +11,7 @@ import (
 	apiextclientv1beta1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // ApplyCustomResourceDefinitionV1Beta1 applies the required CustomResourceDefinition to the cluster.
@@ -33,7 +33,7 @@ func ApplyCustomResourceDefinitionV1Beta1(client apiextclientv1beta1.CustomResou
 		return existing, false, nil
 	}
 
-	if klog.V(4) {
+	if klog.V(4).Enabled() {
 		klog.Infof("CustomResourceDefinition %q changes: %s", existing.Name, JSONPatchNoError(existing, existingCopy))
 	}
 
@@ -62,7 +62,7 @@ func ApplyCustomResourceDefinitionV1(client apiextclientv1.CustomResourceDefinit
 		return existing, false, nil
 	}
 
-	if klog.V(4) {
+	if klog.V(4).Enabled() {
 		klog.Infof("CustomResourceDefinition %q changes: %s", existing.Name, JSONPatchNoError(existing, existingCopy))
 	}
 

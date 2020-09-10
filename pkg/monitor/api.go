@@ -20,6 +20,7 @@ import (
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	clientimagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	clientoauthv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 )
 
 // Start begins monitoring the cluster referenced by the default kube configuration until
@@ -44,6 +45,9 @@ func Start(ctx context.Context) (*Monitor, error) {
 		return nil, err
 	}
 	if err := StartOpenShiftAPIMonitoring(ctx, m, clusterConfig, 5*time.Second); err != nil {
+		return nil, err
+	}
+	if err := StartOAuthAPIMonitoring(ctx, m, clusterConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
 	startPodMonitoring(ctx, m, client)
@@ -123,6 +127,44 @@ func StartOpenShiftAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig 
 			Level:   Error,
 			Locator: "openshift-apiserver",
 			Message: fmt.Sprintf("OpenShift API is not responding to GET requests"),
+		}),
+	)
+	return nil
+}
+
+func StartOAuthAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
+	pollingConfig := *clusterConfig
+	pollingConfig.Timeout = timeout
+	pollingClient, err := clientoauthv1.NewForConfig(&pollingConfig)
+	if err != nil {
+		return err
+	}
+
+	m.AddSampler(
+		StartSampling(ctx, m, time.Second, func(previous bool) (condition *Condition, next bool) {
+			_, err := pollingClient.OAuthAccessTokens().Get(ctx, "missing", metav1.GetOptions{})
+			if !errors.IsUnexpectedServerError(err) && errors.IsNotFound(err) {
+				err = nil
+			}
+			switch {
+			case err == nil && !previous:
+				condition = &Condition{
+					Level:   Info,
+					Locator: "oauth-apiserver",
+					Message: "OAuth API started responding to GET requests",
+				}
+			case err != nil && previous:
+				condition = &Condition{
+					Level:   Info,
+					Locator: "oauth-apiserver",
+					Message: fmt.Sprintf("OAuth API stopped responding to GET requests: %v", err),
+				}
+			}
+			return condition, err == nil
+		}).ConditionWhenFailing(&Condition{
+			Level:   Error,
+			Locator: "oauth-apiserver",
+			Message: fmt.Sprintf("OAuth API is not responding to GET requests"),
 		}),
 	)
 	return nil

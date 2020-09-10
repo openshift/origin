@@ -1,24 +1,10 @@
 package extended
 
-//go:generate go run ./util/annotate -- ./util/annotate/generated/zz_generated.annotations.go
+//go:generate go run -mod vendor ./util/annotate -- ./util/annotate/generated/zz_generated.annotations.go
 
 import (
-	_ "k8s.io/kubernetes/test/e2e"
-
-	// test sources
-	_ "k8s.io/kubernetes/test/e2e/apimachinery"
-	_ "k8s.io/kubernetes/test/e2e/apps"
-	_ "k8s.io/kubernetes/test/e2e/auth"
-	_ "k8s.io/kubernetes/test/e2e/autoscaling"
-	_ "k8s.io/kubernetes/test/e2e/common"
-	_ "k8s.io/kubernetes/test/e2e/instrumentation"
-	_ "k8s.io/kubernetes/test/e2e/kubectl"
-
-	_ "k8s.io/kubernetes/test/e2e/network"
-	_ "k8s.io/kubernetes/test/e2e/node"
-	_ "k8s.io/kubernetes/test/e2e/scheduling"
-	_ "k8s.io/kubernetes/test/e2e/servicecatalog"
-	_ "k8s.io/kubernetes/test/e2e/storage"
+	// openshift/kubernetes defines the set of kube tests that should be included
+	_ "k8s.io/kubernetes/openshift-hack/e2e"
 
 	_ "github.com/openshift/origin/test/extended/apiserver"
 	_ "github.com/openshift/origin/test/extended/authentication"
@@ -42,9 +28,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/images"
 	_ "github.com/openshift/origin/test/extended/images/trigger"
 	_ "github.com/openshift/origin/test/extended/jobs"
-	_ "github.com/openshift/origin/test/extended/localquota"
 	_ "github.com/openshift/origin/test/extended/machines"
-	_ "github.com/openshift/origin/test/extended/marketplace"
 	_ "github.com/openshift/origin/test/extended/networking"
 	_ "github.com/openshift/origin/test/extended/oauth"
 	_ "github.com/openshift/origin/test/extended/operators"
@@ -53,6 +37,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/quota"
 	_ "github.com/openshift/origin/test/extended/router"
 	_ "github.com/openshift/origin/test/extended/security"
+	_ "github.com/openshift/origin/test/extended/tbr_health"
 	_ "github.com/openshift/origin/test/extended/templates"
 	_ "github.com/openshift/origin/test/extended/topology_manager"
 	_ "github.com/openshift/origin/test/extended/user"

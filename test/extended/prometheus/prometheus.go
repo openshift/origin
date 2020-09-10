@@ -64,7 +64,9 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 
 		tests := map[string]bool{
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
-			`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity!="info"}[2h]) >= 1`: false,
+			// TODO: remove KubePodCrashLooping subtraction logic once https://bugzilla.redhat.com/show_bug.cgi?id=1842002
+			// is fixed, but for now we are ignoring KubePodCrashLooping alerts in the openshift-kube-controller-manager namespace.
+			`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity!="info"}[2h]) - count_over_time(ALERTS{alertname="KubePodCrashLooping",namespace="openshift-kube-controller-manager",alertstate="firing",severity!="info"}[2h]) >= 1`: false,
 		}
 		helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 	})
@@ -230,8 +232,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 						targets.Expect(labels{"job": "kube-state-metrics"}, "up", "^https://.*/metrics$"),
 
 						// Cluster version operator
-						// TODO: should probably be https
-						targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^http://.*/metrics$"),
+						targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^https://.*/metrics$"),
 					)
 				}
 
@@ -261,20 +262,12 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Currently following targets do not secure their /metrics endpoints:
-			// job="cco-metrics" - https://bugzilla.redhat.com/show_bug.cgi?id=1809194
-			// job="cluster-version-operator" - https://bugzilla.redhat.com/show_bug.cgi?id=1809195
 			// job="crio" - https://issues.redhat.com/browse/MON-1034 + https://issues.redhat.com/browse/OCPNODE-321
-			// job="sdn" - https://bugzilla.redhat.com/show_bug.cgi?id=1809205
-			// job="multus-admission-controller-monitor-service" - https://bugzilla.redhat.com/show_bug.cgi?id=1809204
 			// job="ovnkube-master" - https://issues.redhat.com/browse/SDN-912
 			// job="ovnkube-node" - https://issues.redhat.com/browse/SDN-912
 			// Exclude list should be reduced to 0
 			exclude := map[string]bool{
-				"cco-metrics":              true,
-				"cluster-version-operator": true,
-				"crio":                     true,
-				"sdn":                      true,
-				"multus-admission-controller-monitor-service": true,
+				"crio":           true,
 				"ovnkube-master": true,
 				"ovnkube-node":   true,
 			}
@@ -424,6 +417,37 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			queries := map[string]bool{
 				`template_router_reload_seconds_count{job="router-internal-default"} >= 1`: true,
 				`haproxy_server_up{job="router-internal-default"} >= 1`:                    true,
+			}
+			helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
+		})
+		g.It("should provide named network metrics", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+
+			cs, err := newDynClientSet()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = addNetwork(cs, "secondary", ns)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			defer func() {
+				err := removeNetwork(cs, "secondary", ns)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}()
+
+			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) {
+				pod.Annotations = map[string]string{
+					"k8s.v1.cni.cncf.io/networks": "secondary",
+				}
+			})
+
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
+
+			g.By("verifying named metrics keys")
+			queries := map[string]bool{
+				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",interface="eth0"} == 0`, execPod.Name, execPod.Namespace):                true,
+				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",network_name="%s/secondary"} == 0`, execPod.Name, execPod.Namespace, ns): true,
 			}
 			helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
 		})

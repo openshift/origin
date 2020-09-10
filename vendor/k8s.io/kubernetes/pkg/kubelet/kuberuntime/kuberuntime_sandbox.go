@@ -20,16 +20,18 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"runtime"
 	"sort"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kubetypes "k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/features"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/types"
+	"k8s.io/kubernetes/pkg/kubelet/util"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
 )
 
@@ -96,11 +98,15 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxConfig(pod *v1.Pod, attemp
 
 	if !kubecontainer.IsHostNetworkPod(pod) {
 		// TODO: Add domain support in new runtime interface
-		hostname, _, err := m.runtimeHelper.GeneratePodHostNameAndDomain(pod)
+		podHostname, podDomain, err := m.runtimeHelper.GeneratePodHostNameAndDomain(pod)
 		if err != nil {
 			return nil, err
 		}
-		podSandboxConfig.Hostname = hostname
+		podHostname, err = util.GetNodenameForKernel(podHostname, podDomain, pod.Spec.SetHostnameAsFQDN)
+		if err != nil {
+			return nil, err
+		}
+		podSandboxConfig.Hostname = podHostname
 	}
 
 	logDir := BuildPodLogsDirectory(pod.Namespace, pod.Name, pod.UID)
@@ -138,13 +144,19 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxConfig(pod *v1.Pod, attemp
 }
 
 // generatePodSandboxLinuxConfig generates LinuxPodSandboxConfig from v1.Pod.
+// We've to call PodSandboxLinuxConfig always irrespective of the underlying OS as securityContext is not part of
+// podSandboxConfig. It is currently part of LinuxPodSandboxConfig. In future, if we have securityContext pulled out
+// in podSandboxConfig we should be able to use it.
 func (m *kubeGenericRuntimeManager) generatePodSandboxLinuxConfig(pod *v1.Pod) (*runtimeapi.LinuxPodSandboxConfig, error) {
 	cgroupParent := m.runtimeHelper.GetPodCgroupParent(pod)
 	lc := &runtimeapi.LinuxPodSandboxConfig{
 		CgroupParent: cgroupParent,
 		SecurityContext: &runtimeapi.LinuxSandboxSecurityContext{
-			Privileged:         kubecontainer.HasPrivilegedContainer(pod),
-			SeccompProfilePath: m.getSeccompProfileFromAnnotations(pod.Annotations, ""),
+			Privileged: kubecontainer.HasPrivilegedContainer(pod),
+
+			// Forcing sandbox to run as `runtime/default` allow users to
+			// use least privileged seccomp profiles at pod level. Issue #84623
+			SeccompProfilePath: v1.SeccompProfileRuntimeDefault,
 		},
 	}
 
@@ -161,15 +173,15 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxLinuxConfig(pod *v1.Pod) (
 
 	if pod.Spec.SecurityContext != nil {
 		sc := pod.Spec.SecurityContext
-		if sc.RunAsUser != nil {
+		if sc.RunAsUser != nil && runtime.GOOS != "windows" {
 			lc.SecurityContext.RunAsUser = &runtimeapi.Int64Value{Value: int64(*sc.RunAsUser)}
 		}
-		if sc.RunAsGroup != nil {
+		if sc.RunAsGroup != nil && runtime.GOOS != "windows" {
 			lc.SecurityContext.RunAsGroup = &runtimeapi.Int64Value{Value: int64(*sc.RunAsGroup)}
 		}
 		lc.SecurityContext.NamespaceOptions = namespacesForPod(pod)
 
-		if sc.FSGroup != nil {
+		if sc.FSGroup != nil && runtime.GOOS != "windows" {
 			lc.SecurityContext.SupplementalGroups = append(lc.SecurityContext.SupplementalGroups, int64(*sc.FSGroup))
 		}
 		if groups := m.runtimeHelper.GetExtraSupplementalGroupsForPod(pod); len(groups) > 0 {
@@ -180,7 +192,7 @@ func (m *kubeGenericRuntimeManager) generatePodSandboxLinuxConfig(pod *v1.Pod) (
 				lc.SecurityContext.SupplementalGroups = append(lc.SecurityContext.SupplementalGroups, int64(sg))
 			}
 		}
-		if sc.SELinuxOptions != nil {
+		if sc.SELinuxOptions != nil && runtime.GOOS != "windows" {
 			lc.SecurityContext.SelinuxOptions = &runtimeapi.SELinuxOption{
 				User:  sc.SELinuxOptions.User,
 				Role:  sc.SELinuxOptions.Role,
