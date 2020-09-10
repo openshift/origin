@@ -669,9 +669,11 @@ func (oc *ovsController) UpdateVXLANMulticastFlows(remoteIPs []string) error {
 
 // FindPolicyVNIDs returns the set of VNIDs for which there are currently "policy" rules
 // in OVS. (This is used to reinitialize the osdnPolicy after a restart.)
+// We also include inUseVNIDs because if a namespace has only a deny all rule
+// policyVNIDs won't include that namespace.
 func (oc *ovsController) FindPolicyVNIDs() sets.Int {
-	_, policyVNIDs := oc.findInUseAndPolicyVNIDs()
-	return policyVNIDs
+	inUseVNIDs, policyVNIDs := oc.findInUseAndPolicyVNIDs()
+	return inUseVNIDs.Union(policyVNIDs)
 }
 
 // FindUnusedVNIDs returns a list of VNIDs for which there are table 80 "policy" rules,
@@ -682,12 +684,16 @@ func (oc *ovsController) FindPolicyVNIDs() sets.Int {
 // race condition.
 func (oc *ovsController) FindUnusedVNIDs() []int {
 	inUseVNIDs, policyVNIDs := oc.findInUseAndPolicyVNIDs()
+	// VNID 0 is always in use, even if there aren't any flows for it in table 60/70
+	inUseVNIDs.Insert(0)
 	return policyVNIDs.Difference(inUseVNIDs).UnsortedList()
 }
 
+// findInUseAndPolicyVNIDs returns two sets: the VNIDs that are currently in use by pods
+// or services on this node, and the VNIDs that are currently in use by NetworkPolicies
+// on this node.
 func (oc *ovsController) findInUseAndPolicyVNIDs() (sets.Int, sets.Int) {
-	// VNID 0 is always in use, even if there aren't any explicit flows for it
-	inUseVNIDs := sets.NewInt(0)
+	inUseVNIDs := sets.NewInt()
 	policyVNIDs := sets.NewInt()
 
 	flows, err := oc.ovs.DumpFlows("")
