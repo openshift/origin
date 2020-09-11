@@ -347,9 +347,11 @@ func (e *Exporter) CollectNow() {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
+	now := time.Now()
+
 	e.resetMetrics()
 	e.scrape(true)
-	e.lastScrape = nil
+	e.lastScrape = &now
 }
 
 func fetchHTTP(uri string, timeout time.Duration) func() (io.ReadCloser, error) {
