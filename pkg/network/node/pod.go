@@ -171,15 +171,7 @@ func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) 
 }
 
 // Start the CNI server and start processing requests from it
-func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork, serviceNetworkCIDR string, clearHostPorts bool) error {
-	if m.enableHostports {
-		iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIpv4)
-		m.hostportSyncer = kubehostport.NewHostportSyncer(iptInterface)
-		if clearHostPorts {
-			_ = m.hostportSyncer.SyncHostports(Tun0, nil)
-		}
-	}
-
+func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork, serviceNetworkCIDR string) error {
 	var err error
 	if m.ipamConfig, err = getIPAMConfig(clusterNetworks, localSubnetCIDR); err != nil {
 		return err
@@ -191,42 +183,46 @@ func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetwork
 	return m.cniServer.Start(m.handleCNIRequest)
 }
 
-func (m *podManager) InitRunningPods(existingSandboxPods map[string]*kruntimeapi.PodSandbox, existingOFPodNetworks map[string]podNetworkInfo, cRunningPods []kapi.Pod) error {
+func (m *podManager) InitRunningPods(existingSandboxPods map[string]*kruntimeapi.PodSandbox, existingOFPodNetworks map[string]podNetworkInfo, cRunningPods map[string]kapi.Pod, clearHostPorts bool) error {
 	m.runningPodsLock.Lock()
 	defer m.runningPodsLock.Unlock()
-
-	for _, cPod := range cRunningPods {
-		cKey := getPodKey(cPod.Namespace, cPod.Name)
-
+	if m.enableHostports {
+		iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIpv4)
+		m.hostportSyncer = kubehostport.NewHostportSyncer(iptInterface)
+		if clearHostPorts {
+			_ = m.hostportSyncer.SyncHostports(Tun0, nil)
+		}
+	}
+	for _, sandbox := range existingSandboxPods {
+		cKey := getPodKey(sandbox.Metadata.Namespace, sandbox.Metadata.Name)
+		cPod, exists := cRunningPods[cKey]
+		if !exists {
+			glog.Warningf("No running pod for ready sandbox: %s with sandbox id: %s", cKey, sandbox.Id)
+			continue
+		}
 		var v1Pod v1.Pod
 		if err := kapiv1.Convert_core_Pod_To_v1_Pod(&cPod, &v1Pod, nil); err != nil {
 			glog.Warningf("Could not convert core pod: %s to v1Pod", cKey)
 			continue
 		}
-
 		podPortMapping := constructPodPortMapping(&v1Pod, net.ParseIP(v1Pod.Status.PodIP))
-
 		vnid, err := m.policy.GetVNID(cPod.Namespace)
 		if err != nil {
 			glog.Warningf("No VNID for pod %s", cKey)
 			continue
 		}
-
-		sandbox, ok := existingSandboxPods[cKey]
-		if !ok {
-			glog.Warningf("No sandbox for pod %s", cKey)
-			continue
-		}
-
 		podNetworkInfo, ok := existingOFPodNetworks[sandbox.Id]
 		if !ok {
 			glog.Warningf("No network information for pod %s", cKey)
 			continue
 		}
-
 		m.runningPods[cKey] = &runningPod{podPortMapping: podPortMapping, vnid: vnid, ofport: podNetworkInfo.ofport}
+		if mappings := m.shouldSyncHostports(podPortMapping); mappings != nil {
+			if err := m.hostportSyncer.OpenPodHostportsAndSync(podPortMapping, Tun0, mappings); err != nil {
+				glog.Errorf("Could not initialize hostport syncer for pod: %s, err: %v", cKey, err)
+			}
+		}
 	}
-
 	glog.V(5).Infof("Finished initializing podManager with running pods at start-up")
 	return nil
 }
