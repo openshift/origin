@@ -1,0 +1,12 @@
+#FROM registry.svc.ci.openshift.org/ocp/builder:rhel-8-golang-openshift-4.6 AS builder
+FROM registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:rhel_8_golang_1.14 AS builder
+WORKDIR /go/src/github.com/openshift/hello-openshift
+COPY examples/hello-openshift .
+RUN go build -o /hello-openshift
+
+#FROM registry.svc.ci.openshift.org/ocp/builder:rhel-8-base-openshift-4.6
+FROM ubi8
+COPY --from=builder /hello-openshift /hello-openshift
+EXPOSE 8080 8888
+USER 1001
+ENTRYPOINT ["/hello-openshift"]
