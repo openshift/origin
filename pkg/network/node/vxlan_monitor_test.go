@@ -254,20 +254,19 @@ func TestEgressVXLANMonitor(t *testing.T) {
 	}
 
 	update := peekUpdate(updates, evm)
-	// Because we're doing the node updates sequentially we can expect
-	// the nodes to be marked offline in a specific order.
-	// It doesn't really matter, but it's unexpected enough to raise an error.
 	if update == nil {
 		t.Fatalf("Nodes failed to go offline")
-	} else if update[0].nodeIP != "192.168.1.1" {
-		t.Fatalf("Expected update[0] to be 192.168.1.1: %#v", update)
-	} else if !update[0].offline {
-		t.Fatalf("192.168.1.1 unexpectedly online: %#v", update)
-	} else if update[1].nodeIP != "192.168.1.3" {
-		t.Fatalf("Expected update[1] to be 192.168.1.3: %#v", update)
-	} else if !update[1].offline {
-		t.Fatalf("192.168.1.3 unexpectedly online: %#v", update)
 	} else if len(update) != 2 {
-		t.Fatalf("Check erroneously showed additional updated nodes %#v", update)
+		t.Fatalf("Check return wrong number of updates %#v", update)
+	}
+
+	// GetUpdates returns the updates in a random order
+	if !(update[0].nodeIP == "192.168.1.1" && update[1].nodeIP == "192.168.1.3") &&
+		!(update[0].nodeIP == "192.168.1.3" && update[1].nodeIP == "192.168.1.1") {
+		t.Fatalf("Expected one update for 192.168.1.1 and one for 192.168.1.3: %#v", update)
+	} else if !update[0].offline {
+		t.Fatalf("%s unexpectedly online: %#v", update[0].nodeIP, update)
+	} else if !update[1].offline {
+		t.Fatalf("%s unexpectedly online: %#v", update[1].nodeIP, update)
 	}
 }
