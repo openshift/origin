@@ -773,6 +773,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] Managed cluster should have operators on the cluster version": "have operators on the cluster version [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch] Managed cluster should install quickly": "install quickly [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive]": "when operator-owned objects are deleted [Disruptive] [Serial] [Suite:openshift]",
 
 	"[Top Level] [sig-arch] Managed cluster should should expose cluster services outside the cluster": "should expose cluster services outside the cluster [Suite:openshift/conformance/parallel]",
