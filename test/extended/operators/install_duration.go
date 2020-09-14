@@ -48,13 +48,31 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 		}
 		installDuration := installCompleteTime.Sub(startTime.Time)
 
+		// this is consumed after the process is done to fake a junit duration
+		e2e.Logf("OVERRIDE_DURATION=%v", installDuration)
+		result.Flakef("install took %0.2f minutes", installDuration.Minutes())
+	})
+
+	g.It("bootstrap quickly", func() {
+		// read when bootstrapping completed
+		kubeConfig, err := e2e.LoadConfig()
+		o.Expect(err).ToNot(o.HaveOccurred())
+		configClient, err := configclient.NewForConfig(kubeConfig)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		clusterVersion, err := configClient.ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// clusterVersion is one of the first created resources, use that as "when the install started"
+		startTime := clusterVersion.CreationTimestamp
+
 		kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		bootstrapCompleteConfigMap, err := kubeClient.CoreV1().ConfigMaps("kube-system").Get(context.Background(), "bootstrap", metav1.GetOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 		bootstrapDuration := bootstrapCompleteConfigMap.CreationTimestamp.Sub(startTime.Time)
 
-		// TODO figure out how to make a fake junit test with this duration for test-grid/sippy to inspect
-		result.Flakef("bootstrapping took %0.2f minutes; install took %0.2f minutes", bootstrapDuration.Minutes(), installDuration.Minutes())
+		// this is consumed after the process is done to fake a junit duration
+		e2e.Logf("OVERRIDE_DURATION=%v", bootstrapDuration)
+		result.Flakef("bootstrapping took %0.2f minutes", bootstrapDuration.Minutes())
 	})
 })

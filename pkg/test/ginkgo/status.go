@@ -1,6 +1,7 @@
 package ginkgo
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -123,6 +124,26 @@ func (s *testStatus) Run(ctx context.Context, test *testCase) {
 		duration = duration.Round(time.Second)
 	}
 	test.duration = duration
+	// this provides a way for a test to provide a fake duration in the junit output.  This allows for cases where a test's duration will
+	// allow us to track some level of perf over time.  Think about things like install duration on every platform type.
+	lineScanner := bufio.NewScanner(bytes.NewReader(out))
+	for lineScanner.Scan() {
+		line := lineScanner.Text()
+		index := strings.Index(line, "OVERRIDE_DURATION=")
+		if index != -1 {
+			continue
+		}
+		duration, err := time.ParseDuration(line[index+len("OVERRIDE_DURATION="):])
+		if err != nil {
+			panic(err)
+		}
+		if duration > time.Minute {
+			duration = duration.Round(time.Second)
+		}
+		test.duration = duration
+		break
+	}
+
 	test.out = out
 	if err == nil {
 		test.success = true
