@@ -1793,7 +1793,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide named network metrics": "should provide named network metrics [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should report telemetry if a cloud.openshift.com token is present": "should report telemetry if a cloud.openshift.com token is present [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should report telemetry if a cloud.openshift.com token is present [Late]": "should report telemetry if a cloud.openshift.com token is present [Late] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should start and expose a secured proxy and unsecured metrics": "should start and expose a secured proxy and unsecured metrics [Suite:openshift/conformance/parallel]",
 
