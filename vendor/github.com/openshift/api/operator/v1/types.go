@@ -51,7 +51,11 @@ type OperatorSpec struct {
 
 	// logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a
 	// simple way to manage coarse grained logging choices that operators have to interpret for their operands.
+	//
+	// Valid values are: "Normal", "Debug", "Trace", "TraceAll".
+	// Defaults to "Normal".
 	// +optional
+	// +kubebuilder:default=Normal
 	LogLevel LogLevel `json:"logLevel"`
 
 	// operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a

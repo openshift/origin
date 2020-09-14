@@ -10,10 +10,13 @@ import (
 )
 
 // FeatureGateLister helps list FeatureGates.
+// All objects returned here must be treated as read-only.
 type FeatureGateLister interface {
 	// List lists all FeatureGates in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.FeatureGate, err error)
 	// Get retrieves the FeatureGate from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.FeatureGate, error)
 	FeatureGateListerExpansion
 }

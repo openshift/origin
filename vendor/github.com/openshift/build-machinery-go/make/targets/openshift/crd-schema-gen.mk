@@ -2,8 +2,16 @@ self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
 
 # $1 - crd file
 # $2 - patch file
-define patch-crd
+define patch-crd-yq
 	$(YQ) m -i -x '$(1)' '$(2)'
+
+endef
+
+# $1 - crd file
+# $2 - patch file
+define patch-crd-yaml-patch
+	$(YAML_PATCH) -o '$(2)' < '$(1)' > '$(1).patched'
+    mv '$(1).patched' '$(1)'
 
 endef
 
@@ -22,7 +30,8 @@ define run-crd-gen
 		schemapatch:manifests="$(2)" \
 		paths="$(subst $(empty) ,;,$(1))" \
 		output:dir="$(3)"
-	$$(foreach p,$$(wildcard $(2)/*.crd.yaml-merge-patch),$$(call patch-crd,$$(subst $(2),$(3),$$(basename $$(p))).yaml,$$(p)))
+	$$(foreach p,$$(wildcard $(2)/*.crd.yaml-merge-patch),$$(call patch-crd-yq,$$(subst $(2),$(3),$$(basename $$(p))).yaml,$$(p)))
+	$$(foreach p,$$(wildcard $(2)/*.crd.yaml-patch),$$(call patch-crd-yaml-patch,$$(subst $(2),$(3),$$(basename $$(p))).yaml,$$(p)))
 endef
 
 
@@ -32,7 +41,7 @@ endef
 # $4 - output
 define add-crd-gen-internal
 
-update-codegen-crds-$(1): ensure-controller-gen ensure-yq
+update-codegen-crds-$(1): ensure-controller-gen ensure-yq ensure-yaml-patch
 	$(call run-crd-gen,$(2),$(3),$(4))
 .PHONY: update-codegen-crds-$(1)
 
@@ -40,7 +49,7 @@ update-codegen-crds: update-codegen-crds-$(1)
 .PHONY: update-codegen-crds
 
 verify-codegen-crds-$(1): VERIFY_CODEGEN_CRD_TMP_DIR:=$$(shell mktemp -d)
-verify-codegen-crds-$(1): ensure-controller-gen ensure-yq
+verify-codegen-crds-$(1): ensure-controller-gen ensure-yq ensure-yaml-patch
 	$(call run-crd-gen,$(2),$(3),$$(VERIFY_CODEGEN_CRD_TMP_DIR))
 	$$(foreach p,$$(wildcard $(3)/*crd.yaml),$$(call diff-file,$$(p),$$(subst $(3),$$(VERIFY_CODEGEN_CRD_TMP_DIR),$$(p))))
 .PHONY: verify-codegen-crds-$(1)
@@ -77,4 +86,5 @@ include $(addprefix $(self_dir), \
 	../../lib/tmp.mk \
 	../../targets/openshift/controller-gen.mk \
 	../../targets/openshift/yq.mk \
+    ../../targets/openshift/yaml-patch.mk \
 )

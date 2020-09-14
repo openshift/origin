@@ -1,0 +1,9 @@
+- op: add
+  path: /spec/versions/name=v1/schema/openAPIV3Schema/properties/metadata/properties
+  value:
+    name:
+      type: string
+      enum:
+      - ebs.csi.aws.com
+      - manila.csi.openstack.org
+      - csi.ovirt.org

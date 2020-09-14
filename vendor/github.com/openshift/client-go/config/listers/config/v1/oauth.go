@@ -10,10 +10,13 @@ import (
 )
 
 // OAuthLister helps list OAuths.
+// All objects returned here must be treated as read-only.
 type OAuthLister interface {
 	// List lists all OAuths in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.OAuth, err error)
 	// Get retrieves the OAuth from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.OAuth, error)
 	OAuthListerExpansion
 }
