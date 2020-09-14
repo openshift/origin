@@ -129,7 +129,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 	})
 
 	g.Describe("when installed on the cluster", func() {
-		g.It("should report telemetry if a cloud.openshift.com token is present", func() {
+		g.It("should report telemetry if a cloud.openshift.com token is present [Late]", func() {
 			if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 				e2eskipper.Skipf("Telemetry is disabled")
 			}
