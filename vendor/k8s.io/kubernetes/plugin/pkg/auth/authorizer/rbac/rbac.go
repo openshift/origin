@@ -44,7 +44,7 @@ type RequestToRuleMapper interface {
 	// VisitRulesFor invokes visitor() with each rule that applies to a given user in a given namespace,
 	// and each error encountered resolving those rules. Rule may be nil if err is non-nil.
 	// If visitor() returns false, visiting is short-circuited.
-	VisitRulesFor(user user.Info, namespace string, visitor func(source fmt.Stringer, rule *rbacv1.PolicyRule, err error) bool)
+	VisitRulesFor(user user.Info, namespace string, visitor func(source fmt.Stringer, rule *rbacv1.PolicyRule, err error) bool) string
 }
 
 type RBACAuthorizer struct {
@@ -75,49 +75,47 @@ func (v *authorizingVisitor) visit(source fmt.Stringer, rule *rbacv1.PolicyRule,
 func (r *RBACAuthorizer) Authorize(ctx context.Context, requestAttributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	ruleCheckingVisitor := &authorizingVisitor{requestAttributes: requestAttributes}
 
-	r.authorizationRuleResolver.VisitRulesFor(requestAttributes.GetUser(), requestAttributes.GetNamespace(), ruleCheckingVisitor.visit)
+	traceStr := r.authorizationRuleResolver.VisitRulesFor(requestAttributes.GetUser(), requestAttributes.GetNamespace(), ruleCheckingVisitor.visit)
 	if ruleCheckingVisitor.allowed {
 		return authorizer.DecisionAllow, ruleCheckingVisitor.reason, nil
 	}
 
 	// Build a detailed log of the denial.
 	// Make the whole block conditional so we don't do a lot of string-building we won't use.
-	if klog.V(5).Enabled() {
-		var operation string
-		if requestAttributes.IsResourceRequest() {
-			b := &bytes.Buffer{}
-			b.WriteString(`"`)
-			b.WriteString(requestAttributes.GetVerb())
-			b.WriteString(`" resource "`)
-			b.WriteString(requestAttributes.GetResource())
-			if len(requestAttributes.GetAPIGroup()) > 0 {
-				b.WriteString(`.`)
-				b.WriteString(requestAttributes.GetAPIGroup())
-			}
-			if len(requestAttributes.GetSubresource()) > 0 {
-				b.WriteString(`/`)
-				b.WriteString(requestAttributes.GetSubresource())
-			}
-			b.WriteString(`"`)
-			if len(requestAttributes.GetName()) > 0 {
-				b.WriteString(` named "`)
-				b.WriteString(requestAttributes.GetName())
-				b.WriteString(`"`)
-			}
-			operation = b.String()
-		} else {
-			operation = fmt.Sprintf("%q nonResourceURL %q", requestAttributes.GetVerb(), requestAttributes.GetPath())
+	var operation string
+	if requestAttributes.IsResourceRequest() {
+		b := &bytes.Buffer{}
+		b.WriteString(`"`)
+		b.WriteString(requestAttributes.GetVerb())
+		b.WriteString(`" resource "`)
+		b.WriteString(requestAttributes.GetResource())
+		if len(requestAttributes.GetAPIGroup()) > 0 {
+			b.WriteString(`.`)
+			b.WriteString(requestAttributes.GetAPIGroup())
 		}
-
-		var scope string
-		if ns := requestAttributes.GetNamespace(); len(ns) > 0 {
-			scope = fmt.Sprintf("in namespace %q", ns)
-		} else {
-			scope = "cluster-wide"
+		if len(requestAttributes.GetSubresource()) > 0 {
+			b.WriteString(`/`)
+			b.WriteString(requestAttributes.GetSubresource())
 		}
-
-		klog.Infof("RBAC: no rules authorize user %q with groups %q to %s %s", requestAttributes.GetUser().GetName(), requestAttributes.GetUser().GetGroups(), operation, scope)
+		b.WriteString(`"`)
+		if len(requestAttributes.GetName()) > 0 {
+			b.WriteString(` named "`)
+			b.WriteString(requestAttributes.GetName())
+			b.WriteString(`"`)
+		}
+		operation = b.String()
+	} else {
+		operation = fmt.Sprintf("%q nonResourceURL %q", requestAttributes.GetVerb(), requestAttributes.GetPath())
 	}
+
+	var scope string
+	if ns := requestAttributes.GetNamespace(); len(ns) > 0 {
+		scope = fmt.Sprintf("in namespace %q", ns)
+	} else {
+		scope = "cluster-wide"
+	}
+
+	klog.Infof("RBAC: no rules authorize user %q with groups %q to %s %s\n\n\n Trace: \n\n %v", requestAttributes.GetUser().GetName(), requestAttributes.GetUser().GetGroups(), operation, scope, traceStr)
 
 	reason := ""
 	if len(ruleCheckingVisitor.errors) > 0 {

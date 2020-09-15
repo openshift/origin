@@ -17,6 +17,7 @@ limitations under the License.
 package validation
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -45,7 +46,7 @@ type AuthorizationRuleResolver interface {
 
 	// VisitRulesFor invokes visitor() with each rule that applies to a given user in a given namespace, and each error encountered resolving those rules.
 	// If visitor() returns false, visiting is short-circuited.
-	VisitRulesFor(user user.Info, namespace string, visitor func(source fmt.Stringer, rule *rbacv1.PolicyRule, err error) bool)
+	VisitRulesFor(user user.Info, namespace string, visitor func(source fmt.Stringer, rule *rbacv1.PolicyRule, err error) bool) string
 }
 
 // ConfirmNoEscalation determines if the roles for a given user in a given namespace encompass the provided role.
@@ -175,22 +176,29 @@ func (d *roleBindingDescriber) String() string {
 	)
 }
 
-func (r *DefaultRuleResolver) VisitRulesFor(user user.Info, namespace string, visitor func(source fmt.Stringer, rule *rbacv1.PolicyRule, err error) bool) {
+func (r *DefaultRuleResolver) VisitRulesFor(user user.Info, namespace string, visitor func(source fmt.Stringer, rule *rbacv1.PolicyRule, err error) bool) string {
+	b := &bytes.Buffer{}
+	b.WriteString(fmt.Sprintln(fmt.Sprintf("VisitRulesFor user %v, namespace %s", user, namespace)))
 	if clusterRoleBindings, err := r.clusterRoleBindingLister.ListClusterRoleBindings(); err != nil {
+		b.WriteString(fmt.Sprintln(fmt.Sprintf("error while ListClusterRoleBindings, err %v", err)))
 		if !visitor(nil, nil, err) {
-			return
+			return b.String()
 		}
 	} else {
 		sourceDescriber := &clusterRoleBindingDescriber{}
 		for _, clusterRoleBinding := range clusterRoleBindings {
 			subjectIndex, applies := appliesTo(user, clusterRoleBinding.Subjects, "")
 			if !applies {
+				b.WriteString(fmt.Sprintln(fmt.Sprintf("ClusterRoleBinding %v doesn't apply", clusterRoleBinding.Name)))
 				continue
 			}
+			b.WriteString(fmt.Sprintln(fmt.Sprintf("ClusterRoleBinding %v applies", clusterRoleBinding.Name)))
+			b.WriteString(fmt.Sprintln(fmt.Sprintf("Getting Role %v for the binding %v", clusterRoleBinding.RoleRef.Name, clusterRoleBinding.Name)))
 			rules, err := r.GetRoleReferenceRules(clusterRoleBinding.RoleRef, "")
 			if err != nil {
+				b.WriteString(fmt.Sprintln(fmt.Sprintf("error while GetRoleReferenceRules, err %v", err)))
 				if !visitor(nil, nil, err) {
-					return
+					return b.String()
 				}
 				continue
 			}
@@ -198,7 +206,7 @@ func (r *DefaultRuleResolver) VisitRulesFor(user user.Info, namespace string, vi
 			sourceDescriber.subject = &clusterRoleBinding.Subjects[subjectIndex]
 			for i := range rules {
 				if !visitor(sourceDescriber, &rules[i], nil) {
-					return
+					return b.String()
 				}
 			}
 		}
@@ -206,20 +214,25 @@ func (r *DefaultRuleResolver) VisitRulesFor(user user.Info, namespace string, vi
 
 	if len(namespace) > 0 {
 		if roleBindings, err := r.roleBindingLister.ListRoleBindings(namespace); err != nil {
+			b.WriteString(fmt.Sprintln(fmt.Sprintf("error while ListRoleBindings, err %v", err)))
 			if !visitor(nil, nil, err) {
-				return
+				return b.String()
 			}
 		} else {
 			sourceDescriber := &roleBindingDescriber{}
 			for _, roleBinding := range roleBindings {
 				subjectIndex, applies := appliesTo(user, roleBinding.Subjects, namespace)
 				if !applies {
+					b.WriteString(fmt.Sprintln(fmt.Sprintf("RoleBinding %v doesn't apply", roleBinding.Name)))
 					continue
 				}
+				b.WriteString(fmt.Sprintln(fmt.Sprintf("RoleBinding %v applies", roleBinding.Name)))
+				b.WriteString(fmt.Sprintln(fmt.Sprintf("Getting Role %v for the binding %v", roleBinding.RoleRef.Name, roleBinding.Name)))
 				rules, err := r.GetRoleReferenceRules(roleBinding.RoleRef, namespace)
 				if err != nil {
 					if !visitor(nil, nil, err) {
-						return
+						b.WriteString(fmt.Sprintln(fmt.Sprintf("error while GetRoleReferenceRules, err %v", err)))
+						return b.String()
 					}
 					continue
 				}
@@ -227,12 +240,14 @@ func (r *DefaultRuleResolver) VisitRulesFor(user user.Info, namespace string, vi
 				sourceDescriber.subject = &roleBinding.Subjects[subjectIndex]
 				for i := range rules {
 					if !visitor(sourceDescriber, &rules[i], nil) {
-						return
+						return b.String()
 					}
 				}
 			}
 		}
 	}
+
+	return b.String()
 }
 
 // GetRoleReferenceRules attempts to resolve the RoleBinding or ClusterRoleBinding.

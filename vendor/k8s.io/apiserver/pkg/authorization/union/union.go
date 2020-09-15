@@ -31,6 +31,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/klog/v2"
 )
 
 // unionAuthzHandler authorizer against a chain of authorizer.Authorizer
@@ -59,6 +60,7 @@ func (authzHandler unionAuthzHandler) Authorize(ctx context.Context, a authorize
 		}
 		switch decision {
 		case authorizer.DecisionAllow, authorizer.DecisionDeny:
+			klog.Infof("got authn decision = %v, reason = %v, err = %v", decision, reason, err)
 			return decision, reason, err
 		case authorizer.DecisionNoOpinion:
 			// continue to the next authorizer
