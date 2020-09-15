@@ -31,10 +31,6 @@ var (
 		"[Disabled:Broken]": {
 			`should idle the service and DeploymentConfig properly`,       // idling with a single service and DeploymentConfig
 			`should answer endpoint and wildcard queries for the cluster`, // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
-
-			// Perma-fail
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1862322
-			`an end user can use OLM can subscribe to the operator`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
