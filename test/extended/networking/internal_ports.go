@@ -84,6 +84,11 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 										},
 									},
 								},
+								SecurityContext: &v1.SecurityContext{
+									Capabilities: &v1.Capabilities{
+										Add: []v1.Capability{"NET_RAW"},
+									},
+								},
 							},
 						},
 					},
