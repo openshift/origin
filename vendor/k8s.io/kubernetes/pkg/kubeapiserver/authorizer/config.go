@@ -18,7 +18,10 @@ package authorizer
 
 import (
 	"fmt"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"time"
+	"context"
+	"reflect"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/browsersafe"
@@ -126,8 +129,8 @@ func (config Config) New() (authorizer.Authorizer, authorizer.RuleResolver, erro
 				&rbac.ClusterRoleBindingLister{Lister: config.VersionedInformerFactory.Rbac().V1().ClusterRoleBindings().Lister()},
 			)
 			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
-			authorizers = append(authorizers, browsersafe.NewBrowserSafeAuthorizer(rbacAuthorizer, user.AllAuthenticated))
-			ruleResolvers = append(ruleResolvers, rbacAuthorizer)
+			authorizers = append(authorizers, browsersafe.NewBrowserSafeAuthorizer(newRBACProtector(rbacAuthorizer, config.VersionedInformerFactory), user.AllAuthenticated))
+			ruleResolvers = append(ruleResolvers, newRBACProtector(rbacAuthorizer, config.VersionedInformerFactory))
 		case modes.ModeScope:
 			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
 			scopeLimitedAuthorizer := scopeauthorizer.NewAuthorizer(config.VersionedInformerFactory.Rbac().V1().ClusterRoles().Lister())
@@ -141,4 +144,48 @@ func (config Config) New() (authorizer.Authorizer, authorizer.RuleResolver, erro
 	}
 
 	return union.New(authorizers...), union.NewRuleResolvers(ruleResolvers...), nil
+}
+
+type rbacProtector struct {
+	delegate *rbac.RBACAuthorizer
+	versionedInformerFactory versionedinformers.SharedInformerFactory
+}
+
+func newRBACProtector(delegate *rbac.RBACAuthorizer, versionedInformerFactory versionedinformers.SharedInformerFactory) *rbacProtector {
+	return &rbacProtector{
+		delegate:            delegate,
+		versionedInformerFactory: versionedInformerFactory,
+	}
+}
+
+func (a *rbacProtector) assertCachesSynced() error {
+	stopCh := make(chan struct{})
+	close(stopCh) // close stopCh to force checking if informers are synced now.
+	informersByStarted := map[bool][]string{}
+
+	for informerType, started := range a.versionedInformerFactory.WaitForCacheSync(stopCh) {
+		switch informerType {
+		// we are interested in knowing if the RBAC related informers sync and avoid the risk that comes with waiting on syncing everything.
+		case reflect.TypeOf(&rbacv1.ClusterRole{}), reflect.TypeOf(&rbacv1.ClusterRoleBinding{}), reflect.TypeOf(&rbacv1.Role{}), reflect.TypeOf(&rbacv1.RoleBinding{}):
+			informersByStarted[started] = append(informersByStarted[started], informerType.String())
+		}
+	}
+	if notStarted := informersByStarted[false]; len(notStarted) > 0 {
+		return fmt.Errorf("%d informers not started yet: %v", len(notStarted), notStarted)
+	}
+	return nil
+}
+
+func (a *rbacProtector) Authorize(ctx context.Context, attributes authorizer.Attributes) (authorizer.Decision, string, error) {
+	if err := a.assertCachesSynced(); err != nil {
+		return authorizer.DecisionDeny, err.Error(), err
+	}
+	return a.delegate.Authorize(ctx, attributes)
+}
+
+func (a *rbacProtector) RulesFor(user user.Info, namespace string) ([]authorizer.ResourceRuleInfo, []authorizer.NonResourceRuleInfo, bool, error) {
+	if err := a.assertCachesSynced(); err != nil {
+		return nil, nil, false, err
+	}
+	return a.delegate.RulesFor(user, namespace)
 }
