@@ -60,7 +60,9 @@ func (authzHandler unionAuthzHandler) Authorize(ctx context.Context, a authorize
 		}
 		switch decision {
 		case authorizer.DecisionAllow, authorizer.DecisionDeny:
-			klog.Infof("got authn decision = %v, reason = %v, err = %v", decision, reason, err)
+			if decision == authorizer.DecisionDeny {
+				klog.Infof("got authn decision = %v, reason = %v, err = %v", decision, reason, err)
+			}
 			return decision, reason, err
 		case authorizer.DecisionNoOpinion:
 			// continue to the next authorizer

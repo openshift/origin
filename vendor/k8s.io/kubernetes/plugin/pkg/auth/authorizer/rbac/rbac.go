@@ -22,8 +22,6 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/klog/v2"
-
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -115,13 +113,12 @@ func (r *RBACAuthorizer) Authorize(ctx context.Context, requestAttributes author
 		scope = "cluster-wide"
 	}
 
-	klog.Infof("RBAC: no rules authorize user %q with groups %q to %s %s\n\n\n Trace: \n\n %v", requestAttributes.GetUser().GetName(), requestAttributes.GetUser().GetGroups(), operation, scope, traceStr)
-
 	reason := ""
 	if len(ruleCheckingVisitor.errors) > 0 {
 		reason = fmt.Sprintf("RBAC: %v", utilerrors.NewAggregate(ruleCheckingVisitor.errors))
 	}
-	return authorizer.DecisionNoOpinion, reason, nil
+	fullTraceMsg := fmt.Sprintf("RBAC: no rules authorize user %q with groups %q to %s %s\n\n\n Errors: %v \n\n Trace: \n\n %v", requestAttributes.GetUser().GetName(), requestAttributes.GetUser().GetGroups(), operation, scope, reason, traceStr)
+	return authorizer.DecisionNoOpinion, fullTraceMsg, nil
 }
 
 func (r *RBACAuthorizer) RulesFor(user user.Info, namespace string) ([]authorizer.ResourceRuleInfo, []authorizer.NonResourceRuleInfo, bool, error) {
