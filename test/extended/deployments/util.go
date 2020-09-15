@@ -683,10 +683,10 @@ func (d *deployerPodInvariantChecker) getPodIndex(list []*corev1.Pod, pod *corev
 }
 
 func (d *deployerPodInvariantChecker) checkInvariants(dc string, pods []*corev1.Pod) {
-	var unterminatedPods []*corev1.Pod
+	unterminatedPods := make(map[string]*corev1.Pod)
 	for _, pod := range pods {
 		if pod.Status.Phase != corev1.PodSucceeded && pod.Status.Phase != corev1.PodFailed {
-			unterminatedPods = append(unterminatedPods, pod)
+			unterminatedPods[d.getCacheKey(pod)] = pod
 		}
 	}
 
