@@ -139,7 +139,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [k8s.io] Pods should contain environment variables for services [NodeConformance] [Conformance]": "should contain environment variables for services [NodeConformance] [Conformance] [sig-node] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [k8s.io] Pods should delete a collection of pods": "should delete a collection of pods [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [k8s.io] Pods should delete a collection of pods [Conformance]": "should delete a collection of pods [Conformance] [sig-node] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [k8s.io] Pods should get a host IP [NodeConformance] [Conformance]": "should get a host IP [NodeConformance] [Conformance] [sig-node] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -229,7 +229,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [k8s.io] [Feature:Example] [k8s.io] Liveness liveness pods should be automatically restarted": "liveness pods should be automatically restarted [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [k8s.io] [Feature:Example] [k8s.io] Secret should create a pod that reads a secret": "should create a pod that reads a secret [Disabled:Broken] [sig-node] [Suite:k8s]",
+	"[Top Level] [k8s.io] [Feature:Example] [k8s.io] Secret should create a pod that reads a secret": "should create a pod that reads a secret [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [k8s.io] [Feature:TTLAfterFinished][NodeAlphaFeature:TTLAfterFinished] job should be deleted once it finishes after TTL seconds": "job should be deleted once it finishes after TTL seconds [Disabled:Alpha] [sig-node] [Suite:k8s]",
 
@@ -393,7 +393,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery] Discovery Custom resource should have storage version hash": "Custom resource should have storage version hash [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Discovery should validate PreferredVersion for each APIGroup": "should validate PreferredVersion for each APIGroup [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Discovery should validate PreferredVersion for each APIGroup [Conformance]": "should validate PreferredVersion for each APIGroup [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-api-machinery] Etcd failure [Disruptive] should recover from SIGKILL": "should recover from SIGKILL [Serial] [Suite:k8s]",
 
@@ -520,6 +520,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/vnd.kubernetes.protobuf,application/json\"": "watch and report errors with accept \"application/vnd.kubernetes.protobuf,application/json\" [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/vnd.kubernetes.protobuf\"": "watch and report errors with accept \"application/vnd.kubernetes.protobuf\" [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[Top Level] [sig-api-machinery] health handlers should contain necessary checks": "should contain necessary checks [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-api-machinery] server version should find the server version [Conformance]": "should find the server version [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -789,31 +791,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": "Cluster should remain functional during upgrade [Disruptive] [Serial] [Suite:openshift]",
 
-	"[Top Level] [sig-auth] Advanced Audit [DisabledForLargeClusters][Flaky] should audit API calls to create and delete custom resource definition.": "should audit API calls to create and delete custom resource definition. [Suite:k8s]",
-
-	"[Top Level] [sig-auth] Advanced Audit [DisabledForLargeClusters][Flaky] should audit API calls to create, get, update, patch, delete, list, watch configmaps.": "should audit API calls to create, get, update, patch, delete, list, watch configmaps. [Suite:k8s]",
-
-	"[Top Level] [sig-auth] Advanced Audit [DisabledForLargeClusters][Flaky] should audit API calls to create, get, update, patch, delete, list, watch deployments.": "should audit API calls to create, get, update, patch, delete, list, watch deployments. [Suite:k8s]",
-
-	"[Top Level] [sig-auth] Advanced Audit [DisabledForLargeClusters][Flaky] should audit API calls to create, get, update, patch, delete, list, watch pods.": "should audit API calls to create, get, update, patch, delete, list, watch pods. [Suite:k8s]",
-
-	"[Top Level] [sig-auth] Advanced Audit [DisabledForLargeClusters][Flaky] should audit API calls to create, get, update, patch, delete, list, watch secrets.": "should audit API calls to create, get, update, patch, delete, list, watch secrets. [Suite:k8s]",
-
-	"[Top Level] [sig-auth] Advanced Audit [DisabledForLargeClusters][Flaky] should audit API calls to get a pod with unauthorized user.": "should audit API calls to get a pod with unauthorized user. [Suite:k8s]",
-
-	"[Top Level] [sig-auth] Advanced Audit [DisabledForLargeClusters][Flaky] should list pods as impersonated user.": "should list pods as impersonated user. [Suite:k8s]",
-
 	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support CSR API operations [Conformance]": "should support CSR API operations [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support building a client with a CSR": "should support building a client with a CSR [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] Metadata Concealment should run a check-metadata-concealment job to completion": "should run a check-metadata-concealment job to completion [Skipped:gce] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should allow pods under the privileged policy.PodSecurityPolicy": "should allow pods under the privileged policy.PodSecurityPolicy [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should allow pods under the privileged policy.PodSecurityPolicy": "should allow pods under the privileged policy.PodSecurityPolicy [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should enforce the restricted policy.PodSecurityPolicy": "should enforce the restricted policy.PodSecurityPolicy [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should enforce the restricted policy.PodSecurityPolicy": "should enforce the restricted policy.PodSecurityPolicy [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should forbid pod creation when no PSP is available": "should forbid pod creation when no PSP is available [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should forbid pod creation when no PSP is available": "should forbid pod creation when no PSP is available [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] ServiceAccounts should allow opting out of API token automount  [Conformance]": "should allow opting out of API token automount  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -823,7 +811,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth] ServiceAccounts should run through the lifecycle of a ServiceAccount [Conformance]": "should run through the lifecycle of a ServiceAccount [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection]": "should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection]": "should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Feature:TokenRequestProjection] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] ServiceAccounts should support InClusterConfig with token rotation [Slow] [Feature:TokenRequestProjection]": "should support InClusterConfig with token rotation [Slow] [Feature:TokenRequestProjection] [Suite:k8s]",
 
@@ -1391,7 +1379,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should handle in-cluster config": "should handle in-cluster config [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes": "should return command exit codes [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes": "should return command exit codes [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through an HTTP proxy": "should support exec through an HTTP proxy [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1861,17 +1849,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] DNS configMap federations [Feature:Federation] should be able to change federation configuration [Slow][Serial]": "should be able to change federation configuration [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS configMap nameserver [Feature:Networking-IPv6] [LinuxOnly] Change stubDomain should be able to change stubDomain configuration [Slow][Serial]": "should be able to change stubDomain configuration [Slow][Serial] [Disabled:SpecialConfig] [Disabled:Unimplemented] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS configMap nameserver Change stubDomain should be able to change stubDomain configuration [Slow][Serial]": "should be able to change stubDomain configuration [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS configMap nameserver [Feature:Networking-IPv6] [LinuxOnly] Forward PTR lookup should forward PTR records lookup to upstream nameserver [Slow][Serial]": "should forward PTR records lookup to upstream nameserver [Slow][Serial] [Disabled:SpecialConfig] [Disabled:Unimplemented] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS configMap nameserver Forward PTR lookup should forward PTR records lookup to upstream nameserver [Slow][Serial]": "should forward PTR records lookup to upstream nameserver [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS configMap nameserver [Feature:Networking-IPv6] [LinuxOnly] Forward external name lookup should forward externalname lookup to upstream nameserver [Slow][Serial]": "should forward externalname lookup to upstream nameserver [Slow][Serial] [Disabled:SpecialConfig] [Disabled:Unimplemented] [Suite:k8s]",
-
-	"[Top Level] [sig-network] DNS configMap nameserver [IPv4] Change stubDomain should be able to change stubDomain configuration [Slow][Serial]": "should be able to change stubDomain configuration [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
-
-	"[Top Level] [sig-network] DNS configMap nameserver [IPv4] Forward PTR lookup should forward PTR records lookup to upstream nameserver [Slow][Serial]": "should forward PTR records lookup to upstream nameserver [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
-
-	"[Top Level] [sig-network] DNS configMap nameserver [IPv4] Forward external name lookup should forward externalname lookup to upstream nameserver [Slow][Serial]": "should forward externalname lookup to upstream nameserver [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS configMap nameserver Forward external name lookup should forward externalname lookup to upstream nameserver [Slow][Serial]": "should forward externalname lookup to upstream nameserver [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
 
 	"[Top Level] [sig-network] DNS should provide /etc/hosts entries for the cluster [LinuxOnly] [Conformance]": "should provide /etc/hosts entries for the cluster [LinuxOnly] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -1895,7 +1877,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] DNS should support configurable pod resolv.conf": "should support configurable pod resolv.conf [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] ESIPP [Slow] should handle updates to ExternalTrafficPolicy field [DisabledForLargeClusters]": "should handle updates to ExternalTrafficPolicy field [DisabledForLargeClusters] [Suite:k8s]",
+	"[Top Level] [sig-network] ESIPP [Slow] should handle updates to ExternalTrafficPolicy field": "should handle updates to ExternalTrafficPolicy field [Suite:k8s]",
 
 	"[Top Level] [sig-network] ESIPP [Slow] should only target nodes with endpoints": "should only target nodes with endpoints [Suite:k8s]",
 
@@ -1911,7 +1893,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] EndpointSlice should have Endpoints and EndpointSlices pointing to API Server": "should have Endpoints and EndpointSlices pointing to API Server [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] EndpointSliceMirroring should mirror a custom Endpoints resource through create update and delete": "should mirror a custom Endpoints resource through create update and delete [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-network] EndpointSliceMirroring should mirror a custom Endpoints resource through create update and delete": "should mirror a custom Endpoints resource through create update and delete [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Firewall rule [Slow] [Serial] should create valid firewall rules for LoadBalancer type service": "[Slow] [Serial] should create valid firewall rules for LoadBalancer type service [Suite:k8s]",
 
@@ -1921,11 +1903,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] IngressClass API  should support creating IngressClass API operations [Conformance]": " should support creating IngressClass API operations [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should not set default value if no default IngressClass": "should not set default value if no default IngressClass [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should not set default value if no default IngressClass [Serial]": "should not set default value if no default IngressClass [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should prevent Ingress creation if more than 1 IngressClass marked as default": "should prevent Ingress creation if more than 1 IngressClass marked as default [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should prevent Ingress creation if more than 1 IngressClass marked as default [Serial]": "should prevent Ingress creation if more than 1 IngressClass marked as default [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should set default value on new IngressClass": "should set default value on new IngressClass [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should set default value on new IngressClass [Serial]": "should set default value on new IngressClass [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed": "for TCP and UDP on ports 9000-9999 is allowed [Suite:openshift/conformance/parallel]",
 
@@ -2171,7 +2153,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Services should serve multiport endpoints from pods  [Conformance]": "should serve multiport endpoints from pods  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should test the lifecycle of an Endpoint": "should test the lifecycle of an Endpoint [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should test the lifecycle of an Endpoint [Conformance]": "should test the lifecycle of an Endpoint [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should work after restarting apiserver [Disruptive]": "should work after restarting apiserver [Disruptive] [Serial] [Suite:k8s]",
 
@@ -11120,6 +11102,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-storage] PersistentVolumes:vsphere [Feature:vsphere] should test that deleting the Namespace of a PVC and Pod causes the successful detach of vsphere volume": "should test that deleting the Namespace of a PVC and Pod causes the successful detach of vsphere volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] PersistentVolumes:vsphere [Feature:vsphere] should test that deleting the PV before the pod does not cause pod deletion to fail on vsphere volume detach": "should test that deleting the PV before the pod does not cause pod deletion to fail on vsphere volume detach [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[Top Level] [sig-storage] Pod Disks [Serial] attach on previously attached volumes should work": "[Serial] attach on previously attached volumes should work [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] Pod Disks detach in a disrupted environment [Slow] [Disruptive] when node's API object is deleted": "when node's API object is deleted [Serial] [Suite:k8s]",
 

@@ -10,10 +10,13 @@ import (
 )
 
 // ClusterOperatorLister helps list ClusterOperators.
+// All objects returned here must be treated as read-only.
 type ClusterOperatorLister interface {
 	// List lists all ClusterOperators in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.ClusterOperator, err error)
 	// Get retrieves the ClusterOperator from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.ClusterOperator, error)
 	ClusterOperatorListerExpansion
 }

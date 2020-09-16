@@ -61,8 +61,16 @@ func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update)
 }
 
 func (m *versionMonitor) Reached(cv *configv1.ClusterVersion, desired configv1.Update) (bool, error) {
+	// Create a configv1.Update type from the image and version fields
+	// of cv.status.desired to simplify comparison via
+	// equivalentUpdates.
+	statusDesired := configv1.Update{
+		Image:   cv.Status.Desired.Image,
+		Version: cv.Status.Desired.Version,
+	}
+
 	// if the operator hasn't observed our request
-	if !equivalentUpdates(cv.Status.Desired, desired) {
+	if !equivalentUpdates(statusDesired, desired) {
 		return false, nil
 	}
 	// is the latest history item equal to our desired and completed

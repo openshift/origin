@@ -10,10 +10,13 @@ import (
 )
 
 // ClusterVersionLister helps list ClusterVersions.
+// All objects returned here must be treated as read-only.
 type ClusterVersionLister interface {
 	// List lists all ClusterVersions in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.ClusterVersion, err error)
 	// Get retrieves the ClusterVersion from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.ClusterVersion, error)
 	ClusterVersionListerExpansion
 }
