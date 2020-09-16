@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   name: consolenotifications.console.openshift.io
   annotations:
+    include.release.openshift.io/self-managed-high-availability: "true"
     displayName: ConsoleNotification
     description: Extension for configuring openshift web console notifications.
 spec:

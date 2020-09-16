@@ -10,10 +10,13 @@ import (
 )
 
 // BuildLister helps list Builds.
+// All objects returned here must be treated as read-only.
 type BuildLister interface {
 	// List lists all Builds in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Build, err error)
 	// Get retrieves the Build from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.Build, error)
 	BuildListerExpansion
 }

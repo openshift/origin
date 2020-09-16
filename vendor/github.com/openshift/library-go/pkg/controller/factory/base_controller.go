@@ -24,6 +24,8 @@ import (
 // This can be also done by re-adding the key to queue, but this is cheaper and more convenient.
 var SyntheticRequeueError = errors.New("synthetic requeue request")
 
+var defaultCacheSyncTimeout = 10 * time.Minute
+
 // baseController represents generic Kubernetes controller boiler-plate
 type baseController struct {
 	name               string
@@ -34,6 +36,7 @@ type baseController struct {
 	resyncEvery        time.Duration
 	resyncSchedules    []cron.Schedule
 	postStartHooks     []PostStartHook
+	cacheSyncTimeout   time.Duration
 }
 
 var _ Controller = &baseController{}
@@ -62,8 +65,16 @@ func (s *scheduledJob) Run() {
 func (c *baseController) Run(ctx context.Context, workers int) {
 	// HandleCrash recovers panics
 	defer utilruntime.HandleCrash()
-	if !cache.WaitForNamedCacheSync(c.name, ctx.Done(), c.cachesToSync...) {
-		panic("timeout waiting for informer cache") // this will be recovered using HandleCrash()
+
+	// give caches 10 minutes to sync
+	cacheSyncCtx, cacheSyncCancel := context.WithTimeout(ctx, c.cacheSyncTimeout)
+	defer cacheSyncCancel()
+	if !cache.WaitForNamedCacheSync(c.name, cacheSyncCtx.Done(), c.cachesToSync...) {
+		// the parent context is closed, it means we are shutting down, do not call panic()
+		if ctx.Err() != nil {
+			return
+		}
+		panic("failed to wait for cache to sync")
 	}
 
 	var workerWg sync.WaitGroup

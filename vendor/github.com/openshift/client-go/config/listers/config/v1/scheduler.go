@@ -10,10 +10,13 @@ import (
 )
 
 // SchedulerLister helps list Schedulers.
+// All objects returned here must be treated as read-only.
 type SchedulerLister interface {
 	// List lists all Schedulers in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.Scheduler, err error)
 	// Get retrieves the Scheduler from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.Scheduler, error)
 	SchedulerListerExpansion
 }
