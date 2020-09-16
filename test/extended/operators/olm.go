@@ -113,6 +113,7 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 	// OCP-20981, [BZ 1626434]The olm/catalog binary should output the exact version info
 	// author: jiazha@redhat.com
 	g.It("[Serial] olm version should contain the source commit id", func() {
+		g.Skip("TODO: Skipped because of https://bugzilla.redhat.com/show_bug.cgi?id=1879385")
 		sameCommit := ""
 		subPods := []string{"catalog-operator", "olm-operator", "packageserver"}
 
