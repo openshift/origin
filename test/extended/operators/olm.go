@@ -109,11 +109,17 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 			e2e.Failf("No packages for evaluating if package namespace is not NULL")
 		}
 	})
+})
 
+var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", func() {
+	defer g.GinkgoRecover()
+
+	var oc = exutil.NewCLIWithoutNamespace("default")
+
+	// TODO: This test should be more generic and across components
 	// OCP-20981, [BZ 1626434]The olm/catalog binary should output the exact version info
 	// author: jiazha@redhat.com
 	g.It("[Serial] olm version should contain the source commit id", func() {
-		g.Skip("TODO: Skipped because of https://bugzilla.redhat.com/show_bug.cgi?id=1879385")
 		sameCommit := ""
 		subPods := []string{"catalog-operator", "olm-operator", "packageserver"}
 
