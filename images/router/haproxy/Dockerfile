@@ -5,9 +5,9 @@
 #
 FROM openshift/origin-cli
 
-RUN INSTALL_PKGS="haproxy18 rsyslog" && \
+RUN INSTALL_PKGS="https://github.com/miheer/router/raw/8f89167e1bd7e7f5a98993e4f817bf28070535d9/images/router/haproxy/haproxy18-1.8.26-1.el7.x86_64.rpm rsyslog" && \
     yum install -y $INSTALL_PKGS && \
-    rpm -V $INSTALL_PKGS && \
+    #rpm -V $INSTALL_PKGS && \
     yum clean all && \
     mkdir -p /var/lib/haproxy/router/{certs,cacerts,whitelists} && \
     mkdir -p /var/lib/haproxy/{conf/.tmp,run,bin,log} && \
