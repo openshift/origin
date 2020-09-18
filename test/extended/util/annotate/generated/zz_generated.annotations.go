@@ -2,6 +2,7 @@ package generated
 
 import (
 	"fmt"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/types"
 )
@@ -1656,6 +1657,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker security test  should pass security tests": "should pass security tests [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-etcd] etcd leader changes are not excessive": "leader changes are not excessive [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdLeaderChange] Cluster should remain functional through etcd leader change": "[Feature:EtcdLeaderChange] Cluster should remain functional through etcd leader change [Serial]",
 
 	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Serial] [Suite:openshift]",
 
