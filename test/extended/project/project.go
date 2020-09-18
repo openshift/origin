@@ -117,6 +117,8 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			err = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(ns02Name).Delete(ctx, bobEditName, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			// this is okay: a user gets an artificial delete event when it loses access to the project
+			// see: https://github.com/openshift/openshift-apiserver/blob/6159c04cbc1b3590f872c78eda3cd14bd6b1e87e/pkg/project/auth/watch.go#L139
 			waitForDelete(ns02Name, w)
 
 			// TEST FOR DELETE PROJECT
@@ -234,7 +236,7 @@ func waitForDelete(projectName string, w watch.Interface) {
 					return
 				}
 
-			case <-time.After(30 * time.Second):
+			case <-time.After(5 * time.Minute):
 				g.Fail(fmt.Sprintf("timeout: %v", projectName))
 			}
 		}
