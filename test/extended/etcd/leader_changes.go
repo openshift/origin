@@ -19,12 +19,12 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 	g.It("leader changes are not excessive", func() {
 		prometheus, err := client.NewE2EPrometheusRouterClient(oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		g.By("Examining the rate of increase in the number of etcd leadership changes for last five minutes")
-		result, _, err := prometheus.Query(context.Background(), "increase((max by (job) (etcd_server_leader_changes_seen_total) or 0*absent(etcd_server_leader_changes_seen_total))[15m:1m])", time.Now())
+		g.By("Examining the rate of increase in the number of etcd leadership changes for last fifteen minutes")
+		result, _, err := prometheus.Query(context.Background(), "round(increase((max by (job) (etcd_server_leader_changes_seen_total) or 0*absent(etcd_server_leader_changes_seen_total))[15m:1s]))", time.Now())
 		o.Expect(err).ToNot(o.HaveOccurred())
-		leaderChangeLastFiveMinutes := result.(model.Vector)[0].Value
-		if leaderChangeLastFiveMinutes != 0 {
-			o.Expect(fmt.Errorf("Leader changes observed last 5m %q: Leader changes are a result of stopping the etcd leader process or from latency (disk or network), review etcd performance metrics", leaderChangeLastFiveMinutes)).ToNot(o.HaveOccurred())
+		leaderChangeLast15Minutes := result.(model.Vector)[0].Value
+		if leaderChangeLast15Minutes != 0 {
+			o.Expect(fmt.Errorf("Leader changes observed last 15m %q: Leader changes are a result of stopping the etcd leader process or from latency (disk or network), review etcd performance metrics", leaderChangeLast15Minutes)).ToNot(o.HaveOccurred())
 		}
 	})
 })
