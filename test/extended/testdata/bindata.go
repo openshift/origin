@@ -20354,7 +20354,7 @@ func testExtendedTestdataBuildsClusterConfigYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsCustomBuildDockerfile = []byte(`FROM quay.io/buildah/stable:latest
+var _testExtendedTestdataBuildsCustomBuildDockerfile = []byte(`FROM registry.redhat.io/rhel8/buildah:latest
 # For simplicity, /tmp/build contains the inputs we’ll be building when we
 # run this custom builder image. Normally the custom builder image would
 # fetch this content from some location at build time. (e.g. via git clone).
