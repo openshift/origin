@@ -1,7 +1,6 @@
 package apiserver
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -29,7 +28,7 @@ var _ = g.Describe("[Feature:APIServer]", func() {
 		transport, err := anonymousHttpTransport(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// For more info, refer to release notes of https://bugzilla.redhat.com/show_bug.cgi?id=1821771
 		for _, history := range cv.Status.History {
