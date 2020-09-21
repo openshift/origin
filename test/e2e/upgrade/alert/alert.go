@@ -84,8 +84,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	watchdogQuery := fmt.Sprintf(`count_over_time(ALERTS{alertstate="firing",alertname="Watchdog", severity="none"}[%dm])`, alertCheckSleepMinutes)
 
 	// Query to check for any critical severity alerts that have occurred within the last alertPeriodCheckMinutes.
-	// TODO Remove KubeAPIErrorBudgetBurn from ignore list once Bug 1821661 is fixed.
-	criticalAlertQuery := fmt.Sprintf(`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh|KubeAPIErrorBudgetBurn",alertstate="firing",severity="critical"}[%dm]) >= 1`, alertPeriodCheckMinutes)
+	criticalAlertQuery := fmt.Sprintf(`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity="critical"}[%dm]) >= 1`, alertPeriodCheckMinutes)
 
 	tests := map[string]bool{
 		watchdogQuery:      true,
