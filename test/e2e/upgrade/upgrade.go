@@ -23,11 +23,13 @@ import (
 	apps "k8s.io/kubernetes/test/e2e/upgrades/apps"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
 	"github.com/openshift/origin/test/e2e/upgrade/service"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
@@ -134,7 +136,11 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 			upgradeTests,
 			func() {
 				for i := 1; i < len(upgCtx.Versions); i++ {
-					framework.ExpectNoError(clusterUpgrade(f, client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
+					ver := upgCtx.Versions[i].NodeImage
+					g.Context(fmt.Sprintf("Upgrade to %s", ver), func() {
+						oc := exutil.NewCLI("upgrade")
+						framework.ExpectNoError(clusterUpgrade(f, client, dynamicClient, oc, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", ver))
+					})
 				}
 			},
 		)
@@ -235,7 +241,7 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 
 var errControlledAbort = fmt.Errorf("beginning abort")
 
-func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
+func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, oc *exutil.CLI, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
 
@@ -428,6 +434,38 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 				return fmt.Errorf("Pools did not complete upgrade: %v", err)
 			}
 			framework.Logf("All pools completed upgrade")
+			return nil
+		},
+	); err != nil {
+		return err
+	}
+
+	// See https://github.com/openshift/machine-config-operator/pull/2112
+	if err := disruption.RecordJUnit(
+		f,
+		"[sig-mco] Have exactly 3 reboots on control plane nodes",
+		func() error {
+			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+				LabelSelector: `node-role.kubernetes.io/master`,
+			})
+			if err != nil {
+				return err
+			}
+			framework.Logf("Discovered %d master nodes.", len(masterNodes.Items))
+			o.Expect(masterNodes.Items).NotTo(o.HaveLen(0))
+			for _, master := range masterNodes.Items {
+				g.By("Testing master node " + master.Name)
+				out, err := oc.AsAdmin().Run("debug").Args("node/"+master.Name, "--", "chroot", "/host", "/bin/bash", "-euxo", "pipefail", "-c", "jounalctl --list-boots | wc -l").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				framework.Logf(out)
+				bootCount, err := strconv.ParseInt(out, 10, 32)
+				if err != nil {
+					return err
+				}
+				// See https://github.com/openshift/machine-config-operator/blob/master/docs/OSUpgrades.md
+				// Two for the initial provisioning, then one reboot for the upgrade
+				o.Expect(bootCount).Should(o.Equal(3))
+			}
 			return nil
 		},
 	); err != nil {
