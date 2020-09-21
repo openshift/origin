@@ -147,7 +147,8 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample a
 		},
 	))
 
-	g.Describe("[sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-ex db repo", NewSampleRepoTest(
+	// disable temporarily, to be replaced with a postgresql based example
+	/*g.Describe("[sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "nodejs-mongodb",
 			templateURL:            "nodejs-mongodb-example",
@@ -159,7 +160,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample a
 			dbDeploymentConfigName: "mongodb",
 			dbServiceName:          "mongodb",
 		},
-	))
+	))*/
 
 	var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
