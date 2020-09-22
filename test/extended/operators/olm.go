@@ -157,6 +157,38 @@ var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", 
 	})
 })
 
+func hasRedHatOperatorsSource(oc *exutil.CLI) (bool, error) {
+	spec, err := oc.AsAdmin().Run("get").Args("operatorhub/cluster", "-o=jsonpath={.spec}").Output()
+	if err != nil {
+		return true, fmt.Errorf("Error reading operatorhub spec: %s", spec)
+	}
+	type Source struct {
+		Name     string `json:"name"`
+		Disabled bool   `json:"disabled"`
+	}
+	type Spec struct {
+		DisableAllDefaultSources bool     `json:"disableAllDefaultSources"`
+		Sources                  []Source `json:"sources"`
+	}
+	parsed := Spec{}
+	err = json.Unmarshal([]byte(spec), &parsed)
+	if err != nil {
+		return true, fmt.Errorf("Error unmarshalling operatorhub spec: %s", spec)
+	}
+	// Check if default hub sources are used
+	if len(parsed.Sources) == 0 && !parsed.DisableAllDefaultSources {
+		return true, nil
+	}
+
+	// Check if redhat-operators is listed and not disabled
+	for _, source := range parsed.Sources {
+		if source.Name == "redhat-operators" && source.Disabled == false {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // This context will cover test case: OCP-23440, author: jiazha@redhat.com
 // Uses nfd operator
 var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
@@ -173,6 +205,13 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 	files := []string{sub}
 	g.It("can subscribe to the operator", func() {
 		g.By("Cluster-admin user subscribe the operator resource")
+
+		// skip test if redhat-operators is not present or disabled
+		ok, err := hasRedHatOperatorsSource(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !ok {
+			g.Skip("redhat-operators source not found in enabled sources")
+		}
 
 		// configure OperatorGroup before tests
 		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", operatorGroup, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
