@@ -527,7 +527,7 @@ import:
 - package: github.com/xiang90/probing
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - package: golang.org/x/crypto
-  version: 49796115aa4b964c318aad4f3084fdb41e9aa067
+  version: 57b3e21c3d5606066a87e63cfe07ec6b9f0db000
 - package: golang.org/x/exp
   version: 292a51b8d262487dab23a588950e8052d63d9113
 - package: golang.org/x/net
@@ -535,7 +535,7 @@ import:
 - package: golang.org/x/oauth2
   version: a6bd8cefa1811bd24b86f8902872e4e8225f74c4
 - package: golang.org/x/sys
-  version: 95c6576299259db960f6c5b9b69ea52422860fce
+  version: 15dcb6c0061f497a3f66e3ea034b629c6dd4d99e
 - package: golang.org/x/text
   version: b19bf474d317b857955b12035d2c5acb57ce8b01
 - package: golang.org/x/time
