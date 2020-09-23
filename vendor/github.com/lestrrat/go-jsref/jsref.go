@@ -4,9 +4,9 @@ import (
 	"net/url"
 	"reflect"
 
-	"github.com/lestrrat/go-jspointer"
-	"github.com/lestrrat/go-pdebug"
-	"github.com/lestrrat/go-structinfo"
+	"github.com/lestrrat-go/jspointer"
+	"github.com/lestrrat-go/pdebug"
+	"github.com/lestrrat-go/structinfo"
 	"github.com/pkg/errors"
 )
 

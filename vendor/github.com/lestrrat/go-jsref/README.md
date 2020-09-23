@@ -1,8 +1,8 @@
 # go-jsref
 
-[![Build Status](https://travis-ci.org/lestrrat/go-jsref.svg?branch=master)](https://travis-ci.org/lestrrat/go-jsref)
+[![Build Status](https://travis-ci.org/lestrrat-go/jsref.svg?branch=master)](https://travis-ci.org/lestrrat-go/jsref)
 
-[![GoDoc](https://godoc.org/github.com/lestrrat/go-jsref?status.svg)](https://godoc.org/github.com/lestrrat/go-jsref)
+[![GoDoc](https://godoc.org/github.com/lestrrat-go/jsref?status.svg)](https://godoc.org/github.com/lestrrat-go/jsref)
 
 JSON Reference Implementation for Go
 
@@ -16,8 +16,8 @@ import (
   "fmt"
   "log"
 
-  jsref "github.com/lestrrat/go-jsref"
-  "github.com/lestrrat/go-jsref/provider"
+  jsref "github.com/lestrrat-go/jsref"
+  "github.com/lestrrat-go/jsref/provider"
 )
 
 func Example() {
@@ -97,10 +97,10 @@ Currently available `Provider`s are:
 
 | Name                                                     | Notes                            |
 |:--------------------------------------------------------:|:---------------------------------|
-| [go-jsval](https://github.com/lestrrat/go-jsval)         | Validator generator              |
-| [go-jshschema](https://github.com/lestrrat/go-jshschema)  | JSON Hyper Schema implementation |
-| [go-jsschema](https://github.com/lestrrat/go-jsschema)   | JSON Schema implementation       |
-| [go-jspointer](https://github.com/lestrrat/go-jspointer) | JSON Pointer implementations     |
+| [go-jsval](https://github.com/lestrrat-go/jsval)         | Validator generator              |
+| [go-jshschema](https://github.com/lestrrat-go/jshschema)  | JSON Hyper Schema implementation |
+| [go-jsschema](https://github.com/lestrrat-go/jsschema)   | JSON Schema implementation       |
+| [go-jspointer](https://github.com/lestrrat-go/jspointer) | JSON Pointer implementations     |
 
 # Acknowledgements
 

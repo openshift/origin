@@ -1,5 +1,5 @@
 language: go
 sudo: false
 go:
-    - 1.11.x
+    - 1.5
     - tip

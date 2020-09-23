@@ -1,6 +1,9 @@
-hash: afd89d6436d89204ce0a4a696da98d1726ff86a0ae4cf7944af11c982c066123
-updated: 2020-08-25T11:20:34.134319972-04:00
+hash: ac4e8bfd50477f0902dd0e711125cb12c6ae38f99222af01d8626308c1a1bdcd
+updated: 2020-09-23T11:32:26.693276835-05:00
 imports:
+- name: ""
+  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
+  repo: https://github.com/lestrrat-go/jsref.git
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
   repo: https://github.com/munnerz/goautoneg.git
@@ -677,18 +680,28 @@ imports:
   version: 8fef92e41e22a70e700a96b29f066cda30ea24ef
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
+- name: github.com/lestrrat-go/jspointer
+  version: 82fadba7561c3a8d78133c2b957263c0963bb79d
+- name: github.com/lestrrat-go/pdebug
+  version: 4d6bd78da58d473ea1a4f2aadaf7e768f2e7f288
+- name: github.com/lestrrat-go/structinfo
+  version: acd51874663bf3297433cb1f1015075c3cbe6130
 - name: github.com/lestrrat/go-jspointer
   version: f4881e611bdbe9fb413a7780721ef8400a1f2341
+  repo: https://github.com/lestrrat-go/jspointer.git
 - name: github.com/lestrrat/go-jsref
-  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
+  version: 1b590508f37d3af76c77c8328e16978d2889b486
   subpackages:
   - provider
 - name: github.com/lestrrat/go-jsschema
   version: a6a42341b50d8d7e2a733db922eefaa756321021
+  repo: https://github.com/lestrrat-go/jsschema.git
 - name: github.com/lestrrat/go-pdebug
-  version: 569c97477ae8837e053e5a50bc739e15172b8ebe
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
+  repo: https://github.com/lestrrat-go/pdebug.git
 - name: github.com/lestrrat/go-structinfo
-  version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
+  version: acd51874663bf3297433cb1f1015075c3cbe6130
+  repo: https://github.com/lestrrat-go/structinfo.git
 - name: github.com/libopenstorage/openstorage
   version: 093a0c3888753c2056e7373183693d670c6bba01
   subpackages:
@@ -1863,7 +1876,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 55a241852c330d4a485eac73155c9259dbbc3d84
+  version: d75729cc009000d2ed9124bb94c026b1537d1805
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2699,6 +2712,7 @@ imports:
   - exec/testing
 - name: vbom.ml/util
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
+  repo: https://github.com/fvbommel/util.git
   subpackages:
   - sortorder
 testImports: []
