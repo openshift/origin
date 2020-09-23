@@ -4321,11 +4321,25 @@ func schema_openshift_api_build_v1_BuildConfigStatus(ref common.ReferenceCallbac
 							Format:      "int64",
 						},
 					},
+					"imageChangeTriggers": {
+						SchemaProps: spec.SchemaProps{
+							Description: "imageChangeTriggers captures the image references used by the build's imageChangeTriggers",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/build/v1.ImageChangeTrigger"),
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"lastVersion"},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"github.com/openshift/api/build/v1.ImageChangeTrigger"},
 	}
 }
 
@@ -5905,7 +5919,7 @@ func schema_openshift_api_build_v1_ImageChangeTrigger(ref common.ReferenceCallba
 				Properties: map[string]spec.Schema{
 					"lastTriggeredImageID": {
 						SchemaProps: spec.SchemaProps{
-							Description: "lastTriggeredImageID is used internally by the ImageChangeController to save last used image ID for build",
+							Description: "lastTriggeredImageID is used internally by the ImageChangeController to save last used image ID for build NOTE: this field is only inspected and set in the status, and is ignored in the  spec, to avoid unnecessary triggering of builds when BuildConfig's are reapplied.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

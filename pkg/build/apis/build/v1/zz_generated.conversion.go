@@ -368,6 +368,17 @@ func Convert_build_BuildConfigSpec_To_v1_BuildConfigSpec(in *build.BuildConfigSp
 
 func autoConvert_v1_BuildConfigStatus_To_build_BuildConfigStatus(in *v1.BuildConfigStatus, out *build.BuildConfigStatus, s conversion.Scope) error {
 	out.LastVersion = in.LastVersion
+	if in.ImageChangeTriggers != nil {
+		in, out := &in.ImageChangeTriggers, &out.ImageChangeTriggers
+		*out = make([]build.ImageChangeTrigger, len(*in))
+		for i := range *in {
+			if err := Convert_v1_ImageChangeTrigger_To_build_ImageChangeTrigger(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ImageChangeTriggers = nil
+	}
 	return nil
 }
 
@@ -378,6 +389,17 @@ func Convert_v1_BuildConfigStatus_To_build_BuildConfigStatus(in *v1.BuildConfigS
 
 func autoConvert_build_BuildConfigStatus_To_v1_BuildConfigStatus(in *build.BuildConfigStatus, out *v1.BuildConfigStatus, s conversion.Scope) error {
 	out.LastVersion = in.LastVersion
+	if in.ImageChangeTriggers != nil {
+		in, out := &in.ImageChangeTriggers, &out.ImageChangeTriggers
+		*out = make([]v1.ImageChangeTrigger, len(*in))
+		for i := range *in {
+			if err := Convert_build_ImageChangeTrigger_To_v1_ImageChangeTrigger(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ImageChangeTriggers = nil
+	}
 	return nil
 }
 
