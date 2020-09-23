@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -339,8 +340,8 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
 	// the first tag did not have an image id, so the last trigger field is the pull spec
-	if updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID != registryHostname+"/openshift/test-image-trigger:"+tag {
-		t.Errorf("Expected imageID equal to pull spec, got %#v", updatedConfig.Spec.Triggers[0].ImageChange)
+	if updatedConfig.Status.ImageChangeTriggers[0].LastTriggeredImageID != registryHostname+"/openshift/test-image-trigger:"+tag {
+		t.Errorf("Expected imageID equal to pull spec, got %#v", updatedConfig.Status.ImageChangeTriggers[0])
 	}
 
 	// trigger a build by posting a new image
@@ -378,19 +379,19 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 		if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:ref-2-random" {
 			i, _ := projectAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 			bc, _ := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %#v\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %#v\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, triggerDebug(bc))
 		}
 	case strategy.DockerStrategy != nil:
 		if strategy.DockerStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:ref-2-random" {
 			i, _ := projectAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 			bc, _ := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %#v\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %#v\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.DockerStrategy.From.Name, i, triggerDebug(bc))
 		}
 	case strategy.CustomStrategy != nil:
 		if strategy.CustomStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:ref-2-random" {
 			i, _ := projectAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 			bc, _ := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %#v\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.CustomStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %#v\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.CustomStrategy.From.Name, i, triggerDebug(bc))
 		}
 	}
 
@@ -419,9 +420,24 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 	if err != nil {
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
-	if e, a := registryHostname+"/openshift/test-image-trigger:ref-2-random", updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
-		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
+	if e, a := registryHostname+"/openshift/test-image-trigger:ref-2-random", updatedConfig.Status.ImageChangeTriggers[0].LastTriggeredImageID; e != a {
+		t.Errorf("unexpected trigger id: expected %v, got %v, trigger debug: %s", e, a, triggerDebug(updatedConfig))
 	}
+}
+
+func triggerDebug(bc *buildv1.BuildConfig) string {
+	imgChgDebug := "Spec:\n"
+	for i, t := range bc.Spec.Triggers {
+		if t.ImageChange == nil {
+			continue
+		}
+		imgChgDebug = fmt.Sprintf("%s\nindex %d: %s", imgChgDebug, i, t.ImageChange.String())
+	}
+	imgChgDebug = fmt.Sprintf("%s\nStatus:\n", imgChgDebug)
+	for i, t := range bc.Status.ImageChangeTriggers {
+		imgChgDebug = fmt.Sprintf("%s\nindex %d: %s", imgChgDebug, i, t.String())
+	}
+	return imgChgDebug
 }
 
 func TestMultipleImageChangeBuildTriggers(t *testing.T) {
@@ -596,7 +612,7 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 			t.Fatalf("Couldn't get BuildConfig: %v", err)
 		}
 		// the first tag did not have an image id, so the last trigger field is the pull spec
-		if updatedConfig.Spec.Triggers[tc.triggerIndex].ImageChange.LastTriggeredImageID != "registry:5000/openshift/"+tc.name+":"+tc.tag {
+		if updatedConfig.Status.ImageChangeTriggers[tc.triggerIndex].LastTriggeredImageID != "registry:5000/openshift/"+tc.name+":"+tc.tag {
 			t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Spec.Triggers[0].ImageChange)
 		}
 

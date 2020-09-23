@@ -414,7 +414,7 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildv1client
 	if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:"+tag {
 		i, _ := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 		bc, _ := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
+		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.SourceStrategy.From.Name, i, bc.Status.ImageChangeTriggers[0])
 	}
 	// Wait for an update on the specific build that was added
 	watch3, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", newBuild.Name).String(), ResourceVersion: newBuild.ResourceVersion})
@@ -455,8 +455,8 @@ WaitLoop:
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
 	// the first tag did not have an image id, so the last trigger field is the pull spec
-	if updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID != registryHostname+"/openshift/test-image-trigger:"+tag {
-		t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Spec.Triggers[0].ImageChange)
+	if updatedConfig.Status.ImageChangeTriggers[0].LastTriggeredImageID != registryHostname+"/openshift/test-image-trigger:"+tag {
+		t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Status.ImageChangeTriggers[0])
 	}
 
 	// clear out the build/buildconfig watches before triggering a new build
@@ -504,7 +504,7 @@ WaitLoop2:
 	if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:ref-2-random" {
 		i, _ := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 		bc, _ := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, bc.Status.ImageChangeTriggers[3])
 	}
 
 	// Listen to events on specific  build
@@ -539,7 +539,7 @@ WaitLoop3:
 		}
 	}
 	updatedConfig = event.Object.(*buildv1.BuildConfig)
-	if e, a := registryHostname+"/openshift/test-image-trigger:ref-2-random", updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
+	if e, a := registryHostname+"/openshift/test-image-trigger:ref-2-random", updatedConfig.Status.ImageChangeTriggers[0].LastTriggeredImageID; e != a {
 		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
 	}
 }
@@ -878,6 +878,11 @@ func imageChangeBuildConfig(name string, strategy buildv1.BuildStrategy) *buildv
 					Type:        buildv1.ImageChangeBuildTriggerType,
 					ImageChange: &buildv1.ImageChangeTrigger{},
 				},
+			},
+		},
+		Status: buildv1.BuildConfigStatus{
+			ImageChangeTriggers: []buildv1.ImageChangeTrigger{
+				{},
 			},
 		},
 	}
