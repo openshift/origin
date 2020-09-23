@@ -19209,7 +19209,7 @@ spec:
       from:
         kind: ImageStreamTag
         namespace: openshift
-        name: 'php:7.2'
+        name: 'php:7.3-ubi8'
 `)
 
 func testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYamlBytes() ([]byte, error) {
@@ -19246,7 +19246,7 @@ var _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml = []byte
         "from": {
           "kind": "ImageStreamTag",
           "namespace": "openshift",
-          "name": "php:7.2"
+          "name": "php:7.3-ubi8"
         }
       }
     }
@@ -19290,7 +19290,7 @@ spec:
       from:
         kind: ImageStreamTag
         namespace: openshift
-        name: 'php:7.2'
+        name: 'php:7.3-ubi8'
 `)
 
 func testExtendedTestdataBuildsBuildPruningErroredBuildConfigYamlBytes() ([]byte, error) {
@@ -19328,7 +19328,7 @@ spec:
       from:
         kind: ImageStreamTag
         namespace: openshift
-        name: 'php:7.2'
+        name: 'php:7.3-ubi8'
 `)
 
 func testExtendedTestdataBuildsBuildPruningFailedBuildConfigYamlBytes() ([]byte, error) {
