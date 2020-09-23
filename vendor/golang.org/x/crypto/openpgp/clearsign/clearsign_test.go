@@ -6,8 +6,11 @@ package clearsign
 
 import (
 	"bytes"
-	"golang.org/x/crypto/openpgp"
+	"fmt"
 	"testing"
+
+	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/packet"
 )
 
 func testParse(t *testing.T, input []byte, expected, expectedPlaintext string) {
@@ -42,12 +45,6 @@ func testParse(t *testing.T, input []byte, expected, expectedPlaintext string) {
 func TestParse(t *testing.T) {
 	testParse(t, clearsignInput, "Hello world\r\nline 2", "Hello world\nline 2\n")
 	testParse(t, clearsignInput2, "\r\n\r\n(This message has a couple of blank lines at the start and end.)\r\n\r\n", "\n\n(This message has a couple of blank lines at the start and end.)\n\n\n")
-}
-
-func TestParseInvalid(t *testing.T) {
-	if b, _ := Decode(clearsignInput3); b != nil {
-		t.Fatal("decoded a bad clearsigned message without any error")
-	}
 }
 
 func TestParseWithNoNewlineAtEnd(t *testing.T) {
@@ -125,6 +122,128 @@ func TestSigning(t *testing.T) {
 	}
 }
 
+// We use this to make test keys, so that they aren't all the same.
+type quickRand byte
+
+func (qr *quickRand) Read(p []byte) (int, error) {
+	for i := range p {
+		p[i] = byte(*qr)
+	}
+	*qr++
+	return len(p), nil
+}
+
+func TestMultiSign(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping long test in -short mode")
+	}
+
+	zero := quickRand(0)
+	config := packet.Config{Rand: &zero}
+
+	for nKeys := 0; nKeys < 4; nKeys++ {
+	nextTest:
+		for nExtra := 0; nExtra < 4; nExtra++ {
+			var signKeys []*packet.PrivateKey
+			var verifyKeys openpgp.EntityList
+
+			desc := fmt.Sprintf("%d keys; %d of which will be used to verify", nKeys+nExtra, nKeys)
+			for i := 0; i < nKeys+nExtra; i++ {
+				e, err := openpgp.NewEntity("name", "comment", "email", &config)
+				if err != nil {
+					t.Errorf("cannot create key: %v", err)
+					continue nextTest
+				}
+				if i < nKeys {
+					verifyKeys = append(verifyKeys, e)
+				}
+				signKeys = append(signKeys, e.PrivateKey)
+			}
+
+			input := []byte("this is random text\r\n4 17")
+			var output bytes.Buffer
+			w, err := EncodeMulti(&output, signKeys, nil)
+			if err != nil {
+				t.Errorf("EncodeMulti (%s) failed: %v", desc, err)
+			}
+			if _, err := w.Write(input); err != nil {
+				t.Errorf("Write(%q) to signer (%s) failed: %v", string(input), desc, err)
+			}
+			if err := w.Close(); err != nil {
+				t.Errorf("Close() of signer (%s) failed: %v", desc, err)
+			}
+
+			block, _ := Decode(output.Bytes())
+			if string(block.Bytes) != string(input) {
+				t.Errorf("Inline data didn't match original; got %q want %q", string(block.Bytes), string(input))
+			}
+			_, err = openpgp.CheckDetachedSignature(verifyKeys, bytes.NewReader(block.Bytes), block.ArmoredSignature.Body)
+			if nKeys == 0 {
+				if err == nil {
+					t.Errorf("verifying inline (%s) succeeded; want failure", desc)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("verifying inline (%s) failed (%v); want success", desc, err)
+				}
+			}
+		}
+	}
+}
+
+const signatureBlock = `
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPrivacy 0.99
+
+yDgBO22WxBHv7O8X7O/jygAEzol56iUKiXmV+XmpCtmpqQUKiQrFqclFqUDBovzS
+vBSFjNSiVHsuAA==
+=njUN
+-----END PGP SIGNATURE-----
+`
+
+var invalidInputs = []string{
+	`
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+(This message was truncated.)
+`,
+	`
+-----BEGIN PGP SIGNED MESSAGE-----garbage
+Hash: SHA256
+
+_o/
+` + signatureBlock,
+	`
+garbage-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+_o/
+` + signatureBlock,
+	`
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA` + "\x0b\x0b" + `256
+
+_o/
+` + signatureBlock,
+	`
+-----BEGIN PGP SIGNED MESSAGE-----
+NotHash: SHA256
+
+_o/
+` + signatureBlock,
+}
+
+func TestParseInvalid(t *testing.T) {
+	for i, input := range invalidInputs {
+		if b, rest := Decode([]byte(input)); b != nil {
+			t.Errorf("#%d: decoded a bad clearsigned message without any error", i)
+		} else if string(rest) != input {
+			t.Errorf("#%d: did not return all data with a bad message", i)
+		}
+	}
+}
+
 var clearsignInput = []byte(`
 ;lasjlkfdsa
 
@@ -166,13 +285,6 @@ qZg6BaTvOxepqOxnhVU=
 -----END PGP SIGNATURE-----
 
 trailing`)
-
-var clearsignInput3 = []byte(`
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA256
-
-(This message was truncated.)
-`)
 
 var signingKey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 Version: GnuPG v1.4.10 (GNU/Linux)

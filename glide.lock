@@ -1,5 +1,5 @@
-hash: ac4e8bfd50477f0902dd0e711125cb12c6ae38f99222af01d8626308c1a1bdcd
-updated: 2020-09-23T11:32:26.693276835-05:00
+hash: 8f1e6e91106c78bf7740753a25f3da7dd0ca63e7a2b7e7609c65b0b51b01f1b0
+updated: 2020-09-23T11:43:56.209924695-05:00
 imports:
 - name: ""
   version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
@@ -1216,7 +1216,7 @@ imports:
   subpackages:
   - errorutil
 - name: golang.org/x/crypto
-  version: 49796115aa4b964c318aad4f3084fdb41e9aa067
+  version: 57b3e21c3d5606066a87e63cfe07ec6b9f0db000
   subpackages:
   - bcrypt
   - blowfish
@@ -1227,6 +1227,7 @@ imports:
   - ed25519
   - ed25519/internal/edwards25519
   - internal/chacha20
+  - internal/subtle
   - nacl/secretbox
   - ocsp
   - openpgp
@@ -1273,8 +1274,9 @@ imports:
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: 95c6576299259db960f6c5b9b69ea52422860fce
+  version: 15dcb6c0061f497a3f66e3ea034b629c6dd4d99e
   subpackages:
+  - cpu
   - unix
   - windows
   - windows/svc

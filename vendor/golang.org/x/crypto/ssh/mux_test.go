@@ -20,7 +20,7 @@ func muxPair() (*mux, *mux) {
 	return s, c
 }
 
-// Returns both ends of a channel, and the mux for the the 2nd
+// Returns both ends of a channel, and the mux for the 2nd
 // channel.
 func channelPair(t *testing.T) (*channel, *channel, *mux) {
 	c, s := muxPair()
@@ -107,10 +107,6 @@ func TestMuxReadWrite(t *testing.T) {
 		_, err = s.Extended(1).Write([]byte(magicExt))
 		if err != nil {
 			t.Fatalf("Write: %v", err)
-		}
-		err = s.Close()
-		if err != nil {
-			t.Fatalf("Close: %v", err)
 		}
 	}()
 
