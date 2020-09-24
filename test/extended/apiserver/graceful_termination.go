@@ -57,7 +57,29 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 				continue
 			}
 
-			t.Errorf("API LBs send requests to kube-apiserver far too late in termination process, probably due to broken LB configuration: %#v. This can lead to connection refused and network I/O timeout errors in other components.", ev)
+			t.Errorf("API LBs or the kubernetes service send requests to kube-apiserver far too late in termination process, probably due to broken LB configuration: %#v. This can lead to connection refused and network I/O timeout errors in other components.", ev)
+		}
+	})
+
+	g.It("API LBs follow /readyz of kube-apiserver and don't send request early", func() {
+		t := g.GinkgoT()
+
+		client, err := kubernetes.NewForConfig(oc.AdminConfig())
+		if err != nil {
+			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
+		}
+
+		evs, err := client.CoreV1().Events("openshift-kube-apiserver").List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
+		}
+
+		for _, ev := range evs.Items {
+			if ev.Reason != "NonReadyRequests" {
+				continue
+			}
+
+			t.Errorf("API LBs or the kubernetes service send requests to kube-apiserver before it is ready, probably due to broken LB configuration: %#v. This can lead to inconsistent responses like 403s in other components.", ev)
 		}
 	})
 })
