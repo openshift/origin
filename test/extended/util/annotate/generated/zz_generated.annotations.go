@@ -1597,8 +1597,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-26-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-26-rhel7\" should be SCL enabled [Suite:openshift]",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-ex db repo  Building nodejs-mongodb app from new-app should build a nodejs-mongodb image and run it in a pod": "should build a nodejs-mongodb image and run it in a pod [Suite:openshift]",
-
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo  Building cakephp-mysql app from new-app should build a cakephp-mysql image and run it in a pod": "should build a cakephp-mysql image and run it in a pod [Suite:openshift]",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][python] test python images with django-ex db repo  Building django-psql app from new-app should build a django-psql image and run it in a pod": "should build a django-psql image and run it in a pod [Suite:openshift]",
@@ -1606,8 +1604,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][ruby] test ruby images with rails-ex db repo  Building rails-postgresql app from new-app should build a rails-postgresql image and run it in a pod": "should build a rails-postgresql image and run it in a pod [Suite:openshift]",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][mariadb][Slow] openshift mariadb image  Creating from a template should instantiate the template": "should instantiate the template [Suite:openshift]",
-
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][mongodb] openshift mongodb image  creating from a template should instantiate the template": "should instantiate the template [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift mysql image  Creating from a template should instantiate the template": "should instantiate the template [Suite:openshift]",
 
