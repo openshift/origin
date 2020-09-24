@@ -291,12 +291,12 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 	if len(os.Getenv(dockercfg.PullAuthType)) == 0 {
 		return nil, nil
 	}
-	glog.V(2).Infof("Checking for Docker config file for %s in path %s", dockercfg.PullAuthType, os.Getenv(dockercfg.PullAuthType))
+	fmt.Printf("Checking for Docker config file for %s in path %s", dockercfg.PullAuthType, os.Getenv(dockercfg.PullAuthType))
 	dockercfgPath := dockercfg.GetDockercfgFile(os.Getenv(dockercfg.PullAuthType))
 	if len(dockercfgPath) == 0 {
 		return nil, fmt.Errorf("no docker config file found in '%s'", os.Getenv(dockercfg.PullAuthType))
 	}
-	glog.V(2).Infof("Using Docker config file %s", dockercfgPath)
+	fmt.Printf("Using Docker config file %s", dockercfgPath)
 	r, err := os.Open(dockercfgPath)
 	if err != nil {
 		return nil, fmt.Errorf("'%s': %s", dockercfgPath, err)
@@ -323,14 +323,20 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
 		noCache = d.build.Spec.Strategy.DockerStrategy.NoCache
 		forcePull = d.build.Spec.Strategy.DockerStrategy.ForcePull
 	}
+	fmt.Println("setting up pull secret")
 	auth, err := d.setupPullSecret()
 	if err != nil {
+		fmt.Println("setting up pull secret failed")
 		return err
 	}
+	fmt.Println("copySecrets")
 	if err := d.copySecrets(d.build.Spec.Source.Secrets, dir); err != nil {
+		fmt.Println("copySecrets failed")
 		return err
 	}
+	fmt.Println("copyConfigMaps")
 	if err = d.copyConfigMaps(d.build.Spec.Source.ConfigMaps, dir); err != nil {
+		fmt.Println("copyConfigMaps failed")
 		return err
 	}
 
@@ -344,15 +350,19 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
 		Pull:                forcePull,
 		BuildArgs:           buildArgs,
 	}
+	fmt.Println("getContainerNetworkConfig")
 	network, resolvConfHostPath, err := getContainerNetworkConfig()
 	if err != nil {
+		fmt.Println("getContainerNetworkConfig failed")
 		return err
 	}
 	opts.NetworkMode = network
 	if len(resolvConfHostPath) != 0 {
+		fmt.Println("exec.Command")
 		cmd := exec.Command("chcon", "system_u:object_r:svirt_sandbox_file_t:s0", "/etc/resolv.conf")
 		err := cmd.Run()
 		if err != nil {
+			fmt.Println("exec.Command failed")
 			return fmt.Errorf("unable to set permissions on /etc/resolv.conf: %v", err)
 		}
 		opts.BuildBinds = fmt.Sprintf("[\"%s:/etc/resolv.conf\"]", resolvConfHostPath)
@@ -382,6 +392,7 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
 		}
 	}
 
+	fmt.Println("calling buildImage")
 	return buildImage(d.dockerClient, dir, d.tar, &opts)
 }
 

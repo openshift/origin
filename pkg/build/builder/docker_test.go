@@ -254,6 +254,7 @@ func TestDockerfilePath(t *testing.T) {
 				if opts.Dockerfile != test.dockerfilePath {
 					t.Errorf("Unexpected dockerfile path: %s (expected: %s)", opts.Dockerfile, test.dockerfilePath)
 				}
+				fmt.Println("buildImageFunc ok")
 				return nil
 			},
 		}

@@ -204,7 +204,7 @@ func buildImage(client DockerClient, dir string, tar tar.Tar, opts *docker.Build
 	}()
 	defer w.Close()
 	opts.InputStream = r
-	glog.V(5).Infof("Invoking Docker build to create %q", opts.Name)
+	fmt.Printf("Invoking Docker build to create %q", opts.Name)
 	return client.BuildImage(*opts)
 }
 

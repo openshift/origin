@@ -75,7 +75,9 @@ func fakePullImageFunc(opts docker.PullImageOptions, auth docker.AuthConfigurati
 }
 
 func (d *FakeDocker) BuildImage(opts docker.BuildImageOptions) error {
+	fmt.Println("BuildImage called")
 	if d.buildImageFunc != nil {
+		fmt.Println("BuildImage buildImageFunc")
 		return d.buildImageFunc(opts)
 	}
 	return nil
