@@ -14,7 +14,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/mfojtik/sinatra-example-1
+        uri: https://github.com/mfojtik/sinatra-example-1
       type: Git
     strategy:
       sourceStrategy:
@@ -56,7 +56,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/mfojtik/sinatra-example-1
+        uri: https://github.com/mfojtik/sinatra-example-1
       type: Git
     strategy:
       sourceStrategy:

@@ -21495,7 +21495,7 @@ var _testExtendedTestdataBuildsTestBuildRevisionJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -21569,7 +21569,7 @@ items:
     source:
       type: Git
       git:
-        uri: git://github.com/openshift/ruby-hello-world.git
+        uri: https://github.com/openshift/ruby-hello-world.git
     strategy:
       type: Source
       sourceStrategy:
@@ -21598,7 +21598,7 @@ items:
     source:
       type: Git
       git:
-        uri: git://github.com/openshift/ruby-hello-world.git
+        uri: https://github.com/openshift/ruby-hello-world.git
     strategy:
       type: Source
       sourceStrategy:
@@ -32108,7 +32108,7 @@ metadata:
 spec:
   source:
     git:
-      uri: git://github.com/openshift/ruby-hello-world.git
+      uri: https://github.com/openshift/ruby-hello-world.git
   strategy:
     jenkinsPipelineStrategy: {}
 ' | oc create -f -"
@@ -36959,7 +36959,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/openshift/ruby-hello-world.git
+        uri: https://github.com/openshift/ruby-hello-world.git
       type: Git
     strategy:
       sourceStrategy:
@@ -36998,7 +36998,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/openshift/ruby-hello-world.git
+        uri: https://github.com/openshift/ruby-hello-world.git
       type: Git
     strategy:
       sourceStrategy:
@@ -37522,7 +37522,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/mfojtik/sinatra-example-2
+        uri: https://github.com/mfojtik/sinatra-example-2
       type: Git
     strategy:
       sourceStrategy:
@@ -37646,7 +37646,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/mfojtik/sinatra-example-1
+        uri: https://github.com/mfojtik/sinatra-example-1
       type: Git
     strategy:
       sourceStrategy:
@@ -37688,7 +37688,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/mfojtik/sinatra-example-1
+        uri: https://github.com/mfojtik/sinatra-example-1
       type: Git
     strategy:
       sourceStrategy:
@@ -37798,7 +37798,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/mfojtik/sinatra-app-example
+        uri: https://github.com/mfojtik/sinatra-app-example
       type: Git
     strategy:
       sourceStrategy:
@@ -37847,7 +37847,7 @@ items:
       type: git
     source:
       git:
-        uri: git://github.com/mfojtik/sinatra-app-example
+        uri: https://github.com/mfojtik/sinatra-app-example
       type: Git
     strategy:
       sourceStrategy:
@@ -46062,7 +46062,7 @@ spec:
   runPolicy: Serial
   source:
     git:
-      uri: git://github.com/openshift/ruby-hello-world.git
+      uri: https://github.com/openshift/ruby-hello-world.git
     secrets: null
     type: Git
   strategy:
@@ -46132,7 +46132,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -46174,7 +46174,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -53262,7 +53262,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                 "source": {
                     "type": "Git",
                     "git": {
-                        "uri": "git://github.com/openshift/ruby-hello-world.git"
+                        "uri": "https://github.com/openshift/ruby-hello-world.git"
                     }
                 },
                 "strategy": {
@@ -53291,7 +53291,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                 "source": {
                     "type": "Git",
                     "git": {
-                        "uri": "git://github.com/openshift/ruby-hello-world.git"
+                        "uri": "https://github.com/openshift/ruby-hello-world.git"
                     }
                 },
                 "strategy": {
@@ -56483,7 +56483,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
         source: 
           type: "Git"
           git: 
-            uri: "git://github.com/openshift/ruby-hello-world.git"
+            uri: "https://github.com/openshift/ruby-hello-world.git"
         strategy: 
           type: "Source"
           sourceStrategy: 
@@ -56530,7 +56530,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
         source: 
           type: "Git"
           git: 
-            uri: "git://github.com/openshift/ruby-hello-world.git"
+            uri: "https://github.com/openshift/ruby-hello-world.git"
         strategy: 
           type: "Source"
           sourceStrategy: 
@@ -56551,7 +56551,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
         source: 
           type: "Git"
           git: 
-            uri: "git://github.com/openshift/invalidrepo.git"
+            uri: "https://github.com/openshift/invalidrepo.git"
         strategy: 
           type: "Source"
           sourceStrategy: 
@@ -56594,7 +56594,7 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
         source: 
           type: "Git"
           git: 
-            uri: "git://github.com/openshift/ruby-hello-world.git"
+            uri: "https://github.com/openshift/ruby-hello-world.git"
         strategy: 
           type: "Source"
           sourceStrategy: 
@@ -58710,7 +58710,7 @@ var _testIntegrationTestdataTestBuildcliBeta2Json = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -58752,7 +58752,7 @@ var _testIntegrationTestdataTestBuildcliBeta2Json = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -58837,7 +58837,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -58879,7 +58879,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {

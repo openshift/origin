@@ -13,7 +13,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/mfojtik/sinatra-example-2
+        uri: https://github.com/mfojtik/sinatra-example-2
       type: Git
     strategy:
       sourceStrategy:
