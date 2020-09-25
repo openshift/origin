@@ -309,7 +309,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				g.Skip("prometheus not found on this cluster")
 			}
 
-			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
