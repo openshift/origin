@@ -223,15 +223,8 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 				return false
 			}
 
-			g.By(fmt.Sprintf("ensure worker taints and conditions are consistent"))
+			g.By(fmt.Sprintf("ensure worker is healthy"))
 			for _, node := range nodeList.Items {
-				if _, ok := node.Labels["node-role.kubernetes.io/worker"]; !ok {
-					continue
-				}
-				if len(node.Spec.Taints) > 0 {
-					e2e.Logf("node/%s had unexpected taints: %#v", node.Name, node.Spec.Taints)
-					return false
-				}
 				for _, condition := range node.Status.Conditions {
 					switch condition.Type {
 					case corev1.NodeReady:
@@ -253,7 +246,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 
 					}
 				}
-				e2e.Logf("node/%s taints and conditions seem ok")
+				e2e.Logf("node/%s conditions seem ok")
 			}
 
 			return true
