@@ -232,6 +232,9 @@ type Config struct {
 	// and the kind associated with a given resource. As resources are installed, they are registered here.
 	EquivalentResourceRegistry runtime.EquivalentResourceRegistry
 
+	// hasBeenReadyCh is closed when /readyz succeeds for the first time.
+	hasBeenReadyCh chan struct{}
+
 	// A func that returns whether the server is terminating. This can be nil.
 	IsTerminating func() bool
 }
@@ -340,6 +343,8 @@ func NewConfig(codecs serializer.CodecFactory) *Config {
 		// Default to treating watch as a long-running operation
 		// Generic API servers have no inherent long-running subresources
 		LongRunningFunc: genericfilters.BasicLongRunningRequestCheck(sets.NewString("watch"), sets.NewString()),
+
+		hasBeenReadyCh: make(chan struct{}),
 	}
 }
 
@@ -636,6 +641,7 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 		livezChecks:      c.LivezChecks,
 		readyzChecks:     c.ReadyzChecks,
 		readinessStopCh:  make(chan struct{}),
+		hasBeenReadyCh:   c.hasBeenReadyCh,
 		livezGracePeriod: c.LivezGracePeriod,
 
 		DiscoveryGroupManager: discovery.NewRootAPIsHandler(c.DiscoveryAddresses, c.Serializer),
@@ -761,6 +767,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler = genericfilters.WithCORS(handler, c.CorsAllowedOriginList, nil, nil, nil, "true")
 	handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, c.LongRunningFunc, c.RequestTimeout)
 	handler = genericfilters.WithWaitGroup(handler, c.LongRunningFunc, c.HandlerChainWaitGroup)
+	handler = WithNonReadyRequestLogging(handler, c.hasBeenReadyCh)
 	handler = WithLateConnectionFilter(handler)
 	handler = genericapifilters.WithRequestInfo(handler, c.RequestInfoResolver)
 	if c.SecureServing != nil && !c.SecureServing.DisableHTTP2 && c.GoawayChance > 0 {
@@ -769,6 +776,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler = genericapifilters.WithAuditAnnotations(handler, c.AuditBackend, c.AuditPolicyChecker)
 	handler = genericapifilters.WithWarningRecorder(handler)
 	handler = genericapifilters.WithCacheControl(handler)
+	handler = genericapifilters.WithRequestReceivedTimestamp(handler)
 	handler = genericfilters.WithPanicRecovery(handler, c.IsTerminating)
 	return handler
 }
