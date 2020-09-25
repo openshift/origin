@@ -7,10 +7,12 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/client-go/rest"
 
@@ -25,6 +27,15 @@ var _ = g.Describe("[Feature:APIServer]", func() {
 	g.It("anonymous browsers should get a 403 from /", func() {
 		transport, err := anonymousHttpTransport(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		// For more info, refer to release notes of https://bugzilla.redhat.com/show_bug.cgi?id=1821771
+		for _, history := range cv.Status.History {
+			if strings.HasPrefix(history.Version, "4.1.") {
+				g.Skip("the test is not expected to work with clusters upgraded from 4.1.x")
+			}
+		}
 
 		req, err := http.NewRequest("GET", oc.AdminConfig().Host, nil)
 		req.Header.Set("Accept", "*/*")
