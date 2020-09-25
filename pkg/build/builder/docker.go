@@ -352,6 +352,9 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
 	}
 	fmt.Println("getContainerNetworkConfig")
 	network, resolvConfHostPath, err := getContainerNetworkConfig()
+	network = ""
+	resolvConfHostPath = ""
+	err = nil
 	if err != nil {
 		fmt.Println("getContainerNetworkConfig failed")
 		return err
