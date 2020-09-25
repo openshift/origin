@@ -261,6 +261,12 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 			return current
 		}, 5*time.Minute, time.Second).ShouldNot(o.Equal(""))
 
+		defer func() {
+			// clean up so that it doesn't emit an alert when namespace is deleted
+			_, err = oc.AsAdmin().Run("delete").Args("-n", oc.Namespace(), "csv", current).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}()
+
 		o.Eventually(func() string {
 			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "csv", current, "-o=jsonpath={.status.phase}").Output()
 			if err != nil {
@@ -268,11 +274,7 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 			}
 			return output
 
-		}, 5*time.Minute, time.Second).Should(o.ContainSubstring("Succeeded"))
-
-		// clean up so that it doesn't emit an alert when namespace is deleted
-		_, err = oc.AsAdmin().Run("delete").Args("-n", oc.Namespace(), "csv", current).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		}, 5*time.Minute, time.Second).ShouldNot(o.BeEmpty())
 	})
 
 	// OCP-24829 - Report `Upgradeable` in OLM ClusterOperators status
