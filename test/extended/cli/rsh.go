@@ -15,7 +15,7 @@ var _ = g.Describe("[sig-cli] oc rsh", func() {
 	var (
 		oc                     = exutil.NewCLI("oc-rsh")
 		multiContainersFixture = exutil.FixturePath("testdata", "cli", "pod-with-two-containers.yaml")
-		podsLabel              = exutil.ParseLabelsOrDie("name=hello-centos")
+		podsLabel              = exutil.ParseLabelsOrDie("name=hello-ubi")
 	)
 
 	g.Describe("rsh specific flags", func() {
@@ -32,10 +32,10 @@ var _ = g.Describe("[sig-cli] oc rsh", func() {
 			g.By("running the rsh command without specify container name")
 			out, err := oc.Run("rsh").Args(pods[0], "mkdir", "/tmp/test1").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("Defaulting container name to hello-centos"))
+			o.Expect(out).To(o.ContainSubstring("Defaulting container name to hello-ubi"))
 
 			g.By("running the rsh command with specify container name and shell")
-			_, err = oc.Run("rsh").Args("--container=hello-centos-2", "--shell=/bin/sh", pods[0], "mkdir", "/tmp/test3").Output()
+			_, err = oc.Run("rsh").Args("--container=hello-ubi-2", "--shell=/bin/sh", pods[0], "mkdir", "/tmp/test3").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})

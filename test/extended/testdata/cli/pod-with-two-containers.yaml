@@ -3,11 +3,11 @@ apiVersion: v1
 metadata:
   name: doublecontainers
   labels:
-    name: hello-centos
+    name: hello-ubi
 spec:
   containers:
-  - name: hello-centos
-    image: docker.io/centos:centos7
+  - name: hello-ubi
+    image: registry.access.redhat.com/ubi8/ubi-minimal
     command:
       - /bin/sleep
       - infinity
@@ -18,8 +18,8 @@ spec:
     imagePullPolicy: IfNotPresent
     capabilities: {}
     securityContext: {}
-  - name: hello-centos-2
-    image: docker.io/centos:centos7
+  - name: hello-ubi-2
+    image: registry.access.redhat.com/ubi8/ubi-minimal
     command:
       - /bin/sleep
       - infinity
