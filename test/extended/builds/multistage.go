@@ -54,7 +54,7 @@ COPY --from=busybox:latest /bin/ping /test/
 						Source: buildv1.BuildSource{
 							Dockerfile: &testDockerfile,
 							Images: []buildv1.ImageSource{
-								{From: corev1.ObjectReference{Kind: "DockerImage", Name: "centos:7"}, As: []string{"scratch"}},
+								{From: corev1.ObjectReference{Kind: "DockerImage", Name: "registry.access.redhat.com/ubi8/ubi"}, As: []string{"scratch"}},
 							},
 						},
 						Strategy: buildv1.BuildStrategy{
@@ -82,7 +82,7 @@ COPY --from=busybox:latest /bin/ping /test/
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(s).ToNot(o.ContainSubstring("--> FROM scratch"))
 			o.Expect(s).ToNot(o.ContainSubstring("FROM busybox"))
-			o.Expect(s).To(o.ContainSubstring("STEP 1: FROM centos:7 AS test"))
+			o.Expect(s).To(o.ContainSubstring("STEP 1: FROM registry.access.redhat.com/ubi8/ubi AS test"))
 			o.Expect(s).To(o.ContainSubstring("COPY --from"))
 			o.Expect(s).To(o.ContainSubstring(fmt.Sprintf("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace())))
 			e2e.Logf("Build logs:\n%s", result)
