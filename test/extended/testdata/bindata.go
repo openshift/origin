@@ -20361,7 +20361,7 @@ func testExtendedTestdataBuildsCustomBuildDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsCustomBuildDockerfileSample = []byte(`FROM docker.io/centos:7
+var _testExtendedTestdataBuildsCustomBuildDockerfileSample = []byte(`FROM registry.access.redhat.com/ubi8/ubi-minimal
 RUN touch /tmp/built
 `)
 
