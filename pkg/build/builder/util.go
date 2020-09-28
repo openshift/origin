@@ -23,6 +23,8 @@ var (
 	procCGroupPattern = regexp.MustCompile(`\d+:([a-z_,]+):/.*/(\w+-|)([a-z0-9]+).*`)
 )
 
+type getContainerNetworkConfigFn func() (string, string, error)
+
 // MergeEnv will take an existing environment and merge it with a new set of
 // variables. For variables with the same name in both, only the one in the
 // new environment will be kept.

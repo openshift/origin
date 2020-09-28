@@ -284,14 +284,9 @@ func TestDockerfilePath(t *testing.T) {
 			}
 		}
 
-		// Bug 1889868: Ignoring some errors from docker build, as this requires access to a docker socket
-		// CI tests running in OCP 4 pods do not have access to a docker socket (or cri-o equivalent)
-
 		// check that the docker client is called with the right Dockerfile parameter
-		if err = dockerBuilder.dockerBuild(buildDir, ""); err != nil {
-			if !strings.Contains(err.Error(), "connect: no such file or directory") {
-				t.Errorf("failed to build: %v", err)
-			}
+		if err = dockerBuilder.dockerBuild(buildDir, "", fakeGetContainerNetworkConfig); err != nil {
+			t.Errorf("failed to build: %v", err)
 			continue
 		}
 		os.RemoveAll(buildDir)
@@ -327,7 +322,7 @@ func TestEmptySource(t *testing.T) {
 		build:  build,
 	}
 
-	if err := dockerBuilder.Build(); err == nil {
+	if err := dockerBuilder.buildInternal(fakeGetContainerNetworkConfig); err == nil {
 		t.Error("Should have received error on docker build")
 	} else {
 		if !strings.Contains(err.Error(), "must provide a value for at least one of source, binary, images, or dockerfile") {
@@ -400,13 +395,17 @@ USER 1001`
 	if err := ManageDockerfile(buildDir, build); err != nil {
 		t.Errorf("failed to manage the dockerfile: %v", err)
 	}
-	if err := dockerBuilder.Build(); err != nil {
-		if strings.Contains(err.Error(), "connect: no such file or directory") {
-			t.Logf("unable to access Docker socket: %v", err)
-		} else if strings.Contains(err.Error(), "cannot pull scratch") {
+	if err := dockerBuilder.buildInternal(fakeGetContainerNetworkConfig); err != nil {
+		if strings.Contains(err.Error(), "cannot pull scratch") {
 			t.Errorf("Docker build should not have attempted to pull from scratch")
 		} else {
 			t.Errorf("Received unexpected error: %v", err)
 		}
 	}
+}
+
+// It is okay to return empty configuration because the fake docker
+// client in the test does not do anything.
+func fakeGetContainerNetworkConfig() (string, string, error) {
+	return "", "", nil
 }

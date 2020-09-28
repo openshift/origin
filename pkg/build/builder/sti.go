@@ -129,6 +129,11 @@ func makeVolumeSpec(src localObjectBuildSource, mountPath string) s2iapi.VolumeS
 // Build executes S2I build based on configured builder, S2I builder factory
 // and S2I config validator
 func (s *S2IBuilder) Build() error {
+	return s.buildInternal(getContainerNetworkConfig)
+}
+
+// buildInternal provides a way for tests to mock getContainerNetworkConfigFunc.
+func (s *S2IBuilder) buildInternal(getContainerNetworkConfigFunc getContainerNetworkConfigFn) error {
 
 	var err error
 	ctx := timing.NewContext(context.Background())
@@ -189,7 +194,7 @@ func (s *S2IBuilder) Build() error {
 		}
 	}
 
-	networkMode, resolvConfHostPath, err := getContainerNetworkConfig()
+	networkMode, resolvConfHostPath, err := getContainerNetworkConfigFunc()
 	if err != nil {
 		return err
 	}

@@ -55,6 +55,11 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient buildclientv1.Buil
 
 // Build executes a Docker build
 func (d *DockerBuilder) Build() error {
+	return d.buildInternal(getContainerNetworkConfig)
+}
+
+// buildInternal provides a way for tests to mock getContainerNetworkConfigFunc.
+func (d *DockerBuilder) buildInternal(getContainerNetworkConfigFunc getContainerNetworkConfigFn) error {
 
 	var err error
 	ctx := timing.NewContext(context.Background())
@@ -137,7 +142,7 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	startTime := metav1.Now()
-	err = d.dockerBuild(buildDir, buildTag)
+	err = d.dockerBuild(buildDir, buildTag, getContainerNetworkConfigFunc)
 
 	timing.RecordNewStep(ctx, buildapiv1.StageBuild, buildapiv1.StepDockerBuild, startTime, metav1.Now())
 
@@ -305,7 +310,7 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
-func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
+func (d *DockerBuilder) dockerBuild(dir string, tag string, getContainerNetworkConfigFunc getContainerNetworkConfigFn) error {
 	var noCache bool
 	var forcePull bool
 	var buildArgs []docker.BuildArg
@@ -344,7 +349,7 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string) error {
 		Pull:                forcePull,
 		BuildArgs:           buildArgs,
 	}
-	network, resolvConfHostPath, err := getContainerNetworkConfig()
+	network, resolvConfHostPath, err := getContainerNetworkConfigFunc()
 	if err != nil {
 		return err
 	}

@@ -116,7 +116,7 @@ func TestDockerBuildError(t *testing.T) {
 	s2iBuilder := newTestS2IBuilder(testS2IBuilderConfig{
 		buildError: expErr,
 	})
-	if err := s2iBuilder.Build(); err != expErr {
+	if err := s2iBuilder.buildInternal(fakeGetContainerNetworkConfig); err != expErr {
 		t.Errorf("s2iBuilder.Build() = %v; want %v", err, expErr)
 	}
 }
@@ -127,7 +127,7 @@ func TestPushError(t *testing.T) {
 	s2iBuilder := newTestS2IBuilder(testS2IBuilderConfig{
 		errPushImage: expErr,
 	})
-	if err := s2iBuilder.Build(); !strings.HasSuffix(err.Error(), expErr.Error()) {
+	if err := s2iBuilder.buildInternal(fakeGetContainerNetworkConfig); !strings.HasSuffix(err.Error(), expErr.Error()) {
 		t.Errorf("s2iBuilder.Build() = %v; want %v", err, expErr)
 	}
 }
@@ -138,7 +138,7 @@ func TestGetStrategyError(t *testing.T) {
 	s2iBuilder := newTestS2IBuilder(testS2IBuilderConfig{
 		getStrategyErr: expErr,
 	})
-	if err := s2iBuilder.Build(); err != expErr {
+	if err := s2iBuilder.buildInternal(fakeGetContainerNetworkConfig); err != expErr {
 		t.Errorf("s2iBuilder.Build() = %v; want %v", err, expErr)
 	}
 }
