@@ -10,6 +10,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/authentication"
 	_ "github.com/openshift/origin/test/extended/authorization"
 	_ "github.com/openshift/origin/test/extended/authorization/rbac"
+	_ "github.com/openshift/origin/test/extended/baseline"
 	_ "github.com/openshift/origin/test/extended/bootstrap_user"
 	_ "github.com/openshift/origin/test/extended/builds"
 	_ "github.com/openshift/origin/test/extended/cli"

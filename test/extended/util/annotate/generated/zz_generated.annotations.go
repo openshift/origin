@@ -2323,6 +2323,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-scalability][Feature:Performance][Serial][Slow] Mirror cluster it should read the node info": "it should read the node info",
 
+	"[Top Level] [sig-scalability][Suite:openshift/scalability] Managed cluster should approach fixed resource consumption in the steady state": "approach fixed resource consumption in the steady state [Slow]",
+
 	"[Top Level] [sig-scheduling] GPUDevicePluginAcrossRecreate [Feature:Recreate] run Nvidia GPU Device Plugin tests with a recreation": "run Nvidia GPU Device Plugin tests with a recreation [Disabled:SpecialConfig] [Suite:k8s]",
 
 	"[Top Level] [sig-scheduling] LimitRange should create a LimitRange with defaults and ensure pod has those defaults applied. [Conformance]": "should create a LimitRange with defaults and ensure pod has those defaults applied. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
