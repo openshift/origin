@@ -120,6 +120,15 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			g.Skip("ROKs doesn't have audit logs")
 		}
 
+		upgradedFrom45 := false
+		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		for _, history := range cv.Status.History {
+			if strings.HasPrefix(history.Version, "4.5.") {
+				upgradedFrom45 = true
+			}
+		}
+
 		// makes some tokens that should not show in the audit logs
 		const tokenName = "must-gather-audit-logs-token-plus-some-padding-here-to-make-the-limit"
 		oauthClient := oauthv1client.NewForConfigOrDie(oc.AdminConfig())
@@ -226,8 +235,14 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 							continue // ignore truncated data
 						}
 						o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
-						for _, token := range []string{"oauthaccesstokens", "oauthauthorizetokens", tokenName} {
-							o.Expect(text).NotTo(o.ContainSubstring(token))
+
+						// TODO(4.7+): remove this check
+						// - if on 4.6 but not upgraded => disable check
+						// - if on 4.6 and we have been upgraded from older release => keep the check.
+						if upgradedFrom45 {
+							for _, token := range []string{"oauthaccesstokens", "oauthauthorizetokens", tokenName} {
+								o.Expect(text).NotTo(o.ContainSubstring(token))
+							}
 						}
 						readFile = true
 						eventsChecked++
