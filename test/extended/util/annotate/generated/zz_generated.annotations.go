@@ -953,6 +953,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Rolebinding restrictions tests single project should succeed": "should succeed [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-auth][Feature:SCC][Early] should not have pod creation failures during install": "should not have pod creation failures during install [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC": "TestAllowedSCCViaRBAC [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement": "TestPodUpdateSCCEnforcement [Suite:openshift/conformance/parallel]",
