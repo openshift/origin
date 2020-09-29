@@ -33,6 +33,10 @@ import (
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	"fmt"
+	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
+	"net"
+	"os"
+
 
 	"github.com/onsi/ginkgo"
 )
@@ -904,6 +908,7 @@ var _ = SIGDescribe("NetworkPolicy [LinuxOnly]", func() {
 			// Specify RestartPolicy to OnFailure so we can check the client pod fails in the beginning and succeeds
 			// after updating its label, otherwise it would not restart after the first failure.
 			podClient := createNetworkClientPodWithRestartPolicy(f, f.Namespace, "client-a", service, allowedPort, v1.RestartPolicyOnFailure)
+			collectOVNDebug(f, f.Namespace, podClient, service)
 			defer func() {
 				ginkgo.By(fmt.Sprintf("Cleaning up the pod %s", podClient.Name))
 				if err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), podClient.Name, metav1.DeleteOptions{}); err != nil {
@@ -1807,6 +1812,23 @@ func testCannotConnect(f *framework.Framework, ns *v1.Namespace, podName string,
 		}
 	}()
 	checkNoConnectivity(f, ns, podClient, service)
+}
+
+func masterExec(cmd string) {
+	host := net.JoinHostPort(framework.GetMasterHost(), e2essh.SSHPort)
+	result, err := e2essh.SSH(cmd, host, framework.TestContext.Provider)
+	framework.ExpectNoError(err, "failed to SSH to host %s on provider %s and run command: %q", host, framework.TestContext.Provider, cmd)
+	if result.Code != 0 {
+		e2essh.LogResult(result)
+		framework.Failf("master exec command returned non-zero")
+	}
+}
+
+func collectOVNDebug(f *framework.Framework, ns *v1.Namespace, podClient *v1.Pod, service *v1.Service) {
+
+	dir := os.Getenv("ARTIFACT_DIR")
+	cmd := fmt.Sprintf("oc adm must-gather --kubeconfig=/etc/apici/kubeconfig --dest-dir=/%s/%s-network-ovn -- /usr/bin/gather_network_logs", dir, podClient.Name)
+	masterExec(cmd)
 }
 
 func checkConnectivity(f *framework.Framework, ns *v1.Namespace, podClient *v1.Pod, service *v1.Service) {
