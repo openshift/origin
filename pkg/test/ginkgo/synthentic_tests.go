@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor"
@@ -78,5 +79,33 @@ func createSyntheticTestsFromMonitor(m *monitor.Monitor, eventsForTests []*monit
 		)
 	}
 
+	// check events
+	syntheticTestResults = append(syntheticTestResults, testPodTransitions(events)...)
+
 	return syntheticTestResults, buf, errBuf
+}
+
+func testPodTransitions(events []*monitor.EventInterval) []*JUnitTestCase {
+	success := &JUnitTestCase{Name: "[sig-node] pods should never transition back to pending"}
+
+	failures := []string{}
+	for _, event := range events {
+		if strings.Contains(event.Message, "pod should not transition") || strings.Contains(event.Message, "pod moved back to Pending") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+		}
+	}
+	if len(failures) == 0 {
+		return []*JUnitTestCase{success}
+	}
+
+	failure := &JUnitTestCase{
+		Name:      "[sig-node] pods should never transition back to pending",
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &FailureOutput{
+			Output: fmt.Sprintf("%d pods illegally transitioned to Pending", len(failures)),
+		},
+	}
+
+	// write a passing test to trigger detection of this issue as a flake. Doing this first to try to see how frequent the issue actually is
+	return []*JUnitTestCase{failure, success}
 }
