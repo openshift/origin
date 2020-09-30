@@ -263,8 +263,6 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				g.By("clean up openshift resources for next potential run")
 				err = oc.Run("delete").Args("bc", "sample-pipeline-openshift-client-plugin").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("dc", "jenkins-second-deployment").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("bc", "ruby").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("is", "ruby").Execute()
