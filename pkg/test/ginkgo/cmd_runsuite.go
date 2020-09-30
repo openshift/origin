@@ -244,68 +244,13 @@ func (opt *Options) Run(args []string) error {
 
 	pass, fail, skip, failing := summarizeTests(tests)
 
-	// monitor the cluster while the tests are running and report any detected
-	// anomalies
+	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*JUnitTestCase
 	var syntheticFailure bool
 	if events := m.Events(time.Time{}, time.Time{}); len(events) > 0 {
-		buf, errBuf := &bytes.Buffer{}, &bytes.Buffer{}
-		fmt.Fprintf(buf, "\nTimeline:\n\n")
-		errorCount := 0
-		for _, test := range tests {
-			if !test.failed {
-				continue
-			}
-			events = append(events,
-				&monitor.EventInterval{
-					From: test.start,
-					To:   test.end,
-					Condition: &monitor.Condition{
-						Level:   monitor.Info,
-						Locator: fmt.Sprintf("test=%q", test.name),
-						Message: "running",
-					},
-				},
-				&monitor.EventInterval{
-					From: test.end,
-					To:   test.end,
-					Condition: &monitor.Condition{
-						Level:   monitor.Info,
-						Locator: fmt.Sprintf("test=%q", test.name),
-						Message: "failed",
-					},
-				},
-			)
-		}
-		sort.Sort(events)
-		for _, event := range events {
-			if event.Level == monitor.Error {
-				errorCount++
-				fmt.Fprintln(errBuf, event.String())
-			}
-			fmt.Fprintln(buf, event.String())
-		}
-		fmt.Fprintln(buf)
-
-		if errorCount > 0 {
-			syntheticTestResults = append(
-				syntheticTestResults,
-				&JUnitTestCase{
-					Name:      "[sig-arch] Monitor cluster while tests execute",
-					SystemOut: buf.String(),
-					Duration:  duration.Seconds(),
-					FailureOutput: &FailureOutput{
-						Output: fmt.Sprintf("%d error level events were detected during this test run:\n\n%s", errorCount, errBuf.String()),
-					},
-				},
-				// write a passing test to trigger detection of this issue as a flake, indicating we have no idea whether
-				// these are actual failures or not
-				&JUnitTestCase{
-					Name:     "[sig-arch] Monitor cluster while tests execute",
-					Duration: duration.Seconds(),
-				},
-			)
-		}
+		var buf *bytes.Buffer
+		eventsForTests := createEventsForTests(tests)
+		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(m, eventsForTests, duration)
 
 		if opt.AdditionalJUnitsFn != nil {
 			testCases, passed := opt.AdditionalJUnitsFn(events)
