@@ -59,6 +59,9 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("should respond with 503 to unrecognized hosts", func() {
 			t := url.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)
+			// Get cluster proxy config
+			proxy := exutil.GetClusterProxyConfig(oc.AdminConfig())
+			t.WithProxy(proxy.Spec.HTTPProxy)
 			defer t.Close()
 			t.Within(
 				time.Minute,
@@ -85,6 +88,9 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 			g.By("verifying the router reports the correct behavior")
 			t := url.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)
+			// Get cluster proxy config
+			proxy := exutil.GetClusterProxyConfig(oc.AdminConfig())
+			t.WithProxy(proxy.Spec.HTTPProxy)
 			defer t.Close()
 			t.Within(
 				3*time.Minute,
