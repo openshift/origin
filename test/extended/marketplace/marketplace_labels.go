@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-operator][Feature:Marketplace] Marketplace resources wi
 	var (
 		oc            = exutil.NewCLI("marketplace")
 		marketplaceNs = "openshift-marketplace"
-		resourceWait  = 60 * time.Second
+		resourceWait  = 2 * time.Minute
 
 		opsrcYamltem = exutil.FixturePath("testdata", "marketplace", "opsrc", "02-opsrc.yaml")
 	)
