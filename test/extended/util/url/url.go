@@ -31,6 +31,7 @@ type Tester struct {
 	namespace        string
 	podName          string
 	errorPassThrough bool
+	proxy            string
 }
 
 func NewTester(client kclientset.Interface, ns string) *Tester {
@@ -57,7 +58,7 @@ func (ut *Tester) Response(test *Test) *Response {
 
 func (ut *Tester) Responses(tests ...*Test) []*Response {
 	if len(ut.podName) == 0 {
-		_, err := createExecPod(ut.client, ut.namespace, "execpod")
+		_, err := createExecPod(ut.client, ut.namespace, ut.proxy, "execpod")
 		if err != nil && !apierrs.IsAlreadyExists(err) {
 			// exit even on error passthrough, unless the exec pod
 			// was already created by a test running in parallel
@@ -105,6 +106,11 @@ func (ut *Tester) WithErrorPassthrough(pt bool) *Tester {
 	return ut
 }
 
+func (ut *Tester) WithProxy(proxy string) *Tester {
+	ut.proxy = proxy
+	return ut
+}
+
 func (ut *Tester) Podname() string {
 	return ut.podName
 }
@@ -140,7 +146,7 @@ func (ut *Tester) Within(t time.Duration, tests ...*Test) {
 // createExecPod creates a simple bash pod in a sleep loop used as a
 // vessel for kubectl exec commands.
 // Returns the name of the created pod.
-func createExecPod(clientset kclientset.Interface, ns, name string) (string, error) {
+func createExecPod(clientset kclientset.Interface, ns, proxy, name string) (string, error) {
 	e2e.Logf("Creating new exec pod")
 	immediate := int64(0)
 	execPod := &v1.Pod{
@@ -160,6 +166,14 @@ func createExecPod(clientset kclientset.Interface, ns, name string) (string, err
 			HostNetwork:                   false,
 			TerminationGracePeriodSeconds: &immediate,
 		},
+	}
+	// If cluster is using an egress proxy, add the proxy settings to the
+	// execpod's env
+	if len(proxy) > 0 {
+		execPod.Spec.Containers[0].Env = []v1.EnvVar{
+			{Name: "HTTP_PROXY", Value: proxy},
+			{Name: "HTTPS_PROXY", Value: proxy},
+		}
 	}
 	client := clientset.CoreV1()
 	created, err := client.Pods(ns).Create(context.Background(), execPod, metav1.CreateOptions{})
