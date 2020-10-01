@@ -977,18 +977,22 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 			// If we can't access the service accounts, let's wait till the controller
 			// create it.
 			if kapierrs.IsNotFound(err) || kapierrs.IsForbidden(err) {
+				e2e.Logf("Waiting for service account %q to be available: %v (will retry) ...", name, err)
 				return false, nil
 			}
-			return false, err
+			return false, fmt.Errorf("Failed to get service account %q: %v", name, err)
 		}
+		secretNames := []string{}
 		for _, s := range sc.Secrets {
 			if strings.Contains(s.Name, "dockercfg") {
 				return true, nil
 			}
+			secretNames = append(secretNames, s.Name)
 		}
+		e2e.Logf("Waiting for service account %q secrets (%s) to include dockercfg ...", name, strings.Join(secretNames, ","))
 		return false, nil
 	}
-	return wait.Poll(time.Duration(100*time.Millisecond), 3*time.Minute, waitFn)
+	return wait.Poll(100*time.Millisecond, 3*time.Minute, waitFn)
 }
 
 // WaitForNamespaceSCCAnnotations waits up to 2 minutes for the cluster-policy-controller to add the SCC related
