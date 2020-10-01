@@ -52,6 +52,9 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 		ns := oc.KubeFramework().Namespace.Name
 
 		tester := exurl.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)
+		// Ammend cluster proxy settings to tester pod when applicable
+		proxy := exutil.GetClusterProxyConfig(oc.AdminConfig())
+		tester.WithProxy(proxy.Spec.HTTPProxy)
 
 		tests := []*exurl.Test{}
 
