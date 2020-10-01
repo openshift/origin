@@ -44,13 +44,8 @@ var (
 		// tests that must be run without competition
 		"[Serial]":        {},
 		"[Skipped:azure]": {},
-		"[Skipped:ovirt]": {
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1838751
-			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
-			`\[sig-network\] Networking Granular Checks: Services should function for node-Service`,
-			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service`,
-		},
-		"[Skipped:gce]": {},
+		"[Skipped:ovirt]": {},
+		"[Skipped:gce]":   {},
 
 		// tests that don't pass under openshift-sdn NetworkPolicy mode are specified
 		// in the rules file in openshift/kubernetes, not here.
