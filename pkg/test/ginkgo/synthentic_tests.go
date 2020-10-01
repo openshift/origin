@@ -81,13 +81,15 @@ func createSyntheticTestsFromMonitor(m *monitor.Monitor, eventsForTests []*monit
 
 	// check events
 	syntheticTestResults = append(syntheticTestResults, testPodTransitions(events)...)
+	syntheticTestResults = append(syntheticTestResults, testSystemDTimeout(events)...)
 	syntheticTestResults = append(syntheticTestResults, testPodSandboxCreation(events)...)
 
 	return syntheticTestResults, buf, errBuf
 }
 
 func testPodTransitions(events []*monitor.EventInterval) []*JUnitTestCase {
-	success := &JUnitTestCase{Name: "[sig-node] pods should never transition back to pending"}
+	const testName = "[sig-node] pods should never transition back to pending"
+	success := &JUnitTestCase{Name: testName}
 
 	failures := []string{}
 	for _, event := range events {
@@ -100,7 +102,7 @@ func testPodTransitions(events []*monitor.EventInterval) []*JUnitTestCase {
 	}
 
 	failure := &JUnitTestCase{
-		Name:      "[sig-node] pods should never transition back to pending",
+		Name:      testName,
 		SystemOut: strings.Join(failures, "\n"),
 		FailureOutput: &FailureOutput{
 			Output: fmt.Sprintf("%d pods illegally transitioned to Pending\n\n%v", len(failures), strings.Join(failures, "\n")),
@@ -111,7 +113,34 @@ func testPodTransitions(events []*monitor.EventInterval) []*JUnitTestCase {
 	return []*JUnitTestCase{failure, success}
 }
 
+func testSystemDTimeout(events []*monitor.EventInterval) []*JUnitTestCase {
+	const testName = "[sig-node] pods should not fail on systemd timeouts"
+	success := &JUnitTestCase{Name: testName}
+
+	failures := []string{}
+	for _, event := range events {
+		if strings.Contains(event.Message, "systemd timed out for pod") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+		}
+	}
+	if len(failures) == 0 {
+		return []*JUnitTestCase{success}
+	}
+
+	failure := &JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &FailureOutput{
+			Output: fmt.Sprintf("%d systemd timed out for pod occurrences\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+
+	// write a passing test to trigger detection of this issue as a flake. Doing this first to try to see how frequent the issue actually is
+	return []*JUnitTestCase{failure, success}
+}
+
 func testPodSandboxCreation(events []*monitor.EventInterval) []*JUnitTestCase {
+	const testName = "[sig-network] pods should successfully create sandboxes"
 	// we can further refine this signal by subdividing different failure modes if it is pertinent.  Right now I'm seeing
 	// 1. error reading container (probably exited) json message: EOF
 	// 2. dial tcp 10.0.76.225:6443: i/o timeout
@@ -131,7 +160,7 @@ func testPodSandboxCreation(events []*monitor.EventInterval) []*JUnitTestCase {
 
 	successes := []*JUnitTestCase{}
 	for _, by := range bySubStrings {
-		successes = append(successes, &JUnitTestCase{Name: "[sig-network] pods should successfully create sandboxes" + by.by})
+		successes = append(successes, &JUnitTestCase{Name: testName + by.by})
 	}
 
 	failures := []string{}
@@ -158,7 +187,7 @@ func testPodSandboxCreation(events []*monitor.EventInterval) []*JUnitTestCase {
 	// now iterate the individual failures to create failure entries
 	for by, subFailures := range failuresBySubtest {
 		failure := &JUnitTestCase{
-			Name:      "[sig-network] pods should successfully create sandboxes" + by,
+			Name:      testName + by,
 			SystemOut: strings.Join(subFailures, "\n"),
 			FailureOutput: &FailureOutput{
 				Output: fmt.Sprintf("%d failures to create the sandbox\n\n%v", len(subFailures), strings.Join(subFailures, "\n")),
