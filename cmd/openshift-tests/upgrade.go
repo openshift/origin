@@ -24,7 +24,7 @@ var upgradeSuites = []*ginkgo.TestSuite{
 		Run all tests.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Feature:ClusterUpgrade]") && strings.Contains(name, "[Suite:openshift]")
+			return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 		},
 		Init: func(opt map[string]string) error {
 			return upgradeInitArguments(opt, func(string) bool { return true })
@@ -37,7 +37,7 @@ var upgradeSuites = []*ginkgo.TestSuite{
 		Run only the tests that verify the platform remains available.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Feature:ClusterUpgrade]") && strings.Contains(name, "[Suite:openshift]")
+			return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 		},
 		Init: func(opt map[string]string) error {
 			return upgradeInitArguments(opt, func(name string) bool {
