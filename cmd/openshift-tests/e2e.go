@@ -187,6 +187,15 @@ var staticSuites = []*ginkgo.TestSuite{
 		TestTimeout: 20 * time.Minute,
 	},
 	{
+		Name: "openshift/network/third-party",
+		Description: templates.LongDesc(`
+		The conformance testing suite for certified third-party CNI plugins.
+		`),
+		Matches: func(name string) bool {
+			return !isDisabled(name) && inCNISuite(name)
+		},
+	},
+	{
 		Name: "all",
 		Description: templates.LongDesc(`
 		Run all tests.
