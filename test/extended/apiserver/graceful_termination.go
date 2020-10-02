@@ -39,6 +39,28 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		}
 	})
 
+	g.It("kube-apiserver terminates within graceful termination period", func() {
+		t := g.GinkgoT()
+
+		client, err := kubernetes.NewForConfig(oc.AdminConfig())
+		if err != nil {
+			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
+		}
+
+		evs, err := client.CoreV1().Events("openshift-kube-apiserver").List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
+		}
+
+		for _, ev := range evs.Items {
+			if ev.Reason != "GracefulTerminationTimeout" {
+				continue
+			}
+
+			t.Errorf("kube-apiserver didn't terminate by itself during the graceful termination period: %#v. This is a bug in kube-apiserver. It probably means that network connections are not closed cleanly, and this leads to network I/O timeout errors in other components.", ev)
+		}
+	})
+
 	g.It("API LBs follow /readyz of kube-apiserver and stop sending requests", func() {
 		t := g.GinkgoT()
 
