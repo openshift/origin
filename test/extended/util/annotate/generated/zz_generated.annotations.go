@@ -2313,6 +2313,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status": "Report Upgradeable in OLM ClusterOperators status [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-operator] an end user can use OLM can install a multi-arch operator": "can install a multi-arch operator [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-scalability][Feature:Performance] Load cluster should populate the cluster [Slow][Serial]": "should populate the cluster [Slow][Serial]",

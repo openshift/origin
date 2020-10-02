@@ -189,20 +189,46 @@ func hasRedHatOperatorsSource(oc *exutil.CLI) (bool, error) {
 	return false, nil
 }
 
+func eventuallyOperatorGroupReady(oc *exutil.CLI) {
+	o.Eventually(func() []string {
+		// Using json output instead of jsonpath - oc/jsonpath bug seems to improperly decode `[""]` as `[]`
+		output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "operatorgroup", "test-operator", "-o=json").Output()
+		if err != nil {
+			e2e.Logf("Failed to get valid operatorgroup, error:%v", err)
+			return []string{""}
+		}
+		type ogStatus struct {
+			Namespaces []string `json:"namespaces"`
+		}
+		type og struct {
+			Status ogStatus `json:"status"`
+		}
+		parsed := og{
+			Status: ogStatus{
+				Namespaces: []string{},
+			},
+		}
+		if err := json.Unmarshal([]byte(output), &parsed); err != nil {
+			e2e.Logf("Failed to parse operatorgroup, error:%v", err)
+			return []string{""}
+		}
+		return parsed.Status.Namespaces
+	}, 5*time.Minute, time.Second).Should(o.Equal([]string{""}))
+}
+
 // This context will cover test case: OCP-23440, author: jiazha@redhat.com
-// Uses nfd operator
 var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 	defer g.GinkgoRecover()
 
 	var (
 		oc = exutil.NewCLI("olm-23440")
 
-		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")
-		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
-		sub                 = filepath.Join(buildPruningBaseDir, "subscription.yaml")
+		buildPruningBaseDir   = exutil.FixturePath("testdata", "olm")
+		operatorGroupTemplate = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
+		subTemplate           = filepath.Join(buildPruningBaseDir, "subscription.yaml")
+		catalogSourceTemplate = filepath.Join(buildPruningBaseDir, "catalogsource.yaml")
 	)
 
-	files := []string{sub}
 	g.It("can subscribe to the operator", func() {
 		g.By("Cluster-admin user subscribe the operator resource")
 
@@ -214,42 +240,17 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 		}
 
 		// configure OperatorGroup before tests
-		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", operatorGroup, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
+		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", operatorGroupTemplate, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Eventually(func() []string {
-			// Using json output instead of jsonpath - oc/jsonpath bug seems to improperly decode `[""]` as `[]`
-			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "operatorgroup", "test-operator", "-o=json").Output()
-			if err != nil {
-				e2e.Logf("Failed to get valid operatorgroup, error:%v", err)
-				return []string{""}
-			}
-			type ogStatus struct {
-				Namespaces []string `json:"namespaces"`
-			}
-			type og struct {
-				Status ogStatus `json:"status"`
-			}
-			parsed := og{
-				Status: ogStatus{
-					Namespaces: []string{},
-				},
-			}
-			if err := json.Unmarshal([]byte(output), &parsed); err != nil {
-				e2e.Logf("Failed to parse operatorgroup, error:%v", err)
-				return []string{""}
-			}
-			return parsed.Status.Namespaces
-		}, 5*time.Minute, time.Second).Should(o.Equal([]string{""}))
+		eventuallyOperatorGroupReady(oc)
 
-		for _, v := range files {
-			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=redhat-operators", "SOURCENAMESPACE=openshift-marketplace", "PACKAGE=amq-streams", "CHANNEL=stable").OutputToFile("config.json")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-		}
+		subscription, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", subTemplate, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=redhat-operators", "SOURCENAMESPACE=openshift-marketplace", "PACKAGE=amq-streams", "CHANNEL=stable").OutputToFile("config.json")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", subscription).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var current string
 		o.Eventually(func() string {
@@ -275,6 +276,53 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 			return output
 
 		}, 5*time.Minute, time.Second).ShouldNot(o.BeEmpty())
+	})
+
+	g.It("can install a multi-arch operator", func() {
+		// configure catalogsource which contains multi-arch operator
+		// this is done with pre-release catalog content so that multi-arch can be tested throughout the release cycle
+		multiarchCatSrc, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", catalogSourceTemplate, "-p", "IMAGE=quay.io/openshift-release-dev/ocp-release-nightly:iib-int-index-cluster-ose-ptp-operator-v4.6", "NAME=multiarch-operators", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", multiarchCatSrc).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// configure OperatorGroup before tests
+		multiarchOpGroup, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", operatorGroupTemplate, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", multiarchOpGroup).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		eventuallyOperatorGroupReady(oc)
+
+		multiArchSub, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", subTemplate, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=multiarch-operators", fmt.Sprintf("SOURCENAMESPACE=%s", oc.Namespace()), "PACKAGE=ptp-operator", "CHANNEL=4.6").OutputToFile("config.json")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", multiArchSub).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var current string
+		o.Eventually(func() string {
+			var err error
+			current, err = oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "subscription", "test-operator", "-o=jsonpath={.status.installedCSV}").Output()
+			if err != nil {
+				e2e.Logf("Failed to check test-operator, error: %v, try next round", err)
+			}
+			return current
+		}, 5*time.Minute, time.Second).ShouldNot(o.Equal(""))
+
+		defer func() {
+			// clean up so that it doesn't emit an alert when namespace is deleted
+			_, err = oc.AsAdmin().Run("delete").Args("-n", oc.Namespace(), "csv", current).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}()
+
+		o.Eventually(func() string {
+			output, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "csv", current, "-o=jsonpath={.status.phase}").Output()
+			if err != nil {
+				e2e.Logf("Failed to check %s, error: %v, try next round", current, err)
+			}
+			return output
+
+		}, 5*time.Minute, time.Second).Should(o.Equal("Succeeded"))
 	})
 
 	// OCP-24829 - Report `Upgradeable` in OLM ClusterOperators status

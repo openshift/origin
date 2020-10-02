@@ -418,6 +418,7 @@
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
 // test/extended/testdata/oauthserver/oauth-sa.yaml
+// test/extended/testdata/olm/catalogsource.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
 // test/extended/testdata/olm/subscription.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
@@ -53922,6 +53923,40 @@ func testExtendedTestdataOauthserverOauthSaYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmCatalogsourceYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: catalogsource-template
+objects:
+  - apiVersion: operators.coreos.com/v1alpha1
+    kind: CatalogSource
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      sourceType: grpc
+      image: "${IMAGE}"
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: IMAGE
+`)
+
+func testExtendedTestdataOlmCatalogsourceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCatalogsourceYaml, nil
+}
+
+func testExtendedTestdataOlmCatalogsourceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCatalogsourceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/catalogsource.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOlmOperatorgroupYaml = []byte(`apiVersion: v1
 kind: Template
 metadata:
@@ -59735,6 +59770,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                           testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml":                                                               testExtendedTestdataOauthserverOauthPodYaml,
 	"test/extended/testdata/oauthserver/oauth-sa.yaml":                                                                testExtendedTestdataOauthserverOauthSaYaml,
+	"test/extended/testdata/olm/catalogsource.yaml":                                                                   testExtendedTestdataOlmCatalogsourceYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml":                                                                   testExtendedTestdataOlmOperatorgroupYaml,
 	"test/extended/testdata/olm/subscription.yaml":                                                                    testExtendedTestdataOlmSubscriptionYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml":                                              testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
@@ -60473,6 +60509,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"oauth-sa.yaml":      {testExtendedTestdataOauthserverOauthSaYaml, map[string]*bintree{}},
 				}},
 				"olm": {nil, map[string]*bintree{
+					"catalogsource.yaml": {testExtendedTestdataOlmCatalogsourceYaml, map[string]*bintree{}},
 					"operatorgroup.yaml": {testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},
 					"subscription.yaml":  {testExtendedTestdataOlmSubscriptionYaml, map[string]*bintree{}},
 				}},
