@@ -181,7 +181,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 						newMaster.SetUID("")
 						newMaster.SetCreationTimestamp(metav1.NewTime(time.Time{}))
 						// retry until the machine gets created
-						err := wait.PollImmediate(5*time.Second, 15*time.Minute, func() (bool, error) {
+						err := wait.PollImmediate(5*time.Second, 20*time.Minute, func() (bool, error) {
 							_, err := ms.Create(context.Background(), newMaster, metav1.CreateOptions{})
 							if errors.IsAlreadyExists(err) {
 								framework.Logf("Waiting for old machine object %s to be deleted so we can create a new one", master)
