@@ -32,6 +32,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/networking"
 	_ "github.com/openshift/origin/test/extended/oauth"
 	_ "github.com/openshift/origin/test/extended/operators"
+	_ "github.com/openshift/origin/test/extended/pods"
 	_ "github.com/openshift/origin/test/extended/project"
 	_ "github.com/openshift/origin/test/extended/prometheus"
 	_ "github.com/openshift/origin/test/extended/quota"
