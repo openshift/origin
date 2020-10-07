@@ -1405,25 +1405,37 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client Update Demo should scale a replication controller  [Conformance]": "should scale a replication controller  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
+	"[Top Level] [sig-cli] oc adm build-chain": "build-chain [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm cluster-role-reapers": "cluster-role-reapers [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm groups": "groups [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm images": "images [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc adm must-gather runs successfully for audit logs": "runs successfully for audit logs [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm must-gather runs successfully with options": "runs successfully with options [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm must-gather runs successfully": "runs successfully [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --boot=0": "oc adm node-logs --boot=0 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm new-project": "new-project [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --role=master --since=-2m": "oc adm node-logs --role=master --since=-2m [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm node-logs": "node-logs [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --since=-2m --until=-1m": "oc adm node-logs --since=-2m --until=-1m [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm policy": "policy [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --since=<explicit-date> --until=-1m": "oc adm node-logs --since=<explicit-date> --until=-1m [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm role-reapers": "role-reapers [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --tail=5": "oc adm node-logs --tail=5 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm role-selectors": "role-selectors [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --unit=kubelet --since=-1m": "oc adm node-logs --unit=kubelet --since=-1m [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm serviceaccounts": "serviceaccounts [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs": "oc adm node-logs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm ui-project-commands": "ui-project-commands [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm user-creation": "user-creation [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm who-can": "who-can [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": "should contain proper fields description for special networking types [Suite:openshift/conformance/parallel]",
 
@@ -1434,8 +1446,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli] oc explain should contain spec+status for builtinTypes": "should contain spec+status for builtinTypes [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc rsh rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/admin.sh": "test/cmd/admin.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/annotations.sh": "test/cmd/annotations.sh",
 
