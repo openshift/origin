@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -32,6 +34,9 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("oc-adm-must-gather").AsAdmin()
 	g.It("runs successfully", func() {
+		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions no longer collect audit logs")
+		}
 		// makes some tokens that should not show in the audit logs
 		const tokenName = "must-gather-audit-logs-token-plus-some-padding-here-to-make-the-limit"
 		oauthClient := oauthv1client.NewForConfigOrDie(oc.AdminConfig())

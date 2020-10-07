@@ -158,6 +158,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		})
 
 		g.It("should start and expose a secured proxy and unsecured metrics", func() {
+			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+				e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and CVO switched metrics to secured")
+			}
 			oc.SetupProject()
 			ns := oc.Namespace()
 			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)

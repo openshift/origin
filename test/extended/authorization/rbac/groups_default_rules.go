@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"context"
+	"os"
 	"strings"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/registry/rbac/validation"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	"github.com/openshift/api/authorization"
 	"github.com/openshift/api/build"
@@ -161,6 +163,9 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 	oc := exutil.NewCLI("default-rbac-policy")
 
 	g.It("should have correct RBAC rules", func() {
+		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions have different rules")
+		}
 		kubeInformers := informers.NewSharedInformerFactory(oc.AdminKubeClient(), 20*time.Minute)
 		ruleResolver := exutil.NewRuleResolver(kubeInformers.Rbac().V1()) // signal what informers we want to use early
 
