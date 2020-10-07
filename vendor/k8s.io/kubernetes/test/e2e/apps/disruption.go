@@ -19,6 +19,7 @@ package apps
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	jsonpatch "github.com/evanphx/json-patch"
@@ -269,6 +270,9 @@ var _ = SIGDescribe("DisruptionController", func() {
 	}
 
 	ginkgo.It("should block an eviction until the PDB is updated to allow it", func() {
+		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and 1.19 changed eviction rules")
+		}
 		ginkgo.By("Creating a pdb that targets all three pods in a test replica set")
 		createPDBMinAvailableOrDie(cs, ns, defaultName, intstr.FromInt(3), defaultLabels)
 		createReplicaSetOrDie(cs, ns, 3, false)
