@@ -188,7 +188,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 								return false, nil
 							}
 							if err != nil {
-								return false, err
+								framework.Logf("Debug: error creating machine %q: %q", master, err.Error())
+								return false, nil
 							}
 							return true, nil
 						})
