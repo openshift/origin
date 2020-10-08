@@ -1,7 +1,6 @@
 package util
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/base64"
@@ -563,52 +562,54 @@ type ExitError struct {
 
 // Output executes the command and returns stdout/stderr combined into one string
 func (c *CLI) Output() (string, error) {
-	if c.verbose {
-		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
-	}
-	cmd := exec.Command(c.execPath, c.finalArgs...)
-	cmd.Stdin = c.stdin
-	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
-	out, err := cmd.CombinedOutput()
-	trimmed := strings.TrimSpace(string(out))
-	switch err.(type) {
-	case nil:
-		c.stdout = bytes.NewBuffer(out)
-		return trimmed, nil
-	case *exec.ExitError:
-		// avoid excessively long lines in the error output if a command generates a giant amount of logging
-		const maxLength = 809
-		shortened := trimmed
-		if len(shortened) > maxLength {
-			shortened = shortened[:maxLength/2] + "\n...\n" + shortened[len(shortened)-(maxLength/2):]
-		}
-		framework.Logf("Error running %v:\n%s", cmd, shortened)
-		return trimmed, &ExitError{ExitError: err.(*exec.ExitError), Cmd: c.execPath + " " + strings.Join(c.finalArgs, " "), StdErr: shortened}
-	default:
-		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
-		// unreachable code
-		return "", nil
-	}
+	var buff bytes.Buffer
+	_, _, err := c.outputs(&buff, &buff)
+	return strings.TrimSpace(string(buff.Bytes())), err
 }
 
 // Outputs executes the command and returns the stdout/stderr output as separate strings
 func (c *CLI) Outputs() (string, string, error) {
+	var stdOutBuff, stdErrBuff bytes.Buffer
+	return c.outputs(&stdOutBuff, &stdErrBuff)
+}
+
+// Background executes the command in the background and returns the Cmd object
+// which may be killed later via cmd.Process.Kill().  It also returns buffers
+// holding the stdout & stderr of the command, which may be read from only after
+// calling cmd.Wait().
+func (c *CLI) Background() (*exec.Cmd, *bytes.Buffer, *bytes.Buffer, error) {
+	var stdOutBuff, stdErrBuff bytes.Buffer
+	cmd, err := c.start(&stdOutBuff, &stdErrBuff)
+	return cmd, &stdOutBuff, &stdErrBuff, err
+}
+
+func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	if c.verbose {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
 	}
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
 	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
-	//out, err := cmd.CombinedOutput()
-	var stdErrBuff, stdOutBuff bytes.Buffer
-	cmd.Stdout = &stdOutBuff
-	cmd.Stderr = &stdErrBuff
-	err := cmd.Run()
+
+	cmd.Stdout = stdOutBuff
+	cmd.Stderr = stdErrBuff
+	err := cmd.Start()
+
+	return cmd, err
+}
+
+func (c *CLI) outputs(stdOutBuff, stdErrBuff *bytes.Buffer) (string, string, error) {
+	cmd, err := c.start(stdOutBuff, stdErrBuff)
+	if err != nil {
+		return "", "", err
+	}
+	err = cmd.Wait()
 
 	stdOutBytes := stdOutBuff.Bytes()
 	stdErrBytes := stdErrBuff.Bytes()
 	stdOut := strings.TrimSpace(string(stdOutBytes))
 	stdErr := strings.TrimSpace(string(stdErrBytes))
+
 	switch err.(type) {
 	case nil:
 		c.stdout = bytes.NewBuffer(stdOutBytes)
@@ -622,47 +623,6 @@ func (c *CLI) Outputs() (string, string, error) {
 		// unreachable code
 		return "", "", nil
 	}
-}
-
-// Background executes the command in the background and returns the Cmd object
-// which may be killed later via cmd.Process.Kill().  It also returns buffers
-// holding the stdout & stderr of the command, which may be read from only after
-// calling cmd.Wait().
-func (c *CLI) Background() (*exec.Cmd, *bytes.Buffer, *bytes.Buffer, error) {
-	if c.verbose {
-		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
-	}
-	cmd := exec.Command(c.execPath, c.finalArgs...)
-	cmd.Stdin = c.stdin
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = bufio.NewWriter(&stdout)
-	cmd.Stderr = bufio.NewWriter(&stderr)
-
-	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
-
-	err := cmd.Start()
-	return cmd, &stdout, &stderr, err
-}
-
-// BackgroundRC executes the command in the background and returns the Cmd
-// object which may be killed later via cmd.Process.Kill().  It returns a
-// ReadCloser for stdout.  If in doubt, use Background().  Consult the os/exec
-// documentation.
-func (c *CLI) BackgroundRC() (*exec.Cmd, io.ReadCloser, error) {
-	if c.verbose {
-		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
-	}
-	cmd := exec.Command(c.execPath, c.finalArgs...)
-	cmd.Stdin = c.stdin
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
-
-	err = cmd.Start()
-	return cmd, stdout, err
 }
 
 // OutputToFile executes the command and store output to a file
