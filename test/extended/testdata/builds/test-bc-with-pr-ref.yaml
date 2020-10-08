@@ -40,13 +40,13 @@ items:
       git:
         uri: https://github.com/sclorg/django-ex.git
         ref: refs/pull/121/head
-      dockerfile: FROM centos/python-36-centos7
+      dockerfile: FROM registry.redhat.io/ubi8/python-36:latest
     strategy:
       type: Docker
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/python-36-centos7
+          name: registry.redhat.io/ubi8/python-36:latest
     output:
       to:
         kind: ImageStreamTag

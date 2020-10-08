@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] Multi-stage image builds", func
 		testDockerfile = `
 FROM scratch as test
 USER 1001
-FROM centos:7
+FROM registry.redhat.io/rhel7
 COPY --from=test /usr/bin/curl /test/
 COPY --from=busybox:latest /bin/echo /test/
 COPY --from=busybox:latest /bin/ping /test/

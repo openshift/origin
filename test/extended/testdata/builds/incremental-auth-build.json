@@ -48,7 +48,7 @@
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-25-centos7:latest"
+              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
             },
             "incremental": true
           }
