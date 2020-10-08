@@ -6,7 +6,7 @@ spec:
   tags:
   - from:
       kind: DockerImage
-      name: docker.io/openshift/jenkins-slave-maven-centos7:latest
+      name: quay.io/openshift/origin-jenkins-agent-maven:latest
     name: base
   - annotations:
       role: jenkins-slave

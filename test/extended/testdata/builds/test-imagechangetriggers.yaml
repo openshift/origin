@@ -10,7 +10,7 @@ items:
     - name: latest
       from:
         kind: DockerImage
-        name: centos/nodejs-6-centos7:latest
+        name: registry.redhat.io/ubi8/nodejs-12:latest
 
 - kind: BuildConfig
   apiVersion: v1

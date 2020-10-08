@@ -5,7 +5,7 @@
     "name": "test",
     "creationTimestamp": null
   },
-  "dockerImageReference": "openshift/ruby-19-centos:latest",
+  "dockerImageReference": "registry.redhat.io/rhscl/ruby-25-rhel7:latest",
   "dockerImageMetadata": {
     "kind": "DockerImage",
     "apiVersion": "1.0",

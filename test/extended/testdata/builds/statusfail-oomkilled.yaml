@@ -14,5 +14,5 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
       forcePull: true
