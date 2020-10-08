@@ -10,4 +10,4 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: docker.io/openshift/test-build-simples2i:latest
+        name: quay.io/redhat-developer/test-build-simples2i:latest

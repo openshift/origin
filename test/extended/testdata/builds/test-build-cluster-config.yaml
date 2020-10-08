@@ -15,7 +15,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: docker.io/openshift/test-build-simples2i:latest
+          name: quay.io/redhat-developer/test-build-simples2i:latest
       type: Source
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
@@ -33,5 +33,5 @@ items:
           value: "5"
         from:
           kind: DockerImage
-          name: docker.io/openshift/test-build-simples2i:latest
+          name: quay.io/redhat-developer/test-build-simples2i:latest
       type: Source
