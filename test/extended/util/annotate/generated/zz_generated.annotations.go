@@ -1865,7 +1865,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a ClusterIP service": "should be able to preserve UDP traffic when server pod cycles for a ClusterIP service [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service": "should be able to preserve UDP traffic when server pod cycles for a NodePort service [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service": "should be able to preserve UDP traffic when server pod cycles for a NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] DNS configMap federations [Feature:Federation] should be able to change federation configuration [Slow][Serial]": "should be able to change federation configuration [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
 
@@ -2159,7 +2159,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Services should only allow access from service loadbalancer source ranges [Slow]": "should only allow access from service loadbalancer source ranges [Slow] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should preserve source pod IP for traffic thru service cluster IP [LinuxOnly]": "should preserve source pod IP for traffic thru service cluster IP [LinuxOnly] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should preserve source pod IP for traffic thru service cluster IP [LinuxOnly]": "should preserve source pod IP for traffic thru service cluster IP [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should prevent NodePort collisions": "should prevent NodePort collisions [Suite:openshift/conformance/parallel] [Suite:k8s]",
 

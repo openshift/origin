@@ -58,7 +58,6 @@ var (
 		// tests that don't pass under openshift-sdn multitenant mode
 		"[Skipped:Network/OpenShiftSDN/Multitenant]": {
 			`\[Feature:NetworkPolicy\]`, // not compatible with multitenant mode
-			`\[sig-network\] Services should preserve source pod IP for traffic thru service cluster IP`, // known bug, not planned to be fixed
 		},
 		// tests that don't pass under OVN Kubernetes
 		"[Skipped:Network/OVNKubernetes]": {
@@ -71,8 +70,6 @@ var (
 			`\[sig-network\] Services should have session affinity work for service with type clusterIP`,
 			`\[sig-network\] Services should have session affinity timeout work for NodePort service`,
 			`\[sig-network\] Services should have session affinity timeout work for service with type clusterIP`,
-			// https://github.com/kubernetes/kubernetes/pull/93597: upstream is flaky
-			`\[sig-network\] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service`,
 
 			// ovn-kubernetes does not support named ports
 			`NetworkPolicy.*named port`,
