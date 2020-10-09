@@ -80,11 +80,40 @@ func createSyntheticTestsFromMonitor(m *monitor.Monitor, eventsForTests []*monit
 	}
 
 	// check events
+	syntheticTestResults = append(syntheticTestResults, testKubeAPIServerGracefulTermination(events)...)
 	syntheticTestResults = append(syntheticTestResults, testPodTransitions(events)...)
 	syntheticTestResults = append(syntheticTestResults, testSystemDTimeout(events)...)
 	syntheticTestResults = append(syntheticTestResults, testPodSandboxCreation(events)...)
 
 	return syntheticTestResults, buf, errBuf
+}
+
+func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) []*JUnitTestCase {
+	const testName = "[sig-node] kubelet terminates kube-apiserver gracefully"
+	success := &JUnitTestCase{Name: testName}
+
+	failures := []string{}
+	for _, event := range events {
+		// from https://github.com/openshift/kubernetes/blob/1f35e4f63be8fbb19e22c9ff1df31048f6b42ddf/cmd/watch-termination/main.go#L96
+		if strings.Contains(event.Message, "did not terminate gracefully") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+		}
+	}
+	if len(failures) == 0 {
+		return []*JUnitTestCase{success}
+	}
+
+	failure := &JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &FailureOutput{
+			Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination. Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+
+	// This should fail a CI run, not flake it.
+	return []*JUnitTestCase{failure}
+
 }
 
 func testPodTransitions(events []*monitor.EventInterval) []*JUnitTestCase {
