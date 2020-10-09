@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -11,6 +12,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
@@ -35,6 +37,10 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 	})
 
 	g.Context("Using a OAuth client with a non-default token max age", func() {
+		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions have different oauth token rules")
+		}
+
 		var oAuthClientResource *oauthv1.OAuthClient
 		var accessTokenMaxAgeSeconds int32
 
