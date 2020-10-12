@@ -24,6 +24,15 @@ import (
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 )
 
+const (
+	LocatorKubeAPIServerNewConnection         = "kube-apiserver-new-connection"
+	LocatorOpenshiftAPIServerNewConnection    = "openshift-apiserver-new-connection"
+	LocatorOAuthAPIServerNewConnection        = "oauth-apiserver-new-connection"
+	LocatorKubeAPIServerReusedConnection      = "kube-apiserver-reused-connection"
+	LocatorOpenshiftAPIServerReusedConnection = "openshift-apiserver-reused-connection"
+	LocatorOAuthAPIServerReusedConnection     = "oauth-apiserver-reused-connection"
+)
+
 // Start begins monitoring the cluster referenced by the default kube configuration until
 // context is finished.
 func Start(ctx context.Context) (*Monitor, error) {
@@ -166,32 +175,32 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 
 func StartKubeAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// default gets auto-created, so this should always exist
-	return StartServerMonitoringWithNewConnections(ctx, m, clusterConfig, timeout, "kube-apiserver-new-connection", "/api/v1/namespaces/default")
+	return StartServerMonitoringWithNewConnections(ctx, m, clusterConfig, timeout, LocatorKubeAPIServerNewConnection, "/api/v1/namespaces/default")
 }
 
 func StartOpenShiftAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// this request should never 404, but should be empty/small
-	return StartServerMonitoringWithNewConnections(ctx, m, clusterConfig, timeout, "openshift-apiserver-new-connection", "/apis/image.openshift.io/v1/namespaces/default/imagestreams")
+	return StartServerMonitoringWithNewConnections(ctx, m, clusterConfig, timeout, LocatorOpenshiftAPIServerNewConnection, "/apis/image.openshift.io/v1/namespaces/default/imagestreams")
 }
 
 func StartOAuthAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// this should be relatively small and should not ever 404
-	return StartServerMonitoringWithNewConnections(ctx, m, clusterConfig, timeout, "oauth-apiserver-new-connection", "/apis/oauth.openshift.io/v1/oauthclients")
+	return StartServerMonitoringWithNewConnections(ctx, m, clusterConfig, timeout, LocatorOAuthAPIServerNewConnection, "/apis/oauth.openshift.io/v1/oauthclients")
 }
 
 func StartKubeAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// default gets auto-created, so this should always exist
-	return StartServerMonitoringWithConnectionReuse(ctx, m, clusterConfig, timeout, "kube-apiserver-reuse-connection", "/api/v1/namespaces/default")
+	return StartServerMonitoringWithConnectionReuse(ctx, m, clusterConfig, timeout, LocatorKubeAPIServerReusedConnection, "/api/v1/namespaces/default")
 }
 
 func StartOpenShiftAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// this request should never 404, but should be empty/small
-	return StartServerMonitoringWithConnectionReuse(ctx, m, clusterConfig, timeout, "openshift-apiserver-reuse-connection", "/apis/image.openshift.io/v1/namespaces/default/imagestreams")
+	return StartServerMonitoringWithConnectionReuse(ctx, m, clusterConfig, timeout, LocatorOpenshiftAPIServerReusedConnection, "/apis/image.openshift.io/v1/namespaces/default/imagestreams")
 }
 
 func StartOAuthAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// this should be relatively small and should not ever 404
-	return StartServerMonitoringWithConnectionReuse(ctx, m, clusterConfig, timeout, "oauth-apiserver-reuse-connection", "/apis/oauth.openshift.io/v1/oauthclients")
+	return StartServerMonitoringWithConnectionReuse(ctx, m, clusterConfig, timeout, LocatorOAuthAPIServerReusedConnection, "/apis/oauth.openshift.io/v1/oauthclients")
 }
 
 func findContainerStatus(status []corev1.ContainerStatus, name string, position int) *corev1.ContainerStatus {
