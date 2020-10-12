@@ -97,6 +97,16 @@ func createSyntheticTestsFromMonitor(m *monitor.Monitor, eventsForTests []*monit
 	syntheticTestResults = append(syntheticTestResults, testServerAvailability(monitor.LocatorOpenshiftAPIServerReusedConnection, events, monitorDuration)...)
 	syntheticTestResults = append(syntheticTestResults, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, monitorDuration)...)
 
+	fmt.Fprintln(buf, "Synthetic test results:")
+	for _, test := range syntheticTestResults {
+		status := "passed"
+		if test.FailureOutput != nil {
+			status = "failed"
+		}
+		fmt.Fprintf(buf, "%s: %s\n", status, test.Name)
+	}
+	fmt.Fprintln(buf, "(duplicates are used to mark some failures as flake and not to fail the whole suite")
+	fmt.Fprintln(buf)
 	return syntheticTestResults, buf, errBuf
 }
 
