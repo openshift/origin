@@ -27,7 +27,7 @@ import (
 // Start begins monitoring the cluster referenced by the default kube configuration until
 // context is finished.
 func Start(ctx context.Context) (*Monitor, error) {
-	m := NewMonitor()
+	m := NewMonitorWithInterval(time.Second)
 	cfg := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{})
 	clusterConfig, err := cfg.ClientConfig()
 	if err != nil {
