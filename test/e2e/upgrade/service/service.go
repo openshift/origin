@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"strconv"
@@ -14,10 +15,8 @@ import (
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
@@ -151,10 +150,9 @@ func (t *UpgradeTest) Teardown(f *framework.Framework) {
 func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Service, r events.EventRecorder) error {
 	tcpIngressIP := service.GetIngressPoint(&svc.Status.LoadBalancer.Ingress[0])
 	svcPort := int(svc.Spec.Ports[0].Port)
-
+	url := fmt.Sprintf("http://%s/echo?msg=Hello", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort)))
 	// this client reuses connections and detects abrupt breaks
-	continuousClient, err := rest.UnversionedRESTClientFor(&rest.Config{
-		Host:    fmt.Sprintf("http://%s", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort))),
+	continuousClient := &http.Client{
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
 			Dial: (&net.Dialer{
@@ -162,18 +160,17 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 			}).Dial,
 			TLSHandshakeTimeout: 15 * time.Second,
 		},
-		ContentConfig: rest.ContentConfig{
-			NegotiatedSerializer: runtime.NewSimpleNegotiatedSerializer(scheme.Codecs.SupportedMediaTypes()[0]),
-		},
-	})
-	if err != nil {
-		return err
 	}
+
 	m.AddSampler(
 		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitor.Condition, next bool) {
-			data, err := continuousClient.Get().AbsPath("echo").Param("msg", "Hello").DoRaw(ctx)
-			if err == nil && !bytes.Contains(data, []byte("Hello")) {
-				err = fmt.Errorf("service returned success but did not contain the correct body contents: %q", string(data))
+			resp, err := continuousClient.Get(url)
+			if err == nil {
+				defer resp.Body.Close()
+				body, err := ioutil.ReadAll(resp.Body)
+				if err == nil && !bytes.Contains(body, []byte("Hello")) {
+					err = fmt.Errorf("service returned success but did not contain the correct body contents: %q", string(body))
+				}
 			}
 			switch {
 			case err == nil && !previous:
@@ -202,8 +199,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 	)
 
 	// this client creates fresh connections and detects failure to establish connections
-	client, err := rest.UnversionedRESTClientFor(&rest.Config{
-		Host:    fmt.Sprintf("http://%s", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort))),
+	client := &http.Client{
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
 			Dial: (&net.Dialer{
@@ -214,18 +210,16 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 			IdleConnTimeout:     15 * time.Second,
 			DisableKeepAlives:   true,
 		},
-		ContentConfig: rest.ContentConfig{
-			NegotiatedSerializer: runtime.NewSimpleNegotiatedSerializer(scheme.Codecs.SupportedMediaTypes()[0]),
-		},
-	})
-	if err != nil {
-		return err
 	}
 	m.AddSampler(
 		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitor.Condition, next bool) {
-			data, err := client.Get().AbsPath("echo").Param("msg", "Hello").DoRaw(ctx)
-			if err == nil && !bytes.Contains(data, []byte("Hello")) {
-				err = fmt.Errorf("service returned success but did not contain the correct body contents: %q", string(data))
+			resp, err := client.Get(url)
+			if err == nil {
+				defer resp.Body.Close()
+				body, err := ioutil.ReadAll(resp.Body)
+				if err == nil && !bytes.Contains(body, []byte("Hello")) {
+					err = fmt.Errorf("service returned success but did not contain the correct body contents: %q", string(body))
+				}
 			}
 			switch {
 			case err == nil && !previous:
