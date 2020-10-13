@@ -15,7 +15,6 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
@@ -40,9 +39,6 @@ const (
 	// no default for sriovNetworkNamespace: use the e2e test framework default
 	defaultSriovNetwork = "sriov-network"
 	defaultIPFamily     = "v4"
-
-	namespaceMachineConfigOperator = "openshift-machine-config-operator"
-	containerMachineConfigDaemon   = "machine-config-daemon"
 )
 
 const (
@@ -118,23 +114,6 @@ func getNodeByRole(c clientset.Interface, role string) ([]corev1.Node, error) {
 	return nodes.Items, nil
 }
 
-func getMachineConfigDaemonByNode(c clientset.Interface, node *corev1.Node) (*corev1.Pod, error) {
-	listOptions := metav1.ListOptions{
-		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String(),
-		LabelSelector: labels.SelectorFromSet(labels.Set{"k8s-app": "machine-config-daemon"}).String(),
-	}
-
-	mcds, err := c.CoreV1().Pods(namespaceMachineConfigOperator).List(context.Background(), listOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(mcds.Items) < 1 {
-		return nil, fmt.Errorf("failed to get machine-config-daemon pod for the node %q", node.Name)
-	}
-	return &mcds.Items[0], nil
-}
-
 const (
 	sysFSNumaNodePath = "/sys/devices/system/node"
 )
@@ -196,27 +175,10 @@ func makeAllowedCpuListEnv(out string) string {
 	return fmt.Sprintf("CPULIST_ALLOWED=%s\n", strings.TrimSpace(pair[1]))
 }
 
-// execCommandOnMachineConfigDaemon returns the output of the command execution on the machine-config-daemon pod that runs on the specified node
-func execCommandOnMachineConfigDaemon(c clientset.Interface, oc *exutil.CLI, node *corev1.Node, command []string) (string, error) {
-	mcd, err := getMachineConfigDaemonByNode(c, node)
-	if err != nil {
-		return "", err
-	}
-
-	initialArgs := []string{
-		"-n", namespaceMachineConfigOperator,
-		"-c", containerMachineConfigDaemon,
-		"--request-timeout", "30",
-		mcd.Name,
-	}
-	args := append(initialArgs, command...)
-	return oc.AsAdmin().Run("rsh").Args(args...).Output()
-}
-
 // getKubeletConfig returns KubeletConfiguration loaded from the node /etc/kubernetes/kubelet.conf
 func getKubeletConfig(c clientset.Interface, oc *exutil.CLI, node *corev1.Node) (*kubeletconfigv1beta1.KubeletConfiguration, error) {
 	command := []string{"cat", path.Join("/rootfs", filePathKubeletConfig)}
-	kubeletData, err := execCommandOnMachineConfigDaemon(c, oc, node, command)
+	kubeletData, err := exutil.ExecCommandOnMachineConfigDaemon(c, oc, node, command)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +211,7 @@ func parseSysfsNodeOnline(data string) (int, error) {
 
 func getNumaNodeCountFromNode(c clientset.Interface, oc *exutil.CLI, node *corev1.Node) (int, error) {
 	command := []string{"cat", "/sys/devices/system/node/online"}
-	out, err := execCommandOnMachineConfigDaemon(c, oc, node, command)
+	out, err := exutil.ExecCommandOnMachineConfigDaemon(c, oc, node, command)
 	if err != nil {
 		return 0, err
 	}
