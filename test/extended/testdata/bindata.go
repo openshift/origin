@@ -181,7 +181,6 @@
 // test/extended/testdata/cmd/hack/lib/util/misc.sh
 // test/extended/testdata/cmd/hack/lib/util/text.sh
 // test/extended/testdata/cmd/hack/lib/util/trap.sh
-// test/extended/testdata/cmd/test/cmd/admin.sh
 // test/extended/testdata/cmd/test/cmd/annotations.sh
 // test/extended/testdata/cmd/test/cmd/apiresources.sh
 // test/extended/testdata/cmd/test/cmd/authentication.sh
@@ -224,22 +223,6 @@
 // test/extended/testdata/cmd/test/cmd/setbuildsecret.sh
 // test/extended/testdata/cmd/test/cmd/status.sh
 // test/extended/testdata/cmd/test/cmd/templates.sh
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/app/Dockerfile
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.generated.yaml
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.imported.yaml
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.yml
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/nginx/Dockerfile
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/wordpress/docker-compose.yml
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-lonely-pod.json
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-sample-app.json
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-pod-no-rc.json
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-with-nothing.json
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-unserviced-rc.json
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-deployed-app.yaml
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-no-build.yaml
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-one-build.yaml
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-two-deployment-configs.yaml
-// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/petset.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json
@@ -278,13 +261,9 @@
 // test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/yml-with-extension.yml
 // test/extended/testdata/cmd/test/cmd/testdata/resource-builder/json-no-extension
 // test/extended/testdata/cmd/test/cmd/testdata/resource-builder/yml-no-extension
-// test/extended/testdata/cmd/test/cmd/testdata/roles/empty-role.yaml
-// test/extended/testdata/cmd/test/cmd/testdata/roles/policy-clusterroles.yaml
-// test/extended/testdata/cmd/test/cmd/testdata/roles/policy-roles.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/rollingupdate-daemonset.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/services.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/simple-deployment.yaml
-// test/extended/testdata/cmd/test/cmd/testdata/stable-busybox.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/statefulset.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/templateinstance_objectkinds.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/templates/basic-users-binding.json
@@ -453,6 +432,7 @@
 // test/extended/testdata/samplepipeline-withenvs.yaml
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/signer-buildconfig.yaml
+// test/extended/testdata/stable-busybox.yaml
 // test/extended/testdata/templates/crunchydata-pod.json
 // test/extended/testdata/templates/guestbook.json
 // test/extended/testdata/templates/guestbook_list.json
@@ -30284,396 +30264,6 @@ func testExtendedTestdataCmdHackLibUtilTrapSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdAdminSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete project/example project/ui-test-project project/recreated-project &>/dev/null || true
-  oc delete groups/shortoutputgroup &>/dev/null || true
-  oc delete groups/group1 &>/dev/null || true
-  oc delete groups/cascaded-group &>/dev/null || true
-  oc delete groups/orphaned-group &>/dev/null || true
-  oc delete users/cascaded-user &>/dev/null || true
-  oc delete users/orphaned-user &>/dev/null || true
-  oc delete identities/alwaysallow:orphaned-user &>/dev/null || true
-  oc delete identities/alwaysallow:cascaded-user &>/dev/null || true
-  oc delete clusterroles/basic-users2 &>/dev/null || true
-  oc delete clusterroles/basic-user2 &>/dev/null || true
-  oc delete clusterrolebindings/basic-users2 &>/dev/null || true
-  oc delete clusterrolebindings/basic-user2 &>/dev/null || true
-  oc delete user/test-cmd-user &>/dev/null || true
-  oc delete namespace example &>/dev/null || true
-  oc delete identities.user.openshift.io/test-idp:test-uid &>/dev/null || true
-  oc delete images.image.openshift.io/sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6 &>/dev/null || true
-  oc delete -n default imagestreams.image.openshift.io/busybox &>/dev/null || true
-  oc wait --for=delete namespace/example --timeout=60s || true
-#  oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"
-  exit 0
-) &>/dev/null
-
-project="$( oc project -q )"
-
-defaultimage="openshift/origin-\${component}:latest"
-USE_IMAGES=${USE_IMAGES:-$defaultimage}
-
-os::test::junit::declare_suite_start "cmd/admin"
-# This test validates admin level commands including system policy
-
-os::test::junit::declare_suite_start "cmd/admin/start"
-# Check failure modes of various system commands
-
-os::test::junit::declare_suite_start "cmd/admin/certs"
-# check encrypt/decrypt of plain text
-os::cmd::expect_success          "echo -n 'secret data 1' | oc adm ca encrypt --genkey='${ARTIFACT_DIR}/secret.key' --out='${ARTIFACT_DIR}/secret.encrypted'"
-os::cmd::expect_success_and_text "oc adm ca decrypt --in='${ARTIFACT_DIR}/secret.encrypted' --key='${ARTIFACT_DIR}/secret.key'" 'secret data 1'
-# create a file with trailing whitespace
-echo "data with newline" > "${ARTIFACT_DIR}/secret.whitespace.data"
-os::cmd::expect_success_and_text "oc adm ca encrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.whitespace.data'      --out='${ARTIFACT_DIR}/secret.whitespace.encrypted'" 'Warning.*whitespace'
-os::cmd::expect_success          "oc adm ca decrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.whitespace.encrypted' --out='${ARTIFACT_DIR}/secret.whitespace.decrypted'"
-os::cmd::expect_success          "diff '${ARTIFACT_DIR}/secret.whitespace.data' '${ARTIFACT_DIR}/secret.whitespace.decrypted'"
-# create a binary file
-echo "hello" | gzip > "${ARTIFACT_DIR}/secret.data"
-# encrypt using file and pipe input/output
-os::cmd::expect_success "oc adm ca encrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.data' --out='${ARTIFACT_DIR}/secret.file-in-file-out.encrypted'"
-os::cmd::expect_success "oc adm ca encrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.data'     > '${ARTIFACT_DIR}/secret.file-in-pipe-out.encrypted'"
-os::cmd::expect_success "oc adm ca encrypt --key='${ARTIFACT_DIR}/secret.key'    < '${ARTIFACT_DIR}/secret.data'     > '${ARTIFACT_DIR}/secret.pipe-in-pipe-out.encrypted'"
-# decrypt using all three methods
-os::cmd::expect_success "oc adm ca decrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.file-in-file-out.encrypted' --out='${ARTIFACT_DIR}/secret.file-in-file-out.decrypted'"
-os::cmd::expect_success "oc adm ca decrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.file-in-pipe-out.encrypted'     > '${ARTIFACT_DIR}/secret.file-in-pipe-out.decrypted'"
-os::cmd::expect_success "oc adm ca decrypt --key='${ARTIFACT_DIR}/secret.key'    < '${ARTIFACT_DIR}/secret.pipe-in-pipe-out.encrypted'     > '${ARTIFACT_DIR}/secret.pipe-in-pipe-out.decrypted'"
-# verify lossless roundtrip
-os::cmd::expect_success "diff '${ARTIFACT_DIR}/secret.data' '${ARTIFACT_DIR}/secret.file-in-file-out.decrypted'"
-os::cmd::expect_success "diff '${ARTIFACT_DIR}/secret.data' '${ARTIFACT_DIR}/secret.file-in-pipe-out.decrypted'"
-os::cmd::expect_success "diff '${ARTIFACT_DIR}/secret.data' '${ARTIFACT_DIR}/secret.pipe-in-pipe-out.decrypted'"
-echo "certs: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/groups"
-os::cmd::expect_success_and_text 'oc adm groups new shortoutputgroup -o name' 'group.user.openshift.io/shortoutputgroup'
-# test --dry-run flag for this command
-os::cmd::expect_success_and_text 'oc adm groups new mygroup --dry-run' 'group.user.openshift.io/mygroup created \(dry run\)'
-os::cmd::expect_success_and_text 'oc adm groups new mygroup --dry-run -o name' 'group.user.openshift.io/mygroup'
-# ensure group was not actually created
-os::cmd::expect_failure_and_text 'oc get groups mygroup' 'groups.user.openshift.io "mygroup" not found'
-os::cmd::expect_success_and_text 'oc adm groups new shortoutputgroup -o name --dry-run' 'group.user.openshift.io/shortoutputgroup'
-os::cmd::expect_failure_and_text 'oc adm groups new shortoutputgroup' 'groups.user.openshift.io "shortoutputgroup" already exists'
-os::cmd::expect_failure_and_text 'oc adm groups new errorgroup -o blah' 'unable to match a printer suitable for the output format "blah"'
-os::cmd::expect_failure_and_text 'oc get groups/errorgroup' 'groups.user.openshift.io "errorgroup" not found'
-# update cmd to use --template once it is wired across all Origin commands.
-# see
-os::cmd::expect_success_and_text 'oc adm groups new group1 foo bar -o yaml' '\- foo'
-os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'foo, bar'
-os::cmd::expect_success 'oc adm groups add-users group1 baz'
-os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'baz'
-os::cmd::expect_success 'oc adm groups remove-users group1 bar'
-os::cmd::expect_success_and_not_text 'oc get groups/group1 --no-headers' 'bar'
-os::cmd::expect_success_and_text 'oc adm prune auth users/baz' 'group.user.openshift.io/group1 updated'
-echo "groups: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/admin-scc"
-os::cmd::expect_success 'oc adm policy who-can get pods'
-os::cmd::expect_success 'oc adm policy who-can get pods -n default'
-os::cmd::expect_success 'oc adm policy who-can get pods --all-namespaces'
-# check to make sure that the resource arg conforms to resource rules
-os::cmd::expect_success_and_text 'oc adm policy who-can get Pod' "Resource:  pods"
-os::cmd::expect_success_and_text 'oc adm policy who-can get PodASDF' "Resource:  PodASDF"
-os::cmd::expect_success_and_text 'oc adm policy who-can get hpa.autoscaling -n default' "Resource:  horizontalpodautoscalers.autoscaling"
-os::cmd::expect_success_and_text 'oc adm policy who-can get hpa.v1.autoscaling -n default' "Resource:  horizontalpodautoscalers.autoscaling"
-os::cmd::expect_success_and_text 'oc adm policy who-can get hpa -n default' "Resource:  horizontalpodautoscalers.autoscaling"
-
-os::cmd::expect_success 'oc adm policy add-role-to-group --rolebinding-name=cluster-admin cluster-admin system:unauthenticated'
-os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=cluster-admin cluster-admin system:no-user'
-os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=admin admin -z fake-sa'
-os::cmd::expect_success_and_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
-os::cmd::expect_success 'oc adm policy remove-role-from-user admin -z fake-sa'
-os::cmd::expect_success_and_not_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
-os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=admin admin -z fake-sa'
-os::cmd::expect_success_and_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
-os::cmd::expect_success "oc adm policy remove-role-from-user admin system:serviceaccount:$(oc project -q):fake-sa"
-os::cmd::expect_success_and_not_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
-os::cmd::expect_success 'oc adm policy remove-role-from-group cluster-admin system:unauthenticated'
-os::cmd::expect_success 'oc adm policy remove-role-from-user cluster-admin system:no-user'
-os::cmd::expect_failure_and_text 'oc adm policy remove-role-from-user admin ghost' 'error: unable to find target \[ghost\]'
-os::cmd::expect_failure_and_text 'oc adm policy remove-role-from-user admin -z ghost' 'error: unable to find target \[ghost\]'
-os::cmd::expect_success 'oc adm policy remove-group system:unauthenticated'
-os::cmd::expect_success 'oc adm policy remove-user system:no-user'
-os::cmd::expect_success 'oc adm policy add-cluster-role-to-group cluster-admin system:unauthenticated'
-os::cmd::expect_success 'oc adm policy remove-cluster-role-from-group cluster-admin system:unauthenticated'
-os::cmd::expect_success 'oc adm policy add-cluster-role-to-user cluster-admin system:no-user'
-os::cmd::expect_success 'oc adm policy remove-cluster-role-from-user cluster-admin system:no-user'
-os::cmd::expect_success 'oc adm policy add-role-to-user view foo'
-os::cmd::expect_success 'oc adm policy add-role-to-user view bar --rolebinding-name=custom'
-os::cmd::expect_success 'oc adm policy add-role-to-user view baz --rolebinding-name=custom'
-#os::cmd::expect_success_and_text 'oc get rolebinding/view -o jsonpath="{.metadata.name},{.roleRef.name},{.userNames[*]}"' '^view,view,foo$'
-#os::cmd::expect_success_and_text 'oc get rolebinding/custom -o jsonpath="{.metadata.name},{.roleRef.name},{.userNames[*]}"' '^custom,view,bar baz$'
-os::cmd::expect_failure_and_text 'oc adm policy add-role-to-user other fuz --rolebinding-name=custom' '^error: rolebinding custom found for role view, not other$'
-#os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth' "Warning: Your changes may get lost whenever a master is restarted, unless you prevent reconciliation of this rolebinding using the following command: oc annotate clusterrolebinding.rbac self-provisioners 'rbac.authorization.kubernetes.io/autoupdate=false' --overwrite"
-os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=self-provisioners self-provisioner system:authenticated:oauth'
-#os::cmd::expect_success 'oc annotate clusterrolebinding.rbac self-provisioners "rbac.authorization.kubernetes.io/autoupdate=false" --overwrite'
-#os::cmd::expect_success_and_not_text 'oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth' "Warning"
-#os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=self-provisioners self-provisioner system:authenticated:oauth'
-
-# os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
-# os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-user'
-# os::cmd::expect_success 'oc adm policy add-scc-to-user privileged -z fake-sa'
-# os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
-# os::cmd::expect_success 'oc adm policy add-scc-to-group privileged fake-group'
-# os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-group'
-# os::cmd::expect_success 'oc adm policy remove-scc-from-user privileged fake-user'
-# os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-user'
-# os::cmd::expect_success 'oc adm policy remove-scc-from-user privileged -z fake-sa'
-# os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
-# os::cmd::expect_success 'oc adm policy remove-scc-from-group privileged fake-group'
-# os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-group'
-
-# check pruning
-os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
-os::cmd::expect_success_and_text 'oc adm prune auth users/fake-user' 'privileged updated'
-os::cmd::expect_success 'oc adm policy add-scc-to-group privileged fake-group'
-os::cmd::expect_success_and_text 'oc adm prune auth groups/fake-group' 'privileged updated'
-echo "admin-scc: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/role-reapers"
-#os::cmd::expect_success "oc process -f ${TEST_DATA}/roles/policy-roles.yaml -p NAMESPACE='${project}' | oc create -f -"
-#os::cmd::expect_success "oc get rolebinding/basic-users"
-#os::cmd::expect_success "oc adm prune auth role/basic-user"
-#os::cmd::try_until_failure "oc get rolebinding/basic-users"
-#os::cmd::expect_success "oc delete role/basic-user"
-#os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/policy-clusterroles.yaml"
-#os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
-#os::cmd::expect_success "oc adm prune auth clusterrole/basic-user2"
-#os::cmd::try_until_failure "oc get clusterrolebinding/basic-users2"
-#os::cmd::expect_success "oc delete clusterrole/basic-user2"
-#os::cmd::expect_success "oc policy add-role-to-user edit foo"
-#os::cmd::expect_success "oc get rolebinding/edit"
-#os::cmd::expect_success "oc adm prune auth clusterrole/edit"
-#os::cmd::try_until_failure "oc get rolebinding/edit"
-#os::cmd::expect_success "oc delete clusterrole/edit"
-#os::cmd::expect_success 'oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"'
-#
-#os::cmd::expect_success "oc process -f ${TEST_DATA}/roles/policy-roles.yaml -p NAMESPACE='${project}' | oc create -f -"
-#os::cmd::expect_success "oc get rolebinding/basic-users"
-#os::cmd::expect_success_and_text "oc adm prune auth role/basic-user" "rolebinding.rbac.authorization.k8s.io/basic-users deleted"
-#os::cmd::expect_success "oc get role/basic-user"
-#os::cmd::expect_success "oc delete role/basic-user"
-#
-#os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/policy-clusterroles.yaml"
-#os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
-#os::cmd::expect_success_and_text "oc adm prune auth clusterrole/basic-user2"  "clusterrolebinding.rbac.authorization.k8s.io/basic-users2 deleted"
-#os::cmd::expect_success "oc get clusterrole/basic-user2"
-#os::cmd::expect_success "oc delete clusterrole/basic-user2"
-echo "admin-role-reapers: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/role-selectors"
-os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/policy-clusterroles.yaml"
-os::cmd::expect_success "oc get clusterrole/basic-user2"
-os::cmd::expect_success "oc label clusterrole/basic-user2 foo=bar"
-os::cmd::expect_success_and_not_text "oc get clusterroles --selector=foo=bar" "No resources found"
-os::cmd::expect_success_and_text "oc get clusterroles --selector=foo=unknown" "No resources found"
-os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
-os::cmd::expect_success "oc label clusterrolebinding/basic-users2 foo=bar"
-os::cmd::expect_success_and_not_text "oc get clusterrolebindings --selector=foo=bar" "No resources found"
-os::cmd::expect_success_and_text "oc get clusterroles --selector=foo=unknown" "No resources found"
-os::cmd::expect_success "oc delete clusterrole/basic-user2"
-os::test::junit::declare_suite_end
-echo "admin-role-selectors: ok"
-
-os::test::junit::declare_suite_start "cmd/admin/ui-project-commands"
-# Test the commands the UI projects page tells users to run
-# These should match what is described in projects.html
-os::cmd::expect_success 'oc adm new-project ui-test-project --admin="createuser"'
-os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=admin admin adduser -n ui-test-project'
-# Make sure project can be listed by oc (after auth cache syncs)
-os::cmd::try_until_text 'oc get projects' 'ui\-test\-project'
-# Make sure users got added
-os::cmd::expect_success_and_text "oc get rolebinding admin -n ui-test-project -o jsonpath='{.subjects[*].name}'" '^createuser adduser$'
-echo "ui-project-commands: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/new-project"
-# Test deleting and recreating a project
-os::cmd::expect_success 'oc adm new-project recreated-project --admin="createuser1"'
-os::cmd::expect_success 'oc delete project recreated-project'
-os::cmd::try_until_failure 'oc get project recreated-project'
-os::cmd::expect_success 'oc adm new-project recreated-project --admin="createuser2"'
-os::cmd::expect_success_and_text "oc get rolebinding admin -n recreated-project -o jsonpath='{.subjects[*].name}'" '^createuser2$'
-echo "new-project: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/build-chain"
-# Test building a dependency tree
-os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l build=sti | oc create -f -'
-# Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
-# not created but due to a buildConfig pointing to it, we get back its graph of deps.
-os::cmd::expect_success_and_text 'oc adm build-chain istag/origin-ruby-sample' 'istag/origin-ruby-sample:latest'
-os::cmd::expect_success_and_text 'oc adm build-chain ruby-25-centos7 -o dot' 'digraph "ruby-25-centos7:latest"'
-os::cmd::expect_success 'oc delete all -l build=sti'
-echo "ex build-chain: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/complex-scenarios"
-# Make sure no one commits data with allocated values that could flake
-os::cmd::expect_failure 'grep -r "clusterIP.*172" ${TEST_DATA}/app-scenarios'
-os::cmd::expect_success 'oc adm new-project example --admin="createuser"'
-os::cmd::expect_success 'oc project example'
-os::cmd::try_until_success 'oc get serviceaccount default'
-#os::cmd::expect_success 'oc create -f ${TEST_DATA}/app-scenarios'
-os::cmd::expect_success 'oc status'
-os::cmd::expect_success_and_text 'oc status -o dot' '"example"'
-echo "complex-scenarios: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/rolebinding-allowed"
-# Admin can bind local roles without cluster-admin permissions
-#os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/empty-role.yaml -n '${project}'"
-#os::cmd::expect_success 'oc adm policy add-role-to-user admin local-admin  -n '${project}''
-#os::cmd::expect_success 'oc login -u local-admin -p pw'
-#os::cmd::expect_success 'oc policy add-role-to-user empty-role other --role-namespace='${project}' -n '${project}''
-#os::cmd::expect_success 'oc login -u system:admin'
-#os::cmd::expect_success "oc delete role/empty-role -n '${project}'"
-echo "cmd/admin/rolebinding-allowed: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/rolebinding-local-only"
-# Admin cannot bind local roles from different namespace
-otherproject='someotherproject'
-#os::cmd::expect_success "oc new-project '${otherproject}'"
-#os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/empty-role.yaml -n '${project}'"
-#os::cmd::expect_success 'oc adm policy add-role-to-user admin local-admin  -n '${otherproject}''
-#os::cmd::expect_success 'oc login -u local-admin -p pw'
-#os::cmd::expect_failure_and_text 'oc policy add-role-to-user empty-role other --role-namespace='${project}' -n '${otherproject}'' "role binding in namespace \"${otherproject}\" can't reference role in different namespace \"${project}\""
-#os::cmd::expect_success 'oc login -u system:admin'
-#os::cmd::expect_success "oc delete role/empty-role -n '${project}'"
-echo "rolebinding-local-only: ok"
-os::test::junit::declare_suite_end
-
-#os::test::junit::declare_suite_start "cmd/admin/user-group-cascade"
-## Create test users/identities and groups
-#os::cmd::expect_success 'oc login -u cascaded-user -p pw'
-#os::cmd::expect_success 'oc login -u orphaned-user -p pw'
-#os::cmd::expect_success 'oc login -u system:admin'
-## switch to using --template once template printing is available to all cmds through the genericclioptions printer
-#os::cmd::expect_success_and_text 'oc adm groups new cascaded-group cascaded-user orphaned-user -o yaml' '\- cascaded\-user'
-## switch to using --template once template printing is available to all cmds through the genericclioptions printer
-#os::cmd::expect_success_and_text 'oc adm groups new orphaned-group cascaded-user orphaned-user -o yaml' '\- orphaned\-user'
-## Add roles, sccs to users/groups
-#os::cmd::expect_success 'oc adm policy add-scc-to-user           restricted    cascaded-user  orphaned-user'
-#os::cmd::expect_success 'oc adm policy add-scc-to-group          restricted    cascaded-group orphaned-group'
-#os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=cluster-admin cluster-admin cascaded-user  orphaned-user  -n default'
-#os::cmd::expect_success 'oc adm policy add-role-to-group --rolebinding-name=cluster-admin cluster-admin cascaded-group orphaned-group -n default'
-#os::cmd::expect_success 'oc adm policy add-cluster-role-to-user --rolebinding-name=cluster-admin cluster-admin cascaded-user  orphaned-user'
-#os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=cluster-admin cluster-admin cascaded-group orphaned-group'
-#
-## Delete users
-#os::cmd::expect_success 'oc adm prune auth user/cascaded-user'
-#os::cmd::expect_success 'oc delete user  cascaded-user'
-#os::cmd::expect_success 'oc delete user  orphaned-user  --cascade=false'
-## Verify all identities remain
-#os::cmd::expect_success 'oc get identities/alwaysallow:cascaded-user'
-#os::cmd::expect_success 'oc get identities/alwaysallow:orphaned-user'
-## Verify orphaned user references are left
-#os::cmd::expect_success_and_text     "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'orphaned-user'
-#os::cmd::expect_success_and_text     "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'orphaned-user'
-#os::cmd::expect_success_and_text     "oc get scc/restricted                     --template='{{.users}}'"               'orphaned-user'
-#os::cmd::expect_success_and_text     "oc get group/cascaded-group               --template='{{.users}}'"               'orphaned-user'
-## Verify cascaded user references are removed
-#os::cmd::expect_success_and_not_text "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'cascaded-user'
-#os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'cascaded-user'
-#os::cmd::expect_success_and_not_text "oc get scc/restricted                     --template='{{.users}}'"               'cascaded-user'
-#os::cmd::expect_success_and_not_text "oc get group/cascaded-group               --template='{{.users}}'"               'cascaded-user'
-#
-## Delete groups
-#os::cmd::expect_success "oc adm prune auth group/cascaded-group"
-#os::cmd::expect_success 'oc delete group cascaded-group'
-#os::cmd::expect_success 'oc delete group orphaned-group --cascade=false'
-## Verify orphaned group references are left
-#os::cmd::expect_success_and_text     "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'orphaned-group'
-#os::cmd::expect_success_and_text     "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'orphaned-group'
-#os::cmd::expect_success_and_text     "oc get scc/restricted                     --template='{{.groups}}'"              'orphaned-group'
-## Verify cascaded group references are removed
-#os::cmd::expect_success_and_not_text "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'cascaded-group'
-#os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'cascaded-group'
-#os::cmd::expect_success_and_not_text "oc get scc/restricted                     --template='{{.groups}}'"              'cascaded-group'
-#echo "user-group-cascade: ok"
-#os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/serviceaccounts"
-# create a new service account
-os::cmd::expect_success_and_text 'oc create serviceaccount my-sa-name' 'serviceaccount/my-sa-name created'
-os::cmd::expect_success 'oc get sa my-sa-name'
-
-# extract token and ensure it links us back to the service account
-os::cmd::try_until_success 'oc sa get-token my-sa-name'
-# TODO re-enable once we can use tokens instead of certs
-#os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa get-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
-
-# add a new token and ensure it links us back to the service account
-# TODO re-enable once we can use tokens instead of certs
-#os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa new-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
-
-# add a new labeled token and ensure the label stuck
-os::cmd::expect_success 'oc sa new-token my-sa-name --labels="mykey=myvalue,myotherkey=myothervalue"'
-os::cmd::expect_success_and_text 'oc get secrets --selector="mykey=myvalue"' 'my-sa-name'
-os::cmd::expect_success_and_text 'oc get secrets --selector="myotherkey=myothervalue"' 'my-sa-name'
-os::cmd::expect_success_and_text 'oc get secrets --selector="mykey=myvalue,myotherkey=myothervalue"' 'my-sa-name'
-echo "serviceacounts: ok"
-os::test::junit::declare_suite_end
-
-# user creation
-os::test::junit::declare_suite_start "cmd/admin/user-creation"
-os::cmd::expect_success 'oc create user                test-cmd-user'
-os::cmd::expect_success 'oc create identity            test-idp:test-uid'
-os::cmd::expect_success 'oc create useridentitymapping test-idp:test-uid test-cmd-user'
-os::cmd::expect_success_and_text 'oc describe identity test-idp:test-uid' 'test-cmd-user'
-os::cmd::expect_success_and_text 'oc describe user     test-cmd-user' 'test-idp:test-uid'
-os::test::junit::declare_suite_end
-
-# images
-os::test::junit::declare_suite_start "cmd/admin/images"
-
-# import image and check its information
-os::cmd::expect_success "oc create -f ${TEST_DATA}/stable-busybox.yaml"
-os::cmd::expect_success_and_text "oc adm top images" "sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6\W+default/busybox \(latest\)\W+<none>\W+<none>\W+yes\W+653\.4KiB"
-os::cmd::expect_success_and_text "oc adm top imagestreams" "default/busybox\W+653\.4KiB\W+1\W+1"
-os::cmd::expect_success "oc delete is/busybox -n default"
-
-# log in as an image-pruner and test that oc adm prune images works against the atomic binary
-#os::cmd::expect_success "oc adm policy add-cluster-role-to-user system:image-pruner pruner --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
-#os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u pruner -p anything"
-#os::cmd::expect_success_and_text "oc adm prune images" "Dry run enabled - no modifications will be made. Add --confirm to remove images"
-
-echo "images: ok"
-os::test::junit::declare_suite_end
-
-# oc adm must-gather
-os::test::junit::declare_suite_start "cmd/admin/must-gather"
-os::cmd::expect_success "oc adm must-gather --help"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdAdminShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdAdminSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdAdminSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdAdminShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/admin.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdAnnotationsSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -35506,2994 +35096,6 @@ func testExtendedTestdataCmdTestCmdTemplatesSh() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/templates.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfile = []byte(`FROM node:0.10.38
-
-RUN mkdir /src
-
-RUN npm install nodemon -g
-
-WORKDIR /src
-ADD package.json package.json
-RUN npm install
-
-ADD nodemon.json nodemon.json
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfileBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfile, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfile() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfileBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/app/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
-    labels:
-      app: nginx
-    name: nginx
-  spec:
-    tags:
-    - annotations:
-        openshift.io/imported-from: tutum/nginx
-      from:
-        kind: DockerImage
-        name: tutum/nginx
-      generation: null
-      importPolicy: {}
-      name: from
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
-    labels:
-      app: nginx
-    name: nginx
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: nginx:latest
-    postCommit: {}
-    resources: {}
-    source:
-      contextDir: test/testdata/app-scenarios/docker-compose/complex/nginx
-      git:
-        ref: libcompose
-        uri: git@github.com:openshift/origin.git
-      secrets: null
-      type: Git
-    strategy:
-      dockerStrategy:
-        from:
-          kind: ImageStreamTag
-          name: nginx:from
-      type: Docker
-    triggers:
-    - github:
-        secret: IE96Fw4CdQs-g3giIjWZ
-      type: GitHub
-    - generic:
-        secret: B8mx-lYjIBjNY6ymP6MT
-      type: Generic
-    - type: ConfigChange
-    - imageChange: {}
-      type: ImageChange
-  status:
-    lastVersion: 0
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
-    labels:
-      app: nginx
-    name: web
-  spec:
-    tags:
-    - annotations:
-        openshift.io/imported-from: node:0.10.38
-      from:
-        kind: DockerImage
-        name: node:0.10.38
-      generation: null
-      importPolicy: {}
-      name: from
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
-    labels:
-      app: nginx
-    name: web
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: web:latest
-    postCommit: {}
-    resources: {}
-    source:
-      contextDir: test/testdata/app-scenarios/docker-compose/complex/app
-      git:
-        ref: libcompose
-        uri: git@github.com:openshift/origin.git
-      secrets: null
-      type: Git
-    strategy:
-      dockerStrategy:
-        from:
-          kind: ImageStreamTag
-          name: web:from
-      type: Docker
-    triggers:
-    - github:
-        secret: xMiKAo9EEZMKMxCRZSUk
-      type: GitHub
-    - generic:
-        secret: doIIibCQIxRvv28uyP9J
-      type: Generic
-    - type: ConfigChange
-    - imageChange: {}
-      type: ImageChange
-  status:
-    lastVersion: 0
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
-    labels:
-      app: nginx
-    name: db
-  spec:
-    tags:
-    - annotations:
-        openshift.io/imported-from: redis
-      from:
-        kind: DockerImage
-        name: redis
-      generation: null
-      importPolicy: {}
-      name: latest
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
-    labels:
-      app: nginx
-    name: db
-  spec:
-    replicas: 1
-    selector:
-      deploymentconfig: db
-    strategy:
-      resources: {}
-    template:
-      metadata:
-        annotations:
-          openshift.io/generated-by: OpenShiftNewApp
-        creationTimestamp: null
-        labels:
-          app: nginx
-          deploymentconfig: db
-      spec:
-        containers:
-        - image: redis
-          name: db
-          ports:
-          - containerPort: 6379
-          resources:
-            limits:
-              cpu: 100m
-              memory: 1G
-    test: false
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - db
-        from:
-          kind: ImageStreamTag
-          name: db:latest
-      type: ImageChange
-  status: {}
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
-    labels:
-      app: nginx
-    name: nginx
-  spec:
-    replicas: 1
-    selector:
-      deploymentconfig: nginx
-    strategy:
-      resources: {}
-    template:
-      metadata:
-        annotations:
-          openshift.io/generated-by: OpenShiftNewApp
-        creationTimestamp: null
-        labels:
-          app: nginx
-          deploymentconfig: nginx
-      spec:
-        containers:
-        - image: nginx
-          name: nginx
-          ports:
-          - containerPort: 80
-          resources: {}
-          volumeMounts:
-          - mountPath: /www/public
-            name: dir-1
-          - mountPath: /src/app
-            name: dir-2
-        - args:
-          - nodemon
-          - -L
-          - app/bin/www
-          image: web
-          name: web
-          ports:
-          - containerPort: 3000
-          resources:
-            requests:
-              cpu: 500m
-          volumeMounts:
-          - mountPath: /src/app
-            name: dir-2
-        volumes:
-        - emptyDir: {}
-          name: dir-1
-        - emptyDir: {}
-          name: dir-2
-    test: false
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - nginx
-        from:
-          kind: ImageStreamTag
-          name: nginx:latest
-      type: ImageChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - web
-        from:
-          kind: ImageStreamTag
-          name: web:latest
-      type: ImageChange
-  status: {}
-- apiVersion: v1
-  kind: Service
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
-    labels:
-      app: nginx
-    name: redis
-  spec:
-    ports:
-    - name: 6379-tcp
-      port: 6379
-      targetPort: 6379
-    selector:
-      deploymentconfig: db
-  status:
-    loadBalancer: {}
-- apiVersion: v1
-  kind: Service
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
-    labels:
-      app: nginx
-    name: nginx
-  spec:
-    ports:
-    - name: 80-tcp
-      port: 80
-      targetPort: 80
-    - name: 3000-tcp
-      port: 3000
-      targetPort: 3000
-    selector:
-      deploymentconfig: nginx
-  status:
-    loadBalancer: {}
-kind: List
-metadata: {}
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.generated.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    creationTimestamp: null
-    name: nginx
-  spec:
-    tags:
-    - annotations:
-        openshift.io/imported-from: tutum/nginx
-      from:
-        kind: DockerImage
-        name: tutum/nginx
-      generation: null
-      importPolicy: {}
-      name: from
-      referencePolicy:
-        type: ""
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    creationTimestamp: null
-    name: nginx
-  spec:
-    nodeSelector: null
-    output:
-      to:
-        kind: ImageStreamTag
-        name: nginx:latest
-    postCommit: {}
-    resources: {}
-    source:
-      contextDir: test/testdata/app-scenarios/docker-compose/complex/nginx
-      git:
-        ref: master
-        uri: git@github.com:openshift/origin.git
-      secrets: null
-      type: Git
-    strategy:
-      dockerStrategy:
-        from:
-          kind: ImageStreamTag
-          name: nginx:from
-      type: Docker
-    triggers:
-    - github:
-        secret: FdDzZzJCBkHQGxYMMBw0
-      type: GitHub
-    - generic:
-        secret: wMAV07N8TWt9dz40LDjL
-      type: Generic
-    - type: ConfigChange
-    - imageChange: {}
-      type: ImageChange
-  status:
-    lastVersion: 0
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    creationTimestamp: null
-    name: web
-  spec:
-    tags:
-    - annotations:
-        openshift.io/imported-from: node:0.10.38
-      from:
-        kind: DockerImage
-        name: node:0.10.38
-      generation: null
-      importPolicy: {}
-      name: from
-      referencePolicy:
-        type: ""
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    creationTimestamp: null
-    name: web
-  spec:
-    nodeSelector: null
-    output:
-      to:
-        kind: ImageStreamTag
-        name: web:latest
-    postCommit: {}
-    resources: {}
-    source:
-      contextDir: test/testdata/app-scenarios/docker-compose/complex/app
-      git:
-        ref: master
-        uri: git@github.com:openshift/origin.git
-      secrets: null
-      type: Git
-    strategy:
-      dockerStrategy:
-        from:
-          kind: ImageStreamTag
-          name: web:from
-      type: Docker
-    triggers:
-    - github:
-        secret: 3QSLvrej6A2E-CMYSEvQ
-      type: GitHub
-    - generic:
-        secret: uBl0LIK0anHOaRJ8-4dI
-      type: Generic
-    - type: ConfigChange
-    - imageChange: {}
-      type: ImageChange
-  status:
-    lastVersion: 0
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    creationTimestamp: null
-    name: db
-  spec:
-    tags:
-    - annotations:
-        openshift.io/imported-from: redis
-      from:
-        kind: DockerImage
-        name: redis
-      generation: null
-      importPolicy: {}
-      name: latest
-      referencePolicy:
-        type: ""
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    creationTimestamp: null
-    name: db
-  spec:
-    replicas: 1
-    selector:
-      deploymentconfig: db
-    strategy:
-      resources: {}
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          deploymentconfig: db
-      spec:
-        containers:
-        - image: redis
-          name: db
-          ports:
-          - containerPort: 6379
-          resources:
-            limits:
-              cpu: 100m
-              memory: 1G
-    test: false
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - db
-        from:
-          kind: ImageStreamTag
-          name: db:latest
-      type: ImageChange
-  status:
-    availableReplicas: 0
-    latestVersion: 0
-    observedGeneration: 0
-    replicas: 0
-    unavailableReplicas: 0
-    updatedReplicas: 0
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    creationTimestamp: null
-    name: nginx
-  spec:
-    replicas: 1
-    selector:
-      deploymentconfig: nginx
-    strategy:
-      resources: {}
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          deploymentconfig: nginx
-      spec:
-        containers:
-        - image: nginx
-          name: nginx
-          ports:
-          - containerPort: 80
-          resources: {}
-          volumeMounts:
-          - mountPath: /www/public
-            name: dir-1
-          - mountPath: /src/app
-            name: dir-2
-        - args:
-          - nodemon
-          - -L
-          - app/bin/www
-          image: web
-          name: web
-          ports:
-          - containerPort: 3000
-          resources:
-            requests:
-              cpu: 500m
-          volumeMounts:
-          - mountPath: /src/app
-            name: dir-2
-        volumes:
-        - emptyDir: {}
-          name: dir-1
-        - emptyDir: {}
-          name: dir-2
-    test: false
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - nginx
-        from:
-          kind: ImageStreamTag
-          name: nginx:latest
-      type: ImageChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - web
-        from:
-          kind: ImageStreamTag
-          name: web:latest
-      type: ImageChange
-  status:
-    availableReplicas: 0
-    latestVersion: 0
-    observedGeneration: 0
-    replicas: 0
-    unavailableReplicas: 0
-    updatedReplicas: 0
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    creationTimestamp: null
-    name: no-ports
-  spec:
-    tags:
-    - annotations:
-        openshift.io/imported-from: redis
-      from:
-        kind: DockerImage
-        name: redis
-      generation: null
-      importPolicy: {}
-      name: latest
-      referencePolicy:
-        type: ""
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    creationTimestamp: null
-    name: no-ports
-  spec:
-    replicas: 1
-    selector:
-      deploymentconfig: no-ports
-    strategy:
-      resources: {}
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          deploymentconfig: no-ports
-      spec:
-        containers:
-        - image: redis
-          name: no-ports
-          resources: {}
-    test: false
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - no-ports
-        from:
-          kind: ImageStreamTag
-          name: no-ports:latest
-      type: ImageChange
-  status:
-    availableReplicas: 0
-    latestVersion: 0
-    observedGeneration: 0
-    replicas: 0
-    unavailableReplicas: 0
-    updatedReplicas: 0
-- apiVersion: v1
-  kind: Service
-  metadata:
-    creationTimestamp: null
-    name: redis
-  spec:
-    ports:
-    - name: 6379-tcp
-      port: 6379
-      targetPort: 6379
-    selector:
-      deploymentconfig: db
-  status:
-    loadBalancer: {}
-- apiVersion: v1
-  kind: Service
-  metadata:
-    creationTimestamp: null
-    name: nginx
-  spec:
-    ports:
-    - name: 80-tcp
-      port: 80
-      targetPort: 80
-    - name: 3000-tcp
-      port: 3000
-      targetPort: 3000
-    selector:
-      deploymentconfig: nginx
-  status:
-    loadBalancer: {}
-kind: List
-metadata: {}
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.imported.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYml = []byte(`web:
-  build: ./app
-  volumes:
-    - "./app:/src/app"
-  ports:
-    - "3030:3000"
-  links:
-    - "db:redis"
-  command: nodemon -L app/bin/www
-  cpu_shares: 512
-
-nginx:
-  restart: always
-  build: ./nginx/
-  ports:
-    - "80:80"
-  volumes:
-    - /www/public
-  volumes_from:
-    - web
-  links:
-    - web:web
-
-db:
-  image: redis
-  ports:
-    - "6379:6379"
-  cpu_quota: 10000
-  mem_limit: 1000000000
-  cpuset: 1
-
-no-ports:
-  image: redis`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYmlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYmlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfile = []byte(`FROM tutum/nginx
-RUN rm /etc/nginx/sites-enabled/default
-ADD sites-enabled/ /etc/nginx/sites-enabled
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfileBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfile, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfile() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfileBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/nginx/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYml = []byte(`version: "2"
-services:
-  WP:
-    image: "centurylink/wordpress:3.9.1"
-    links:
-      - "DB:DB_1"
-    ports:
-      - "8080:80"
-    environment:
-      - "DB_PASSWORD=pass@word01"
-      - DB_NAME=wordpress
-    dns:
-      - 8.8.8.8
-      - 9.9.9.9
-    hostname: wordpress
-    domainname: wordpress.mysite.com
-  DB:
-    image: "centurylink/mysql:5.5"
-    ports:
-      - "3306:3306"
-    environment:
-      - "MYSQL_ROOT_PASSWORD=pass@word01"
-    mem_limit: "1000000000"
-    cpu_shares: "40"
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYmlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYmlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/wordpress/docker-compose.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "Pod",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "lonely-pod",
-        "creationTimestamp": null,
-        "labels": {
-          "name": "lonely-pod"
-        }
-      },
-      "spec": {
-        "containers": [
-          {
-            "name": "lonely-pod",
-            "image": "openshift/hello-openshift",
-            "ports": [
-              {
-                "containerPort": 8080,
-                "protocol": "TCP"
-              }
-            ],
-            "resources": {},
-            "terminationMessagePath": "/dev/termination-log",
-            "imagePullPolicy": "IfNotPresent",
-            "capabilities": {},
-            "securityContext": {
-              "capabilities": {},
-              "privileged": false
-            }
-          }
-        ],
-        "restartPolicy": "Always",
-        "dnsPolicy": "ClusterFirst"
-      },
-      "status": {}
-    }
-  ]
-}`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJson, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJson() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-lonely-pod.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "ReplicationController",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "database-app-1",
-        "creationTimestamp": null,
-        "labels": {
-          "template": "ruby-helloworld-sample"
-        }
-      },
-      "spec": {
-        "replicas": 1,
-        "selector": {
-          "name": "database",
-          "deconflict": "database.app"
-        },
-        "template": {
-          "metadata": {
-            "creationTimestamp": null,
-            "labels": {
-              "name": "database",
-              "template": "ruby-helloworld-sample",
-              "deconflict": "database.app"
-            }
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": "ruby-helloworld-database",
-                "image": "mysql",
-                "ports": [
-                  {
-                    "containerPort": 3306,
-                    "protocol": "TCP"
-                  }
-                ],
-                "env": [
-                  {
-                    "name": "MYSQL_ROOT_PASSWORD",
-                    "value": "rQHfVnTo"
-                  },
-                  {
-                    "name": "MYSQL_DATABASE",
-                    "value": "root"
-                  }
-                ],
-                "resources": {},
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
-              }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
-          }
-        }
-      },
-      "status": {
-        "replicas": 0
-      }
-    },
-    {
-      "kind": "ReplicationController",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "frontend-app-1",
-        "creationTimestamp": null,
-        "labels": {
-          "template": "ruby-helloworld-sample"
-        }
-      },
-      "spec": {
-        "replicas": 3,
-        "selector": {
-          "name": "frontend",
-          "deconflict": "frontend.app"
-        },
-        "template": {
-          "metadata": {
-            "creationTimestamp": null,
-            "labels": {
-              "name": "frontend",
-              "template": "ruby-helloworld-sample",
-              "deconflict": "frontend.app"
-            }
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": "ruby-helloworld",
-                "image": "openshift/ruby-hello-world",
-                "ports": [
-                  {
-                    "containerPort": 8080,
-                    "protocol": "TCP"
-                  }
-                ],
-                "env": [
-                  {
-                    "name": "ADMIN_USERNAME",
-                    "value": "admin6TM"
-                  },
-                  {
-                    "name": "ADMIN_PASSWORD",
-                    "value": "xImx1tHR"
-                  },
-                  {
-                    "name": "MYSQL_ROOT_PASSWORD",
-                    "value": "rQHfVnTo"
-                  },
-                  {
-                    "name": "MYSQL_DATABASE",
-                    "value": "root"
-                  }
-                ],
-                "resources": {},
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
-              }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
-          }
-        }
-      },
-      "status": {
-        "replicas": 0
-      }
-    },
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "database-app",
-        "creationTimestamp": null,
-        "labels": {
-          "template": "ruby-helloworld-sample"
-        }
-      },
-      "spec": {
-        "ports": [
-          {
-            "protocol": "TCP",
-            "port": 5434,
-            "targetPort": 3306,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "database"
-        },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
-    },
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "frontend-app",
-        "creationTimestamp": null,
-        "labels": {
-          "template": "ruby-helloworld-sample"
-        }
-      },
-      "spec": {
-        "ports": [
-          {
-            "protocol": "TCP",
-            "port": 5432,
-            "targetPort": 8080,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "frontend"
-        },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
-    }
-  ]
-}`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJson, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJson() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-sample-app.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "hello-openshift",
-        "creationTimestamp": null,
-        "labels": {
-          "template": "hello-openshift"
-        }
-      },
-      "spec": {
-        "ports": [
-          {
-            "protocol": "TCP",
-            "port": 5432,
-            "targetPort": 8080,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "hello-openshift"
-        },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
-    },
-    {
-      "kind": "Pod",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "hello-openshift",
-        "creationTimestamp": null,
-        "labels": {
-          "name": "hello-openshift"
-        }
-      },
-      "spec": {
-        "containers": [
-          {
-            "name": "hello-openshift",
-            "image": "openshift/hello-openshift",
-            "ports": [
-              {
-                "containerPort": 8080,
-                "protocol": "TCP"
-              }
-            ],
-            "resources": {},
-            "terminationMessagePath": "/dev/termination-log",
-            "imagePullPolicy": "IfNotPresent",
-            "capabilities": {},
-            "securityContext": {
-              "capabilities": {},
-              "privileged": false
-            }
-          }
-        ],
-        "restartPolicy": "Always",
-        "dnsPolicy": "ClusterFirst"
-      },
-      "status": {}
-    }
-  ]
-}`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJson, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJson() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-pod-no-rc.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "empty-service",
-        "creationTimestamp": null,
-        "labels": {
-          "template": "empty-service"
-        }
-      },
-      "spec": {
-        "ports": [
-          {
-            "protocol": "TCP",
-            "port": 5432,
-            "targetPort": 8080,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "empty-service"
-        },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
-    }
-  ]
-}`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJson, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJson() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-with-nothing.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "ReplicationController",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "database-rc-1",
-        "creationTimestamp": null,
-        "labels": {
-          "template": "ruby-helloworld-sample"
-        }
-      },
-      "spec": {
-        "replicas": 1,
-        "selector": {
-          "name": "database",
-          "deconflict": "database.rc"
-        },
-        "template": {
-          "metadata": {
-            "creationTimestamp": null,
-            "labels": {
-              "name": "database",
-              "template": "ruby-helloworld-sample",
-              "deconflict": "database.rc"
-            }
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": "ruby-helloworld-database",
-                "image": "mysql",
-                "ports": [
-                  {
-                    "containerPort": 3306,
-                    "protocol": "TCP"
-                  }
-                ],
-                "env": [
-                  {
-                    "name": "MYSQL_ROOT_PASSWORD",
-                    "value": "rQHfVnTo"
-                  },
-                  {
-                    "name": "MYSQL_DATABASE",
-                    "value": "root"
-                  }
-                ],
-                "resources": {},
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
-              }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
-          }
-        }
-      },
-      "status": {
-        "replicas": 0
-      }
-    },
-    {
-      "kind": "ReplicationController",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "frontend-rc-1",
-        "creationTimestamp": null,
-        "labels": {
-          "template": "ruby-helloworld-sample"
-        }
-      },
-      "spec": {
-        "replicas": 3,
-        "selector": {
-          "name": "frontend",
-          "deconflict": "frontend.rc"
-        },
-        "template": {
-          "metadata": {
-            "creationTimestamp": null,
-            "labels": {
-              "name": "frontend",
-              "template": "ruby-helloworld-sample",
-              "deconflict": "frontend.rc"
-            }
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": "ruby-helloworld",
-                "image": "openshift/ruby-hello-world",
-                "ports": [
-                  {
-                    "containerPort": 8080,
-                    "protocol": "TCP"
-                  }
-                ],
-                "env": [
-                  {
-                    "name": "ADMIN_USERNAME",
-                    "value": "admin6TM"
-                  },
-                  {
-                    "name": "ADMIN_PASSWORD",
-                    "value": "xImx1tHR"
-                  },
-                  {
-                    "name": "MYSQL_ROOT_PASSWORD",
-                    "value": "rQHfVnTo"
-                  },
-                  {
-                    "name": "MYSQL_DATABASE",
-                    "value": "root"
-                  }
-                ],
-                "resources": {},
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
-              }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
-          }
-        }
-      },
-      "status": {
-        "replicas": 0
-      }
-    },
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "database-rc",
-        "creationTimestamp": null,
-        "labels": {
-          "template": "ruby-helloworld-sample"
-        }
-      },
-      "spec": {
-        "ports": [
-          {
-            "protocol": "TCP",
-            "port": 5434,
-            "targetPort": 3306,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "database"
-        },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
-    }
-  ]
-}`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJson, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJson() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-unserviced-rc.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    creationTimestamp: 2015-04-07T04:12:17Z
-    labels:
-      name: ruby-sample-build
-      template: application-template-stibuild
-    name: ruby-sample-build
-    namespace: example
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: origin-ruby-sample:latest
-    resources: {}
-    source:
-      git:
-        uri: git://github.com/openshift/ruby-hello-world.git
-      type: Git
-    strategy:
-      sourceStrategy:
-        from:
-          kind: DockerImage
-          name: centos/ruby-25-centos7
-        incremental: true
-      type: Source
-    triggers:
-    - github:
-        secret: secret101
-      type: github
-    - generic:
-        secret: secret101
-      type: generic
-    - imageChange:
-        lastTriggeredImageID: centos/ruby-25-centos7:latest
-      type: imageChange
-  status:
-    lastVersion: 1
-- apiVersion: v1
-  kind: Build
-  metadata:
-    creationTimestamp: 2015-04-07T04:12:18Z
-    labels:
-      buildconfig: ruby-sample-build
-      name: ruby-sample-build
-      template: application-template-stibuild
-    name: ruby-sample-build-1
-    namespace: example
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: origin-ruby-sample:latest
-    resources: {}
-    source:
-      git:
-        uri: git://github.com/openshift/ruby-hello-world.git
-      type: Git
-    strategy:
-      sourceStrategy:
-        from:
-          kind: DockerImage
-          name: centos/ruby-25-centos7:latest
-        incremental: true
-      type: Source
-  status:
-    completionTimestamp: 2015-04-07T04:13:01Z
-    config:
-      kind: BuildConfig
-      name: ruby-sample-build
-
-    phase: Complete
-    startTimestamp: 2015-04-07T04:12:21Z
-- apiVersion: v1
-  kind: ReplicationController
-  metadata:
-    annotations:
-      openshift.io/deployment-config.name: database
-      openshift.io/deployment.phase: Running
-      openshift.io/deployment-config.latest-version: "2"
-      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"centos/mysql-56-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
-      pod: deploy-database-19m1he
-    creationTimestamp: 2015-04-07T04:12:18Z
-    labels:
-      template: application-template-stibuild
-    name: database-2
-    namespace: example
-  spec:
-    replicas: 1
-    selector:
-      deployment: database-2
-      deploymentconfig: database
-      name: database
-    template:
-      metadata:
-        annotations:
-          openshift.io/deployment.name: database-2
-          openshift.io/deployment-config.name: database
-          openshift.io/deployment-config.latest-version: "2"
-        creationTimestamp: null
-        labels:
-          deployment: database-2
-          deploymentconfig: database
-          name: database
-          template: application-template-stibuild
-      spec:
-        containers:
-        - capabilities: {}
-          env:
-          - name: MYSQL_USER
-            value: user1CY
-          - name: MYSQL_PASSWORD
-            value: FfyXmsGG
-          - name: MYSQL_DATABASE
-            value: root
-          image: centos/mysql-56-centos7
-          imagePullPolicy: IfNotPresent
-          name: ruby-helloworld-database
-          ports:
-          - containerPort: 3306
-            protocol: TCP
-          resources: {}
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-  status:
-    replicas: 2
-- apiVersion: v1
-  kind: ReplicationController
-  metadata:
-    annotations:
-      openshift.io/deployment-config.name: database
-      openshift.io/deployment.phase: Complete
-      openshift.io/deployment-config.latest-version: "1"
-      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"centos/mysql-56-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
-      pod: deploy-database-19m1he
-    creationTimestamp: 2015-04-07T04:12:17Z
-    labels:
-      template: application-template-stibuild
-    name: database-1
-    namespace: example
-  spec:
-    replicas: 1
-    selector:
-      deployment: database-1
-      deploymentconfig: database
-      name: database
-    template:
-      metadata:
-        annotations:
-          openshift.io/deployment.name: database-1
-          openshift.io/deployment-config.name: database
-          openshift.io/deployment-config.latest-version: "1"
-        creationTimestamp: null
-        labels:
-          deployment: database-1
-          deploymentconfig: database
-          name: database
-          template: application-template-stibuild
-      spec:
-        containers:
-        - capabilities: {}
-          env:
-          - name: MYSQL_USER
-            value: user1CY
-          - name: MYSQL_PASSWORD
-            value: FfyXmsGG
-          - name: MYSQL_DATABASE
-            value: root
-          image: centos/mysql-56-centos7
-          imagePullPolicy: IfNotPresent
-          name: ruby-helloworld-database
-          ports:
-          - containerPort: 3306
-            protocol: TCP
-          resources: {}
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-  status:
-    replicas: 1
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    creationTimestamp: 2015-04-07T04:12:17Z
-    labels:
-      template: application-template-stibuild
-    name: database
-    namespace: example
-  spec:
-    replicas: 1
-    selector:
-      name: database
-    strategy:
-      resources: {}
-      type: Recreate
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          name: database
-          template: application-template-stibuild
-      spec:
-        containers:
-        - capabilities: {}
-          env:
-          - name: MYSQL_USER
-            value: user1CY
-          - name: MYSQL_PASSWORD
-            value: FfyXmsGG
-          - name: MYSQL_DATABASE
-            value: root
-          image: centos/mysql-56-centos7
-          imagePullPolicy: IfNotPresent
-          name: ruby-helloworld-database
-          ports:
-          - containerPort: 3306
-            protocol: TCP
-          resources: {}
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-    test: true
-    triggers:
-    - type: ConfigChange
-  status:
-    details:
-      causes:
-      - type: ConfigChange
-    latestVersion: 1
-- apiVersion: v1
-  kind: ReplicationController
-  metadata:
-    annotations:
-      openshift.io/deployment-config.name: frontend
-      openshift.io/deployment.phase: Failed
-      openshift.io/deployment-config.latest-version: "2"
-      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageStreamTag","name":"origin-ruby-sample:latest"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
-      openshift.io/deployment.status-reason: unable to contact server
-      pod: deploy-frontend-17mza9
-    creationTimestamp: 2015-04-07T04:12:53Z
-    labels:
-      template: application-template-stibuild
-    name: frontend-2
-    namespace: example
-  spec:
-    replicas: 1
-    selector:
-      deployment: frontend-2
-      deploymentconfig: frontend
-      name: frontend
-    template:
-      metadata:
-        annotations:
-          openshift.io/deployment.name: frontend-2
-          openshift.io/deployment-config.name: frontend
-          openshift.io/deployment-config.latest-version: "2"
-        creationTimestamp: null
-        labels:
-          deployment: frontend-2
-          deploymentconfig: frontend
-          name: frontend
-          template: application-template-stibuild
-      spec:
-        containers:
-        - capabilities: {}
-          env:
-          - name: ADMIN_USERNAME
-            value: adminNPX
-          - name: ADMIN_PASSWORD
-            value: 7q1IdEao
-          - name: MYSQL_USER
-            value: user1CY
-          - name: MYSQL_PASSWORD
-            value: FfyXmsGG
-          - name: MYSQL_DATABASE
-            value: root
-          image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
-          imagePullPolicy: IfNotPresent
-          name: ruby-helloworld
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-          resources: {}
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-  status:
-    replicas: 0
-- apiVersion: v1
-  kind: ReplicationController
-  metadata:
-    annotations:
-      openshift.io/deployment-config.name: frontend
-      openshift.io/deployment.phase: Complete
-      openshift.io/deployment-config.latest-version: "1"
-      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageStreamTag","name":"origin-ruby-sample:latest"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
-      pod: deploy-frontend-17mza9
-    creationTimestamp: 2015-04-07T04:12:53Z
-    labels:
-      template: application-template-stibuild
-    name: frontend-1
-    namespace: example
-  spec:
-    replicas: 1
-    selector:
-      deployment: frontend-1
-      deploymentconfig: frontend
-      name: frontend
-    template:
-      metadata:
-        annotations:
-          openshift.io/deployment.name: frontend-1
-          openshift.io/deployment-config.name: frontend
-          openshift.io/deployment-config.latest-version: "1"
-        creationTimestamp: null
-        labels:
-          deployment: frontend-1
-          deploymentconfig: frontend
-          name: frontend
-          template: application-template-stibuild
-      spec:
-        containers:
-        - capabilities: {}
-          env:
-          - name: ADMIN_USERNAME
-            value: adminNPX
-          - name: ADMIN_PASSWORD
-            value: 7q1IdEao
-          - name: MYSQL_USER
-            value: user1CY
-          - name: MYSQL_PASSWORD
-            value: FfyXmsGG
-          - name: MYSQL_DATABASE
-            value: root
-          image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
-          imagePullPolicy: IfNotPresent
-          name: ruby-helloworld
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-          resources: {}
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-  status:
-    replicas: 1
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    creationTimestamp: 2015-04-07T04:12:17Z
-    labels:
-      template: application-template-stibuild
-    name: frontend
-    namespace: example
-  spec:
-    replicas: 1
-    selector:
-      name: frontend
-    strategy:
-      resources: {}
-      type: Recreate
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          name: frontend
-          template: application-template-stibuild
-      spec:
-        containers:
-        - capabilities: {}
-          env:
-          - name: ADMIN_USERNAME
-            value: adminNPX
-          - name: ADMIN_PASSWORD
-            value: 7q1IdEao
-          - name: MYSQL_USER
-            value: user1CY
-          - name: MYSQL_PASSWORD
-            value: FfyXmsGG
-          - name: MYSQL_DATABASE
-            value: root
-          image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
-          imagePullPolicy: IfNotPresent
-          name: ruby-helloworld
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-          resources: {}
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-    triggers:
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - ruby-helloworld
-        from:
-          kind: ImageStreamTag
-          name: origin-ruby-sample:latest
-        lastTriggeredImage: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
-      type: ImageChange
-  status:
-    details:
-      causes:
-      - imageTrigger:
-          from:
-            kind: DockerImage
-            name: 172.30.17.139:5000/test/origin-ruby-sample:latest
-        type: ImageChange
-    latestVersion: 3
-- apiVersion: v1
-  kind: Service
-  metadata:
-    creationTimestamp: 2015-04-07T04:12:17Z
-    labels:
-      template: application-template-stibuild
-    name: database
-    namespace: example
-  spec:
-    ports:
-    - nodePort: 0
-      port: 5434
-      protocol: TCP
-      targetPort: 3306
-    selector:
-      name: database
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
-- apiVersion: v1
-  kind: Service
-  metadata:
-    creationTimestamp: 2015-04-07T04:12:17Z
-    labels:
-      template: application-template-stibuild
-    name: database-external
-    namespace: example
-  spec:
-    ports:
-    - nodePort: 31000
-      port: 5434
-      protocol: TCP
-      targetPort: 3306
-    selector:
-      name: database
-    sessionAffinity: None
-    type: NodePort
-  status:
-    loadBalancer: {}
-- apiVersion: v1
-  kind: Service
-  metadata:
-    creationTimestamp: 2015-04-07T04:12:17Z
-    labels:
-      template: application-template-stibuild
-    name: frontend
-    namespace: example
-  spec:
-    ports:
-    - nodePort: 0
-      port: 5432
-      protocol: TCP
-      targetPort: 8080
-    selector:
-      name: frontend
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
-- apiVersion: v1
-  kind: Route
-  metadata:
-    annotations:
-      openshift.io/host.generated: "true"
-    creationTimestamp: 2015-04-07T04:12:17Z
-    labels:
-      template: application-template-stibuild
-    name: frontend
-    namespace: example
-    resourceVersion: "393"
-  spec:
-    host: frontend-example.router.default.svc.cluster.local
-    port:
-      targetPort: 8080
-    to:
-      kind: Service
-      name: frontend
-  status:
-    ingress:
-    - routerName: default
-      host: frontend-example.router.default.svc.cluster.local
-    - routerName: other
-      host: www.test.com
-      conditions:
-      - type: Admitted
-        status: "False"
-        reason: HostAlreadyClaimed
-- apiVersion: v1
-  kind: Route
-  metadata:
-    annotations:
-      openshift.io/host.generated: "true"
-    creationTimestamp: 2015-04-07T04:12:17Z
-    labels:
-      template: application-template-stibuild
-    name: other
-    namespace: example
-    resourceVersion: "393"
-  spec:
-    host: www.test.com
-    port:
-      targetPort: 8080
-    to:
-      kind: Service
-      name: frontend
-    tls:
-      insecureEdgeTerminationPolicy: Redirect
-      type: Edge
-  status:
-    ingress:
-    - routerName: other
-      host: www.test.com
-      conditions:
-      - type: Admitted
-        status: "True"
-kind: List
-metadata:
-  resourceVersion: "592"
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-deployed-app.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-example-2
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: sinatra-example-2:latest
-    resources: {}
-    source:
-      git:
-        uri: git://github.com/mfojtik/sinatra-example-2
-      type: Git
-    strategy:
-      sourceStrategy:
-        from:
-          kind: DockerImage
-          name: centos/ruby-25-centos7
-      type: Source
-    triggers:
-    - github:
-        secret: u5gRhTXiOJpOHxKSI1M6
-      type: github
-    - generic:
-        secret: IDO5sRS52tsUq5hczU6o
-      type: generic
-  status:
-    lastVersion: 0
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-example-2
-  spec:
-    replicas: 1
-    selector:
-      deploymentconfig: sinatra-example-2
-    strategy:
-      resources: {}
-      type: Recreate
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          deploymentconfig: sinatra-example-2
-      spec:
-        containers:
-        - capabilities: {}
-          image: library/sinatra-example-2:latest
-          imagePullPolicy: Always
-          name: sinatra-example-2
-          ports:
-          - containerPort: 8080
-            name: s-tcp-8080
-            protocol: TCP
-          resources: {}
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - sinatra-example-2
-        from:
-          kind: ImageStreamTag
-          name: sinatra-example-2:latest
-        lastTriggeredImage: ""
-      type: ImageChange
-  status: {}
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    creationTimestamp: 2015-04-06T21:18:56Z
-    name: sinatra-example-2
-  spec: {}
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: Service
-  metadata:
-    creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-example-2
-  spec:
-    ports:
-    - nodePort: 0
-      port: 8080
-      protocol: TCP
-      targetPort: 8080
-    selector:
-      deploymentconfig: sinatra-example-2
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
-kind: List
-metadata:
-  resourceVersion: "116"
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-no-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-example-1
-    namespace: example
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: sinatra-example-1:latest
-    resources: {}
-    source:
-      git:
-        uri: git://github.com/mfojtik/sinatra-example-1
-      type: Git
-    strategy:
-      sourceStrategy:
-        from:
-          kind: DockerImage
-          name: centos/ruby-25-centos7
-      type: Source
-    triggers:
-    - github:
-        secret: u5gRhTXiOJpOHxKSI1M6
-      type: github
-    - generic:
-        secret: IDO5sRS52tsUq5hczU6o
-      type: generic
-  status:
-    lastVersion: 1
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    creationTimestamp: 2015-04-06T21:18:56Z
-    name: sinatra-example-1
-    namespace: example
-  spec: {}
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: Build
-  metadata:
-    creationTimestamp: 2015-04-06T21:18:56Z
-    labels:
-      buildconfig: sinatra-example-1
-    name: sinatra-example-1-1
-    namespace: example
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: sinatra-example-1:latest
-    resources: {}
-    source:
-      git:
-        uri: git://github.com/mfojtik/sinatra-example-1
-      type: Git
-    strategy:
-      sourceStrategy:
-        from:
-          kind: DockerImage
-          name: centos/ruby-25-centos7
-      type: Source
-  status:
-    phase: Running
-    startTimestamp: 2015-04-06T21:19:03Z
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-example-1
-    namespace: example
-  spec:
-    replicas: 1
-    selector:
-      deploymentconfig: sinatra-example-1
-    strategy:
-      resources: {}
-      type: Recreate
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          deploymentconfig: sinatra-example-1
-      spec:
-        containers:
-        - capabilities: {}
-          image: library/sinatra-example-1:latest
-          imagePullPolicy: Always
-          name: sinatra-example-1
-          ports:
-          - containerPort: 8080
-            name: s-tcp-8080
-            protocol: TCP
-          resources: {}
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - sinatra-example-1
-        from:
-          kind: ImageStreamTag
-          name: sinatra-example-1:latest
-        lastTriggeredImage: ""
-      type: ImageChange
-  status: {}
-- apiVersion: v1
-  kind: Service
-  metadata:
-    creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-example-1
-    namespace: example
-  spec:
-    ports:
-    - nodePort: 0
-      port: 8080
-      protocol: TCP
-      targetPort: 8080
-    selector:
-      deploymentconfig: sinatra-example-1
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
-kind: List
-metadata: {}
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-one-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-app-example
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: sinatra-app-example:latest
-    resources: {}
-    source:
-      git:
-        uri: git://github.com/mfojtik/sinatra-app-example
-      type: Git
-    strategy:
-      sourceStrategy:
-        from:
-          kind: DockerImage
-          name: centos/ruby-25-centos7
-      type: Source
-    triggers:
-    - github:
-        secret: u5gRhTXiOJpOHxKSI1M6
-      type: github
-    - generic:
-        secret: IDO5sRS52tsUq5hczU6o
-      type: generic
-  status:
-    lastVersion: 1
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    creationTimestamp: 2015-04-06T21:18:56Z
-    name: sinatra-app-example
-  spec: {}
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
-  kind: Build
-  metadata:
-    creationTimestamp: 2015-04-06T21:18:56Z
-    labels:
-      buildconfig: sinatra-app-example
-    name: sinatra-app-example-1
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: sinatra-app-example:latest
-    resources: {}
-    revision:
-      git:
-        author:
-          email: someguy@outhere.com
-          name: Roy Programmer
-        commit: 7a4f354721b0c9717e46f2e132b269b495d43e2b
-        committer: {}
-        message: Prepare v1 Template types
-      type: git
-    source:
-      git:
-        uri: git://github.com/mfojtik/sinatra-app-example
-      type: Git
-    strategy:
-      sourceStrategy:
-        from:
-          kind: DockerImage
-          name: centos/ruby-25-centos7
-      type: Source
-  status:
-    phase: Running
-    startTimestamp: 2015-04-06T21:19:03Z
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-app-example-a
-  spec:
-    replicas: 1
-    selector:
-      deploymentconfig: sinatra-app-example
-    strategy:
-      resources: {}
-      type: Recreate
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          deploymentconfig: sinatra-app-example
-      spec:
-        containers:
-        - capabilities: {}
-          image: library/sinatra-app-example:latest
-          imagePullPolicy: Always
-          name: sinatra-app-example
-          ports:
-          - containerPort: 8080
-            name: s-tcp-8080
-            protocol: TCP
-          resources: {}
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - sinatra-app-example
-        from:
-          kind: ImageStreamTag
-          name: sinatra-app-example:latest
-        lastTriggeredImage: ""
-      type: ImageChange
-  status: {}
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-app-example-b
-  spec:
-    replicas: 1
-    selector:
-      deploymentconfig: sinatra-app-example
-    strategy:
-      resources: {}
-      type: Recreate
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          deploymentconfig: sinatra-app-example
-      spec:
-        containers:
-        - capabilities: {}
-          image: library/sinatra-app-example:latest
-          imagePullPolicy: Always
-          name: sinatra-app-example
-          ports:
-          - containerPort: 8080
-            name: s-tcp-8080
-            protocol: TCP
-          resources: {}
-          securityContext:
-            capabilities: {}
-            privileged: false
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - sinatra-app-example
-        from:
-          kind: ImageStreamTag
-          name: sinatra-app-example:latest
-        lastTriggeredImage: ""
-      type: ImageChange
-  status: {}
-- apiVersion: v1
-  kind: Service
-  metadata:
-    creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-app-example
-  spec:
-    ports:
-    - nodePort: 0
-      port: 8080
-      protocol: TCP
-      targetPort: 8080
-    selector:
-      deploymentconfig: sinatra-app-example
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
-kind: List
-metadata: {}
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-two-deployment-configs.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
-  kind: Service
-  metadata:
-    annotations:
-      service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
-    creationTimestamp: 2016-07-21T15:53:09Z
-    labels:
-      app: mysql
-    name: galera
-    namespace: default
-    resourceVersion: "343"
-    selfLink: /api/v1/namespaces/default/services/galera
-    uid: 38fb3915-4f5b-11e6-b8a1-080027242396
-  spec:
-    clusterIP: None
-    ports:
-    - name: mysql
-      port: 3306
-      protocol: TCP
-      targetPort: 3306
-    selector:
-      app: mysql
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    annotations:
-      kubernetes.io/created-by: |
-        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"StatefulSet","namespace":"default","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6784"}}
-      openshift.io/scc: anyuid
-      pod.alpha.kubernetes.io/init-container-statuses: '[{"name":"install","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:12Z","finishedAt":"2016-07-27T02:41:12Z","containerID":"docker://5c727d8732899605fcfe3eecbeeb02576f18f5b989496073340427a8d2134622"}},"lastState":{},"ready":true,"restartCount":0,"image":"gcr.io/google_containers/galera-install:0.1","imageID":"docker://sha256:56ef857005d0ce479f2db0e4ee0ece05e0766ebfa7e79e27e1513915262a18ec","containerID":"docker://5c727d8732899605fcfe3eecbeeb02576f18f5b989496073340427a8d2134622"},{"name":"bootstrap","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:14Z","finishedAt":"2016-07-27T02:41:15Z","containerID":"docker://ab4ca0b3b6ec4860cd55c615534e1e2b11f4c3a33746783aab145919feb2446e"}},"lastState":{},"ready":true,"restartCount":0,"image":"debian:jessie","imageID":"docker://sha256:1b088884749bd93867ddb48ff404d4bbff09a17af8d95bc863efa5d133f87b78","containerID":"docker://ab4ca0b3b6ec4860cd55c615534e1e2b11f4c3a33746783aab145919feb2446e"}]'
-      pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
-      pod.alpha.kubernetes.io/initialized: "true"
-      pod.beta.kubernetes.io/hostname: mysql-0
-      pod.beta.kubernetes.io/subdomain: galera
-    creationTimestamp: 2016-07-27T02:41:09Z
-    generateName: mysql-
-    labels:
-      app: mysql
-    name: mysql-0
-    namespace: default
-    resourceVersion: "7191"
-    selfLink: /api/v1/namespaces/default/pods/mysql-0
-    uid: 92e49e79-53a3-11e6-b45a-080027242396
-  spec:
-    containers:
-    - args:
-      - --defaults-file=/etc/mysql/my-galera.cnf
-      - --user=root
-      image: erkules/galera:basic
-      imagePullPolicy: IfNotPresent
-      name: mysql
-      ports:
-      - containerPort: 3306
-        name: mysql
-        protocol: TCP
-      - containerPort: 4444
-        name: sst
-        protocol: TCP
-      - containerPort: 4567
-        name: replication
-        protocol: TCP
-      - containerPort: 4568
-        name: ist
-        protocol: TCP
-      readinessProbe:
-        exec:
-          command:
-          - sh
-          - -c
-          - mysql -u root -e 'show databases;'
-        failureThreshold: 3
-        initialDelaySeconds: 15
-        periodSeconds: 10
-        successThreshold: 1
-        timeoutSeconds: 5
-      resources: {}
-      securityContext:
-        capabilities:
-          drop:
-          - MKNOD
-          - SYS_CHROOT
-        privileged: false
-        seLinuxOptions:
-          level: s0:c5,c0
-      terminationMessagePath: /dev/termination-log
-      volumeMounts:
-      - mountPath: /var/lib/
-        name: datadir
-      - mountPath: /etc/mysql
-        name: config
-      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-        name: default-token-au2xq
-        readOnly: true
-    dnsPolicy: ClusterFirst
-    host: localhost.localdomain
-    imagePullSecrets:
-    - name: default-dockercfg-pzhsj
-    nodeName: localhost.localdomain
-    restartPolicy: Always
-    securityContext:
-      seLinuxOptions:
-        level: s0:c5,c0
-    serviceAccount: default
-    serviceAccountName: default
-    terminationGracePeriodSeconds: 30
-    volumes:
-    - name: datadir
-      persistentVolumeClaim:
-        claimName: datadir-mysql-0
-    - emptyDir: {}
-      name: config
-    - emptyDir: {}
-      name: workdir
-    - name: default-token-au2xq
-      secret:
-        secretName: default-token-au2xq
-  status:
-    conditions:
-    - lastProbeTime: null
-      lastTransitionTime: 2016-07-27T02:41:15Z
-      status: "True"
-      type: Initialized
-    - lastProbeTime: null
-      lastTransitionTime: 2016-07-27T03:00:47Z
-      status: "True"
-      type: Ready
-    - lastProbeTime: null
-      lastTransitionTime: 2016-07-27T02:41:09Z
-      status: "True"
-      type: PodScheduled
-    containerStatuses:
-    - containerID: docker://f2406b0f697c525df44b64aec6b1f6024ab88d9df80256426247dc6e9a92cb30
-      image: erkules/galera:basic
-      imageID: docker://sha256:b4780e247a38c12612f539ce1ac8e0988e1781d56fddf719c80fb8d4d7b8bbde
-      lastState: {}
-      name: mysql
-      ready: true
-      restartCount: 0
-      state:
-        running:
-          startedAt: 2016-07-27T02:41:16Z
-    hostIP: 10.0.2.15
-    phase: Running
-    podIP: 172.17.0.2
-    startTime: 2016-07-27T02:41:09Z
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    annotations:
-      kubernetes.io/created-by: |
-        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"StatefulSet","namespace":"default","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6790"}}
-      openshift.io/scc: anyuid
-      pod.alpha.kubernetes.io/init-container-statuses: '[{"name":"install","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:42Z","finishedAt":"2016-07-27T02:41:42Z","containerID":"docker://2538c65f65557955c02745ef4021181cf322c8dc0db62144dd1e1f8ea9f7fa54"}},"lastState":{},"ready":true,"restartCount":0,"image":"gcr.io/google_containers/galera-install:0.1","imageID":"docker://sha256:56ef857005d0ce479f2db0e4ee0ece05e0766ebfa7e79e27e1513915262a18ec","containerID":"docker://2538c65f65557955c02745ef4021181cf322c8dc0db62144dd1e1f8ea9f7fa54"},{"name":"bootstrap","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:44Z","finishedAt":"2016-07-27T02:41:45Z","containerID":"docker://4df7188d37033c182e675d45179941766bd1e6a013469038f43fa3fecc2cc06d"}},"lastState":{},"ready":true,"restartCount":0,"image":"debian:jessie","imageID":"docker://sha256:1b088884749bd93867ddb48ff404d4bbff09a17af8d95bc863efa5d133f87b78","containerID":"docker://4df7188d37033c182e675d45179941766bd1e6a013469038f43fa3fecc2cc06d"}]'
-      pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
-      pod.alpha.kubernetes.io/initialized: "true"
-      pod.beta.kubernetes.io/hostname: mysql-1
-      pod.beta.kubernetes.io/subdomain: galera
-    creationTimestamp: 2016-07-27T02:41:39Z
-    generateName: mysql-
-    labels:
-      app: mysql
-    name: mysql-1
-    namespace: default
-    resourceVersion: "7195"
-    selfLink: /api/v1/namespaces/default/pods/mysql-1
-    uid: a4da4725-53a3-11e6-b45a-080027242396
-  spec:
-    containers:
-    - args:
-      - --defaults-file=/etc/mysql/my-galera.cnf
-      - --user=root
-      image: erkules/galera:basic
-      imagePullPolicy: IfNotPresent
-      name: mysql
-      ports:
-      - containerPort: 3306
-        name: mysql
-        protocol: TCP
-      - containerPort: 4444
-        name: sst
-        protocol: TCP
-      - containerPort: 4567
-        name: replication
-        protocol: TCP
-      - containerPort: 4568
-        name: ist
-        protocol: TCP
-      readinessProbe:
-        exec:
-          command:
-          - sh
-          - -c
-          - mysql -u root -e 'show databases;'
-        failureThreshold: 3
-        initialDelaySeconds: 15
-        periodSeconds: 10
-        successThreshold: 1
-        timeoutSeconds: 5
-      resources: {}
-      securityContext:
-        capabilities:
-          drop:
-          - MKNOD
-          - SYS_CHROOT
-        privileged: false
-        seLinuxOptions:
-          level: s0:c5,c0
-      terminationMessagePath: /dev/termination-log
-      volumeMounts:
-      - mountPath: /var/lib/
-        name: datadir
-      - mountPath: /etc/mysql
-        name: config
-      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-        name: default-token-au2xq
-        readOnly: true
-    dnsPolicy: ClusterFirst
-    host: localhost.localdomain
-    imagePullSecrets:
-    - name: default-dockercfg-pzhsj
-    nodeName: localhost.localdomain
-    restartPolicy: Always
-    securityContext:
-      seLinuxOptions:
-        level: s0:c5,c0
-    serviceAccount: default
-    serviceAccountName: default
-    terminationGracePeriodSeconds: 30
-    volumes:
-    - name: datadir
-      persistentVolumeClaim:
-        claimName: datadir-mysql-1
-    - emptyDir: {}
-      name: config
-    - emptyDir: {}
-      name: workdir
-    - name: default-token-au2xq
-      secret:
-        secretName: default-token-au2xq
-  status:
-    conditions:
-    - lastProbeTime: null
-      lastTransitionTime: 2016-07-27T02:41:46Z
-      status: "True"
-      type: Initialized
-    - lastProbeTime: null
-      lastTransitionTime: 2016-07-27T03:00:58Z
-      status: "True"
-      type: Ready
-    - lastProbeTime: null
-      lastTransitionTime: 2016-07-27T02:41:39Z
-      status: "True"
-      type: PodScheduled
-    containerStatuses:
-    - containerID: docker://be1d5be42ab23d1db23f4552141e9068e2385ba19c3e84596e047eb6d2762d1c
-      image: erkules/galera:basic
-      imageID: docker://sha256:b4780e247a38c12612f539ce1ac8e0988e1781d56fddf719c80fb8d4d7b8bbde
-      lastState:
-        terminated:
-          containerID: docker://9a662fa5b74a962fa362c6a5d632fe3642b12fefde36c8158ab1a50d8fa4e33e
-          exitCode: 1
-          finishedAt: 2016-07-27T02:51:40Z
-          reason: Error
-          startedAt: 2016-07-27T02:51:05Z
-      name: mysql
-      ready: true
-      restartCount: 7
-      state:
-        running:
-          startedAt: 2016-07-27T03:00:39Z
-    hostIP: 10.0.2.15
-    phase: Running
-    podIP: 172.17.0.3
-    startTime: 2016-07-27T02:41:39Z
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    annotations:
-      kubernetes.io/created-by: |
-        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"StatefulSet","namespace":"default","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6790"}}
-      openshift.io/scc: anyuid
-      pod.alpha.kubernetes.io/init-container-statuses: '[{"name":"install","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T03:01:01Z","finishedAt":"2016-07-27T03:01:01Z","containerID":"docker://af008b4ce59d36695fbabf40ae2f7431b51441eb2e9c6962378937c06ac69a35"}},"lastState":{},"ready":true,"restartCount":0,"image":"gcr.io/google_containers/galera-install:0.1","imageID":"docker://sha256:56ef857005d0ce479f2db0e4ee0ece05e0766ebfa7e79e27e1513915262a18ec","containerID":"docker://af008b4ce59d36695fbabf40ae2f7431b51441eb2e9c6962378937c06ac69a35"},{"name":"bootstrap","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T03:01:02Z","finishedAt":"2016-07-27T03:01:03Z","containerID":"docker://ee97005854130335b54a65429865956260b7729e51e6363ab05e63d5c7c9ee48"}},"lastState":{},"ready":true,"restartCount":0,"image":"debian:jessie","imageID":"docker://sha256:1b088884749bd93867ddb48ff404d4bbff09a17af8d95bc863efa5d133f87b78","containerID":"docker://ee97005854130335b54a65429865956260b7729e51e6363ab05e63d5c7c9ee48"}]'
-      pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
-      pod.alpha.kubernetes.io/initialized: "true"
-      pod.beta.kubernetes.io/hostname: mysql-2
-      pod.beta.kubernetes.io/subdomain: galera
-    creationTimestamp: 2016-07-27T03:00:58Z
-    generateName: mysql-
-    labels:
-      app: mysql
-    name: mysql-2
-    namespace: default
-    resourceVersion: "7226"
-    selfLink: /api/v1/namespaces/default/pods/mysql-2
-    uid: 57e618f1-53a6-11e6-b215-080027242396
-  spec:
-    containers:
-    - args:
-      - --defaults-file=/etc/mysql/my-galera.cnf
-      - --user=root
-      image: erkules/galera:basic
-      imagePullPolicy: IfNotPresent
-      name: mysql
-      ports:
-      - containerPort: 3306
-        name: mysql
-        protocol: TCP
-      - containerPort: 4444
-        name: sst
-        protocol: TCP
-      - containerPort: 4567
-        name: replication
-        protocol: TCP
-      - containerPort: 4568
-        name: ist
-        protocol: TCP
-      readinessProbe:
-        exec:
-          command:
-          - sh
-          - -c
-          - mysql -u root -e 'show databases;'
-        failureThreshold: 3
-        initialDelaySeconds: 15
-        periodSeconds: 10
-        successThreshold: 1
-        timeoutSeconds: 5
-      resources: {}
-      securityContext:
-        capabilities:
-          drop:
-          - MKNOD
-          - SYS_CHROOT
-        privileged: false
-        seLinuxOptions:
-          level: s0:c5,c0
-      terminationMessagePath: /dev/termination-log
-      volumeMounts:
-      - mountPath: /var/lib/
-        name: datadir
-      - mountPath: /etc/mysql
-        name: config
-      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
-        name: default-token-au2xq
-        readOnly: true
-    dnsPolicy: ClusterFirst
-    host: localhost.localdomain
-    imagePullSecrets:
-    - name: default-dockercfg-pzhsj
-    nodeName: localhost.localdomain
-    restartPolicy: Always
-    securityContext:
-      seLinuxOptions:
-        level: s0:c5,c0
-    serviceAccount: default
-    serviceAccountName: default
-    terminationGracePeriodSeconds: 30
-    volumes:
-    - name: datadir
-      persistentVolumeClaim:
-        claimName: datadir-mysql-2
-    - emptyDir: {}
-      name: config
-    - emptyDir: {}
-      name: workdir
-    - name: default-token-au2xq
-      secret:
-        secretName: default-token-au2xq
-  status:
-    conditions:
-    - lastProbeTime: null
-      lastTransitionTime: 2016-07-27T03:01:03Z
-      status: "True"
-      type: Initialized
-    - lastProbeTime: null
-      lastTransitionTime: 2016-07-27T03:01:28Z
-      status: "True"
-      type: Ready
-    - lastProbeTime: null
-      lastTransitionTime: 2016-07-27T03:00:58Z
-      status: "True"
-      type: PodScheduled
-    containerStatuses:
-    - containerID: docker://82b774855cdb5d12d98e7bc34f4f9d4e88e757e9cc2da1593e2e2f66e3241e5f
-      image: erkules/galera:basic
-      imageID: docker://sha256:b4780e247a38c12612f539ce1ac8e0988e1781d56fddf719c80fb8d4d7b8bbde
-      lastState: {}
-      name: mysql
-      ready: true
-      restartCount: 0
-      state:
-        running:
-          startedAt: 2016-07-27T03:01:04Z
-    hostIP: 10.0.2.15
-    phase: Running
-    podIP: 172.17.0.4
-    startTime: 2016-07-27T03:00:58Z
-- apiVersion: apps/v1
-  kind: StatefulSet
-  metadata:
-    creationTimestamp: 2016-07-21T15:53:09Z
-    generation: 3
-    labels:
-      app: mysql
-    name: mysql
-    namespace: default
-    resourceVersion: "6790"
-    selfLink: /apis/apps/v1/namespaces/default/statefulsets/mysql
-    uid: 3900c985-4f5b-11e6-b8a1-080027242396
-  spec:
-    replicas: 3
-    selector:
-      matchLabels:
-        app: mysql
-    serviceName: galera
-    template:
-      metadata:
-        annotations:
-          pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
-          pod.alpha.kubernetes.io/initialized: "true"
-        creationTimestamp: null
-        labels:
-          app: mysql
-      spec:
-        containers:
-        - args:
-          - --defaults-file=/etc/mysql/my-galera.cnf
-          - --user=root
-          image: erkules/galera:basic
-          imagePullPolicy: IfNotPresent
-          name: mysql
-          ports:
-          - containerPort: 3306
-            name: mysql
-            protocol: TCP
-          - containerPort: 4444
-            name: sst
-            protocol: TCP
-          - containerPort: 4567
-            name: replication
-            protocol: TCP
-          - containerPort: 4568
-            name: ist
-            protocol: TCP
-          readinessProbe:
-            exec:
-              command:
-              - sh
-              - -c
-              - mysql -u root -e 'show databases;'
-            failureThreshold: 3
-            initialDelaySeconds: 15
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 5
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          volumeMounts:
-          - mountPath: /var/lib/
-            name: datadir
-          - mountPath: /etc/mysql
-            name: config
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-        securityContext: {}
-        terminationGracePeriodSeconds: 30
-        volumes:
-        - emptyDir: {}
-          name: config
-        - emptyDir: {}
-          name: workdir
-    volumeClaimTemplates:
-    - metadata:
-        annotations:
-          volume.alpha.kubernetes.io/storage-class: anything
-        creationTimestamp: null
-        name: datadir
-      spec:
-        accessModes:
-        - ReadWriteOnce
-        resources:
-          requests:
-            storage: 10Gi
-      status:
-        phase: Pending
-  status:
-    replicas: 3
-kind: List
-metadata: {}
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/petset.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -44660,183 +41262,6 @@ func testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtension() (*ass
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYaml = []byte(`apiVersion: v1
-kind: Role
-metadata:
-  name: empty-role
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/roles/empty-role.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    creationTimestamp: null
-    name: basic-user2
-  rules:
-  - apiGroups: null
-    attributeRestrictions: null
-    resourceNames:
-    - "~"
-    resources:
-    - users
-    verbs:
-    - get
-  - apiGroups: null
-    attributeRestrictions: null
-    resources:
-    - projectrequests
-    verbs:
-    - list
-  - apiGroups: null
-    attributeRestrictions: null
-    resources:
-    - clusterroles
-    verbs:
-    - get
-    - list
-  - apiGroups: null
-    attributeRestrictions: null
-    resources:
-    - projects
-    verbs:
-    - list
-  - apiGroups:
-    - authorization.k8s.io
-    attributeRestrictions: null
-    resources:
-    - selfsubjectaccessreviews
-    verbs:
-    - create
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  kind: ClusterRoleBinding
-  metadata:
-    creationTimestamp: null
-    name: basic-users2
-  roleRef:
-    name: basic-user2
-  subjects:
-  - kind: SystemGroup
-    name: system:authenticated
-  userNames: null
-kind: List
-metadata: {}
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/roles/policy-clusterroles.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml = []byte(`kind: Template
-apiVersion: v1
-metadata:
-  name: "policy-roles-template"
-labels:
-  createdBy: "policy-roles-template"
-parameters:
-  - description: "The namespace to create roles in."
-    name: NAMESPACE
-    required: true
-objects:
-  - apiVersion: v1
-    kind: Role
-    metadata:
-      creationTimestamp: null
-      name: basic-user
-    rules:
-    - apiGroups: null
-      attributeRestrictions: null
-      resourceNames:
-      - "~"
-      resources:
-      - users
-      verbs:
-      - get
-    - apiGroups: null
-      attributeRestrictions: null
-      resources:
-      - projectrequests
-      verbs:
-      - list
-    - apiGroups: null
-      attributeRestrictions: null
-      resources:
-      - clusterroles
-      verbs:
-      - get
-      - list
-    - apiGroups: null
-      attributeRestrictions: null
-      resources:
-      - projects
-      verbs:
-      - list
-    - apiGroups:
-      - authorization.k8s.io
-      attributeRestrictions: null
-      resources:
-      - selfsubjectaccessreviews
-      verbs:
-      - create
-  - apiVersion: v1
-    groupNames:
-    - system:authenticated
-    kind: RoleBinding
-    metadata:
-      creationTimestamp: null
-      name: basic-users
-    roleRef:
-      name: basic-user
-      namespace: ${NAMESPACE}
-    subjects:
-    - kind: SystemGroup
-      name: system:authenticated
-    userNames: null
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/roles/policy-roles.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml = []byte(`apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -44989,112 +41414,6 @@ func testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYaml() (*asset, error
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/simple-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataStableBusyboxYaml = []byte(`kind: List
-apiVersion: v1
-metadata: {}
-items:
-  - apiVersion: v1
-    dockerImageConfig: '{"architecture":"amd64","config":{"Hostname":"55cd1f8f6e5b","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["sh"],"Image":"sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"container":"764ef4448baa9a1ce19e4ae95f8cdd4eda7a1186c512773e56dc634dff208a59","container_config":{"Hostname":"55cd1f8f6e5b","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/bin/sh","-c","#(nop)
-      CMD [\"sh\"]"],"Image":"sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"created":"2016-06-23T23:23:37.198943461Z","docker_version":"1.10.3","history":[{"created":"2016-06-23T23:23:36.73131105Z","created_by":"/bin/sh
-      -c #(nop) ADD file:9ca60502d646bdd815bb51e612c458e2d447b597b95cf435f9673f0966d41c1a
-      in /"},{"created":"2016-06-23T23:23:37.198943461Z","created_by":"/bin/sh -c #(nop)
-      CMD [\"sh\"]","empty_layer":true}],"os":"linux","rootfs":{"type":"layers","diff_ids":["sha256:8ac8bfaff55af948c796026ee867448c5b5b5d9dd3549f4006d9759b25d4a893"]}}'
-    dockerImageLayers:
-    - mediaType: application/vnd.docker.image.rootfs.diff.tar.gzip
-      name: sha256:8ddc19f16526912237dd8af81971d5e4dd0587907234be2b83e249518d5b673f
-      size: 667590
-    dockerImageManifest: |-
-      {
-         "schemaVersion": 2,
-         "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
-         "config": {
-            "mediaType": "application/octet-stream",
-            "size": 1459,
-            "digest": "sha256:2b8fd9751c4c0f5dd266fcae00707e67a2545ef34f9a29354585f93dac906749"
-         },
-         "layers": [
-            {
-               "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
-               "size": 667590,
-               "digest": "sha256:8ddc19f16526912237dd8af81971d5e4dd0587907234be2b83e249518d5b673f"
-            }
-         ]
-      }
-    dockerImageManifestMediaType: application/vnd.docker.distribution.manifest.v2+json
-    dockerImageMetadata:
-      Architecture: amd64
-      Config:
-        Cmd:
-        - sh
-        Env:
-        - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-        Hostname: 55cd1f8f6e5b
-        Image: sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2
-      Container: 764ef4448baa9a1ce19e4ae95f8cdd4eda7a1186c512773e56dc634dff208a59
-      ContainerConfig:
-        Cmd:
-        - /bin/sh
-        - -c
-        - '#(nop) CMD ["sh"]'
-        Env:
-        - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-        Hostname: 55cd1f8f6e5b
-        Image: sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2
-      Created: 2016-06-23T23:23:37Z
-      DockerVersion: 1.10.3
-      Id: sha256:2b8fd9751c4c0f5dd266fcae00707e67a2545ef34f9a29354585f93dac906749
-      Size: 669049
-      apiVersion: "1.0"
-      kind: DockerImage
-    dockerImageMetadataVersion: "1.0"
-    dockerImageReference: busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
-    kind: Image
-    metadata:
-      creationTimestamp: 2016-07-27T15:12:10Z
-      name: sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
-      resourceVersion: "504"
-      selfLink: /oapi/v1/images/sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
-      uid: 7d6849b4-540c-11e6-809f-525400f25e34
-  - apiVersion: v1
-    kind: ImageStream
-    metadata:
-      annotations:
-        openshift.io/image.dockerRepositoryCheck: 2016-07-27T16:08:39Z
-      generation: 1
-      name: busybox
-      namespace: default
-      resourceVersion: "505"
-      selfLink: /oapi/v1/namespaces/default/imagestreams/busybox
-      uid: 7d687e72-540c-11e6-809f-525400f25e34
-  - apiVersion: v1
-    kind: ImageStreamMapping
-    metadata:
-      name: busybox
-      namespace: default
-    tag: latest
-    image:
-      apiVersion: v1
-      kind: Image
-      metadata:
-        name: sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
-      dockerImageReference: busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataStableBusyboxYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataStableBusyboxYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataStableBusyboxYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataStableBusyboxYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/stable-busybox.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -54177,15 +50496,27 @@ func testExtendedTestdataRolesEmptyRoleYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRolesPolicyClusterrolesYaml = []byte(`apiVersion: v1
-items:
-- apiVersion: v1
+var _testExtendedTestdataRolesPolicyClusterrolesYaml = []byte(`kind: Template
+apiVersion: v1
+metadata:
+  name: "policy-roles-template"
+labels:
+  createdBy: "policy-roles-template"
+parameters:
+  - description: "The name for the cluster role."
+    name: ROLE_NAME
+    required: true
+  - description: "The name for the cluster role binding."
+    name: BINDING_NAME
+    required: true
+objects:
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
-    creationTimestamp: null
-    name: basic-user2
+    name: ${ROLE_NAME}
   rules:
-  - apiGroups: null
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resourceNames:
     - "~"
@@ -54193,20 +50524,23 @@ items:
     - users
     verbs:
     - get
-  - apiGroups: null
+  - apiGroups:
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projectrequests
     verbs:
     - list
-  - apiGroups: null
+  - apiGroups:
+    - rbac.authorization.k8s.io
     attributeRestrictions: null
     resources:
     - clusterroles
     verbs:
     - get
     - list
-  - apiGroups: null
+  - apiGroups:
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects
@@ -54219,21 +50553,20 @@ items:
     - selfsubjectaccessreviews
     verbs:
     - create
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   groupNames:
   - system:authenticated
   kind: ClusterRoleBinding
   metadata:
-    creationTimestamp: null
-    name: basic-users2
+    name: ${BINDING_NAME}
   roleRef:
-    name: basic-user2
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: ${ROLE_NAME}
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  userNames: null
-kind: List
-metadata: {}
 `)
 
 func testExtendedTestdataRolesPolicyClusterrolesYamlBytes() ([]byte, error) {
@@ -54262,13 +50595,13 @@ parameters:
     name: NAMESPACE
     required: true
 objects:
-  - apiVersion: v1
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
-      creationTimestamp: null
       name: basic-user
     rules:
-    - apiGroups: null
+    - apiGroups:
+      - ""
       attributeRestrictions: null
       resourceNames:
       - "~"
@@ -54276,20 +50609,23 @@ objects:
       - users
       verbs:
       - get
-    - apiGroups: null
+    - apiGroups:
+      - project.openshift.io
       attributeRestrictions: null
       resources:
       - projectrequests
       verbs:
       - list
-    - apiGroups: null
+    - apiGroups:
+      - rbac.authorization.k8s.io
       attributeRestrictions: null
       resources:
       - clusterroles
       verbs:
       - get
       - list
-    - apiGroups: null
+    - apiGroups:
+      - project.openshift.io
       attributeRestrictions: null
       resources:
       - projects
@@ -54302,18 +50638,20 @@ objects:
       - selfsubjectaccessreviews
       verbs:
       - create
-  - apiVersion: v1
+  - apiVersion: rbac.authorization.k8s.io/v1
     groupNames:
     - system:authenticated
     kind: RoleBinding
     metadata:
-      creationTimestamp: null
       name: basic-users
     roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
       name: basic-user
       namespace: ${NAMESPACE}
     subjects:
-    - kind: SystemGroup
+    - apiGroup: rbac.authorization.k8s.io
+      kind: Group
       name: system:authenticated
     userNames: null
 `)
@@ -56954,6 +53292,112 @@ func testExtendedTestdataSignerBuildconfigYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataStableBusyboxYaml = []byte(`kind: List
+apiVersion: v1
+metadata: {}
+items:
+  - apiVersion: v1
+    dockerImageConfig: '{"architecture":"amd64","config":{"Hostname":"55cd1f8f6e5b","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["sh"],"Image":"sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"container":"764ef4448baa9a1ce19e4ae95f8cdd4eda7a1186c512773e56dc634dff208a59","container_config":{"Hostname":"55cd1f8f6e5b","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/bin/sh","-c","#(nop)
+      CMD [\"sh\"]"],"Image":"sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"created":"2016-06-23T23:23:37.198943461Z","docker_version":"1.10.3","history":[{"created":"2016-06-23T23:23:36.73131105Z","created_by":"/bin/sh
+      -c #(nop) ADD file:9ca60502d646bdd815bb51e612c458e2d447b597b95cf435f9673f0966d41c1a
+      in /"},{"created":"2016-06-23T23:23:37.198943461Z","created_by":"/bin/sh -c #(nop)
+      CMD [\"sh\"]","empty_layer":true}],"os":"linux","rootfs":{"type":"layers","diff_ids":["sha256:8ac8bfaff55af948c796026ee867448c5b5b5d9dd3549f4006d9759b25d4a893"]}}'
+    dockerImageLayers:
+    - mediaType: application/vnd.docker.image.rootfs.diff.tar.gzip
+      name: sha256:8ddc19f16526912237dd8af81971d5e4dd0587907234be2b83e249518d5b673f
+      size: 667590
+    dockerImageManifest: |-
+      {
+         "schemaVersion": 2,
+         "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+         "config": {
+            "mediaType": "application/octet-stream",
+            "size": 1459,
+            "digest": "sha256:2b8fd9751c4c0f5dd266fcae00707e67a2545ef34f9a29354585f93dac906749"
+         },
+         "layers": [
+            {
+               "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+               "size": 667590,
+               "digest": "sha256:8ddc19f16526912237dd8af81971d5e4dd0587907234be2b83e249518d5b673f"
+            }
+         ]
+      }
+    dockerImageManifestMediaType: application/vnd.docker.distribution.manifest.v2+json
+    dockerImageMetadata:
+      Architecture: amd64
+      Config:
+        Cmd:
+        - sh
+        Env:
+        - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        Hostname: 55cd1f8f6e5b
+        Image: sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2
+      Container: 764ef4448baa9a1ce19e4ae95f8cdd4eda7a1186c512773e56dc634dff208a59
+      ContainerConfig:
+        Cmd:
+        - /bin/sh
+        - -c
+        - '#(nop) CMD ["sh"]'
+        Env:
+        - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        Hostname: 55cd1f8f6e5b
+        Image: sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2
+      Created: 2016-06-23T23:23:37Z
+      DockerVersion: 1.10.3
+      Id: sha256:2b8fd9751c4c0f5dd266fcae00707e67a2545ef34f9a29354585f93dac906749
+      Size: 669049
+      apiVersion: "1.0"
+      kind: DockerImage
+    dockerImageMetadataVersion: "1.0"
+    dockerImageReference: busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+    kind: Image
+    metadata:
+      creationTimestamp: 2016-07-27T15:12:10Z
+      name: sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+      resourceVersion: "504"
+      selfLink: /oapi/v1/images/sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+      uid: 7d6849b4-540c-11e6-809f-525400f25e34
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      annotations:
+        openshift.io/image.dockerRepositoryCheck: 2016-07-27T16:08:39Z
+      generation: 1
+      name: busybox
+      namespace: default
+      resourceVersion: "505"
+      selfLink: /oapi/v1/namespaces/default/imagestreams/busybox
+      uid: 7d687e72-540c-11e6-809f-525400f25e34
+  - apiVersion: v1
+    kind: ImageStreamMapping
+    metadata:
+      name: busybox
+      namespace: default
+    tag: latest
+    image:
+      apiVersion: v1
+      kind: Image
+      metadata:
+        name: sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+      dockerImageReference: busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+`)
+
+func testExtendedTestdataStableBusyboxYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataStableBusyboxYaml, nil
+}
+
+func testExtendedTestdataStableBusyboxYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataStableBusyboxYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/stable-busybox.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataTemplatesCrunchydataPodJson = []byte(`{
   "kind": "Template",
   "apiVersion": "template.openshift.io/v1",
@@ -59317,482 +55761,462 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"examples/db-templates/mariadb-ephemeral-template.json":                                                           examplesDbTemplatesMariadbEphemeralTemplateJson,
-	"examples/db-templates/mariadb-persistent-template.json":                                                          examplesDbTemplatesMariadbPersistentTemplateJson,
-	"examples/db-templates/mongodb-ephemeral-template.json":                                                           examplesDbTemplatesMongodbEphemeralTemplateJson,
-	"examples/db-templates/mongodb-persistent-template.json":                                                          examplesDbTemplatesMongodbPersistentTemplateJson,
-	"examples/db-templates/mysql-ephemeral-template.json":                                                             examplesDbTemplatesMysqlEphemeralTemplateJson,
-	"examples/db-templates/mysql-persistent-template.json":                                                            examplesDbTemplatesMysqlPersistentTemplateJson,
-	"examples/db-templates/postgresql-ephemeral-template.json":                                                        examplesDbTemplatesPostgresqlEphemeralTemplateJson,
-	"examples/db-templates/postgresql-persistent-template.json":                                                       examplesDbTemplatesPostgresqlPersistentTemplateJson,
-	"examples/db-templates/redis-ephemeral-template.json":                                                             examplesDbTemplatesRedisEphemeralTemplateJson,
-	"examples/db-templates/redis-persistent-template.json":                                                            examplesDbTemplatesRedisPersistentTemplateJson,
-	"examples/image-streams/image-streams-centos7.json":                                                               examplesImageStreamsImageStreamsCentos7Json,
-	"examples/image-streams/image-streams-rhel7.json":                                                                 examplesImageStreamsImageStreamsRhel7Json,
-	"examples/sample-app/application-template-dockerbuild.json":                                                       examplesSampleAppApplicationTemplateDockerbuildJson,
-	"examples/sample-app/application-template-pullspecbuild.json":                                                     examplesSampleAppApplicationTemplatePullspecbuildJson,
-	"examples/sample-app/application-template-stibuild.json":                                                          examplesSampleAppApplicationTemplateStibuildJson,
-	"examples/sample-app/cleanup.sh":                                                                                  examplesSampleAppCleanupSh,
-	"examples/sample-app/github-webhook-example.json":                                                                 examplesSampleAppGithubWebhookExampleJson,
-	"examples/quickstarts/cakephp-mysql-persistent.json":                                                              examplesQuickstartsCakephpMysqlPersistentJson,
-	"examples/quickstarts/cakephp-mysql.json":                                                                         examplesQuickstartsCakephpMysqlJson,
-	"examples/quickstarts/dancer-mysql-persistent.json":                                                               examplesQuickstartsDancerMysqlPersistentJson,
-	"examples/quickstarts/dancer-mysql.json":                                                                          examplesQuickstartsDancerMysqlJson,
-	"examples/quickstarts/django-postgresql-persistent.json":                                                          examplesQuickstartsDjangoPostgresqlPersistentJson,
-	"examples/quickstarts/django-postgresql.json":                                                                     examplesQuickstartsDjangoPostgresqlJson,
-	"examples/quickstarts/dotnet-pgsql-persistent.json":                                                               examplesQuickstartsDotnetPgsqlPersistentJson,
-	"examples/quickstarts/dotnet.json":                                                                                examplesQuickstartsDotnetJson,
-	"examples/quickstarts/httpd.json":                                                                                 examplesQuickstartsHttpdJson,
-	"examples/quickstarts/nginx.json":                                                                                 examplesQuickstartsNginxJson,
-	"examples/quickstarts/nodejs-mongodb-persistent.json":                                                             examplesQuickstartsNodejsMongodbPersistentJson,
-	"examples/quickstarts/nodejs-mongodb.json":                                                                        examplesQuickstartsNodejsMongodbJson,
-	"examples/quickstarts/rails-postgresql-persistent.json":                                                           examplesQuickstartsRailsPostgresqlPersistentJson,
-	"examples/quickstarts/rails-postgresql.json":                                                                      examplesQuickstartsRailsPostgresqlJson,
-	"examples/hello-openshift/Dockerfile":                                                                             examplesHelloOpenshiftDockerfile,
-	"examples/hello-openshift/hello-pod.json":                                                                         examplesHelloOpenshiftHelloPodJson,
-	"examples/hello-openshift/hello-project.json":                                                                     examplesHelloOpenshiftHelloProjectJson,
-	"examples/jenkins/application-template.json":                                                                      examplesJenkinsApplicationTemplateJson,
-	"examples/jenkins/jenkins-ephemeral-template.json":                                                                examplesJenkinsJenkinsEphemeralTemplateJson,
-	"examples/jenkins/jenkins-persistent-template.json":                                                               examplesJenkinsJenkinsPersistentTemplateJson,
-	"examples/jenkins/pipeline/bluegreen-pipeline.yaml":                                                               examplesJenkinsPipelineBluegreenPipelineYaml,
-	"examples/jenkins/pipeline/maven-pipeline.yaml":                                                                   examplesJenkinsPipelineMavenPipelineYaml,
-	"examples/jenkins/pipeline/nodejs-sample-pipeline.yaml":                                                           examplesJenkinsPipelineNodejsSamplePipelineYaml,
-	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml":                                                 examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
-	"examples/jenkins/pipeline/samplepipeline.yaml":                                                                   examplesJenkinsPipelineSamplepipelineYaml,
-	"examples/quickstarts/cakephp-mysql.json/cakephp-mysql.json":                                                      examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson,
-	"test/extended/testdata/aggregator/kube-system-auth-reader.yaml":                                                  testExtendedTestdataAggregatorKubeSystemAuthReaderYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-apiservice.yaml":                                              testExtendedTestdataAggregatorSampleApiserverApiserviceYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-authdelegator.yaml":                                           testExtendedTestdataAggregatorSampleApiserverAuthdelegatorYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-authreader.yaml":                                              testExtendedTestdataAggregatorSampleApiserverAuthreaderYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml":                                                      testExtendedTestdataAggregatorSampleApiserverRcYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml":                                                      testExtendedTestdataAggregatorSampleApiserverSaYaml,
-	"test/extended/testdata/aggregator/sample-apiserver-service.yaml":                                                 testExtendedTestdataAggregatorSampleApiserverServiceYaml,
-	"test/extended/testdata/builds/application-template-custombuild.json":                                             testExtendedTestdataBuildsApplicationTemplateCustombuildJson,
-	"test/extended/testdata/builds/build-postcommit/docker.yaml":                                                      testExtendedTestdataBuildsBuildPostcommitDockerYaml,
-	"test/extended/testdata/builds/build-postcommit/imagestreams.yaml":                                                testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml,
-	"test/extended/testdata/builds/build-postcommit/sti.yaml":                                                         testExtendedTestdataBuildsBuildPostcommitStiYaml,
-	"test/extended/testdata/builds/build-pruning/default-group-build-config.yaml":                                     testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml":                                    testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/errored-build-config.yaml":                                           testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/failed-build-config.yaml":                                            testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/failed-pipeline.yaml":                                                testExtendedTestdataBuildsBuildPruningFailedPipelineYaml,
-	"test/extended/testdata/builds/build-pruning/imagestream.yaml":                                                    testExtendedTestdataBuildsBuildPruningImagestreamYaml,
-	"test/extended/testdata/builds/build-pruning/successful-build-config.yaml":                                        testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml,
-	"test/extended/testdata/builds/build-pruning/successful-pipeline.yaml":                                            testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml,
-	"test/extended/testdata/builds/build-quota/.s2i/bin/assemble":                                                     testExtendedTestdataBuildsBuildQuotaS2iBinAssemble,
-	"test/extended/testdata/builds/build-quota/Dockerfile":                                                            testExtendedTestdataBuildsBuildQuotaDockerfile,
-	"test/extended/testdata/builds/build-secrets/Dockerfile":                                                          testExtendedTestdataBuildsBuildSecretsDockerfile,
-	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/assemble":                                    testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble,
-	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/run":                                         testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun,
-	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/Gemfile":                                              testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile,
-	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/config.ru":                                            testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu,
-	"test/extended/testdata/builds/build-secrets/test-configmap-2.json":                                               testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json,
-	"test/extended/testdata/builds/build-secrets/test-configmap.json":                                                 testExtendedTestdataBuildsBuildSecretsTestConfigmapJson,
-	"test/extended/testdata/builds/build-secrets/test-docker-build.json":                                              testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson,
-	"test/extended/testdata/builds/build-secrets/test-is.json":                                                        testExtendedTestdataBuildsBuildSecretsTestIsJson,
-	"test/extended/testdata/builds/build-secrets/test-s2i-build.json":                                                 testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson,
-	"test/extended/testdata/builds/build-secrets/test-secret-2.json":                                                  testExtendedTestdataBuildsBuildSecretsTestSecret2Json,
-	"test/extended/testdata/builds/build-secrets/test-secret.json":                                                    testExtendedTestdataBuildsBuildSecretsTestSecretJson,
-	"test/extended/testdata/builds/build-timing/Dockerfile":                                                           testExtendedTestdataBuildsBuildTimingDockerfile,
-	"test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/assemble":                                     testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble,
-	"test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/run":                                          testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun,
-	"test/extended/testdata/builds/build-timing/s2i-binary-dir/Gemfile":                                               testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile,
-	"test/extended/testdata/builds/build-timing/s2i-binary-dir/config.ru":                                             testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu,
-	"test/extended/testdata/builds/build-timing/test-docker-build.json":                                               testExtendedTestdataBuildsBuildTimingTestDockerBuildJson,
-	"test/extended/testdata/builds/build-timing/test-is.json":                                                         testExtendedTestdataBuildsBuildTimingTestIsJson,
-	"test/extended/testdata/builds/build-timing/test-s2i-build.json":                                                  testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
-	"test/extended/testdata/builds/cluster-config/invalid-build-cluster-config.yaml":                                  testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYaml,
-	"test/extended/testdata/builds/cluster-config/registry-blacklist.yaml":                                            testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml,
-	"test/extended/testdata/builds/cluster-config/registry-whitelist.yaml":                                            testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml,
-	"test/extended/testdata/builds/cluster-config.yaml":                                                               testExtendedTestdataBuildsClusterConfigYaml,
-	"test/extended/testdata/builds/custom-build/Dockerfile":                                                           testExtendedTestdataBuildsCustomBuildDockerfile,
-	"test/extended/testdata/builds/custom-build/Dockerfile.sample":                                                    testExtendedTestdataBuildsCustomBuildDockerfileSample,
-	"test/extended/testdata/builds/custom-build/build.sh":                                                             testExtendedTestdataBuildsCustomBuildBuildSh,
-	"test/extended/testdata/builds/docker-add/Dockerfile":                                                             testExtendedTestdataBuildsDockerAddDockerfile,
-	"test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile":                                              testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile,
-	"test/extended/testdata/builds/docker-add/docker-add-env/foo":                                                     testExtendedTestdataBuildsDockerAddDockerAddEnvFoo,
-	"test/extended/testdata/builds/incremental-auth-build.json":                                                       testExtendedTestdataBuildsIncrementalAuthBuildJson,
-	"test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml":                                                  testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml,
-	"test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml":                                              testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml,
-	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment":                                        testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
-	"test/extended/testdata/builds/s2i-environment-build-app/Gemfile":                                                 testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile,
-	"test/extended/testdata/builds/s2i-environment-build-app/config.ru":                                               testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu,
-	"test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble":                                             testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble,
-	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml":                                                  testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
-	"test/extended/testdata/builds/statusfail-failedassemble.yaml":                                                    testExtendedTestdataBuildsStatusfailFailedassembleYaml,
-	"test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml":                                                 testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml,
-	"test/extended/testdata/builds/statusfail-fetchimagecontentdocker.yaml":                                           testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml,
-	"test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml":                                                 testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml,
-	"test/extended/testdata/builds/statusfail-fetchsources2i.yaml":                                                    testExtendedTestdataBuildsStatusfailFetchsources2iYaml,
-	"test/extended/testdata/builds/statusfail-genericreason.yaml":                                                     testExtendedTestdataBuildsStatusfailGenericreasonYaml,
-	"test/extended/testdata/builds/statusfail-oomkilled.yaml":                                                         testExtendedTestdataBuildsStatusfailOomkilledYaml,
-	"test/extended/testdata/builds/statusfail-postcommithook.yaml":                                                    testExtendedTestdataBuildsStatusfailPostcommithookYaml,
-	"test/extended/testdata/builds/statusfail-pushtoregistry.yaml":                                                    testExtendedTestdataBuildsStatusfailPushtoregistryYaml,
-	"test/extended/testdata/builds/test-auth-build.yaml":                                                              testExtendedTestdataBuildsTestAuthBuildYaml,
-	"test/extended/testdata/builds/test-bc-with-pr-ref.yaml":                                                          testExtendedTestdataBuildsTestBcWithPrRefYaml,
-	"test/extended/testdata/builds/test-build-app/Dockerfile":                                                         testExtendedTestdataBuildsTestBuildAppDockerfile,
-	"test/extended/testdata/builds/test-build-app/Gemfile":                                                            testExtendedTestdataBuildsTestBuildAppGemfile,
-	"test/extended/testdata/builds/test-build-app/config.ru":                                                          testExtendedTestdataBuildsTestBuildAppConfigRu,
-	"test/extended/testdata/builds/test-build-cluster-config.yaml":                                                    testExtendedTestdataBuildsTestBuildClusterConfigYaml,
-	"test/extended/testdata/builds/test-build-podsvc.json":                                                            testExtendedTestdataBuildsTestBuildPodsvcJson,
-	"test/extended/testdata/builds/test-build-proxy.yaml":                                                             testExtendedTestdataBuildsTestBuildProxyYaml,
-	"test/extended/testdata/builds/test-build-revision.json":                                                          testExtendedTestdataBuildsTestBuildRevisionJson,
-	"test/extended/testdata/builds/test-build.yaml":                                                                   testExtendedTestdataBuildsTestBuildYaml,
-	"test/extended/testdata/builds/test-buildconfigsecretinjector.yaml":                                               testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml,
-	"test/extended/testdata/builds/test-cds-dockerbuild.json":                                                         testExtendedTestdataBuildsTestCdsDockerbuildJson,
-	"test/extended/testdata/builds/test-cds-sourcebuild.json":                                                         testExtendedTestdataBuildsTestCdsSourcebuildJson,
-	"test/extended/testdata/builds/test-context-build.json":                                                           testExtendedTestdataBuildsTestContextBuildJson,
-	"test/extended/testdata/builds/test-custom-build.yaml":                                                            testExtendedTestdataBuildsTestCustomBuildYaml,
-	"test/extended/testdata/builds/test-docker-app/Dockerfile":                                                        testExtendedTestdataBuildsTestDockerAppDockerfile,
-	"test/extended/testdata/builds/test-docker-build-pullsecret.json":                                                 testExtendedTestdataBuildsTestDockerBuildPullsecretJson,
-	"test/extended/testdata/builds/test-docker-build.json":                                                            testExtendedTestdataBuildsTestDockerBuildJson,
-	"test/extended/testdata/builds/test-docker-no-outputname.json":                                                    testExtendedTestdataBuildsTestDockerNoOutputnameJson,
-	"test/extended/testdata/builds/test-env-build.json":                                                               testExtendedTestdataBuildsTestEnvBuildJson,
-	"test/extended/testdata/builds/test-imagechangetriggers.yaml":                                                     testExtendedTestdataBuildsTestImagechangetriggersYaml,
-	"test/extended/testdata/builds/test-imageresolution-custom-build.yaml":                                            testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml,
-	"test/extended/testdata/builds/test-imageresolution-docker-build.yaml":                                            testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml,
-	"test/extended/testdata/builds/test-imageresolution-s2i-build.yaml":                                               testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml,
-	"test/extended/testdata/builds/test-imagesource-buildconfig.yaml":                                                 testExtendedTestdataBuildsTestImagesourceBuildconfigYaml,
-	"test/extended/testdata/builds/test-nosrc-build.json":                                                             testExtendedTestdataBuildsTestNosrcBuildJson,
-	"test/extended/testdata/builds/test-s2i-build-quota.json":                                                         testExtendedTestdataBuildsTestS2iBuildQuotaJson,
-	"test/extended/testdata/builds/test-s2i-build.json":                                                               testExtendedTestdataBuildsTestS2iBuildJson,
-	"test/extended/testdata/builds/test-s2i-no-outputname.json":                                                       testExtendedTestdataBuildsTestS2iNoOutputnameJson,
-	"test/extended/testdata/builds/test-symlink-build.yaml":                                                           testExtendedTestdataBuildsTestSymlinkBuildYaml,
-	"test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml":                              testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml,
-	"test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml":                                 testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml,
-	"test/extended/testdata/builds/valuefrom/successful-docker-build-value-from-config.yaml":                          testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml,
-	"test/extended/testdata/builds/valuefrom/successful-sti-build-value-from-config.yaml":                             testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml,
-	"test/extended/testdata/builds/valuefrom/test-configmap.yaml":                                                     testExtendedTestdataBuildsValuefromTestConfigmapYaml,
-	"test/extended/testdata/builds/valuefrom/test-is.json":                                                            testExtendedTestdataBuildsValuefromTestIsJson,
-	"test/extended/testdata/builds/valuefrom/test-secret.yaml":                                                        testExtendedTestdataBuildsValuefromTestSecretYaml,
-	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json":                              testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson,
-	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent.json":                                         testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson,
-	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54-not-master.json":                            testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson,
-	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54.json":                                       testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json,
-	"test/extended/testdata/builds/webhook/generic/testdata/post-receive-git.json":                                    testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson,
-	"test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.json":                                   testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson,
-	"test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.yaml":                                   testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml,
-	"test/extended/testdata/builds/webhook/generic/testdata/push-generic.json":                                        testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson,
-	"test/extended/testdata/builds/webhook/generic/testdata/push-gitlab.json":                                         testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson,
-	"test/extended/testdata/builds/webhook/github/testdata/pingevent.json":                                            testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson,
-	"test/extended/testdata/builds/webhook/github/testdata/pushevent-not-master-branch.json":                          testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson,
-	"test/extended/testdata/builds/webhook/github/testdata/pushevent.json":                                            testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson,
-	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json":                          testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson,
-	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json":                                            testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson,
-	"test/extended/testdata/cli/pod-with-two-containers.yaml":                                                         testExtendedTestdataCliPodWithTwoContainersYaml,
-	"test/extended/testdata/cluster/master-vert.yaml":                                                                 testExtendedTestdataClusterMasterVertYaml,
-	"test/extended/testdata/cluster/quickstarts/cakephp-mysql.json":                                                   testExtendedTestdataClusterQuickstartsCakephpMysqlJson,
-	"test/extended/testdata/cluster/quickstarts/dancer-mysql.json":                                                    testExtendedTestdataClusterQuickstartsDancerMysqlJson,
-	"test/extended/testdata/cluster/quickstarts/django-postgresql.json":                                               testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson,
-	"test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json":                                                  testExtendedTestdataClusterQuickstartsNodejsMongodbJson,
-	"test/extended/testdata/cluster/quickstarts/rails-postgresql.json":                                                testExtendedTestdataClusterQuickstartsRailsPostgresqlJson,
-	"test/extended/testdata/cmd/hack/lib/cmd.sh":                                                                      testExtendedTestdataCmdHackLibCmdSh,
-	"test/extended/testdata/cmd/hack/lib/compress.awk":                                                                testExtendedTestdataCmdHackLibCompressAwk,
-	"test/extended/testdata/cmd/hack/lib/constants.sh":                                                                testExtendedTestdataCmdHackLibConstantsSh,
-	"test/extended/testdata/cmd/hack/lib/init.sh":                                                                     testExtendedTestdataCmdHackLibInitSh,
-	"test/extended/testdata/cmd/hack/lib/log/output.sh":                                                               testExtendedTestdataCmdHackLibLogOutputSh,
-	"test/extended/testdata/cmd/hack/lib/log/stacktrace.sh":                                                           testExtendedTestdataCmdHackLibLogStacktraceSh,
-	"test/extended/testdata/cmd/hack/lib/log/system.sh":                                                               testExtendedTestdataCmdHackLibLogSystemSh,
-	"test/extended/testdata/cmd/hack/lib/test/junit.sh":                                                               testExtendedTestdataCmdHackLibTestJunitSh,
-	"test/extended/testdata/cmd/hack/lib/util/environment.sh":                                                         testExtendedTestdataCmdHackLibUtilEnvironmentSh,
-	"test/extended/testdata/cmd/hack/lib/util/misc.sh":                                                                testExtendedTestdataCmdHackLibUtilMiscSh,
-	"test/extended/testdata/cmd/hack/lib/util/text.sh":                                                                testExtendedTestdataCmdHackLibUtilTextSh,
-	"test/extended/testdata/cmd/hack/lib/util/trap.sh":                                                                testExtendedTestdataCmdHackLibUtilTrapSh,
-	"test/extended/testdata/cmd/test/cmd/admin.sh":                                                                    testExtendedTestdataCmdTestCmdAdminSh,
-	"test/extended/testdata/cmd/test/cmd/annotations.sh":                                                              testExtendedTestdataCmdTestCmdAnnotationsSh,
-	"test/extended/testdata/cmd/test/cmd/apiresources.sh":                                                             testExtendedTestdataCmdTestCmdApiresourcesSh,
-	"test/extended/testdata/cmd/test/cmd/authentication.sh":                                                           testExtendedTestdataCmdTestCmdAuthenticationSh,
-	"test/extended/testdata/cmd/test/cmd/basicresources.sh":                                                           testExtendedTestdataCmdTestCmdBasicresourcesSh,
-	"test/extended/testdata/cmd/test/cmd/builds.sh":                                                                   testExtendedTestdataCmdTestCmdBuildsSh,
-	"test/extended/testdata/cmd/test/cmd/completions.sh":                                                              testExtendedTestdataCmdTestCmdCompletionsSh,
-	"test/extended/testdata/cmd/test/cmd/config.sh":                                                                   testExtendedTestdataCmdTestCmdConfigSh,
-	"test/extended/testdata/cmd/test/cmd/convert.sh":                                                                  testExtendedTestdataCmdTestCmdConvertSh,
-	"test/extended/testdata/cmd/test/cmd/create.sh":                                                                   testExtendedTestdataCmdTestCmdCreateSh,
-	"test/extended/testdata/cmd/test/cmd/debug.sh":                                                                    testExtendedTestdataCmdTestCmdDebugSh,
-	"test/extended/testdata/cmd/test/cmd/deployments.sh":                                                              testExtendedTestdataCmdTestCmdDeploymentsSh,
-	"test/extended/testdata/cmd/test/cmd/describer.sh":                                                                testExtendedTestdataCmdTestCmdDescriberSh,
-	"test/extended/testdata/cmd/test/cmd/edit.sh":                                                                     testExtendedTestdataCmdTestCmdEditSh,
-	"test/extended/testdata/cmd/test/cmd/env.sh":                                                                      testExtendedTestdataCmdTestCmdEnvSh,
-	"test/extended/testdata/cmd/test/cmd/framework-test.sh":                                                           testExtendedTestdataCmdTestCmdFrameworkTestSh,
-	"test/extended/testdata/cmd/test/cmd/get.sh":                                                                      testExtendedTestdataCmdTestCmdGetSh,
-	"test/extended/testdata/cmd/test/cmd/help.sh":                                                                     testExtendedTestdataCmdTestCmdHelpSh,
-	"test/extended/testdata/cmd/test/cmd/idle.sh":                                                                     testExtendedTestdataCmdTestCmdIdleSh,
-	"test/extended/testdata/cmd/test/cmd/image-lookup.sh":                                                             testExtendedTestdataCmdTestCmdImageLookupSh,
-	"test/extended/testdata/cmd/test/cmd/images.sh":                                                                   testExtendedTestdataCmdTestCmdImagesSh,
-	"test/extended/testdata/cmd/test/cmd/login.sh":                                                                    testExtendedTestdataCmdTestCmdLoginSh,
-	"test/extended/testdata/cmd/test/cmd/migrate.sh":                                                                  testExtendedTestdataCmdTestCmdMigrateSh,
-	"test/extended/testdata/cmd/test/cmd/newapp.sh":                                                                   testExtendedTestdataCmdTestCmdNewappSh,
-	"test/extended/testdata/cmd/test/cmd/observe.sh":                                                                  testExtendedTestdataCmdTestCmdObserveSh,
-	"test/extended/testdata/cmd/test/cmd/policy-storage-admin.sh":                                                     testExtendedTestdataCmdTestCmdPolicyStorageAdminSh,
-	"test/extended/testdata/cmd/test/cmd/policy.sh":                                                                   testExtendedTestdataCmdTestCmdPolicySh,
-	"test/extended/testdata/cmd/test/cmd/printer.sh":                                                                  testExtendedTestdataCmdTestCmdPrinterSh,
-	"test/extended/testdata/cmd/test/cmd/projects.sh":                                                                 testExtendedTestdataCmdTestCmdProjectsSh,
-	"test/extended/testdata/cmd/test/cmd/quota.sh":                                                                    testExtendedTestdataCmdTestCmdQuotaSh,
-	"test/extended/testdata/cmd/test/cmd/registry.sh":                                                                 testExtendedTestdataCmdTestCmdRegistrySh,
-	"test/extended/testdata/cmd/test/cmd/routes.sh":                                                                   testExtendedTestdataCmdTestCmdRoutesSh,
-	"test/extended/testdata/cmd/test/cmd/rsync.sh":                                                                    testExtendedTestdataCmdTestCmdRsyncSh,
-	"test/extended/testdata/cmd/test/cmd/run.sh":                                                                      testExtendedTestdataCmdTestCmdRunSh,
-	"test/extended/testdata/cmd/test/cmd/secrets.sh":                                                                  testExtendedTestdataCmdTestCmdSecretsSh,
-	"test/extended/testdata/cmd/test/cmd/services.sh":                                                                 testExtendedTestdataCmdTestCmdServicesSh,
-	"test/extended/testdata/cmd/test/cmd/set-data.sh":                                                                 testExtendedTestdataCmdTestCmdSetDataSh,
-	"test/extended/testdata/cmd/test/cmd/set-image.sh":                                                                testExtendedTestdataCmdTestCmdSetImageSh,
-	"test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh":                                                       testExtendedTestdataCmdTestCmdSetLivenessProbeSh,
-	"test/extended/testdata/cmd/test/cmd/setbuildhook.sh":                                                             testExtendedTestdataCmdTestCmdSetbuildhookSh,
-	"test/extended/testdata/cmd/test/cmd/setbuildsecret.sh":                                                           testExtendedTestdataCmdTestCmdSetbuildsecretSh,
-	"test/extended/testdata/cmd/test/cmd/status.sh":                                                                   testExtendedTestdataCmdTestCmdStatusSh,
-	"test/extended/testdata/cmd/test/cmd/templates.sh":                                                                testExtendedTestdataCmdTestCmdTemplatesSh,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/app/Dockerfile":                testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfile,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.generated.yaml": testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.imported.yaml":  testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.yml":            testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYml,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/nginx/Dockerfile":              testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfile,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/wordpress/docker-compose.yml":          testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYml,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-lonely-pod.json":                                  testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-sample-app.json":                                  testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-pod-no-rc.json":                           testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-with-nothing.json":                        testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-unserviced-rc.json":                               testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-deployed-app.yaml":                        testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-no-build.yaml":                            testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-one-build.yaml":                           testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-two-deployment-configs.yaml":              testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/petset.yaml":                                          testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json":                              testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json":                              testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json":                                 testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/convert/job-v1.yaml":                                                testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json":                                                testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json,
-	"test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml":                                              testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json":                                     testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml":                                                     testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/idling-svc-route.yaml":                                              testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json":                           testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json,
-	"test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json":                            testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/mixed-api-versions.yaml":                                            testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json":                                     testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/multiport-service.yaml":                                             testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json":                              testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/build-arg-dockerfile/Dockerfile":                            testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/circular-is.yaml":                                           testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/circular.yaml":                                              testExtendedTestdataCmdTestCmdTestdataNewAppCircularYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/imagestream-ref.yaml":                                       testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/installable-stream.yaml":                                    testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid-build-strategy.yaml":                                testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid.json":                                               testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-minimal-expose.json":                               testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-app-label.json":                               testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-crd.yaml":                                     testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-namespaces.json":                              testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-without-app-label.json":                            testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template_multiple_resource_gvs.yaml":                        testExtendedTestdataCmdTestCmdTestdataNewAppTemplate_multiple_resource_gvsYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-env.env":                                    testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnv,
-	"test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-params.env":                                 testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv,
-	"test/extended/testdata/cmd/test/cmd/testdata/oauthaccesstoken.yaml":                                              testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/old-template.json":                                                  testExtendedTestdataCmdTestCmdTestdataOldTemplateJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-no-extension-in-directory":          testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectory,
-	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-with-extension.json":                testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonWithExtensionJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/non-api-file":                            testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryNonApiFile,
-	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/yml-with-extension.yml":                  testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryYmlWithExtensionYml,
-	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/json-no-extension":                                 testExtendedTestdataCmdTestCmdTestdataResourceBuilderJsonNoExtension,
-	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/yml-no-extension":                                  testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtension,
-	"test/extended/testdata/cmd/test/cmd/testdata/roles/empty-role.yaml":                                              testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/roles/policy-clusterroles.yaml":                                     testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/roles/policy-roles.yaml":                                            testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/rollingupdate-daemonset.yaml":                                       testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/services.yaml":                                                      testExtendedTestdataCmdTestCmdTestdataServicesYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/simple-deployment.yaml":                                             testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/stable-busybox.yaml":                                                testExtendedTestdataCmdTestCmdTestdataStableBusyboxYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/statefulset.yaml":                                                   testExtendedTestdataCmdTestCmdTestdataStatefulsetYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/templateinstance_objectkinds.yaml":                                  testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/templates/basic-users-binding.json":                                 testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook.env":                                            testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookEnv,
-	"test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook.json":                                           testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook_list.json":                                      testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbook_listJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/templates/multiline.txt":                                            testExtendedTestdataCmdTestCmdTestdataTemplatesMultilineTxt,
-	"test/extended/testdata/cmd/test/cmd/testdata/templates/template-type-precision.json":                             testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/templates/template_required_params.env":                             testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsEnv,
-	"test/extended/testdata/cmd/test/cmd/testdata/templates/template_required_params.yaml":                            testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-bc.yaml":                                                       testExtendedTestdataCmdTestCmdTestdataTestBcYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-buildcli.json":                                                 testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-deployment-config.yaml":                                        testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-docker-build.json":                                             testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-image-stream.json":                                             testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-image.json":                                                    testExtendedTestdataCmdTestCmdTestdataTestImageJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-multiarch-stream.yaml":                                         testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-replication-controller.yaml":                                   testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-route.json":                                                    testExtendedTestdataCmdTestCmdTestdataTestRouteJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-s2i-build.json":                                                testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-service.json":                                                  testExtendedTestdataCmdTestCmdTestdataTestServiceJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml":                                                   testExtendedTestdataCmdTestCmdTestdataTestStreamYaml,
-	"test/extended/testdata/cmd/test/cmd/timeout.sh":                                                                  testExtendedTestdataCmdTestCmdTimeoutSh,
-	"test/extended/testdata/cmd/test/cmd/triggers.sh":                                                                 testExtendedTestdataCmdTestCmdTriggersSh,
-	"test/extended/testdata/cmd/test/cmd/volumes.sh":                                                                  testExtendedTestdataCmdTestCmdVolumesSh,
-	"test/extended/testdata/cmd/test/cmd/whoami.sh":                                                                   testExtendedTestdataCmdTestCmdWhoamiSh,
-	"test/extended/testdata/config-map-jenkins-slave-pods.yaml":                                                       testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
-	"test/extended/testdata/csi/aws-ebs/install-template.yaml":                                                        testExtendedTestdataCsiAwsEbsInstallTemplateYaml,
-	"test/extended/testdata/csi/aws-ebs/manifest.yaml":                                                                testExtendedTestdataCsiAwsEbsManifestYaml,
-	"test/extended/testdata/csi/aws-ebs/storageclass.yaml":                                                            testExtendedTestdataCsiAwsEbsStorageclassYaml,
-	"test/extended/testdata/custom-secret-builder/Dockerfile":                                                         testExtendedTestdataCustomSecretBuilderDockerfile,
-	"test/extended/testdata/custom-secret-builder/build.sh":                                                           testExtendedTestdataCustomSecretBuilderBuildSh,
-	"test/extended/testdata/deployments/custom-deployment.yaml":                                                       testExtendedTestdataDeploymentsCustomDeploymentYaml,
-	"test/extended/testdata/deployments/deployment-example.yaml":                                                      testExtendedTestdataDeploymentsDeploymentExampleYaml,
-	"test/extended/testdata/deployments/deployment-history-limit.yaml":                                                testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml,
-	"test/extended/testdata/deployments/deployment-ignores-deployer.yaml":                                             testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml,
-	"test/extended/testdata/deployments/deployment-image-resolution-is.yaml":                                          testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml,
-	"test/extended/testdata/deployments/deployment-image-resolution.yaml":                                             testExtendedTestdataDeploymentsDeploymentImageResolutionYaml,
-	"test/extended/testdata/deployments/deployment-min-ready-seconds.yaml":                                            testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml,
-	"test/extended/testdata/deployments/deployment-simple.yaml":                                                       testExtendedTestdataDeploymentsDeploymentSimpleYaml,
-	"test/extended/testdata/deployments/deployment-trigger.yaml":                                                      testExtendedTestdataDeploymentsDeploymentTriggerYaml,
-	"test/extended/testdata/deployments/deployment-with-ref-env.yaml":                                                 testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml,
-	"test/extended/testdata/deployments/failing-pre-hook.yaml":                                                        testExtendedTestdataDeploymentsFailingPreHookYaml,
-	"test/extended/testdata/deployments/generation-test.yaml":                                                         testExtendedTestdataDeploymentsGenerationTestYaml,
-	"test/extended/testdata/deployments/multi-ict-deployment.yaml":                                                    testExtendedTestdataDeploymentsMultiIctDeploymentYaml,
-	"test/extended/testdata/deployments/paused-deployment.yaml":                                                       testExtendedTestdataDeploymentsPausedDeploymentYaml,
-	"test/extended/testdata/deployments/readiness-test.yaml":                                                          testExtendedTestdataDeploymentsReadinessTestYaml,
-	"test/extended/testdata/deployments/tag-images-deployment.yaml":                                                   testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
-	"test/extended/testdata/deployments/test-deployment-broken.yaml":                                                  testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
-	"test/extended/testdata/deployments/test-deployment-test.yaml":                                                    testExtendedTestdataDeploymentsTestDeploymentTestYaml,
-	"test/extended/testdata/disaster-recovery/restore-etcd.sh":                                                        testExtendedTestdataDisasterRecoveryRestoreEtcdSh,
-	"test/extended/testdata/disaster-recovery/rollback-A.yaml":                                                        testExtendedTestdataDisasterRecoveryRollbackAYaml,
-	"test/extended/testdata/disaster-recovery/rollback-B.yaml":                                                        testExtendedTestdataDisasterRecoveryRollbackBYaml,
-	"test/extended/testdata/disaster-recovery/ssh-bastion/clusterrole.yaml":                                           testExtendedTestdataDisasterRecoverySshBastionClusterroleYaml,
-	"test/extended/testdata/disaster-recovery/ssh-bastion/clusterrolebinding.yaml":                                    testExtendedTestdataDisasterRecoverySshBastionClusterrolebindingYaml,
-	"test/extended/testdata/disaster-recovery/ssh-bastion/deployment.yaml":                                            testExtendedTestdataDisasterRecoverySshBastionDeploymentYaml,
-	"test/extended/testdata/disaster-recovery/ssh-bastion/namespace.yaml":                                             testExtendedTestdataDisasterRecoverySshBastionNamespaceYaml,
-	"test/extended/testdata/disaster-recovery/ssh-bastion/role.yaml":                                                  testExtendedTestdataDisasterRecoverySshBastionRoleYaml,
-	"test/extended/testdata/disaster-recovery/ssh-bastion/rolebinding.yaml":                                           testExtendedTestdataDisasterRecoverySshBastionRolebindingYaml,
-	"test/extended/testdata/disaster-recovery/ssh-bastion/service.yaml":                                               testExtendedTestdataDisasterRecoverySshBastionServiceYaml,
-	"test/extended/testdata/disaster-recovery/ssh-bastion/serviceaccount.yaml":                                        testExtendedTestdataDisasterRecoverySshBastionServiceaccountYaml,
-	"test/extended/testdata/disaster-recovery/ssh-bastion/sshd_config":                                                testExtendedTestdataDisasterRecoverySshBastionSshd_config,
-	"test/extended/testdata/disaster-recovery/update_route_53.py":                                                     testExtendedTestdataDisasterRecoveryUpdate_route_53Py,
-	"test/extended/testdata/forcepull-test.json":                                                                      testExtendedTestdataForcepullTestJson,
-	"test/extended/testdata/gssapi/config/kubeconfig":                                                                 testExtendedTestdataGssapiConfigKubeconfig,
-	"test/extended/testdata/gssapi/config/oauth_config.json":                                                          testExtendedTestdataGssapiConfigOauth_configJson,
-	"test/extended/testdata/gssapi/fedora/base/Dockerfile":                                                            testExtendedTestdataGssapiFedoraBaseDockerfile,
-	"test/extended/testdata/gssapi/fedora/kerberos/Dockerfile":                                                        testExtendedTestdataGssapiFedoraKerberosDockerfile,
-	"test/extended/testdata/gssapi/fedora/kerberos_configured/Dockerfile":                                             testExtendedTestdataGssapiFedoraKerberos_configuredDockerfile,
-	"test/extended/testdata/gssapi/proxy/Dockerfile":                                                                  testExtendedTestdataGssapiProxyDockerfile,
-	"test/extended/testdata/gssapi/proxy/configure.sh":                                                                testExtendedTestdataGssapiProxyConfigureSh,
-	"test/extended/testdata/gssapi/proxy/gssapiproxy-buildconfig.yaml":                                                testExtendedTestdataGssapiProxyGssapiproxyBuildconfigYaml,
-	"test/extended/testdata/gssapi/proxy/gssapiproxy-deploymentconfig.yaml":                                           testExtendedTestdataGssapiProxyGssapiproxyDeploymentconfigYaml,
-	"test/extended/testdata/gssapi/proxy/gssapiproxy-imagestream.yaml":                                                testExtendedTestdataGssapiProxyGssapiproxyImagestreamYaml,
-	"test/extended/testdata/gssapi/proxy/gssapiproxy-service.yaml":                                                    testExtendedTestdataGssapiProxyGssapiproxyServiceYaml,
-	"test/extended/testdata/gssapi/proxy/healthz":                                                                     testExtendedTestdataGssapiProxyHealthz,
-	"test/extended/testdata/gssapi/proxy/kadm5.acl":                                                                   testExtendedTestdataGssapiProxyKadm5Acl,
-	"test/extended/testdata/gssapi/proxy/kdc.conf":                                                                    testExtendedTestdataGssapiProxyKdcConf,
-	"test/extended/testdata/gssapi/proxy/krb5.conf":                                                                   testExtendedTestdataGssapiProxyKrb5Conf,
-	"test/extended/testdata/gssapi/proxy/proxy.conf":                                                                  testExtendedTestdataGssapiProxyProxyConf,
-	"test/extended/testdata/gssapi/scripts/gssapi-tests.sh":                                                           testExtendedTestdataGssapiScriptsGssapiTestsSh,
-	"test/extended/testdata/gssapi/scripts/test-wrapper.sh":                                                           testExtendedTestdataGssapiScriptsTestWrapperSh,
-	"test/extended/testdata/gssapi/ubuntu/base/Dockerfile":                                                            testExtendedTestdataGssapiUbuntuBaseDockerfile,
-	"test/extended/testdata/gssapi/ubuntu/kerberos/Dockerfile":                                                        testExtendedTestdataGssapiUbuntuKerberosDockerfile,
-	"test/extended/testdata/gssapi/ubuntu/kerberos_configured/Dockerfile":                                             testExtendedTestdataGssapiUbuntuKerberos_configuredDockerfile,
-	"test/extended/testdata/hello-builder/Dockerfile":                                                                 testExtendedTestdataHelloBuilderDockerfile,
-	"test/extended/testdata/hello-builder/scripts/assemble":                                                           testExtendedTestdataHelloBuilderScriptsAssemble,
-	"test/extended/testdata/hello-builder/scripts/run":                                                                testExtendedTestdataHelloBuilderScriptsRun,
-	"test/extended/testdata/idling-echo-server-rc.yaml":                                                               testExtendedTestdataIdlingEchoServerRcYaml,
-	"test/extended/testdata/idling-echo-server.yaml":                                                                  testExtendedTestdataIdlingEchoServerYaml,
-	"test/extended/testdata/image/deployment-with-annotation-trigger.yaml":                                            testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml,
-	"test/extended/testdata/image/test-image.json":                                                                    testExtendedTestdataImageTestImageJson,
-	"test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml":                                          testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml,
-	"test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml":                                          testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml,
-	"test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml":                                         testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml,
-	"test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml":                                          testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml,
-	"test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml":                                         testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml,
-	"test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl":                                                  testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl,
-	"test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm":                                            testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm,
-	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json":                                                 testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
-	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml":                                                      testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
-	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml":                                                   testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
-	"test/extended/testdata/jenkins-plugin/build-job-clone.xml":                                                       testExtendedTestdataJenkinsPluginBuildJobCloneXml,
-	"test/extended/testdata/jenkins-plugin/build-job-slave.xml":                                                       testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
-	"test/extended/testdata/jenkins-plugin/build-job.xml":                                                             testExtendedTestdataJenkinsPluginBuildJobXml,
-	"test/extended/testdata/jenkins-plugin/build-with-env-job.xml":                                                    testExtendedTestdataJenkinsPluginBuildWithEnvJobXml,
-	"test/extended/testdata/jenkins-plugin/build-with-exec-steps.xml":                                                 testExtendedTestdataJenkinsPluginBuildWithExecStepsXml,
-	"test/extended/testdata/jenkins-plugin/create-job.xml":                                                            testExtendedTestdataJenkinsPluginCreateJobXml,
-	"test/extended/testdata/jenkins-plugin/delete-job-keys.xml":                                                       testExtendedTestdataJenkinsPluginDeleteJobKeysXml,
-	"test/extended/testdata/jenkins-plugin/delete-job-labels.xml":                                                     testExtendedTestdataJenkinsPluginDeleteJobLabelsXml,
-	"test/extended/testdata/jenkins-plugin/delete-job.xml":                                                            testExtendedTestdataJenkinsPluginDeleteJobXml,
-	"test/extended/testdata/jenkins-plugin/imagestream-scm-dsl-job.xml":                                               testExtendedTestdataJenkinsPluginImagestreamScmDslJobXml,
-	"test/extended/testdata/jenkins-plugin/imagestream-scm-job.xml":                                                   testExtendedTestdataJenkinsPluginImagestreamScmJobXml,
-	"test/extended/testdata/jenkins-plugin/multitag-job.xml":                                                          testExtendedTestdataJenkinsPluginMultitagJobXml,
-	"test/extended/testdata/jenkins-plugin/multitag-template.json":                                                    testExtendedTestdataJenkinsPluginMultitagTemplateJson,
-	"test/extended/testdata/jenkins-plugin/shared-resources-template.json":                                            testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson,
-	"test/extended/testdata/jenkins-slave-template.yaml":                                                              testExtendedTestdataJenkinsSlaveTemplateYaml,
-	"test/extended/testdata/jobs/v1.yaml":                                                                             testExtendedTestdataJobsV1Yaml,
-	"test/extended/testdata/ldap/groupsync.sh":                                                                        testExtendedTestdataLdapGroupsyncSh,
-	"test/extended/testdata/ldap/ldapserver-config-cm.yaml":                                                           testExtendedTestdataLdapLdapserverConfigCmYaml,
-	"test/extended/testdata/ldap/ldapserver-deployment.yaml":                                                          testExtendedTestdataLdapLdapserverDeploymentYaml,
-	"test/extended/testdata/ldap/ldapserver-scripts-cm.yaml":                                                          testExtendedTestdataLdapLdapserverScriptsCmYaml,
-	"test/extended/testdata/ldap/ldapserver-service.yaml":                                                             testExtendedTestdataLdapLdapserverServiceYaml,
-	"test/extended/testdata/long_names/Dockerfile":                                                                    testExtendedTestdataLong_namesDockerfile,
-	"test/extended/testdata/long_names/fixture.json":                                                                  testExtendedTestdataLong_namesFixtureJson,
-	"test/extended/testdata/marketplace/csc/02-csc.yaml":                                                              testExtendedTestdataMarketplaceCsc02CscYaml,
-	"test/extended/testdata/marketplace/opsrc/02-opsrc.yaml":                                                          testExtendedTestdataMarketplaceOpsrc02OpsrcYaml,
-	"test/extended/testdata/multi-namespace-pipeline.yaml":                                                            testExtendedTestdataMultiNamespacePipelineYaml,
-	"test/extended/testdata/multi-namespace-template.yaml":                                                            testExtendedTestdataMultiNamespaceTemplateYaml,
-	"test/extended/testdata/oauthserver/cabundle-cm.yaml":                                                             testExtendedTestdataOauthserverCabundleCmYaml,
-	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                           testExtendedTestdataOauthserverOauthNetworkYaml,
-	"test/extended/testdata/oauthserver/oauth-pod.yaml":                                                               testExtendedTestdataOauthserverOauthPodYaml,
-	"test/extended/testdata/oauthserver/oauth-sa.yaml":                                                                testExtendedTestdataOauthserverOauthSaYaml,
-	"test/extended/testdata/olm/operatorgroup.yaml":                                                                   testExtendedTestdataOlmOperatorgroupYaml,
-	"test/extended/testdata/olm/subscription.yaml":                                                                    testExtendedTestdataOlmSubscriptionYaml,
-	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml":                                              testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
-	"test/extended/testdata/releases/payload-1/etcd-operator/image-references":                                        testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
-	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml":                                           testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
-	"test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml":                             testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml,
-	"test/extended/testdata/releases/payload-1/image-registry/image-references":                                       testExtendedTestdataReleasesPayload1ImageRegistryImageReferences,
-	"test/extended/testdata/releases/payload-1/image-registry/manifest.yaml":                                          testExtendedTestdataReleasesPayload1ImageRegistryManifestYaml,
-	"test/extended/testdata/roles/empty-role.yaml":                                                                    testExtendedTestdataRolesEmptyRoleYaml,
-	"test/extended/testdata/roles/policy-clusterroles.yaml":                                                           testExtendedTestdataRolesPolicyClusterrolesYaml,
-	"test/extended/testdata/roles/policy-roles.yaml":                                                                  testExtendedTestdataRolesPolicyRolesYaml,
-	"test/extended/testdata/router/ingress.yaml":                                                                      testExtendedTestdataRouterIngressYaml,
-	"test/extended/testdata/router/reencrypt-serving-cert.yaml":                                                       testExtendedTestdataRouterReencryptServingCertYaml,
-	"test/extended/testdata/router/router-common.yaml":                                                                testExtendedTestdataRouterRouterCommonYaml,
-	"test/extended/testdata/router/router-config-manager.yaml":                                                        testExtendedTestdataRouterRouterConfigManagerYaml,
-	"test/extended/testdata/router/router-grpc-interop.yaml":                                                          testExtendedTestdataRouterRouterGrpcInteropYaml,
-	"test/extended/testdata/router/router-h2spec.yaml":                                                                testExtendedTestdataRouterRouterH2specYaml,
-	"test/extended/testdata/router/router-http-echo-server.yaml":                                                      testExtendedTestdataRouterRouterHttpEchoServerYaml,
-	"test/extended/testdata/router/router-http2.yaml":                                                                 testExtendedTestdataRouterRouterHttp2Yaml,
-	"test/extended/testdata/router/router-metrics.yaml":                                                               testExtendedTestdataRouterRouterMetricsYaml,
-	"test/extended/testdata/router/router-override-domains.yaml":                                                      testExtendedTestdataRouterRouterOverrideDomainsYaml,
-	"test/extended/testdata/router/router-override.yaml":                                                              testExtendedTestdataRouterRouterOverrideYaml,
-	"test/extended/testdata/router/router-scoped.yaml":                                                                testExtendedTestdataRouterRouterScopedYaml,
-	"test/extended/testdata/router/weighted-router.yaml":                                                              testExtendedTestdataRouterWeightedRouterYaml,
-	"test/extended/testdata/run_policy/parallel-bc.yaml":                                                              testExtendedTestdataRun_policyParallelBcYaml,
-	"test/extended/testdata/run_policy/serial-bc.yaml":                                                                testExtendedTestdataRun_policySerialBcYaml,
-	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml":                                                    testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
-	"test/extended/testdata/s2i-dropcaps/root-access-build.yaml":                                                      testExtendedTestdataS2iDropcapsRootAccessBuildYaml,
-	"test/extended/testdata/s2i-dropcaps/rootable-ruby/Dockerfile":                                                    testExtendedTestdataS2iDropcapsRootableRubyDockerfile,
-	"test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser":                                                       testExtendedTestdataS2iDropcapsRootableRubyAdduser,
-	"test/extended/testdata/s2i-dropcaps/rootable-ruby/assemble":                                                      testExtendedTestdataS2iDropcapsRootableRubyAssemble,
-	"test/extended/testdata/sample-image-stream.json":                                                                 testExtendedTestdataSampleImageStreamJson,
-	"test/extended/testdata/samplepipeline-withenvs.yaml":                                                             testExtendedTestdataSamplepipelineWithenvsYaml,
-	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf":                                             testExtendedTestdataServiceServingCertNginxServingCertConf,
-	"test/extended/testdata/signer-buildconfig.yaml":                                                                  testExtendedTestdataSignerBuildconfigYaml,
-	"test/extended/testdata/templates/crunchydata-pod.json":                                                           testExtendedTestdataTemplatesCrunchydataPodJson,
-	"test/extended/testdata/templates/guestbook.json":                                                                 testExtendedTestdataTemplatesGuestbookJson,
-	"test/extended/testdata/templates/guestbook_list.json":                                                            testExtendedTestdataTemplatesGuestbook_listJson,
-	"test/extended/testdata/templates/templateinstance_badobject.yaml":                                                testExtendedTestdataTemplatesTemplateinstance_badobjectYaml,
-	"test/extended/testdata/templates/templateinstance_objectkinds.yaml":                                              testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
-	"test/extended/testdata/templates/templateinstance_readiness.yaml":                                                testExtendedTestdataTemplatesTemplateinstance_readinessYaml,
-	"test/extended/testdata/templates/templateservicebroker_bind.yaml":                                                testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
-	"test/extended/testdata/test-cli-debug.yaml":                                                                      testExtendedTestdataTestCliDebugYaml,
-	"test/extended/testdata/test-env-pod.json":                                                                        testExtendedTestdataTestEnvPodJson,
-	"test/extended/testdata/test-gitserver.yaml":                                                                      testExtendedTestdataTestGitserverYaml,
-	"test/extended/testdata/test-secret.json":                                                                         testExtendedTestdataTestSecretJson,
-	"test/extended/testdata/verifyservice-pipeline-template.yaml":                                                     testExtendedTestdataVerifyservicePipelineTemplateYaml,
-	"test/integration/testdata/project-request-template-with-quota.yaml":                                              testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
-	"test/integration/testdata/test-buildcli-beta2.json":                                                              testIntegrationTestdataTestBuildcliBeta2Json,
-	"test/integration/testdata/test-buildcli.json":                                                                    testIntegrationTestdataTestBuildcliJson,
-	"test/integration/testdata/test-deployment-config.yaml":                                                           testIntegrationTestdataTestDeploymentConfigYaml,
-	"test/integration/testdata/test-image-stream-mapping.json":                                                        testIntegrationTestdataTestImageStreamMappingJson,
-	"test/integration/testdata/test-image-stream.json":                                                                testIntegrationTestdataTestImageStreamJson,
-	"test/integration/testdata/test-image.json":                                                                       testIntegrationTestdataTestImageJson,
-	"test/integration/testdata/test-replication-controller.yaml":                                                      testIntegrationTestdataTestReplicationControllerYaml,
-	"test/integration/testdata/test-route.json":                                                                       testIntegrationTestdataTestRouteJson,
-	"test/integration/testdata/test-service-with-finalizer.json":                                                      testIntegrationTestdataTestServiceWithFinalizerJson,
-	"test/integration/testdata/test-service.json":                                                                     testIntegrationTestdataTestServiceJson,
+	"examples/db-templates/mariadb-ephemeral-template.json":                                                  examplesDbTemplatesMariadbEphemeralTemplateJson,
+	"examples/db-templates/mariadb-persistent-template.json":                                                 examplesDbTemplatesMariadbPersistentTemplateJson,
+	"examples/db-templates/mongodb-ephemeral-template.json":                                                  examplesDbTemplatesMongodbEphemeralTemplateJson,
+	"examples/db-templates/mongodb-persistent-template.json":                                                 examplesDbTemplatesMongodbPersistentTemplateJson,
+	"examples/db-templates/mysql-ephemeral-template.json":                                                    examplesDbTemplatesMysqlEphemeralTemplateJson,
+	"examples/db-templates/mysql-persistent-template.json":                                                   examplesDbTemplatesMysqlPersistentTemplateJson,
+	"examples/db-templates/postgresql-ephemeral-template.json":                                               examplesDbTemplatesPostgresqlEphemeralTemplateJson,
+	"examples/db-templates/postgresql-persistent-template.json":                                              examplesDbTemplatesPostgresqlPersistentTemplateJson,
+	"examples/db-templates/redis-ephemeral-template.json":                                                    examplesDbTemplatesRedisEphemeralTemplateJson,
+	"examples/db-templates/redis-persistent-template.json":                                                   examplesDbTemplatesRedisPersistentTemplateJson,
+	"examples/image-streams/image-streams-centos7.json":                                                      examplesImageStreamsImageStreamsCentos7Json,
+	"examples/image-streams/image-streams-rhel7.json":                                                        examplesImageStreamsImageStreamsRhel7Json,
+	"examples/sample-app/application-template-dockerbuild.json":                                              examplesSampleAppApplicationTemplateDockerbuildJson,
+	"examples/sample-app/application-template-pullspecbuild.json":                                            examplesSampleAppApplicationTemplatePullspecbuildJson,
+	"examples/sample-app/application-template-stibuild.json":                                                 examplesSampleAppApplicationTemplateStibuildJson,
+	"examples/sample-app/cleanup.sh":                                                                         examplesSampleAppCleanupSh,
+	"examples/sample-app/github-webhook-example.json":                                                        examplesSampleAppGithubWebhookExampleJson,
+	"examples/quickstarts/cakephp-mysql-persistent.json":                                                     examplesQuickstartsCakephpMysqlPersistentJson,
+	"examples/quickstarts/cakephp-mysql.json":                                                                examplesQuickstartsCakephpMysqlJson,
+	"examples/quickstarts/dancer-mysql-persistent.json":                                                      examplesQuickstartsDancerMysqlPersistentJson,
+	"examples/quickstarts/dancer-mysql.json":                                                                 examplesQuickstartsDancerMysqlJson,
+	"examples/quickstarts/django-postgresql-persistent.json":                                                 examplesQuickstartsDjangoPostgresqlPersistentJson,
+	"examples/quickstarts/django-postgresql.json":                                                            examplesQuickstartsDjangoPostgresqlJson,
+	"examples/quickstarts/dotnet-pgsql-persistent.json":                                                      examplesQuickstartsDotnetPgsqlPersistentJson,
+	"examples/quickstarts/dotnet.json":                                                                       examplesQuickstartsDotnetJson,
+	"examples/quickstarts/httpd.json":                                                                        examplesQuickstartsHttpdJson,
+	"examples/quickstarts/nginx.json":                                                                        examplesQuickstartsNginxJson,
+	"examples/quickstarts/nodejs-mongodb-persistent.json":                                                    examplesQuickstartsNodejsMongodbPersistentJson,
+	"examples/quickstarts/nodejs-mongodb.json":                                                               examplesQuickstartsNodejsMongodbJson,
+	"examples/quickstarts/rails-postgresql-persistent.json":                                                  examplesQuickstartsRailsPostgresqlPersistentJson,
+	"examples/quickstarts/rails-postgresql.json":                                                             examplesQuickstartsRailsPostgresqlJson,
+	"examples/hello-openshift/Dockerfile":                                                                    examplesHelloOpenshiftDockerfile,
+	"examples/hello-openshift/hello-pod.json":                                                                examplesHelloOpenshiftHelloPodJson,
+	"examples/hello-openshift/hello-project.json":                                                            examplesHelloOpenshiftHelloProjectJson,
+	"examples/jenkins/application-template.json":                                                             examplesJenkinsApplicationTemplateJson,
+	"examples/jenkins/jenkins-ephemeral-template.json":                                                       examplesJenkinsJenkinsEphemeralTemplateJson,
+	"examples/jenkins/jenkins-persistent-template.json":                                                      examplesJenkinsJenkinsPersistentTemplateJson,
+	"examples/jenkins/pipeline/bluegreen-pipeline.yaml":                                                      examplesJenkinsPipelineBluegreenPipelineYaml,
+	"examples/jenkins/pipeline/maven-pipeline.yaml":                                                          examplesJenkinsPipelineMavenPipelineYaml,
+	"examples/jenkins/pipeline/nodejs-sample-pipeline.yaml":                                                  examplesJenkinsPipelineNodejsSamplePipelineYaml,
+	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml":                                        examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
+	"examples/jenkins/pipeline/samplepipeline.yaml":                                                          examplesJenkinsPipelineSamplepipelineYaml,
+	"examples/quickstarts/cakephp-mysql.json/cakephp-mysql.json":                                             examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson,
+	"test/extended/testdata/aggregator/kube-system-auth-reader.yaml":                                         testExtendedTestdataAggregatorKubeSystemAuthReaderYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-apiservice.yaml":                                     testExtendedTestdataAggregatorSampleApiserverApiserviceYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-authdelegator.yaml":                                  testExtendedTestdataAggregatorSampleApiserverAuthdelegatorYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-authreader.yaml":                                     testExtendedTestdataAggregatorSampleApiserverAuthreaderYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml":                                             testExtendedTestdataAggregatorSampleApiserverRcYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml":                                             testExtendedTestdataAggregatorSampleApiserverSaYaml,
+	"test/extended/testdata/aggregator/sample-apiserver-service.yaml":                                        testExtendedTestdataAggregatorSampleApiserverServiceYaml,
+	"test/extended/testdata/builds/application-template-custombuild.json":                                    testExtendedTestdataBuildsApplicationTemplateCustombuildJson,
+	"test/extended/testdata/builds/build-postcommit/docker.yaml":                                             testExtendedTestdataBuildsBuildPostcommitDockerYaml,
+	"test/extended/testdata/builds/build-postcommit/imagestreams.yaml":                                       testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml,
+	"test/extended/testdata/builds/build-postcommit/sti.yaml":                                                testExtendedTestdataBuildsBuildPostcommitStiYaml,
+	"test/extended/testdata/builds/build-pruning/default-group-build-config.yaml":                            testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml":                           testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/errored-build-config.yaml":                                  testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/failed-build-config.yaml":                                   testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/failed-pipeline.yaml":                                       testExtendedTestdataBuildsBuildPruningFailedPipelineYaml,
+	"test/extended/testdata/builds/build-pruning/imagestream.yaml":                                           testExtendedTestdataBuildsBuildPruningImagestreamYaml,
+	"test/extended/testdata/builds/build-pruning/successful-build-config.yaml":                               testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/successful-pipeline.yaml":                                   testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml,
+	"test/extended/testdata/builds/build-quota/.s2i/bin/assemble":                                            testExtendedTestdataBuildsBuildQuotaS2iBinAssemble,
+	"test/extended/testdata/builds/build-quota/Dockerfile":                                                   testExtendedTestdataBuildsBuildQuotaDockerfile,
+	"test/extended/testdata/builds/build-secrets/Dockerfile":                                                 testExtendedTestdataBuildsBuildSecretsDockerfile,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/assemble":                           testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/run":                                testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/Gemfile":                                     testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/config.ru":                                   testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu,
+	"test/extended/testdata/builds/build-secrets/test-configmap-2.json":                                      testExtendedTestdataBuildsBuildSecretsTestConfigmap2Json,
+	"test/extended/testdata/builds/build-secrets/test-configmap.json":                                        testExtendedTestdataBuildsBuildSecretsTestConfigmapJson,
+	"test/extended/testdata/builds/build-secrets/test-docker-build.json":                                     testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson,
+	"test/extended/testdata/builds/build-secrets/test-is.json":                                               testExtendedTestdataBuildsBuildSecretsTestIsJson,
+	"test/extended/testdata/builds/build-secrets/test-s2i-build.json":                                        testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson,
+	"test/extended/testdata/builds/build-secrets/test-secret-2.json":                                         testExtendedTestdataBuildsBuildSecretsTestSecret2Json,
+	"test/extended/testdata/builds/build-secrets/test-secret.json":                                           testExtendedTestdataBuildsBuildSecretsTestSecretJson,
+	"test/extended/testdata/builds/build-timing/Dockerfile":                                                  testExtendedTestdataBuildsBuildTimingDockerfile,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/assemble":                            testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/run":                                 testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/Gemfile":                                      testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/config.ru":                                    testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu,
+	"test/extended/testdata/builds/build-timing/test-docker-build.json":                                      testExtendedTestdataBuildsBuildTimingTestDockerBuildJson,
+	"test/extended/testdata/builds/build-timing/test-is.json":                                                testExtendedTestdataBuildsBuildTimingTestIsJson,
+	"test/extended/testdata/builds/build-timing/test-s2i-build.json":                                         testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/builds/cluster-config/invalid-build-cluster-config.yaml":                         testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYaml,
+	"test/extended/testdata/builds/cluster-config/registry-blacklist.yaml":                                   testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml,
+	"test/extended/testdata/builds/cluster-config/registry-whitelist.yaml":                                   testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml,
+	"test/extended/testdata/builds/cluster-config.yaml":                                                      testExtendedTestdataBuildsClusterConfigYaml,
+	"test/extended/testdata/builds/custom-build/Dockerfile":                                                  testExtendedTestdataBuildsCustomBuildDockerfile,
+	"test/extended/testdata/builds/custom-build/Dockerfile.sample":                                           testExtendedTestdataBuildsCustomBuildDockerfileSample,
+	"test/extended/testdata/builds/custom-build/build.sh":                                                    testExtendedTestdataBuildsCustomBuildBuildSh,
+	"test/extended/testdata/builds/docker-add/Dockerfile":                                                    testExtendedTestdataBuildsDockerAddDockerfile,
+	"test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile":                                     testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile,
+	"test/extended/testdata/builds/docker-add/docker-add-env/foo":                                            testExtendedTestdataBuildsDockerAddDockerAddEnvFoo,
+	"test/extended/testdata/builds/incremental-auth-build.json":                                              testExtendedTestdataBuildsIncrementalAuthBuildJson,
+	"test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml":                                         testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml,
+	"test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml":                                     testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml,
+	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment":                               testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
+	"test/extended/testdata/builds/s2i-environment-build-app/Gemfile":                                        testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile,
+	"test/extended/testdata/builds/s2i-environment-build-app/config.ru":                                      testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu,
+	"test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble":                                    testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble,
+	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml":                                         testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
+	"test/extended/testdata/builds/statusfail-failedassemble.yaml":                                           testExtendedTestdataBuildsStatusfailFailedassembleYaml,
+	"test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml":                                        testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml,
+	"test/extended/testdata/builds/statusfail-fetchimagecontentdocker.yaml":                                  testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml,
+	"test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml":                                        testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml,
+	"test/extended/testdata/builds/statusfail-fetchsources2i.yaml":                                           testExtendedTestdataBuildsStatusfailFetchsources2iYaml,
+	"test/extended/testdata/builds/statusfail-genericreason.yaml":                                            testExtendedTestdataBuildsStatusfailGenericreasonYaml,
+	"test/extended/testdata/builds/statusfail-oomkilled.yaml":                                                testExtendedTestdataBuildsStatusfailOomkilledYaml,
+	"test/extended/testdata/builds/statusfail-postcommithook.yaml":                                           testExtendedTestdataBuildsStatusfailPostcommithookYaml,
+	"test/extended/testdata/builds/statusfail-pushtoregistry.yaml":                                           testExtendedTestdataBuildsStatusfailPushtoregistryYaml,
+	"test/extended/testdata/builds/test-auth-build.yaml":                                                     testExtendedTestdataBuildsTestAuthBuildYaml,
+	"test/extended/testdata/builds/test-bc-with-pr-ref.yaml":                                                 testExtendedTestdataBuildsTestBcWithPrRefYaml,
+	"test/extended/testdata/builds/test-build-app/Dockerfile":                                                testExtendedTestdataBuildsTestBuildAppDockerfile,
+	"test/extended/testdata/builds/test-build-app/Gemfile":                                                   testExtendedTestdataBuildsTestBuildAppGemfile,
+	"test/extended/testdata/builds/test-build-app/config.ru":                                                 testExtendedTestdataBuildsTestBuildAppConfigRu,
+	"test/extended/testdata/builds/test-build-cluster-config.yaml":                                           testExtendedTestdataBuildsTestBuildClusterConfigYaml,
+	"test/extended/testdata/builds/test-build-podsvc.json":                                                   testExtendedTestdataBuildsTestBuildPodsvcJson,
+	"test/extended/testdata/builds/test-build-proxy.yaml":                                                    testExtendedTestdataBuildsTestBuildProxyYaml,
+	"test/extended/testdata/builds/test-build-revision.json":                                                 testExtendedTestdataBuildsTestBuildRevisionJson,
+	"test/extended/testdata/builds/test-build.yaml":                                                          testExtendedTestdataBuildsTestBuildYaml,
+	"test/extended/testdata/builds/test-buildconfigsecretinjector.yaml":                                      testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml,
+	"test/extended/testdata/builds/test-cds-dockerbuild.json":                                                testExtendedTestdataBuildsTestCdsDockerbuildJson,
+	"test/extended/testdata/builds/test-cds-sourcebuild.json":                                                testExtendedTestdataBuildsTestCdsSourcebuildJson,
+	"test/extended/testdata/builds/test-context-build.json":                                                  testExtendedTestdataBuildsTestContextBuildJson,
+	"test/extended/testdata/builds/test-custom-build.yaml":                                                   testExtendedTestdataBuildsTestCustomBuildYaml,
+	"test/extended/testdata/builds/test-docker-app/Dockerfile":                                               testExtendedTestdataBuildsTestDockerAppDockerfile,
+	"test/extended/testdata/builds/test-docker-build-pullsecret.json":                                        testExtendedTestdataBuildsTestDockerBuildPullsecretJson,
+	"test/extended/testdata/builds/test-docker-build.json":                                                   testExtendedTestdataBuildsTestDockerBuildJson,
+	"test/extended/testdata/builds/test-docker-no-outputname.json":                                           testExtendedTestdataBuildsTestDockerNoOutputnameJson,
+	"test/extended/testdata/builds/test-env-build.json":                                                      testExtendedTestdataBuildsTestEnvBuildJson,
+	"test/extended/testdata/builds/test-imagechangetriggers.yaml":                                            testExtendedTestdataBuildsTestImagechangetriggersYaml,
+	"test/extended/testdata/builds/test-imageresolution-custom-build.yaml":                                   testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml,
+	"test/extended/testdata/builds/test-imageresolution-docker-build.yaml":                                   testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml,
+	"test/extended/testdata/builds/test-imageresolution-s2i-build.yaml":                                      testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml,
+	"test/extended/testdata/builds/test-imagesource-buildconfig.yaml":                                        testExtendedTestdataBuildsTestImagesourceBuildconfigYaml,
+	"test/extended/testdata/builds/test-nosrc-build.json":                                                    testExtendedTestdataBuildsTestNosrcBuildJson,
+	"test/extended/testdata/builds/test-s2i-build-quota.json":                                                testExtendedTestdataBuildsTestS2iBuildQuotaJson,
+	"test/extended/testdata/builds/test-s2i-build.json":                                                      testExtendedTestdataBuildsTestS2iBuildJson,
+	"test/extended/testdata/builds/test-s2i-no-outputname.json":                                              testExtendedTestdataBuildsTestS2iNoOutputnameJson,
+	"test/extended/testdata/builds/test-symlink-build.yaml":                                                  testExtendedTestdataBuildsTestSymlinkBuildYaml,
+	"test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml":                     testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml,
+	"test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml":                        testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml,
+	"test/extended/testdata/builds/valuefrom/successful-docker-build-value-from-config.yaml":                 testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml,
+	"test/extended/testdata/builds/valuefrom/successful-sti-build-value-from-config.yaml":                    testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml,
+	"test/extended/testdata/builds/valuefrom/test-configmap.yaml":                                            testExtendedTestdataBuildsValuefromTestConfigmapYaml,
+	"test/extended/testdata/builds/valuefrom/test-is.json":                                                   testExtendedTestdataBuildsValuefromTestIsJson,
+	"test/extended/testdata/builds/valuefrom/test-secret.yaml":                                               testExtendedTestdataBuildsValuefromTestSecretYaml,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json":                     testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent.json":                                testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54-not-master.json":                   testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54.json":                              testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json,
+	"test/extended/testdata/builds/webhook/generic/testdata/post-receive-git.json":                           testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.json":                          testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.yaml":                          testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-generic.json":                               testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-gitlab.json":                                testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson,
+	"test/extended/testdata/builds/webhook/github/testdata/pingevent.json":                                   testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson,
+	"test/extended/testdata/builds/webhook/github/testdata/pushevent-not-master-branch.json":                 testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson,
+	"test/extended/testdata/builds/webhook/github/testdata/pushevent.json":                                   testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson,
+	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json":                 testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson,
+	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json":                                   testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson,
+	"test/extended/testdata/cli/pod-with-two-containers.yaml":                                                testExtendedTestdataCliPodWithTwoContainersYaml,
+	"test/extended/testdata/cluster/master-vert.yaml":                                                        testExtendedTestdataClusterMasterVertYaml,
+	"test/extended/testdata/cluster/quickstarts/cakephp-mysql.json":                                          testExtendedTestdataClusterQuickstartsCakephpMysqlJson,
+	"test/extended/testdata/cluster/quickstarts/dancer-mysql.json":                                           testExtendedTestdataClusterQuickstartsDancerMysqlJson,
+	"test/extended/testdata/cluster/quickstarts/django-postgresql.json":                                      testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson,
+	"test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json":                                         testExtendedTestdataClusterQuickstartsNodejsMongodbJson,
+	"test/extended/testdata/cluster/quickstarts/rails-postgresql.json":                                       testExtendedTestdataClusterQuickstartsRailsPostgresqlJson,
+	"test/extended/testdata/cmd/hack/lib/cmd.sh":                                                             testExtendedTestdataCmdHackLibCmdSh,
+	"test/extended/testdata/cmd/hack/lib/compress.awk":                                                       testExtendedTestdataCmdHackLibCompressAwk,
+	"test/extended/testdata/cmd/hack/lib/constants.sh":                                                       testExtendedTestdataCmdHackLibConstantsSh,
+	"test/extended/testdata/cmd/hack/lib/init.sh":                                                            testExtendedTestdataCmdHackLibInitSh,
+	"test/extended/testdata/cmd/hack/lib/log/output.sh":                                                      testExtendedTestdataCmdHackLibLogOutputSh,
+	"test/extended/testdata/cmd/hack/lib/log/stacktrace.sh":                                                  testExtendedTestdataCmdHackLibLogStacktraceSh,
+	"test/extended/testdata/cmd/hack/lib/log/system.sh":                                                      testExtendedTestdataCmdHackLibLogSystemSh,
+	"test/extended/testdata/cmd/hack/lib/test/junit.sh":                                                      testExtendedTestdataCmdHackLibTestJunitSh,
+	"test/extended/testdata/cmd/hack/lib/util/environment.sh":                                                testExtendedTestdataCmdHackLibUtilEnvironmentSh,
+	"test/extended/testdata/cmd/hack/lib/util/misc.sh":                                                       testExtendedTestdataCmdHackLibUtilMiscSh,
+	"test/extended/testdata/cmd/hack/lib/util/text.sh":                                                       testExtendedTestdataCmdHackLibUtilTextSh,
+	"test/extended/testdata/cmd/hack/lib/util/trap.sh":                                                       testExtendedTestdataCmdHackLibUtilTrapSh,
+	"test/extended/testdata/cmd/test/cmd/annotations.sh":                                                     testExtendedTestdataCmdTestCmdAnnotationsSh,
+	"test/extended/testdata/cmd/test/cmd/apiresources.sh":                                                    testExtendedTestdataCmdTestCmdApiresourcesSh,
+	"test/extended/testdata/cmd/test/cmd/authentication.sh":                                                  testExtendedTestdataCmdTestCmdAuthenticationSh,
+	"test/extended/testdata/cmd/test/cmd/basicresources.sh":                                                  testExtendedTestdataCmdTestCmdBasicresourcesSh,
+	"test/extended/testdata/cmd/test/cmd/builds.sh":                                                          testExtendedTestdataCmdTestCmdBuildsSh,
+	"test/extended/testdata/cmd/test/cmd/completions.sh":                                                     testExtendedTestdataCmdTestCmdCompletionsSh,
+	"test/extended/testdata/cmd/test/cmd/config.sh":                                                          testExtendedTestdataCmdTestCmdConfigSh,
+	"test/extended/testdata/cmd/test/cmd/convert.sh":                                                         testExtendedTestdataCmdTestCmdConvertSh,
+	"test/extended/testdata/cmd/test/cmd/create.sh":                                                          testExtendedTestdataCmdTestCmdCreateSh,
+	"test/extended/testdata/cmd/test/cmd/debug.sh":                                                           testExtendedTestdataCmdTestCmdDebugSh,
+	"test/extended/testdata/cmd/test/cmd/deployments.sh":                                                     testExtendedTestdataCmdTestCmdDeploymentsSh,
+	"test/extended/testdata/cmd/test/cmd/describer.sh":                                                       testExtendedTestdataCmdTestCmdDescriberSh,
+	"test/extended/testdata/cmd/test/cmd/edit.sh":                                                            testExtendedTestdataCmdTestCmdEditSh,
+	"test/extended/testdata/cmd/test/cmd/env.sh":                                                             testExtendedTestdataCmdTestCmdEnvSh,
+	"test/extended/testdata/cmd/test/cmd/framework-test.sh":                                                  testExtendedTestdataCmdTestCmdFrameworkTestSh,
+	"test/extended/testdata/cmd/test/cmd/get.sh":                                                             testExtendedTestdataCmdTestCmdGetSh,
+	"test/extended/testdata/cmd/test/cmd/help.sh":                                                            testExtendedTestdataCmdTestCmdHelpSh,
+	"test/extended/testdata/cmd/test/cmd/idle.sh":                                                            testExtendedTestdataCmdTestCmdIdleSh,
+	"test/extended/testdata/cmd/test/cmd/image-lookup.sh":                                                    testExtendedTestdataCmdTestCmdImageLookupSh,
+	"test/extended/testdata/cmd/test/cmd/images.sh":                                                          testExtendedTestdataCmdTestCmdImagesSh,
+	"test/extended/testdata/cmd/test/cmd/login.sh":                                                           testExtendedTestdataCmdTestCmdLoginSh,
+	"test/extended/testdata/cmd/test/cmd/migrate.sh":                                                         testExtendedTestdataCmdTestCmdMigrateSh,
+	"test/extended/testdata/cmd/test/cmd/newapp.sh":                                                          testExtendedTestdataCmdTestCmdNewappSh,
+	"test/extended/testdata/cmd/test/cmd/observe.sh":                                                         testExtendedTestdataCmdTestCmdObserveSh,
+	"test/extended/testdata/cmd/test/cmd/policy-storage-admin.sh":                                            testExtendedTestdataCmdTestCmdPolicyStorageAdminSh,
+	"test/extended/testdata/cmd/test/cmd/policy.sh":                                                          testExtendedTestdataCmdTestCmdPolicySh,
+	"test/extended/testdata/cmd/test/cmd/printer.sh":                                                         testExtendedTestdataCmdTestCmdPrinterSh,
+	"test/extended/testdata/cmd/test/cmd/projects.sh":                                                        testExtendedTestdataCmdTestCmdProjectsSh,
+	"test/extended/testdata/cmd/test/cmd/quota.sh":                                                           testExtendedTestdataCmdTestCmdQuotaSh,
+	"test/extended/testdata/cmd/test/cmd/registry.sh":                                                        testExtendedTestdataCmdTestCmdRegistrySh,
+	"test/extended/testdata/cmd/test/cmd/routes.sh":                                                          testExtendedTestdataCmdTestCmdRoutesSh,
+	"test/extended/testdata/cmd/test/cmd/rsync.sh":                                                           testExtendedTestdataCmdTestCmdRsyncSh,
+	"test/extended/testdata/cmd/test/cmd/run.sh":                                                             testExtendedTestdataCmdTestCmdRunSh,
+	"test/extended/testdata/cmd/test/cmd/secrets.sh":                                                         testExtendedTestdataCmdTestCmdSecretsSh,
+	"test/extended/testdata/cmd/test/cmd/services.sh":                                                        testExtendedTestdataCmdTestCmdServicesSh,
+	"test/extended/testdata/cmd/test/cmd/set-data.sh":                                                        testExtendedTestdataCmdTestCmdSetDataSh,
+	"test/extended/testdata/cmd/test/cmd/set-image.sh":                                                       testExtendedTestdataCmdTestCmdSetImageSh,
+	"test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh":                                              testExtendedTestdataCmdTestCmdSetLivenessProbeSh,
+	"test/extended/testdata/cmd/test/cmd/setbuildhook.sh":                                                    testExtendedTestdataCmdTestCmdSetbuildhookSh,
+	"test/extended/testdata/cmd/test/cmd/setbuildsecret.sh":                                                  testExtendedTestdataCmdTestCmdSetbuildsecretSh,
+	"test/extended/testdata/cmd/test/cmd/status.sh":                                                          testExtendedTestdataCmdTestCmdStatusSh,
+	"test/extended/testdata/cmd/test/cmd/templates.sh":                                                       testExtendedTestdataCmdTestCmdTemplatesSh,
+	"test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json":                        testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/convert/job-v1.yaml":                                       testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json":                                       testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json,
+	"test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml":                                     testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json":                            testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml":                                            testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/idling-svc-route.yaml":                                     testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json":                  testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json,
+	"test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json":                   testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/mixed-api-versions.yaml":                                   testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json":                            testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/multiport-service.yaml":                                    testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json":                     testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/build-arg-dockerfile/Dockerfile":                   testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/circular-is.yaml":                                  testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/circular.yaml":                                     testExtendedTestdataCmdTestCmdTestdataNewAppCircularYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/imagestream-ref.yaml":                              testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/installable-stream.yaml":                           testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid-build-strategy.yaml":                       testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid.json":                                      testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-minimal-expose.json":                      testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-app-label.json":                      testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-crd.yaml":                            testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-namespaces.json":                     testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-without-app-label.json":                   testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template_multiple_resource_gvs.yaml":               testExtendedTestdataCmdTestCmdTestdataNewAppTemplate_multiple_resource_gvsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-env.env":                           testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnv,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-params.env":                        testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv,
+	"test/extended/testdata/cmd/test/cmd/testdata/oauthaccesstoken.yaml":                                     testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/old-template.json":                                         testExtendedTestdataCmdTestCmdTestdataOldTemplateJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-no-extension-in-directory": testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectory,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-with-extension.json":       testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonWithExtensionJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/non-api-file":                   testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryNonApiFile,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/yml-with-extension.yml":         testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryYmlWithExtensionYml,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/json-no-extension":                        testExtendedTestdataCmdTestCmdTestdataResourceBuilderJsonNoExtension,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/yml-no-extension":                         testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtension,
+	"test/extended/testdata/cmd/test/cmd/testdata/rollingupdate-daemonset.yaml":                              testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/services.yaml":                                             testExtendedTestdataCmdTestCmdTestdataServicesYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/simple-deployment.yaml":                                    testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/statefulset.yaml":                                          testExtendedTestdataCmdTestCmdTestdataStatefulsetYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/templateinstance_objectkinds.yaml":                         testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/basic-users-binding.json":                        testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook.env":                                   testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookEnv,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook.json":                                  testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook_list.json":                             testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbook_listJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/multiline.txt":                                   testExtendedTestdataCmdTestCmdTestdataTemplatesMultilineTxt,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/template-type-precision.json":                    testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/template_required_params.env":                    testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsEnv,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/template_required_params.yaml":                   testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-bc.yaml":                                              testExtendedTestdataCmdTestCmdTestdataTestBcYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-buildcli.json":                                        testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-deployment-config.yaml":                               testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-docker-build.json":                                    testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-image-stream.json":                                    testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-image.json":                                           testExtendedTestdataCmdTestCmdTestdataTestImageJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-multiarch-stream.yaml":                                testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-replication-controller.yaml":                          testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-route.json":                                           testExtendedTestdataCmdTestCmdTestdataTestRouteJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-s2i-build.json":                                       testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-service.json":                                         testExtendedTestdataCmdTestCmdTestdataTestServiceJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml":                                          testExtendedTestdataCmdTestCmdTestdataTestStreamYaml,
+	"test/extended/testdata/cmd/test/cmd/timeout.sh":                                                         testExtendedTestdataCmdTestCmdTimeoutSh,
+	"test/extended/testdata/cmd/test/cmd/triggers.sh":                                                        testExtendedTestdataCmdTestCmdTriggersSh,
+	"test/extended/testdata/cmd/test/cmd/volumes.sh":                                                         testExtendedTestdataCmdTestCmdVolumesSh,
+	"test/extended/testdata/cmd/test/cmd/whoami.sh":                                                          testExtendedTestdataCmdTestCmdWhoamiSh,
+	"test/extended/testdata/config-map-jenkins-slave-pods.yaml":                                              testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
+	"test/extended/testdata/csi/aws-ebs/install-template.yaml":                                               testExtendedTestdataCsiAwsEbsInstallTemplateYaml,
+	"test/extended/testdata/csi/aws-ebs/manifest.yaml":                                                       testExtendedTestdataCsiAwsEbsManifestYaml,
+	"test/extended/testdata/csi/aws-ebs/storageclass.yaml":                                                   testExtendedTestdataCsiAwsEbsStorageclassYaml,
+	"test/extended/testdata/custom-secret-builder/Dockerfile":                                                testExtendedTestdataCustomSecretBuilderDockerfile,
+	"test/extended/testdata/custom-secret-builder/build.sh":                                                  testExtendedTestdataCustomSecretBuilderBuildSh,
+	"test/extended/testdata/deployments/custom-deployment.yaml":                                              testExtendedTestdataDeploymentsCustomDeploymentYaml,
+	"test/extended/testdata/deployments/deployment-example.yaml":                                             testExtendedTestdataDeploymentsDeploymentExampleYaml,
+	"test/extended/testdata/deployments/deployment-history-limit.yaml":                                       testExtendedTestdataDeploymentsDeploymentHistoryLimitYaml,
+	"test/extended/testdata/deployments/deployment-ignores-deployer.yaml":                                    testExtendedTestdataDeploymentsDeploymentIgnoresDeployerYaml,
+	"test/extended/testdata/deployments/deployment-image-resolution-is.yaml":                                 testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml,
+	"test/extended/testdata/deployments/deployment-image-resolution.yaml":                                    testExtendedTestdataDeploymentsDeploymentImageResolutionYaml,
+	"test/extended/testdata/deployments/deployment-min-ready-seconds.yaml":                                   testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml,
+	"test/extended/testdata/deployments/deployment-simple.yaml":                                              testExtendedTestdataDeploymentsDeploymentSimpleYaml,
+	"test/extended/testdata/deployments/deployment-trigger.yaml":                                             testExtendedTestdataDeploymentsDeploymentTriggerYaml,
+	"test/extended/testdata/deployments/deployment-with-ref-env.yaml":                                        testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml,
+	"test/extended/testdata/deployments/failing-pre-hook.yaml":                                               testExtendedTestdataDeploymentsFailingPreHookYaml,
+	"test/extended/testdata/deployments/generation-test.yaml":                                                testExtendedTestdataDeploymentsGenerationTestYaml,
+	"test/extended/testdata/deployments/multi-ict-deployment.yaml":                                           testExtendedTestdataDeploymentsMultiIctDeploymentYaml,
+	"test/extended/testdata/deployments/paused-deployment.yaml":                                              testExtendedTestdataDeploymentsPausedDeploymentYaml,
+	"test/extended/testdata/deployments/readiness-test.yaml":                                                 testExtendedTestdataDeploymentsReadinessTestYaml,
+	"test/extended/testdata/deployments/tag-images-deployment.yaml":                                          testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
+	"test/extended/testdata/deployments/test-deployment-broken.yaml":                                         testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
+	"test/extended/testdata/deployments/test-deployment-test.yaml":                                           testExtendedTestdataDeploymentsTestDeploymentTestYaml,
+	"test/extended/testdata/disaster-recovery/restore-etcd.sh":                                               testExtendedTestdataDisasterRecoveryRestoreEtcdSh,
+	"test/extended/testdata/disaster-recovery/rollback-A.yaml":                                               testExtendedTestdataDisasterRecoveryRollbackAYaml,
+	"test/extended/testdata/disaster-recovery/rollback-B.yaml":                                               testExtendedTestdataDisasterRecoveryRollbackBYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/clusterrole.yaml":                                  testExtendedTestdataDisasterRecoverySshBastionClusterroleYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/clusterrolebinding.yaml":                           testExtendedTestdataDisasterRecoverySshBastionClusterrolebindingYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/deployment.yaml":                                   testExtendedTestdataDisasterRecoverySshBastionDeploymentYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/namespace.yaml":                                    testExtendedTestdataDisasterRecoverySshBastionNamespaceYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/role.yaml":                                         testExtendedTestdataDisasterRecoverySshBastionRoleYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/rolebinding.yaml":                                  testExtendedTestdataDisasterRecoverySshBastionRolebindingYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/service.yaml":                                      testExtendedTestdataDisasterRecoverySshBastionServiceYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/serviceaccount.yaml":                               testExtendedTestdataDisasterRecoverySshBastionServiceaccountYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/sshd_config":                                       testExtendedTestdataDisasterRecoverySshBastionSshd_config,
+	"test/extended/testdata/disaster-recovery/update_route_53.py":                                            testExtendedTestdataDisasterRecoveryUpdate_route_53Py,
+	"test/extended/testdata/forcepull-test.json":                                                             testExtendedTestdataForcepullTestJson,
+	"test/extended/testdata/gssapi/config/kubeconfig":                                                        testExtendedTestdataGssapiConfigKubeconfig,
+	"test/extended/testdata/gssapi/config/oauth_config.json":                                                 testExtendedTestdataGssapiConfigOauth_configJson,
+	"test/extended/testdata/gssapi/fedora/base/Dockerfile":                                                   testExtendedTestdataGssapiFedoraBaseDockerfile,
+	"test/extended/testdata/gssapi/fedora/kerberos/Dockerfile":                                               testExtendedTestdataGssapiFedoraKerberosDockerfile,
+	"test/extended/testdata/gssapi/fedora/kerberos_configured/Dockerfile":                                    testExtendedTestdataGssapiFedoraKerberos_configuredDockerfile,
+	"test/extended/testdata/gssapi/proxy/Dockerfile":                                                         testExtendedTestdataGssapiProxyDockerfile,
+	"test/extended/testdata/gssapi/proxy/configure.sh":                                                       testExtendedTestdataGssapiProxyConfigureSh,
+	"test/extended/testdata/gssapi/proxy/gssapiproxy-buildconfig.yaml":                                       testExtendedTestdataGssapiProxyGssapiproxyBuildconfigYaml,
+	"test/extended/testdata/gssapi/proxy/gssapiproxy-deploymentconfig.yaml":                                  testExtendedTestdataGssapiProxyGssapiproxyDeploymentconfigYaml,
+	"test/extended/testdata/gssapi/proxy/gssapiproxy-imagestream.yaml":                                       testExtendedTestdataGssapiProxyGssapiproxyImagestreamYaml,
+	"test/extended/testdata/gssapi/proxy/gssapiproxy-service.yaml":                                           testExtendedTestdataGssapiProxyGssapiproxyServiceYaml,
+	"test/extended/testdata/gssapi/proxy/healthz":                                                            testExtendedTestdataGssapiProxyHealthz,
+	"test/extended/testdata/gssapi/proxy/kadm5.acl":                                                          testExtendedTestdataGssapiProxyKadm5Acl,
+	"test/extended/testdata/gssapi/proxy/kdc.conf":                                                           testExtendedTestdataGssapiProxyKdcConf,
+	"test/extended/testdata/gssapi/proxy/krb5.conf":                                                          testExtendedTestdataGssapiProxyKrb5Conf,
+	"test/extended/testdata/gssapi/proxy/proxy.conf":                                                         testExtendedTestdataGssapiProxyProxyConf,
+	"test/extended/testdata/gssapi/scripts/gssapi-tests.sh":                                                  testExtendedTestdataGssapiScriptsGssapiTestsSh,
+	"test/extended/testdata/gssapi/scripts/test-wrapper.sh":                                                  testExtendedTestdataGssapiScriptsTestWrapperSh,
+	"test/extended/testdata/gssapi/ubuntu/base/Dockerfile":                                                   testExtendedTestdataGssapiUbuntuBaseDockerfile,
+	"test/extended/testdata/gssapi/ubuntu/kerberos/Dockerfile":                                               testExtendedTestdataGssapiUbuntuKerberosDockerfile,
+	"test/extended/testdata/gssapi/ubuntu/kerberos_configured/Dockerfile":                                    testExtendedTestdataGssapiUbuntuKerberos_configuredDockerfile,
+	"test/extended/testdata/hello-builder/Dockerfile":                                                        testExtendedTestdataHelloBuilderDockerfile,
+	"test/extended/testdata/hello-builder/scripts/assemble":                                                  testExtendedTestdataHelloBuilderScriptsAssemble,
+	"test/extended/testdata/hello-builder/scripts/run":                                                       testExtendedTestdataHelloBuilderScriptsRun,
+	"test/extended/testdata/idling-echo-server-rc.yaml":                                                      testExtendedTestdataIdlingEchoServerRcYaml,
+	"test/extended/testdata/idling-echo-server.yaml":                                                         testExtendedTestdataIdlingEchoServerYaml,
+	"test/extended/testdata/image/deployment-with-annotation-trigger.yaml":                                   testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml,
+	"test/extended/testdata/image/test-image.json":                                                           testExtendedTestdataImageTestImageJson,
+	"test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml":                                 testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml,
+	"test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml":                                 testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml,
+	"test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml":                                testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml,
+	"test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml":                                 testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml,
+	"test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml":                                testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml,
+	"test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl":                                         testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl,
+	"test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm":                                   testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm,
+	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json":                                        testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
+	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml":                                             testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
+	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml":                                          testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
+	"test/extended/testdata/jenkins-plugin/build-job-clone.xml":                                              testExtendedTestdataJenkinsPluginBuildJobCloneXml,
+	"test/extended/testdata/jenkins-plugin/build-job-slave.xml":                                              testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
+	"test/extended/testdata/jenkins-plugin/build-job.xml":                                                    testExtendedTestdataJenkinsPluginBuildJobXml,
+	"test/extended/testdata/jenkins-plugin/build-with-env-job.xml":                                           testExtendedTestdataJenkinsPluginBuildWithEnvJobXml,
+	"test/extended/testdata/jenkins-plugin/build-with-exec-steps.xml":                                        testExtendedTestdataJenkinsPluginBuildWithExecStepsXml,
+	"test/extended/testdata/jenkins-plugin/create-job.xml":                                                   testExtendedTestdataJenkinsPluginCreateJobXml,
+	"test/extended/testdata/jenkins-plugin/delete-job-keys.xml":                                              testExtendedTestdataJenkinsPluginDeleteJobKeysXml,
+	"test/extended/testdata/jenkins-plugin/delete-job-labels.xml":                                            testExtendedTestdataJenkinsPluginDeleteJobLabelsXml,
+	"test/extended/testdata/jenkins-plugin/delete-job.xml":                                                   testExtendedTestdataJenkinsPluginDeleteJobXml,
+	"test/extended/testdata/jenkins-plugin/imagestream-scm-dsl-job.xml":                                      testExtendedTestdataJenkinsPluginImagestreamScmDslJobXml,
+	"test/extended/testdata/jenkins-plugin/imagestream-scm-job.xml":                                          testExtendedTestdataJenkinsPluginImagestreamScmJobXml,
+	"test/extended/testdata/jenkins-plugin/multitag-job.xml":                                                 testExtendedTestdataJenkinsPluginMultitagJobXml,
+	"test/extended/testdata/jenkins-plugin/multitag-template.json":                                           testExtendedTestdataJenkinsPluginMultitagTemplateJson,
+	"test/extended/testdata/jenkins-plugin/shared-resources-template.json":                                   testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson,
+	"test/extended/testdata/jenkins-slave-template.yaml":                                                     testExtendedTestdataJenkinsSlaveTemplateYaml,
+	"test/extended/testdata/jobs/v1.yaml":                                                                    testExtendedTestdataJobsV1Yaml,
+	"test/extended/testdata/ldap/groupsync.sh":                                                               testExtendedTestdataLdapGroupsyncSh,
+	"test/extended/testdata/ldap/ldapserver-config-cm.yaml":                                                  testExtendedTestdataLdapLdapserverConfigCmYaml,
+	"test/extended/testdata/ldap/ldapserver-deployment.yaml":                                                 testExtendedTestdataLdapLdapserverDeploymentYaml,
+	"test/extended/testdata/ldap/ldapserver-scripts-cm.yaml":                                                 testExtendedTestdataLdapLdapserverScriptsCmYaml,
+	"test/extended/testdata/ldap/ldapserver-service.yaml":                                                    testExtendedTestdataLdapLdapserverServiceYaml,
+	"test/extended/testdata/long_names/Dockerfile":                                                           testExtendedTestdataLong_namesDockerfile,
+	"test/extended/testdata/long_names/fixture.json":                                                         testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/marketplace/csc/02-csc.yaml":                                                     testExtendedTestdataMarketplaceCsc02CscYaml,
+	"test/extended/testdata/marketplace/opsrc/02-opsrc.yaml":                                                 testExtendedTestdataMarketplaceOpsrc02OpsrcYaml,
+	"test/extended/testdata/multi-namespace-pipeline.yaml":                                                   testExtendedTestdataMultiNamespacePipelineYaml,
+	"test/extended/testdata/multi-namespace-template.yaml":                                                   testExtendedTestdataMultiNamespaceTemplateYaml,
+	"test/extended/testdata/oauthserver/cabundle-cm.yaml":                                                    testExtendedTestdataOauthserverCabundleCmYaml,
+	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                  testExtendedTestdataOauthserverOauthNetworkYaml,
+	"test/extended/testdata/oauthserver/oauth-pod.yaml":                                                      testExtendedTestdataOauthserverOauthPodYaml,
+	"test/extended/testdata/oauthserver/oauth-sa.yaml":                                                       testExtendedTestdataOauthserverOauthSaYaml,
+	"test/extended/testdata/olm/operatorgroup.yaml":                                                          testExtendedTestdataOlmOperatorgroupYaml,
+	"test/extended/testdata/olm/subscription.yaml":                                                           testExtendedTestdataOlmSubscriptionYaml,
+	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml":                                     testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
+	"test/extended/testdata/releases/payload-1/etcd-operator/image-references":                               testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
+	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml":                                  testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
+	"test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml":                    testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml,
+	"test/extended/testdata/releases/payload-1/image-registry/image-references":                              testExtendedTestdataReleasesPayload1ImageRegistryImageReferences,
+	"test/extended/testdata/releases/payload-1/image-registry/manifest.yaml":                                 testExtendedTestdataReleasesPayload1ImageRegistryManifestYaml,
+	"test/extended/testdata/roles/empty-role.yaml":                                                           testExtendedTestdataRolesEmptyRoleYaml,
+	"test/extended/testdata/roles/policy-clusterroles.yaml":                                                  testExtendedTestdataRolesPolicyClusterrolesYaml,
+	"test/extended/testdata/roles/policy-roles.yaml":                                                         testExtendedTestdataRolesPolicyRolesYaml,
+	"test/extended/testdata/router/ingress.yaml":                                                             testExtendedTestdataRouterIngressYaml,
+	"test/extended/testdata/router/reencrypt-serving-cert.yaml":                                              testExtendedTestdataRouterReencryptServingCertYaml,
+	"test/extended/testdata/router/router-common.yaml":                                                       testExtendedTestdataRouterRouterCommonYaml,
+	"test/extended/testdata/router/router-config-manager.yaml":                                               testExtendedTestdataRouterRouterConfigManagerYaml,
+	"test/extended/testdata/router/router-grpc-interop.yaml":                                                 testExtendedTestdataRouterRouterGrpcInteropYaml,
+	"test/extended/testdata/router/router-h2spec.yaml":                                                       testExtendedTestdataRouterRouterH2specYaml,
+	"test/extended/testdata/router/router-http-echo-server.yaml":                                             testExtendedTestdataRouterRouterHttpEchoServerYaml,
+	"test/extended/testdata/router/router-http2.yaml":                                                        testExtendedTestdataRouterRouterHttp2Yaml,
+	"test/extended/testdata/router/router-metrics.yaml":                                                      testExtendedTestdataRouterRouterMetricsYaml,
+	"test/extended/testdata/router/router-override-domains.yaml":                                             testExtendedTestdataRouterRouterOverrideDomainsYaml,
+	"test/extended/testdata/router/router-override.yaml":                                                     testExtendedTestdataRouterRouterOverrideYaml,
+	"test/extended/testdata/router/router-scoped.yaml":                                                       testExtendedTestdataRouterRouterScopedYaml,
+	"test/extended/testdata/router/weighted-router.yaml":                                                     testExtendedTestdataRouterWeightedRouterYaml,
+	"test/extended/testdata/run_policy/parallel-bc.yaml":                                                     testExtendedTestdataRun_policyParallelBcYaml,
+	"test/extended/testdata/run_policy/serial-bc.yaml":                                                       testExtendedTestdataRun_policySerialBcYaml,
+	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml":                                           testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
+	"test/extended/testdata/s2i-dropcaps/root-access-build.yaml":                                             testExtendedTestdataS2iDropcapsRootAccessBuildYaml,
+	"test/extended/testdata/s2i-dropcaps/rootable-ruby/Dockerfile":                                           testExtendedTestdataS2iDropcapsRootableRubyDockerfile,
+	"test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser":                                              testExtendedTestdataS2iDropcapsRootableRubyAdduser,
+	"test/extended/testdata/s2i-dropcaps/rootable-ruby/assemble":                                             testExtendedTestdataS2iDropcapsRootableRubyAssemble,
+	"test/extended/testdata/sample-image-stream.json":                                                        testExtendedTestdataSampleImageStreamJson,
+	"test/extended/testdata/samplepipeline-withenvs.yaml":                                                    testExtendedTestdataSamplepipelineWithenvsYaml,
+	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf":                                    testExtendedTestdataServiceServingCertNginxServingCertConf,
+	"test/extended/testdata/signer-buildconfig.yaml":                                                         testExtendedTestdataSignerBuildconfigYaml,
+	"test/extended/testdata/stable-busybox.yaml":                                                             testExtendedTestdataStableBusyboxYaml,
+	"test/extended/testdata/templates/crunchydata-pod.json":                                                  testExtendedTestdataTemplatesCrunchydataPodJson,
+	"test/extended/testdata/templates/guestbook.json":                                                        testExtendedTestdataTemplatesGuestbookJson,
+	"test/extended/testdata/templates/guestbook_list.json":                                                   testExtendedTestdataTemplatesGuestbook_listJson,
+	"test/extended/testdata/templates/templateinstance_badobject.yaml":                                       testExtendedTestdataTemplatesTemplateinstance_badobjectYaml,
+	"test/extended/testdata/templates/templateinstance_objectkinds.yaml":                                     testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
+	"test/extended/testdata/templates/templateinstance_readiness.yaml":                                       testExtendedTestdataTemplatesTemplateinstance_readinessYaml,
+	"test/extended/testdata/templates/templateservicebroker_bind.yaml":                                       testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
+	"test/extended/testdata/test-cli-debug.yaml":                                                             testExtendedTestdataTestCliDebugYaml,
+	"test/extended/testdata/test-env-pod.json":                                                               testExtendedTestdataTestEnvPodJson,
+	"test/extended/testdata/test-gitserver.yaml":                                                             testExtendedTestdataTestGitserverYaml,
+	"test/extended/testdata/test-secret.json":                                                                testExtendedTestdataTestSecretJson,
+	"test/extended/testdata/verifyservice-pipeline-template.yaml":                                            testExtendedTestdataVerifyservicePipelineTemplateYaml,
+	"test/integration/testdata/project-request-template-with-quota.yaml":                                     testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
+	"test/integration/testdata/test-buildcli-beta2.json":                                                     testIntegrationTestdataTestBuildcliBeta2Json,
+	"test/integration/testdata/test-buildcli.json":                                                           testIntegrationTestdataTestBuildcliJson,
+	"test/integration/testdata/test-deployment-config.yaml":                                                  testIntegrationTestdataTestDeploymentConfigYaml,
+	"test/integration/testdata/test-image-stream-mapping.json":                                               testIntegrationTestdataTestImageStreamMappingJson,
+	"test/integration/testdata/test-image-stream.json":                                                       testIntegrationTestdataTestImageStreamJson,
+	"test/integration/testdata/test-image.json":                                                              testIntegrationTestdataTestImageJson,
+	"test/integration/testdata/test-replication-controller.yaml":                                             testIntegrationTestdataTestReplicationControllerYaml,
+	"test/integration/testdata/test-route.json":                                                              testIntegrationTestdataTestRouteJson,
+	"test/integration/testdata/test-service-with-finalizer.json":                                             testIntegrationTestdataTestServiceWithFinalizerJson,
+	"test/integration/testdata/test-service.json":                                                            testIntegrationTestdataTestServiceJson,
 }
 
 // AssetDir returns the file names below a certain
@@ -60130,7 +56554,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"test": {nil, map[string]*bintree{
 						"cmd": {nil, map[string]*bintree{
-							"admin.sh":                {testExtendedTestdataCmdTestCmdAdminSh, map[string]*bintree{}},
 							"annotations.sh":          {testExtendedTestdataCmdTestCmdAnnotationsSh, map[string]*bintree{}},
 							"apiresources.sh":         {testExtendedTestdataCmdTestCmdApiresourcesSh, map[string]*bintree{}},
 							"authentication.sh":       {testExtendedTestdataCmdTestCmdAuthenticationSh, map[string]*bintree{}},
@@ -60174,34 +56597,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"status.sh":               {testExtendedTestdataCmdTestCmdStatusSh, map[string]*bintree{}},
 							"templates.sh":            {testExtendedTestdataCmdTestCmdTemplatesSh, map[string]*bintree{}},
 							"testdata": {nil, map[string]*bintree{
-								"app-scenarios": {nil, map[string]*bintree{
-									"docker-compose": {nil, map[string]*bintree{
-										"complex": {nil, map[string]*bintree{
-											"app": {nil, map[string]*bintree{
-												"Dockerfile": {testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfile, map[string]*bintree{}},
-											}},
-											"docker-compose.generated.yaml": {testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYaml, map[string]*bintree{}},
-											"docker-compose.imported.yaml":  {testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYaml, map[string]*bintree{}},
-											"docker-compose.yml":            {testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYml, map[string]*bintree{}},
-											"nginx": {nil, map[string]*bintree{
-												"Dockerfile": {testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfile, map[string]*bintree{}},
-											}},
-										}},
-										"wordpress": {nil, map[string]*bintree{
-											"docker-compose.yml": {testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYml, map[string]*bintree{}},
-										}},
-									}},
-									"k8s-lonely-pod.json":                     {testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJson, map[string]*bintree{}},
-									"k8s-sample-app.json":                     {testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJson, map[string]*bintree{}},
-									"k8s-service-pod-no-rc.json":              {testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJson, map[string]*bintree{}},
-									"k8s-service-with-nothing.json":           {testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJson, map[string]*bintree{}},
-									"k8s-unserviced-rc.json":                  {testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJson, map[string]*bintree{}},
-									"new-project-deployed-app.yaml":           {testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYaml, map[string]*bintree{}},
-									"new-project-no-build.yaml":               {testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYaml, map[string]*bintree{}},
-									"new-project-one-build.yaml":              {testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYaml, map[string]*bintree{}},
-									"new-project-two-deployment-configs.yaml": {testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYaml, map[string]*bintree{}},
-									"petset.yaml":                             {testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYaml, map[string]*bintree{}},
-								}},
 								"application-template-custombuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson, map[string]*bintree{}},
 								"application-template-dockerbuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson, map[string]*bintree{}},
 								"application-template-stibuild.json":    {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson, map[string]*bintree{}},
@@ -60256,15 +56651,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 									"json-no-extension": {testExtendedTestdataCmdTestCmdTestdataResourceBuilderJsonNoExtension, map[string]*bintree{}},
 									"yml-no-extension":  {testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtension, map[string]*bintree{}},
 								}},
-								"roles": {nil, map[string]*bintree{
-									"empty-role.yaml":          {testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYaml, map[string]*bintree{}},
-									"policy-clusterroles.yaml": {testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
-									"policy-roles.yaml":        {testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
-								}},
 								"rollingupdate-daemonset.yaml":      {testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml, map[string]*bintree{}},
 								"services.yaml":                     {testExtendedTestdataCmdTestCmdTestdataServicesYaml, map[string]*bintree{}},
 								"simple-deployment.yaml":            {testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYaml, map[string]*bintree{}},
-								"stable-busybox.yaml":               {testExtendedTestdataCmdTestCmdTestdataStableBusyboxYaml, map[string]*bintree{}},
 								"statefulset.yaml":                  {testExtendedTestdataCmdTestCmdTestdataStatefulsetYaml, map[string]*bintree{}},
 								"templateinstance_objectkinds.yaml": {testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYaml, map[string]*bintree{}},
 								"templates": {nil, map[string]*bintree{
@@ -60529,6 +56918,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"nginx-serving-cert.conf": {testExtendedTestdataServiceServingCertNginxServingCertConf, map[string]*bintree{}},
 				}},
 				"signer-buildconfig.yaml": {testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
+				"stable-busybox.yaml":     {testExtendedTestdataStableBusyboxYaml, map[string]*bintree{}},
 				"templates": {nil, map[string]*bintree{
 					"crunchydata-pod.json":              {testExtendedTestdataTemplatesCrunchydataPodJson, map[string]*bintree{}},
 					"guestbook.json":                    {testExtendedTestdataTemplatesGuestbookJson, map[string]*bintree{}},

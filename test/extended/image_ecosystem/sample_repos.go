@@ -79,7 +79,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By("expecting the db service is available")
-						serviceIP, err := oc.Run("get").Args("service", c.dbServiceName).Template("{{ .spec.clusterIP }}").Output()
+						serviceIP, err := oc.Run("get").Args("service", c.dbServiceName, "--output=template", "--template={{ .spec.clusterIP }}").Output()
 						o.Expect(err).NotTo(o.HaveOccurred())
 						o.Expect(serviceIP).ShouldNot(o.Equal(""))
 
@@ -89,7 +89,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 					}
 
 					g.By("expecting the app service is available")
-					serviceIP, err := oc.Run("get").Args("service", c.serviceName).Template("{{ .spec.clusterIP }}").Output()
+					serviceIP, err := oc.Run("get").Args("service", c.serviceName, "--output=template", "--template={{ .spec.clusterIP }}").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(serviceIP).ShouldNot(o.Equal(""))
 
