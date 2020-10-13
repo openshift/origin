@@ -40,6 +40,17 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 			denialString := fmt.Sprintf("%v for %v.%v/%v -n %v happened %d times", event.Message, event.InvolvedObject.Kind, event.InvolvedObject.APIVersion, event.InvolvedObject.Name, event.InvolvedObject.Namespace, event.Count)
 			denialStrings = append(denialStrings, denialString)
 		}
-		result.Flakef(strings.Join(denialStrings, "\n"))
+
+		numFailingPods := len(denialStrings)
+		failMessage := fmt.Sprintf("%d pods failed on SCC errors\n%s\n", numFailingPods, strings.Join(denialStrings, "\n"))
+		if numFailingPods > 7 {
+			// deads2k chose seven as a number that passes nearly all the time on 4.6.  If this gets worse, we should double check against 4.6.
+			// if I was wrong about 4.6, then adjust this up.  If I am right about 4.6, then fix whatever regressed this.
+			// Because the CVO starts a static pod that races with the cluster-policy-controller, it is impractical to get this value to 0.
+			g.Fail(failMessage)
+			return
+		}
+
+		result.Flakef(failMessage)
 	})
 })
