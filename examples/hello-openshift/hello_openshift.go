@@ -2,14 +2,23 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
 	response := os.Getenv("RESPONSE")
 	if len(response) == 0 {
 		response = "Hello OpenShift!"
+	}
+
+	// Echo back the port the request was received on
+	// via a "request-port" header.
+	addr := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
+	if tcpAddr, ok := addr.(*net.TCPAddr); ok {
+		w.Header().Set("request-port", strconv.Itoa(tcpAddr.Port))
 	}
 
 	fmt.Fprintln(w, response)
