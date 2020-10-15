@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,10 +20,20 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 	g.It("should not have pod creation failures during install", func() {
 		kubeClient := oc.AdminKubeClient()
 
-		events, err := kubeClient.CoreV1().Events("").List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
+		isFIPS, err := exutil.IsFIPS(kubeClient.CoreV1())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		// deads2k chose five as a number that passes nearly all the time on 4.6.  If this gets worse, we should double check against 4.6.
+		// if I was wrong about 4.6, then adjust this up.  If I am right about 4.6, then fix whatever regressed this.
+		// Because the CVO starts a static pod that races with the cluster-policy-controller, it is impractical to get this value to 0.
+		numFailuresOkForFlake := 5
+		if isFIPS {
+			// for whatever reason, fips fails more frequently.  this isn't good and it's bad practice to have platform
+			// dependent tests, but we need to start the ratchet somewhere to prevent regressions.
+			numFailuresOkForFlake = 10
 		}
+
+		events, err := kubeClient.CoreV1().Events("").List(context.TODO(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		denialStrings := []string{}
 		for _, event := range events.Items {
@@ -43,10 +54,7 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 
 		numFailingPods := len(denialStrings)
 		failMessage := fmt.Sprintf("%d pods failed on SCC errors\n%s\n", numFailingPods, strings.Join(denialStrings, "\n"))
-		if numFailingPods > 7 {
-			// deads2k chose seven as a number that passes nearly all the time on 4.6.  If this gets worse, we should double check against 4.6.
-			// if I was wrong about 4.6, then adjust this up.  If I am right about 4.6, then fix whatever regressed this.
-			// Because the CVO starts a static pod that races with the cluster-policy-controller, it is impractical to get this value to 0.
+		if numFailingPods > numFailuresOkForFlake {
 			g.Fail(failMessage)
 			return
 		}
