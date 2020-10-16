@@ -138,8 +138,9 @@ func testPodTransitions(events []*monitor.EventInterval) []*JUnitTestCase {
 		},
 	}
 
-	// write a passing test to trigger detection of this issue as a flake. Doing this first to try to see how frequent the issue actually is
-	return []*JUnitTestCase{failure, success}
+	// TODO an upgrade job that starts before 4.6 may need to make this test flake instead of fail.  This will depend on which `openshift-tests`
+	//  is used to run that upgrade test.  I recommend waiting to a flake until we know and even then find a way to constrain it.
+	return []*JUnitTestCase{failure}
 }
 
 func testSystemDTimeout(events []*monitor.EventInterval) []*JUnitTestCase {
