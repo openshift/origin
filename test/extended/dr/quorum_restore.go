@@ -114,7 +114,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 						continue
 					}
 
-					framework.Logf("Destroying %s", masterMachine)
+					framework.Logf("Destroying master: %s IPs: %v", masterMachine, node.Status.Addresses)
 					err = ms.Delete(context.Background(), masterMachine, metav1.DeleteOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
@@ -162,7 +162,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				if expectedNumberOfMasters == 1 {
-					framework.Logf("Cannot create new masters, you must manually create masters and update their DNS entries according to the docs")
+					framework.Logf("Cannot create new masters, you must manually create masters")
 				} else {
 					framework.Logf("Create new masters")
 					for _, master := range masterMachines {
@@ -231,6 +231,14 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 						return true, nil
 					})
 					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+
+				node, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// verify new node IPs
+				for _, node := range node.Items {
+					framework.Logf("New master: %q IPs: %v", node.Name, node.Status.Addresses)
 				}
 
 				framework.Logf("Force new revision of etcd-pod")
