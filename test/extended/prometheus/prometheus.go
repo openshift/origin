@@ -68,7 +68,8 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			// is fixed, but for now we are ignoring KubePodCrashLooping alerts in the openshift-kube-controller-manager namespace.
 			`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity!="info"}[2h]) - count_over_time(ALERTS{alertname="KubePodCrashLooping",namespace="openshift-kube-controller-manager",alertstate="firing",severity!="info"}[2h]) >= 1`: false,
 		}
-		helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.It("should have a Watchdog alert in firing state the entire cluster run", func() {
@@ -83,7 +84,8 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			// should have constantly firing a watchdog alert
 			`count_over_time(ALERTS{alertstate="firing",alertname="Watchdog", severity="none"}[1h])`: true,
 		}
-		helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		e2e.Logf("Watchdog alert is firing")
 	})
@@ -105,11 +107,11 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			// rule contains the count of the all the series that are sent via telemetry.
 			`max_over_time(cluster:telemetry_selected_series:count[2h]) >= 600`: false,
 		}
-		helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		e2e.Logf("Total number of series sent via telemetry is below the limit")
 	})
-
 })
 
 var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
@@ -152,7 +154,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				// should have scraped some metrics from prometheus
 				`federate_samples{job="telemeter-client"} >= 10`: true,
 			}
-			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			e2e.Logf("Telemetry is enabled: %s", bearerToken)
 		})
@@ -295,7 +298,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			tests := map[string]bool{
 				`ALERTS{alertstate=~"firing|pending",alertname="AlertmanagerReceiversNotConfigured"} == 1`: true,
 			}
-			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			e2e.Logf("AlertmanagerReceiversNotConfigured alert is firing")
 		})
@@ -322,7 +326,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				`sum(node_role_os_version_machine:cpu_capacity_cores:sum{label_kubernetes_io_arch!="",label_node_role_kubernetes_io_master!=""}) > 0`:                                      true,
 				`sum(node_role_os_version_machine:cpu_capacity_sockets:sum{label_kubernetes_io_arch!="",label_node_hyperthread_enabled!="",label_node_role_kubernetes_io_master!=""}) > 0`: true,
 			}
-			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 		g.It("should have non-Pod host cAdvisor metrics", func() {
 			oc.SetupProject()
@@ -335,7 +340,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			tests := map[string]bool{
 				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"} >= 1`: true,
 			}
-			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 		g.It("shouldn't have failing rules evaluation", func() {
 			oc.SetupProject()
@@ -348,7 +354,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			tests := map[string]bool{
 				`prometheus_rule_evaluation_failures_total >= 1`: false,
 			}
-			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 		networking.InOpenShiftSDNContext(func() {
 			g.It("should be able to get the sdn ovs flows", func() {
@@ -363,7 +370,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 					//something
 					`openshift_sdn_ovs_flows >= 1`: true,
 				}
-				helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+				err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 		})
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early]", func() {
@@ -381,7 +389,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 				`ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|PrometheusRemoteWriteDesiredShards",alertstate="firing",severity!="info"} >= 1`: false,
 			}
-			helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 		g.It("should provide ingress metrics", func() {
 			oc.SetupProject()
@@ -418,7 +427,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				`template_router_reload_seconds_count{job="router-internal-default"} >= 1`: true,
 				`haproxy_server_up{job="router-internal-default"} >= 1`:                    true,
 			}
-			helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 		g.It("should provide named network metrics", func() {
 			oc.SetupProject()
@@ -449,7 +459,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",interface="eth0"} == 0`, execPod.Name, execPod.Namespace):                true,
 				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",network_name="%s/secondary"} == 0`, execPod.Name, execPod.Namespace, ns): true,
 			}
-			helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
+			err = helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 })

@@ -79,7 +79,8 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 			terminalTests := map[string]bool{
 				buildCountMetricName: true,
 			}
-			helper.RunQueries(terminalTests, oc, ns, execPod.Name, url, bearerToken)
+			err = helper.RunQueries(terminalTests, oc, ns, execPod.Name, url, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// NOTE:  in manual testing on a laptop, starting several serial builds in succession was sufficient for catching
 			// at least a few builds in new/pending state with the default prometheus query interval;  but that has not

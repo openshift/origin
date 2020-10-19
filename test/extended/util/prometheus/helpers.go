@@ -12,6 +12,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/util/errors"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/prometheus/common/model"
@@ -114,7 +115,7 @@ func ExpectPrometheus(f *framework.Framework) (url, bearerToken string, oc *exut
 }
 
 // RunQueries executes Prometheus queries and checks provided expected result.
-func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
+func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) error {
 	// expect all correct metrics within a reasonable time period
 	queryErrors := make(map[string]error)
 	passed := make(map[string]struct{})
@@ -129,7 +130,9 @@ func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 			g.By("perform prometheus metric query " + query)
 			url := fmt.Sprintf("%s/api/v1/query?%s", baseURL, (url.Values{"query": []string{query}}).Encode())
 			contents, err := GetBearerTokenURLViaPod(ns, execPodName, url, bearerToken)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				return err
+			}
 
 			// check query result, if this is a new error log it, otherwise remain silent
 			var result PrometheusResponse
@@ -171,7 +174,11 @@ func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 	if len(queryErrors) != 0 {
 		exutil.DumpPodLogsStartingWith("prometheus-0", oc)
 	}
-	o.Expect(queryErrors).To(o.BeEmpty())
+	var errs []error
+	for query, err := range queryErrors {
+		errs = append(errs, fmt.Errorf("query failed: %s: %s", query, err))
+	}
+	return errors.NewAggregate(errs)
 }
 
 // ExpectURLStatusCodeExec attempts connection to url returning an error
