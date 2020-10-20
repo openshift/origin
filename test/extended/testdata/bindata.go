@@ -2057,7 +2057,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: centos/ruby-25-centos7:latest
     type: Source
 `)
 
@@ -2092,7 +2092,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: centos/ruby-25-centos7:latest
     type: Source
 `)
 
@@ -2249,8 +2249,8 @@ EXPOSE 8080
 ENV RACK_ENV production
 ENV RAILS_ENV production
 COPY . /opt/app-root/src/
-RUN scl enable rh-ruby22 "bundle install"
-CMD ["scl", "enable", "rh-ruby22", "./run.sh"]
+RUN scl enable rh-ruby25 "bundle install"
+CMD ["scl", "enable", "rh-ruby25", "./run.sh"]
 
 USER default
 `)
