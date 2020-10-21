@@ -35,9 +35,12 @@ import (
 
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
-		controlplane.NewKubeAvailableTest(),
-		controlplane.NewOpenShiftAvailableTest(),
-		controlplane.NewOAuthAvailableTest(),
+		controlplane.NewKubeAvailableWithNewConnectionsTest(),
+		controlplane.NewOpenShiftAvailableNewConnectionsTest(),
+		controlplane.NewOAuthAvailableNewConnectionsTest(),
+		controlplane.NewKubeAvailableWithConnectionReuseTest(),
+		controlplane.NewOpenShiftAvailableWithConnectionReuseTest(),
+		controlplane.NewOAuthAvailableWithConnectionReuseTest(),
 		&alert.UpgradeTest{},
 		&frontends.AvailableTest{},
 		&service.UpgradeTest{},
