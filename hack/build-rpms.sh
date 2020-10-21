@@ -40,6 +40,7 @@ OS_RPM_SPECFILE="$( find "${OS_ROOT}" -name *.spec )"
 OS_RPM_NAME="$( rpmspec -q --qf '%{name}\n' "${OS_RPM_SPECFILE}" | head -1 )"
 
 os::log::info "Building release RPMs for ${OS_RPM_SPECFILE} ..."
+os::log::info "Golang version: `go version`"
 
 rpm_tmp_dir="${BASETMPDIR}/rpm"
 
