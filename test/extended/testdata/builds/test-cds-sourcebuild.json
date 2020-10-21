@@ -25,14 +25,14 @@
         "triggers": [],
         "source":{
           "type":"Dockerfile",
-          "dockerfile":"FROM centos:7\nRUN sleep 10m"
+          "dockerfile":"FROM quay.io/fedora/fedora:34-x86_64 \nRUN sleep 10m"
         },
         "strategy": {
           "type": "Source",
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/busybox:latest"
+              "name": "quay.io/quay/busybox:latest"
             }
           }
         }

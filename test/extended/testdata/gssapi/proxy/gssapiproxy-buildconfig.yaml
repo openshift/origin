@@ -18,7 +18,7 @@ spec:
     dockerStrategy:
       from:
         kind: "DockerImage"
-        name: "fedora:23"
+        name: "quay.io/fedora/fedora:34-x86_64"
   output:
     to:
       kind: "ImageStreamTag"

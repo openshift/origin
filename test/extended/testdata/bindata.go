@@ -19116,7 +19116,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: docker.io/openshift/test-build-simples2i:latest
+          name: quay.io/redhat-developer/test-build-simples2i:latest
     resources: {}
     postCommit: {}
     nodeSelector: null
@@ -19802,7 +19802,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson = []byte(`{
       "dockerStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "docker.io/busybox:latest"
+          "name": "quay.io/quay/busybox:latest"
         },
         "env": [
           {
@@ -19907,7 +19907,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "docker.io/centos/ruby-25-centos7"
+          "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
         },
         "env": [
           {
@@ -20120,7 +20120,7 @@ var _testExtendedTestdataBuildsBuildTimingTestDockerBuildJson = []byte(`{
         "forcePull": true,
         "from": {
           "kind": "DockerImage",
-          "name": "docker.io/busybox:latest"
+          "name": "quay.io/quay/busybox:latest"
         },
         "env": [
           {
@@ -20199,7 +20199,7 @@ var _testExtendedTestdataBuildsBuildTimingTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "docker.io/openshift/test-build-simples2i:latest"
+          "name": "quay.io/redhat-developer/test-build-simples2i:latest"
         },
         "env": [
           {
@@ -20518,7 +20518,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-25-centos7:latest"
+              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
             },
             "incremental": true
           }
@@ -20707,7 +20707,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
 `)
 
 func testExtendedTestdataBuildsStatusfailBadcontextdirs2iYamlBytes() ([]byte, error) {
@@ -20737,7 +20737,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: docker.io/openshift/test-build-simples2i:latest
+        name: quay.io/redhat-developer/test-build-simples2i:latest
 `)
 
 func testExtendedTestdataBuildsStatusfailFailedassembleYamlBytes() ([]byte, error) {
@@ -20807,7 +20807,7 @@ spec:
     dockerStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes() ([]byte, error) {
@@ -20838,7 +20838,7 @@ spec:
     dockerStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsourcedockerYamlBytes() ([]byte, error) {
@@ -20869,7 +20869,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsources2iYamlBytes() ([]byte, error) {
@@ -20900,7 +20900,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
       scripts: "http://example.org/scripts"
       env:
         - name: http_proxy
@@ -20938,7 +20938,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
       forcePull: true
 `)
 
@@ -20972,7 +20972,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: docker.io/openshift/test-build-simples2i:latest
+        name: quay.io/redhat-developer/test-build-simples2i:latest
     type: Source
 `)
 
@@ -21008,7 +21008,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: docker.io/openshift/test-build-simples2i:latest
+        name: quay.io/redhat-developer/test-build-simples2i:latest
     type: Source
 `)
 
@@ -21061,7 +21061,7 @@ objects:
           value: "5"
         from:
           kind: DockerImage
-          name: docker.io/openshift/test-build-simples2i:latest
+          name: quay.io/redhat-developer/test-build-simples2i:latest
       type: Source
     # this test specifically does a push, to help exercise the code that sets
     # environment variables on build pods (i.e., by having a source secret and
@@ -21130,13 +21130,13 @@ items:
       git:
         uri: https://github.com/sclorg/django-ex.git
         ref: refs/pull/121/head
-      dockerfile: FROM centos/python-36-centos7
+      dockerfile: FROM registry.redhat.io/ubi8/python-36:latest
     strategy:
       type: Docker
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/python-36-centos7
+          name: registry.redhat.io/ubi8/python-36:latest
     output:
       to:
         kind: ImageStreamTag
@@ -21240,7 +21240,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: docker.io/openshift/test-build-simples2i:latest
+          name: quay.io/redhat-developer/test-build-simples2i:latest
       type: Source
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
@@ -21258,7 +21258,7 @@ items:
           value: "5"
         from:
           kind: DockerImage
-          name: docker.io/openshift/test-build-simples2i:latest
+          name: quay.io/redhat-developer/test-build-simples2i:latest
       type: Source
 `)
 
@@ -21387,7 +21387,7 @@ items:
           value: 127.0.0.1:3128
         from:
           kind: DockerImage
-          name: docker.io/openshift/test-build-simples2i:latest
+          name: quay.io/redhat-developer/test-build-simples2i:latest
 - kind: BuildConfig
   apiVersion: v1
   metadata:
@@ -21409,7 +21409,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: docker.io/openshift/test-build-simples2i:latest
+          name: quay.io/redhat-developer/test-build-simples2i:latest
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -21436,7 +21436,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: docker.io/centos/ruby-25-centos7
+          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -21483,7 +21483,7 @@ var _testExtendedTestdataBuildsTestBuildRevisionJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/openshift/test-build-simples2i:latest"
+              "name": "quay.io/redhat-developer/test-build-simples2i:latest"
             }
           }
         },
@@ -21562,7 +21562,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-25-centos7
+          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
     resources: {}
   status:
     lastVersion: 0
@@ -21591,7 +21591,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-25-centos7
+          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
     resources: {}
   status:
     lastVersion: 0
@@ -21619,7 +21619,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-25-centos7
+          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
     resources: {}
   status:
     lastVersion: 0
@@ -21648,7 +21648,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-25-centos7
+          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
     resources: {}
   status:
     lastVersion: 0
@@ -21676,7 +21676,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-25-centos7
+          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue
@@ -21702,7 +21702,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: docker.io/busybox:latest
+          name: quay.io/quay/busybox:latest
     resources: {}
     postCommit: {}
     nodeSelector: 
@@ -21728,7 +21728,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: docker.io/busybox:latest
+          name: quay.io/quay/busybox:latest
         buildArgs:
         - name: foo
           value: default
@@ -21929,14 +21929,14 @@ var _testExtendedTestdataBuildsTestCdsSourcebuildJson = []byte(`{
         "triggers": [],
         "source":{
           "type":"Dockerfile",
-          "dockerfile":"FROM centos:7\nRUN sleep 10m"
+          "dockerfile":"FROM quay.io/fedora/fedora:34-x86_64 \nRUN sleep 10m"
         },
         "strategy": {
           "type": "Source",
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/busybox:latest"
+              "name": "quay.io/quay/busybox:latest"
             }
           }
         }
@@ -22005,7 +22005,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
           "git": {
             "uri":"https://github.com/sclorg/s2i-ruby-container"
           },
-          "contextDir": "2.3/test/puma-test-app"
+          "contextDir": "2.5/test/puma-test-app"
         },
         "strategy": {
           "type": "Source",
@@ -22018,7 +22018,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-23-centos7"
+              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
             }
           }
         },
@@ -22220,14 +22220,14 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
-        "dockerfile": "FROM docker.io/busybox:latest"
+        "dockerfile": "FROM quay.io/quay/busybox:latest"
       },
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
           "from": {
             "kind": "DockerImage",
-            "name": "docker.io/busybox:latest"
+            "name": "quay.io/quay/busybox:latest"
           }
         }
       },
@@ -22250,7 +22250,7 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
-        "dockerfile": "FROM docker.io/busybox:latest"
+        "dockerfile": "FROM quay.io/quay/busybox:latest"
       },
       "strategy": {
         "type": "Docker",
@@ -22304,7 +22304,7 @@ var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"docker.io/busybox:latest"
+          "name":"quay.io/quay/busybox:latest"
         }
       }
     },
@@ -22360,7 +22360,7 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
     "triggers": [],
     "source": {
       "type": "Git",
-      "dockerfile": "FROM docker.io/busybox:latest"
+      "dockerfile": "FROM quay.io/quay/busybox:latest"
     },
     "strategy": {
       "type": "Docker",
@@ -22373,7 +22373,7 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "docker.io/busybox:latest"
+          "name": "quay.io/quay/busybox:latest"
         }
       }
     }
@@ -22414,7 +22414,7 @@ var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
       "sourceStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/ruby-25-centos7"
+          "name":"registry.redhat.io/rhscl/ruby-25-rhel7:latest"
         }
       }
     },
@@ -22455,7 +22455,7 @@ items:
     - name: latest
       from:
         kind: DockerImage
-        name: centos/nodejs-6-centos7:latest
+        name: registry.redhat.io/ubi8/nodejs-12:latest
 
 - kind: BuildConfig
   apiVersion: v1
@@ -22929,7 +22929,7 @@ var _testExtendedTestdataBuildsTestNosrcBuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/openshift/test-build-simples2i:latest"
+              "name": "quay.io/redhat-developer/test-build-simples2i:latest"
             }
           }
         }
@@ -22981,7 +22981,7 @@ var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind":"DockerImage",
-          "name":"docker.io/openshift/test-build-simples2i:latest"
+          "name":"quay.io/redhat-developer/test-build-simples2i:latest"
         },
         "env": [
           {
@@ -23038,7 +23038,7 @@ var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "docker.io/openshift/test-build-simples2i:latest"
+          "name": "quay.io/redhat-developer/test-build-simples2i:latest"
         }
       }
     },
@@ -23109,7 +23109,7 @@ var _testExtendedTestdataBuildsTestS2iNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "docker.io/openshift/test-build-simples2i:latest"
+          "name": "quay.io/redhat-developer/test-build-simples2i:latest"
         }
       }
     }
@@ -23255,7 +23255,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: docker.io/openshift/test-build-simples2i:latest
+        name: quay.io/redhat-developer/test-build-simples2i:latest
       env:
         - name: BUILD_LOGLEVEL
           value: "5"
@@ -23391,7 +23391,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: docker.io/openshift/test-build-simples2i:latest
+        name: quay.io/redhat-developer/test-build-simples2i:latest
       env:
         - name: BUILD_LOGLEVEL
           value: "5"
@@ -45818,7 +45818,7 @@ spec:
     dockerStrategy:
       from:
         kind: "DockerImage"
-        name: "fedora:23"
+        name: "quay.io/fedora/fedora:34-x86_64"
   output:
     to:
       kind: "ImageStreamTag"
@@ -46874,7 +46874,7 @@ var _testExtendedTestdataImageTestImageJson = []byte(`{
     "name": "test",
     "creationTimestamp": null
   },
-  "dockerImageReference": "openshift/ruby-19-centos:latest",
+  "dockerImageReference": "registry.redhat.io/rhscl/ruby-25-rhel7:latest",
   "dockerImageMetadata": {
     "kind": "DockerImage",
     "apiVersion": "1.0",
@@ -47358,7 +47358,7 @@ spec:
   tags:
   - from:
       kind: DockerImage
-      name: docker.io/openshift/jenkins-slave-maven-centos7:latest
+      name: quay.io/openshift/origin-jenkins-agent-maven:latest
     name: base
   - annotations:
       role: jenkins-slave
@@ -48230,7 +48230,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-25-centos7"
+              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
             }
           }
         ]
@@ -48248,7 +48248,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-25-centos7"
+              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
             }
           }
         ]
@@ -48266,7 +48266,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-25-centos7"
+              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
             }
           }
         ]
@@ -49590,7 +49590,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "centos/ruby-25-centos7"
+                            "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
                         }
                     }
                 }
@@ -49619,7 +49619,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "centos/ruby-25-centos7"
+                            "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
                         }
                     }
                 }
@@ -52827,7 +52827,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-25-centos7"
+              name: "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
         resources: {}
       status: 
         lastVersion: 0
@@ -52874,7 +52874,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-25-centos7"
+              name: "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
     - 
       kind: "BuildConfig"
       apiVersion: "v1"
@@ -52895,7 +52895,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-25-centos7"
+              name: "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
 `)
 
 func testExtendedTestdataRun_policySerialBcYamlBytes() ([]byte, error) {
@@ -52938,7 +52938,7 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-25-centos7"
+              name: "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
         resources: {}
       status: 
         lastVersion: 0
@@ -53249,7 +53249,7 @@ items:
       - type: ConfigChange
     source:
       dockerfile: |
-        FROM openshift/origin-control-plane:latest
+        FROM quay.io/openshift/origin-control-plane:latest
         RUN yum-config-manager --disable origin-local-release ||:
         RUN yum install -y skopeo && \
             yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
@@ -53270,7 +53270,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: openshift/origin-control-plane:latest
+          name: quay.io/openshift/origin-control-plane:latest
     output:
       to:
         kind: ImageStreamTag
@@ -54314,7 +54314,7 @@ objects:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: docker.io/openshift/test-build-simples2i:latest
+          name: quay.io/redhat-developer/test-build-simples2i:latest
     output:
       to:
         kind: ImageStreamTag
@@ -55289,7 +55289,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-25-centos7"
+              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
             },
             "incremental": true
           }
@@ -55331,7 +55331,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-25-centos7"
+              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
             },
             "incremental": true
           }
