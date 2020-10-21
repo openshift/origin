@@ -16,6 +16,9 @@ import (
 	"strings"
 	"time"
 
+	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	yaml "gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
@@ -813,4 +816,38 @@ func defaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	// TODO: this should be configured by the caller, not in this method.
 	transport.MaxIdleConnsPerHost = 100
 	return transport
+}
+
+const (
+	installConfigName = "cluster-config-v1"
+)
+
+// installConfig The subset of openshift-install's InstallConfig we parse for this test
+type installConfig struct {
+	FIPS bool `json:"fips,omitempty"`
+}
+
+func IsFIPS(client clientcorev1.ConfigMapsGetter) (bool, error) {
+	// this currently uses an install config because it has a lower dependency threshold than going directly to the node.
+	installConfig, err := installConfigFromCluster(client)
+	if err != nil {
+		return false, err
+	}
+	return installConfig.FIPS, nil
+}
+
+func installConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*installConfig, error) {
+	cm, err := client.ConfigMaps("kube-system").Get(context.Background(), installConfigName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	data, ok := cm.Data["install-config"]
+	if !ok {
+		return nil, fmt.Errorf("no install-config found in kube-system/%s", installConfigName)
+	}
+	config := &installConfig{}
+	if err := yaml.Unmarshal([]byte(data), config); err != nil {
+		return nil, err
+	}
+	return config, nil
 }

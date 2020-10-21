@@ -11,35 +11,12 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"sigs.k8s.io/yaml"
 )
 
 const (
 	installConfigName = "cluster-config-v1"
 	fipsFile          = "/proc/sys/crypto/fips_enabled"
 )
-
-// installConfig The subset of openshift-install's InstallConfig we parse for this test
-type installConfig struct {
-	FIPS bool `json:"fips,omitempty"`
-}
-
-func installConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*installConfig, error) {
-	cm, err := client.ConfigMaps("kube-system").Get(context.Background(), installConfigName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	data, ok := cm.Data["install-config"]
-	if !ok {
-		return nil, fmt.Errorf("No install-config found in kube-system/%s", installConfigName)
-	}
-	config := &installConfig{}
-	if err := yaml.Unmarshal([]byte(data), config); err != nil {
-		return nil, err
-	}
-	return config, nil
-}
 
 func validateFIPSOnNode(oc *exutil.CLI, fipsExpected bool, node *corev1.Node) error {
 	command := []string{"cat", fipsFile}
@@ -63,7 +40,7 @@ var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 
 	g.It("TestFIPS", func() {
 		clusterAdminKubeClientset := oc.AdminKubeClient()
-		installConfig, err := installConfigFromCluster(clusterAdminKubeClientset.CoreV1())
+		isFIPS, err := exutil.IsFIPS(clusterAdminKubeClientset.CoreV1())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// fetch one control plane and one worker, and validate FIPS state on it
@@ -72,7 +49,7 @@ var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		masterNode := &masterNodes.Items[0]
-		err = validateFIPSOnNode(oc, installConfig.FIPS, masterNode)
+		err = validateFIPSOnNode(oc, isFIPS, masterNode)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		workerNodes, err := clusterAdminKubeClientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: "node-role.kubernetes.io/worker",
@@ -80,7 +57,7 @@ var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if len(workerNodes.Items) > 0 {
 			workerNode := &workerNodes.Items[0]
-			err = validateFIPSOnNode(oc, installConfig.FIPS, workerNode)
+			err = validateFIPSOnNode(oc, isFIPS, workerNode)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	})
