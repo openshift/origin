@@ -439,7 +439,10 @@ backend {{genBackendNamePrefix $cfg.TLSTermination}}:{{$cfgIdx}}
 
   {{- if not (isTrue (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
   cookie {{firstMatch $cookieNamePattern (index $cfg.Annotations "router.openshift.io/cookie_name") (env "ROUTER_COOKIE_NAME" "") $cfg.RoutingKeyName}} insert indirect nocache httponly
-    {{- if and (matchValues (print $cfg.TLSTermination) "edge" "reencrypt") (ne $cfg.InsecureEdgeTerminationPolicy "Allow") }} secure
+    {{- if and (matchValues (print $cfg.TLSTermination) "edge" "reencrypt") (ne $cfg.InsecureEdgeTerminationPolicy "Allow") }}
+      {{- with $samesite := firstMatch "Lax|Strict|None" (index $cfg.Annotations "router.openshift.io/cookie-same-site") "None" }}
+        {{- ""}} secure attr SameSite={{ $samesite }}
+      {{- end }}
     {{- end }}
   {{- end }}{{/* end disable cookies check */}}
 
