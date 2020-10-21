@@ -54,6 +54,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
@@ -458,7 +459,7 @@ func testVolumeContent(f *framework.Framework, pod *v1.Pod, fsGroup *int64, fsTy
 			// Block: check content
 			deviceName := fmt.Sprintf("/opt/%d", i)
 			commands := generateReadBlockCmd(deviceName, len(test.ExpectedContent))
-			_, err := framework.LookForStringInPodExec(pod.Namespace, pod.Name, commands, test.ExpectedContent, time.Minute)
+			_, err := lookForStringInPodExec(f, pod.Name, pod.Spec.Containers[0].Name, commands, test.ExpectedContent, time.Minute)
 			framework.ExpectNoError(err, "failed: finding the contents of the block device %s.", deviceName)
 
 			// Check that it's a real block device
@@ -467,7 +468,7 @@ func testVolumeContent(f *framework.Framework, pod *v1.Pod, fsGroup *int64, fsTy
 			// Filesystem: check content
 			fileName := fmt.Sprintf("/opt/%d/%s", i, test.File)
 			commands := generateReadFileCmd(fileName)
-			_, err := framework.LookForStringInPodExec(pod.Namespace, pod.Name, commands, test.ExpectedContent, time.Minute)
+			_, err := lookForStringInPodExec(f, pod.Name, pod.Spec.Containers[0].Name, commands, test.ExpectedContent, time.Minute)
 			framework.ExpectNoError(err, "failed: finding the contents of the mounted file %s.", fileName)
 
 			// Check that a directory has been mounted
@@ -478,14 +479,14 @@ func testVolumeContent(f *framework.Framework, pod *v1.Pod, fsGroup *int64, fsTy
 				// Filesystem: check fsgroup
 				if fsGroup != nil {
 					ginkgo.By("Checking fsGroup is correct.")
-					_, err = framework.LookForStringInPodExec(pod.Namespace, pod.Name, []string{"ls", "-ld", dirName}, strconv.Itoa(int(*fsGroup)), time.Minute)
+					_, err = lookForStringInPodExec(f, pod.Name, pod.Spec.Containers[0].Name, []string{"ls", "-ld", dirName}, strconv.Itoa(int(*fsGroup)), time.Minute)
 					framework.ExpectNoError(err, "failed: getting the right privileges in the file %v", int(*fsGroup))
 				}
 
 				// Filesystem: check fsType
 				if fsType != "" {
 					ginkgo.By("Checking fsType is correct.")
-					_, err = framework.LookForStringInPodExec(pod.Namespace, pod.Name, []string{"grep", " " + dirName + " ", "/proc/mounts"}, fsType, time.Minute)
+					_, err = lookForStringInPodExec(f, pod.Name, pod.Spec.Containers[0].Name, []string{"grep", " " + dirName + " ", "/proc/mounts"}, fsType, time.Minute)
 					framework.ExpectNoError(err, "failed: getting the right fsType %s", fsType)
 				}
 			}
@@ -546,19 +547,19 @@ func InjectContent(f *framework.Framework, config TestConfig, fsGroup *int64, fs
 
 	ginkgo.By("Writing text file contents in the container.")
 	for i, test := range tests {
-		commands := []string{"exec", injectorPod.Name, fmt.Sprintf("--namespace=%v", injectorPod.Namespace), "--"}
+		var commands []string
 		if test.Mode == v1.PersistentVolumeBlock {
 			// Block: write content
 			deviceName := fmt.Sprintf("/opt/%d", i)
-			commands = append(commands, generateWriteBlockCmd(test.ExpectedContent, deviceName)...)
+			commands =  generateWriteBlockCmd(test.ExpectedContent, deviceName)
 
 		} else {
 			// Filesystem: write content
 			fileName := fmt.Sprintf("/opt/%d/%s", i, test.File)
-			commands = append(commands, generateWriteFileCmd(test.ExpectedContent, fileName)...)
+			commands =  generateWriteFileCmd(test.ExpectedContent, fileName)
 		}
-		out, err := framework.RunKubectl(injectorPod.Namespace, commands...)
-		framework.ExpectNoError(err, "failed: writing the contents: %s", out)
+		stdout, stderr, err := f.ExecCommandInContainerWithFullOutput(injectorPod.Name, injectorPod.Spec.Containers[0].Name, commands...)
+		framework.ExpectNoError(err, "failed: writing the contents: stdout: %s; stderr: %s", stdout, stderr)
 	}
 
 	// Check that the data have been really written in this pod.
@@ -659,4 +660,19 @@ func GetTestImage(image string) string {
 		return imageutils.GetE2EImage(imageutils.Agnhost)
 	}
 	return image
+}
+
+func lookForStringInPodExec(f *framework.Framework, podName string, containerName string, command []string, expectedString string, timeout time.Duration) (stdout string, err error) {
+	var stderr string
+	err = wait.PollImmediate(time.Second, timeout, func()(bool, error) {
+		stdout, stderr, err = f.ExecCommandInContainerWithFullOutput(podName, containerName, command...)
+		if err != nil {
+			return false, fmt.Errorf("%s: stdout: %s; stderr: %s", err, stdout, stderr)
+		}
+		if strings.Contains(stdout, expectedString) {
+			return true, nil
+		}
+		return false, nil
+	})
+	return stdout, err
 }
