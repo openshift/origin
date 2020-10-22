@@ -58,6 +58,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 			})
 
 			g.It("should contain secrets during the source strategy build", func() {
+				g.Skip("Bug 1890328: CI version of docker does not handle symlinks correctly")
 				g.By("creating test build config")
 				err := oc.Run("create").Args("-f", sourceBuildFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

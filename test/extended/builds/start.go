@@ -171,7 +171,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("Uploading file"))
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("as binary input for the build ..."))
-					o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 				})
 
 				g.It("should accept --from-dir as input", func() {
@@ -183,7 +183,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					g.By(fmt.Sprintf("verifying the build %q status", br.BuildPath))
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("Uploading directory"))
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("as binary input for the build ..."))
-					o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 				})
 
 				g.It("should accept --from-repo as input", func() {
@@ -197,7 +197,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("Uploading"))
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(`at commit "HEAD"`))
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("as binary input for the build ..."))
-					o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 				})
 
 				g.It("should accept --from-repo with --commit as input", func() {
@@ -217,11 +217,12 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(fmt.Sprintf("at commit \"%s\"", commit)))
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("as binary input for the build ..."))
 					o.Expect(buildLog).To(o.ContainSubstring(fmt.Sprintf("\"commit\":\"%s\"", commit)))
-					o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 				})
 
 				// run one valid binary build so we can do --from-build later
 				g.It("should reject binary build requests without a --from-xxxx value", func() {
+					g.Skip("Bug 1890507: ruby build fails with corrupted gem")
 					g.By("starting a valid build with a directory")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build-binary", "--follow", fmt.Sprintf("--from-dir=%s", exampleBuild))
 					br.AssertSuccess()
@@ -229,7 +230,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("Uploading directory"))
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("as binary input for the build ..."))
-					o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 
 					g.By("starting a build without a --from-xxxx value")
 					br, err = exutil.StartBuildAndWait(oc, "sample-build-binary")
@@ -249,7 +250,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(fmt.Sprintf("Uploading file from %q as binary input for the build", exampleGemfileURL)))
-					o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 				})
 
 				g.It("shoud accept --from-archive with https URL as an input", func() {
@@ -260,7 +261,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(fmt.Sprintf("Uploading archive from %q as binary input for the build", exampleArchiveURL)))
-					o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+					o.Expect(buildLog).To(o.ContainSubstring("Build complete"))
 				})
 			})
 

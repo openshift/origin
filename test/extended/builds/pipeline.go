@@ -228,6 +228,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	g.Context("jenkins-client-plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
+			g.Skip("Bug 1890523: test fails removing the second deployment")
 			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
