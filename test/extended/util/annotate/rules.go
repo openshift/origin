@@ -1,16 +1,17 @@
 package main
 
-// NOTE: Only annotation rules targeting tests implemented in origin
-// should be added to this file.
-//
 // Rules defined here are additive to the rules already defined for
 // kube e2e tests in openshift/kubernetes. The kube rules are
 // vendored via the following file:
 //
 //   vendor/k8s.io/kubernetes/openshift-hack/e2e/annotate/rules.go
 //
-// Changes to rules for kube e2e tests should be proposed to
-// openshift/kubernetes and vendored back into origin.
+// Rules that are needed to pass the upstream e2e test suite in a
+// "default OCP CI" configuration (eg, AWS or GCP, openshift-sdn) must
+// be added to openshift/kubernetes to allow CI to pass there, and
+// then vendored back into origin. Rules that only apply to
+// "non-default" configurations (other clouds, other network
+// providers) should be added here.
 
 var (
 	testMaps = map[string][]string{
@@ -50,10 +51,13 @@ var (
 			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service`,
 		},
 		"[Skipped:gce]": {},
+
+		// tests that don't pass under openshift-sdn NetworkPolicy mode are specified
+		// in the rules file in openshift/kubernetes, not here.
+
 		// tests that don't pass under openshift-sdn multitenant mode
 		"[Skipped:Network/OpenShiftSDN/Multitenant]": {
 			`\[Feature:NetworkPolicy\]`, // not compatible with multitenant mode
-			`\[sig-network\] Services should preserve source pod IP for traffic thru service cluster IP`, // known bug, not planned to be fixed
 		},
 		// tests that don't pass under OVN Kubernetes
 		"[Skipped:Network/OVNKubernetes]": {
@@ -66,8 +70,9 @@ var (
 			`\[sig-network\] Services should have session affinity work for service with type clusterIP`,
 			`\[sig-network\] Services should have session affinity timeout work for NodePort service`,
 			`\[sig-network\] Services should have session affinity timeout work for service with type clusterIP`,
-			// https://github.com/kubernetes/kubernetes/pull/93597: upstream is flaky
-			`\[sig-network\] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service`,
+
+			// ovn-kubernetes does not support named ports
+			`NetworkPolicy.*named port`,
 		},
 		"[Skipped:ibmcloud]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)
