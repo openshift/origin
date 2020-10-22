@@ -188,7 +188,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 								return false, nil
 							}
 							if err != nil {
-								return false, err
+								framework.Logf("Debug: error creating machine %q: %q", master, err.Error())
+								return false, nil
 							}
 							return true, nil
 						})
@@ -230,6 +231,13 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 						return true, nil
 					})
 					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+
+				// debug
+				node, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				for _, node := range node.Items {
+					framework.Logf("New master: %q IPs: %v", node.Name, node.Status.Addresses)
 				}
 
 				framework.Logf("Force new revision of etcd-pod")
