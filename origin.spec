@@ -13,7 +13,6 @@
 # this is the version we obsolete up to. The packaging changed for Origin
 # 1.0.6 and OSE 3.1 such that 'openshift' package names were no longer used.
 %global package_refactor_version 3.0.2.900
-%global golang_version 1.15
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
@@ -81,7 +80,6 @@ ExclusiveArch:  x86_64 aarch64 ppc64le s390x
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
 BuildRequires:  bsdtar
-BuildRequires:  golang >= %{golang_version}
 BuildRequires:  krb5-devel
 BuildRequires:  rsync
 Requires:       %{name}-clients = %{version}-%{release}
