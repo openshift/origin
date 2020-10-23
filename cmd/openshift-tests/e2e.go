@@ -50,7 +50,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		The disruptive test suite.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Feature:EtcdRecovery]") || strings.Contains(name, "[Feature:NodeRecovery]")
+			return strings.Contains(name, "[Feature:EtcdRecovery]")
 		},
 		TestTimeout: 60 * time.Minute,
 	},

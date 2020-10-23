@@ -202,7 +202,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 							LabelSelector: "machine.openshift.io/cluster-api-machine-role=master",
 						})
 						if err != nil {
-							return false, err
+							framework.Logf("Debug: error listing machines %q", err.Error())
+							return false, nil
 						}
 						if mastersList.Items == nil {
 							return false, nil
