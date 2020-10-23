@@ -107,7 +107,7 @@
       "created_at":1409063699,
       "updated_at":"2014-08-26T14:34:59Z",
       "pushed_at":1409238007,
-      "git_url":"git://github.com/anonUser/anonRepo.git",
+      "git_url":"https://github.com/anonUser/anonRepo.git",
       "ssh_url":"git@github.com:anonUser/anonRepo.git",
       "clone_url":"https://github.com/anonUser/anonRepo.git",
       "svn_url":"https://github.com/anonUser/anonRepo",
