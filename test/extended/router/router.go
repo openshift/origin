@@ -35,7 +35,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			if err != nil {
 				panic(err)
 			}
-			exutil.DumpPodsCommand(oc.AdminKubeClient(), "default", selector, "cat /var/lib/haproxy/router/routes.json /var/lib//var/lib/haproxy/conf/haproxy.config")
+			exutil.DumpPodsCommand(oc.AdminKubeClient(), "default", selector, "cat /var/lib/haproxy/router/routes.json /var/lib/haproxy/conf/haproxy.config")
 		}
 	})
 
