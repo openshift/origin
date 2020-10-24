@@ -241,18 +241,9 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
 			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
 
-			// Prometheus is not reporting router metrics
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825029
-			`\[Feature:Prometheus\]\[Conformance\] Prometheus when installed on the cluster should provide ingress metrics`,
-			`\[Conformance\]\[Area:Networking\]\[Feature:Router\] The HAProxy router should enable openshift-monitoring to pull metrics`,
-
 			// ROKS cluster role bindings don't match expected results
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825030
 			`TestAuthorizationResourceAccessReview should succeed`,
-
-			// Test does not allow enough time for the pods to be created before deleting them
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825372
-			`Pod Container Status should never report success for a pending container`,
 		},
 		"[sig-node]": {
 			`\[NodeConformance\]`,
