@@ -415,6 +415,9 @@ func startResourceQuotaController(ctx ControllerContext) (http.Handler, bool, er
 	listerFuncForResource := generic.ListerFuncForResourceFunc(ctx.InformerFactory.ForResource)
 	quotaConfiguration := quotainstall.NewQuotaConfigurationForControllers(listerFuncForResource)
 
+	quotaEvaluators := quotaConfiguration.Evaluators()
+	quotaEvaluators = append(quotaEvaluators, openShiftResourceQuotaEvaluators(listerFuncForResource)...)
+
 	resourceQuotaControllerOptions := &resourcequotacontroller.ResourceQuotaControllerOptions{
 		QuotaClient:               resourceQuotaControllerClient.CoreV1(),
 		ResourceQuotaInformer:     ctx.InformerFactory.Core().V1().ResourceQuotas(),
@@ -424,7 +427,7 @@ func startResourceQuotaController(ctx ControllerContext) (http.Handler, bool, er
 		DiscoveryFunc:             discoveryFunc,
 		IgnoredResourcesFunc:      quotaConfiguration.IgnoredResources,
 		InformersStarted:          ctx.InformersStarted,
-		Registry:                  generic.NewRegistry(quotaConfiguration.Evaluators()),
+		Registry:                  generic.NewRegistry(quotaEvaluators),
 	}
 	if resourceQuotaControllerClient.CoreV1().RESTClient().GetRateLimiter() != nil {
 		if err := ratelimiter.RegisterMetricAndTrackRateLimiterUsage("resource_quota_controller", resourceQuotaControllerClient.CoreV1().RESTClient().GetRateLimiter()); err != nil {
