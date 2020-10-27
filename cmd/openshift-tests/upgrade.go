@@ -41,7 +41,7 @@ var upgradeSuites = []*ginkgo.TestSuite{
 		},
 		Init: func(opt map[string]string) error {
 			return upgradeInitArguments(opt, func(name string) bool {
-				return name == controlplane.NewKubeAvailableTest().Name() || name == controlplane.NewKubeAvailableTest().Name()
+				return name == controlplane.NewKubeAvailableWithNewConnectionsTest().Name() || name == controlplane.NewKubeAvailableWithNewConnectionsTest().Name()
 			})
 		},
 		TestTimeout: 240 * time.Minute,

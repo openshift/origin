@@ -61,9 +61,9 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 			disruption.TestData{},
 			[]upgrades.Test{
 				&upgrades.ServiceUpgradeTest{},
-				controlplane.NewKubeAvailableTest(),
-				controlplane.NewOpenShiftAvailableTest(),
-				controlplane.NewOAuthAvailableTest(),
+				controlplane.NewKubeAvailableWithNewConnectionsTest(),
+				controlplane.NewOpenShiftAvailableNewConnectionsTest(),
+				controlplane.NewOAuthAvailableNewConnectionsTest(),
 				&frontends.AvailableTest{},
 			},
 			func() {
