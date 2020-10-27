@@ -445,7 +445,9 @@ func (proxier *Proxier) probability(n int) string {
 
 // Sync is called to synchronize the proxier state to iptables as soon as possible.
 func (proxier *Proxier) Sync() {
+	proxier.mu.Lock()
 	proxier.changesPending = true
+	proxier.mu.Unlock()
 	proxier.syncRunner.Run()
 }
 
@@ -476,8 +478,7 @@ func (proxier *Proxier) OnServiceAdd(service *api.Service) {
 
 func (proxier *Proxier) OnServiceUpdate(oldService, service *api.Service) {
 	if proxier.serviceChanges.Update(oldService, service) && proxier.isInitialized() {
-		proxier.changesPending = true
-		proxier.syncRunner.Run()
+		proxier.Sync()
 	}
 }
 
@@ -502,8 +503,7 @@ func (proxier *Proxier) OnEndpointsAdd(endpoints *api.Endpoints) {
 
 func (proxier *Proxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints) {
 	if proxier.endpointsChanges.Update(oldEndpoints, endpoints) && proxier.isInitialized() {
-		proxier.changesPending = true
-		proxier.syncRunner.Run()
+		proxier.Sync()
 	}
 }
 
