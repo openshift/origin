@@ -190,7 +190,6 @@
 // test/extended/testdata/cmd/test/cmd/config.sh
 // test/extended/testdata/cmd/test/cmd/convert.sh
 // test/extended/testdata/cmd/test/cmd/create.sh
-// test/extended/testdata/cmd/test/cmd/debug.sh
 // test/extended/testdata/cmd/test/cmd/deployments.sh
 // test/extended/testdata/cmd/test/cmd/describer.sh
 // test/extended/testdata/cmd/test/cmd/edit.sh
@@ -286,7 +285,6 @@
 // test/extended/testdata/cmd/test/cmd/testdata/test-s2i-build.json
 // test/extended/testdata/cmd/test/cmd/testdata/test-service.json
 // test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml
-// test/extended/testdata/cmd/test/cmd/timeout.sh
 // test/extended/testdata/cmd/test/cmd/triggers.sh
 // test/extended/testdata/cmd/test/cmd/volumes.sh
 // test/extended/testdata/cmd/test/cmd/whoami.sh
@@ -441,18 +439,18 @@
 // test/extended/testdata/templates/templateinstance_readiness.yaml
 // test/extended/testdata/templates/templateservicebroker_bind.yaml
 // test/extended/testdata/test-cli-debug.yaml
+// test/extended/testdata/test-deployment-config.yaml
 // test/extended/testdata/test-env-pod.json
 // test/extended/testdata/test-gitserver.yaml
+// test/extended/testdata/test-replication-controller.yaml
 // test/extended/testdata/test-secret.json
 // test/extended/testdata/verifyservice-pipeline-template.yaml
 // test/integration/testdata/project-request-template-with-quota.yaml
 // test/integration/testdata/test-buildcli-beta2.json
 // test/integration/testdata/test-buildcli.json
-// test/integration/testdata/test-deployment-config.yaml
 // test/integration/testdata/test-image-stream-mapping.json
 // test/integration/testdata/test-image-stream.json
 // test/integration/testdata/test-image.json
-// test/integration/testdata/test-replication-controller.yaml
 // test/integration/testdata/test-route.json
 // test/integration/testdata/test-service-with-finalizer.json
 // test/integration/testdata/test-service.json
@@ -31209,107 +31207,6 @@ func testExtendedTestdataCmdTestCmdCreateSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdDebugSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all,templates --all
-  exit 0
-) &>/dev/null
-
-os::test::junit::declare_suite_start "cmd/debug"
-# This test validates the debug command
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
-os::cmd::expect_success_and_text "oc debug dc/test-deployment-config -o yaml" '\- /bin/sh'
-os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --keep-annotations -o yaml" 'annotations:'
-os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --as-root -o yaml" 'runAsUser: 0'
-os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --as-root=false -o yaml" 'runAsNonRoot: true'
-os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --as-user=1 -o yaml" 'runAsUser: 1'
-os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --keep-liveness --keep-readiness -o yaml" ''
-os::cmd::expect_success_and_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" '\- /bin/env'
-os::cmd::expect_success_and_text "oc debug -t dc/test-deployment-config -o yaml" 'stdinOnce'
-os::cmd::expect_success_and_text "oc debug -t dc/test-deployment-config -o yaml" 'tty'
-os::cmd::expect_success_and_text "oc debug --v=8 -t dc/test-deployment-config -o yaml" "Response Headers"
-os::cmd::expect_success_and_not_text "oc debug --tty=false dc/test-deployment-config -o yaml" 'tty'
-os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'stdin'
-os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'tty'
-os::cmd::expect_failure_and_text "oc debug dc/test-deployment-config --node-name=invalid -- /bin/env" 'on node "invalid"'
-# Does not require a real resource on the server
-os::cmd::expect_success_and_not_text "oc debug -T -f ${TEST_DATA}/hello-openshift/hello-pod.json -o yaml" 'tty'
-os::cmd::expect_success_and_text "oc debug -f ${TEST_DATA}/hello-openshift/hello-pod.json --keep-liveness --keep-readiness -o yaml" ''
-os::cmd::expect_success_and_text "oc debug -f ${TEST_DATA}/hello-openshift/hello-pod.json -o yaml -- /bin/env" '\- /bin/env'
-os::cmd::expect_success_and_not_text "oc debug -f ${TEST_DATA}/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'stdin'
-os::cmd::expect_success_and_not_text "oc debug -f ${TEST_DATA}/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'tty'
-# TODO: write a test that emulates a TTY to verify the correct defaulting of what the pod is created
-
-# Ensure debug does not depend on a container actually existing for the selected resource.
-# The command should not hang waiting for an attachable pod. Timeout each cmd after 10s.
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-replication-controller.yaml'
-os::cmd::expect_success 'oc scale --replicas=0 rc/test-replication-controller'
-os::cmd::expect_success_and_text "oc debug --request-timeout=10s -c ruby-helloworld --one-container rc/test-replication-controller -o jsonpath='{.metadata.name}'" 'test-replication-controller-debug'
-
-os::cmd::expect_success 'oc scale --replicas=0 dc/test-deployment-config'
-os::cmd::expect_success_and_text "oc debug --request-timeout=10s -c ruby-helloworld --one-container dc/test-deployment-config -o jsonpath='{.metadata.name}'" 'test-deployment-config'
-
-tmp_deploy="$(mktemp)"
-os::cmd::expect_success 'oc create -f - >> $tmp_deploy << __EOF__
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: test-deployment
-  labels:
-    deployment: test-deployment
-spec:
-  replicas: 0
-  selector:
-    matchLabels:
-      deployment: test-deployment
-  template:
-    metadata:
-      labels:
-        deployment: test-deployment
-      name: test-deployment
-    spec:
-      containers:
-      - name: ruby-helloworld
-        image: openshift/origin-pod
-        imagePullPolicy: IfNotPresent
-        resources: {}
-status: {}
-__EOF__'
-os::cmd::expect_success_and_text "oc debug --request-timeout=10s -c ruby-helloworld --one-container deploy/test-deployment -o jsonpath='{.metadata.name}'" 'test-deployment-debug'
-
-# re-scale existing resources
-os::cmd::expect_success 'oc scale --replicas=1 dc/test-deployment-config'
-
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
-os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
-os::cmd::expect_success_and_text "oc debug istag/wildfly:latest -o yaml" 'image:.*cmd-debug/wildfly.*@'
-sha="$( oc get istag/wildfly:latest --template '{{ .image.metadata.name }}' )"
-os::cmd::expect_success_and_text "oc debug isimage/wildfly@${sha} -o yaml" 'image: docker.io/openshift/wildfly-150-centos7'
-
-echo "debug: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdDebugShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdDebugSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdDebugSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdDebugShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/debug.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdDeploymentsSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -43000,45 +42897,6 @@ func testExtendedTestdataCmdTestCmdTestdataTestStreamYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTimeoutSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all,templates --all
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/request-timeout"
-# This test validates the global request-timeout option
-os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
-os::cmd::expect_success_and_text 'oc get dc/testdc -w -v=5 --request-timeout=1s 2>&1' 'request canceled'
-os::cmd::expect_success_and_text 'oc get dc/testdc --request-timeout=1s' 'testdc'
-os::cmd::expect_success_and_text 'oc get dc/testdc --request-timeout=1' 'testdc'
-os::cmd::expect_success_and_text 'oc get pods --watch -v=5 --request-timeout=1s 2>&1' 'request canceled'
-
-echo "request-timeout: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdTimeoutShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTimeoutSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdTimeoutSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTimeoutShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/timeout.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdTriggersSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -54625,6 +54483,66 @@ func testExtendedTestdataTestCliDebugYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataTestDeploymentConfigYaml = []byte(`apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: test-deployment-config
+spec:
+  replicas: 1
+  selector:
+    name: test-deployment
+  strategy:
+    type: Recreate
+    recreateParams:
+      timeoutSeconds: 20
+      post:
+        failurePolicy: Ignore
+        tagImages:
+        - containerName: ruby-helloworld
+          to:
+            kind: ImageStreamTag
+            name: origin-ruby-sample:deployed
+  template:
+    metadata:
+      labels:
+        name: test-deployment
+    spec:
+      containers:
+      - image: openshift/origin-pod
+        imagePullPolicy: IfNotPresent
+        name: ruby-helloworld
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 3Gi
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - emptyDir: {}
+        name: vol1
+  triggers:
+  - type: ConfigChange
+status: {}
+`)
+
+func testExtendedTestdataTestDeploymentConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTestDeploymentConfigYaml, nil
+}
+
+func testExtendedTestdataTestDeploymentConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTestDeploymentConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/test-deployment-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataTestEnvPodJson = []byte(`{
   "kind":"Pod",
   "apiVersion":"v1",
@@ -54883,6 +54801,54 @@ func testExtendedTestdataTestGitserverYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/test-gitserver.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTestReplicationControllerYaml = []byte(`apiVersion: v1
+kind: ReplicationController
+metadata:
+  annotations:
+    openshift.io/deployment-config.latest-version: "1"
+    openshift.io/deployment-config.name: test-deployment
+    openshift.io/deployment.phase: Complete
+    optnshift.io/deployment.replicas: "1"
+  name: test-replication-controller
+spec:
+  replicas: 1
+  selector:
+    deployment: test-deployment
+    deploymentconfig: test-deployment
+  template:
+    metadata:
+      labels:
+        deployment: test-deployment
+        deploymentconfig: test-deployment
+    spec:
+      containers:
+      - image: openshift/origin-pod
+        imagePullPolicy: IfNotPresent
+        name: ruby-helloworld
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+status: {}
+`)
+
+func testExtendedTestdataTestReplicationControllerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTestReplicationControllerYaml, nil
+}
+
+func testExtendedTestdataTestReplicationControllerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTestReplicationControllerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/test-replication-controller.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -55367,66 +55333,6 @@ func testIntegrationTestdataTestBuildcliJson() (*asset, error) {
 	return a, nil
 }
 
-var _testIntegrationTestdataTestDeploymentConfigYaml = []byte(`apiVersion: v1
-kind: DeploymentConfig
-metadata:
-  name: test-deployment-config
-spec:
-  replicas: 1
-  selector:
-    name: test-deployment
-  strategy:
-    type: Recreate
-    recreateParams:
-      timeoutSeconds: 20
-      post:
-        failurePolicy: Ignore
-        tagImages:
-        - containerName: ruby-helloworld
-          to:
-            kind: ImageStreamTag
-            name: origin-ruby-sample:deployed
-  template:
-    metadata:
-      labels:
-        name: test-deployment
-    spec:
-      containers:
-      - image: openshift/origin-pod
-        imagePullPolicy: IfNotPresent
-        name: ruby-helloworld
-        ports:
-        - containerPort: 8080
-          protocol: TCP
-        resources:
-          limits:
-            cpu: 100m
-            memory: 3Gi
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      volumes:
-      - emptyDir: {}
-        name: vol1
-  triggers:
-  - type: ConfigChange
-status: {}
-`)
-
-func testIntegrationTestdataTestDeploymentConfigYamlBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestDeploymentConfigYaml, nil
-}
-
-func testIntegrationTestdataTestDeploymentConfigYaml() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestDeploymentConfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-deployment-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testIntegrationTestdataTestImageStreamMappingJson = []byte(`{
   "kind": "ImageStreamMapping",
   "apiVersion": "v1",
@@ -55530,54 +55436,6 @@ func testIntegrationTestdataTestImageJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/integration/testdata/test-image.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataTestReplicationControllerYaml = []byte(`apiVersion: v1
-kind: ReplicationController
-metadata:
-  annotations:
-    openshift.io/deployment-config.latest-version: "1"
-    openshift.io/deployment-config.name: test-deployment
-    openshift.io/deployment.phase: Complete
-    optnshift.io/deployment.replicas: "1"
-  name: test-replication-controller
-spec:
-  replicas: 1
-  selector:
-    deployment: test-deployment
-    deploymentconfig: test-deployment
-  template:
-    metadata:
-      labels:
-        deployment: test-deployment
-        deploymentconfig: test-deployment
-    spec:
-      containers:
-      - image: openshift/origin-pod
-        imagePullPolicy: IfNotPresent
-        name: ruby-helloworld
-        ports:
-        - containerPort: 8080
-          protocol: TCP
-        resources: {}
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-status: {}
-`)
-
-func testIntegrationTestdataTestReplicationControllerYamlBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestReplicationControllerYaml, nil
-}
-
-func testIntegrationTestdataTestReplicationControllerYaml() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestReplicationControllerYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-replication-controller.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -55951,7 +55809,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/config.sh":                                                          testExtendedTestdataCmdTestCmdConfigSh,
 	"test/extended/testdata/cmd/test/cmd/convert.sh":                                                         testExtendedTestdataCmdTestCmdConvertSh,
 	"test/extended/testdata/cmd/test/cmd/create.sh":                                                          testExtendedTestdataCmdTestCmdCreateSh,
-	"test/extended/testdata/cmd/test/cmd/debug.sh":                                                           testExtendedTestdataCmdTestCmdDebugSh,
 	"test/extended/testdata/cmd/test/cmd/deployments.sh":                                                     testExtendedTestdataCmdTestCmdDeploymentsSh,
 	"test/extended/testdata/cmd/test/cmd/describer.sh":                                                       testExtendedTestdataCmdTestCmdDescriberSh,
 	"test/extended/testdata/cmd/test/cmd/edit.sh":                                                            testExtendedTestdataCmdTestCmdEditSh,
@@ -56047,7 +55904,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/test-s2i-build.json":                                       testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/test-service.json":                                         testExtendedTestdataCmdTestCmdTestdataTestServiceJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml":                                          testExtendedTestdataCmdTestCmdTestdataTestStreamYaml,
-	"test/extended/testdata/cmd/test/cmd/timeout.sh":                                                         testExtendedTestdataCmdTestCmdTimeoutSh,
 	"test/extended/testdata/cmd/test/cmd/triggers.sh":                                                        testExtendedTestdataCmdTestCmdTriggersSh,
 	"test/extended/testdata/cmd/test/cmd/volumes.sh":                                                         testExtendedTestdataCmdTestCmdVolumesSh,
 	"test/extended/testdata/cmd/test/cmd/whoami.sh":                                                          testExtendedTestdataCmdTestCmdWhoamiSh,
@@ -56202,18 +56058,18 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/templates/templateinstance_readiness.yaml":                                       testExtendedTestdataTemplatesTemplateinstance_readinessYaml,
 	"test/extended/testdata/templates/templateservicebroker_bind.yaml":                                       testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
 	"test/extended/testdata/test-cli-debug.yaml":                                                             testExtendedTestdataTestCliDebugYaml,
+	"test/extended/testdata/test-deployment-config.yaml":                                                     testExtendedTestdataTestDeploymentConfigYaml,
 	"test/extended/testdata/test-env-pod.json":                                                               testExtendedTestdataTestEnvPodJson,
 	"test/extended/testdata/test-gitserver.yaml":                                                             testExtendedTestdataTestGitserverYaml,
+	"test/extended/testdata/test-replication-controller.yaml":                                                testExtendedTestdataTestReplicationControllerYaml,
 	"test/extended/testdata/test-secret.json":                                                                testExtendedTestdataTestSecretJson,
 	"test/extended/testdata/verifyservice-pipeline-template.yaml":                                            testExtendedTestdataVerifyservicePipelineTemplateYaml,
 	"test/integration/testdata/project-request-template-with-quota.yaml":                                     testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
 	"test/integration/testdata/test-buildcli-beta2.json":                                                     testIntegrationTestdataTestBuildcliBeta2Json,
 	"test/integration/testdata/test-buildcli.json":                                                           testIntegrationTestdataTestBuildcliJson,
-	"test/integration/testdata/test-deployment-config.yaml":                                                  testIntegrationTestdataTestDeploymentConfigYaml,
 	"test/integration/testdata/test-image-stream-mapping.json":                                               testIntegrationTestdataTestImageStreamMappingJson,
 	"test/integration/testdata/test-image-stream.json":                                                       testIntegrationTestdataTestImageStreamJson,
 	"test/integration/testdata/test-image.json":                                                              testIntegrationTestdataTestImageJson,
-	"test/integration/testdata/test-replication-controller.yaml":                                             testIntegrationTestdataTestReplicationControllerYaml,
 	"test/integration/testdata/test-route.json":                                                              testIntegrationTestdataTestRouteJson,
 	"test/integration/testdata/test-service-with-finalizer.json":                                             testIntegrationTestdataTestServiceWithFinalizerJson,
 	"test/integration/testdata/test-service.json":                                                            testIntegrationTestdataTestServiceJson,
@@ -56563,7 +56419,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"config.sh":               {testExtendedTestdataCmdTestCmdConfigSh, map[string]*bintree{}},
 							"convert.sh":              {testExtendedTestdataCmdTestCmdConvertSh, map[string]*bintree{}},
 							"create.sh":               {testExtendedTestdataCmdTestCmdCreateSh, map[string]*bintree{}},
-							"debug.sh":                {testExtendedTestdataCmdTestCmdDebugSh, map[string]*bintree{}},
 							"deployments.sh":          {testExtendedTestdataCmdTestCmdDeploymentsSh, map[string]*bintree{}},
 							"describer.sh":            {testExtendedTestdataCmdTestCmdDescriberSh, map[string]*bintree{}},
 							"edit.sh":                 {testExtendedTestdataCmdTestCmdEditSh, map[string]*bintree{}},
@@ -56679,7 +56534,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 								"test-service.json":                {testExtendedTestdataCmdTestCmdTestdataTestServiceJson, map[string]*bintree{}},
 								"test-stream.yaml":                 {testExtendedTestdataCmdTestCmdTestdataTestStreamYaml, map[string]*bintree{}},
 							}},
-							"timeout.sh":  {testExtendedTestdataCmdTestCmdTimeoutSh, map[string]*bintree{}},
 							"triggers.sh": {testExtendedTestdataCmdTestCmdTriggersSh, map[string]*bintree{}},
 							"volumes.sh":  {testExtendedTestdataCmdTestCmdVolumesSh, map[string]*bintree{}},
 							"whoami.sh":   {testExtendedTestdataCmdTestCmdWhoamiSh, map[string]*bintree{}},
@@ -56929,8 +56783,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"templateservicebroker_bind.yaml":   {testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, map[string]*bintree{}},
 				}},
 				"test-cli-debug.yaml":                  {testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
+				"test-deployment-config.yaml":          {testExtendedTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
 				"test-env-pod.json":                    {testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
 				"test-gitserver.yaml":                  {testExtendedTestdataTestGitserverYaml, map[string]*bintree{}},
+				"test-replication-controller.yaml":     {testExtendedTestdataTestReplicationControllerYaml, map[string]*bintree{}},
 				"test-secret.json":                     {testExtendedTestdataTestSecretJson, map[string]*bintree{}},
 				"verifyservice-pipeline-template.yaml": {testExtendedTestdataVerifyservicePipelineTemplateYaml, map[string]*bintree{}},
 			}},
@@ -56940,11 +56796,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"project-request-template-with-quota.yaml": {testIntegrationTestdataProjectRequestTemplateWithQuotaYaml, map[string]*bintree{}},
 				"test-buildcli-beta2.json":                 {testIntegrationTestdataTestBuildcliBeta2Json, map[string]*bintree{}},
 				"test-buildcli.json":                       {testIntegrationTestdataTestBuildcliJson, map[string]*bintree{}},
-				"test-deployment-config.yaml":              {testIntegrationTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
 				"test-image-stream-mapping.json":           {testIntegrationTestdataTestImageStreamMappingJson, map[string]*bintree{}},
 				"test-image-stream.json":                   {testIntegrationTestdataTestImageStreamJson, map[string]*bintree{}},
 				"test-image.json":                          {testIntegrationTestdataTestImageJson, map[string]*bintree{}},
-				"test-replication-controller.yaml":         {testIntegrationTestdataTestReplicationControllerYaml, map[string]*bintree{}},
 				"test-route.json":                          {testIntegrationTestdataTestRouteJson, map[string]*bintree{}},
 				"test-service-with-finalizer.json":         {testIntegrationTestdataTestServiceWithFinalizerJson, map[string]*bintree{}},
 				"test-service.json":                        {testIntegrationTestdataTestServiceJson, map[string]*bintree{}},
