@@ -1619,8 +1619,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-rest-http-crud db repo  Building nodejs-postgresql app from new-app should build a nodejs-postgresql image and run it in a pod": "should build a nodejs-postgresql image and run it in a pod",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo  Building cakephp-mysql app from new-app should build a cakephp-mysql image and run it in a pod": "should build a cakephp-mysql image and run it in a pod",
-
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][python] test python images with django-ex db repo  Building django-psql app from new-app should build a django-psql image and run it in a pod": "should build a django-psql image and run it in a pod",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][ruby] test ruby images with rails-ex db repo  Building rails-postgresql app from new-app should build a rails-postgresql image and run it in a pod": "should build a rails-postgresql image and run it in a pod",
@@ -1630,8 +1628,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift mysql image  Creating from a template should instantiate the template": "should instantiate the template",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image  hot deploy test should work": "should work",
-
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy for openshift php image  CakePHP example should work with hot deploy": "should work with hot deploy",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy for openshift python image  Django example should work with hot deploy": "should work with hot deploy",
 
