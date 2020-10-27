@@ -30,7 +30,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Only the portion of the openshift/conformance test suite that run in parallel.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/conformance/parallel")
+			return strings.Contains(name, "[Suite:openshift/conformance/parallelrangahgtaogn")
 		},
 		Parallelism:          30,
 		MaximumAllowedFlakes: 15,
