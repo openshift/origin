@@ -25501,11 +25501,11 @@ var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
             "value": "openshift"
         },
         {
-            "description": "Version of PHP image to be used (7.1 or latest).",
+            "description": "Version of PHP image to be used (7.2, 7.3 or latest).",
             "displayName": "PHP Version",
             "name": "PHP_VERSION",
             "required": true,
-            "value": "7.1"
+            "value": "latest"
         },
         {
             "description": "Maximum amount of memory the CakePHP container can use.",
@@ -27158,11 +27158,11 @@ var _testExtendedTestdataClusterQuickstartsNodejsMongodbJson = []byte(`{
             "value": "openshift"
         },
         {
-            "description": "Version of NodeJS image to be used (6, 8, or latest).",
+            "description": "Version of NodeJS image to be used (10, 12 or latest).",
             "displayName": "Version of NodeJS Image",
             "name": "NODEJS_VERSION",
             "required": true,
-            "value": "8"
+            "value": "latest"
         },
         {
             "description": "Version of MongoDB image to be used (3.6 or latest).",
