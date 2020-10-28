@@ -1,0 +1,7 @@
+[rhel-server-ose]
+name=rhel-server-ose
+baseurl=http://mirror.openshift.com/pub/openshift-v3/dependencies/ci/haproxy/
+enabled=1
+gpgcheck=0
+skip_if_unavailable=1
+
