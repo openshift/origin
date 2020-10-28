@@ -1409,6 +1409,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client Update Demo should scale a replication controller  [Conformance]": "should scale a replication controller  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
+	"[Top Level] [sig-cli] oc --request-timeout works as expected": "works as expected [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc adm build-chain": "build-chain [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm cluster-role-reapers": "cluster-role-reapers [Suite:openshift/conformance/parallel]",
@@ -1441,6 +1443,16 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc adm who-can": "who-can [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc debug deployment configs from a build": "deployment configs from a build [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc debug dissect deployment config debug": "dissect deployment config debug [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc debug does not require a real resource on the server": "does not require a real resource on the server [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc debug ensure debug does not depend on a container actually existing for the selected resource": "ensure debug does not depend on a container actually existing for the selected resource [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc debug ensure it works with image streams": "ensure it works with image streams [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": "should contain proper fields description for special networking types [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc explain should contain proper fields description for special types": "should contain proper fields description for special types [Suite:openshift/conformance/parallel]",
@@ -1468,8 +1480,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/convert.sh": "test/cmd/convert.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/create.sh": "test/cmd/create.sh",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/debug.sh": "test/cmd/debug.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/deployments.sh": "test/cmd/deployments.sh",
 
@@ -1525,8 +1535,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/templates.sh": "test/cmd/templates.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/timeout.sh": "test/cmd/timeout.sh",
-
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/triggers.sh": "test/cmd/triggers.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/volumes.sh": "test/cmd/volumes.sh",
@@ -1552,14 +1560,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --progress flag": "should honor the --progress flag",
 
 	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods using a watch should watch for changes and rsync them": "should watch for changes and rsync them",
-
-	"[Top Level] [sig-cli][Slow] oc debug should print the container image-based container entrypoint/command": "should print the container image-based container entrypoint/command",
-
-	"[Top Level] [sig-cli][Slow] oc debug should print the imagestream-based container entrypoint/command": "should print the imagestream-based container entrypoint/command",
-
-	"[Top Level] [sig-cli][Slow] oc debug should print the overridden container image-based container entrypoint/command": "should print the overridden container image-based container entrypoint/command",
-
-	"[Top Level] [sig-cli][Slow] oc debug should print the overridden imagestream-based container entrypoint/command": "should print the overridden imagestream-based container entrypoint/command",
 
 	"[Top Level] [sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved": "CSRs from machines that are not recognized by the cloud provider are not approved [Suite:openshift/conformance/parallel]",
 
