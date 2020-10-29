@@ -37,8 +37,8 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy fo
 		})
 
 		g.Describe("CakePHP example", func() {
-			g.Skip("disabling cakephp until upstream problem addressed")
 			g.It(fmt.Sprintf("should work with hot deploy"), func() {
+				g.Skip("disabling cakephp until upstream problem addressed: https://bugzilla.redhat.com/show_bug.cgi?id=1891989")
 
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app %q -p %q", cakephpTemplate, hotDeployParam))
