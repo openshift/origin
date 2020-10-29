@@ -1081,6 +1081,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds] buildconfig secret injector  should inject secrets to the appropriate buildconfigs": "should inject secrets to the appropriate buildconfigs [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-builds][Feature:Builds] clone repository using git:// protocol  should clone using git:// if no proxy is configured": "should clone using git:// if no proxy is configured [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-builds][Feature:Builds] custom build with buildah  being created from new-build should complete build with custom builder image": "should complete build with custom builder image [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds] imagechangetriggers  imagechangetriggers should trigger builds of all types": "imagechangetriggers should trigger builds of all types [Suite:openshift/conformance/parallel]",

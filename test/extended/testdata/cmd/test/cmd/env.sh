@@ -40,7 +40,7 @@ metadata:
 spec:
   source:
     git:
-      uri: git://github.com/openshift/ruby-hello-world.git
+      uri: https://github.com/openshift/ruby-hello-world.git
   strategy:
     jenkinsPipelineStrategy: {}
 ' | oc create -f -"
