@@ -123,6 +123,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		})
 
 		g.It("should report ready soon after all annotated objects are ready", func() {
+			g.Skip("disabling cakephp until upstream problem addressed: https://bugzilla.redhat.com/show_bug.cgi?id=1891989")
 			var err error
 
 			templateinstance = &templatev1.TemplateInstance{
@@ -172,6 +173,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		})
 
 		g.It("should report failed soon after an annotated objects has failed", func() {
+			g.Skip("disabling cakephp until upstream problem addressed: https://bugzilla.redhat.com/show_bug.cgi?id=1891989")
 			var err error
 
 			secret, err := cli.KubeClient().Core().Secrets(cli.Namespace()).Create(&v1.Secret{
