@@ -543,6 +543,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces": "should control resource limits across namespaces [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources": "should properly count the number of imagestreams resources [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-apps] CronJob should delete failed finished jobs with limit of one job": "should delete failed finished jobs with limit of one job [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-apps] CronJob should delete successful finished jobs with limit of one successful job": "should delete successful finished jobs with limit of one successful job [Suite:openshift/conformance/parallel] [Suite:k8s]",
