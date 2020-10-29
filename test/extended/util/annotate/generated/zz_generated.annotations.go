@@ -1629,6 +1629,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image  hot deploy test should work": "should work",
 
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy for openshift php image  CakePHP example should work with hot deploy": "should work with hot deploy",
+
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy for openshift python image  Django example should work with hot deploy": "should work with hot deploy",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy for openshift ruby image  Rails example should work with hot deploy": "should work with hot deploy",
