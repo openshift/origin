@@ -44,7 +44,7 @@
       "dockerStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "docker.io/busybox:latest"
+          "name": "quay.io/quay/busybox:latest"
         },
         "env": [
           {

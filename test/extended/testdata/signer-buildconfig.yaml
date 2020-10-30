@@ -16,7 +16,7 @@ items:
       - type: ConfigChange
     source:
       dockerfile: |
-        FROM openshift/origin-control-plane:latest
+        FROM quay.io/openshift/origin-control-plane:latest
         RUN yum-config-manager --disable origin-local-release ||:
         RUN yum install -y skopeo && \
             yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
@@ -37,7 +37,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: openshift/origin-control-plane:latest
+          name: quay.io/openshift/origin-control-plane:latest
     output:
       to:
         kind: ImageStreamTag

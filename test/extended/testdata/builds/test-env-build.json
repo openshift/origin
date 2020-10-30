@@ -17,7 +17,7 @@
       "sourceStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/ruby-25-centos7"
+          "name":"registry.redhat.io/rhscl/ruby-25-rhel7:latest"
         }
       }
     },
