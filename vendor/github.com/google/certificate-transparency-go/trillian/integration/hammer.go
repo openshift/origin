@@ -28,7 +28,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/certificate-transparency-go/client"
-	"github.com/google/certificate-transparency-go/merkletree"
 	"github.com/google/certificate-transparency-go/tls"
 	"github.com/google/certificate-transparency-go/trillian/ctfe"
 	"github.com/google/certificate-transparency-go/trillian/ctfe/configpb"
@@ -397,7 +396,7 @@ func (s *hammerState) addChain(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to tls.Marshal leaf cert: %v", err)
 	}
-	submitted.leafHash = sha256.Sum256(append([]byte{merkletree.LeafPrefix}, submitted.leafData...))
+	submitted.leafHash = sha256.Sum256(append([]byte{ct.TreeLeafPrefix}, submitted.leafData...))
 	s.pending.tryAppendCert(time.Now(), s.cfg.MMD, &submitted)
 	glog.V(3).Infof("%s: Uploaded cert has leaf-hash %x", s.cfg.LogCfg.Prefix, submitted.leafHash)
 	return nil
@@ -446,7 +445,7 @@ func (s *hammerState) addPreChain(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("tls.Marshal(precertLeaf)=(nil,%v); want (_,nil)", err)
 	}
-	submitted.leafHash = sha256.Sum256(append([]byte{merkletree.LeafPrefix}, submitted.leafData...))
+	submitted.leafHash = sha256.Sum256(append([]byte{ct.TreeLeafPrefix}, submitted.leafData...))
 	s.pending.tryAppendCert(time.Now(), s.cfg.MMD, &submitted)
 	glog.V(3).Infof("%s: Uploaded pre-cert has leaf-hash %x", s.cfg.LogCfg.Prefix, submitted.leafHash)
 	return nil
@@ -544,7 +543,7 @@ func (s *hammerState) getProofByHash(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get-proof-by-hash(size=%d) on cert with SCT @ %v: %v, %+v", sth.TreeSize, timeFromMS(submitted.sct.Timestamp), err, rsp)
 	}
-	if err := Verifier.VerifyInclusionProof(rsp.LeafIndex, int64(sth.TreeSize), rsp.AuditPath, sth.SHA256RootHash[:], submitted.leafData); err != nil {
+	if err := Verifier.VerifyInclusionProof(rsp.LeafIndex, int64(sth.TreeSize), rsp.AuditPath, sth.SHA256RootHash[:], submitted.leafHash[:]); err != nil {
 		return fmt.Errorf("failed to VerifyInclusionProof(%d, %d)=%v", rsp.LeafIndex, sth.TreeSize, err)
 	}
 	s.pending.dropOldest()

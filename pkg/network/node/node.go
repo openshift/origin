@@ -34,6 +34,7 @@ import (
 	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
+	"k8s.io/kubernetes/pkg/util/iptables"
 	kexec "k8s.io/utils/exec"
 
 	networkapi "github.com/openshift/api/network/v1"
@@ -86,29 +87,30 @@ type OsdnNodeConfig struct {
 	KubeInformers    kinternalinformers.SharedInformerFactory
 	NetworkInformers networkinformers.SharedInformerFactory
 
-	IPTablesSyncPeriod time.Duration
-	ProxyMode          kubeproxyconfig.ProxyMode
-	MasqueradeBit      *int32
+	IPTables      iptables.Interface
+	ProxyMode     kubeproxyconfig.ProxyMode
+	MasqueradeBit *int32
 }
 
 type OsdnNode struct {
-	policy             osdnPolicy
-	kClient            kclientset.Interface
-	networkClient      networkclient.Interface
-	recorder           record.EventRecorder
-	oc                 *ovsController
-	networkInfo        *common.NetworkInfo
-	podManager         *podManager
-	clusterCIDRs       []string
-	localSubnetCIDR    string
-	localGatewayCIDR   string
-	localIP            string
-	hostName           string
-	useConnTrack       bool
-	iptablesSyncPeriod time.Duration
-	mtu                uint32
-	masqueradeBit      uint32
-	cniDirPath         string
+	policy           osdnPolicy
+	kClient          kclientset.Interface
+	networkClient    networkclient.Interface
+	recorder         record.EventRecorder
+	oc               *ovsController
+	networkInfo      *common.NetworkInfo
+	podManager       *podManager
+	clusterCIDRs     []string
+	localSubnetCIDR  string
+	localGatewayCIDR string
+	localIP          string
+	hostName         string
+	useConnTrack     bool
+	ipt              iptables.Interface
+	nodeIPTables     *NodeIPTables
+	mtu              uint32
+	masqueradeBit    uint32
+	cniDirPath       string
 
 	// Synchronizes operations on egressPolicies
 	egressPoliciesLock sync.Mutex
@@ -148,7 +150,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		// Not an OpenShift plugin
 		return nil, nil
 	}
-	glog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.Hostname, c.SelfIP, c.IPTablesSyncPeriod.String())
+	glog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q)", c.PluginName, c.Hostname, c.SelfIP)
 
 	if useConnTrack && c.ProxyMode != kubeproxyconfig.ProxyModeIPTables {
 		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
@@ -179,24 +181,24 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 	}
 
 	plugin := &OsdnNode{
-		policy:             policy,
-		kClient:            c.KClient,
-		networkClient:      c.NetworkClient,
-		recorder:           c.Recorder,
-		oc:                 oc,
-		podManager:         newPodManager(c.KClient, policy, c.MTU, c.CNIBinDir, oc, c.EnableHostports, c.DNSIP),
-		localIP:            c.SelfIP,
-		hostName:           c.Hostname,
-		useConnTrack:       useConnTrack,
-		iptablesSyncPeriod: c.IPTablesSyncPeriod,
-		mtu:                c.MTU,
-		masqueradeBit:      masqBit,
-		egressPolicies:     make(map[uint32][]networkapi.EgressNetworkPolicy),
-		egressDNS:          egressDNS,
-		kubeInformers:      c.KubeInformers,
-		networkInformers:   c.NetworkInformers,
-		egressIP:           newEgressIPWatcher(oc, c.SelfIP, c.MasqueradeBit),
-		cniDirPath:         c.CNIConfDir,
+		policy:           policy,
+		kClient:          c.KClient,
+		networkClient:    c.NetworkClient,
+		recorder:         c.Recorder,
+		oc:               oc,
+		podManager:       newPodManager(c.KClient, policy, c.MTU, c.CNIBinDir, oc, c.EnableHostports, c.DNSIP),
+		localIP:          c.SelfIP,
+		hostName:         c.Hostname,
+		useConnTrack:     useConnTrack,
+		ipt:              c.IPTables,
+		mtu:              c.MTU,
+		masqueradeBit:    masqBit,
+		egressPolicies:   make(map[uint32][]networkapi.EgressNetworkPolicy),
+		egressDNS:        egressDNS,
+		kubeInformers:    c.KubeInformers,
+		networkInformers: c.NetworkInformers,
+		egressIP:         newEgressIPWatcher(oc, c.SelfIP, c.MasqueradeBit),
+		cniDirPath:       c.CNIConfDir,
 
 		runtimeEndpoint: c.RuntimeEndpoint,
 		// 2 minutes is the current default value used in kubelet
@@ -307,9 +309,9 @@ func (node *OsdnNode) Start() error {
 	for _, cn := range node.networkInfo.ClusterNetworks {
 		node.clusterCIDRs = append(node.clusterCIDRs, cn.ClusterCIDR.String())
 	}
-	nodeIPTables := newNodeIPTables(node.clusterCIDRs, node.iptablesSyncPeriod, !node.useConnTrack, node.networkInfo.VXLANPort, node.masqueradeBit)
 
-	if err = nodeIPTables.Setup(); err != nil {
+	node.nodeIPTables = newNodeIPTables(node.ipt, node.clusterCIDRs, !node.useConnTrack, node.networkInfo.VXLANPort, node.masqueradeBit)
+	if err = node.nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("failed to set up iptables: %v", err)
 	}
 
@@ -328,7 +330,7 @@ func (node *OsdnNode) Start() error {
 		if err := node.SetupEgressNetworkPolicy(); err != nil {
 			return err
 		}
-		if err := node.egressIP.Start(node.networkInformers, nodeIPTables); err != nil {
+		if err := node.egressIP.Start(node.networkInformers, node.nodeIPTables); err != nil {
 			return err
 		}
 	}
@@ -345,14 +347,13 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	if err = node.podManager.InitRunningPods(existingSandboxPods, existingOFPodNetworks, runningPods); err != nil {
+	if err = node.podManager.InitRunningPods(existingSandboxPods, existingOFPodNetworks, runningPods, networkChanged); err != nil {
 		return err
 	}
 
 	glog.V(2).Infof("Starting openshift-sdn pod manager")
 	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR,
-		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String(),
-		networkChanged); err != nil {
+		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String()); err != nil {
 		return err
 	}
 
@@ -471,7 +472,8 @@ func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
 	return err
 }
 
-func (node *OsdnNode) GetRunningPods(namespace string) ([]kapi.Pod, error) {
+// GetRunningPods returns a mapping of all running pods, as: namespace/name -> kapi.Pod
+func (node *OsdnNode) GetRunningPods(namespace string) (map[string]kapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
 	opts := metav1.ListOptions{
 		LabelSelector: labels.Everything().String(),
@@ -483,10 +485,10 @@ func (node *OsdnNode) GetRunningPods(namespace string) ([]kapi.Pod, error) {
 	}
 
 	// Filter running pods
-	pods := make([]kapi.Pod, 0, len(podList.Items))
+	pods := make(map[string]kapi.Pod)
 	for _, pod := range podList.Items {
 		if pod.Status.Phase == kapi.PodRunning {
-			pods = append(pods, pod)
+			pods[getPodKey(pod.Namespace, pod.Name)] = pod
 		}
 	}
 	return pods, nil
@@ -560,4 +562,8 @@ func validateNetworkPluginName(networkClient networkclient.Interface, pluginName
 		return fmt.Errorf("detected network plugin mismatch between OpenShift node(%q) and master(%q)", pluginName, clusterNetwork.PluginName)
 	}
 	return nil
+}
+
+func (node *OsdnNode) ReloadIPTables() error {
+	return node.nodeIPTables.syncIPTableRules()
 }

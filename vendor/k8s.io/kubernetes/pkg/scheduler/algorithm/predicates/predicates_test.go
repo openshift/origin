@@ -348,9 +348,9 @@ func TestPodFitsResources(t *testing.T) {
 				schedulercache.Resource{MilliCPU: 1, Memory: 1, ScalarResources: map[v1.ResourceName]int64{extendedResourceB: 1}}),
 			nodeInfo: schedulercache.NewNodeInfo(
 				newResourcePod(schedulercache.Resource{MilliCPU: 0, Memory: 0})),
-			fits: true,
+			fits:                     true,
 			ignoredExtendedResources: sets.NewString(string(extendedResourceB)),
-			test: "skip checking ignored extended resource",
+			test:                     "skip checking ignored extended resource",
 		},
 	}
 
@@ -1947,6 +1947,7 @@ func TestInterPodAffinity(t *testing.T) {
 		fits                 bool
 		test                 string
 		expectFailureReasons []algorithm.PredicateFailureReason
+		expectErr            string
 	}{
 		{
 			pod:  new(v1.Pod),
@@ -2519,6 +2520,70 @@ func TestInterPodAffinity(t *testing.T) {
 			fits: true,
 			test: "verify that PodAntiAffinity from existing pod is respected when pod has no AntiAffinity constraints. satisfy PodAntiAffinity symmetry with the existing pod",
 		},
+		{
+			pod: &v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: podLabel,
+				},
+				Spec: v1.PodSpec{
+					Affinity: &v1.Affinity{
+						PodAffinity: &v1.PodAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "service",
+												Operator: metav1.LabelSelectorOpIn,
+												Values:   []string{"{{ .Release.Name }}"},
+											},
+										},
+									},
+									TopologyKey: "region",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectFailureReasons: []algorithm.PredicateFailureReason{ErrPodAffinityNotMatch},
+			node:                 &node1,
+			fits:                 false,
+			test:                 "invalid affinity fails with error",
+			expectErr:            "invalid label",
+		},
+		{
+			pod: &v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: podLabel,
+				},
+				Spec: v1.PodSpec{
+					Affinity: &v1.Affinity{
+						PodAntiAffinity: &v1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "service",
+												Operator: metav1.LabelSelectorOpIn,
+												Values:   []string{"{{ .Release.Name }}"},
+											},
+										},
+									},
+									TopologyKey: "region",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectFailureReasons: []algorithm.PredicateFailureReason{ErrPodAffinityNotMatch},
+			node:                 &node1,
+			fits:                 false,
+			test:                 "invalid antiaffinity fails with error",
+			expectErr:            "invalid label",
+		},
 	}
 
 	for _, test := range tests {
@@ -2537,12 +2602,21 @@ func TestInterPodAffinity(t *testing.T) {
 		nodeInfo := schedulercache.NewNodeInfo(podsOnNode...)
 		nodeInfo.SetNode(test.node)
 		nodeInfoMap := map[string]*schedulercache.NodeInfo{test.node.Name: nodeInfo}
-		fits, reasons, _ := fit.InterPodAffinityMatches(test.pod, PredicateMetadata(test.pod, nodeInfoMap), nodeInfo)
-		if !fits && !reflect.DeepEqual(reasons, test.expectFailureReasons) {
-			t.Errorf("%s: unexpected failure reasons: %v, want: %v", test.test, reasons, test.expectFailureReasons)
-		}
-		if fits != test.fits {
-			t.Errorf("%s: expected %v got %v", test.test, test.fits, fits)
+		fits, reasons, err := fit.InterPodAffinityMatches(test.pod, PredicateMetadata(test.pod, nodeInfoMap), nodeInfo)
+		if err != nil {
+			if !strings.Contains(err.Error(), test.expectErr) {
+				t.Errorf("unexpected error: %+v", err)
+			}
+		} else {
+			if len(test.expectErr) > 0 {
+				t.Errorf("did not see expected error: %s", test.expectErr)
+			}
+			if !fits && !reflect.DeepEqual(reasons, test.expectFailureReasons) {
+				t.Errorf("%s: unexpected failure reasons: %v, want: %v", test.test, reasons, test.expectFailureReasons)
+			}
+			if fits != test.fits {
+				t.Errorf("%s: expected %v got %v", test.test, test.fits, fits)
+			}
 		}
 	}
 }
@@ -2611,7 +2685,7 @@ func TestInterPodAffinityWithMultipleNodes(t *testing.T) {
 				"machine3": false,
 			},
 			nodesExpectAffinityFailureReasons: [][]algorithm.PredicateFailureReason{nil, nil, {ErrPodAffinityNotMatch, ErrPodAffinityRulesNotMatch}},
-			test: "A pod can be scheduled onto all the nodes that have the same topology key & label value with one of them has an existing pod that match the affinity rules",
+			test:                              "A pod can be scheduled onto all the nodes that have the same topology key & label value with one of them has an existing pod that match the affinity rules",
 		},
 		{
 			pod: &v1.Pod{

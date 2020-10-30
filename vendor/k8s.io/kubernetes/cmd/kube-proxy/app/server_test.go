@@ -28,61 +28,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
-	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 	"k8s.io/kubernetes/pkg/util/configz"
 	utilpointer "k8s.io/kubernetes/pkg/util/pointer"
 )
-
-type fakeNodeInterface struct {
-	node api.Node
-}
-
-func (fake *fakeNodeInterface) Get(hostname string, options metav1.GetOptions) (*api.Node, error) {
-	return &fake.node, nil
-}
-
-type fakeIPTablesVersioner struct {
-	version string // what to return
-	err     error  // what to return
-}
-
-func (fake *fakeIPTablesVersioner) GetVersion() (string, error) {
-	return fake.version, fake.err
-}
-
-func (fake *fakeIPTablesVersioner) IsCompatible() error {
-	return fake.err
-}
-
-type fakeIPSetVersioner struct {
-	version string // what to return
-	err     error  // what to return
-}
-
-func (fake *fakeIPSetVersioner) GetVersion() (string, error) {
-	return fake.version, fake.err
-}
-
-type fakeKernelCompatTester struct {
-	ok bool
-}
-
-func (fake *fakeKernelCompatTester) IsCompatible() error {
-	if !fake.ok {
-		return fmt.Errorf("error")
-	}
-	return nil
-}
-
-// fakeKernelHandler implements KernelHandler.
-type fakeKernelHandler struct {
-	modules []string
-}
-
-func (fake *fakeKernelHandler) GetModules() ([]string, error) {
-	return fake.modules, nil
-}
 
 // This test verifies that NewProxyServer does not crash when CleanupAndExit is true.
 func TestProxyServerWithCleanupAndExit(t *testing.T) {

@@ -111,7 +111,7 @@ func makeBuild() *buildapiv1.Build {
 }
 
 func TestDockerBuildError(t *testing.T) {
-	t.SkipNow() // Restore test after fixing bz-1866789I
+	t.Skipf("Bug 1889868: skipping test requiring access to a docker socket")
 	expErr := errors.New("Artificial exception: Error building")
 	s2iBuilder := newTestS2IBuilder(testS2IBuilderConfig{
 		buildError: expErr,
@@ -122,7 +122,7 @@ func TestDockerBuildError(t *testing.T) {
 }
 
 func TestPushError(t *testing.T) {
-	t.SkipNow() // Restore test after fixing bz-1866789I
+	t.Skipf("Bug 1889868: skipping test requiring access to a docker socket")
 	expErr := errors.New("Artificial exception: Error pushing image")
 	s2iBuilder := newTestS2IBuilder(testS2IBuilderConfig{
 		errPushImage: expErr,
@@ -133,7 +133,7 @@ func TestPushError(t *testing.T) {
 }
 
 func TestGetStrategyError(t *testing.T) {
-	t.SkipNow() // Restore test after fixing bz-1866789I
+	t.Skipf("Bug 1889868: skipping test requiring access to a docker socket")
 	expErr := errors.New("Artificial exception: config error")
 	s2iBuilder := newTestS2IBuilder(testS2IBuilderConfig{
 		getStrategyErr: expErr,

@@ -30,22 +30,22 @@ func TestValidateRedirectURI(t *testing.T) {
 
 		// With ports
 		"https://server:",
-		"https://server:port",
+		"https://server:80",
 
 		// With or without paths, with or without trailing slashes
-		"https://server:port/",
-		"https://server:port/path-segment",
-		"https://server:port/path-segment/",
+		"https://server:80/",
+		"https://server:80/path-segment",
+		"https://server:80/path-segment/",
 
 		// Things that are close to disallowed path segments
-		"https://server:port/...",
-		"https://server:port/.../",
-		"https://server:port/path-segment/...",
-		"https://server:port/path-segment/path.",
-		"https://server:port/path-segment/path./",
+		"https://server:80/...",
+		"https://server:80/.../",
+		"https://server:80/path-segment/...",
+		"https://server:80/path-segment/path.",
+		"https://server:80/path-segment/path./",
 
 		// Double slashes
-		"https://server:port/path-segment//path",
+		"https://server:80/path-segment//path",
 
 		// Queries
 		"http://server/path?",
@@ -64,7 +64,7 @@ func TestValidateRedirectURI(t *testing.T) {
 
 	disallowed := []string{
 		// invalid URL
-		"://server:port/",
+		"://server:80/",
 
 		// . or .. segments
 		"http://server/.",

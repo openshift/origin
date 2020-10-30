@@ -16,10 +16,12 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/util/interrupt"
+	"k8s.io/kubernetes/pkg/util/iptables"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -220,6 +222,13 @@ func StartNetwork(nodeConfig configapi.NodeConfig, components *utilflags.Compone
 	}
 	if components.Enabled(ComponentProxy) {
 		networkConfig.RunProxy(proxyInitChan)
+	}
+	if components.Enabled(ComponentPlugins) && components.Enabled(ComponentProxy) {
+		go networkConfig.IPTables.Monitor(iptables.Chain("OPENSHIFT-SDN-CANARY"),
+			[]iptables.Table{iptables.TableMangle, iptables.TableNAT, iptables.TableFilter},
+			networkConfig.ReloadIPTables,
+			networkConfig.ProxyConfig.IPTables.SyncPeriod.Duration,
+			utilwait.NeverStop)
 	}
 	if components.Enabled(ComponentDNS) && networkConfig.DNSServer != nil {
 		networkConfig.RunDNS(stopCh)

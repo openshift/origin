@@ -21,12 +21,12 @@ import (
 	"flag"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
 	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
@@ -35,17 +35,23 @@ import (
 )
 
 var (
-	sourceLogURI         = flag.String("source_log_uri", "http://ct.googleapis.com/aviator", "CT log base URI to fetch entries from")
-	targetLogURI         = flag.String("target_log_uri", "http://example.com/ct", "CT log base URI to add entries to")
-	targetTemporalLogCfg = flag.String("target_temporal_log_cfg", "", "File holding temporal log configuration")
-	batchSize            = flag.Int("batch_size", 1000, "Max number of entries to request at per call to get-entries")
-	numWorkers           = flag.Int("num_workers", 2, "Number of concurrent matchers")
-	parallelFetch        = flag.Int("parallel_fetch", 2, "Number of concurrent GetEntries fetches")
-	parallelSubmit       = flag.Int("parallel_submit", 2, "Number of concurrent add-[pre]-chain requests")
-	startIndex           = flag.Int64("start_index", 0, "Log index to start scanning at")
-	quiet                = flag.Bool("quiet", false, "Don't print out extra logging messages, only matches.")
-	sctInputFile         = flag.String("sct_file", "", "File to save SCTs & leaf data to")
-	precertsOnly         = flag.Bool("precerts_only", false, "Only match precerts")
+	sourceLogURI          = flag.String("source_log_uri", "https://ct.googleapis.com/aviator", "CT log base URI to fetch entries from")
+	targetLogURI          = flag.String("target_log_uri", "https://example.com/ct", "CT log base URI to add entries to")
+	targetTemporalLogCfg  = flag.String("target_temporal_log_cfg", "", "File holding temporal log configuration")
+	batchSize             = flag.Int("batch_size", 1000, "Max number of entries to request at per call to get-entries")
+	numWorkers            = flag.Int("num_workers", 2, "Number of concurrent matchers")
+	parallelFetch         = flag.Int("parallel_fetch", 2, "Number of concurrent GetEntries fetches")
+	parallelSubmit        = flag.Int("parallel_submit", 2, "Number of concurrent add-[pre]-chain requests")
+	startIndex            = flag.Int64("start_index", 0, "Log index to start scanning at")
+	sctInputFile          = flag.String("sct_file", "", "File to save SCTs & leaf data to")
+	precertsOnly          = flag.Bool("precerts_only", false, "Only match precerts")
+	tlsTimeout            = flag.Duration("tls_timeout", 30*time.Second, "TLS handshake timeout (see http.Transport)")
+	rspHeaderTimeout      = flag.Duration("response_header_timeout", 30*time.Second, "Response header timeout (see http.Transport)")
+	maxIdlePerHost        = flag.Int("max_idle_conns_per_host", 10, "Maximum number of idle connections per host (see http.Transport)")
+	maxIdleConns          = flag.Int("max_idle_conns", 100, "Maximum number of idle connections (see http.Transport)")
+	idleTimeout           = flag.Duration("idle_conn_timeout", 90*time.Second, "Idle connections with no use within this period will be closed (see http.Transport)")
+	disableKeepAlive      = flag.Bool("disable_keepalive", false, "Disable HTTP Keep-Alive (see http.Transport)")
+	expectContinueTimeout = flag.Duration("expect_continue_timeout", time.Second, "Amount of time to wait for a response if request uses Expect: 100-continue (see http.Transport")
 )
 
 func recordSct(addedCerts chan<- *preload.AddedCert, certDer ct.ASN1Cert, sct *ct.SignedCertificateTimestamp) {
@@ -81,11 +87,11 @@ func sctDumper(addedCerts <-chan *preload.AddedCert, sctWriter io.Writer) {
 		if encoder != nil {
 			err := encoder.Encode(c)
 			if err != nil {
-				log.Fatalf("failed to encode to %s: %v", *sctInputFile, err)
+				glog.Fatalf("failed to encode to %s: %v", *sctInputFile, err)
 			}
 		}
 	}
-	log.Printf("Added %d certs, %d failed, total: %d\n", numAdded, numFailed, numAdded+numFailed)
+	glog.Infof("Added %d certs, %d failed, total: %d\n", numAdded, numFailed, numAdded+numFailed)
 }
 
 func certSubmitter(ctx context.Context, addedCerts chan<- *preload.AddedCert, logClient client.AddLogClient, certs <-chan *ct.LogEntry) {
@@ -95,40 +101,41 @@ func certSubmitter(ctx context.Context, addedCerts chan<- *preload.AddedCert, lo
 		copy(chain[1:], c.Chain)
 		sct, err := logClient.AddChain(ctx, chain)
 		if err != nil {
-			log.Printf("failed to add chain with CN %s: %v\n", c.X509Cert.Subject.CommonName, err)
+			glog.Errorf("failed to add chain with CN %s: %v\n", c.X509Cert.Subject.CommonName, err)
 			recordFailure(addedCerts, chain[0], err)
 			continue
 		}
 		recordSct(addedCerts, chain[0], sct)
-		if !*quiet {
-			log.Printf("Added chain for CN '%s', SCT: %s\n", c.X509Cert.Subject.CommonName, sct)
-		}
+		glog.V(2).Infof("Added chain for CN '%s', SCT: %s\n", c.X509Cert.Subject.CommonName, sct)
 	}
 }
 
 func precertSubmitter(ctx context.Context, addedCerts chan<- *preload.AddedCert, logClient client.AddLogClient, precerts <-chan *ct.LogEntry) {
 	for c := range precerts {
-		sct, err := logClient.AddPreChain(ctx, c.Chain)
+		chain := make([]ct.ASN1Cert, len(c.Chain)+1)
+		chain[0] = c.Precert.Submitted
+		copy(chain[1:], c.Chain)
+		sct, err := logClient.AddPreChain(ctx, chain)
 		if err != nil {
-			log.Printf("failed to add pre-chain with CN %s: %v", c.Precert.TBSCertificate.Subject.CommonName, err)
-			recordFailure(addedCerts, c.Chain[0], err)
+			glog.Errorf("failed to add pre-chain with CN %s: %v", c.Precert.TBSCertificate.Subject.CommonName, err)
+			recordFailure(addedCerts, chain[0], err)
 			continue
 		}
-		recordSct(addedCerts, c.Chain[0], sct)
-		if !*quiet {
-			log.Printf("Added precert chain for CN '%s', SCT: %s\n", c.Precert.TBSCertificate.Subject.CommonName, sct)
-		}
+		recordSct(addedCerts, chain[0], sct)
+		glog.V(2).Infof("Added precert chain for CN '%s', SCT: %s\n", c.Precert.TBSCertificate.Subject.CommonName, sct)
 	}
 }
 
 func main() {
 	flag.Parse()
+	glog.CopyStandardLogTo("WARNING")
+
 	var sctFileWriter io.Writer
 	var err error
 	if *sctInputFile != "" {
 		sctFile, err := os.Create(*sctInputFile)
 		if err != nil {
-			log.Fatalf("Failed to create SCT file: %v", err)
+			glog.Exitf("Failed to create SCT file: %v", err)
 		}
 		defer sctFile.Close()
 		sctFileWriter = sctFile
@@ -140,18 +147,18 @@ func main() {
 	defer func() {
 		err := sctWriter.Close()
 		if err != nil {
-			log.Fatalf("Failed to close SCT file: %v", err)
+			glog.Exitf("Failed to close SCT file: %v", err)
 		}
 	}()
 
 	transport := &http.Transport{
-		TLSHandshakeTimeout:   30 * time.Second,
-		ResponseHeaderTimeout: 30 * time.Second,
-		MaxIdleConnsPerHost:   10,
-		DisableKeepAlives:     false,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+		TLSHandshakeTimeout:   *tlsTimeout,
+		ResponseHeaderTimeout: *rspHeaderTimeout,
+		MaxIdleConnsPerHost:   *maxIdlePerHost,
+		DisableKeepAlives:     *disableKeepAlive,
+		MaxIdleConns:          *maxIdleConns,
+		IdleConnTimeout:       *idleTimeout,
+		ExpectContinueTimeout: *expectContinueTimeout,
 	}
 
 	fetchLogClient, err := client.New(*sourceLogURI, &http.Client{
@@ -159,17 +166,18 @@ func main() {
 		Transport: transport,
 	}, jsonclient.Options{})
 	if err != nil {
-		log.Fatalf("Failed to create client for source log: %v", err)
+		glog.Exitf("Failed to create client for source log: %v", err)
 	}
 
 	opts := scanner.ScannerOptions{
-		Matcher:       scanner.MatchAll{},
-		PrecertOnly:   *precertsOnly,
-		BatchSize:     *batchSize,
-		NumWorkers:    *numWorkers,
-		ParallelFetch: *parallelFetch,
-		StartIndex:    *startIndex,
-		Quiet:         *quiet,
+		FetcherOptions: scanner.FetcherOptions{
+			BatchSize:     *batchSize,
+			ParallelFetch: *parallelFetch,
+			StartIndex:    *startIndex,
+		},
+		Matcher:     scanner.MatchAll{},
+		PrecertOnly: *precertsOnly,
+		NumWorkers:  *numWorkers,
 	}
 	scanner := scanner.NewScanner(fetchLogClient, opts)
 
@@ -189,16 +197,16 @@ func main() {
 	if *targetTemporalLogCfg != "" {
 		cfg, err := client.TemporalLogConfigFromFile(*targetTemporalLogCfg)
 		if err != nil {
-			log.Fatalf("Failed to load temporal log config: %v", err)
+			glog.Exitf("Failed to load temporal log config: %v", err)
 		}
 		submitLogClient, err = client.NewTemporalLogClient(*cfg, &http.Client{Transport: transport})
 		if err != nil {
-			log.Fatalf("Failed to create client for destination temporal log: %v", err)
+			glog.Exitf("Failed to create client for destination temporal log: %v", err)
 		}
 	} else {
 		submitLogClient, err = client.New(*targetLogURI, &http.Client{Transport: transport}, jsonclient.Options{})
 		if err != nil {
-			log.Fatalf("Failed to create client for destination log: %v", err)
+			glog.Exitf("Failed to create client for destination log: %v", err)
 		}
 	}
 

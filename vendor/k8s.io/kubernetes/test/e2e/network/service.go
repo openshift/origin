@@ -405,17 +405,6 @@ var _ = SIGDescribe("Services", func() {
 		framework.ExpectNoError(framework.VerifyServeHostnameServiceUp(cs, ns, host, podNames1, svc1IP, servicePort))
 		framework.ExpectNoError(framework.VerifyServeHostnameServiceUp(cs, ns, host, podNames2, svc2IP, servicePort))
 
-		By("Removing iptable rules")
-		result, err := framework.SSH(`
-			sudo iptables -t nat -F KUBE-SERVICES || true;
-			sudo iptables -t nat -F KUBE-PORTALS-HOST || true;
-			sudo iptables -t nat -F KUBE-PORTALS-CONTAINER || true`, host, framework.TestContext.Provider)
-		if err != nil || result.Code != 0 {
-			framework.LogSSHResult(result)
-			framework.Failf("couldn't remove iptable rules: %v", err)
-		}
-		framework.ExpectNoError(framework.VerifyServeHostnameServiceUp(cs, ns, host, podNames1, svc1IP, servicePort))
-		framework.ExpectNoError(framework.VerifyServeHostnameServiceUp(cs, ns, host, podNames2, svc2IP, servicePort))
 	})
 
 	It("should work after restarting apiserver [Disruptive]", func() {

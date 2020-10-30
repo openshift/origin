@@ -1085,7 +1085,8 @@ func TestRSAPSSSelfSigned(t *testing.T) {
 	}
 }
 
-const pemCertificate = `-----BEGIN CERTIFICATE-----
+const (
+	pemCertificate = `-----BEGIN CERTIFICATE-----
 MIIDATCCAemgAwIBAgIRAKQkkrFx1T/dgB/Go/xBM5swDQYJKoZIhvcNAQELBQAw
 EjEQMA4GA1UEChMHQWNtZSBDbzAeFw0xNjA4MTcyMDM2MDdaFw0xNzA4MTcyMDM2
 MDdaMBIxEDAOBgNVBAoTB0FjbWUgQ28wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
@@ -1104,6 +1105,64 @@ fnnktsblSUV4lRCit0ymC7Ojhe+gzCCwkgs5kDzVVag+tnl/0e2DloIjASwOhpbH
 KVcg7fBd484ht/sS+l0dsB4KDOSpd8JzVDMF8OZqlaydizoJO0yWr9GbCN1+OKq5
 EhLrEqU=
 -----END CERTIFICATE-----`
+	pemPrecertificate = `-----BEGIN CERTIFICATE-----
+MIIC3zCCAkigAwIBAgIBBzANBgkqhkiG9w0BAQUFADBVMQswCQYDVQQGEwJHQjEk
+MCIGA1UEChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVX
+YWxlczEQMA4GA1UEBxMHRXJ3IFdlbjAeFw0xMjA2MDEwMDAwMDBaFw0yMjA2MDEw
+MDAwMDBaMFIxCzAJBgNVBAYTAkdCMSEwHwYDVQQKExhDZXJ0aWZpY2F0ZSBUcmFu
+c3BhcmVuY3kxDjAMBgNVBAgTBVdhbGVzMRAwDgYDVQQHEwdFcncgV2VuMIGfMA0G
+CSqGSIb3DQEBAQUAA4GNADCBiQKBgQC+75jnwmh3rjhfdTJaDB0ym+3xj6r015a/
+BH634c4VyVui+A7kWL19uG+KSyUhkaeb1wDDjpwDibRc1NyaEgqyHgy0HNDnKAWk
+EM2cW9tdSSdyba8XEPYBhzd+olsaHjnu0LiBGdwVTcaPfajjDK8VijPmyVCfSgWw
+FAn/Xdh+tQIDAQABo4HBMIG+MB0GA1UdDgQWBBQgMVQa8lwF/9hli2hDeU9ekDb3
+tDB9BgNVHSMEdjB0gBRfnYgNyHPmVNT4DdjmsMEktEfDVaFZpFcwVTELMAkGA1UE
+BhMCR0IxJDAiBgNVBAoTG0NlcnRpZmljYXRlIFRyYW5zcGFyZW5jeSBDQTEOMAwG
+A1UECBMFV2FsZXMxEDAOBgNVBAcTB0VydyBXZW6CAQAwCQYDVR0TBAIwADATBgor
+BgEEAdZ5AgQDAQH/BAIFADANBgkqhkiG9w0BAQUFAAOBgQACocOeAVr1Tf8CPDNg
+h1//NDdVLx8JAb3CVDFfM3K3I/sV+87MTfRxoM5NjFRlXYSHl/soHj36u0YtLGhL
+BW/qe2O0cP8WbjLURgY1s9K8bagkmyYw5x/DTwjyPdTuIo+PdPY9eGMR3QpYEUBf
+kGzKLC0+6/yBmWTr2M98CIY/vg==
+-----END CERTIFICATE-----`
+)
+
+func TestIsPrecertificate(t *testing.T) {
+	tests := []struct {
+		desc    string
+		certPEM string
+		want    bool
+	}{
+		{
+			desc:    "certificate",
+			certPEM: pemCertificate,
+			want:    false,
+		},
+		{
+			desc:    "precertificate",
+			certPEM: pemPrecertificate,
+			want:    true,
+		},
+		{
+			desc:    "nil",
+			certPEM: "",
+			want:    false,
+		},
+	}
+
+	for _, test := range tests {
+		var cert *Certificate
+		if test.certPEM != "" {
+			var err error
+			cert, err = certificateFromPEM(test.certPEM)
+			if err != nil {
+				t.Errorf("%s: error parsing certificate: %s", test.desc, err)
+				continue
+			}
+		}
+		if got := cert.IsPrecertificate(); got != test.want {
+			t.Errorf("%s: c.IsPrecertificate() = %t, want %t", test.desc, got, test.want)
+		}
+	}
+}
 
 func TestCRLCreation(t *testing.T) {
 	block, _ := pem.Decode([]byte(pemPrivateKey))
@@ -1338,8 +1397,8 @@ func TestRemoveCTPoison(t *testing.T) {
 	}{
 		{name: "invalid-der", tbs: "01020304", errstr: "failed to parse"},
 		{name: "trailing-data", tbs: tbsPoisonMiddle + "01020304", errstr: "trailing data"},
-		{name: "no-poison-ext", tbs: tbsNoPoison, errstr: "no CT poison extension present"},
-		{name: "two-poison-exts", tbs: tbsPoisonTwice, errstr: "multiple CT poison extensions present"},
+		{name: "no-poison-ext", tbs: tbsNoPoison, errstr: "no extension of specified type present"},
+		{name: "two-poison-exts", tbs: tbsPoisonTwice, errstr: "multiple extensions of specified type present"},
 		{name: "poison-first", tbs: tbsPoisonFirst, want: tbsNoPoison},
 		{name: "poison-last", tbs: tbsPoisonLast, want: tbsNoPoison},
 		{name: "poison-middle", tbs: tbsPoisonMiddle, want: tbsNoPoison},

@@ -1,9 +1,9 @@
-hash: 58f332a15d7df757f7646a0245bd767ff7f95e6d75d9b699f22cde1cdbd9f751
-updated: 2020-05-28T11:51:25.251385012-05:00
+hash: afd89d6436d89204ce0a4a696da98d1726ff86a0ae4cf7944af11c982c066123
+updated: 2020-08-25T11:20:34.134319972-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
-  version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
-  vcs: hg
+  version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
+  repo: https://github.com/munnerz/goautoneg.git
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
   subpackages:
@@ -561,7 +561,7 @@ imports:
   - version
   - zfs
 - name: github.com/google/certificate-transparency-go
-  version: 1bec4527572c443752ad4f2830bef88be0533236
+  version: 37a384cd035e722ea46e55029093e26687138edf
   subpackages:
   - asn1
   - client
@@ -975,7 +975,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 88ea7f56be8b37593900daf982db5cde64f62221
+  version: 81fbc29e22fb961e4ede4c64dbf0c7e75e6801b8
   subpackages:
   - dockerclient
   - imageprogress
@@ -1863,7 +1863,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: b3b92b285f38984ad0b5b4d4ba6b150ac119dd2a
+  version: 55a241852c330d4a485eac73155c9259dbbc3d84
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

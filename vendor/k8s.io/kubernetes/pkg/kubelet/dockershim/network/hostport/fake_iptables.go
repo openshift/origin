@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
@@ -50,10 +51,6 @@ func NewFakeIPTables() *fakeIPTables {
 			string(utiliptables.TableMangle): sets.NewString("PREROUTING", "INPUT", "FORWARD", "OUTPUT", "POSTROUTING"),
 		},
 	}
-}
-
-func (f *fakeIPTables) GetVersion() (string, error) {
-	return "1.4.21", nil
 }
 
 func (f *fakeIPTables) getTable(tableName utiliptables.Table) (*fakeTable, error) {
@@ -339,10 +336,7 @@ func (f *fakeIPTables) RestoreAll(data []byte, flush utiliptables.FlushFlag, cou
 	return f.restore("", data, flush)
 }
 
-func (f *fakeIPTables) AddReloadFunc(reloadFunc func()) {
-}
-
-func (f *fakeIPTables) Destroy() {
+func (f *fakeIPTables) Monitor(canary utiliptables.Chain, tables []utiliptables.Table, reloadFunc func(), interval time.Duration, stopCh <-chan struct{}) {
 }
 
 func (f *fakeIPTables) isBuiltinChain(tableName utiliptables.Table, chainName utiliptables.Chain) bool {

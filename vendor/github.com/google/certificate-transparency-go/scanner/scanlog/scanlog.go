@@ -38,21 +38,27 @@ const (
 	matchesNothingRegex = "a^"
 )
 
-var logURI = flag.String("log_uri", "http://ct.googleapis.com/aviator", "CT log base URI")
-var matchSubjectRegex = flag.String("match_subject_regex", ".*", "Regex to match CN/SAN")
-var matchIssuerRegex = flag.String("match_issuer_regex", "", "Regex to match in issuer CN")
-var precertsOnly = flag.Bool("precerts_only", false, "Only match precerts")
-var serialNumber = flag.String("serial_number", "", "Serial number of certificate of interest")
-var parseErrors = flag.Bool("parse_errors", false, "Only match certificates with parse errors")
-var nfParseErrors = flag.Bool("non_fatal_errors", false, "Treat non-fatal parse errors as also matching (with --parse_errors)")
-var validateErrors = flag.Bool("validate_errors", false, "Only match certificates with validation errors")
-var batchSize = flag.Int("batch_size", 1000, "Max number of entries to request at per call to get-entries")
-var numWorkers = flag.Int("num_workers", 2, "Number of concurrent matchers")
-var parallelFetch = flag.Int("parallel_fetch", 2, "Number of concurrent GetEntries fetches")
-var startIndex = flag.Int64("start_index", 0, "Log index to start scanning at")
-var quiet = flag.Bool("quiet", false, "Don't print out extra logging messages, only matches.")
-var printChains = flag.Bool("print_chains", false, "If true prints the whole chain rather than a summary")
-var dumpDir = flag.String("dump_dir", "", "Directory to store matched certificates in")
+var (
+	logURI = flag.String("log_uri", "https://ct.googleapis.com/aviator", "CT log base URI")
+
+	matchSubjectRegex = flag.String("match_subject_regex", ".*", "Regex to match CN/SAN")
+	matchIssuerRegex  = flag.String("match_issuer_regex", "", "Regex to match in issuer CN")
+	precertsOnly      = flag.Bool("precerts_only", false, "Only match precerts")
+	serialNumber      = flag.String("serial_number", "", "Serial number of certificate of interest")
+
+	parseErrors    = flag.Bool("parse_errors", false, "Only match certificates with parse errors")
+	nfParseErrors  = flag.Bool("non_fatal_errors", false, "Treat non-fatal parse errors as also matching (with --parse_errors)")
+	validateErrors = flag.Bool("validate_errors", false, "Only match certificates with validation errors")
+
+	batchSize     = flag.Int("batch_size", 1000, "Max number of entries to request at per call to get-entries")
+	numWorkers    = flag.Int("num_workers", 2, "Number of concurrent matchers")
+	parallelFetch = flag.Int("parallel_fetch", 2, "Number of concurrent GetEntries fetches")
+	startIndex    = flag.Int64("start_index", 0, "Log index to start scanning at")
+	endIndex      = flag.Int64("end_index", 0, "Log index to end scanning at (non-inclusive, 0 = end of log)")
+
+	printChains = flag.Bool("print_chains", false, "If true prints the whole chain rather than a summary")
+	dumpDir     = flag.String("dump_dir", "", "Directory to store matched certificates in")
+)
 
 func dumpData(entry *ct.LogEntry) {
 	if *dumpDir == "" {
@@ -178,6 +184,7 @@ func createMatcherFromFlags(logClient *client.LogClient) (interface{}, error) {
 
 func main() {
 	flag.Parse()
+
 	logClient, err := client.New(*logURI, &http.Client{
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
@@ -199,12 +206,14 @@ func main() {
 	}
 
 	opts := scanner.ScannerOptions{
-		Matcher:       matcher,
-		BatchSize:     *batchSize,
-		NumWorkers:    *numWorkers,
-		ParallelFetch: *parallelFetch,
-		StartIndex:    *startIndex,
-		Quiet:         *quiet,
+		FetcherOptions: scanner.FetcherOptions{
+			BatchSize:     *batchSize,
+			ParallelFetch: *parallelFetch,
+			StartIndex:    *startIndex,
+			EndIndex:      *endIndex,
+		},
+		Matcher:    matcher,
+		NumWorkers: *numWorkers,
 	}
 	scanner := scanner.NewScanner(logClient, opts)
 

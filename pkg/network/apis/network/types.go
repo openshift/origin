@@ -6,7 +6,7 @@ import (
 
 const (
 	ClusterNetworkDefault       = "default"
-	EgressNetworkPolicyMaxRules = 50
+	EgressNetworkPolicyMaxRules = 1000
 )
 
 // +genclient

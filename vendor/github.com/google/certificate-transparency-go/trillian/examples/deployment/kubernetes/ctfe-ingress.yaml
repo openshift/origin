@@ -1,0 +1,10 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: trillian-ctfe-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: trillian-ctfe-global-static-ip
+spec:
+  backend:
+    serviceName: trillian-ctfe-service
+    servicePort: 6962
