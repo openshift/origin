@@ -147,7 +147,7 @@ var OpenshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 
 	// github.com/openshift/api/security/v1
 	gvr("security.openshift.io", "v1", "rangeallocations"): {
-		Stub:             `{"metadata": {"name": "scc2"}}`,
+		Stub:             `{"metadata": {"name": "scc2"}, "range": "", "data": ""}`,
 		ExpectedEtcdPath: "openshift.io/rangeallocations/scc2",
 	},
 	// --
