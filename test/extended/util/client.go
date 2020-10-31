@@ -112,7 +112,7 @@ func NewCLI(project string) *CLI {
 	cli := NewCLIWithoutNamespace(project)
 	cli.withoutNamespace = false
 	// create our own project
-	g.BeforeEach(cli.SetupProject)
+	g.BeforeEach(func() { _ = cli.SetupProject() })
 	return cli
 }
 
@@ -210,7 +210,8 @@ func (c CLI) WithToken(token string) *CLI {
 
 // SetupProject creates a new project and assign a random user to the project.
 // All resources will be then created within this project.
-func (c *CLI) SetupProject() {
+// Returns the name of the new project.
+func (c *CLI) SetupProject() string {
 	requiresTestStart()
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
@@ -291,6 +292,7 @@ func (c *CLI) SetupProject() {
 	WaitForNamespaceSCCAnnotations(c.ProjectClient().ProjectV1(), newNamespace)
 
 	framework.Logf("Project %q has been fully provisioned.", newNamespace)
+	return newNamespace
 }
 
 func (c *CLI) setupSelfProvisionerRoleBinding() error {
