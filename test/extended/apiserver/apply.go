@@ -24,8 +24,6 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-// TODO(marun) Evaluate the CRDs that ocp with (~70 at time of
-// writing) which will involve creating the associated stubs.
 var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side Apply", func() {
 	var (
 		// mapper is used to translate the gvr provided by etcd
