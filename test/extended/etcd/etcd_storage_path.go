@@ -36,7 +36,7 @@ import (
 )
 
 // Etcd data for all persisted OpenShift objects.
-var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageData{
+var OpenshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageData{
 	// github.com/openshift/api/authorization/v1
 	gvr("authorization.openshift.io", "v1", "roles"): {
 		Stub:             `{"metadata": {"name": "r1b1o2"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
@@ -197,7 +197,7 @@ var kindWhiteList = sets.NewString(
 )
 
 // namespace used for all tests, do not change this
-const testNamespace = "etcdstoragepathtestnamespace"
+const TestNamespace = "etcdstoragepathtestnamespace"
 
 type helperT struct {
 	g.GinkgoTInterface
@@ -259,16 +259,16 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 	client := &allClient{dynamicClient: dynamic.NewForConfigOrDie(kubeConfig)}
 
-	if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}, metav1.CreateOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestNamespace}}, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("error creating test namespace: %#v", err)
 	}
 	defer func() {
-		if err := kubeClient.CoreV1().Namespaces().Delete(context.Background(), testNamespace, metav1.DeleteOptions{}); err != nil {
+		if err := kubeClient.CoreV1().Namespaces().Delete(context.Background(), TestNamespace, metav1.DeleteOptions{}); err != nil {
 			t.Fatalf("error deleting test namespace: %#v", err)
 		}
 	}()
 
-	if err := exutil.WaitForServiceAccount(kubeClient.CoreV1().ServiceAccounts(testNamespace), "default"); err != nil {
+	if err := exutil.WaitForServiceAccount(kubeClient.CoreV1().ServiceAccounts(TestNamespace), "default"); err != nil {
 		t.Fatalf("error waiting for the default service account: %v", err)
 	}
 
@@ -346,7 +346,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	}
 
 	// add openshift specific data
-	for gvr, data := range openshiftEtcdStorageData {
+	for gvr, data := range OpenshiftEtcdStorageData {
 		if _, ok := etcdStorageData[gvr]; ok {
 			t.Errorf("%s exists in both Kube and OpenShift ETCD data, data=%#v", gvr.String(), data)
 		}
@@ -424,13 +424,13 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 				}
 			}()
 
-			if err := client.createPrerequisites(mapper, testNamespace, testData.Prerequisites, all); err != nil {
+			if err := client.createPrerequisites(mapper, TestNamespace, testData.Prerequisites, all); err != nil {
 				t.Errorf("failed to create prerequisites for %v: %#v", gvk, err)
 				return
 			}
 
 			if shouldCreate { // do not try to create items with no stub
-				if err := client.create(testData.Stub, testNamespace, mapping, all); err != nil {
+				if err := client.create(testData.Stub, TestNamespace, mapping, all); err != nil {
 					t.Errorf("failed to create stub for %v: %#v", gvk, err)
 					return
 				}
