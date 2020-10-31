@@ -11420,6 +11420,10 @@ var annotations = map[string]string{
 	"[Top Level] [sig-storage] vsphere cloud provider stress [Feature:vsphere] vsphere stress tests": "vsphere stress tests [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] vsphere statefulset [Feature:vsphere] vsphere statefulset testing": "vsphere statefulset testing [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[Top Level] [sig-storage][Late] Metrics should report short attach times": "should report short attach times [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-storage][Late] Metrics should report short mount times": "should report short mount times [Suite:openshift/conformance/parallel]",
 }
 
 func init() {

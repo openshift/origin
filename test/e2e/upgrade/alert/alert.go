@@ -6,6 +6,7 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
@@ -91,7 +92,8 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 		criticalAlertQuery: false,
 	}
 
-	helper.RunQueries(tests, t.oc, ns, execPod.Name, t.url, t.bearerToken)
+	err := helper.RunQueries(tests, t.oc, ns, execPod.Name, t.url, t.bearerToken)
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	framework.Logf("No critical alerts firing post-upgrade")
 }
