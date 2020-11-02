@@ -161,21 +161,19 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample a
 		},
 	))
 
-	/*
-		recent upstream regression introduced - temporarily disabled
-		var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
-			sampleRepoConfig{
-				repoName:               "cakephp-mysql",
-				templateURL:            "cakephp-mysql-example",
-				buildConfigName:        "cakephp-mysql-example",
-				serviceName:            "cakephp-mysql-example",
-				deploymentConfigName:   "cakephp-mysql-example",
-				expectedString:         htmlCountValueNonZeroRegexp,
-				appPath:                "",
-				dbDeploymentConfigName: "mysql",
-				dbServiceName:          "mysql",
-			},
-		))*/
+	var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
+		sampleRepoConfig{
+			repoName:               "cakephp-mysql",
+			templateURL:            "cakephp-mysql-example",
+			buildConfigName:        "cakephp-mysql-example",
+			serviceName:            "cakephp-mysql-example",
+			deploymentConfigName:   "cakephp-mysql-example",
+			expectedString:         htmlCountValueNonZeroRegexp,
+			appPath:                "",
+			dbDeploymentConfigName: "mysql",
+			dbServiceName:          "mysql",
+		},
+	))
 
 	// dependency download is intermittently slow enough to blow away the e2e timeouts
 	/*var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl] test perl images with dancer-ex db repo", NewSampleRepoTest(
