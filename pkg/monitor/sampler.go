@@ -24,17 +24,18 @@ func StartSampling(ctx context.Context, recorder Recorder, interval time.Duratio
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
-			select {
-			case <-ticker.C:
-			case <-ctx.Done():
-				return
-			}
 			success := s.isAvailable()
 			condition, ok := sampleFn(success)
 			if condition != nil {
 				recorder.Record(*condition)
 			}
 			s.setAvailable(ok)
+
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 
