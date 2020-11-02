@@ -114,10 +114,14 @@ func testServerAvailability(locator string, events []*monitor.EventInterval, dur
 	errDuration, errMessages := disruption.GetDisruption(events, locator)
 
 	testName := fmt.Sprintf("[sig-api-machinery] %s should be available", locator)
-	successTest := &JUnitTestCase{Name: testName}
+	successTest := &JUnitTestCase{
+		Name:     testName,
+		Duration: duration.Seconds(),
+	}
 	if percent := float64(errDuration) / float64(duration); percent > tolerateDisruptionPercent {
 		test := &JUnitTestCase{
-			Name: testName,
+			Name:     testName,
+			Duration: duration.Seconds(),
 			FailureOutput: &FailureOutput{
 				Output: fmt.Sprintf("%s was failing for %s seconds (%0.0f%% of the test duration)", locator, errDuration.Truncate(time.Second), 100*percent),
 			},
