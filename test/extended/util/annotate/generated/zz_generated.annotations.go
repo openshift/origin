@@ -2051,19 +2051,19 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Networking Granular Checks: Services should function for client IP based session affinity: udp [LinuxOnly]": "should function for client IP based session affinity: udp [LinuxOnly] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: http": "should function for endpoint-Service: http [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: http": "should function for endpoint-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: udp": "should function for endpoint-Service: udp [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: udp": "should function for endpoint-Service: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: http": "should function for node-Service: http [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: http": "should function for node-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: udp": "should function for node-Service: udp [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: udp": "should function for node-Service: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: http": "should function for pod-Service: http [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: http": "should function for pod-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: sctp [Feature:SCTPConnectivity]": "should function for pod-Service: sctp [Feature:SCTPConnectivity] [Disabled:Alpha] [Skipped:ovirt] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: sctp [Feature:SCTPConnectivity]": "should function for pod-Service: sctp [Feature:SCTPConnectivity] [Disabled:Alpha] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: udp": "should function for pod-Service: udp [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: udp": "should function for pod-Service: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Networking Granular Checks: Services should update endpoints: http": "should update endpoints: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
