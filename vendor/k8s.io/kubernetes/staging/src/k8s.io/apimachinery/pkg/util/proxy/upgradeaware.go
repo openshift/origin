@@ -284,6 +284,16 @@ func (h *UpgradeAwareHandler) tryUpgrade(w http.ResponseWriter, req *http.Reques
 		rawResponse = headerBytes
 	}
 
+	// If the backend did not upgrade the request, return an error to the client. If the response was
+	// an error, the error is forwarded directly after the connection is hijacked. Otherwise, just
+	// return a generic error here.
+	if rawResponseCode != http.StatusSwitchingProtocols && rawResponseCode < 400 {
+		err := fmt.Errorf("invalid upgrade response: status code %d", rawResponseCode)
+		glog.Errorf("Proxy upgrade error: %v", err)
+		h.Responder.Error(w, req, err)
+		return true
+	}
+
 	// Once the connection is hijacked, the ErrorResponder will no longer work, so
 	// hijacking should be the last step in the upgrade.
 	requestHijacker, ok := w.(http.Hijacker)
