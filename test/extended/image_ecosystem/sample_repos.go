@@ -64,7 +64,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 					err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("calling oc new-app with the " + c.repoName + " example template"))
-					err = oc.Run("new-app").Args("-f", c.templateURL).Execute()
+					err = oc.Run("new-app").Args(c.templateURL).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					// all the templates automatically start a build.
@@ -130,7 +130,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	g.Describe("[image_ecosystem][ruby] test ruby images with rails-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "rails-postgresql",
-			templateURL:            "https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json",
+			templateURL:            "rails-postgresql-example",
 			buildConfigName:        "rails-postgresql-example",
 			serviceName:            "rails-postgresql-example",
 			deploymentConfigName:   "rails-postgresql-example",
@@ -144,7 +144,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	g.Describe("[image_ecosystem][python] test python images with django-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "django-psql",
-			templateURL:            "https://raw.githubusercontent.com/openshift/django-ex/master/openshift/templates/django-postgresql.json",
+			templateURL:            "django-psql-example",
 			buildConfigName:        "django-psql-example",
 			serviceName:            "django-psql-example",
 			deploymentConfigName:   "django-psql-example",
@@ -158,7 +158,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	g.Describe("[image_ecosystem][nodejs] test nodejs images with nodejs-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "nodejs-mongodb",
-			templateURL:            "https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs-mongodb.json",
+			templateURL:            "nodejs-mongodb-example",
 			buildConfigName:        "nodejs-mongodb-example",
 			serviceName:            "nodejs-mongodb-example",
 			deploymentConfigName:   "nodejs-mongodb-example",
@@ -172,7 +172,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 	var _ = g.Describe("[image_ecosystem][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "cakephp-mysql",
-			templateURL:            "https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp-mysql.json",
+			templateURL:            "cakephp-mysql-example",
 			buildConfigName:        "cakephp-mysql-example",
 			serviceName:            "cakephp-mysql-example",
 			deploymentConfigName:   "cakephp-mysql-example",
@@ -183,75 +183,6 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 		},
 	))
 
-	var _ = g.Describe("[image_ecosystem][perl] test perl images with dancer-ex db repo", NewSampleRepoTest(
-		sampleRepoConfig{
-			repoName:               "dancer-mysql",
-			templateURL:            "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json",
-			buildConfigName:        "dancer-mysql-example",
-			serviceName:            "dancer-mysql-example",
-			deploymentConfigName:   "dancer-mysql-example",
-			expectedString:         htmlCountValueNonZeroRegexp,
-			appPath:                "",
-			dbDeploymentConfigName: "database",
-			dbServiceName:          "database",
-		},
-	))
-
-	// test the no-db templates too
-	g.Describe("[image_ecosystem][python] test python images with django-ex repo", NewSampleRepoTest(
-		sampleRepoConfig{
-			repoName:               "django",
-			templateURL:            "https://raw.githubusercontent.com/openshift/django-ex/master/openshift/templates/django.json",
-			buildConfigName:        "django-example",
-			serviceName:            "django-example",
-			deploymentConfigName:   "django-example",
-			expectedString:         "Welcome",
-			appPath:                "",
-			dbDeploymentConfigName: "",
-			dbServiceName:          "",
-		},
-	))
-
-	g.Describe("[image_ecosystem][nodejs] images with nodejs-ex repo", NewSampleRepoTest(
-		sampleRepoConfig{
-			repoName:               "nodejs",
-			templateURL:            "https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs.json",
-			buildConfigName:        "nodejs-example",
-			serviceName:            "nodejs-example",
-			deploymentConfigName:   "nodejs-example",
-			expectedString:         "Welcome",
-			appPath:                "",
-			dbDeploymentConfigName: "",
-			dbServiceName:          "",
-		},
-	))
-
-	var _ = g.Describe("[image_ecosystem][php] test php images with cakephp-ex repo", NewSampleRepoTest(
-		sampleRepoConfig{
-			repoName:               "cakephp",
-			templateURL:            "https://raw.githubusercontent.com/openshift/cakephp-ex/master/openshift/templates/cakephp.json",
-			buildConfigName:        "cakephp-example",
-			serviceName:            "cakephp-example",
-			deploymentConfigName:   "cakephp-example",
-			expectedString:         "Welcome",
-			appPath:                "",
-			dbDeploymentConfigName: "",
-			dbServiceName:          "",
-		},
-	))
-
-	var _ = g.Describe("[image_ecosystem][perl] test perl images with dancer-ex repo", NewSampleRepoTest(
-		sampleRepoConfig{
-			repoName:               "dancer",
-			templateURL:            "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer.json",
-			buildConfigName:        "dancer-example",
-			serviceName:            "dancer-example",
-			deploymentConfigName:   "dancer-example",
-			expectedString:         "Welcome",
-			appPath:                "",
-			dbDeploymentConfigName: "",
-			dbServiceName:          "",
-		},
-	))
+	// dependency download with perl is intermittently slow enough to blow away the e2e timeouts so we've removed those
 
 })
