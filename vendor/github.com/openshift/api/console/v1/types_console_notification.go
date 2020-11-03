@@ -19,6 +19,7 @@ type ConsoleNotificationSpec struct {
 	// text is the visible text of the notification.
 	Text string `json:"text"`
 	// location is the location of the notification in the console.
+	// Valid values are: "BannerTop", "BannerBottom", "BannerTopBottom".
 	// +optional
 	Location ConsoleNotificationLocation `json:"location,omitempty"`
 	// link is an object that holds notification link details.

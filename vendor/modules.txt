@@ -640,7 +640,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/openshift/api v0.0.0-20200829102639-8a3a835f1acf
+# github.com/openshift/api v0.0.0-20201102162614-9252afb032e1
 ## explicit
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -696,7 +696,7 @@ github.com/openshift/api/template/v1
 github.com/openshift/api/unidling/v1alpha1
 github.com/openshift/api/user
 github.com/openshift/api/user/v1
-# github.com/openshift/apiserver-library-go v0.0.0-20200901140731-1236dc23c728
+# github.com/openshift/apiserver-library-go v0.0.0-20201020095023-fe92bc0abdc3
 ## explicit
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -715,7 +715,7 @@ github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/selinux
 github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/user
 github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/util
 github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/util/sort
-# github.com/openshift/build-machinery-go v0.0.0-20200819073603-48aa266c95f7
+# github.com/openshift/build-machinery-go v0.0.0-20200917070002-f171684f77ab
 ## explicit
 github.com/openshift/build-machinery-go
 github.com/openshift/build-machinery-go/make
@@ -725,7 +725,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20200827190008-3062137373b5
+# github.com/openshift/client-go v0.0.0-20201020082437-7737f16e53fc
 ## explicit
 github.com/openshift/client-go/apps/clientset/versioned
 github.com/openshift/client-go/apps/clientset/versioned/scheme
@@ -792,7 +792,7 @@ github.com/openshift/client-go/user/informers/externalversions/internalinterface
 github.com/openshift/client-go/user/informers/externalversions/user
 github.com/openshift/client-go/user/informers/externalversions/user/v1
 github.com/openshift/client-go/user/listers/user/v1
-# github.com/openshift/library-go v0.0.0-20200902112127-a4e32e339219
+# github.com/openshift/library-go v0.0.0-20201102091359-c4fa0f5b3a08
 ## explicit
 github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig
 github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout
@@ -821,6 +821,7 @@ github.com/openshift/library-go/pkg/image/imageutil
 github.com/openshift/library-go/pkg/image/internal/digest
 github.com/openshift/library-go/pkg/image/internal/reference
 github.com/openshift/library-go/pkg/image/reference
+github.com/openshift/library-go/pkg/network
 github.com/openshift/library-go/pkg/network/networkutils
 github.com/openshift/library-go/pkg/oauth/oauthdiscovery
 github.com/openshift/library-go/pkg/operator/events
@@ -1338,7 +1339,7 @@ gopkg.in/warnings.v0
 # gopkg.in/yaml.v2 v2.3.0 => gopkg.in/yaml.v2 v2.2.8
 ## explicit
 gopkg.in/yaml.v2
-# k8s.io/api v0.19.0 => k8s.io/api v0.19.0-rc.2
+# k8s.io/api v0.19.2 => k8s.io/api v0.19.2
 ## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -1384,7 +1385,7 @@ k8s.io/api/settings/v1alpha1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apiextensions-apiserver v0.19.0 => k8s.io/apiextensions-apiserver v0.19.0-rc.2
+# k8s.io/apiextensions-apiserver v0.19.2 => k8s.io/apiextensions-apiserver v0.19.2
 ## explicit
 k8s.io/apiextensions-apiserver/pkg/apihelpers
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
@@ -1428,7 +1429,7 @@ k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor
 k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition
 k8s.io/apiextensions-apiserver/test/integration
 k8s.io/apiextensions-apiserver/test/integration/fixtures
-# k8s.io/apimachinery v0.19.0 => k8s.io/apimachinery v0.19.0-rc.2
+# k8s.io/apimachinery v0.19.2 => k8s.io/apimachinery v0.19.2
 ## explicit
 k8s.io/apimachinery/pkg/api/apitesting
 k8s.io/apimachinery/pkg/api/equality
@@ -1492,7 +1493,7 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/netutil
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.19.0 => github.com/openshift/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20201031122226-74d9cb516f0f
+# k8s.io/apiserver v0.19.2 => github.com/openshift/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20201103091224-6bd0f342e442
 ## explicit
 k8s.io/apiserver/pkg/admission
 k8s.io/apiserver/pkg/admission/configuration
@@ -1583,7 +1584,6 @@ k8s.io/apiserver/pkg/storage
 k8s.io/apiserver/pkg/storage/cacher
 k8s.io/apiserver/pkg/storage/errors
 k8s.io/apiserver/pkg/storage/etcd3
-k8s.io/apiserver/pkg/storage/etcd3/etcd3retry
 k8s.io/apiserver/pkg/storage/etcd3/metrics
 k8s.io/apiserver/pkg/storage/etcd3/preflight
 k8s.io/apiserver/pkg/storage/etcd3/testing
@@ -1623,7 +1623,7 @@ k8s.io/apiserver/plugin/pkg/audit/webhook
 k8s.io/apiserver/plugin/pkg/authenticator/token/oidc
 k8s.io/apiserver/plugin/pkg/authenticator/token/webhook
 k8s.io/apiserver/plugin/pkg/authorizer/webhook
-# k8s.io/cli-runtime v0.19.0-rc.2 => k8s.io/cli-runtime v0.19.0-rc.2
+# k8s.io/cli-runtime v0.19.2 => k8s.io/cli-runtime v0.19.2
 ## explicit
 k8s.io/cli-runtime/pkg/genericclioptions
 k8s.io/cli-runtime/pkg/kustomize
@@ -1637,7 +1637,7 @@ k8s.io/cli-runtime/pkg/kustomize/k8sdeps/transformer/patch
 k8s.io/cli-runtime/pkg/kustomize/k8sdeps/validator
 k8s.io/cli-runtime/pkg/printers
 k8s.io/cli-runtime/pkg/resource
-# k8s.io/client-go v0.19.0 => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20201031122226-74d9cb516f0f
+# k8s.io/client-go v0.19.2 => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20201103091224-6bd0f342e442
 ## explicit
 k8s.io/client-go/discovery
 k8s.io/client-go/discovery/cached
@@ -1883,7 +1883,7 @@ k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
-# k8s.io/cloud-provider v0.19.0-rc.2 => github.com/openshift/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20201031122226-74d9cb516f0f
+# k8s.io/cloud-provider v0.19.2 => github.com/openshift/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20201103091224-6bd0f342e442
 k8s.io/cloud-provider
 k8s.io/cloud-provider/api
 k8s.io/cloud-provider/node/helpers
@@ -1891,12 +1891,12 @@ k8s.io/cloud-provider/service/helpers
 k8s.io/cloud-provider/volume
 k8s.io/cloud-provider/volume/errors
 k8s.io/cloud-provider/volume/helpers
-# k8s.io/cluster-bootstrap v0.0.0 => k8s.io/cluster-bootstrap v0.19.0-rc.2
+# k8s.io/cluster-bootstrap v0.0.0 => k8s.io/cluster-bootstrap v0.19.2
 k8s.io/cluster-bootstrap/token/api
 k8s.io/cluster-bootstrap/token/util
 k8s.io/cluster-bootstrap/util/secrets
 k8s.io/cluster-bootstrap/util/tokens
-# k8s.io/component-base v0.19.0 => k8s.io/component-base v0.19.0-rc.2
+# k8s.io/component-base v0.19.2 => k8s.io/component-base v0.19.2
 ## explicit
 k8s.io/component-base/cli/flag
 k8s.io/component-base/cli/globalflag
@@ -1917,10 +1917,10 @@ k8s.io/component-base/metrics/testutil
 k8s.io/component-base/term
 k8s.io/component-base/version
 k8s.io/component-base/version/verflag
-# k8s.io/cri-api v0.0.0 => k8s.io/cri-api v0.19.0-rc.2
+# k8s.io/cri-api v0.0.0 => k8s.io/cri-api v0.19.2
 k8s.io/cri-api/pkg/apis
 k8s.io/cri-api/pkg/apis/runtime/v1alpha2
-# k8s.io/csi-translation-lib v0.0.0 => k8s.io/csi-translation-lib v0.19.0-rc.2
+# k8s.io/csi-translation-lib v0.0.0 => k8s.io/csi-translation-lib v0.19.2
 k8s.io/csi-translation-lib
 k8s.io/csi-translation-lib/plugins
 # k8s.io/klog v1.0.0 => k8s.io/klog v1.0.0
@@ -1928,7 +1928,7 @@ k8s.io/csi-translation-lib/plugins
 k8s.io/klog
 # k8s.io/klog/v2 v2.3.0
 k8s.io/klog/v2
-# k8s.io/kube-aggregator v0.19.0 => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20201031122226-74d9cb516f0f
+# k8s.io/kube-aggregator v0.19.2 => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20201103091224-6bd0f342e442
 k8s.io/kube-aggregator/pkg/apis/apiregistration
 k8s.io/kube-aggregator/pkg/apis/apiregistration/install
 k8s.io/kube-aggregator/pkg/apis/apiregistration/v1
@@ -1967,11 +1967,11 @@ k8s.io/kube-openapi/pkg/util
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/util/proto/validation
 k8s.io/kube-openapi/pkg/util/sets
-# k8s.io/kube-proxy v0.0.0 => k8s.io/kube-proxy v0.19.0-rc.2
+# k8s.io/kube-proxy v0.0.0 => k8s.io/kube-proxy v0.19.2
 k8s.io/kube-proxy/config/v1alpha1
-# k8s.io/kube-scheduler v0.0.0 => k8s.io/kube-scheduler v0.19.0-rc.2
+# k8s.io/kube-scheduler v0.0.0 => k8s.io/kube-scheduler v0.19.2
 k8s.io/kube-scheduler/extender/v1
-# k8s.io/kubectl v0.0.0 => k8s.io/kubectl v0.19.0-rc.2
+# k8s.io/kubectl v0.19.2 => k8s.io/kubectl v0.19.2
 ## explicit
 k8s.io/kubectl/pkg/apps
 k8s.io/kubectl/pkg/cmd/util
@@ -1995,12 +1995,12 @@ k8s.io/kubectl/pkg/util/storage
 k8s.io/kubectl/pkg/util/templates
 k8s.io/kubectl/pkg/util/term
 k8s.io/kubectl/pkg/validation
-# k8s.io/kubelet v0.0.0 => k8s.io/kubelet v0.19.0-rc.2
+# k8s.io/kubelet v0.19.2 => k8s.io/kubelet v0.19.2
 ## explicit
 k8s.io/kubelet/config/v1beta1
 k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1
 k8s.io/kubelet/pkg/apis/pluginregistration/v1
-# k8s.io/kubernetes v1.19.0 => github.com/openshift/kubernetes v1.20.0-alpha.0.0.20201031122226-74d9cb516f0f
+# k8s.io/kubernetes v1.19.2 => github.com/openshift/kubernetes v1.20.0-alpha.0.0.20201103091224-6bd0f342e442
 ## explicit
 k8s.io/kubernetes/cmd/kube-apiserver/app
 k8s.io/kubernetes/cmd/kube-apiserver/app/options
@@ -2060,6 +2060,7 @@ k8s.io/kubernetes/openshift-kube-apiserver/authorization/scopeauthorizer
 k8s.io/kubernetes/openshift-kube-apiserver/configdefault
 k8s.io/kubernetes/openshift-kube-apiserver/enablement
 k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver
+k8s.io/kubernetes/pkg/api/endpoints
 k8s.io/kubernetes/pkg/api/legacyscheme
 k8s.io/kubernetes/pkg/api/persistentvolume
 k8s.io/kubernetes/pkg/api/persistentvolumeclaim
@@ -2751,7 +2752,7 @@ k8s.io/kubernetes/third_party/forked/gonum/graph
 k8s.io/kubernetes/third_party/forked/gonum/graph/internal/linear
 k8s.io/kubernetes/third_party/forked/gonum/graph/simple
 k8s.io/kubernetes/third_party/forked/gonum/graph/traverse
-# k8s.io/legacy-cloud-providers v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20201031122226-74d9cb516f0f
+# k8s.io/legacy-cloud-providers v0.19.2 => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20201103091224-6bd0f342e442
 ## explicit
 k8s.io/legacy-cloud-providers/aws
 k8s.io/legacy-cloud-providers/azure
@@ -2794,7 +2795,7 @@ k8s.io/legacy-cloud-providers/openstack
 k8s.io/legacy-cloud-providers/vsphere
 k8s.io/legacy-cloud-providers/vsphere/vclib
 k8s.io/legacy-cloud-providers/vsphere/vclib/diskmanagers
-# k8s.io/metrics v0.19.0-rc.2 => k8s.io/metrics v0.19.0-rc.2
+# k8s.io/metrics v0.19.2 => k8s.io/metrics v0.19.2
 k8s.io/metrics/pkg/apis/custom_metrics
 k8s.io/metrics/pkg/apis/custom_metrics/v1beta1
 k8s.io/metrics/pkg/apis/custom_metrics/v1beta2
@@ -2803,7 +2804,7 @@ k8s.io/metrics/pkg/apis/external_metrics/v1beta1
 k8s.io/metrics/pkg/client/custom_metrics
 k8s.io/metrics/pkg/client/custom_metrics/scheme
 k8s.io/metrics/pkg/client/external_metrics
-# k8s.io/sample-apiserver v0.0.0 => k8s.io/sample-apiserver v0.19.0-rc.2
+# k8s.io/sample-apiserver v0.0.0 => k8s.io/sample-apiserver v0.19.2
 k8s.io/sample-apiserver/pkg/apis/wardle
 k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1
 # k8s.io/utils v0.0.0-20200729134348-d5654de09c73 => k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
@@ -2847,8 +2848,6 @@ sigs.k8s.io/kustomize/pkg/transformers
 sigs.k8s.io/kustomize/pkg/transformers/config
 sigs.k8s.io/kustomize/pkg/transformers/config/defaultconfig
 sigs.k8s.io/kustomize/pkg/types
-# sigs.k8s.io/structured-merge-diff/v3 v3.0.1-0.20200706213357-43c19bbb7fba => sigs.k8s.io/structured-merge-diff/v3 v3.0.0
-sigs.k8s.io/structured-merge-diff/v3/value
 # sigs.k8s.io/structured-merge-diff/v4 v4.0.1
 sigs.k8s.io/structured-merge-diff/v4/fieldpath
 sigs.k8s.io/structured-merge-diff/v4/merge
@@ -2974,7 +2973,7 @@ sigs.k8s.io/yaml
 # github.com/godbus/dbus => github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f
 # github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.1
 # github.com/golang/freetype => github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
-# github.com/golang/glog => github.com/openshift/golang-glog v0.0.0-20190322123450-3c92600d7533
+# github.com/golang/glog => github.com/openshift/golang-glog v0.0.0-20160126235308-23def4e6c14b
 # github.com/golang/groupcache => github.com/golang/groupcache v0.0.0-20160516000752-02826c3e7903
 # github.com/golang/mock => github.com/golang/mock v1.3.1
 # github.com/golang/protobuf => github.com/golang/protobuf v1.3.2
@@ -3200,34 +3199,34 @@ sigs.k8s.io/yaml
 # gotest.tools/gotestsum => gotest.tools/gotestsum v0.3.5
 # grpc.go4.org => grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 # honnef.co/go/tools => honnef.co/go/tools v0.0.1-2019.2.2
-# k8s.io/api => k8s.io/api v0.19.0-rc.2
-# k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.0-rc.2
-# k8s.io/apimachinery => k8s.io/apimachinery v0.19.0-rc.2
-# k8s.io/apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20201031122226-74d9cb516f0f
-# k8s.io/cli-runtime => k8s.io/cli-runtime v0.19.0-rc.2
-# k8s.io/client-go => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20201031122226-74d9cb516f0f
-# k8s.io/cloud-provider => github.com/openshift/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20201031122226-74d9cb516f0f
-# k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.19.0-rc.2
-# k8s.io/code-generator => k8s.io/code-generator v0.19.0-rc.2
-# k8s.io/component-base => k8s.io/component-base v0.19.0-rc.2
-# k8s.io/cri-api => k8s.io/cri-api v0.19.0-rc.2
-# k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.19.0-rc.2
+# k8s.io/api => k8s.io/api v0.19.2
+# k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.2
+# k8s.io/apimachinery => k8s.io/apimachinery v0.19.2
+# k8s.io/apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20201103091224-6bd0f342e442
+# k8s.io/cli-runtime => k8s.io/cli-runtime v0.19.2
+# k8s.io/client-go => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20201103091224-6bd0f342e442
+# k8s.io/cloud-provider => github.com/openshift/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20201103091224-6bd0f342e442
+# k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.19.2
+# k8s.io/code-generator => k8s.io/code-generator v0.19.2
+# k8s.io/component-base => k8s.io/component-base v0.19.2
+# k8s.io/cri-api => k8s.io/cri-api v0.19.2
+# k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.19.2
 # k8s.io/gengo => k8s.io/gengo v0.0.0-20200114144118-36b2048a9120
 # k8s.io/heapster => k8s.io/heapster v1.2.0-beta.1
 # k8s.io/klog => k8s.io/klog v1.0.0
-# k8s.io/kube-aggregator => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20201031122226-74d9cb516f0f
-# k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.19.0-rc.2
-# k8s.io/kube-proxy => k8s.io/kube-proxy v0.19.0-rc.2
-# k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.19.0-rc.2
-# k8s.io/kubectl => k8s.io/kubectl v0.19.0-rc.2
-# k8s.io/kubelet => k8s.io/kubelet v0.19.0-rc.2
-# k8s.io/kubernetes => github.com/openshift/kubernetes v1.20.0-alpha.0.0.20201031122226-74d9cb516f0f
-# k8s.io/legacy-cloud-providers => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20201031122226-74d9cb516f0f
-# k8s.io/metrics => k8s.io/metrics v0.19.0-rc.2
+# k8s.io/kube-aggregator => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20201103091224-6bd0f342e442
+# k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.19.2
+# k8s.io/kube-proxy => k8s.io/kube-proxy v0.19.2
+# k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.19.2
+# k8s.io/kubectl => k8s.io/kubectl v0.19.2
+# k8s.io/kubelet => k8s.io/kubelet v0.19.2
+# k8s.io/kubernetes => github.com/openshift/kubernetes v1.20.0-alpha.0.0.20201103091224-6bd0f342e442
+# k8s.io/legacy-cloud-providers => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20201103091224-6bd0f342e442
+# k8s.io/metrics => k8s.io/metrics v0.19.2
 # k8s.io/repo-infra => k8s.io/repo-infra v0.0.1-alpha.1
-# k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.0-rc.2
-# k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.19.0-rc.2
-# k8s.io/sample-controller => k8s.io/sample-controller v0.19.0-rc.2
+# k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.2
+# k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.19.2
+# k8s.io/sample-controller => k8s.io/sample-controller v0.19.2
 # k8s.io/system-validators => k8s.io/system-validators v1.0.4
 # k8s.io/utils => k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 # modernc.org/cc => modernc.org/cc v1.0.0

@@ -660,8 +660,26 @@ const (
 
 // IngressControllerCaptureHTTPCookie describes an HTTP cookie that should be
 // captured.
-// +union
 type IngressControllerCaptureHTTPCookie struct {
+	IngressControllerCaptureHTTPCookieUnion `json:",inline"`
+
+	// maxLength specifies a maximum length of the string that will be
+	// logged, which includes the cookie name, cookie value, and
+	// one-character delimiter.  If the log entry exceeds this length, the
+	// value will be truncated in the log message.  Note that the ingress
+	// controller may impose a separate bound on the total length of HTTP
+	// headers in a request.
+	//
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=1024
+	// +required
+	MaxLength int `json:"maxLength"`
+}
+
+// IngressControllerCaptureHTTPCookieUnion describes optional fields of an HTTP cookie that should be captured.
+// +union
+type IngressControllerCaptureHTTPCookieUnion struct {
 	// matchType specifies the type of match to be performed on the cookie
 	// name.  Allowed values are "Exact" for an exact string match and
 	// "Prefix" for a string prefix match.  If "Exact" is specified, a name
@@ -693,19 +711,6 @@ type IngressControllerCaptureHTTPCookie struct {
 	// +kubebuilder:validation:MaxLength=1024
 	// +optional
 	NamePrefix string `json:"namePrefix"`
-
-	// maxLength specifies a maximum length of the string that will be
-	// logged, which includes the cookie name, cookie value, and
-	// one-character delimiter.  If the log entry exceeds this length, the
-	// value will be truncated in the log message.  Note that the ingress
-	// controller may impose a separate bound on the total length of HTTP
-	// headers in a request.
-	//
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=1024
-	// +required
-	MaxLength int `json:"maxLength"`
 }
 
 // AccessLogging describes how client requests should be logged.

@@ -118,7 +118,7 @@ func (ConsoleNotification) SwaggerDoc() map[string]string {
 var map_ConsoleNotificationSpec = map[string]string{
 	"":                "ConsoleNotificationSpec is the desired console notification configuration.",
 	"text":            "text is the visible text of the notification.",
-	"location":        "location is the location of the notification in the console.",
+	"location":        "location is the location of the notification in the console. Valid values are: \"BannerTop\", \"BannerBottom\", \"BannerTopBottom\".",
 	"link":            "link is an object that holds notification link details.",
 	"color":           "color is the color of the text for the notification as CSS data type color.",
 	"backgroundColor": "backgroundColor is the color of the background for the notification as CSS data type color.",

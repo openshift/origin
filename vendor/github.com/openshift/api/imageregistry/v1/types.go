@@ -82,7 +82,7 @@ type ImageRegistrySpec struct {
 	Replicas int32 `json:"replicas"`
 	// logging is deprecated, use logLevel instead.
 	// +optional
-	Logging int64 `json:"logging"`
+	Logging int64 `json:"logging,omitempty"`
 	// resources defines the resource requests+limits for the registry pod.
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
