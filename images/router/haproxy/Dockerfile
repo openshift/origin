@@ -5,9 +5,9 @@
 #
 FROM openshift/origin-cli
 
-# https://github.com/openshift/origin/issues/24825
-COPY RPM-GPG-KEY-CentOS-SIG-PaaS /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-PaaS
-COPY centos-openshift-origin.repo /etc/yum.repos.d/
+COPY rhel-server-ose.repo /etc/yum.repos.d
+# If this is a non-CI/RHEL build, the repo is not necessary
+RUN test -e /etc/centos-release || rm /etc/yum.repos.d/rhel-server-ose.repo
 
 RUN INSTALL_PKGS="haproxy18 rsyslog" && \
     yum install -y $INSTALL_PKGS && \
