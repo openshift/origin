@@ -34,6 +34,8 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 			e2eskipper.Skipf("IBM ROKS clusters run etcd outside of the cluster. Etcd cannot be accessed directly from within the cluster")
 		}
 
+		e2eskipper.Skipf("DEBUG OOM")
+
 		etcdClientCreater := &etcdPortForwardClient{kubeClient: oc.AdminKubeClient()}
 		defer etcdClientCreater.closeAll()
 		testEtcd3StoragePath(g.GinkgoT(), oc.AdminConfig(), etcdClientCreater.getEtcdClient)
