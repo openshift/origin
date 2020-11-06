@@ -153,6 +153,18 @@ func writeJUnitReport(filePrefix, name string, tests []*testCase, dir string, du
 				},
 			})
 		case test.success:
+			if test.flake {
+				s.NumTests++
+				s.NumFailed++
+				s.TestCases = append(s.TestCases, &JUnitTestCase{
+					Name:      test.name,
+					SystemOut: string(test.out),
+					Duration:  test.duration.Seconds(),
+					FailureOutput: &FailureOutput{
+						Output: lastLinesUntil(string(test.out), 100, "flake:"),
+					},
+				})
+			}
 			s.NumTests++
 			s.TestCases = append(s.TestCases, &JUnitTestCase{
 				Name:     test.name,
