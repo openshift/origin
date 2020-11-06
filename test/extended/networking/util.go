@@ -141,7 +141,9 @@ func networkPluginName() string {
 			"--template={{.pluginName}}",
 		).CombinedOutput()
 		pluginName := string(out)
-		if err != nil {
+		if err == nil {
+			e2e.Logf("Detected network plugin name %q", pluginName)
+		} else {
 			e2e.Logf("Could not check network plugin name: %v. Assuming a non-OpenShift plugin", err)
 			pluginName = ""
 		}
