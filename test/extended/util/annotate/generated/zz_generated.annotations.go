@@ -285,6 +285,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kubelet terminates kube-apiserver gracefully": "kubelet terminates kube-apiserver gracefully [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-api-machinery][Feature:AdmissionWebhook] should call a validating admission webhook when accessing OpenShift API Server": "should call a validating admission webhook when accessing OpenShift API Server [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-api-machinery][Feature:Audit] Basic audit should audit API calls": "should audit API calls [Disabled:SpecialConfig]",
 
 	"[Top Level] [sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces": "should control resource limits across namespaces [Suite:openshift/conformance/parallel]",
