@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	oc := exutil.NewCLI("oc-adm-must-gather").AsAdmin()
 
 	g.JustBeforeEach(func() {
-		// wait for the default service account to be avaiable
+		// wait for the default service account to be available
 		err := exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})

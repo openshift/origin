@@ -151,7 +151,7 @@ func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
 		return true, nil
 	})
 	if err != nil {
-		return "", nil, fmt.Errorf("replica for %s not avaiable: %v", serverDeployment.Name, err)
+		return "", nil, fmt.Errorf("replica for %s not available: %v", serverDeployment.Name, err)
 	}
 
 	// Confirm ldap server availability. Since the ldap client does not support SNI, a TLS passthrough route will not
