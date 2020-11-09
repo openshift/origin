@@ -768,7 +768,7 @@ spec:
       from:
         kind: ImageStreamTag
         namespace: openshift
-        name: 'php:7.0'
+        name: 'php:7.2'
 `)
 
 func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
@@ -16958,7 +16958,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         "tags": [
           {
             "annotations": {
-              "description": "Build and run PHP applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.1/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PHP available on OpenShift, including major versions updates.",
+              "description": "Build and run PHP applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PHP available on OpenShift, including major versions updates.",
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -16968,7 +16968,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "7.1"
+              "name": "7.2"
             },
             "name": "latest",
             "referencePolicy": {
@@ -17051,6 +17051,26 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "name": "docker.io/centos/php-71-centos7:latest"
             },
             "name": "7.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run PHP 7.2 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.2/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 7.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "supports": "php:7.2,php",
+              "tags": "builder,php",
+              "version": "7.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/php-72-centos7:latest"
+            },
+            "name": "7.2",
             "referencePolicy": {
               "type": "Local"
             }
@@ -18452,7 +18472,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
         "tags": [
           {
             "annotations": {
-              "description": "Build and run PHP applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.1/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PHP available on OpenShift, including major versions updates.",
+              "description": "Build and run PHP applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PHP available on OpenShift, including major versions updates.",
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -18462,7 +18482,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "7.1"
+              "name": "7.2"
             },
             "name": "latest",
             "referencePolicy": {
@@ -18545,6 +18565,26 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "name": "registry.redhat.io/rhscl/php-71-rhel7:latest"
             },
             "name": "7.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run PHP 7.2 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.2/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 7.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
+              "supports": "php:7.2,php",
+              "tags": "builder,php",
+              "version": "7.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/rhscl/php-72-rhel7:latest"
+            },
+            "name": "7.2",
             "referencePolicy": {
               "type": "Local"
             }
@@ -21649,11 +21689,11 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
             "value": "openshift"
         },
         {
-            "description": "Version of PHP image to be used (5.6, 7.0, 7.1 or latest).",
+            "description": "Version of PHP image to be used (7.2 or latest).",
             "displayName": "PHP Version",
             "name": "PHP_VERSION",
             "required": true,
-            "value": "7.1"
+            "value": "7.2"
         },
         {
             "description": "Maximum amount of memory the CakePHP container can use.",
@@ -22230,11 +22270,11 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
             "value": "openshift"
         },
         {
-            "description": "Version of PHP image to be used (5.6, 7.0, 7.1 or latest).",
+            "description": "Version of PHP image to be used (7.2 or latest).",
             "displayName": "PHP Version",
             "name": "PHP_VERSION",
             "required": true,
-            "value": "7.1"
+            "value": "7.2"
         },
         {
             "description": "Maximum amount of memory the CakePHP container can use.",
@@ -32224,11 +32264,11 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
             "value": "openshift"
         },
         {
-            "description": "Version of PHP image to be used (5.6, 7.0, 7.1 or latest).",
+            "description": "Version of PHP image to be used (7.2 or latest).",
             "displayName": "PHP Version",
             "name": "PHP_VERSION",
             "required": true,
-            "value": "7.1"
+            "value": "7.2"
         },
         {
             "description": "Maximum amount of memory the CakePHP container can use.",

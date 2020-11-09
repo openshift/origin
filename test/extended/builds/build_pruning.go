@@ -65,7 +65,6 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 		})
 
 		g.It("should prune completed builds based on the successfulBuildsHistoryLimit setting", func() {
-			g.Skip("until we either move off of cakephp in 3.11 and/or get the php imagesream updated")
 
 			g.By("creating test successful build config")
 			err := oc.Run("create").Args("-f", successfulBuildConfig).Execute()
