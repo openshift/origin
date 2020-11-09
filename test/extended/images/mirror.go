@@ -25,7 +25,9 @@ import (
 )
 
 const podStartupTimeout = 3 * time.Minute
-const testPod1 = `kind: Pod
+
+var testPod1 = fmt.Sprintf(
+	`kind: Pod
 id: oc-image-mirror-test-1
 apiVersion: v1
 metadata:
@@ -35,7 +37,7 @@ metadata:
 spec:
   containers:
   - name: registry-1
-    image: docker.io/library/registry
+    image: %[1]s
     env:
     - name: REGISTRY_HTTP_ADDR
       value: :5001
@@ -46,13 +48,17 @@ spec:
     - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
       value: /tmp
   - name: shell
-    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+    image: %[2]s
     command:
     - /bin/sleep
     - infinity
-`
+`,
+	image.LocationFor("docker.io/library/registry:2.7.1"),
+	image.ShellImage(),
+)
 
-const testPod2 = `kind: Pod
+var testPod2 = fmt.Sprintf(
+	`kind: Pod
 id: oc-image-mirror-test-2
 apiVersion: v1
 metadata:
@@ -62,7 +68,7 @@ metadata:
 spec:
   containers:
   - name: registry-1
-    image: docker.io/library/registry
+    image: %[1]s
     env:
     - name: REGISTRY_HTTP_ADDR
       value: :5002
@@ -73,7 +79,7 @@ spec:
     - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
       value: /tmp
   - name: registry-2
-    image: docker.io/library/registry
+    image: %[1]s
     env:
     - name: REGISTRY_HTTP_ADDR
       value: :5003
@@ -84,11 +90,14 @@ spec:
     - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
       value: /tmp
   - name: shell
-    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+    image: %[2]s
     command:
     - /bin/sleep
     - infinity
-`
+`,
+	image.LocationFor("docker.io/library/registry:2.7.1"),
+	image.ShellImage(),
+)
 
 func getRandName() string {
 	c := 20

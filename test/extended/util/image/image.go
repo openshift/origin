@@ -17,6 +17,9 @@ func init() {
 		// used by multicast test, should be moved to publish to quay
 		"docker.io/openshift/test-multicast:latest": -1,
 
+		// used by oc mirror test, should be moved to publish to quay
+		"docker.io/library/registry:2.7.1": -1,
+
 		// moved to GCR
 		"k8s.gcr.io/sig-storage/csi-attacher:v2.2.0":              -1,
 		"k8s.gcr.io/sig-storage/csi-attacher:v3.0.0":              -1,

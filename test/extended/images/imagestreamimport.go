@@ -29,6 +29,7 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API", func() {
@@ -216,7 +217,7 @@ func deployEphemeralImageRegistry(oc *exutil.CLI, proj *projectv1.Project) error
 	containers := []corev1.Container{
 		{
 			Name:  "registry",
-			Image: "docker.io/registry",
+			Image: image.LocationFor("docker.io/library/registry:2.7.1"),
 			Ports: []corev1.ContainerPort{
 				{
 					ContainerPort: 5000,

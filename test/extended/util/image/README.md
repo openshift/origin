@@ -34,6 +34,7 @@ To become an OWNER in this directory you must be given permission to push to thi
 
 ### OpenShift exceptions
 
+* `docker.io/library/registry:2.7.1` - used to imitate 3rd-party registries
 * Temporary
   * `docker.io/summerwind/h2spec:2.4.0` - for HTTP2 testing, waiting for mirror
 
