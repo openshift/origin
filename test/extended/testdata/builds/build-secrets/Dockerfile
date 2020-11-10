@@ -1,4 +1,4 @@
-FROM docker.io/busybox
+FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 
 USER root
 ADD ./secret-dir /secrets

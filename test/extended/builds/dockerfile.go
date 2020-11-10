@@ -21,11 +21,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have Dockerfile
 		oc             = exutil.NewCLI("build-dockerfile-env")
 		dockerfileAdd  = exutil.FixturePath("testdata", "builds", "docker-add")
 		testDockerfile = `
-FROM library/busybox
+FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 USER 1001
 `
 		testDockerfile2 = `
-FROM centos:7
+FROM image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
 USER 1001
 `
 		testDockerfile3 = `
@@ -85,31 +85,31 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking the buildconfig content")
-				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "centos", metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "ruby", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile2))
 				o.Expect(bc.Spec.Output.To).ToNot(o.BeNil())
-				o.Expect(bc.Spec.Output.To.Name).To(o.Equal("centos:latest"))
+				o.Expect(bc.Spec.Output.To.Name).To(o.Equal("ruby:latest"))
 
-				buildName := "centos-1"
+				buildName := "ruby-1"
 				g.By("expecting the Dockerfile build is in Complete phase")
 				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), buildName, nil, nil, nil)
 				//debug for failures
 				if err != nil {
-					exutil.DumpBuildLogs("centos", oc)
+					exutil.DumpBuildLogs("ruby", oc)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("getting the built container image reference from ImageStream")
-				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "centos:latest", metav1.GetOptions{})
+				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "ruby:latest", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = imageutil.ImageWithMetadata(&image.Image)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(image.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.User).To(o.Equal("1001"))
 
 				g.By("checking for the imported tag")
-				_, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "centos:7", metav1.GetOptions{})
+				_, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "ruby:2.5", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 

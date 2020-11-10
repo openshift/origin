@@ -11,4 +11,4 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/nodejs-10-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/nodejs:10

@@ -10,7 +10,7 @@ spec:
   successfulBuildsHistoryLimit: 2
   source:
     dockerfile: |
-      FROM busybox
+      FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       RUN touch /php-file
   strategy:
     dockerStrategy: {}

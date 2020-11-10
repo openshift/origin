@@ -23,10 +23,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds] Multi-stage image builds", func
 		testDockerfile = `
 FROM scratch as test
 USER 1001
-FROM registry.redhat.io/rhel7
+FROM image-registry.openshift-image-registry.svc:5000/openshift/cli:latest as other
 COPY --from=test /usr/bin/curl /test/
-COPY --from=busybox:latest /bin/echo /test/
-COPY --from=busybox:latest /bin/ping /test/
+COPY --from=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest /bin/echo /test/
+COPY --from=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest /bin/ping /test/
 `
 	)
 
@@ -54,7 +54,7 @@ COPY --from=busybox:latest /bin/ping /test/
 						Source: buildv1.BuildSource{
 							Dockerfile: &testDockerfile,
 							Images: []buildv1.ImageSource{
-								{From: corev1.ObjectReference{Kind: "DockerImage", Name: "centos:7"}, As: []string{"scratch"}},
+								{From: corev1.ObjectReference{Kind: "DockerImage", Name: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"}, As: []string{"scratch"}},
 							},
 						},
 						Strategy: buildv1.BuildStrategy{
@@ -81,8 +81,8 @@ COPY --from=busybox:latest /bin/ping /test/
 			s, err := result.Logs()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(s).ToNot(o.ContainSubstring("--> FROM scratch"))
-			o.Expect(s).ToNot(o.ContainSubstring("FROM busybox"))
-			o.Expect(s).To(o.ContainSubstring("STEP 1: FROM centos:7 AS test"))
+			o.Expect(s).To(o.ContainSubstring("FROM image-registry.openshift-image-registry.svc:5000/openshift/cli:latest AS other"))
+			o.Expect(s).To(o.ContainSubstring("STEP 1: FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest AS test"))
 			o.Expect(s).To(o.ContainSubstring("COPY --from"))
 			o.Expect(s).To(o.ContainSubstring(fmt.Sprintf("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace())))
 			e2e.Logf("Build logs:\n%s", result)

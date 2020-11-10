@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build can reference a cluster s
 	var (
 		oc             = exutil.NewCLI("build-service")
 		testDockerfile = `
-FROM centos:7
+FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 RUN cat /etc/resolv.conf
 RUN curl -vvv hello-openshift:8080
 `
@@ -41,7 +41,7 @@ RUN curl -vvv hello-openshift:8080
 		g.Describe("with a build being created from new-build", func() {
 			g.It("should be able to run a build that references a cluster service", func() {
 				g.By("standing up a new hello world service")
-				err := oc.Run("new-app").Args("docker.io/openshift/hello-openshift").Execute()
+				err := oc.Run("new-app").Args("quay.io/openshifttest/hello-openshift:openshift").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				deploy, derr := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get(context.Background(), "hello-openshift", metav1.GetOptions{})
@@ -60,14 +60,14 @@ RUN curl -vvv hello-openshift:8080
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("calling oc new-build with a Dockerfile")
-				err = oc.Run("new-build").Args("-D", "-").InputString(testDockerfile).Execute()
+				err = oc.Run("new-build").Args("-D", "-", "--to", "test:latest").InputString(testDockerfile).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the build is in Complete phase")
-				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "centos-1", nil, nil, nil)
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "test-1", nil, nil, nil)
 				//debug for failures
 				if err != nil {
-					exutil.DumpBuildLogs("centos", oc)
+					exutil.DumpBuildLogs("test", oc)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
