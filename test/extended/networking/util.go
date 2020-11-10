@@ -136,7 +136,7 @@ func networkPluginName() string {
 	if cachedNetworkPluginName == nil {
 		// We don't use exutil.NewCLI() here because it can't be called from BeforeEach()
 		out, err := exec.Command(
-			"oc", "--config="+exutil.KubeConfigPath(),
+			"oc", "--kubeconfig="+exutil.KubeConfigPath(),
 			"get", "clusternetwork", "default",
 			"--template={{.pluginName}}",
 		).CombinedOutput()
