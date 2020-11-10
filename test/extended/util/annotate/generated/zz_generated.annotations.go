@@ -285,7 +285,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kubelet terminates kube-apiserver gracefully": "kubelet terminates kube-apiserver gracefully [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-api-machinery][Feature:AdmissionWebhook] should call a validating admission webhook when accessing OpenShift API Server": "should call a validating admission webhook when accessing OpenShift API Server [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:AdmissionWebhook] Validating Admission Webhook should be called when accessing OpenShift APIs": "Validating Admission Webhook should be called when accessing OpenShift APIs [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-api-machinery][Feature:Audit] Basic audit should audit API calls": "should audit API calls [Disabled:SpecialConfig]",
 

@@ -2,23 +2,31 @@ package apiserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 
-	imagev1 "github.com/openshift/api/image/v1"
+	exetcd "github.com/openshift/origin/test/extended/etcd"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
+	discocache "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2edeployment "k8s.io/kubernetes/test/e2e/framework/deployment"
 	imageutils "k8s.io/kubernetes/test/utils/image"
@@ -27,14 +35,15 @@ import (
 
 var _ = g.Describe("[sig-api-machinery][Feature:AdmissionWebhook]", func() {
 	defer g.GinkgoRecover()
-
 	oc := exutil.NewCLI("apiserver")
 
-	g.It("should call a validating admission webhook when accessing OpenShift API Server", func() {
+	g.It("Validating Admission Webhook should be called when accessing OpenShift APIs", func() {
 		targetNamespace := oc.Namespace()
 		kubeClient := oc.AdminKubeClient()
 		servicePort := int32(8443)
 		containerPort := int32(8444)
+		mapper := restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
+		adminRestConfig := oc.AdminConfig()
 
 		annotateNamespace(kubeClient, targetNamespace, "webhook-marker")
 		createService(kubeClient, targetNamespace, "openshift-test-webhook", "openshift-test-webhook", servicePort, containerPort)
@@ -42,23 +51,52 @@ var _ = g.Describe("[sig-api-machinery][Feature:AdmissionWebhook]", func() {
 		removeWebhookConfiguration := createValidatingWebhook(kubeClient, targetNamespace, "webhook-marker", "webhook-marker", "openshift-test-webhook", "openshift-test-webhook", servicePort)
 		defer removeWebhookConfiguration()
 
-		g.By(fmt.Sprintf("attempting to create an image stream in %s namespace (should fail)", targetNamespace))
-		err := hitValidatingWebhook(func() (func(), error) {
-			is := &imagev1.ImageStream{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   "openshift-test-webhook",
-					Labels: map[string]string{"webhook-marker": "true"},
-				},
-			}
-			_, err := oc.AdminImageClient().ImageV1().ImageStreams(targetNamespace).Create(context.TODO(), is, metav1.CreateOptions{})
-			removeImageStream := func() {
-				err = oc.AdminImageClient().ImageV1().ImageStreams(targetNamespace).Delete(context.TODO(), is.GetName(), metav1.DeleteOptions{})
-				e2e.ExpectNoError(err, "deleting an image stream %s in namespace %s", is.Name, targetNamespace)
-			}
-			return removeImageStream, err
+		storageData := exetcd.OpenshiftEtcdStorageData
+		for key := range storageData {
+			gvr := key
+			data := storageData[gvr]
 
-		})
-		e2e.ExpectNoError(err, "failed to create an image stream, expected to get admission deny error")
+			// apply for core types is already well-tested, so skip
+			// openshift types that are just aliases.
+			aliasToCoreType := data.ExpectedGVK != nil
+			if aliasToCoreType {
+				continue
+			}
+
+			g.By(fmt.Sprintf("validating %v API", gvr), func() {
+				for _, prerequisite := range data.Prerequisites {
+					// the etcd storage test for oauthclientauthorizations needs to
+					// manually create a service account secret but that is not
+					// necessary (or possible) when interacting with an apiserver.
+					// The service account secret will be created by the controller
+					// manager.
+					if gvr.Resource == "oauthclientauthorizations" && prerequisite.GvrData.Resource == "secrets" {
+						continue
+					}
+					resourceClient, unstructuredObj, err := createRes(adminRestConfig, mapper, prerequisite.GvrData, false, prerequisite.Stub, targetNamespace)
+					e2e.ExpectNoError(err, fmt.Sprintf("failed to create %s", gvr))
+					defer deleteRes(resourceClient, unstructuredObj.GetName())
+				}
+
+				var (
+					resourceClient  dynamic.ResourceInterface
+					unstructuredObj *unstructured.Unstructured
+					err             error
+				)
+				createResourceWrapper := func() error {
+					resourceClient, unstructuredObj, err = createRes(adminRestConfig, mapper, gvr, true, data.Stub, targetNamespace)
+					return err
+				}
+				deleteResourceWrapper := func() {
+					if err == nil && resourceClient != nil && unstructuredObj != nil {
+						deleteRes(resourceClient, unstructuredObj.GetName())
+					}
+				}
+
+				err = hitValidatingWebhook(createResourceWrapper, deleteResourceWrapper)
+				e2e.ExpectNoError(err, fmt.Sprintf("failed to create %s, expected to get admission deny error", gvr))
+			})
+		}
 	})
 })
 
@@ -246,9 +284,13 @@ func createValidatingWebhook(client kubernetes.Interface, namespace string, name
 		e2e.ExpectNoError(err, "deleting webhook config %s in namespace %s", configName, namespace)
 	}
 
-	err = hitValidatingWebhook(func() (func(), error) {
-		cmClient := client.CoreV1().ConfigMaps(namespace)
-		cm := &v1.ConfigMap{
+	var (
+		cm       *v1.ConfigMap
+		cmClient = client.CoreV1().ConfigMaps(namespace)
+	)
+
+	createResourceFn := func() error {
+		cm = &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: string(uuid.NewUUID()),
 				Labels: map[string]string{
@@ -257,13 +299,14 @@ func createValidatingWebhook(client kubernetes.Interface, namespace string, name
 			},
 		}
 		_, err := cmClient.Create(context.Background(), cm, metav1.CreateOptions{})
-		removeConfigMap := func() {
-			err = cmClient.Delete(context.Background(), cm.GetName(), metav1.DeleteOptions{})
-			e2e.ExpectNoError(err, "deleting config map %s in namespace %s", cm.Name, namespace)
-		}
+		return err
+	}
+	deleteResourceFn := func() {
+		err = cmClient.Delete(context.Background(), cm.GetName(), metav1.DeleteOptions{})
+		e2e.ExpectNoError(err, "deleting config map %s in namespace %s", cm.Name, namespace)
+	}
 
-		return removeConfigMap, err
-	})
+	err = hitValidatingWebhook(createResourceFn, deleteResourceFn)
 	if err != nil {
 		removeWebhookConfiguration()
 		e2e.ExpectNoError(err, "calling validating admission webhook")
@@ -273,9 +316,9 @@ func createValidatingWebhook(client kubernetes.Interface, namespace string, name
 
 // hitValidatingWebhook tries to create a resource and expect it to fail (deny)
 // it tries to send a few request before giving up because registering a webhook is not instant and might take up to a few seconds
-func hitValidatingWebhook(callback func() (func(), error)) error {
+func hitValidatingWebhook(createResourceFn func() error, deleteResourceFn func()) error {
 	return wait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (bool, error) {
-		cleanup, err := callback()
+		err := createResourceFn()
 		if err != nil {
 			// the always-deny webhook does not provide a reason, so check for the error string we expect
 			if strings.Contains(err.Error(), "denied") {
@@ -283,10 +326,59 @@ func hitValidatingWebhook(callback func() (func(), error)) error {
 			}
 			return false, err
 		}
-		cleanup()
+		deleteResourceFn()
 		e2e.Logf("Calling webhook succeeded but it should fail trying one more time...")
 		return false, nil
 	})
+}
+
+func createRes(restConfig *rest.Config, mapper *restmapper.DeferredDiscoveryRESTMapper, gvr schema.GroupVersionResource, withWebhookObjectSelector bool, stub, namespace string) (dynamic.ResourceInterface, *unstructured.Unstructured, error) {
+	gvk, err := mapper.KindFor(gvr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// supply a value for namespace if the scope requires
+	mapping, err := mapper.RESTMapping(gvk.GroupKind())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// ensure that any stub embedding the etcd test namespace
+	// is updated to use local test namespace instead.
+	stub = strings.Replace(stub, exetcd.TestNamespace, namespace, -1)
+
+	// create unstructured object from stub and set labels
+	unstructuredObj := unstructured.Unstructured{}
+	err = json.Unmarshal([]byte(stub), &unstructuredObj.Object)
+	if err != nil {
+		return nil, nil, err
+	}
+	unstructuredObj.SetGroupVersionKind(gvk)
+	if withWebhookObjectSelector {
+		unstructuredObj.SetLabels(map[string]string{"webhook-marker": "true"})
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// if the resource we are about to create is a cluster-wide skipp the namespace
+	var resourceClient dynamic.ResourceInterface
+	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
+		resourceClient = dynamicClient.Resource(gvr).Namespace(namespace)
+	} else {
+		resourceClient = dynamicClient.Resource(gvr).Namespace("")
+	}
+
+	_, err = resourceClient.Create(context.Background(), &unstructuredObj, metav1.CreateOptions{})
+	return resourceClient, &unstructuredObj, err
+}
+
+func deleteRes(resourceClient dynamic.ResourceInterface, name string) {
+	err := resourceClient.Delete(context.Background(), name, metav1.DeleteOptions{})
+	e2e.ExpectNoError(err, "Unexpected error deleting resource: %v")
 }
 
 func strPtr(s string) *string { return &s }
