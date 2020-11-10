@@ -2,6 +2,7 @@ package images
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
@@ -40,7 +41,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 		cli := oc.KubeFramework().PodClient()
 		client := imageclientset.NewForConfigOrDie(oc.UserConfig()).ImageV1()
 
-		_, err = client.ImageStreamImports(ns).Create(context.Background(), &imageapi.ImageStreamImport{
+		isi, err := client.ImageStreamImports(ns).Create(context.Background(), &imageapi.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "1",
 			},
@@ -59,6 +60,10 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 			},
 		}, metav1.CreateOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
+
+		for i, img := range isi.Status.Images {
+			o.Expect(img.Status.Status).To(o.Equal("Success"), fmt.Sprintf("imagestreamimport status for spec.image[%d] (message: %s)", i, img.Status.Message))
+		}
 
 		// busyboxLayers := isi.Status.Images[0].Image.DockerImageLayers
 		// busyboxLen := len(busyboxLayers)
