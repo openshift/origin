@@ -21690,8 +21690,8 @@ items:
       type: Dockerfile
       dockerfile: |-
         FROM centos/ruby-25-centos7
-        ARG foo
-        RUN echo $foo
+        ARG foofoo
+        RUN echo $foofoo
     strategy:
       type: Docker
       dockerStrategy:
@@ -21716,8 +21716,8 @@ items:
       type: Dockerfile
       dockerfile: |-
         FROM centos/ruby-25-centos7
-        ARG foo
-        RUN echo $foo
+        ARG foofoo
+        RUN echo $foofoo
     strategy:
       type: Docker
       dockerStrategy:
@@ -21725,7 +21725,7 @@ items:
           kind: DockerImage
           name: quay.io/quay/busybox:latest
         buildArgs:
-        - name: foo
+        - name: foofoo
           value: default
     resources: {}
     postCommit: {}

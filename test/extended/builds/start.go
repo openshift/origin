@@ -368,7 +368,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 				})
 				g.It("Should accept build args that are specified in the Dockerfile", func() {
 					g.By("starting the build with --build-arg flag")
-					br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=foo=bar")
+					br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=foofoo=bar")
 					br.AssertSuccess()
 					verifyNodeSelector(oc, br.BuildName)
 					buildLog, err := br.Logs()
