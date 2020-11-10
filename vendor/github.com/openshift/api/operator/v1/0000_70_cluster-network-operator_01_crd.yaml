@@ -353,7 +353,10 @@ spec:
                     description: The address to "bind" on Defaults to 0.0.0.0
                     type: string
                   iptablesSyncPeriod:
-                    description: 'The period that iptables rules are refreshed. Default:
+                    description: 'An internal kube-proxy parameter. In older releases
+                      of OCP, this sometimes needed to be adjusted in large clusters
+                      for performance reasons, but this is no longer necessary, and
+                      there is no reason to change this from the default value. Default:
                       30s'
                     type: string
                   proxyArguments:
@@ -367,11 +370,20 @@ spec:
                       items:
                         type: string
               logLevel:
-                description: logLevel allows configuring the logging level of the
+                description: "logLevel allows configuring the logging level of the
                   components deployed by the operator. Currently only Kuryr SDN is
                   affected by this setting. Please note that turning on extensive
-                  logging may affect performance. The default value is "Normal".
+                  logging may affect performance. The default value is \"Normal\".
+                  \n Valid values are: \"Normal\", \"Debug\", \"Trace\", \"TraceAll\".
+                  Defaults to \"Normal\"."
                 type: string
+                default: Normal
+                enum:
+                - ""
+                - Normal
+                - Debug
+                - Trace
+                - TraceAll
               serviceNetwork:
                 description: serviceNetwork is the ip address pool to use for Service
                   IPs Currently, all existing network providers only support a single

@@ -138,7 +138,10 @@ const (
 	// of this operator, it is equivalent to X86Architecture, which is kept for historical/migration
 	// purposes
 	AMDArchitecture = "amd64"
-	// PPCArchitecture is the value used to specify the x86_64 hardware architecture
+	// ARMArchitecture is the value used to specify the aarch64 hardware architecture
+	// in the Architectures array field.
+	ARMArchitecture = "arm64"
+	// PPCArchitecture is the value used to specify the ppc64le hardware architecture
 	// in the Architectures array field.
 	PPCArchitecture = "ppc64le"
 	// S390Architecture is the value used to specify the s390x hardware architecture
