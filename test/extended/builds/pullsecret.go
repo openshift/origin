@@ -72,6 +72,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using pull secrets in a b
 				})
 
 				g.It("should be able to use a pull secret in a build", func() {
+					g.Skip("until https://github.com/openshift/origin/pull/24887 merges and we have a pattern from Oleg for spinning up a registry on the test cluster")
 					g.By("creating build config")
 					err := oc.Run("create").Args("-f", pullSecretBuild).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
