@@ -1729,13 +1729,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny an import of a repository exceeding limit on openshift.io/image-tags resource": "should deny an import of a repository exceeding limit on openshift.io/image-tags resource [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Disruptive] ImageStream API TestImportImageFromBlockedRegistry": "TestImportImageFromBlockedRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportImageFromBlockedRegistry": "TestImportImageFromBlockedRegistry",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Disruptive] ImageStream API TestImportImageFromInsecureRegistry": "TestImportImageFromInsecureRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportImageFromInsecureRegistry": "TestImportImageFromInsecureRegistry",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Disruptive] ImageStream API TestImportRepositoryFromBlockedRegistry": "TestImportRepositoryFromBlockedRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportRepositoryFromBlockedRegistry": "TestImportRepositoryFromBlockedRegistry",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Disruptive] ImageStream API TestImportRepositoryFromInsecureRegistry": "TestImportRepositoryFromInsecureRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportRepositoryFromInsecureRegistry": "TestImportRepositoryFromInsecureRegistry",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Annotation trigger reconciles after the image is overwritten": "reconciles after the image is overwritten [Suite:openshift/conformance/parallel]",
 

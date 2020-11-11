@@ -24,22 +24,49 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 
+	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-// This test is currently disruptive because it doesn't wait for the cluster state to return to a set of stable
-// operators (everything available, not progressing, not degraded) and the machine config operator to have finished
-// rolling the change to every node.
-// This causes instability in the tests that follow it that expect a stable clusters.  Examples include scheduling tests
-// that require all workers schedulable with functional networking and storage tests which require long running connections
-// on both apiservers and kubelets to exec into them.
-// After meeting the standard for stability, this test is likely to be [Slow]
-var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Disruptive] ImageStream API", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("imagestream-api")
+
+	g.AfterEach(func() {
+		// awaits until all cluster operators are available
+		if err := wait.PollImmediate(30*time.Second, 10*time.Minute, func() (bool, error) {
+			coList, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(
+				context.Background(), metav1.ListOptions{},
+			)
+			if err != nil {
+				g.GinkgoT().Error("error fetching list of cluster operators: %v", err)
+				return false, nil
+			}
+			for _, operator := range coList.Items {
+				for _, cond := range operator.Status.Conditions {
+					stable := true
+					switch cond.Type {
+					case configv1.OperatorAvailable:
+						stable = cond.Status == configv1.ConditionTrue
+					case configv1.OperatorProgressing:
+						stable = cond.Status == configv1.ConditionFalse
+					case configv1.OperatorDegraded:
+						stable = cond.Status == configv1.ConditionFalse
+					}
+					if !stable {
+						g.GinkgoT().Logf("operator %s not stable, condition: %v", operator.Name, cond)
+						return false, nil
+					}
+				}
+			}
+			return true, nil
+		}); err != nil {
+			g.GinkgoT().Error("error waiting for operators: %v")
+		}
+	})
 
 	g.It("TestImportImageFromInsecureRegistry", func() {
 		TestImportImageFromInsecureRegistry(g.GinkgoT(), oc)
