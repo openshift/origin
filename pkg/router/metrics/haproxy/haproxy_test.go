@@ -193,7 +193,6 @@ be_edge_http:openshift-console:downloads,BACKEND,0,0,0,0,1,0,0,0,0,0,,0,0,0,0,UP
 	}
 
 	// expect no scrape due to the interval set by the last gather
-	e.lastScrape = &now
 	f = gatherMetrics(t, r)
 	if e.counterValues[secondConsolePodID][e.counterIndices[connectionsTotalIndex]] != 245 {
 		t.Fatalf("incorrect counter: %#v", e.counterValues[secondConsolePodID])
