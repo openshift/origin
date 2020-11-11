@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
 )
 
 func AllTests() []upgrades.Test {
@@ -51,6 +52,7 @@ func AllTests() []upgrades.Test {
 		&apps.JobUpgradeTest{},
 		&upgrades.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
+		&imageregistry.AvailableTest{},
 	}
 }
 
