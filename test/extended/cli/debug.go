@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -9,6 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+)
+
+var (
+	buildTimeout = 5 * time.Minute
 )
 
 var _ = g.Describe("[sig-cli] oc debug", func() {
@@ -22,7 +27,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 	g.It("deployment configs from a build", func() {
 		err := oc.Run("create").Args("-f", testCLIDebug).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = wait.Poll(cliInterval, cliTimeout, func() (bool, error) {
+		err = wait.Poll(cliInterval, buildTimeout, func() (bool, error) {
 			err := oc.Run("get").Args("imagestreamtags", "local-busybox:latest").Execute()
 			return err == nil, nil
 		})
