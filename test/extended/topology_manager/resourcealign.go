@@ -49,7 +49,12 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 		e2e.ExpectNoError(err)
 		o.Expect(workerNodes).ToNot(o.BeEmpty())
 
-		topoMgrNodes = filterNodeWithTopologyManagerPolicy(workerNodes, client, oc, kubeletconfigv1beta1.SingleNumaNodeTopologyManager)
+		mcdNodes := filterNodesWithMachineConfigDaemon(workerNodes, client)
+		if len(mcdNodes) == 0 {
+			g.Skip("found no worker nodes with the MCD running")
+		}
+
+		topoMgrNodes = filterNodeWithTopologyManagerPolicy(mcdNodes, client, oc, kubeletconfigv1beta1.SingleNumaNodeTopologyManager)
 
 		deviceResourceName = getValueFromEnv(resourceNameEnvVar, defaultResourceName, "resource name")
 		// we don't handle yet an uneven device amount on worker nodes. IOW, we expect the same amount of devices on each node
