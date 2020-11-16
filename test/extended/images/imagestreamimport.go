@@ -150,7 +150,7 @@ func createRegistryCASecret(oc *exutil.CLI, proj *projectv1.Project) (*corev1.Se
 }
 
 // createRegistryService creates a service pointing to deployed ephemeral image registry.
-func createRegistryService(oc *exutil.CLI, proj *projectv1.Project, selector map[string]string) error {
+func createRegistryService(t g.GinkgoTInterface, oc *exutil.CLI, proj *projectv1.Project, selector map[string]string) error {
 	if _, err := oc.AdminKubeClient().CoreV1().Services(proj.Name).Create(
 		context.Background(),
 		&corev1.Service{
@@ -173,20 +173,26 @@ func createRegistryService(oc *exutil.CLI, proj *projectv1.Project, selector map
 		return err
 	}
 
-	return wait.Poll(time.Second, time.Minute, func() (stop bool, err error) {
-		if _, err = oc.AdminKubeClient().CoreV1().Endpoints(proj.Name).Get(
+	return wait.Poll(5*time.Second, 5*time.Minute, func() (stop bool, err error) {
+		_, err = oc.AdminKubeClient().CoreV1().Endpoints(proj.Name).Get(
 			context.Background(), "image-registry", metav1.GetOptions{},
-		); errors.IsNotFound(err) {
+		)
+		switch {
+		case err == nil:
+			return true, nil
+		case errors.IsNotFound(err):
+			t.Log("endpoint for image registry service not found, retrying")
 			return false, nil
+		default:
+			return true, fmt.Errorf("error getting registry service endpoint: %s", err)
 		}
-		return true, err
 	})
 }
 
 // deployEphemeralImageRegistry deploys an ephemeral image registry instance using self signed
 // certificates, a service is created pointing to image registry. This function awaits until
 // the deployment is complete. Registry is configured with no authentication.
-func deployEphemeralImageRegistry(oc *exutil.CLI, proj *projectv1.Project) error {
+func deployEphemeralImageRegistry(t g.GinkgoTInterface, oc *exutil.CLI, proj *projectv1.Project) error {
 	var replicas int32 = 1
 
 	secret, err := createRegistryCASecret(oc, proj)
@@ -280,23 +286,29 @@ func deployEphemeralImageRegistry(oc *exutil.CLI, proj *projectv1.Project) error
 		metav1.CreateOptions{},
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating registry deployment: %s", err)
 	}
 
 	// awaits for deployment to rollout.
-	if err := wait.Poll(time.Second, 5*time.Minute, func() (stop bool, err error) {
+	t.Log("awaiting for registry deployment to rollout")
+	if err := wait.Poll(5*time.Second, 5*time.Minute, func() (stop bool, err error) {
 		deploy, err := oc.AdminKubeClient().AppsV1().Deployments(proj.Name).Get(
 			context.Background(), deploy.Name, metav1.GetOptions{},
 		)
 		if err != nil {
 			return false, err
 		}
-		return deploy.Status.AvailableReplicas == replicas, nil
+		succeed := deploy.Status.AvailableReplicas == replicas
+		if !succeed {
+			t.Logf("registry deployment not ready yet, status: %+v", deploy.Status)
+		}
+		return succeed, nil
 	}); err != nil {
-		return err
+		return fmt.Errorf("error awaiting for registry deployment: %s", err)
 	}
+	t.Log("registry deployment available, moving on")
 
-	return createRegistryService(oc, proj, map[string]string{"app": "image-registry"})
+	return createRegistryService(t, oc, proj, map[string]string{"app": "image-registry"})
 }
 
 // TestImportImageFromInsecureRegistry verifies api capability of importing images from insecure
@@ -315,7 +327,7 @@ func TestImportImageFromInsecureRegistry(t g.GinkgoTInterface, oc *exutil.CLI) {
 		)
 	}()
 
-	if err := deployEphemeralImageRegistry(oc, proj); err != nil {
+	if err := deployEphemeralImageRegistry(t, oc, proj); err != nil {
 		t.Fatalf("unable to deploy image registry: %v", err)
 	}
 
@@ -447,7 +459,7 @@ func TestImportImageFromBlockedRegistry(t g.GinkgoTInterface, oc *exutil.CLI) {
 		)
 	}()
 
-	if err := deployEphemeralImageRegistry(oc, proj); err != nil {
+	if err := deployEphemeralImageRegistry(t, oc, proj); err != nil {
 		t.Fatalf("unable to deploy image registry: %v", err)
 	}
 
@@ -562,7 +574,7 @@ func TestImportRepositoryFromBlockedRegistry(t g.GinkgoTInterface, oc *exutil.CL
 		)
 	}()
 
-	if err := deployEphemeralImageRegistry(oc, proj); err != nil {
+	if err := deployEphemeralImageRegistry(t, oc, proj); err != nil {
 		t.Fatalf("unable to deploy image registry: %v", err)
 	}
 
@@ -677,7 +689,7 @@ func TestImportRepositoryFromInsecureRegistry(t g.GinkgoTInterface, oc *exutil.C
 		)
 	}()
 
-	if err := deployEphemeralImageRegistry(oc, proj); err != nil {
+	if err := deployEphemeralImageRegistry(t, oc, proj); err != nil {
 		t.Fatalf("unable to deploy image registry: %v", err)
 	}
 
