@@ -223,7 +223,7 @@ func requestHasStatusCode(pod *testPod, URL, token, statusCode string) {
 	out, err := runHTTPRequest(pod, URL, headers)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	m := regexp.MustCompile(fmt.Sprintf(`(?m)^< HTTP/1\.1 %s `, statusCode)).FindString(out)
+	m := regexp.MustCompile(fmt.Sprintf(`(?m)^< HTTP/(?:1\.1|2) %s `, statusCode)).FindString(out)
 	if len(m) == 0 {
 		err = fmt.Errorf("unexpected status code (expected %s): %s", statusCode, out)
 	}
