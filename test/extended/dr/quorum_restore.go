@@ -200,7 +200,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 					}
 
 					framework.Logf("Waiting for machines to be created")
-					err = wait.Poll(30*time.Second, 10*time.Minute, func() (done bool, err error) {
+					err = wait.Poll(30*time.Second, 20*time.Minute, func() (done bool, err error) {
 						mastersList, err := ms.List(context.Background(), metav1.ListOptions{
 							LabelSelector: "machine.openshift.io/cluster-api-machine-role=master",
 						})
