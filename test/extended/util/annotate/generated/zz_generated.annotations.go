@@ -545,6 +545,40 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources": "should properly count the number of imagestreams resources [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for apps.openshift.io/v1, Resource=deploymentconfigs": "should work for apps.openshift.io/v1, Resource=deploymentconfigs [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for build.openshift.io/v1, Resource=buildconfigs": "should work for build.openshift.io/v1, Resource=buildconfigs [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for build.openshift.io/v1, Resource=builds": "should work for build.openshift.io/v1, Resource=builds [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for image.openshift.io/v1, Resource=images": "should work for image.openshift.io/v1, Resource=images [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for image.openshift.io/v1, Resource=imagestreams": "should work for image.openshift.io/v1, Resource=imagestreams [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthaccesstokens": "should work for oauth.openshift.io/v1, Resource=oauthaccesstokens [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthauthorizetokens": "should work for oauth.openshift.io/v1, Resource=oauthauthorizetokens [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthclientauthorizations": "should work for oauth.openshift.io/v1, Resource=oauthclientauthorizations [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthclients": "should work for oauth.openshift.io/v1, Resource=oauthclients [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for route.openshift.io/v1, Resource=routes": "should work for route.openshift.io/v1, Resource=routes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for security.openshift.io/v1, Resource=rangeallocations": "should work for security.openshift.io/v1, Resource=rangeallocations [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for template.openshift.io/v1, Resource=brokertemplateinstances": "should work for template.openshift.io/v1, Resource=brokertemplateinstances [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for template.openshift.io/v1, Resource=templateinstances": "should work for template.openshift.io/v1, Resource=templateinstances [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for template.openshift.io/v1, Resource=templates": "should work for template.openshift.io/v1, Resource=templates [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=groups": "should work for user.openshift.io/v1, Resource=groups [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=identities": "should work for user.openshift.io/v1, Resource=identities [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=users": "should work for user.openshift.io/v1, Resource=users [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-apps] CronJob should delete failed finished jobs with limit of one job": "should delete failed finished jobs with limit of one job [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-apps] CronJob should delete successful finished jobs with limit of one successful job": "should delete successful finished jobs with limit of one successful job [Suite:openshift/conformance/parallel] [Suite:k8s]",
