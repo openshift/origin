@@ -34,7 +34,7 @@ require (
 	github.com/onsi/ginkgo v4.5.0-origin.1+incompatible
 	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
-	github.com/openshift/api v0.0.0-20201102162614-9252afb032e1
+	github.com/openshift/api v0.0.0-20201110171212-31aac52f4998
 	github.com/openshift/apiserver-library-go v0.0.0-20201020095023-fe92bc0abdc3
 	github.com/openshift/build-machinery-go v0.0.0-20200917070002-f171684f77ab
 	github.com/openshift/client-go v0.0.0-20201020082437-7737f16e53fc
@@ -311,6 +311,7 @@ replace (
 	github.com/olekukonko/tablewriter => github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5
 	github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.5.0-origin.1+incompatible
 	github.com/onsi/gomega => github.com/onsi/gomega v1.7.0
+	github.com/openshift/client-go => github.com/stlaz/client-go v0.0.0-20201112125218-6c0ab3a7c081
 	github.com/pelletier/go-toml => github.com/pelletier/go-toml v1.2.0
 	github.com/peterbourgon/diskv => github.com/peterbourgon/diskv v2.0.1+incompatible
 	github.com/pkg/errors => github.com/pkg/errors v0.9.1

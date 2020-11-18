@@ -640,7 +640,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/openshift/api v0.0.0-20201102162614-9252afb032e1
+# github.com/openshift/api v0.0.0-20201110171212-31aac52f4998
 ## explicit
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -725,7 +725,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20201020082437-7737f16e53fc
+# github.com/openshift/client-go v0.0.0-20201020082437-7737f16e53fc => github.com/stlaz/client-go v0.0.0-20201112125218-6c0ab3a7c081
 ## explicit
 github.com/openshift/client-go/apps/clientset/versioned
 github.com/openshift/client-go/apps/clientset/versioned/scheme
@@ -3093,6 +3093,7 @@ sigs.k8s.io/yaml
 # github.com/olekukonko/tablewriter => github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5
 # github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.5.0-origin.1+incompatible
 # github.com/onsi/gomega => github.com/onsi/gomega v1.7.0
+# github.com/openshift/client-go => github.com/stlaz/client-go v0.0.0-20201112125218-6c0ab3a7c081
 # github.com/pelletier/go-toml => github.com/pelletier/go-toml v1.2.0
 # github.com/peterbourgon/diskv => github.com/peterbourgon/diskv v2.0.1+incompatible
 # github.com/pkg/errors => github.com/pkg/errors v0.9.1
