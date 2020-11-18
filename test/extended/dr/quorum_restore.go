@@ -129,6 +129,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 					err = wait.Poll(5*time.Second, 30*time.Minute, func() (done bool, err error) {
 						_, err = pollClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 						if err != nil {
+							framework.Logf("Error seen checking for unresponsive control plane: %v", err)
 							failures++
 						} else {
 							failures = 0
@@ -137,7 +138,9 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 						// there is a small chance the cluster restores the default replica size during
 						// this loop process, so keep forcing quorum guard to be zero, without failing on
 						// errors
-						scaleEtcdQuorum(pollClient, 0)
+						if err := scaleEtcdQuorum(pollClient, 0); err != nil {
+							framework.Logf("Scaling etcd quorum failed: %v", err)
+						}
 
 						// wait to see the control plane go down for good to avoid a transient failure
 						return failures > 4, nil
@@ -188,7 +191,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 								return false, nil
 							}
 							if err != nil {
-								return false, err
+								framework.Logf("Error seen when re-creating machines: %v", err)
+								return false, nil
 							}
 							return true, nil
 						})
@@ -201,7 +205,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 							LabelSelector: "machine.openshift.io/cluster-api-machine-role=master",
 						})
 						if err != nil {
-							return false, err
+							framework.Logf("Failed to check that machines are created: %v", err)
+							return false, nil
 						}
 						if mastersList.Items == nil {
 							return false, nil
@@ -220,6 +225,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 						nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
 						if err != nil {
 							// scale up to 2nd etcd will make this error inevitable
+							framework.Logf("Error seen attempting to list master nodes: %v", err)
 							return false, nil
 						}
 						ready := countReady(nodes.Items)
@@ -264,9 +270,10 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 
 func waitForPodsTolerateClientTimeout(c corev1client.PodInterface, label labels.Selector, predicate func(corev1.Pod) bool, count int, timeout time.Duration) ([]string, error) {
 	var podNames []string
-	err := wait.Poll(1*time.Second, timeout, func() (bool, error) {
+	err := wait.Poll(10*time.Second, timeout, func() (bool, error) {
 		p, e := exutil.GetPodNamesByFilter(c, label, predicate)
 		if e != nil {
+			framework.Logf("Saw an error waiting for etcd pods to become available: %v", e)
 			// TODO tolerate transient etcd timeout only and fail other errors
 			return false, nil
 		}
