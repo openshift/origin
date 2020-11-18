@@ -137,7 +137,10 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 						// there is a small chance the cluster restores the default replica size during
 						// this loop process, so keep forcing quorum guard to be zero, without failing on
 						// errors
-						scaleEtcdQuorum(pollClient, 0)
+						err = scaleEtcdQuorum(pollClient, 0)
+						if err != nil {
+							framework.Logf("Scaling etcd quorum failed: %v", err)
+						}
 
 						// wait to see the control plane go down for good to avoid a transient failure
 						return failures > 4, nil
@@ -188,7 +191,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 								return false, nil
 							}
 							if err != nil {
-								return false, err
+								framework.Logf("Error seen when re-creating machines: %v", err)
+								return false, nil
 							}
 							return true, nil
 						})
@@ -201,7 +205,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 							LabelSelector: "machine.openshift.io/cluster-api-machine-role=master",
 						})
 						if err != nil {
-							return false, err
+							framework.Logf("Failed to check that machines are created: %v", err)
+							return false, nil
 						}
 						if mastersList.Items == nil {
 							return false, nil
