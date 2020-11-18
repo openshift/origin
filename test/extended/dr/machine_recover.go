@@ -226,7 +226,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 					for _, machine := range machines.Items {
 						vanishedMachines.Delete(machine.GetName())
 					}
-					if vanishedMachines.Len() != len(targetMachineNames) {
+					if vanishedMachines.Len() == len(targetMachineNames) {
 						framework.Logf("Machines waiting to go be deleted: %v", vanishedMachines.List())
 						return false, nil
 					}
