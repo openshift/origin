@@ -857,6 +857,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:LDAP][Serial] ldap group sync can sync groups from ldap": "can sync groups from ldap [Suite:openshift/conformance/serial]",
 
+	"[Top Level] [sig-auth][Feature:OAuthAPIServer] test UserOAuthAccessTokens": "test UserOAuthAccessTokens [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-auth][Feature:OAuthServer] ClientSecretWithPlus should create oauthclient": "should create oauthclient [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth Authenticator accepts classic non-prefixed access tokens": "accepts classic non-prefixed access tokens [Suite:openshift/conformance/parallel]",
