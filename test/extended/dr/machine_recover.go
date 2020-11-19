@@ -51,8 +51,8 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 		o.Expect(len(masters)).To(o.BeNumerically(">=", 3))
 		o.Expect(len(workers)).To(o.BeNumerically(">=", 2))
 
-		replacedMaster := masters[rand.Intn(len(masters))]
-		expectSSH("true", replacedMaster)
+		// replacedMaster := masters[rand.Intn(len(masters))]
+		// expectSSH("true", replacedMaster)
 
 		replacedWorker := workers[rand.Intn(len(workers))]
 		expectSSH("true", replacedWorker)
