@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -34,6 +33,11 @@ import (
 var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("imagestream-api")
+	g.BeforeEach(func() {
+		if err := deployEphemeralImageRegistry(oc); err != nil {
+			g.GinkgoT().Fatalf("error deploying ephemeral registry: %s", err)
+		}
+	})
 
 	g.AfterEach(func() {
 		// awaits until all cluster operators are available
@@ -69,16 +73,16 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow]
 	})
 
 	g.It("TestImportImageFromInsecureRegistry", func() {
-		TestImportImageFromInsecureRegistry(g.GinkgoT(), oc)
+		TestImportImageFromInsecureRegistry(oc)
 	})
 	g.It("TestImportImageFromBlockedRegistry", func() {
-		TestImportImageFromBlockedRegistry(g.GinkgoT(), oc)
+		TestImportImageFromBlockedRegistry(oc)
 	})
 	g.It("TestImportRepositoryFromInsecureRegistry", func() {
-		TestImportRepositoryFromInsecureRegistry(g.GinkgoT(), oc)
+		TestImportRepositoryFromInsecureRegistry(oc)
 	})
 	g.It("TestImportRepositoryFromBlockedRegistry", func() {
-		TestImportRepositoryFromBlockedRegistry(g.GinkgoT(), oc)
+		TestImportRepositoryFromBlockedRegistry(oc)
 	})
 })
 
@@ -140,10 +144,9 @@ func createRegistryCASecret(oc *exutil.CLI) (*corev1.Secret, error) {
 }
 
 // createRegistryService creates a service pointing to deployed ephemeral image registry.
-func createRegistryService(
-	t g.GinkgoTInterface, oc *exutil.CLI, selector map[string]string,
-) (*corev1.Service, error) {
-	svc, err := oc.AdminKubeClient().CoreV1().Services(oc.Namespace()).Create(
+func createRegistryService(oc *exutil.CLI, selector map[string]string) error {
+	t := g.GinkgoT()
+	if _, err := oc.AdminKubeClient().CoreV1().Services(oc.Namespace()).Create(
 		context.Background(),
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
@@ -161,12 +164,11 @@ func createRegistryService(
 			},
 		},
 		metav1.CreateOptions{},
-	)
-	if err != nil {
-		return nil, err
+	); err != nil {
+		return err
 	}
 
-	if err := wait.Poll(5*time.Second, 5*time.Minute, func() (stop bool, err error) {
+	return wait.Poll(5*time.Second, 5*time.Minute, func() (stop bool, err error) {
 		_, err = oc.AdminKubeClient().CoreV1().Endpoints(oc.Namespace()).Get(
 			context.Background(), "image-registry", metav1.GetOptions{},
 		)
@@ -179,58 +181,19 @@ func createRegistryService(
 		default:
 			return true, fmt.Errorf("error getting registry service endpoint: %s", err)
 		}
-	}); err != nil {
-		return svc, err
-	}
-	return svc, nil
-}
-
-// teardownEphemeralImageRegistry removes secret, deployment and service created for deployed
-// ephemeral registry.
-func teardownEphemeralImageRegistry(
-	t g.GinkgoTInterface,
-	oc *exutil.CLI,
-	secret *corev1.Secret,
-	deploy *appsv1.Deployment,
-	service *corev1.Service,
-) {
-	if service != nil {
-		t.Logf("removing temporary service %s", service.Name)
-		if err := oc.AdminKubeClient().CoreV1().Services(oc.Namespace()).Delete(
-			context.Background(), service.Name, metav1.DeleteOptions{},
-		); err != nil {
-			t.Errorf("error deleting registry service: %s", err)
-		}
-	}
-	if deploy != nil {
-		t.Logf("removing temporary deployment %s", deploy.Name)
-		if err := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Delete(
-			context.Background(), deploy.Name, metav1.DeleteOptions{},
-		); err != nil {
-			t.Errorf("error deleting registry deployment: %s", err)
-		}
-	}
-	if secret != nil {
-		t.Logf("removing temporary secret %s", secret.Name)
-		if err := oc.AdminKubeClient().CoreV1().Secrets(oc.Namespace()).Delete(
-			context.Background(), secret.Name, metav1.DeleteOptions{},
-		); err != nil {
-			t.Errorf("error deleting registry secret: %s", err)
-		}
-	}
+	})
 }
 
 // deployEphemeralImageRegistry deploys an ephemeral image registry instance using self signed
 // certificates, a service is created pointing to image registry. This function awaits until
 // the deployment is complete. Registry is configured without authentication.
-func deployEphemeralImageRegistry(
-	t g.GinkgoTInterface, oc *exutil.CLI,
-) (*corev1.Secret, *appsv1.Deployment, *corev1.Service, error) {
+func deployEphemeralImageRegistry(oc *exutil.CLI) error {
 	var replicas int32 = 1
 
+	t := g.GinkgoT()
 	secret, err := createRegistryCASecret(oc)
 	if err != nil {
-		return secret, nil, nil, fmt.Errorf("error creating registry secret: %v", err)
+		return fmt.Errorf("error creating registry secret: %v", err)
 	}
 
 	volumeProjection := corev1.VolumeProjection{
@@ -318,7 +281,7 @@ func deployEphemeralImageRegistry(
 		metav1.CreateOptions{},
 	)
 	if err != nil {
-		return secret, nil, nil, fmt.Errorf("error creating registry deploy: %s", err)
+		return fmt.Errorf("error creating registry deploy: %s", err)
 	}
 
 	t.Log("awaiting for registry deployment to rollout")
@@ -335,29 +298,19 @@ func deployEphemeralImageRegistry(
 		}
 		return succeed, nil
 	}); err != nil {
-		e2e.DumpAllNamespaceInfo(oc.AdminKubeClient(), oc.Namespace())
-		return secret, deploy, nil, fmt.Errorf("error awaiting registry deploy: %s", err)
+		return fmt.Errorf("error awaiting registry deploy: %s", err)
 	}
 	t.Log("registry deployment available, moving on")
 
-	svc, err := createRegistryService(t, oc, map[string]string{"app": "image-registry"})
-	if err != nil {
-		return secret, deploy, svc, err
-	}
-	return secret, deploy, svc, nil
+	return createRegistryService(oc, map[string]string{"app": "image-registry"})
 }
 
 // TestImportImageFromInsecureRegistry verifies api capability of importing images from insecure
 // remote image registries. We support two ways of setting a registry as inscure: by setting it
 // as insecure directly on an ImageStreamImport request or by setting it as insecure globally by
 // adding it to InsecureRegistry on images.config.openshift.io/cluster.
-func TestImportImageFromInsecureRegistry(t g.GinkgoTInterface, oc *exutil.CLI) {
-	secret, deploy, svc, err := deployEphemeralImageRegistry(t, oc)
-	if err != nil {
-		teardownEphemeralImageRegistry(t, oc, secret, deploy, svc)
-		t.Fatalf("unable to deploy image registry: %v", err)
-	}
-	defer teardownEphemeralImageRegistry(t, oc, secret, deploy, svc)
+func TestImportImageFromInsecureRegistry(oc *exutil.CLI) {
+	t := g.GinkgoT()
 
 	// at this stage our ephemeral registry is available at image-registry.project:5000,
 	// as it uses a self signed certificate if we request a stream import from it API should
@@ -475,13 +428,8 @@ func TestImportImageFromInsecureRegistry(t g.GinkgoTInterface, oc *exutil.CLI) {
 
 // TestImportImageFromBlockedRegistry verifies users can't import images from a registry that
 // is configured as blocked through images.config.openshift.io/cluster.
-func TestImportImageFromBlockedRegistry(t g.GinkgoTInterface, oc *exutil.CLI) {
-	secret, deploy, svc, err := deployEphemeralImageRegistry(t, oc)
-	if err != nil {
-		teardownEphemeralImageRegistry(t, oc, secret, deploy, svc)
-		t.Fatalf("unable to deploy image registry: %v", err)
-	}
-	defer teardownEphemeralImageRegistry(t, oc, secret, deploy, svc)
+func TestImportImageFromBlockedRegistry(oc *exutil.CLI) {
+	t := g.GinkgoT()
 
 	// at this stage our ephemeral registry is available at image-registry.project:5000,
 	// as it uses a self signed certificate if we request a stream import from it API should
@@ -582,13 +530,8 @@ func TestImportImageFromBlockedRegistry(t g.GinkgoTInterface, oc *exutil.CLI) {
 
 // TestImportRepositoryFromBlockedRegistry verifies users can't import repositories from a
 // registry that is configured as blocked through images.config.openshift.io/cluster.
-func TestImportRepositoryFromBlockedRegistry(t g.GinkgoTInterface, oc *exutil.CLI) {
-	secret, deploy, svc, err := deployEphemeralImageRegistry(t, oc)
-	if err != nil {
-		teardownEphemeralImageRegistry(t, oc, secret, deploy, svc)
-		t.Fatalf("unable to deploy image registry: %v", err)
-	}
-	defer teardownEphemeralImageRegistry(t, oc, secret, deploy, svc)
+func TestImportRepositoryFromBlockedRegistry(oc *exutil.CLI) {
+	t := g.GinkgoT()
 
 	// at this stage our ephemeral registry is available at image-registry.project:5000,
 	// as it uses a self signed certificate if we request a stream import from it API should
@@ -689,11 +632,8 @@ func TestImportRepositoryFromBlockedRegistry(t g.GinkgoTInterface, oc *exutil.CL
 // insecure remote registries. We support two ways of setting a registry as insecure: by setting
 // it as insecure directly on an ImageStreamImport request or by setting it as insecure globally
 // by adding it to InsecureRegistry config on images.config.openshift.io/cluster.
-func TestImportRepositoryFromInsecureRegistry(t g.GinkgoTInterface, oc *exutil.CLI) {
-	_, _, _, err := deployEphemeralImageRegistry(t, oc)
-	if err != nil {
-		t.Fatalf("unable to deploy image registry: %v", err)
-	}
+func TestImportRepositoryFromInsecureRegistry(oc *exutil.CLI) {
+	t := g.GinkgoT()
 
 	// at this stage our ephemeral registry is available at image-registry.project:5000,
 	// as it uses a self signed certificate if we request a stream import from it API should
