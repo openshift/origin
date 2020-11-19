@@ -305,3 +305,18 @@ func expectSSH(cmd string, node *corev1.Node) {
 func ssh(cmd string, node *corev1.Node) (*e2essh.Result, error) {
 	return e2essh.IssueSSHCommandWithResult(cmd, e2e.TestContext.Provider, node)
 }
+
+func sshRetryOnFailure(cmd string, node *corev1.Node) (*e2essh.Result, error) {
+	var out *e2essh.Result
+	var err error
+	e2elog.Logf("cmd[%s]: %s", node.Name, cmd)
+	waitErr := wait.PollImmediate(10*time.Second, 1*time.Minute, func() (bool, error) {
+		out, err = e2essh.IssueSSHCommandWithResult(cmd, e2e.TestContext.Provider, node)
+		if err == nil {
+			return true, nil
+		}
+		e2elog.Logf("command %q failed: %v", err)
+		return false, nil
+	})
+	return out, waitErr
+}

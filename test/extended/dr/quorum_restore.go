@@ -148,9 +148,18 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				}
 
 				framework.Logf("Perform etcd backup on remaining machine %s (machine %s)", survivingNodeName, survivingMachineName)
-				expectSSH("sudo -i /bin/bash -cx 'rm -rf /home/core/backup; /usr/local/bin/cluster-backup.sh ~core/backup'", survivingNode)
+				sshOut, err := sshRetryOnFailure("sudo -i /bin/bash -cx 'rm -rf /home/core/backup; /usr/local/bin/cluster-backup.sh ~core/backup'", survivingNode)
+				o.Expect(err).ToNot(o.HaveOccurred())
+				if len(sshOut.Stderr) > 0 {
+					framework.Logf("cluster-backup ssh command stderr output: %q", sshOut.Stderr)
+				}
+
 				framework.Logf("Restore etcd and control-plane on remaining node %s (machine %s)", survivingNodeName, survivingMachineName)
-				expectSSH("sudo -i /bin/bash -cx '/usr/local/bin/cluster-restore.sh /home/core/backup'", survivingNode)
+				sshOut, err = sshRetryOnFailure("sudo -i /bin/bash -cx '/usr/local/bin/cluster-restore.sh /home/core/backup'", survivingNode)
+				o.Expect(err).ToNot(o.HaveOccurred())
+				if len(sshOut.Stderr) > 0 {
+					framework.Logf("cluster-restore ssh command stderr output: %q", sshOut.Stderr)
+				}
 
 				framework.Logf("Wait for API server to come up")
 				time.Sleep(30 * time.Second)

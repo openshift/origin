@@ -55,7 +55,11 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 		// expectSSH("true", replacedMaster)
 
 		replacedWorker := workers[rand.Intn(len(workers))]
-		expectSSH("true", replacedWorker)
+		sshOut, err := sshRetryOnFailure("true", replacedWorker)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		if len(sshOut.Stderr) > 0 {
+			framework.Logf("ssh command stderr output: %q", sshOut.Stderr)
+		}
 
 		disruption.Run(f, "Machine Shutdown and Restore", "machine_failure",
 			disruption.TestData{},
