@@ -9,14 +9,19 @@ import (
 
 	"github.com/onsi/ginkgo"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 
+	routev1 "github.com/openshift/api/route/v1"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util/disruption"
 )
@@ -24,6 +29,8 @@ import (
 // AvailableTest tests that the image registry is available before, during, and
 // after a cluster upgrade.
 type AvailableTest struct {
+	routeRef *corev1.ObjectReference
+	host     string
 }
 
 func (AvailableTest) Name() string { return "image-registry-available" }
@@ -31,8 +38,56 @@ func (AvailableTest) DisplayName() string {
 	return "[sig-imageregistry] Image registry remain available"
 }
 
-// Setup does nothing.
+// Setup creates a route that exposes the registry to tests.
 func (t *AvailableTest) Setup(f *framework.Framework) {
+	ctx := context.Background()
+
+	config, err := framework.LoadConfig()
+	framework.ExpectNoError(err)
+	routeClient, err := routeclient.NewForConfig(config)
+	framework.ExpectNoError(err)
+
+	route, err := routeClient.RouteV1().Routes("openshift-image-registry").Create(ctx, &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-disruption",
+		},
+		Spec: routev1.RouteSpec{
+			To: routev1.RouteTargetReference{
+				Kind: "Service",
+				Name: "image-registry",
+			},
+			Port: &routev1.RoutePort{
+				TargetPort: intstr.FromInt(5000),
+			},
+			TLS: &routev1.TLSConfig{
+				Termination:                   routev1.TLSTerminationPassthrough,
+				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+			},
+		},
+	}, metav1.CreateOptions{})
+	framework.ExpectNoError(err)
+
+	err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+		route, err = routeClient.RouteV1().Routes("openshift-image-registry").Get(ctx, "test-disruption", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		for _, ingress := range route.Status.Ingress {
+			if len(ingress.Host) > 0 {
+				t.host = ingress.Host
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	framework.ExpectNoError(err, "failed to get route host")
+
+	t.routeRef = &corev1.ObjectReference{
+		Kind:      "Route",
+		Namespace: route.Namespace,
+		Name:      route.Name,
+	}
 }
 
 // Test runs a connectivity check to the service.
@@ -51,7 +106,7 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 
 	ctx, cancel := context.WithCancel(context.Background())
 	m := monitor.NewMonitorWithInterval(1 * time.Second)
-	err = startEndpointMonitoring(ctx, m, r)
+	err = t.startEndpointMonitoring(ctx, m, r)
 	framework.ExpectNoError(err, "unable to monitor route")
 
 	start := time.Now()
@@ -69,12 +124,20 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 
 // Teardown cleans up any remaining resources.
 func (t *AvailableTest) Teardown(f *framework.Framework) {
-	// rely on the namespace deletion to clean up everything
+	ctx := context.Background()
+
+	config, err := framework.LoadConfig()
+	framework.ExpectNoError(err)
+	routeClient, err := routeclient.NewForConfig(config)
+	framework.ExpectNoError(err)
+
+	err = routeClient.RouteV1().Routes(t.routeRef.Namespace).Delete(ctx, t.routeRef.Name, metav1.DeleteOptions{})
+	framework.ExpectNoError(err, "failed to delete route")
 }
 
-func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, r events.EventRecorder) error {
-	const (
-		url     = "https://image-registry.openshift-image-registry.svc:5000"
+func (t *AvailableTest) startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, r events.EventRecorder) error {
+	var (
+		url     = "https://" + t.host
 		path    = "/healthz"
 		locator = "image-registry"
 	)
@@ -105,24 +168,24 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, r events.E
 				condition = &monitor.Condition{
 					Level:   monitor.Info,
 					Locator: locator,
-					Message: "Service started responding to GET requests on reused connections",
+					Message: "Route started responding to GET requests on reused connections",
 				}
 			case err != nil && previous:
-				framework.Logf("Service image-registry is unreachable on reused connections: %v", err)
-				r.Eventf(&v1.ObjectReference{Kind: "Service", Namespace: "openshift-image-registry", Name: "image-registry"}, nil, v1.EventTypeWarning, "Unreachable", "detected", "on reused connections")
+				framework.Logf("Route for image-registry is unreachable on reused connections: %v", err)
+				r.Eventf(t.routeRef, nil, corev1.EventTypeWarning, "Unreachable", "detected", "on reused connections")
 				condition = &monitor.Condition{
 					Level:   monitor.Error,
 					Locator: locator,
-					Message: "Service stopped responding to GET requests on reused connections",
+					Message: "Route stopped responding to GET requests on reused connections",
 				}
 			case err != nil:
-				framework.Logf("Service image-registry is unreachable on reused connections: %v", err)
+				framework.Logf("Route for image-registry is unreachable on reused connections: %v", err)
 			}
 			return condition, err == nil
 		}).ConditionWhenFailing(&monitor.Condition{
 			Level:   monitor.Error,
 			Locator: locator,
-			Message: "Service is not responding to GET requests on reused connections",
+			Message: "Route is not responding to GET requests on reused connections",
 		}),
 	)
 
@@ -155,24 +218,24 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, r events.E
 				condition = &monitor.Condition{
 					Level:   monitor.Info,
 					Locator: locator,
-					Message: "Service started responding to GET requests over new connections",
+					Message: "Route started responding to GET requests over new connections",
 				}
 			case err != nil && previous:
-				framework.Logf("Service image-registry is unreachable on new connections: %v", err)
-				r.Eventf(&v1.ObjectReference{Kind: "Service", Namespace: "openshift-image-registry", Name: "image-registry"}, nil, v1.EventTypeWarning, "Unreachable", "detected", "on new connections")
+				framework.Logf("Route for image-registry is unreachable on new connections: %v", err)
+				r.Eventf(t.routeRef, nil, corev1.EventTypeWarning, "Unreachable", "detected", "on new connections")
 				condition = &monitor.Condition{
 					Level:   monitor.Error,
 					Locator: locator,
-					Message: "Service stopped responding to GET requests over new connections",
+					Message: "Route stopped responding to GET requests over new connections",
 				}
 			case err != nil:
-				framework.Logf("Service image-registry is unreachable on new connections: %v", err)
+				framework.Logf("Route for image-registry is unreachable on new connections: %v", err)
 			}
 			return condition, err == nil
 		}).ConditionWhenFailing(&monitor.Condition{
 			Level:   monitor.Error,
 			Locator: locator,
-			Message: "Service is not responding to GET requests over new connections",
+			Message: "Route is not responding to GET requests over new connections",
 		}),
 	)
 
