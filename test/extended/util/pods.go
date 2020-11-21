@@ -76,8 +76,8 @@ func CreateUbiExecPodOrFail(client kubernetes.Interface, ns, generateName string
 	})
 }
 
-// getMachineConfigDaemonByNode finds the privileged daemonset from the Machine Config Operator
-func getMachineConfigDaemonByNode(c clientset.Interface, node *corev1.Node) (*corev1.Pod, error) {
+// GetMachineConfigDaemonByNode finds the privileged daemonset from the Machine Config Operator
+func GetMachineConfigDaemonByNode(c clientset.Interface, node *corev1.Node) (*corev1.Pod, error) {
 	listOptions := metav1.ListOptions{
 		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String(),
 		LabelSelector: labels.SelectorFromSet(labels.Set{"k8s-app": "machine-config-daemon"}).String(),
@@ -96,7 +96,7 @@ func getMachineConfigDaemonByNode(c clientset.Interface, node *corev1.Node) (*co
 
 // ExecCommandOnMachineConfigDaemon returns the output of the command execution on the machine-config-daemon pod that runs on the specified node
 func ExecCommandOnMachineConfigDaemon(c clientset.Interface, oc *CLI, node *corev1.Node, command []string) (string, error) {
-	mcd, err := getMachineConfigDaemonByNode(c, node)
+	mcd, err := GetMachineConfigDaemonByNode(c, node)
 	if err != nil {
 		return "", err
 	}

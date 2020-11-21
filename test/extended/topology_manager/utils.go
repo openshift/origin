@@ -82,6 +82,18 @@ func findNodeWithMultiNuma(nodes []corev1.Node, c clientset.Interface, oc *exuti
 	return nil, 0
 }
 
+func filterNodesWithMachineConfigDaemon(workerNodes []corev1.Node, client clientset.Interface) []corev1.Node {
+	var mcdEnabledNodes []corev1.Node
+	for _, node := range workerNodes {
+		if _, err := exutil.GetMachineConfigDaemonByNode(client, &node); err != nil {
+			e2e.Logf("MCD not running on worker node %qw", node.Name)
+			continue
+		}
+		mcdEnabledNodes = append(mcdEnabledNodes, node)
+	}
+	return mcdEnabledNodes
+}
+
 func filterNodeWithTopologyManagerPolicy(workerNodes []corev1.Node, client clientset.Interface, oc *exutil.CLI, policy string) []corev1.Node {
 	ocRaw := (*oc).WithoutNamespace()
 
