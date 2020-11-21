@@ -18,7 +18,7 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 	// via a "request-port" header.
 	addr := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
 	if tcpAddr, ok := addr.(*net.TCPAddr); ok {
-		w.Header().Set("request-port", strconv.Itoa(tcpAddr.Port))
+		w.Header().Set("x-request-port", strconv.Itoa(tcpAddr.Port))
 	}
 
 	fmt.Fprintln(w, response)
