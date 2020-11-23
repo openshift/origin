@@ -21,8 +21,15 @@ func waitForRouterExternalIP(oc *CLI) (string, error) {
 }
 
 func routerShouldHaveExternalService(oc *CLI) (bool, error) {
+	proxyEnabled, err := IsClusterProxyEnabled(oc)
+	if err != nil {
+		return false, err
+	} else if proxyEnabled {
+		// If the cluster has a global proxy enabled, use the internal ingress controller service.
+		return false, nil
+	}
 	foundLoadBalancerServiceStrategyType := false
-	err := wait.PollImmediate(2*time.Second, 30*time.Second, func() (bool, error) {
+	err = wait.PollImmediate(2*time.Second, 30*time.Second, func() (bool, error) {
 		ic, err := oc.AdminOperatorClient().OperatorV1().IngressControllers("openshift-ingress-operator").Get(context.Background(), "default", metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
 			return false, nil
