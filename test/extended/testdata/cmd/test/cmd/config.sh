@@ -34,15 +34,15 @@ os::cmd::expect_success_and_not_text 'oc get bc' 'does not exist'
   # need some level of default (both upstream and here) to get the pretty auth message because you fail on namespace first.
   os::cmd::expect_failure_and_text 'KUBERNETES_MASTER=anything env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --user="test"' 'auth info "test" does not exist'
 
-  os::cmd::expect_failure_and_text 'oc get bc --config=missing' 'missing: no such file or directory'
+  os::cmd::expect_failure_and_text 'oc get bc --kubeconfig=missing' 'missing: no such file or directory'
 
   # define temp location for new config
   NEW_CONFIG_LOC="${BASETMPDIR}/new-config.yaml"
 
   # make sure non-existing --cluster and --user can still be set
-  os::cmd::expect_success_and_text "oc config set-context new-context-name --cluster=missing-cluster --user=missing-user --namespace=default --config='${NEW_CONFIG_LOC}'" 'Context "new-context-name" '
-  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST -u KUBECONFIG -u KUBERNETES_MASTER oc get buildconfigs --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
-  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
+  os::cmd::expect_success_and_text "oc config set-context new-context-name --cluster=missing-cluster --user=missing-user --namespace=default --kubeconfig='${NEW_CONFIG_LOC}'" 'Context "new-context-name" '
+  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST -u KUBECONFIG -u KUBERNETES_MASTER oc get buildconfigs --kubeconfig='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
+  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --kubeconfig='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
 )
 echo "config error handling: ok"
 os::test::junit::declare_suite_end

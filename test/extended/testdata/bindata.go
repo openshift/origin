@@ -188,7 +188,6 @@
 // test/extended/testdata/cmd/test/cmd/builds.sh
 // test/extended/testdata/cmd/test/cmd/completions.sh
 // test/extended/testdata/cmd/test/cmd/config.sh
-// test/extended/testdata/cmd/test/cmd/convert.sh
 // test/extended/testdata/cmd/test/cmd/create.sh
 // test/extended/testdata/cmd/test/cmd/deployments.sh
 // test/extended/testdata/cmd/test/cmd/describer.sh
@@ -31092,15 +31091,15 @@ os::cmd::expect_success_and_not_text 'oc get bc' 'does not exist'
   # need some level of default (both upstream and here) to get the pretty auth message because you fail on namespace first.
   os::cmd::expect_failure_and_text 'KUBERNETES_MASTER=anything env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --user="test"' 'auth info "test" does not exist'
 
-  os::cmd::expect_failure_and_text 'oc get bc --config=missing' 'missing: no such file or directory'
+  os::cmd::expect_failure_and_text 'oc get bc --kubeconfig=missing' 'missing: no such file or directory'
 
   # define temp location for new config
   NEW_CONFIG_LOC="${BASETMPDIR}/new-config.yaml"
 
   # make sure non-existing --cluster and --user can still be set
-  os::cmd::expect_success_and_text "oc config set-context new-context-name --cluster=missing-cluster --user=missing-user --namespace=default --config='${NEW_CONFIG_LOC}'" 'Context "new-context-name" '
-  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST -u KUBECONFIG -u KUBERNETES_MASTER oc get buildconfigs --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
-  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
+  os::cmd::expect_success_and_text "oc config set-context new-context-name --cluster=missing-cluster --user=missing-user --namespace=default --kubeconfig='${NEW_CONFIG_LOC}'" 'Context "new-context-name" '
+  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST -u KUBECONFIG -u KUBERNETES_MASTER oc get buildconfigs --kubeconfig='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
+  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --kubeconfig='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
 )
 echo "config error handling: ok"
 os::test::junit::declare_suite_end
@@ -31117,52 +31116,6 @@ func testExtendedTestdataCmdTestCmdConfigSh() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/config.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdConvertSh = []byte(`#!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all --all
-  exit 0
-) &>/dev/null
-
-os::test::junit::declare_suite_start "cmd/convert"
-# This test validates the convert command
-
-os::cmd::expect_success "oc convert -f ${TEST_DATA}/convert/job-v1.yaml | grep 'apiVersion: batch/v1'"
-os::cmd::expect_success "oc convert -f ${TEST_DATA}/convert/job-v2.json | grep 'apiVersion: batch/v1beta1'"
-
-os::cmd::expect_success_and_text "oc convert -f ${TEST_DATA}/convert | oc create --dry-run -f -" 'job.batch/pi created'
-os::cmd::expect_success_and_text "oc convert -f ${TEST_DATA}/convert | oc create --dry-run -f -" 'cronjob.batch/hello created'
-
-echo "convert: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdConvertShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdConvertSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdConvertSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdConvertShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/convert.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -31511,13 +31464,13 @@ os::test::junit::declare_suite_start "cmd/edit"
 
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
 
-os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit pod/hello-openshift' 'Edit cancelled'
-os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit pod/hello-openshift' 'name: hello-openshift'
-#os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit --windows-line-endings pod/hello-openshift | file -' 'CRLF'
-#os::cmd::expect_success_and_not_text 'OC_EDITOR=cat oc edit --windows-line-endings=false pod/hello-openshift | file -' 'CRFL'
+os::cmd::expect_success_and_text 'KUBE_EDITOR=cat oc edit pod/hello-openshift' 'Edit cancelled'
+os::cmd::expect_success_and_text 'KUBE_EDITOR=cat oc edit pod/hello-openshift' 'name: hello-openshift'
+#os::cmd::expect_success_and_text 'KUBE_EDITOR=cat oc edit --windows-line-endings pod/hello-openshift | file -' 'CRLF'
+#os::cmd::expect_success_and_not_text 'KUBE_EDITOR=cat oc edit --windows-line-endings=false pod/hello-openshift | file -' 'CRFL'
 
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/services.yaml'
-os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit svc' 'kind: List'
+os::cmd::expect_success_and_text 'KUBE_EDITOR=cat oc edit svc' 'kind: List'
 
 os::cmd::expect_success 'oc create imagestream test'
 os::cmd::expect_success 'oc tag --source=docker docker.io/busybox:latest test:new'
@@ -34160,7 +34113,9 @@ os::cmd::expect_success_and_text 'oc get secret/from-file --template="{{ .type }
 os::cmd::expect_success_and_text 'oc create secret docker-registry dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org --dry-run -o yaml' 'kubernetes.io/dockerconfigjson'
 os::cmd::expect_success_and_text 'oc create secret generic from-file-again --from-file=.dockerconfigjson=${HOME}/dockerconfigjson --type=kubernetes.io/dockerconfigjson -o yaml' 'kubernetes.io/dockerconfigjson'
 # check to make sure malformed names fail as expected
-os::cmd::expect_failure_and_text 'oc create secret generic bad-name --from-file=.docker=cfg=${HOME}/dockerconfigjson' "error: Key names or file paths cannot contain '='"
+# TODO(jchaloup): "error: Key names or file paths cannot contain '='" changed into "error: key names or file paths cannot contain '='" (s/K/k)
+# Once oc rebase to 1.20 is merged, enable this test again with s/K/k
+# os::cmd::expect_failure_and_text 'oc create secret generic bad-name --from-file=.docker=cfg=${HOME}/dockerconfigjson' "error: key names or file paths cannot contain '='"
 
 workingdir="$( mktemp -d )"
 os::cmd::try_until_success "oc get secret/dockerconfigjson"
@@ -55323,7 +55278,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/builds.sh":                                                          testExtendedTestdataCmdTestCmdBuildsSh,
 	"test/extended/testdata/cmd/test/cmd/completions.sh":                                                     testExtendedTestdataCmdTestCmdCompletionsSh,
 	"test/extended/testdata/cmd/test/cmd/config.sh":                                                          testExtendedTestdataCmdTestCmdConfigSh,
-	"test/extended/testdata/cmd/test/cmd/convert.sh":                                                         testExtendedTestdataCmdTestCmdConvertSh,
 	"test/extended/testdata/cmd/test/cmd/create.sh":                                                          testExtendedTestdataCmdTestCmdCreateSh,
 	"test/extended/testdata/cmd/test/cmd/deployments.sh":                                                     testExtendedTestdataCmdTestCmdDeploymentsSh,
 	"test/extended/testdata/cmd/test/cmd/describer.sh":                                                       testExtendedTestdataCmdTestCmdDescriberSh,
@@ -55930,7 +55884,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"builds.sh":               {testExtendedTestdataCmdTestCmdBuildsSh, map[string]*bintree{}},
 							"completions.sh":          {testExtendedTestdataCmdTestCmdCompletionsSh, map[string]*bintree{}},
 							"config.sh":               {testExtendedTestdataCmdTestCmdConfigSh, map[string]*bintree{}},
-							"convert.sh":              {testExtendedTestdataCmdTestCmdConvertSh, map[string]*bintree{}},
 							"create.sh":               {testExtendedTestdataCmdTestCmdCreateSh, map[string]*bintree{}},
 							"deployments.sh":          {testExtendedTestdataCmdTestCmdDeploymentsSh, map[string]*bintree{}},
 							"describer.sh":            {testExtendedTestdataCmdTestCmdDescriberSh, map[string]*bintree{}},
