@@ -34,6 +34,7 @@ var (
 
 		{Group: "image.openshift.io", Version: "v1", Resource: "imagestreamimports"},
 		{Group: "image.openshift.io", Version: "v1", Resource: "imagestreams"},
+		{Group: "image.openshift.io", Version: "v1", Resource: "imagetags"},
 
 		{Group: "project.openshift.io", Version: "v1", Resource: "projects"},
 
@@ -47,18 +48,39 @@ var (
 	}
 
 	crdTypes = []schema.GroupVersionResource{
-		// FIXME
-		// {Group: "operators.coreos.com", Version: "v1", Resource: "catalogsourceconfigs"},
-		// {Group: "operators.coreos.com", Version: "v1", Resource: "catalogsources"},
-		// {Group: "operators.coreos.com", Version: "v1", Resource: "clusterserviceversions"},
-		// {Group: "operators.coreos.com", Version: "v1", Resource: "installplans"},
-		// {Group: "operators.coreos.com", Version: "v1", Resource: "operatorgroups"},
-		// {Group: "operators.coreos.com", Version: "v1", Resource: "operatorsources"},
-		// {Group: "operators.coreos.com", Version: "v1", Resource: "subscriptions"},
 
-		// FIXME
-		// {Group: "autoscaling.openshift.io", Version: "v1", Resource: "clusterautoscalers"},
-		// {Group: "autoscaling.openshift.io", Version: "v1", Resource: "machineautoscalers"},
+		// coreos.com groups:
+
+		{Group: "monitoring.coreos.com", Version: "v1alpha1", Resource: "alertmanagerconfigs"},
+
+		{Group: "monitoring.coreos.com", Version: "v1", Resource: "alertmanagers"},
+		{Group: "monitoring.coreos.com", Version: "v1", Resource: "probes"},
+		{Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheuses"},
+		{Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheusrules"},
+		{Group: "monitoring.coreos.com", Version: "v1", Resource: "podmonitors"},
+		{Group: "monitoring.coreos.com", Version: "v1", Resource: "servicemonitors"},
+		{Group: "monitoring.coreos.com", Version: "v1", Resource: "thanosrulers"},
+
+		{Group: "operators.coreos.com", Version: "v1", Resource: "operators"},
+		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorgroups"},
+
+		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "catalogsources"},
+		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "clusterserviceversions"},
+		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "installplans"},
+		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "subscriptions"},
+		{Group: "operators.coreos.com", Version: "v1alpha2", Resource: "operatorgroups"},
+
+		{Group: "packages.operators.coreos.com", Version: "v1", Resource: "packagemanifests"},
+
+		// metal3.io groups:
+
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "baremetalhosts"},
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "provisionings"},
+
+		// openshift.io groups:
+
+		{Group: "autoscaling.openshift.io", Version: "v1beta1", Resource: "machineautoscalers"},
+		{Group: "autoscaling.openshift.io", Version: "v1", Resource: "clusterautoscalers"},
 
 		{Group: "authorization.openshift.io", Version: "v1", Resource: "selfsubjectrulesreviews"},
 		{Group: "authorization.openshift.io", Version: "v1", Resource: "subjectrulesreviews"},
@@ -81,24 +103,18 @@ var (
 		{Group: "config.openshift.io", Version: "v1", Resource: "proxies"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "schedulers"},
 
-		// FIXME
-		// {Group: "cloudcredential.openshift.io", Version: "v1", Resource: "credentialsrequests"},
+		{Group: "cloudcredential.openshift.io", Version: "v1", Resource: "credentialsrequests"},
 
-		// FIXME
-		// {Group: "healthchecking.openshift.io", Version: "v1", Resource: "machinehealthchecks"},
-		// {Group: "imageregistry.operator.openshift", Version: "v1", Resource: "configs"},
+		{Group: "helm.openshift.io", Version: "v1beta1", Resource: "helmchartrepositories"},
 
-		// FIXME
-		// {Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinedisruptionbudgets"},
-		// {Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinehealthchecks"},
-		// {Group: "machine.openshift.io", Version: "v1beta1", Resource: "machines"},
-		// {Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinesets"},
+		{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"},
+		{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "imagepruners"},
 
-		// FIXME
-		// {Group: "monitoring.coreos.com", Version: "v1", Resource: "alertmanagers"},
-		// {Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheuses"},
-		// {Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheusrules"},
-		// {Group: "monitoring.coreos.com", Version: "v1", Resource: "servicemonitors"},
+		{Group: "ingress.operator.openshift.io", Version: "v1", Resource: "dnsrecords"},
+
+		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinehealthchecks"},
+		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machines"},
+		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinesets"},
 
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "containerruntimeconfigs"},
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "controllerconfigs"},
@@ -108,39 +124,38 @@ var (
 
 		{Group: "operator.openshift.io", Version: "v1alpha1", Resource: "imagecontentsourcepolicies"},
 
-		{Group: "operator.openshift.io", Version: "v1", Resource: "consoles"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"},
-
-		// FIXME
-		// {Group: "operator.openshift.io", Version: "v1", Resource: "credentialsrequestses"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "cloudcredentials"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "clustercsidrivers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "configs"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "consoles"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "csisnapshotcontrollers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "dnses"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "ingresscontrollers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeapiservers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubecontrollermanagers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "kubeschedulers"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "kubestorageversionmigrators"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "networks"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftapiservers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecas"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "storages"},
 
 		{Group: "quota.openshift.io", Version: "v1", Resource: "appliedclusterresourcequotas"},
-
 		{Group: "quota.openshift.io", Version: "v1", Resource: "clusterresourcequotas"},
-
-		// FIXME
-		// {Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "configs"},
-
-		// FIXME
-		// {Group: "ingress.operator.openshift.io", Version: "v1", Resource: "dnsrecords"},
 
 		{Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
 
+		{Group: "tuned.openshift.io", Version: "v1", Resource: "profiles"},
 		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
 	}
 
 	specialTypes = []explainExceptions{
 		{
 			gv:      schema.GroupVersion{Group: "apps.openshift.io", Version: "v1"},
-			field:   "dc.status.replicas",
+			field:   "deploymentconfigs.status.replicas",
 			pattern: `FIELD\: +replicas`,
 		},
 		{
@@ -224,6 +239,11 @@ var (
 			pattern: `FIELDS\:.*`,
 		},
 		{
+			gv:      schema.GroupVersion{Group: "security.internal.openshift.io", Version: "v1"},
+			field:   "rangeallocations.range",
+			pattern: `FIELD\: +range`,
+		},
+		{
 			gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
 			field:   "oauthaccesstokens.refreshToken",
 			pattern: `FIELD\: +refreshToken`,
@@ -252,6 +272,11 @@ var (
 			gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
 			field:   "rangeallocations.range",
 			pattern: `FIELD\: +range`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
+			field:   "brokertemplateinstances.spec",
+			pattern: `DESCRIPTION\:.*`,
 		},
 		{
 			gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
@@ -313,27 +338,37 @@ var (
 			field:   "consoleyamlsamples.spec",
 			pattern: `DESCRIPTION\:.*`,
 		},
+		{
+			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+			field:   "consolequickstarts.spec",
+			pattern: `DESCRIPTION\:.*`,
+		},
 	}
 
 	specialNetworkingTypes = []explainExceptions{
 		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "clusternetworks",
+			gv:      schema.GroupVersion{Group: "network.operator.openshift.io", Version: "v1"},
+			field:   "operatorpkis.spec",
 			pattern: `DESCRIPTION\:.*`,
 		},
 		{
 			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "hostsubnets",
+			field:   "clusternetworks.clusterNetworks",
 			pattern: `DESCRIPTION\:.*`,
 		},
 		{
 			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "netnamespaces",
+			field:   "hostsubnets.subnet",
 			pattern: `DESCRIPTION\:.*`,
 		},
 		{
 			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "egressnetworkpolicies",
+			field:   "netnamespaces.netname",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
+			field:   "egressnetworkpolicies.spec",
 			pattern: `DESCRIPTION\:.*`,
 		},
 	}
