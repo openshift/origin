@@ -1515,8 +1515,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh": "test/cmd/config.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/convert.sh": "test/cmd/convert.sh",
-
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/create.sh": "test/cmd/create.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/deployments.sh": "test/cmd/deployments.sh",

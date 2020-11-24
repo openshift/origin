@@ -15,13 +15,13 @@ os::test::junit::declare_suite_start "cmd/edit"
 
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
 
-os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit pod/hello-openshift' 'Edit cancelled'
-os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit pod/hello-openshift' 'name: hello-openshift'
-#os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit --windows-line-endings pod/hello-openshift | file -' 'CRLF'
-#os::cmd::expect_success_and_not_text 'OC_EDITOR=cat oc edit --windows-line-endings=false pod/hello-openshift | file -' 'CRFL'
+os::cmd::expect_success_and_text 'KUBE_EDITOR=cat oc edit pod/hello-openshift' 'Edit cancelled'
+os::cmd::expect_success_and_text 'KUBE_EDITOR=cat oc edit pod/hello-openshift' 'name: hello-openshift'
+#os::cmd::expect_success_and_text 'KUBE_EDITOR=cat oc edit --windows-line-endings pod/hello-openshift | file -' 'CRLF'
+#os::cmd::expect_success_and_not_text 'KUBE_EDITOR=cat oc edit --windows-line-endings=false pod/hello-openshift | file -' 'CRFL'
 
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/services.yaml'
-os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit svc' 'kind: List'
+os::cmd::expect_success_and_text 'KUBE_EDITOR=cat oc edit svc' 'kind: List'
 
 os::cmd::expect_success 'oc create imagestream test'
 os::cmd::expect_success 'oc tag --source=docker docker.io/busybox:latest test:new'
