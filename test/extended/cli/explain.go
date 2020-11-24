@@ -446,7 +446,9 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 	g.It("should contain proper fields description for special types", func() {
 		for _, st := range specialTypes {
 			e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
-			o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
+			resource := strings.Split(st.field, ".")
+			gvr := st.gv.WithResource(resource[0])
+			o.Expect(verifyExplain(oc, nil, gvr,
 				st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
 		}
 	})
@@ -459,9 +461,12 @@ var _ = g.Describe("[sig-cli] oc explain networking types", func() {
 
 	networking.InOpenShiftSDNContext(func() {
 		g.It("should contain proper fields description for special networking types", func() {
+			crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 			for _, st := range specialNetworkingTypes {
 				e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
-				o.Expect(verifyExplain(oc, nil, schema.GroupVersionResource{},
+				resource := strings.Split(st.field, ".")
+				gvr := st.gv.WithResource(resource[0])
+				o.Expect(verifyExplain(oc, crdClient, gvr,
 					st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
 			}
 		})
