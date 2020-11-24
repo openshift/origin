@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -13,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kclientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/test/extended/networking"
@@ -378,6 +380,53 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("oc-explain")
+
+	g.It("list uncovered GroupVersionResources", func() {
+		resourceMap := make(map[schema.GroupVersionResource]bool)
+		kubeClient := kclientset.NewForConfigOrDie(oc.AdminConfig())
+		_, resourceList, err := kubeClient.Discovery().ServerGroupsAndResources()
+		if err != nil {
+			e2e.Failf("Failed reading groups and resources %v", err)
+		}
+		for _, rl := range resourceList {
+			for _, r := range rl.APIResources {
+				gv, err := schema.ParseGroupVersion(rl.GroupVersion)
+				if err != nil {
+					e2e.Failf("Couldn't parse GroupVersion for %s: %v", gv, err)
+				}
+				resourceMap[gv.WithResource(r.Name)] = true
+			}
+		}
+
+		for _, bt := range builtinTypes {
+			delete(resourceMap, bt)
+		}
+		for _, ct := range crdTypes {
+			delete(resourceMap, ct)
+		}
+		for _, st := range specialTypes {
+			resource := strings.Split(st.field, ".")
+			delete(resourceMap, st.gv.WithResource(resource[0]))
+		}
+		for _, snt := range specialNetworkingTypes {
+			resource := strings.Split(snt.field, ".")
+			delete(resourceMap, snt.gv.WithResource(resource[0]))
+		}
+
+		e2e.Logf("These GroupVersionResources are missing proper explain test:")
+		for k := range resourceMap {
+			// ignore all k8s built-ins and sub-resources
+			if k.Group == "" || strings.Contains(k.Group, "k8s.io") ||
+				k.Group == "apps" || k.Group == "autoscaling" ||
+				k.Group == "batch" || k.Group == "extensions" ||
+				k.Group == "policy" ||
+				strings.Contains(k.Group, "cncf.io") ||
+				strings.Contains(k.Resource, "/") {
+				continue
+			}
+			e2e.Logf(" - %s", k)
+		}
+	})
 
 	g.It("should contain spec+status for builtinTypes", func() {
 		for _, bt := range builtinTypes {
