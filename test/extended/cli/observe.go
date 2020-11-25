@@ -28,6 +28,10 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("Nothing to sync, exiting immediately"))
 
+		out, err = oc.Run("observe").Args("clusteroperators", "--once").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("kube-apiserver"))
+
 		out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("default kubernetes"))
