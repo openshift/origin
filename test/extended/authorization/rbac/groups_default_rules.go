@@ -204,6 +204,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 		g.By("should only allow the system:authenticated:oauth group to access certain policy rules", func() {
 			testAllGroupRules(ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule("create").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
+				rbacv1helpers.NewRule("get", "list", "watch", "delete").Groups(oauthGroup).Resources("useroauthaccesstokens").RuleOrDie(),
 			}, namespaces.Items)
 		})
 
