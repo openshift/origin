@@ -1475,6 +1475,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc adm serviceaccounts": "serviceaccounts [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc adm storage-admin": "storage-admin [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc adm ui-project-commands": "ui-project-commands [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm user-creation": "user-creation [Suite:openshift/conformance/parallel]",
@@ -1539,8 +1541,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/observe.sh": "test/cmd/observe.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/policy-storage-admin.sh": "test/cmd/policy-storage-admin.sh",
-
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/printer.sh": "test/cmd/printer.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/projects.sh": "test/cmd/projects.sh",
@@ -1548,8 +1548,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh": "test/cmd/quota.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/routes.sh": "test/cmd/routes.sh",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/rsync.sh": "test/cmd/rsync.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/run.sh": "test/cmd/run.sh",
 

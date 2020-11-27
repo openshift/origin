@@ -203,14 +203,12 @@
 // test/extended/testdata/cmd/test/cmd/migrate.sh
 // test/extended/testdata/cmd/test/cmd/newapp.sh
 // test/extended/testdata/cmd/test/cmd/observe.sh
-// test/extended/testdata/cmd/test/cmd/policy-storage-admin.sh
 // test/extended/testdata/cmd/test/cmd/policy.sh
 // test/extended/testdata/cmd/test/cmd/printer.sh
 // test/extended/testdata/cmd/test/cmd/projects.sh
 // test/extended/testdata/cmd/test/cmd/quota.sh
 // test/extended/testdata/cmd/test/cmd/registry.sh
 // test/extended/testdata/cmd/test/cmd/routes.sh
-// test/extended/testdata/cmd/test/cmd/rsync.sh
 // test/extended/testdata/cmd/test/cmd/run.sh
 // test/extended/testdata/cmd/test/cmd/secrets.sh
 // test/extended/testdata/cmd/test/cmd/services.sh
@@ -33299,69 +33297,6 @@ func testExtendedTestdataCmdTestCmdObserveSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdPolicyStorageAdminSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-project="$( oc project -q )"
-
-os::test::junit::declare_suite_start "cmd/policy-storage-admin"
-
-# Test storage-admin role and impersonation
-os::cmd::expect_success 'oc adm policy add-cluster-role-to-user storage-admin storage-adm'
-os::cmd::expect_success 'oc adm policy add-cluster-role-to-user storage-admin storage-adm2'
-os::cmd::expect_success 'oc adm policy add-role-to-user admin storage-adm2'
-os::cmd::expect_success_and_text 'oc policy who-can impersonate storage-admin' 'cluster-admin'
-
-# Test storage-admin role as user level
-#os::cmd::expect_success 'oc login -u storage-adm -p pw'
-#os::cmd::expect_success_and_text 'oc whoami' "storage-adm"
-#os::cmd::expect_failure 'oc whoami --as=basic-user'
-#os::cmd::expect_failure 'oc whoami --as=cluster-admin'
-
-# Test storage-admin can not do normal project scoped tasks
-os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm create pods --all-namespaces' 'no'
-os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm create projects' 'no'
-os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm create pvc' 'no'
-
-# Test storage-admin can read pvc and pods, and create pv and storageclass
-os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm get pvc --all-namespaces' 'yes'
-os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm get storageclass' 'yes'
-os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm create pv' 'yes'
-os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm create storageclass' 'yes'
-os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm get pods --all-namespaces' 'yes'
-
-# Test failure to change policy on users for storage-admin
-os::cmd::expect_failure_and_text 'oc policy --as=storage-adm add-role-to-user admin storage-adm' ' cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"'
-os::cmd::expect_failure_and_text 'oc policy --as=storage-adm remove-user screeley' ' cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"'
-#os::cmd::expect_success 'oc logout'
-
-# Test that scoped storage-admin now an admin in project foo
-#os::cmd::expect_success 'oc login -u storage-adm2 -p pw'
-#os::cmd::expect_success_and_text 'oc whoami' "storage-adm2"
-os::cmd::expect_success 'oc new-project --as=storage-adm2 --as-group=system:authenticated:oauth --as-group=system:authenticated policy-can-i'
-os::cmd::expect_failure_and_text 'oc auth can-i --as=storage-adm2 create pod --all-namespaces' 'no'
-os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm2 create pod' 'yes'
-os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm2 create pvc' 'yes'
-os::cmd::expect_success_and_text 'oc auth can-i --as=storage-adm2 create endpoints' 'yes'
-os::cmd::expect_success 'oc delete project policy-can-i'
-`)
-
-func testExtendedTestdataCmdTestCmdPolicyStorageAdminShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdPolicyStorageAdminSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdPolicyStorageAdminSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdPolicyStorageAdminShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/policy-storage-admin.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdPolicySh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -33997,63 +33932,6 @@ func testExtendedTestdataCmdTestCmdRoutesSh() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/routes.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdRsyncSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all --all
-  exit 0
-) &>/dev/null
-
-os::test::junit::declare_suite_start "cmd/rsync"
-# This test validates the rsync command
-os::cmd::expect_success 'oc create -f - << __EOF__
-apiVersion: v1
-kind: Pod
-metadata:
-  name: valid-pod
-  labels:
-    name: valid-pod
-spec:
-  containers:
-  - name: kubernetes-serve-hostname
-    image: k8s.gcr.io/serve_hostname
-    resources:
-      limits:
-        cpu: "1"
-        memory: 512Mi
-__EOF__'
-
-temp_dir=$(mktemp -d)
-include_file=$(mktemp -p $temp_dir)
-exclude_file=$(mktemp -p $temp_dir)
-
-# we don't actually have a kubelet running, so no "tar" binary will be available in container because there will be no container.
-# instead, ensure that the tar command to be executed is formatted correctly based on our --include and --exclude values
-os::cmd::expect_failure_and_text "oc rsync --strategy=tar --include=$include_file --exclude=$exclude_file $temp_dir valid-pod:/tmp --loglevel 4" "running command: tar.*\*\*\/$include_file.*--exclude=$exclude_file"
-
-echo "rsync: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdRsyncShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdRsyncSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdRsyncSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdRsyncShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/rsync.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -55293,14 +55171,12 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/migrate.sh":                                                         testExtendedTestdataCmdTestCmdMigrateSh,
 	"test/extended/testdata/cmd/test/cmd/newapp.sh":                                                          testExtendedTestdataCmdTestCmdNewappSh,
 	"test/extended/testdata/cmd/test/cmd/observe.sh":                                                         testExtendedTestdataCmdTestCmdObserveSh,
-	"test/extended/testdata/cmd/test/cmd/policy-storage-admin.sh":                                            testExtendedTestdataCmdTestCmdPolicyStorageAdminSh,
 	"test/extended/testdata/cmd/test/cmd/policy.sh":                                                          testExtendedTestdataCmdTestCmdPolicySh,
 	"test/extended/testdata/cmd/test/cmd/printer.sh":                                                         testExtendedTestdataCmdTestCmdPrinterSh,
 	"test/extended/testdata/cmd/test/cmd/projects.sh":                                                        testExtendedTestdataCmdTestCmdProjectsSh,
 	"test/extended/testdata/cmd/test/cmd/quota.sh":                                                           testExtendedTestdataCmdTestCmdQuotaSh,
 	"test/extended/testdata/cmd/test/cmd/registry.sh":                                                        testExtendedTestdataCmdTestCmdRegistrySh,
 	"test/extended/testdata/cmd/test/cmd/routes.sh":                                                          testExtendedTestdataCmdTestCmdRoutesSh,
-	"test/extended/testdata/cmd/test/cmd/rsync.sh":                                                           testExtendedTestdataCmdTestCmdRsyncSh,
 	"test/extended/testdata/cmd/test/cmd/run.sh":                                                             testExtendedTestdataCmdTestCmdRunSh,
 	"test/extended/testdata/cmd/test/cmd/secrets.sh":                                                         testExtendedTestdataCmdTestCmdSecretsSh,
 	"test/extended/testdata/cmd/test/cmd/services.sh":                                                        testExtendedTestdataCmdTestCmdServicesSh,
@@ -55877,46 +55753,44 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"test": {nil, map[string]*bintree{
 						"cmd": {nil, map[string]*bintree{
-							"annotations.sh":          {testExtendedTestdataCmdTestCmdAnnotationsSh, map[string]*bintree{}},
-							"apiresources.sh":         {testExtendedTestdataCmdTestCmdApiresourcesSh, map[string]*bintree{}},
-							"authentication.sh":       {testExtendedTestdataCmdTestCmdAuthenticationSh, map[string]*bintree{}},
-							"basicresources.sh":       {testExtendedTestdataCmdTestCmdBasicresourcesSh, map[string]*bintree{}},
-							"builds.sh":               {testExtendedTestdataCmdTestCmdBuildsSh, map[string]*bintree{}},
-							"completions.sh":          {testExtendedTestdataCmdTestCmdCompletionsSh, map[string]*bintree{}},
-							"config.sh":               {testExtendedTestdataCmdTestCmdConfigSh, map[string]*bintree{}},
-							"create.sh":               {testExtendedTestdataCmdTestCmdCreateSh, map[string]*bintree{}},
-							"deployments.sh":          {testExtendedTestdataCmdTestCmdDeploymentsSh, map[string]*bintree{}},
-							"describer.sh":            {testExtendedTestdataCmdTestCmdDescriberSh, map[string]*bintree{}},
-							"edit.sh":                 {testExtendedTestdataCmdTestCmdEditSh, map[string]*bintree{}},
-							"env.sh":                  {testExtendedTestdataCmdTestCmdEnvSh, map[string]*bintree{}},
-							"framework-test.sh":       {testExtendedTestdataCmdTestCmdFrameworkTestSh, map[string]*bintree{}},
-							"get.sh":                  {testExtendedTestdataCmdTestCmdGetSh, map[string]*bintree{}},
-							"help.sh":                 {testExtendedTestdataCmdTestCmdHelpSh, map[string]*bintree{}},
-							"idle.sh":                 {testExtendedTestdataCmdTestCmdIdleSh, map[string]*bintree{}},
-							"image-lookup.sh":         {testExtendedTestdataCmdTestCmdImageLookupSh, map[string]*bintree{}},
-							"images.sh":               {testExtendedTestdataCmdTestCmdImagesSh, map[string]*bintree{}},
-							"login.sh":                {testExtendedTestdataCmdTestCmdLoginSh, map[string]*bintree{}},
-							"migrate.sh":              {testExtendedTestdataCmdTestCmdMigrateSh, map[string]*bintree{}},
-							"newapp.sh":               {testExtendedTestdataCmdTestCmdNewappSh, map[string]*bintree{}},
-							"observe.sh":              {testExtendedTestdataCmdTestCmdObserveSh, map[string]*bintree{}},
-							"policy-storage-admin.sh": {testExtendedTestdataCmdTestCmdPolicyStorageAdminSh, map[string]*bintree{}},
-							"policy.sh":               {testExtendedTestdataCmdTestCmdPolicySh, map[string]*bintree{}},
-							"printer.sh":              {testExtendedTestdataCmdTestCmdPrinterSh, map[string]*bintree{}},
-							"projects.sh":             {testExtendedTestdataCmdTestCmdProjectsSh, map[string]*bintree{}},
-							"quota.sh":                {testExtendedTestdataCmdTestCmdQuotaSh, map[string]*bintree{}},
-							"registry.sh":             {testExtendedTestdataCmdTestCmdRegistrySh, map[string]*bintree{}},
-							"routes.sh":               {testExtendedTestdataCmdTestCmdRoutesSh, map[string]*bintree{}},
-							"rsync.sh":                {testExtendedTestdataCmdTestCmdRsyncSh, map[string]*bintree{}},
-							"run.sh":                  {testExtendedTestdataCmdTestCmdRunSh, map[string]*bintree{}},
-							"secrets.sh":              {testExtendedTestdataCmdTestCmdSecretsSh, map[string]*bintree{}},
-							"services.sh":             {testExtendedTestdataCmdTestCmdServicesSh, map[string]*bintree{}},
-							"set-data.sh":             {testExtendedTestdataCmdTestCmdSetDataSh, map[string]*bintree{}},
-							"set-image.sh":            {testExtendedTestdataCmdTestCmdSetImageSh, map[string]*bintree{}},
-							"set-liveness-probe.sh":   {testExtendedTestdataCmdTestCmdSetLivenessProbeSh, map[string]*bintree{}},
-							"setbuildhook.sh":         {testExtendedTestdataCmdTestCmdSetbuildhookSh, map[string]*bintree{}},
-							"setbuildsecret.sh":       {testExtendedTestdataCmdTestCmdSetbuildsecretSh, map[string]*bintree{}},
-							"status.sh":               {testExtendedTestdataCmdTestCmdStatusSh, map[string]*bintree{}},
-							"templates.sh":            {testExtendedTestdataCmdTestCmdTemplatesSh, map[string]*bintree{}},
+							"annotations.sh":        {testExtendedTestdataCmdTestCmdAnnotationsSh, map[string]*bintree{}},
+							"apiresources.sh":       {testExtendedTestdataCmdTestCmdApiresourcesSh, map[string]*bintree{}},
+							"authentication.sh":     {testExtendedTestdataCmdTestCmdAuthenticationSh, map[string]*bintree{}},
+							"basicresources.sh":     {testExtendedTestdataCmdTestCmdBasicresourcesSh, map[string]*bintree{}},
+							"builds.sh":             {testExtendedTestdataCmdTestCmdBuildsSh, map[string]*bintree{}},
+							"completions.sh":        {testExtendedTestdataCmdTestCmdCompletionsSh, map[string]*bintree{}},
+							"config.sh":             {testExtendedTestdataCmdTestCmdConfigSh, map[string]*bintree{}},
+							"create.sh":             {testExtendedTestdataCmdTestCmdCreateSh, map[string]*bintree{}},
+							"deployments.sh":        {testExtendedTestdataCmdTestCmdDeploymentsSh, map[string]*bintree{}},
+							"describer.sh":          {testExtendedTestdataCmdTestCmdDescriberSh, map[string]*bintree{}},
+							"edit.sh":               {testExtendedTestdataCmdTestCmdEditSh, map[string]*bintree{}},
+							"env.sh":                {testExtendedTestdataCmdTestCmdEnvSh, map[string]*bintree{}},
+							"framework-test.sh":     {testExtendedTestdataCmdTestCmdFrameworkTestSh, map[string]*bintree{}},
+							"get.sh":                {testExtendedTestdataCmdTestCmdGetSh, map[string]*bintree{}},
+							"help.sh":               {testExtendedTestdataCmdTestCmdHelpSh, map[string]*bintree{}},
+							"idle.sh":               {testExtendedTestdataCmdTestCmdIdleSh, map[string]*bintree{}},
+							"image-lookup.sh":       {testExtendedTestdataCmdTestCmdImageLookupSh, map[string]*bintree{}},
+							"images.sh":             {testExtendedTestdataCmdTestCmdImagesSh, map[string]*bintree{}},
+							"login.sh":              {testExtendedTestdataCmdTestCmdLoginSh, map[string]*bintree{}},
+							"migrate.sh":            {testExtendedTestdataCmdTestCmdMigrateSh, map[string]*bintree{}},
+							"newapp.sh":             {testExtendedTestdataCmdTestCmdNewappSh, map[string]*bintree{}},
+							"observe.sh":            {testExtendedTestdataCmdTestCmdObserveSh, map[string]*bintree{}},
+							"policy.sh":             {testExtendedTestdataCmdTestCmdPolicySh, map[string]*bintree{}},
+							"printer.sh":            {testExtendedTestdataCmdTestCmdPrinterSh, map[string]*bintree{}},
+							"projects.sh":           {testExtendedTestdataCmdTestCmdProjectsSh, map[string]*bintree{}},
+							"quota.sh":              {testExtendedTestdataCmdTestCmdQuotaSh, map[string]*bintree{}},
+							"registry.sh":           {testExtendedTestdataCmdTestCmdRegistrySh, map[string]*bintree{}},
+							"routes.sh":             {testExtendedTestdataCmdTestCmdRoutesSh, map[string]*bintree{}},
+							"run.sh":                {testExtendedTestdataCmdTestCmdRunSh, map[string]*bintree{}},
+							"secrets.sh":            {testExtendedTestdataCmdTestCmdSecretsSh, map[string]*bintree{}},
+							"services.sh":           {testExtendedTestdataCmdTestCmdServicesSh, map[string]*bintree{}},
+							"set-data.sh":           {testExtendedTestdataCmdTestCmdSetDataSh, map[string]*bintree{}},
+							"set-image.sh":          {testExtendedTestdataCmdTestCmdSetImageSh, map[string]*bintree{}},
+							"set-liveness-probe.sh": {testExtendedTestdataCmdTestCmdSetLivenessProbeSh, map[string]*bintree{}},
+							"setbuildhook.sh":       {testExtendedTestdataCmdTestCmdSetbuildhookSh, map[string]*bintree{}},
+							"setbuildsecret.sh":     {testExtendedTestdataCmdTestCmdSetbuildsecretSh, map[string]*bintree{}},
+							"status.sh":             {testExtendedTestdataCmdTestCmdStatusSh, map[string]*bintree{}},
+							"templates.sh":          {testExtendedTestdataCmdTestCmdTemplatesSh, map[string]*bintree{}},
 							"testdata": {nil, map[string]*bintree{
 								"application-template-custombuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson, map[string]*bintree{}},
 								"application-template-dockerbuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson, map[string]*bintree{}},

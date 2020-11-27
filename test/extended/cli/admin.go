@@ -237,6 +237,80 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(out).To(o.ContainSubstring("clusterrolebinding.rbac.authorization.k8s.io/system:openshift:scc:privileged updated"))
 	})
 
+	g.It("storage-admin", func() {
+		g.By("Test storage-admin role and impersonation")
+		o.Expect(oc.Run("adm", "policy", "add-cluster-role-to-user").Args("storage-admin", "storage-adm").Execute()).To(o.Succeed())
+		o.Expect(oc.Run("adm", "policy", "add-cluster-role-to-user").Args("storage-admin", "storage-adm2").Execute()).To(o.Succeed())
+		o.Expect(ocns.Run("adm", "policy", "add-role-to-user").Args("admin", "storage-adm2").Execute()).To(o.Succeed())
+		out, err := oc.Run("policy", "who-can").Args("impersonate", "storage-admin").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("cluster-admin"))
+
+		g.By("Test storage-admin can not do normal project scoped tasks")
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "create", "pods", "--all-namespaces").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("no"))
+
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "create", "projects").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("no"))
+
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "create", "pvc").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("no"))
+
+		g.By("Test storage-admin can read pvc and pods, and create pv and storageclass")
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "get", "pvc", "--all-namespaces").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("yes"))
+
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "get", "storageclass").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("yes"))
+
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "create", "pv").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("yes"))
+
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "create", "storageclass").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("yes"))
+
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm", "get", "pods", "--all-namespaces").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("yes"))
+
+		g.By("Test failure to change policy on users for storage-admin")
+		out, err = oc.Run("policy", "add-role-to-user").Args("admin", "storage-adm", "--as=storage-adm").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring(`cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"`))
+
+		out, err = oc.Run("policy", "remove-user").Args("screeley", "--as=storage-adm").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring(`cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"`))
+
+		g.By("Test that scoped storage-admin now an admin in project foo")
+		o.Expect(oc.Run("new-project").Args("--as=storage-adm2", "--as-group=system:authenticated:oauth", "--as-group=sytem:authenticated", "policy-can-i").Execute()).NotTo(o.HaveOccurred())
+
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm2", "create", "pod", "--all-namespaces").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("no"))
+
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm2", "create", "pod").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("yes"))
+
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm2", "create", "pvc").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("yes"))
+
+		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm2", "create", "endpoints").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.HaveSuffix("yes"))
+
+		oc.Run("delete").Args("policy-can-i").Execute()
+	})
+
 	g.It("role-reapers", func() {
 		policyRoles, err := ocns.Run("process").Args("-f", policyRolesPath, "-p", fmt.Sprintf("NAMESPACE=%s", ocns.Namespace())).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
