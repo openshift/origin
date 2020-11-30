@@ -30,6 +30,7 @@ items:
          ]
       }
     dockerImageManifestMediaType: application/vnd.docker.distribution.manifest.v2+json
+    dockerImageLayers: []
     dockerImageMetadata:
       Architecture: amd64
       Config:
