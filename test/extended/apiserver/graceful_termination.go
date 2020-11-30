@@ -17,28 +17,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 
 	oc := exutil.NewCLI("terminating-kube-apiserver")
 
-	g.It("kubelet terminates kube-apiserver gracefully", func() {
-		t := g.GinkgoT()
-
-		client, err := kubernetes.NewForConfig(oc.AdminConfig())
-		if err != nil {
-			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
-		}
-
-		evs, err := client.CoreV1().Events("openshift-kube-apiserver").List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
-		}
-
-		for _, ev := range evs.Items {
-			if ev.Reason != "NonGracefulTermination" {
-				continue
-			}
-
-			t.Errorf("kube-apiserver reports a non-graceful termination: %#v. Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.", ev)
-		}
-	})
-
 	g.It("kube-apiserver terminates within graceful termination period", func() {
 		t := g.GinkgoT()
 
