@@ -74,11 +74,6 @@ var (
 
 		{Group: "packages.operators.coreos.com", Version: "v1", Resource: "packagemanifests"},
 
-		// metal3.io groups:
-
-		{Group: "metal3.io", Version: "v1alpha1", Resource: "baremetalhosts"},
-		{Group: "metal3.io", Version: "v1alpha1", Resource: "provisionings"},
-
 		// openshift.io groups:
 
 		{Group: "autoscaling.openshift.io", Version: "v1beta1", Resource: "machineautoscalers"},
