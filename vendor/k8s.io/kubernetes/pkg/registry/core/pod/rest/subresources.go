@@ -196,5 +196,7 @@ func newThrottledUpgradeAwareProxyHandler(location *url.URL, transport http.Roun
 	handler.InterceptRedirects = interceptRedirects && utilfeature.DefaultFeatureGate.Enabled(genericfeatures.StreamingProxyRedirects)
 	handler.RequireSameHostRedirects = utilfeature.DefaultFeatureGate.Enabled(genericfeatures.ValidateProxyRedirects)
 	handler.MaxBytesPerSec = capabilities.Get().PerConnectionBandwidthLimitBytesPerSec
+	fmt.Println(fmt.Sprintf("RequireSameHostRedirects is set to %v, for %v", handler.RequireSameHostRedirects, location.Path))
+	fmt.Println(fmt.Sprintf("InterceptRedirects is set to %v, for %v", handler.InterceptRedirects, location.Path))
 	return handler
 }
