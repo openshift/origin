@@ -181,7 +181,7 @@ os::cmd::try_until_text "oc get pods/kube-apiserver -o 'jsonpath={.status.condit
 os::cmd::try_until_text "oc get pods/kube-apiserver -o 'jsonpath={.status.podIP}'" "172"
 kube_ip="$(oc get pods/kube-apiserver -o 'jsonpath={.status.podIP}')"
 kube_kubectl="${tmp}/kube-kubeconfig"
-os::cmd::try_until_text "oc login --config ${kube_kubectl}../kube-kubeconfig https://${kube_ip}:443 --token=secret --insecure-skip-tls-verify=true --loglevel=8" ' as "secret" using the token provided.'
+os::cmd::try_until_text "oc login --kubeconfig ${kube_kubectl}../kube-kubeconfig https://${kube_ip}:443 --token=secret --insecure-skip-tls-verify=true --loglevel=8" ' as "secret" using the token provided.'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end

@@ -32449,7 +32449,6 @@ os::cmd::expect_success 'oc get projects'
 os::cmd::expect_success 'oc project project-foo'
 os::cmd::expect_success_and_text 'oc config view' "current-context.+project-foo/${API_HOST}:${API_PORT}/test-user"
 os::cmd::expect_success_and_text 'oc whoami' 'test-user'
-os::cmd::expect_success_and_text "oc whoami --config='${login_kubeconfig}'" 'system:admin'
 os::cmd::expect_success_and_text "oc whoami --kubeconfig='${login_kubeconfig}'" 'system:admin'
 os::cmd::expect_success_and_text 'oc whoami -t' '.'
 os::cmd::expect_success_and_text 'oc whoami -c' '.'

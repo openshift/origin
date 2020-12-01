@@ -22,7 +22,7 @@ them in, if it is the one you desire.
 
 ## Creating the CronJob
 
-2. `oc create -f examples/pruner/cronjob.yaml -n default --config=admin.kubeconfig`
+2. `oc create -f examples/pruner/cronjob.yaml -n default --kubeconfig=admin.kubeconfig`
 
     This command creates the CronJob resource that runs the pruning job every 1 hour.
 
