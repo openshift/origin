@@ -301,7 +301,19 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 		// Added etcd data.
 		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
-			// TODO: fill when 1.20 rebase has started
+			gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "flowschemas"): {
+				Stub:             `{"metadata": {"name": "va2"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
+				ExpectedEtcdPath: "/registry/flowschemas/va2",
+			},
+			gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "prioritylevelconfigurations"): {
+				Stub:             `{"metadata": {"name": "conf2"}, "spec": {"type": "Limited", "limited": {"assuredConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
+				ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf2",
+			},
+			gvr("node.k8s.io", "v1", "runtimeclasses"): {
+				Stub:             `{"metadata": {"name": "rc3"}, "handler": "h3"}`,
+				ExpectedEtcdPath: "/registry/runtimeclasses/rc3",
+				ExpectedGVK:      gvkP("node.k8s.io", "v1beta1", "RuntimeClass"),
+			},
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
@@ -310,18 +322,23 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		}
 
 		// Modified etcd data.
-		//
-		// TODO: fill when 1.20 rebase has started
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "va1"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
+			ExpectedEtcdPath: "/registry/flowschemas/va1",
+			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta1", "FlowSchema"),
+		}
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "conf1"}, "spec": {"type": "Limited", "limited": {"assuredConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
+			ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf1",
+			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta1", "PriorityLevelConfiguration"),
+		}
 
 		// Removed etcd data.
-		removeStorageData(t, etcdStorageData) // TODO: fill when 1.20 rebase has started
+		removeStorageData(t, etcdStorageData)
 
 	} else {
 		// Remove 1.19 only alpha versions
 		removeStorageData(t, etcdStorageData) // these alphas resources are not enabled in a real cluster but worked fine in the integration test
-		//
-		// TODO: fill when 1.20 rebase has started
-
 	}
 
 	// flowcontrol may or may not be on.  This allows us to ratchet in turning it on.
